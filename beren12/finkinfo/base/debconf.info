@@ -1,7 +1,7 @@
 Package: debconf
 Version: 1.4.42
 Revision: 2
-BuildDepends: html2text, findutils, libgettext3-dev
+BuildDepends: html2text, findutils, libgettext3-dev, po-debconf
 Depends: dialog, %n-english | %n-i18n
 Type: perl
 Source: mirror:debian:/pool/main/d/debconf/%n_%v.tar.gz
@@ -27,13 +27,48 @@ InstallScript: <<
   # Ok, move debconf to it's correct name
   mv %i/bin/debconf.tmp %i/bin/debconf
 
+  mkdir -p %i/share/doc
   ln -s %p/sare/doc/%n %i/share/doc/%n-english
   ln -s %p/sare/doc/%n %i/share/doc/%n-i18n
   ln -s %p/sare/doc/%n %i/share/doc/%n-utils
-  ln -s %p/sare/doc/%n %i/share/doc/%n-doc
 
   mkdir -p %d/DEBIAN
-  cp debian/config debian/templates %d/DEBIAN
+  po2debconf debian/templates > debian/templates.merged
+  cp debian/config %d/DEBIAN
+  cp debian/templates.merged %d/DEBIAN/templates
+
+  # Install manpages
+  mkdir -p %i/share/man/man1
+  mkdir -p %i/share/man/man3
+  mkdir -p %i/share/man/man5
+  mkdir -p %i/share/man/man7
+  mkdir -p %i/share/man/man8
+  mkdir -p %i/share/man/fr/man1
+  mkdir -p %i/share/man/fr/man3
+  mkdir -p %i/share/man/fr/man5
+  mkdir -p %i/share/man/fr/man7
+  mkdir -p %i/share/man/fr/man8
+  mkdir -p %i/share/man/pt_BR/man1
+  mkdir -p %i/share/man/pt_BR/man3
+  mkdir -p %i/share/man/pt_BR/man5
+  mkdir -p %i/share/man/pt_BR/man7
+  mkdir -p %i/share/man/pt_BR/man8
+
+  mv doc/man/gen/*pt_BR.1* %i/share/man/pt_BR/man1
+  mv doc/man/*pt_BR.3 %i/share/man/pt_BR/man3
+  mv doc/man/*pt_BR.5 %i/share/man/pt_BR/man5
+  mv doc/man/*pt_BR.7 %i/share/man/pt_BR/man7
+  mv doc/man/gen/*pt_BR.8* %i/share/man/pt_BR/man8
+  mv doc/man/gen/*fr.1* %i/share/man/fr/man1
+  mv doc/man/*fr.3 doc/man/gen/*fr.3* %i/share/man/fr/man3
+  mv doc/man/*fr.5 %i/share/man/fr/man5
+  mv doc/man/*fr.7 %i/share/man/fr/man7
+  mv doc/man/gen/*fr.8* %i/share/man/fr/man8
+  mv doc/man/gen/*.1* %i/share/man/man1
+  mv doc/man/*.3 doc/man/gen/*.3* %i/share/man/man3
+  mv doc/man/*.5 %i/share/man/man5
+  mv doc/man/*.7 %i/share/man/man7
+  mv doc/man/gen/*.8* %i/share/man/man8
 <<
 
 Splitoff: <<
@@ -56,7 +91,7 @@ Splitoff2: <<
   DescDetail: <<
     This package contains some small utilities for debconf developers.
   <<
-  Files: bin/debconf-[glm]* share/doc/%n share/man/man1/debconf-[glm]*
+  Files: bin/debconf-[glm]* share/doc/%n share/man/man1/debconf-[glm]* share/man/pt_BR/man1/debconf-[glm]* share/man/fr/man1/debconf-[glm]*
 <<
 
 Splitoff3: <<
@@ -79,10 +114,12 @@ Splitoff4: <<
   InstallScript: <<
   #!/bin/sh -e
   mkdir -p %i/share/doc/%n
-  cd doc
-  cp CREDITS README.LDAP TODO namespace.txt EXAMPLES README.translators debconf.schema html.dsl passthrough.txt %i/share/doc/%n/
+  pwd
+  cp -pR samples %i/share/doc/%n/examples
+  mv doc/EXAMPLES doc/EXAMPLES.txt
+  cd doc && cp CREDITS README.LDAP TODO namespace.txt EXAMPLES.txt README.translators debconf.schema html.dsl passthrough.txt %i/share/doc/%n/
   <<
-  Files: share/man/fr/man[357] share/man/man[357] share/man/pt_BR/man[357]
+  Files: share/man/fr/man[137] share/man/man[137] share/man/pt_BR/man[137]
 <<
 
 DocFiles: doc/README debian/README.Debian  debian/changelog
