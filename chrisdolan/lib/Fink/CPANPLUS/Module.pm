@@ -101,12 +101,13 @@ sub doc_files
 {
    my $self = shift;
    my @docfiles = grep !/^(
-                           .*\.(bat|xs|pm|pl|PM|PL) |
+                           .*\.(pm|pl|PM|PL|bat|xs|c|h|a|bs|so|dylib|pod) |
                            Makefile |
                            MANIFEST\.SKIP |
                            INSTALL.* |
+                           [Ii]nstall.* |
                            pm_to_blib
-                           )$/xi, $self->root_files();
+                           )$/x, $self->root_files();
    return @docfiles;
 }
 

@@ -59,9 +59,16 @@ sub module_by_name
    else
    {
       my $re = qr/^\Q$modname\E-\d[\d\.]*\.(?:tar\.gz|zip|tgz)$/i;
-      my ($mod) = $self->{cb}->search(type => "package", allow => [$re]);
-      #print "Search yielded ".$mod->name." for package $modname\n" if ($mod && $self->{verbose});
-      return $mod;
+      # get matching module with the latest version number
+      my @mods = map({$_->[0]}
+                     sort({$b->[1] cmp $a->[1]}
+                          map({[$_,$_->package_version]}
+                              $self->{cb}->search(type => "package", allow => [$re])
+                              )
+                          )
+                     );
+      #print "Search yielded ".$mods[0]->name." for package $modname\n" if ($mods[0] && $self->{verbose});
+      return $mods[0];
    }
 }
 

@@ -12,6 +12,7 @@ mkpkg.pl [options] Some::Module ...
     -m --maintainer=s   specify the maintainer.  This is a required parameter
                           (e.g. -m "Joe Maintainer <joe@foo.com>")
     -u --update         use update mode instead of create mode
+    -N --newversion     only update if there is a new version
     -d --diff           use difference mode instead of create mode
     -P --prereqs        show prereq info (not yet finished)
     -t --typepkg        force %type_pkg[perl] variants
@@ -102,6 +103,7 @@ my %opts = (
             typepkg    => 0,
             bin        => 0, # make a %N-bin splitoff
             details    => 0,
+            newversion => 0,
 
             prefix     => "/sw",
             maintainer => undef,
@@ -112,17 +114,18 @@ my %opts = (
             );
 
 Getopt::Long::Configure("bundling");
-GetOptions("v|verbose"  => \$opts{verbose},
-           "h|help"     => \$opts{help},
-           "V|version"  => \$opts{version},
+GetOptions("v|verbose"      => \$opts{verbose},
+           "h|help"         => \$opts{help},
+           "V|version"      => \$opts{version},
 
-           "u|update"   => \$opts{update},
-           "d|diff"     => \$opts{diff},
-           "f|force"    => \$opts{force},
-           "P|prereqs"  => \$opts{prereqs},
-           "t|typepkg"  => \$opts{typepkg},
-           "b|bin"      => \$opts{bin},
-           "D|details"  => \$opts{details},
+           "u|update"       => \$opts{update},
+           "d|diff"         => \$opts{diff},
+           "f|force"        => \$opts{force},
+           "P|prereqs"      => \$opts{prereqs},
+           "t|typepkg"      => \$opts{typepkg},
+           "b|bin"          => \$opts{bin},
+           "D|details"      => \$opts{details},
+           "N|newversion"   => \$opts{newversion},
 
            "p|prefix=s"     => \$opts{prefix},
            "m|maintainer=s" => \$opts{maintainer},
@@ -170,7 +173,7 @@ foreach my $module (@ARGV)
 {
    if ($opts{update})
    {
-      $fink->update_pkg($module);
+      $fink->update_pkg($module, $opts{newversion});
    }
    elsif ($opts{diff})
    {
