@@ -146,6 +146,7 @@ if ($DOSCP) {
 	my $newfiles;
 	for my $file (@FILES) {
 		$newfiles .= ' ' . $file . '.new';
+		unlink($file);
 		symlink($file . '.new', $file);
 	}
 	`rsync -av -e $ENV{CVS_RSH} $newfiles rangerrick\@fink.sourceforge.net:/home/groups/f/fi/fink/htdocs/news/rdf/ >/tmp/rss-rsync.log 2>&1`;
@@ -350,6 +351,7 @@ sub make_rss {
 			}
 			if (exists $CVS_FILES{$package_file} and ref($CVS_FILES{$package_file}) eq "ARRAY") {
 				my ($author, $content, $revision) = @{$CVS_FILES{$package_file}};
+				$package->{'cvsrev'} = $revision;
 				if ($package->{'type'} ne 'info') {
 					$packagestring .= ' rev. ' . $revision;
 				}
@@ -369,7 +371,13 @@ sub make_rss {
 		if ($package->{'tree'} eq 'experimental') {
 			$link = $package->{'filename'};
 			$link =~ s/^${EXPDIR}\///s;
-			$link = 'http://cvs.sourceforge.net/viewcvs.py/fink/experimental/' . $link . '?rev=' . $package->{'revision'}? $package->{'revision'} : 'HEAD' . '&view=auto';
+			$link = 'http://cvs.sourceforge.net/viewcvs.py/fink/experimental/' . $link . '?rev=';
+			if ($package->{'cvsrev'} ne "") {
+				$link .= $package->{'cvsrev'};
+			} else {
+				$link .= 'HEAD';
+			}
+			$link .= '&view=auto';
 			$title = $packagestring . ' (';
 			if (exists $package->{'description'}) {
 				$title .= $package->{'description'} . ', ';
