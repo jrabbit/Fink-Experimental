@@ -1,0 +1,72 @@
+diff -ur orig/fink test/fink
+--- orig/fink	2005-01-27 20:56:46.000000000 -0600
++++ test/fink	2005-01-27 21:50:32.000000000 -0600
+@@ -124,6 +125,7 @@
+   cleanup      - removes obsolete package files if newer versions are available
+   dumpinfo     - show how fink parses parts of a package's .info file
+   show-deps    - list run-time and compile-time package dependencies
++  snapshot     - create a file detailing all of your installed packages
+ 
+ Options:
+   -h, --help            - display this help text
+diff -ur orig/lib/Fink/Engine.pm test/lib/Fink/Engine.pm
+--- orig/lib/Fink/Engine.pm	2005-01-27 20:56:46.000000000 -0600
++++ test/lib/Fink/Engine.pm	2005-01-27 22:04:59.000000000 -0600
+@@ -96,6 +96,7 @@
+ 	  'showparent'        => [\&cmd_showparent,        1, 0, 0],
+ 	  'dumpinfo'          => [\&cmd_dumpinfo,          1, 0, 0],
+ 	  'show-deps'         => [\&cmd_show_deps,         1, 0, 0],
++	  'snapshot'          => [\&cmd_snapshot,          0, 0, 0],
+ 	);
+ 
+ END { }				# module clean-up code here (global destructor)
+@@ -284,6 +285,49 @@
+ 	Fink::SelfUpdate::finish();
+ }
+ 
++sub cmd_snapshot {
++	my ($pname, $package, @installed, $snapdir, $outfile, @time,
++		$snapversion, $snaprevision, $depends);
++
++	$snapdir = "$basepath/fink/dists/local/main/finkinfo/snapshots";
++	if (! -d $snapdir) {
++		mkdir_p $snapdir or
++			die "can't create directory $snapdir\n";
++	}
++	Fink::Package->require_packages();
++	foreach $pname (Fink::Package->list_packages()) {
++		next if ($pname eq "snap");
++		$package = Fink::Package->package_by_name($pname);
++		if ($package->is_any_installed()) {
++			push @installed, $pname;
++		}
++	}
++	$depends = join(", ", sort(@installed));
++	@time = localtime();
++	$snapversion = sprintf("%04d.%02d.%02d.%02d",
++						   $time[5]+1900, $time[4]+1, $time[3], $time[2]);
++	$snaprevision = 1;
++	$outfile = sprintf("$snapdir/snap-%s-%s.info",
++                       $snapversion, $snaprevision);
++	my @user = getpwnam($ENV{SUDO_USER} || $ENV{USER});
++	local *SNAP;
++	open(SNAP, "> $outfile") or die "can't create file $outfile\n";
++	print SNAP <<"EOF";
++Package: snap
++Version: $snapversion
++Revision: $snaprevision
++Type: bundle
++License: Restrictive
++Description: Snapshot of Fink packages for $user[6]
++Maintainer: $user[6] <$user[0]\@localhost>
++Homepage: http://fink.sourceforge.net/
++
++Depends: $depends
++EOF
++	close(SNAP) or die "can't create file $outfile\n";
++	print "Wrote $outfile\n";
++}
++
+ sub cmd_list {
+ 	do_real_list("list",@_);
+ }
