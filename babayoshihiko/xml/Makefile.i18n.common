@@ -36,8 +36,6 @@ endif
 # basics
 
 all: $(all_targets)
-	echo "Creating generic PHP files" \
-	$(foreach  PHPFILE, $(BASE_TARGET), && echo "<? require_once '../phpLang.inc.php'; ?>" >$(PHPFILE))
 	
 clean:
 	rm -rf *.rdf *.php *.html *.txt *.tmp *.inc
@@ -50,9 +48,11 @@ force: clean all
 
 # rendering to php-framed HTML for the website (multi-page)
 
-%.php: $(SOURCE) $(STYLESHEET_WEBSITE) $(basedir)/finkdoc.dtd
+%.php %.inc: $(SOURCE) $(STYLESHEET_WEBSITE)
 	xmllint --noout --valid $(SOURCE) \
 	$(foreach  XMLFILE, $(SOURCE), && xsltproc --stringparam PRINTFILE $(patsubst %.xml,%.html,$(XMLFILE)) --stringparam DESTDIR $(DESTDIR)/ $(STYLESHEET_WEBSITE) $(XMLFILE))
+	echo "Creating generic PHP files" \
+	$(foreach  PHPFILE, $(BASE_TARGET), && echo "<? require_once '../phpLang.inc.php'; ?>" >$(PHPFILE))
 
 # rendering to pure HTML (monolithic)
 
@@ -61,7 +61,7 @@ force: clean all
 	$(foreach  XMLFILE, $(SOURCE), && xsltproc -o $(patsubst %.xml,%.html.tmp,$(XMLFILE)) $(STYLESHEET_HTML) $(XMLFILE))
 #	xsltproc -o $(patsubst %.xml,%.html.tmp,$(SOURCE)) $(STYLESHEET_HTML) $(SOURCE)
 
-%.html: %.html.tmp
+%.html: %.html.tmp	
 	$(PROCESS_HTML) <$< >$@
 
 # rendering to pure text (monolithic)
