@@ -16,8 +16,13 @@ InstallScript: <<
 #!/bin/sh
 	# hot stinkin' DAMN this is ugly
 	install -d -m 755 %d`%p/bin/xfontpath basedir`/applettf
-	install -c -m 644 `find /Library /System/Library -name \*.ttf -print` *.ttf %d`%p/bin/xfontpath basedir`/applettf/
+	install -c -m 644 *.ttf *.ttf %d`%p/bin/xfontpath basedir`/applettf/
 	pushd %d`%p/bin/xfontpath basedir`/applettf
+	find /Library /System/Library -name \*.ttf | while read FONTFILE; do
+		FONTNAME=`basename $FONTFILE`
+		rm -f "$FONTNAME"
+		ln -s "$FONTFILE" .
+	done
 	echo "generating fonts.dir error list"
 	%p/bin/ttfmkfontdir -o fonts.dir -m 10 -c > /tmp/mkfontdir.output 2>&1
 	#cat /tmp/mkfontdir.output | grep ': unknown' | cut -d: -f 1 | sed -e 's#^font ##' | xargs rm -f
