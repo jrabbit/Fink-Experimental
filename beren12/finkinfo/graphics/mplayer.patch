@@ -1,4 +1,4 @@
-diff -rubN MPlayer-1.0pre3/configure MPlayer-1.0pre3.new/configure
+diff -ruN MPlayer-1.0pre3/configure MPlayer-1.0pre3.new/configure
 --- MPlayer-1.0pre3/configure	Mon Dec  8 16:33:31 2003
 +++ MPlayer-1.0pre3.new/configure	Tue Dec 23 11:34:06 2003
 @@ -257,6 +257,7 @@
@@ -30,22 +30,78 @@ diff -rubN MPlayer-1.0pre3/configure MPlayer-1.0pre3.new/configure
    --install-path=*)
      _install=`echo $ac_option | cut -d '=' -f 2 | sed 's/\/$//'`"/install"
      ;;
-@@ -883,6 +891,7 @@
+@@ -790,11 +798,11 @@
+       if test "$host_arch" = "i586-i686"; then
+         _march="-march=i586"
+         _mcpu="-mcpu=i686"
+-      else      
++      else
+         _march="-march=$host_arch"
+         _mcpu="-mcpu=$host_arch"
+       fi
+-    
++
+       proc="$host_arch"
+ 
+       case "$proc" in
+@@ -883,31 +891,33 @@
  
      echocheck "GCC & CPU optimization abilities"
  
+-    if test -n "$proc"; then
+-        case "$proc" in
+-	    601) _march='-mcpu=601' _mcpu='-mtune=601' ;;
+-	    603) _march='-mcpu=603' _mcpu='-mtune=603' ;;
+-	    603e|603ev) _march='-mcpu=603e' _mcpu='-mtune=603e' ;;
+-	    604|604e|604r|604ev) _march='-mcpu=604' _mcpu='-mtune=604' ;;
+-	    740|740/750|745/755) _march='-mcpu=740' _mcpu='-mtune=740' ;;
+-	    750|750CX) _march='-mcpu=750' _mcpu='-mtune=750' ;;
+-    	    *) ;;
+-        esac
+-	# gcc 3.1(.1) and up supports 7400 and 7450
+-	if test "$_cc_major" -ge "3" && test "$_cc_minor" -ge "1"; then
+-	    case "$proc" in
+-		7400*|7410*) _march='-mcpu=7400' _mcpu='-mtune=7400' ;;
+-		7450*|7455*) _march='-mcpu=7450' _mcpu='-mtune=7450' ;;
+-    		*) ;;
+-    	    esac
+-	fi
+-    fi
 +    if test "$_cpu_optimization" = yes; then
-     if test -n "$proc"; then
-         case "$proc" in
- 	    601) _march='-mcpu=601' _mcpu='-mtune=601' ;;
-@@ -909,6 +918,7 @@
-     else
-         echores "none"
++        if test -n "$proc"; then
++            case "$proc" in
++	        601) _march='-mcpu=601' _mcpu='-mtune=601' ;;
++	        603) _march='-mcpu=603' _mcpu='-mtune=603' ;;
++	        603e|603ev) _march='-mcpu=603e' _mcpu='-mtune=603e' ;;
++	        604|604e|604r|604ev) _march='-mcpu=604' _mcpu='-mtune=604' ;;
++	        740|740/750|745/755) _march='-mcpu=740' _mcpu='-mtune=740' ;;
++	        750|750CX) _march='-mcpu=750' _mcpu='-mtune=750' ;;
++    	        *) ;;
++            esac
++	    # gcc 3.1(.1) and up supports 7400 and 7450
++	    if test "$_cc_major" -ge "3" && test "$_cc_minor" -ge "1"; then
++	        case "$proc" in
++		    7400*|7410*) _march='-mcpu=7400' _mcpu='-mtune=7400' ;;
++		    7450*|7455*) _march='-mcpu=7450' _mcpu='-mtune=7450' ;;
++    		    *) ;;
++    	        esac
++	    fi
++        fi
+ 
+-    if test -n "$_mcpu"; then
+-        _optimizing=`echo $_mcpu | cut -c 8-`
+-        echores "$_optimizing"
+-    else
+-        echores "none"
++        if test -n "$_mcpu"; then
++            _optimizing=`echo $_mcpu | cut -c 8-`
++            echores "$_optimizing"
++        else
++            echores "none"
++        fi
      fi
-+    fi
  
      ;;
- 
 @@ -1209,6 +1219,8 @@
    --with-extralibdir=*) ;;
    --enable-runtime-cpudetection) ;;
@@ -55,7 +111,19 @@ diff -rubN MPlayer-1.0pre3/configure MPlayer-1.0pre3.new/configure
    --install-path=*) ;;
    --with-install=*) ;;
  
-diff -rubN MPlayer-1.0pre3/etc/example.conf MPlayer-1.0pre3.new/etc/example.conf
+@@ -5603,9 +5615,9 @@
+   _stripbinaries=no
+ elif test -z "$CFLAGS" ; then
+   if test "$host_arch" != "mips" ; then
+-    CFLAGS="-O4 $_march $_mcpu -pipe -ffast-math -fomit-frame-pointer"
++    CFLAGS="-O3 $_march $_mcpu -pipe -ffast-math -fomit-frame-pointer"
+   else
+-    CFLAGS="-O4 $_march $_mcpu -ffast-math -fomit-frame-pointer"
++    CFLAGS="-O3 $_march $_mcpu -ffast-math -fomit-frame-pointer"
+   fi
+   # always compile with '-g' if .developer:
+   if test -f ".developer" ; then
+diff -ruN MPlayer-1.0pre3/etc/example.conf MPlayer-1.0pre3.new/etc/example.conf
 --- MPlayer-1.0pre3/etc/example.conf	Sun Nov 30 11:36:05 2003
 +++ MPlayer-1.0pre3.new/etc/example.conf	Thu Dec 18 12:43:41 2003
 @@ -8,13 +8,13 @@
@@ -81,3 +149,56 @@ diff -rubN MPlayer-1.0pre3/etc/example.conf MPlayer-1.0pre3.new/etc/example.conf
  
 -include = /home/gabucino/.mplayer/i_did_not_RTFM_carefully_enough...
 +#include = /home/gabucino/.mplayer/i_did_not_RTFM_carefully_enough...
+diff -ruN MPlayer-1.0pre3/libmpcodecs/vf_fame.c MPlayer-1.0pre3.new/libmpcodecs/vf_fame.c
+--- MPlayer-1.0pre3/libmpcodecs/vf_fame.c	Sat Mar 15 13:01:02 2003
++++ MPlayer-1.0pre3.new/libmpcodecs/vf_fame.c	Thu Dec 18 12:43:41 2003
+@@ -16,7 +16,7 @@
+ #include "vf.h"
+ 
+ //#include "../libvo/fastmemcpy.h"
+-#include "../libfame/fame.h"
++#include <fame.h>
+ 
+ struct vf_priv_s {
+     unsigned char* outbuf;
+diff -ruN MPlayer-1.0pre3/mplayer.c MPlayer-1.0pre3.new/mplayer.c
+--- MPlayer-1.0pre3/mplayer.c	Mon Dec  8 16:33:31 2003
++++ MPlayer-1.0pre3.new/mplayer.c	Mon Dec 29 21:41:03 2003
+@@ -1218,7 +1218,7 @@
+       while ( guiIntfStruct.Playing != 1 )
+        {
+         mp_cmd_t* cmd;                                                                                   
+-	usec_sleep(20000);
++//	usec_sleep(20);
+ 	guiEventHandling();
+ 	guiGetEvent( guiReDraw,NULL );
+ 	if ( (cmd = mp_input_get_cmd(0,0)) != NULL) guiGetEvent( guiIEvent,(char *)cmd->id );
+@@ -2430,7 +2430,7 @@
+ 	     if(vf_menu)
+ 	       vf_menu_pause_update(vf_menu);
+ #endif
+-             usec_sleep(20000);
++//             usec_sleep(20);
+          }
+       mp_cmd_free(cmd);
+          osd_function=OSD_PLAY;
+diff -ruN MPlayer-1.0pre3/osdep/timer-darwin.c MPlayer-1.0pre3.new/osdep/timer-darwin.c
+--- MPlayer-1.0pre3/osdep/timer-darwin.c	Sun Aug  3 14:28:28 2003
++++ MPlayer-1.0pre3.new/osdep/timer-darwin.c	Thu Jan 22 11:23:11 2004
+@@ -74,6 +74,7 @@
+ /* sleep usec_delay microseconds */
+ int usec_sleep(int usec_delay)
+ {
++/*
+   mach_timespec_t start_time, end_time;
+ 
+   clock_get_time(clock_port, &start_time);
+@@ -86,6 +87,8 @@
+   clock_get_time(clock_port, &end_time);
+ 
+   return usec_delay - udiff_time(start_time, end_time);
++*/
++  usleep(usec_delay);
+ }
+ 
+ 
