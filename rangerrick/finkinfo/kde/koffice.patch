@@ -1,6 +1,6 @@
 
 --- example/Makefile.am	25 Apr 2003 15:43:28 -0000	1.1.1.3
-+++ example/Makefile.am	7 Jul 2003 01:46:23 -0000
++++ example/Makefile.am	8 Jul 2003 16:24:16 -0000
 @@ -9,19 +9,12 @@
  libexamplepart_la_LIBADD = $(LIB_KOFFICEUI)
  
@@ -222,6 +222,1871 @@
  liblatexparser_la_LIBADD  = -lm $(KOFFICE_LIBS)
  
  ####### Files
+--- filters/kword/mswrite/kword_mswrite_export.desktop	5 Jul 2003 18:31:18 -0000	1.1.1.2
++++ filters/kword/mswrite/kword_mswrite_export.desktop	8 Jul 2003 16:24:20 -0000
+@@ -3,18 +3,23 @@
+ Type=Service
+ Name=KWord Microsoft Write Export Filter
+ Name[bg]=Филтър за импорт от Microsoft Write към KWord
++Name[ca]=Filtre d'exportació Microsoft Write per a KWord
+ Name[cs]=Exportní filtr formátu MS Write pro KWord
++Name[cy]=Hidl Allforio Microsoft Write KWord
+ Name[da]=KWord Microsoft Write-eksportfilter
+ Name[el]=Φίλτρο εξαγωγής σε Microsoft Write του KWord
+ Name[es]=Filtro de importación a Microsoft Write de KWord
+ Name[fa]=KWord برای Microsoft Write صافی صدور
+ Name[fr]=Filtre d'exportation MS-Write de KWord
+ Name[hu]=KWord Microsoft Write exportszűrő
++Name[it]=Filtro di esportazione Microsoft Write per KWord
+ Name[lv]=KWord Microsoft Write Eksporta Filtrs
+ Name[pt]=Filtro de Exportação de Microsoft Write para o KWord
+ Name[pt_BR]=Filtro de Exportação Microsoft Write do KWord
+ Name[ru]=Фильтр экспорта KWord в Microsoft Write
++Name[sk]=Microsoft Write filter pre export z KWordu
+ Name[sv]=Kword-exportfilter för Microsoft Write
++Name[tr]=KWord Microsoft Write Alma Filtresi 
+ Name[wa]=Passete MS-Write di rexhowe po KWord
+ X-KDE-Export=application/x-mswrite
+ X-KDE-Import=application/x-kword
+--- filters/kword/mswrite/kword_mswrite_import.desktop	5 Jul 2003 18:31:18 -0000	1.1.1.6
++++ filters/kword/mswrite/kword_mswrite_import.desktop	8 Jul 2003 16:24:20 -0000
+@@ -6,6 +6,7 @@
+ Name[bg]=Филтър за импорт от Microsoft Write към KWord
+ Name[ca]=Filtre d'importació Microsoft Write per a KWord
+ Name[cs]=Importní filtr Microsoft Write pro KWord
++Name[cy]=Hidl Mewnforio Microsoft Write KWord 
+ Name[da]=KWord Microsoft Write-importfilter
+ Name[de]=KWord-Import für MS Write
+ Name[el]=Φίλτρο εισαγωγής Microsoft Write του KWord
+--- filters/kword/mswrite/libmswrite.cpp	5 Jul 2003 18:31:18 -0000	1.1.1.2
++++ filters/kword/mswrite/libmswrite.cpp	8 Jul 2003 16:24:20 -0000
+@@ -328,6 +328,14 @@
+ 	}
+ 
+ 
++	Generator::Generator ()
++	{
++	}
++
++	Generator::~Generator ()
++	{
++	}
++
+ 	bool Generator::processText (const Byte *string, bool willReachEndOfParagraph)
+ 	{
+ 		//
+--- filters/kword/mswrite/libmswrite.h	5 Jul 2003 18:31:19 -0000	1.1.1.2
++++ filters/kword/mswrite/libmswrite.h	8 Jul 2003 16:24:20 -0000
+@@ -86,7 +86,7 @@
+ 		FormatInfo &operator= (const FormatInfo &rhs);	// TODO
+ 	public:
+ 		FormatInfo ();
+-		~FormatInfo ();
++		virtual ~FormatInfo ();
+ 
+ 		void setType (const enum FormatInfoPageTypes t)	{	m_type = t;	}
+ 
+@@ -129,6 +129,9 @@
+ 	class Generator
+ 	{
+ 	public:
++		Generator ();
++		virtual ~Generator ();
++
+ 		/**
+ 		 *
+ 		 * Document block (you must implement these signals)
+@@ -251,7 +254,7 @@
+ 
+ 	public:
+ 		InternalParser ();
+-		~InternalParser ();
++		virtual ~InternalParser ();
+ 
+ 		bool parse (void);
+ 	};
+@@ -274,7 +277,7 @@
+ 		
+ 	public:
+ 		InternalGenerator ();
+-		~InternalGenerator ();
++		virtual ~InternalGenerator ();
+ 
+ 		bool writeDocumentBegin (const Word format, const PageLayout *pageLayout);
+ 		bool writeDocumentEnd (const Word format, const PageLayout *pageLayout);
+--- filters/kword/mswrite/libmswrite_defs.cpp	5 Jul 2003 18:31:19 -0000	1.1.1.2
++++ filters/kword/mswrite/libmswrite_defs.cpp	8 Jul 2003 16:24:20 -0000
+@@ -23,7 +23,7 @@
+ 
+ namespace MSWrite
+ {
+-	const char *Version = "0.51pre 2003/06/08";
++	const char *Version = "0.51pre 2003/07/09";
+ }
+ 
+ // end of libmswrite_defs.cpp
+--- filters/kword/mswrite/libmswrite_defs.h	5 Jul 2003 18:31:19 -0000	1.1.1.2
++++ filters/kword/mswrite/libmswrite_defs.h	8 Jul 2003 16:24:20 -0000
+@@ -434,6 +434,14 @@
+ 	class MemoryDevice : public Device
+ 	{
+ 	public:
++		MemoryDevice ()
++		{
++		}
++
++		virtual ~MemoryDevice ()
++		{
++		}
++
+ 		bool read (Byte * /*buf*/, const DWord /*numBytes*/)
+ 		{
+ 			error (Error::InternalError, "memory device not reading from memory?\n");
+@@ -502,6 +510,10 @@
+ 			setVal (val);
+ 		}
+ 
++		~UseThisMuchPrefixSize ()
++		{
++		}
++
+ 		bool operator== (const UseThisMuchPrefixSize &rhs)
+ 		{
+ 			return m_val == rhs.m_val;
+@@ -573,6 +585,15 @@
+ 				return biggest / 8 + 1;	// account for fractional byte
+ 			else
+ 				return biggest / 8;
++		}
++
++	public:
++		UseThisMuch ()
++		{
++		}
++
++		virtual ~UseThisMuch ()
++		{
+ 		}
+ 	};
+ 	
+--- filters/kword/mswrite/list.h	5 Jul 2003 18:31:19 -0000	1.1.1.2
++++ filters/kword/mswrite/list.h	8 Jul 2003 16:24:20 -0000
+@@ -61,6 +61,10 @@
+ 			m_data = data;
+ 		}
+ 
++		~ListElement ()
++		{
++		}
++
+ 		dtype &getData (void) const
+ 		{
+ 			return m_data;
+@@ -96,7 +100,7 @@
+ 	class ListIterator
+ 	{
+ 	private:
+-		bool m_foward;
++		bool m_forward;
+ 		ListElement <dtype> *m_upto;
+ 
+ 		void setPtr (ListElement <dtype> *ptr)
+@@ -105,14 +109,14 @@
+ 		}
+ 
+ 	public:
+-		ListIterator (const bool foward = true)
++		ListIterator (const bool forward = true)
+ 		{
+-			m_foward = foward;
++			m_forward = forward;
+ 		}
+ 
+ 		ListIterator <dtype> &prev (void)
+ 		{
+-			if (m_foward)
++			if (m_forward)
+ 				m_upto = m_upto->m_prev;
+ 			else
+ 				m_upto = m_upto->m_next;
+@@ -120,6 +124,10 @@
+ 			return *this;
+ 		}
+ 
++		~ListIterator ()
++		{
++		}
++		
+ 		ListIterator <dtype> &operator-- (void)
+ 		{
+ 			return prev ();
+@@ -132,7 +140,7 @@
+ 
+ 		ListIterator <dtype> &next (void)
+ 		{
+-			if (m_foward)
++			if (m_forward)
+ 				m_upto = m_upto->m_next;
+ 			else
+ 				m_upto = m_upto->m_prev;
+@@ -185,7 +193,7 @@
+ 			m_good = true;
+ 		}
+ 
+-		~List ()
++		virtual ~List ()
+ 		{
+ 			killself ();
+ 		}
+@@ -308,10 +316,10 @@
+ 		typedef ListIterator <dtype> Iterator;
+ 		friend class ListIterator <dtype>;
+ 
+-		ListIterator <dtype> begin (const bool foward = true) const
++		ListIterator <dtype> begin (const bool forward = true) const
+ 		{
+-			ListIterator <dtype> ret (foward);
+-			if (foward)
++			ListIterator <dtype> ret (forward);
++			if (forward)
+ 				ret.setPtr (m_head);
+ 			else
+ 				ret.setPtr (m_tail);
+--- filters/kword/mswrite/mswriteexport.cc	5 Jul 2003 18:31:19 -0000	1.1.1.2
++++ filters/kword/mswrite/mswriteexport.cc	8 Jul 2003 16:24:20 -0000
+@@ -1,4 +1,4 @@
+-/* $Id$ */
++/* $Id$ */
+ 
+ /* This file is part of the KDE project
+    Copyright (C) 2002-2003 Clarence Dang <dang@kde.org>
+@@ -408,9 +408,13 @@
+ 	// In Write the header/footer must be the same for every page except that
+ 	// you can choose to not display it on the first page
+ 	//
+-	// This filter aims to be as lossless as possible so if we can't
+-	// accomodate the types of headers/footers found in KWord, we at least
+-	// print out the paragraphs in the body
++	// /*This filter aims to be as lossless as possible so if we can't
++	// accommodate the types of headers/footers found in KWord, we at least
++	// print out the paragraphs in the body*/
++	//
++	//    Not anymore. Dumping headers & footers in the body didn't
++	//    turn out to be that useful, nor was it expected by users.
++	//
+ 	bool doPageInfo (int headerType, int footerType)
+ 	{
+ 		kdDebug (30509) << "doPageInfo (headerType=" << headerType
+@@ -1063,6 +1067,11 @@
+ 
+ 						// convert twip measurements that aren't in 72dpi
+ 						int defaultDpi = wmf.defaultDpi ();
++						if (defaultDpi <= 0)
++						{
++							kdWarning (30509) << "Invalid defaultDPI: " << defaultDpi << endl;
++							defaultDpi = 1440;
++						}
+ 						imageActualWidth = width * 1440 / defaultDpi;
+ 						imageActualHeight = height * 1440 / defaultDpi;
+ 
+@@ -1247,7 +1256,7 @@
+ 
+ 		MSWrite::FormatParaProperty paraProp; paraProp = *paraPropIn;
+ 		paraProp.setIsObject (true);
+-		paraProp.setLeftIndent (0);	// not neccessary but...
++		paraProp.setLeftIndent (0);	// not necessary but...
+ 		if (!m_generator->writeParaInfoBegin (&paraProp, NULL, &image))
+ 			return false;
+ 
+@@ -1897,7 +1906,7 @@
+ 
+ KoFilter::ConversionStatus MSWriteExport::convert (const QCString &from, const QCString &to)
+ {
+-	kdDebug (30509) << "MSWriteExport $Date$ using LibMSWrite "
++	kdDebug (30509) << "MSWriteExport $Date$ using LibMSWrite "
+ 			  				<< MSWrite::Version << endl;
+ 
+ 	if (to != "application/x-mswrite" || from != "application/x-kword")
+--- filters/kword/mswrite/mswriteimport.cc	5 Jul 2003 18:31:19 -0000	1.1.1.5
++++ filters/kword/mswrite/mswriteimport.cc	8 Jul 2003 16:24:20 -0000
+@@ -1,5 +1,3 @@
+-/* $Id$ */
+-
+ /* This file is part of the KDE project
+    Copyright (C) 2001-2003 Clarence Dang <dang@kde.org>
+ 
+@@ -1093,7 +1091,7 @@
+ 
+ 		m_formatOutput += "<FONT name=\"";
+ 			m_formatOutput += (const char *) (charProperty->getFont ()->getName ());
+-			m_formatOutput += "\"/>";;
++			m_formatOutput += "\"/>";
+ 			m_formatOutput += "<SIZE value=\"";
+ 			m_formatOutput += QString::number (charProperty->getFontSize ());
+ 			m_formatOutput += "\"/>";
+@@ -1348,7 +1346,7 @@
+ 
+ KoFilter::ConversionStatus MSWriteImport::convert (const QCString &from, const QCString &to)
+ {
+-	kdDebug (30509) << "MSWriteImport $Date$ using LibMSWrite "
++	kdDebug (30509) << "MSWriteImport $Date$ using LibMSWrite "
+ 			  				<< MSWrite::Version << endl;
+ 
+ 	if (to != "application/x-kword" || from != "application/x-mswrite")
+--- filters/kword/mswrite/structures.cpp	5 Jul 2003 18:31:20 -0000	1.1.1.2
++++ filters/kword/mswrite/structures.cpp	8 Jul 2003 16:24:20 -0000
+@@ -23,7 +23,7 @@
+  * structures.cpp - Process Internal Microsoft(r) Write file structures
+  * This file has ugly reading/writing code that couldn't be generated.
+  * It performs some higher-level sanity checks.
+- * 
++ *
+  */
+ 
+ #include "structures.h"
+@@ -39,6 +39,19 @@
+ 	{
+ 	}
+ 
++	PageLayout &PageLayout::operator= (const PageLayout &rhs)
++	{
++		if (this == &rhs)
++			return *this;
++
++		PageLayoutGenerated::operator= (rhs);
++		NeedsHeader::operator= (rhs);
++
++		m_numModified = rhs.m_numModified;
++
++		return *this;
++	}
++
+ 	bool PageLayout::readFromDevice (void)
+ 	{
+ 	CHECK_DEVICE;
+@@ -69,7 +82,7 @@
+ 	#ifdef DEBUG_PAGELAYOUT
+ 		Dump (magic102);
+ 		Dump (magic512);
+-		
++
+ 		Dump (pageHeight);
+ 		Dump (pageWidth);
+ 		Dump (pageNumberStart);
+@@ -79,7 +92,7 @@
+ 		Dump (textWidth);
+ 
+ 		Dump (magic256);
+-		
++
+ 		Dump (headerFromTop);
+ 		Dump (footerFromTop);
+ 
+@@ -109,7 +122,7 @@
+ 		//UpdateModifiedCount (unknown);	// no reliable default for unknown
+ 		UpdateModifiedCount (zero2);
+ 		#undef UpdateModifiedCount
+-		
++
+ 		return true;
+ 	}
+ 
+@@ -145,6 +158,18 @@
+ 		delete [] m_name;
+ 	}
+ 
++	Font &Font::operator= (const Font &rhs)
++	{
++		if (this == &rhs)
++			return *this;
++
++		FontGenerated::operator= (rhs);
++
++		setName (rhs.getName ());
++
++		return *this;
++	}
++
+ 	bool Font::readFromDevice (void)
+ 	{
+ 	CHECK_DEVICE;
+@@ -228,11 +253,38 @@
+ 	FormatCharProperty::~FormatCharProperty ()
+ 	{
+ 	}
+-	
++
++	FormatCharProperty &FormatCharProperty::operator= (const FormatCharProperty &rhs)
++	{
++		if (this == &rhs)
++			return *this;
++
++		FormatCharPropertyGenerated::operator= (rhs);
++
++		m_afterEndCharByte = rhs.m_afterEndCharByte;
++		m_fontTable = rhs.m_fontTable;
++		m_font = rhs.m_font;
++
++		return *this;
++	}
++
++	bool FormatCharProperty::operator== (FormatCharProperty &rhs)
++	{
++		DWord numDataBytes;
++
++		if ((numDataBytes = getNumDataBytes ()) != rhs.getNumDataBytes ())
++			return false;
++
++		writeToArray ();
++		rhs.writeToArray ();
++
++		return memcmp (m_data + sizeof (m_numDataBytes), rhs.m_data + sizeof (m_numDataBytes), numDataBytes) == 0;
++	}
++
+ 	bool FormatCharProperty::readFromDevice (void)
+ 	{
+ 	CHECK_DEVICE;
+-	
++
+ 	#ifdef DEBUG_CHAR
+ 		m_device->debug ("\nFormatCharProperty::readFromDevice\n");
+ 	#endif
+@@ -259,7 +311,7 @@
+ 
+ 		return FormatCharPropertyGenerated::writeToDevice ();
+ 	}
+-	
++
+ 	bool FormatCharProperty::updateFont (void)
+ 	{
+ 		Font *fontPtr = m_fontTable->getFont (getFontCode ());
+@@ -291,6 +343,16 @@
+ 	{
+ 	}
+ 
++	FormatParaPropertyTabulator &FormatParaPropertyTabulator::operator= (const FormatParaPropertyTabulator &rhs)
++	{
++		if (this == &rhs)
++			return *this;
++
++		FormatParaPropertyTabulatorGenerated::operator= (rhs);
++
++		return *this;
++	}
++
+ 	bool FormatParaPropertyTabulator::readFromDevice (void)
+ 	{
+ 	CHECK_DEVICE;
+@@ -328,13 +390,39 @@
+ 																m_numTabulators (0),
+ 																m_addedTooManyTabs (false)
+ 	{
+-		// m_afterEndCharByte = 
++		// m_afterEndCharByte =
+ 	}
+ 
+ 	FormatParaProperty::~FormatParaProperty ()
+ 	{
+ 	}
+ 
++	FormatParaProperty &FormatParaProperty::operator= (const FormatParaProperty &rhs)
++	{
++		if (this == &rhs)
++			return *this;
++
++		FormatParaPropertyGenerated::operator= (rhs);
++
++		m_afterEndCharByte = rhs.m_afterEndCharByte;
++		m_leftMargin = rhs.m_leftMargin, m_rightMargin = rhs.m_rightMargin;
++		m_numTabulators = rhs.m_numTabulators;
++		m_addedTooManyTabs = rhs.m_addedTooManyTabs;
++
++		return *this;
++	}
++
++	bool FormatParaProperty::operator== (FormatParaProperty &rhs)
++	{
++		DWord numDataBytes;
++		if ((numDataBytes = getNumDataBytes ()) != rhs.getNumDataBytes ())
++			return false;
++
++		writeToArray ();
++		rhs.writeToArray ();
++
++		return memcmp (m_data + sizeof (m_numDataBytes), rhs.m_data + sizeof (m_numDataBytes), numDataBytes) == 0;
++	}
+ 
+ 	bool FormatParaProperty::readFromDevice (void)
+ 	{
+@@ -343,7 +431,7 @@
+ 	#ifdef DEBUG_PARA
+ 		m_device->debug ("\nFormatParaProperty::readFromDevice\n");
+ 	#endif
+-		
++
+ 	#ifdef CHECK_INTERNAL
+ 		if (m_leftMargin == 0xFFFF && m_rightMargin == 0xFFFF)
+ 			ErrorAndQuit (Error::InternalError, "FormatParaProperty::readFromDevice call not setup\n");
+@@ -405,9 +493,9 @@
+ 
+ 		if (m_numTabulators > 12)
+ 			m_device->error (Error::Warn, "should not have more than 12 tabulators since you can only access 12 tabs via the GUI\n");
+-		
++
+ 		// --- indents adjusted in updateIndents() called by FormatInfoPage::add() ---
+-		
++
+ 		if (!FormatParaPropertyGenerated::writeToDevice ())
+ 			return false;
+ 
+@@ -428,6 +516,33 @@
+ 		delete [] m_externalImage;
+ 	}
+ 
++	Image &Image::operator= (const Image &rhs)
++	{
++		if (this == &rhs)
++			return *this;
++
++		ImageGenerated::operator= (rhs);
++
++		m_externalImageSize = rhs.m_externalImageSize;
++		m_externalImageUpto = rhs.m_externalImageUpto;
++
++		delete [] m_externalImage;
++		m_externalImage = new Byte [m_externalImageSize];
++		if (!m_externalImage)
++			return *this;  // TODO: error check
++
++		if (rhs.m_externalImage)
++			memcpy (m_externalImage, rhs.m_externalImage, m_externalImageUpto);
++
++		m_originalWidth = rhs.m_originalWidth;
++		m_originalHeight = rhs.m_originalHeight;
++
++		m_displayedWidth = rhs.m_displayedWidth;
++		m_displayedHeight = rhs.m_displayedHeight;
++
++		return *this;
++	}
++
+ 	// returns how many bytes are needed for each scanline (with byte padding)
+ 	int Image::getBytesPerScanLine (const int width, const int bitsPerPixel, const int padBytes)
+ 	{
+@@ -539,10 +654,10 @@
+ 				m_device->error (Error::Warn, "m_MFP_height != m_bmh->getHeight() * 2.64\n");
+ 
+ #undef MSWrite_fabs
+-				
++
+ 			if (m_width)
+ 				m_device->error (Error::Warn, "m_width should not be set for BMPs\n");
+-			
++
+ 			if (m_height)
+ 				m_device->error (Error::Warn, "m_height should not be set for BMPs\n");
+ 
+@@ -550,13 +665,13 @@
+ 			//
+ 			// read image
+ 			//
+-			
++
+ 			Byte *internalData = new Byte [getNumDataBytes ()];
+ 			if (!internalData)
+ 				ErrorAndQuit (Error::OutOfMemory, "could not allocate memory for internal BMP image\n");
+ 			if (!m_device->readInternal (internalData, getNumDataBytes ()))
+ 				ErrorAndQuit (Error::FileError, "could not read internal BMP\n");
+-		
++
+ 			// infoHeader
+ 			BMP_BitmapInfoHeader infoHeader;
+ 			infoHeader.setWidth (m_bmh->getWidth ());
+@@ -713,8 +828,8 @@
+ 
+ 			// not used by WMFs
+ 			m_horizontalScalingRel1000 = m_verticalScalingRel1000 = 1000;
+-			
+-			
++
++
+ 			// write header
+ 			setNumDataBytes (m_externalImageSize);
+ 			if (!ImageGenerated::writeToDevice ())
+@@ -748,7 +863,7 @@
+ 			BMP_BitmapInfoHeader infoHeader;
+ 			infoHeader.setDevice (m_device);
+ 			if (!infoHeader.readFromDevice ()) return false;
+-			
++
+ 			// write out each scanline
+ 			// to .WRI (padded to 2) vs input BMP (padded to 4
+ 			Word scanLineWRILength = getBytesPerScanLine (infoHeader.getWidth (), infoHeader.getBitsPerPixel (), 2);
+@@ -758,7 +873,7 @@
+ 				ErrorAndQuit (Error::Warn, "infoHeader width != m_originalWidth\n");
+ 			if (infoHeader.getHeight () != Word (Twip2Point (m_originalHeight)))
+ 				ErrorAndQuit (Error::Warn, "infoHeader.height != m_originalHeight\n");
+-				
++
+ 			m_bmh->setWidth (infoHeader.getWidth ());
+ 			m_bmh->setHeight (infoHeader.getHeight ());
+ 			m_bmh->setWidthBytes (scanLineWRILength);
+@@ -792,20 +907,20 @@
+ 			// finish reading from m_externalImage
+ 			m_device->setCache (NULL);
+ 
+-		
++
+ 			//
+ 			// set image dimensions
+ 			//
+-			
++
+ 			m_MFP_width = Word (Twip2Point (m_originalWidth) * 2.64);
+ 			m_MFP_height = Word (Twip2Point (m_originalHeight) * 2.64);
+-			
++
+ 			// BMPs don't use
+ 			m_width = 0, m_height = 0;
+-			
++
+ 			m_horizontalScalingRel1000 = Word (m_displayedWidth * 1.38889 * 1000.0 / m_originalWidth);
+ 			m_verticalScalingRel1000 = Word (m_displayedHeight * 1.38889 * 1000.0 / m_originalHeight);
+-			
++
+ 
+ 			// write header
+ 			setNumDataBytes (infoHeader.getHeight () * scanLineBMPLength);
+@@ -841,6 +956,27 @@
+ 		delete [] m_externalObject;
+ 	}
+ 
++	OLE &OLE::operator= (const OLE &rhs)
++	{
++		if (this == &rhs)
++			return *this;
++
++		OLEGenerated::operator= (rhs);
++
++		m_externalObjectSize = rhs.m_externalObjectSize;
++		m_externalObjectUpto = rhs.m_externalObjectUpto;
++
++		delete [] m_externalObject;
++		m_externalObject = new Byte [m_externalObjectSize];
++		if (!m_externalObject)
++			return *this;  // TODO: error check
++
++		if (rhs.m_externalObject)
++			memcpy (m_externalObject, rhs.m_externalObject, m_externalObjectUpto);
++
++		return *this;
++	}
++
+ 	bool OLE::readFromDevice (void)
+ 	{
+ 	CHECK_DEVICE;
+@@ -900,7 +1036,7 @@
+ 	#ifdef DEBUG_OBJECT
+ 		m_device->debug ("\n>>>> OLE::writeToDevice <<<<\n");
+ 	#endif
+-		
++
+ 	#ifdef DEBUG_OBJECT
+ 		Dump (zero);
+ 
+@@ -934,11 +1070,11 @@
+ 		// write header
+ 		if (!OLEGenerated::writeToDevice ())
+ 			return false;
+-		
++
+ 		// write data
+ 		if (!m_device->writeInternal (m_externalObject, m_externalObjectSize))
+ 			return false;
+-		
++
+ 		return true;
+ 	}
+ 
+--- filters/kword/mswrite/structures.h	5 Jul 2003 18:31:20 -0000	1.1.1.2
++++ filters/kword/mswrite/structures.h	8 Jul 2003 16:24:20 -0000
+@@ -65,7 +65,9 @@
+ 
+ 	public:
+ 		PageLayout ();
+-		~PageLayout ();
++		virtual ~PageLayout ();
++
++		PageLayout &operator= (const PageLayout &rhs);
+ 
+ 		bool getIsModified (void) const	{	return m_numModified > 0;	}
+ 
+@@ -161,19 +163,9 @@
+ 		};
+ 
+ 		Font (const Byte *name = NULL, const Byte family = DontCare);
+-		~Font ();
+-
+-		Font &operator= (const Font &rhs)
+-		{
+-			if (this == &rhs)
+-				return *this;
++		virtual ~Font ();
+ 
+-			FontGenerated::operator= (rhs);
+-
+-			setName (rhs.getName ());
+-
+-			return *this;
+-		}
++		Font &operator= (const Font &rhs);
+ 
+ 		Byte *getName (void) const	{	return m_name;	}
+ 		Byte *setName (const Byte *s)
+@@ -258,21 +250,9 @@
+ 
+ 	public:
+ 		FormatCharProperty ();
+-		~FormatCharProperty ();
++		virtual ~FormatCharProperty ();
+ 
+-		FormatCharProperty &operator= (const FormatCharProperty &rhs)
+-		{
+-			if (this == &rhs)
+-				return *this;
+-
+-			FormatCharPropertyGenerated::operator= (rhs);
+-
+-			m_afterEndCharByte = rhs.m_afterEndCharByte;
+-			m_fontTable = rhs.m_fontTable;
+-			m_font = rhs.m_font;
+-
+-			return *this;
+-		}
++		FormatCharProperty &operator= (const FormatCharProperty &rhs);
+ 
+ 		const Font *getFont (void) const
+ 		{
+@@ -310,18 +290,7 @@
+ 		void setIsSubscript (void)	{	setPosition (252);	/* common value */	}
+ 
+ 		// compares if the contents are the same (not if it points to the same place etc. etc.)
+-		bool operator== (FormatCharProperty &rhs)
+-		{
+-			DWord numDataBytes;
+-			
+-			if ((numDataBytes = getNumDataBytes ()) != rhs.getNumDataBytes ())
+-				return false;
+-			
+-			writeToArray ();
+-			rhs.writeToArray ();
+-			
+-			return memcmp (m_data + sizeof (m_numDataBytes), rhs.m_data + sizeof (m_numDataBytes), numDataBytes) == 0;
+-		}
++		bool operator== (FormatCharProperty &rhs);
+ 	};
+ 
+ 	
+@@ -335,8 +304,10 @@
+ 
+ 	public:
+ 		FormatParaPropertyTabulator ();
+-		~FormatParaPropertyTabulator ();
++		virtual ~FormatParaPropertyTabulator ();
+ 
++		FormatParaPropertyTabulator &operator= (const FormatParaPropertyTabulator &rhs);
++		
+ 		// you can use getType()/setType() if you really want to...
+ 		bool getIsNormal (void) const	{	return m_type == 0;	}
+ 		void setIsNormal (const bool yes = true)	{	m_type = (yes ? 0 : 3);	}
+@@ -401,21 +372,9 @@
+ 
+ 	public:
+ 		FormatParaProperty ();
+-		~FormatParaProperty ();
++		virtual ~FormatParaProperty ();
+ 
+-		FormatParaProperty &operator= (const FormatParaProperty &rhs)
+-		{
+-			if (this == &rhs)
+-				return *this;
+-
+-			FormatParaPropertyGenerated::operator= (rhs);
+-			
+-			m_afterEndCharByte = rhs.m_afterEndCharByte;
+-			m_leftMargin = rhs.m_leftMargin, m_rightMargin = rhs.m_rightMargin;
+-			m_numTabulators = rhs.m_numTabulators;
+-			
+-			return *this;
+-		}
++		FormatParaProperty &operator= (const FormatParaProperty &rhs);
+ 		
+ 		// convenience functions
+ 		Byte getAlign (void) const	{	return getAlignment ();	}
+@@ -507,17 +466,7 @@
+ 		}
+ 
+ 		// compares if the contents are the same (not if it points to the same place etc. etc.)
+-		bool operator== (FormatParaProperty &rhs)
+-		{
+-			DWord numDataBytes;
+-			if ((numDataBytes = getNumDataBytes ()) != rhs.getNumDataBytes ())
+-				return false;
+-			
+-			writeToArray ();
+-			rhs.writeToArray ();
+-			
+-			return memcmp (m_data + sizeof (m_numDataBytes), rhs.m_data + sizeof (m_numDataBytes), numDataBytes) == 0;
+-		}
++		bool operator== (FormatParaProperty &rhs);
+ 	};
+ 	
+ 
+@@ -548,34 +497,9 @@
+ 		bool writeToDevice (void);	friend class InternalParser;
+ 	public:
+ 		Image ();
+-		~Image ();
+-
+-		Image &operator= (const Image &rhs)
+-		{
+-			if (this == &rhs)
+-				return *this;
+-
+-			ImageGenerated::operator= (rhs);
+-
+-			m_externalImageSize = rhs.m_externalImageSize;
+-			m_externalImageUpto = rhs.m_externalImageUpto;
+-
+-			delete [] m_externalImage;
+-			m_externalImage = new Byte [m_externalImageSize];
+-			if (!m_externalImage)
+-				return *this;	// TODO: error check
+-
+-			if (rhs.m_externalImage)
+-				memcpy (m_externalImage, rhs.m_externalImage, m_externalImageUpto);
++		virtual ~Image ();
+ 
+-			m_originalWidth = rhs.m_originalWidth;
+-			m_originalHeight = rhs.m_originalHeight;
+-
+-			m_displayedWidth = rhs.m_displayedWidth;
+-			m_displayedHeight = rhs.m_displayedHeight;
+-			
+-			return *this;
+-		}
++		Image &operator= (const Image &rhs);
+ 		
+ 		bool getIsWMF (void) const	{	return m_mappingMode != 0xE3;	}
+ 		bool getIsBMP (void) const	{	return m_mappingMode == 0xE3;	}
+@@ -658,28 +582,9 @@
+ 
+ 	public:
+ 		OLE ();
+-		~OLE ();
+-
+-		OLE &operator= (const OLE &rhs)
+-		{
+-			if (this == &rhs)
+-				return *this;
++		virtual ~OLE ();
+ 
+-			OLEGenerated::operator= (rhs);
+-
+-			m_externalObjectSize = rhs.m_externalObjectSize;
+-			m_externalObjectUpto = rhs.m_externalObjectUpto;
+-
+-			delete [] m_externalObject;
+-			m_externalObject = new Byte [m_externalObjectSize];
+-			if (!m_externalObject)
+-				return *this;	// TODO: error check
+-				
+-			if (rhs.m_externalObject)
+-				memcpy (m_externalObject, rhs.m_externalObject, m_externalObjectUpto);
+-
+-			return *this;
+-		}
++		OLE &operator= (const OLE &rhs);
+ 
+ 		Byte *getExternalObject (void) const	{	return m_externalObject;	}
+ 		DWord getExternalObjectSize (void) const	{	return m_externalObjectSize;	}
+--- filters/kword/mswrite/structures_generated.cpp	5 Jul 2003 18:31:20 -0000	1.1.1.2
++++ filters/kword/mswrite/structures_generated.cpp	8 Jul 2003 16:24:20 -0000
+@@ -21,7 +21,7 @@
+ 
+ /*
+  * structures_generated - Internal MS Write file structures
+- * This file was generated by make_structures_generated 0.51pre 2003/06/08.
++ * This file was generated by make_structures_generated 0.51pre 2003/07/09.
+  * ALL CHANGES MADE TO THIS FILE "WILL BE LOST IN TIME LIKE TEARS IN RAIN"!
+  */
+ 
+@@ -30,8 +30,8 @@
+ #include <string.h>
+ 
+ #include "structures_generated.h"
+-#include "structures_private.h"	// for foward references to embedded structures
+-#include "structures.h"	// for foward references to embedded structures
++#include "structures_private.h"	// for forward references to embedded structures
++#include "structures.h"	// for forward references to embedded structures
+ 
+ namespace MSWrite
+ {
+@@ -431,7 +431,7 @@
+ 		// --- allocate memory for embedded structures ---
+ 		for (int i = 0; i < 2; i++)
+ 		{
+-			m_sed [i] = new SectionDescriptor;	// foward ref to structures*.cpp
++			m_sed [i] = new SectionDescriptor;	// forward ref to structures*.cpp
+ 			if (!m_sed [i]) return;
+ 		}
+ 		
+@@ -1160,7 +1160,7 @@
+ 		// --- allocate memory for embedded structures ---
+ 		for (int i = 0; i < 14; i++)
+ 		{
+-			m_tab [i] = new FormatParaPropertyTabulator;	// foward ref to structures*.cpp
++			m_tab [i] = new FormatParaPropertyTabulator;	// forward ref to structures*.cpp
+ 			if (!m_tab [i]) return;
+ 		}
+ 		
+@@ -1968,7 +1968,7 @@
+ 		m_bmh = NULL;
+ 		
+ 		// --- allocate memory for embedded structures ---
+-		m_bmh = new BitmapHeader;	// foward ref to structures*.cpp
++		m_bmh = new BitmapHeader;	// forward ref to structures*.cpp
+ 		if (!m_bmh) return;
+ 		
+ 		// --- set defaults for variables --
+--- filters/kword/mswrite/structures_generated.h	5 Jul 2003 18:31:20 -0000	1.1.1.2
++++ filters/kword/mswrite/structures_generated.h	8 Jul 2003 16:24:20 -0000
+@@ -21,7 +21,7 @@
+ 
+ /*
+  * structures_generated - Internal MS Write file structures
+- * This file was generated by make_structures_generated 0.51pre 2003/06/08.
++ * This file was generated by make_structures_generated 0.51pre 2003/07/09.
+  * ALL CHANGES MADE TO THIS FILE "WILL BE LOST IN TIME LIKE TEARS IN RAIN"!
+  */
+ 
+@@ -32,7 +32,7 @@
+ 
+ namespace MSWrite
+ {
+-	// $Id$
++	// $Id$
+ 	// 
+ 	//    This file is part of the LibMSWrite Library
+ 	//    Copyright (C) 2001-2003 Clarence Dang <clarencedang@users.sourceforge.net>
+--- filters/kword/mswrite/structures_private.cpp	5 Jul 2003 18:31:20 -0000	1.1.1.2
++++ filters/kword/mswrite/structures_private.cpp	8 Jul 2003 16:24:21 -0000
+@@ -24,7 +24,7 @@
+  *                        - that are hidden/abstracted away from the user
+  * This file has ugly reading/writing code that couldn't be generated.
+  * It performs some higher-level sanity checks.
+- * 
++ *
+  * Don't use any of these classes as it would defeat the purpose of LibMSWrite.
+  */
+ 
+@@ -33,6 +33,27 @@
+ 
+ namespace MSWrite
+ {
++	Header::Header ()
++	{
++	}
++
++	Header::~Header ()
++	{
++	}
++
++	Header &Header::operator= (const Header &rhs)
++	{
++		if (this == &rhs)
++			return *this;
++
++		HeaderGenerated::operator= (rhs);
++
++		m_numCharBytes = rhs.m_numCharBytes;
++		m_pageCharInfo = rhs.m_pageCharInfo;
++
++		return *this;
++	}
++
+ 	bool Header::readFromDevice (void)
+ 	{
+ 	CHECK_DEVICE;
+@@ -125,6 +146,44 @@
+ 	}
+ 
+ 
++	SectionDescriptor::SectionDescriptor ()
++	{
++	}
++
++	SectionDescriptor::~SectionDescriptor ()
++	{
++	}
++
++	SectionDescriptor &SectionDescriptor::operator= (const SectionDescriptor &rhs)
++	{
++		if (this == &rhs)
++			return *this;
++
++		SectionDescriptorGenerated::operator= (rhs);
++
++		return *this;
++	}
++
++
++	SectionTable::SectionTable ()
++	{
++	}
++
++	SectionTable::~SectionTable ()
++	{
++	}
++
++	SectionTable &SectionTable::operator= (const SectionTable &rhs)
++	{
++		if (this == &rhs)
++			return *this;
++
++		SectionTableGenerated::operator= (rhs);
++		NeedsHeader::operator= (rhs);
++
++		return *this;
++	}
++
+ 	// this function really only does some sanity checking
+ 	// in fact, a SectionTable is quite useless in Write...
+ 	// ...so you actually don't have to call it :)
+@@ -319,7 +378,7 @@
+ 
+ 					// let's not cause problems later with uninitialised Font::m_name's
+ 					m_fontList.erase (it);
+-								 
++
+ 					// better quit just in case (it is better to have fewer fonts than risk errors)
+ 					break;
+ 				}
+@@ -410,13 +469,13 @@
+ 	DWord FontTable::findFont (const Font *want) const
+ 	{
+ 		DWord code = 0;
+-		
++
+ 		List <Font>::Iterator it;
+ 		for (it = m_fontList.begin (); it != m_fontList.end (); it++)
+ 		{
+ 			if ((*it) == *want)
+ 				return code;
+-			
++
+ 			code++;
+ 		}
+ 
+@@ -440,7 +499,7 @@
+ 		#ifdef DEBUG_FONT
+ 			m_device->debug ("\t\t\t\tAlready in list, fontCode=", e);
+ 		#endif
+-			
++
+ 			// return fontCode
+ 			return e;
+ 		}
+@@ -450,7 +509,7 @@
+ 		#ifdef DEBUG_FONT
+ 			m_device->debug ("\t\t\t\tNew font, adding to list\n");
+ 		#endif
+-			
++
+ 			if (!m_fontList.addToBack (*input))
+ 				ErrorAndQuit (Error::OutOfMemory, "could not allocate memory for next font element\n");
+ 			return m_fontList.getNumElements () - 1;
+@@ -458,6 +517,24 @@
+ 	}
+ 
+ 
++	PagePointer::PagePointer ()
++	{
++	}
++
++	PagePointer::~PagePointer ()
++	{
++	}
++
++	PagePointer &PagePointer::operator= (const PagePointer &rhs)
++	{
++		if (this == &rhs)
++			return *this;
++
++		PagePointerGenerated::operator= (rhs);
++
++		return *this;
++	}
++
+ 	bool PagePointer::readFromDevice (void)
+ 	{
+ 	CHECK_DEVICE;
+@@ -492,6 +569,22 @@
+ 	{
+ 	}
+ 
++	PageTable &PageTable::operator= (const PageTable &rhs)
++	{
++		if (this == &rhs)
++			return *this;
++
++		PageTableGenerated::operator= (rhs);
++		NeedsHeader::operator= (rhs);
++
++		m_pagePointerList = rhs.m_pagePointerList;
++		m_pageNumberStart = rhs.m_pageNumberStart;
++
++		m_pageTableIterator = rhs.m_pageTableIterator;
++
++		return *this;
++	}
++
+ 	bool PageTable::readFromDevice (void)
+ 	{
+ 	CHECK_DEVICE;
+@@ -556,7 +649,7 @@
+ 					m_device->error (Error::Warn, "pages don't follow each other\n");
+ 
+ 				if (pp.getFirstCharByte () <= lastCharByte)
+-					ErrorAndQuit (Error::InvalidFormat, "pageTable is not going foward?\n");
++					ErrorAndQuit (Error::InvalidFormat, "pageTable is not going forward?\n");
+ 			}
+ 
+ 			// for checking, on next iteration
+@@ -615,7 +708,20 @@
+ 	FormatPointer::~FormatPointer ()
+ 	{
+ 	}
+-	
++
++	FormatPointer &FormatPointer::operator= (const FormatPointer &rhs)
++	{
++		if (this == &rhs)
++			return *this;
++
++		FormatPointerGenerated::operator= (rhs);
++
++		m_afterEndCharByte = rhs.m_afterEndCharByte;
++		m_formatProperty = rhs.m_formatProperty;
++
++		return *this;
++	}
++
+ 	bool FormatPointer::readFromDevice (void)
+ 	{
+ 	CHECK_DEVICE;
+@@ -636,7 +742,7 @@
+ 	bool FormatPointer::writeToDevice (void)
+ 	{
+ 	CHECK_DEVICE;
+-	
++
+ 	#ifdef DEBUG_FORMATINFO
+ 		m_device->debug ("\t\t\t\tafterEndCharByte: ", m_afterEndCharByte);
+ 		m_device->debug ("\t\t\t\tformatPropertyOffset: ", m_formatPropertyOffset);
+@@ -646,7 +752,7 @@
+ 
+ 		if (!FormatPointerGenerated::writeToDevice ())
+ 			return false;
+-			
++
+ 		return true;
+ 	}
+ 
+@@ -684,7 +790,7 @@
+ 		else	// if (m_type == CharType)
+ 			m_device->debug ("FormatInfoPage::readFromDevice (CharType)\n");
+ 	#endif
+-		
++
+ 		if (!FormatInfoPageGenerated::readFromDevice ())
+ 			return false;
+ 
+@@ -694,7 +800,7 @@
+ 		m_device->debug ("number of FormatPointers on this page: ", FormatInfoPageGenerated::m_numFormatPointers);
+ 		m_device->debug ("byte number of first character covered by this page: ", m_firstCharByte);
+ 	#endif
+-	
++
+ 		return true;
+ 	}
+ 
+@@ -708,7 +814,7 @@
+ 		else	// if (m_type == CharType)
+ 			m_device->debug ("FormatInfoPage::writeToDevice (CharType)\n");
+ 	#endif
+-		
++
+ 		FormatInfoPageGenerated::m_firstCharBytePlus128 = m_firstCharByte + 128;
+ 
+ 	#ifdef DEBUG_FORMATINFO
+@@ -725,16 +831,16 @@
+ 	bool FormatInfoPage::writeToArray (void)
+ 	{
+ 	CHECK_DEVICE;
+-	
++
+ 	#ifdef DEBUG_FORMATINFO
+ 		if (m_type == ParaType)
+ 			m_device->debug ("\tFormatInfoPage::writeToArray (ParaType)\n");
+ 		else	// if (m_type == CharType)
+ 			m_device->debug ("\tFormatInfoPage::writeToArray (CharType)\n");
+ 	#endif
+-		
++
+ 		MemoryDevice memdev;
+-		
++
+ 		m_formatPointerPos = 0;
+ 		m_formatPropertyPos = 123;
+ 
+@@ -763,7 +869,7 @@
+ 			if (m_type == ParaType)
+ 			{
+ 				FormatParaProperty *prop = &m_formatParaProperty [i];
+-					
++
+ 				m_formatPropertyPos -= (sizeof (Byte) + prop->getNumDataBytes ());
+ 				memdev.setCache (m_packedStructs + m_formatPropertyPos);
+ 					prop->setDevice (&memdev);	// device was set to m_device to keep operator== happy in FormatInfoPage::add
+@@ -784,10 +890,10 @@
+ 				m_device->debug ("\t\t\tWrote at Offset=", m_formatPropertyPos);
+ 			#endif
+ 		}
+-		
++
+ 		if (!FormatInfoPageGenerated::writeToArray ())
+ 			return false;
+-		
++
+ 		return true;
+ 	}
+ 
+@@ -834,7 +940,7 @@
+ 			m_device->debug ("\tChar FormatPointer #", m_formatPointerUpto);
+ 	#endif
+ 
+-		
++
+ 		//
+ 		// read Format Pointer
+ 		//
+@@ -854,7 +960,7 @@
+ 
+ 		// check that it continues on from the last
+ 		if (formatPointerAfterEndCharByte <= m_nextCharByte)
+-			m_device->error (Error::Warn, "FormatPointer afterEndCharByte does not go foward\n");
++			m_device->error (Error::Warn, "FormatPointer afterEndCharByte does not go forward\n");
+ 		m_nextCharByte = formatPointerAfterEndCharByte;
+ 
+ 		// check whether it is the last one (EOF-wise)
+@@ -880,7 +986,7 @@
+ 			}
+ 		}
+ 
+-		
++
+ 		//
+ 		// read in corresponding Format Property
+ 		//
+@@ -944,7 +1050,7 @@
+ 
+ 				m_formatParaProperty->setDevice (m_device);
+ 				m_formatParaProperty->setMargins (m_leftMargin, m_rightMargin);
+-				
++
+ 				// corresponding paraProperty structure exists?
+ 				if (currentPropertyOffset != 0xFFFF)
+ 				{
+@@ -983,7 +1089,7 @@
+ 		// 	This is also true for FormatProperties because m_numFormatPointer >= m_numProperty
+ 		// 	so MaxElements is also the upper limit on the number of properties
+ 		const int MaxElements = 123 / FormatPointer::s_size;
+-			
++
+ 	#ifdef DEBUG_FORMATINFO
+ 		if (m_type == ParaType)
+ 			m_device->debug (">>>> FormatInfoPage::add (ParaType) <<<<\n");
+@@ -1004,7 +1110,7 @@
+ 		#ifdef DEBUG_FORMATINFO
+ 			m_device->debug ("\tFIRST CALL!  Allocating memory for FormatPointer[] and FormatProperty[]\n");
+ 		#endif
+-			
++
+ 			// allocate memory for FormatPointers
+ 			m_formatPointer = new FormatPointer [MaxElements + 1];	// lazy memory allocation (+1 in case we can merge the last one)
+ 			if (!m_formatPointer)
+@@ -1032,7 +1138,7 @@
+ 
+ 			m_numProperty = 0;
+ 		}
+-		
++
+ 
+ 		//
+ 		// Setup pointers
+@@ -1040,13 +1146,13 @@
+ 
+ 		FormatParaProperty inpp;
+ 		FormatCharProperty incp;
+-		
++
+ 		if (m_type == ParaType)
+ 		{
+ 		#ifdef DEBUG_FORMATINFO
+ 			m_device->debug ("\tTrying to add ParaProperty, #numDataBytes=", ((FormatParaProperty *) property)->getNumDataBytes ());
+ 		#endif
+-			
++
+ 			inpp = *((FormatParaProperty *) property);
+ 			inpp.setDevice (m_device);
+ 			inpp.setAfterEndCharByte (m_device->tellInternal () - 128);
+@@ -1058,7 +1164,7 @@
+ 		#ifdef DEBUG_FORMATINFO
+ 			m_device->debug ("\tTrying to add CharProperty, #numDataBytes=", ((FormatCharProperty *) property)->getNumDataBytes ());
+ 		#endif
+-			
++
+ 			incp = *((FormatCharProperty *) property);
+ 			incp.setDevice (m_device);
+ 			incp.setAfterEndCharByte (m_device->tellInternal () - 128);
+@@ -1066,15 +1172,15 @@
+ 			if (!incp.updateFontCode ()) return false;
+ 		}
+ 
+-		
++
+ 		//
+ 		// Attempt to add Property to current page:
+-		// 
++		//
+ 		// Since MS programmers tried so hard to save space, we will do the same :)
+ 		// This results in having to store variable-length structures and the use of other nasty
+ 		// tricks such as having multiple FormatPointers pointing to the same FormatProperty.
+ 		// Details follow in code :)
+-		// 
++		//
+ 
+ 		// In Write, character formatting blocks can extend across paragraphs
+ 		// In LibMSWrite they don't (for convenience?) so here we merge FormatPointers that have been split up
+@@ -1088,7 +1194,7 @@
+ 		#ifdef DEBUG_FORMATINFO
+ 			m_device->debug ("\tIs it the same property as last? ");
+ 		#endif
+-			
++
+ 			// simply extend last FormatPointer
+ 			FormatCharProperty *lastProp = (FormatCharProperty *) m_formatPointer [m_numFormatPointers - 1].getFormatProperty ();
+ 			if (incp == *lastProp)
+@@ -1097,9 +1203,9 @@
+ 				m_device->debug ("Yes, extending FormatPointer #", m_numFormatPointers - 1);
+ 				m_device->debug ("\t\tFrom ", m_formatPointer [m_numFormatPointers - 1].getAfterEndCharByte ());
+ 			#endif
+-				
++
+ 				m_formatPointer [m_numFormatPointers - 1].setAfterEndCharByte (incp.getAfterEndCharByte ());
+-				
++
+ 			#ifdef DEBUG_FORMATINFO
+ 				m_device->debug ("\t\tTo: ", incp.getAfterEndCharByte ());
+ 			#endif
+@@ -1114,7 +1220,7 @@
+ 		#ifdef DEBUG_FORMATINFO
+ 			m_device->debug ("\tSame as earlier FormatPointer? ");
+ 		#endif
+-		
++
+ 		// points to same property as an earlier formatPointer?
+ 		for (int i = 0; i < m_numFormatPointers - (checkedLastFormatPointer ? 1 : 0); i++)
+ 		{
+@@ -1161,7 +1267,7 @@
+ 					#endif
+ 						return false;	// not enough room
+ 					}
+-					
++
+ 				#ifdef DEBUG_FORMATINFO
+ 					m_device->debug ("Yes, same property as ", i);
+ 				#endif
+@@ -1178,7 +1284,7 @@
+ 		#ifdef DEBUG_FORMATINFO
+ 			m_device->debug ("No, outputting full FormatPointer & Property\n");
+ 		#endif
+-		
++
+ 		// ok we can't compress, must output a full FormatPointer & FormatProperty
+ 		if (m_type == ParaType)
+ 		{
+@@ -1251,19 +1357,37 @@
+ 			return true;
+ 		}
+ 	}
+-	
+-	
++
++
++	BMP_BitmapFileHeader::BMP_BitmapFileHeader ()
++	{
++	}
++
++	BMP_BitmapFileHeader::~BMP_BitmapFileHeader ()
++	{
++	}
++
++	BMP_BitmapFileHeader &BMP_BitmapFileHeader::operator= (const BMP_BitmapFileHeader &rhs)
++	{
++		if (this == &rhs)
++			return *this;
++
++		BMP_BitmapFileHeaderGenerated::operator= (rhs);
++
++		return *this;
++	}
++
+ 	bool BMP_BitmapFileHeader::readFromDevice (void)
+ 	{
+ 	CHECK_DEVICE;
+-	
++
+ 	#ifdef DEBUG_IMAGE
+ 		m_device->debug ("\n<<<< BMP_BitmapFileHeader::readFromDevice >>>>\n");
+ 	#endif
+-	
++
+ 		if (!BMP_BitmapFileHeaderGenerated::readFromDevice ())
+ 			return false;
+-		
++
+ 	#ifdef DEBUG_IMAGE
+ 		Dump (magic);
+ 		Dump (totalBytes);
+@@ -1271,10 +1395,10 @@
+ 		Dump (zero [1]);
+ 		Dump (actualImageOffset);
+ 	#endif
+-		
++
+ 		return true;
+ 	}
+-	
++
+ 	bool BMP_BitmapFileHeader::writeToDevice (void)
+ 	{
+ 	CHECK_DEVICE;
+@@ -1291,14 +1415,32 @@
+ 	}
+ 
+ 
++	BMP_BitmapInfoHeader::BMP_BitmapInfoHeader ()
++	{
++	}
++
++	BMP_BitmapInfoHeader::~BMP_BitmapInfoHeader ()
++	{
++	}
++
++	BMP_BitmapInfoHeader &BMP_BitmapInfoHeader::operator= (const BMP_BitmapInfoHeader &rhs)
++	{
++		if (this == &rhs)
++			return *this;
++
++		BMP_BitmapInfoHeaderGenerated::operator= (rhs);
++
++		return *this;
++	}
++
+ 	bool BMP_BitmapInfoHeader::readFromDevice (void)
+ 	{
+ 	CHECK_DEVICE;
+-	
++
+ 	#ifdef DEBUG_IMAGE
+ 		m_device->debug ("\n<<<< BMP_BitmapInfoHeader::readFromDevice >>>>\n");
+ 	#endif
+-	
++
+ 		if (!BMP_BitmapInfoHeaderGenerated::readFromDevice ())
+ 			return false;
+ 
+@@ -1315,24 +1457,61 @@
+ 		Dump (coloursUsed);
+ 		Dump (coloursImportant);
+ 	#endif
+-		
++
+ 		return true;
+ 	}
+-	
++
+ 	bool BMP_BitmapInfoHeader::writeToDevice (void)
+ 	{
+ 	CHECK_DEVICE;
+-	
++
+ 	#ifdef DEBUG_IMAGE
+ 		m_device->debug ("\n<<<< BMP_BitmapInfoHeader::writeToDevice >>>>\n");
+ 	#endif
+ 
+ 		if (!BMP_BitmapInfoHeaderGenerated::writeToDevice ())
+ 			return false;
+-			
++
+ 		return true;
+ 	}
+-	
++
++
++	BMP_BitmapColourIndex::BMP_BitmapColourIndex ()
++	{
++	}
++
++	BMP_BitmapColourIndex::~BMP_BitmapColourIndex ()
++	{
++	}
++
++	BMP_BitmapColourIndex &BMP_BitmapColourIndex::operator= (const BMP_BitmapColourIndex &rhs)
++	{
++		if (this == &rhs)
++			return *this;
++
++		BMP_BitmapColourIndexGenerated::operator= (rhs);
++
++		return *this;
++	}
++
++
++	BitmapHeader::BitmapHeader ()
++	{
++	}
++
++	BitmapHeader::~BitmapHeader ()
++	{
++	}
++
++	BitmapHeader &BitmapHeader::operator= (const BitmapHeader &rhs)
++	{
++		if (this == &rhs)
++			return *this;
++
++		BitmapHeaderGenerated::operator= (rhs);
++
++		return *this;
++	}
+ 
+ 	bool BitmapHeader::readFromDevice (void)
+ 	{
+@@ -1354,7 +1533,7 @@
+ 		Dump (bitsPerPixel);
+ 		Dump (zero2);
+ 	#endif
+-		
++
+ 		return true;
+ 	}
+ 
+@@ -1373,6 +1552,24 @@
+ 	}
+ 
+ 
++	WMFHeader::WMFHeader ()
++	{
++	}
++
++	WMFHeader::~WMFHeader ()
++	{
++	}
++
++	WMFHeader &WMFHeader::operator= (const WMFHeader &rhs)
++	{
++		if (this == &rhs)
++			return *this;
++
++		WMFHeaderGenerated::operator= (rhs);
++
++		return *this;
++	}
++
+ 	bool WMFHeader::readFromDevice (void)
+ 	{
+ 	CHECK_DEVICE;
+@@ -1380,7 +1577,7 @@
+ 	#ifdef DEBUG_IMAGE
+ 		m_device->debug ("\n<<<< WMFHeader::readFromDevice >>>>\n");
+ 	#endif
+-		
++
+ 		if (!WMFHeaderGenerated::readFromDevice ())
+ 			return false;
+ 
+@@ -1393,7 +1590,7 @@
+ 		Dump (maxRecordSize);
+ 		Dump (zero);
+ 	#endif
+-				
++
+ 		return true;
+ 	}
+ 
+@@ -1404,7 +1601,7 @@
+ 	#ifdef DEBUG_IMAGE
+ 		m_device->debug ("\n>>>> WMFHeader::writeToDevice <<<<\n");
+ 	#endif
+-		
++
+ 	#ifdef DEBUG_IMAGE
+ 		Dump (fieldType);
+ 		Dump (headerSize);
+--- filters/kword/mswrite/structures_private.h	5 Jul 2003 18:31:20 -0000	1.1.1.2
++++ filters/kword/mswrite/structures_private.h	8 Jul 2003 16:24:21 -0000
+@@ -37,18 +37,10 @@
+ 		bool writeToDevice (void);	friend class InternalGenerator;
+ 
+ 	public:
+-		Header &operator= (const Header &rhs)
+-		{
+-			if (this == &rhs)
+-				return *this;
++		Header ();
++		virtual ~Header ();
+ 
+-			HeaderGenerated::operator= (rhs);
+-
+-			m_numCharBytes = rhs.m_numCharBytes;
+-			m_pageCharInfo = rhs.m_pageCharInfo;
+-
+-			return *this;
+-		}
++		Header &operator= (const Header &rhs);
+ 
+ 		Word getFormat (void) const	{	return getMagic ();	}
+ 		void setFormat (const Word f)	{	setMagic (f);	}
+@@ -91,18 +83,29 @@
+ 
+ 			return *this;
+ 		}
+-		
++
+ 		void setHeader (Header *header)	{	m_header = header;	}
+ 	};
+ 
+ 
+ 	class SectionDescriptor : public SectionDescriptorGenerated
+ 	{
++	public:
++		SectionDescriptor ();
++		virtual ~SectionDescriptor ();
++
++		SectionDescriptor &operator= (const SectionDescriptor &rhs);
+ 	};
+ 
+ 
+ 	class SectionTable : public SectionTableGenerated, public NeedsHeader
+ 	{
++	public:
++		SectionTable ();
++		virtual ~SectionTable ();
++
++		SectionTable &operator= (const SectionTable &rhs);
++
+ 	private:
+ 		bool readFromDevice (void);	friend class InternalParser;
+ 		bool writeToDevice (const bool needed);	friend class InternalGenerator;
+@@ -120,7 +123,7 @@
+ 
+ 	public:
+ 		FontTable ();
+-		~FontTable ();
++		virtual ~FontTable ();
+ 
+ 		FontTable &operator= (const FontTable &rhs);
+ 
+@@ -129,16 +132,22 @@
+ 		DWord addFont (const Font *input);
+ 	};
+ 
+-	
++
+ 	class PagePointer : public PagePointerGenerated
+ 	{
+ 	private:
+ 		friend class PageTable;
+ 			bool readFromDevice (void);
+ 			bool writeToDevice (void);
++
++	public:
++		PagePointer ();
++		virtual ~PagePointer ();
++
++		PagePointer &operator= (const PagePointer &rhs);
+ 	};
+ 
+-	
++
+ 	class PageTable : public PageTableGenerated, public NeedsHeader
+ 	{
+ 	private:
+@@ -157,24 +166,9 @@
+ 
+ 	public:
+ 		PageTable ();
+-		~PageTable ();
+-
+-		PageTable &operator= (const PageTable &rhs)
+-		{
+-			if (this == &rhs)
+-				return *this;
++		virtual ~PageTable ();
+ 
+-			PageTableGenerated::operator= (rhs);
+-			NeedsHeader::operator= (rhs);
+-
+-			m_pagePointerList = rhs.m_pagePointerList;
+-			m_pageNumberStart = rhs.m_pageNumberStart;
+-
+-			m_pageTableIterator = rhs.m_pageTableIterator;
+-
+-			return *this;
+-		}
+-		
++		PageTable &operator= (const PageTable &rhs);
+ 
+ 		PagePointer *begin (void)
+ 		{
+@@ -187,7 +181,7 @@
+ 			m_pageTableIterator = m_pageTableIterator.next ();
+ 			return &(*m_pageTableIterator);
+ 		}
+-		
++
+ 		bool end (void) /*const*/
+ 		{
+ 			return m_pageTableIterator == m_pagePointerList.end ();
+@@ -199,7 +193,7 @@
+ 		}
+ 	};
+ 
+-	
++
+ 	class FormatPointer : public FormatPointerGenerated
+ 	{
+ 	private:
+@@ -211,7 +205,7 @@
+ 
+ 			//
+ 			// for exporting
+-			// 
++			//
+ 			const void *m_formatProperty;
+ 
+ 			const void *getFormatProperty (void) const	{	return m_formatProperty;	}
+@@ -219,7 +213,9 @@
+ 
+ 	public:
+ 		FormatPointer ();
+-		~FormatPointer ();
++		virtual ~FormatPointer ();
++
++		FormatPointer &operator= (const FormatPointer &rhs);
+ 
+ 		DWord getAfterEndCharByte (void) const	{	return m_afterEndCharByte;	}
+ 		void setAfterEndCharByte (const DWord val)	{	m_afterEndCharByte = val;	}
+@@ -240,7 +236,7 @@
+ 		DWord m_firstCharByte;	// FormatInfoPageGenerated::m_firstCharBytePlus128 - 128
+ 		enum FormatInfoPageTypes m_type;	// CharInfo or ParaInfo?
+ 
+-		
++
+ 		//
+ 		// uncompressed data
+ 		//
+@@ -254,7 +250,7 @@
+ 		FormatParaProperty *m_formatParaProperty;
+ 			Word m_leftMargin, m_rightMargin;	// for ParaProperty
+ 
+-			
++
+ 		//
+ 		// Iterator helpers
+ 		//
+@@ -275,7 +271,7 @@
+ 
+ 	public:
+ 		FormatInfoPage ();
+-		~FormatInfoPage ();
++		virtual ~FormatInfoPage ();
+ 
+ 		void setMargins (const Word leftMargin, const Word rightMargin)
+ 		{
+@@ -305,6 +301,11 @@
+ 	class BMP_BitmapFileHeader : public BMP_BitmapFileHeaderGenerated
+ 	{
+ 	public:
++		BMP_BitmapFileHeader ();
++		virtual ~BMP_BitmapFileHeader ();
++
++		BMP_BitmapFileHeader &operator= (const BMP_BitmapFileHeader &rhs);
++
+ 		bool readFromDevice (void);
+ 		bool writeToDevice (void);
+ 	};
+@@ -313,6 +314,11 @@
+ 	class BMP_BitmapInfoHeader : public BMP_BitmapInfoHeaderGenerated
+ 	{
+ 	public:
++		BMP_BitmapInfoHeader ();
++		virtual ~BMP_BitmapInfoHeader ();
++
++		BMP_BitmapInfoHeader &operator= (const BMP_BitmapInfoHeader &rhs);
++
+ 		bool readFromDevice (void);
+ 		bool writeToDevice (void);
+ 	};
+@@ -320,6 +326,11 @@
+ 
+ 	class BMP_BitmapColourIndex : public BMP_BitmapColourIndexGenerated
+ 	{
++	public:
++		BMP_BitmapColourIndex ();
++		virtual ~BMP_BitmapColourIndex ();
++
++		BMP_BitmapColourIndex &operator= (const BMP_BitmapColourIndex &rhs);
+ 	};
+ 
+ 
+@@ -328,6 +339,11 @@
+ 	//private:
+ 	//	friend class ImageGenerated;
+ 	public:
++		BitmapHeader ();
++		virtual ~BitmapHeader ();
++
++		BitmapHeader &operator= (const BitmapHeader &rhs);
++
+ 		bool readFromDevice (void);
+ 		bool writeToDevice (void);
+ 	};
+@@ -338,6 +354,11 @@
+ 	//private:
+ 	//	friend class Image;
+ 	public:
++		WMFHeader ();
++		virtual ~WMFHeader ();
++
++		WMFHeader &operator= (const WMFHeader &rhs);
++
+ 		bool readFromDevice (void);
+ 		bool writeToDevice (void);
+ 	};
 --- interfaces/Makefile.am	20 Jun 2002 04:43:14 -0000	1.1.1.1
 +++ interfaces/Makefile.am	1 Jun 2003 14:59:32 -0000	1.2
 @@ -3,7 +3,7 @@
@@ -234,7 +2099,7 @@
  METASOURCES = AUTO
  
 --- karbon/Makefile.am	5 Jul 2003 18:31:46 -0000	1.1.1.6
-+++ karbon/Makefile.am	7 Jul 2003 01:46:24 -0000
++++ karbon/Makefile.am	8 Jul 2003 16:24:23 -0000
 @@ -12,22 +12,24 @@
  
  SUBDIRS = commands visitors core shapes widgets dialogs dockers render tools . plugins data pics
@@ -266,7 +2131,7 @@
  	dockers/libkarbondockers.la \
  	widgets/libkarbonwidgets.la \
  	render/libvpainter.la \
-@@ -43,18 +45,15 @@
+@@ -43,18 +45,18 @@
  	$(FONTCONFIG_LIBS) \
  	$(LIBFREETYPE_LIBS)
  
@@ -280,12 +2145,13 @@
 -karbon_SOURCES = dummy.cc
 -karbon_LDFLAGS = $(all_libraries) $(KDE_RPATH)
 -karbon_LDADD = karbon.la
-+libkarbonpart_la_SOURCES = libkarbonpart_init.cc
++libkarbonpart_la_SOURCES = dummy.cc
 +libkarbonpart_la_LDFLAGS = $(all_libraries) $(KDE_PLUGIN) -module
 +libkarbonpart_la_LIBADD  = libkarbonpart_shared.la
  
--dummy.cc:
--	echo > dummy.cc
+ dummy.cc:
+ 	echo > dummy.cc
++
 +karbon_la_SOURCES = main.cc
 +karbon_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -module -avoid-version
 +karbon_la_LIBADD = libkarbonpart_shared.la
@@ -432,7 +2298,7 @@
 -	echo > dummy.cc
 -
 --- kchart/Makefile.am	25 Apr 2003 15:44:18 -0000	1.1.1.3
-+++ kchart/Makefile.am	7 Jul 2003 01:46:26 -0000
++++ kchart/Makefile.am	8 Jul 2003 16:24:23 -0000
 @@ -2,6 +2,7 @@
  
  ## The part
@@ -481,8 +2347,19 @@
  libkdchart_la_SOURCES = KDChart.cpp 		\
  			KDChartAreaPainter.cpp	\
  			KDChartAxesPainter.cpp	\
+--- kchart/main.cc	25 Apr 2003 15:44:18 -0000	1.1.1.3
++++ kchart/main.cc	8 Jul 2003 16:24:23 -0000
+@@ -28,7 +28,7 @@
+ 	KCmdLineLastOption
+ };
+ 
+-int main( int argc, char **argv )
++extern "C" int kdemain( int argc, char **argv )
+ {
+     KCmdLineArgs::init( argc, argv, newKChartAboutData());
+     KCmdLineArgs::addCmdLineOptions( options );
 --- kformula/Makefile.am	25 Apr 2003 15:45:03 -0000	1.1.1.4
-+++ kformula/Makefile.am	7 Jul 2003 01:46:28 -0000
++++ kformula/Makefile.am	8 Jul 2003 16:24:25 -0000
 @@ -12,19 +12,12 @@
  libkformulapart_la_METASOURCES = AUTO
  
@@ -521,7 +2398,7 @@
      KCmdLineArgs::init( argc, argv, newKFormulaAboutData() );
      KCmdLineArgs::addCmdLineOptions( options );
 --- kivio/kiviopart/Makefile.am	5 Jul 2003 18:32:14 -0000	1.1.1.5
-+++ kivio/kiviopart/Makefile.am	6 Jul 2003 21:05:01 -0000	1.8
++++ kivio/kiviopart/Makefile.am	8 Jul 2003 16:24:25 -0000
 @@ -1,7 +1,9 @@
  SUBDIRS = ui kiviosdk tools pics tiles stencils .
  
@@ -544,7 +2421,7 @@
  
  EXTRA_DIST = \
  		main.cpp\
-@@ -95,20 +97,18 @@
+@@ -95,17 +97,18 @@
  		kiviodragobject.cpp
  
  
@@ -557,21 +2434,18 @@
  kivio_la_LIBADD = ../../lib/kofficecore/libkofficecore.la
  
 -libkiviopart_la_LDFLAGS = -avoid-version -module $(all_libraries) -no-undefined
--
++libkiviopart_shared_la_LDFLAGS = -avoid-version $(all_libraries) -no-undefined
+ 
 -bin_PROGRAMS = kivio
 -kivio_SOURCES = dummy.cpp
 -kivio_LDFLAGS = $(all_libraries) $(KDE_RPATH)
 -kivio_LDADD = kivio.la
-+libkiviopart_shared_la_LDFLAGS = -avoid-version $(all_libraries) -no-undefined
- 
--dummy.cpp:
--	echo > dummy.cpp
 +libkiviopart_la_SOURCES = dummy.cpp
 +libkiviopart_la_LIBADD  = libkiviopart_shared.la
 +libkiviopart_la_LDFLAGS = -avoid-version $(all_libraries) $(KDE_PLUGIN) -module
  
- kdelnk_DATA = kivio.desktop
- kdelnkdir = $(kde_appsdir)/Office
+ dummy.cpp:
+ 	echo > dummy.cpp
 --- kivio/kiviopart/main.cpp	25 Apr 2003 15:45:13 -0000	1.1.1.4
 +++ kivio/kiviopart/main.cpp	6 Jul 2003 21:05:02 -0000	1.2
 @@ -30,7 +30,7 @@
@@ -632,16 +2506,47 @@
  
  rc_DATA = kivioselecttool.rc
  rcdir = $(kde_datadir)/kivio/kpartplugins
+--- kivio/plugins/kiviosmlconnector/Makefile.am	5 Jul 2003 18:32:27 -0000	1.1.1.1
++++ kivio/plugins/kiviosmlconnector/Makefile.am	8 Jul 2003 16:24:28 -0000
+@@ -10,7 +10,7 @@
+ METASOURCES = AUTO
+ libkiviosmlconnector_la_SOURCES = plugin.cpp tool_connector.cpp
+ libkiviosmlconnector_la_LDFLAGS = -module $(KDE_PLUGIN) $(all_libraries)
+-libkiviosmlconnector_la_LIBADD = $(LIB_KOPAINTER) $(top_builddir)/kivio/kiviopart/libkiviopart.la
++libkiviosmlconnector_la_LIBADD = $(LIB_KOPAINTER) $(top_builddir)/kivio/kiviopart/libkiviopart_shared.la
+ 
+ 
+ 
+--- kivio/plugins/kiviosmlconnector/sml_connector/Makefile.am	5 Jul 2003 18:32:27 -0000	1.1.1.1
++++ kivio/plugins/kiviosmlconnector/sml_connector/Makefile.am	8 Jul 2003 16:24:28 -0000
+@@ -9,7 +9,7 @@
+ 
+ sml_connector_la_SOURCES = sml_connector.cpp
+ sml_connector_la_LDFLAGS = -module $(KDE_PLUGIN) $(all_libraries)
+-sml_connector_la_LIBADD = $(LIB_KOPAINTER) $(top_builddir)/kivio/kiviopart/libkiviopart.la
++sml_connector_la_LIBADD = $(LIB_KOPAINTER) $(top_builddir)/kivio/kiviopart/libkiviopart_shared.la
+ 
+ stencildir = $(kde_datadir)/kivio/autoloadStencils
+ stencil_DATA = sml_connector.xpm
 --- kivio/plugins/kiviotexttool/Makefile.am	5 Jul 2003 18:32:27 -0000	1.1.1.5
-+++ kivio/plugins/kiviotexttool/Makefile.am	6 Jul 2003 14:11:59 -0000	1.5
++++ kivio/plugins/kiviotexttool/Makefile.am	8 Jul 2003 16:24:28 -0000
 @@ -1,4 +1,4 @@
 -lib_LTLIBRARIES =libkiviotexttool.la
 +kde_module_LTLIBRARIES =libkiviotexttool.la
  
  
  INCLUDES = -I$(top_srcdir)/kivio/kiviopart\
+@@ -21,7 +21,7 @@
+ 		Text.sml\
+ 		Text.xpm
+ libkiviotexttool_la_LDFLAGS = -module $(KDE_PLUGIN)
+-libkiviotexttool_la_LIBADD = $(all_libraries) $(LIB_KOPAINTER) $(top_builddir)/kivio/kiviopart/libkiviopart.la
++libkiviotexttool_la_LIBADD = $(all_libraries) $(LIB_KOPAINTER) $(top_builddir)/kivio/kiviopart/libkiviopart_shared.la
+ 
+ rc_DATA = kiviotexttool.rc
+ rcdir = $(kde_datadir)/kivio/kpartplugins
 --- kivio/plugins/kiviozoomtool/Makefile.am	5 Jul 2003 18:32:27 -0000	1.1.1.5
-+++ kivio/plugins/kiviozoomtool/Makefile.am	6 Jul 2003 14:12:01 -0000	1.5
++++ kivio/plugins/kiviozoomtool/Makefile.am	8 Jul 2003 16:24:28 -0000
 @@ -1,5 +1,5 @@
 -SUBDIRS = zoom_pics
 -lib_LTLIBRARIES =libkiviozoomtool.la
@@ -650,8 +2555,17 @@
  
  INCLUDES = -I$(top_srcdir)/kivio/kiviopart\
  	-I$(top_srcdir)/kivio/kiviopart/kiviosdk\
+@@ -17,7 +17,7 @@
+ 		tool_zoom.cpp\
+ 		tool_zoom.h
+ libkiviozoomtool_la_LDFLAGS = -module $(KDE_PLUGIN)
+-libkiviozoomtool_la_LIBADD = $(LIB_KOTEXT) $(all_libraries) $(LIB_KOPAINTER) $(top_builddir)/kivio/kiviopart/libkiviopart.la
++libkiviozoomtool_la_LIBADD = $(LIB_KOTEXT) $(all_libraries) $(LIB_KOPAINTER) $(top_builddir)/kivio/kiviopart/libkiviopart_shared.la
+ 
+ rc_DATA = kiviozoomtool.rc
+ rcdir = $(kde_datadir)/kivio/kpartplugins
 --- koshell/Makefile.am	25 Apr 2003 15:45:37 -0000	1.1.1.2
-+++ koshell/Makefile.am	7 Jul 2003 01:46:29 -0000
++++ koshell/Makefile.am	8 Jul 2003 16:24:29 -0000
 @@ -2,19 +2,19 @@
  INCLUDES  = $(KOFFICE_INCLUDES) $(all_includes)
  
@@ -695,7 +2609,7 @@
    KAboutData * aboutData = new KAboutData( "koshell", I18N_NOOP("KOffice Workspace"),
       version, description, KAboutData::License_GPL,
 --- kpresenter/Makefile.am	25 Apr 2003 15:45:57 -0000	1.1.1.4
-+++ kpresenter/Makefile.am	7 Jul 2003 01:46:29 -0000
++++ kpresenter/Makefile.am	8 Jul 2003 16:24:29 -0000
 @@ -54,19 +54,12 @@
  libkpresenterpart_la_METASOURCES = AUTO
  
@@ -743,7 +2657,7 @@
      KCmdLineArgs::init( argc, argv, newKPresenterAboutData() );
      KCmdLineArgs::addCmdLineOptions( options );
 --- kspread/Makefile.am	25 Apr 2003 15:46:34 -0000	1.1.1.4
-+++ kspread/Makefile.am	7 Jul 2003 01:46:29 -0000
++++ kspread/Makefile.am	8 Jul 2003 16:24:31 -0000
 @@ -3,10 +3,10 @@
  	$(KOSCRIPT_INCLUDES) -I$(top_srcdir)/interfaces \
  	 -I$(top_srcdir)/kchart/kdchart $(all_includes)
@@ -861,7 +2775,7 @@
  appsdir = $(kde_appsdir)/Office
  apps_DATA = kudesigner.desktop
 --- kugar/kudesigner/main.cpp	5 Jul 2003 18:33:16 -0000	1.1.1.5
-+++ kugar/kudesigner/main.cpp	7 Jul 2003 01:46:29 -0000
++++ kugar/kudesigner/main.cpp	8 Jul 2003 16:24:32 -0000
 @@ -32,7 +32,7 @@
  	KCmdLineLastOption
  };
@@ -872,7 +2786,7 @@
      KLocale::setMainCatalogue("kugar");
      KCmdLineArgs::init( argc, argv, newKudesignerAboutData() );
 --- kugar/part/Makefile.am	25 Apr 2003 15:46:43 -0000	1.1.1.2
-+++ kugar/part/Makefile.am	7 Jul 2003 01:46:29 -0000
++++ kugar/part/Makefile.am	8 Jul 2003 16:24:33 -0000
 @@ -2,7 +2,7 @@
  
  kde_module_LTLIBRARIES = libkugarpart.la
@@ -903,7 +2817,7 @@
 -dummy.cc:
 -	echo > dummy.cc
 --- kugar/part/main.cpp	5 Jul 2003 18:33:21 -0000	1.1.1.2
-+++ kugar/part/main.cpp	7 Jul 2003 01:46:29 -0000
++++ kugar/part/main.cpp	8 Jul 2003 16:24:33 -0000
 @@ -28,7 +28,7 @@
    // INSERT YOUR COMMANDLINE OPTIONS HERE
  };
