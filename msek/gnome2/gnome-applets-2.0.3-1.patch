@@ -1,0 +1,65 @@
+diff -Naur gnome-applets-2.0.3.old/configure gnome-applets-2.0.3.new/configure
+--- gnome-applets-2.0.3.old/configure	Sat Sep 14 04:58:55 2002
++++ gnome-applets-2.0.3.new/configure	Fri Sep 27 04:04:24 2002
+@@ -5150,11 +5150,11 @@
+     ;;
+ 
+   darwin* | rhapsody*)
+-    allow_undefined_flag='-undefined suppress'
++    allow_undefined_flag='-undefined suppress -flat_namespace'
+     # FIXME: Relying on posixy $() will cause problems for
+     #        cross-compilation, but unfortunately the echo tests do not
+     #        yet detect zsh echo's removal of \ escapes.
+-    archive_cmds='$CC $(test .$module = .yes && echo -bundle || echo -dynamiclib) $allow_undefined_flag -o $lib $libobjs $deplibs$linkopts -install_name $rpath/$soname $(test -n "$verstring" -a x$verstring != x0.0 && echo $verstring)'
++    archive_cmds='$CC $(test .$module = .yes && echo -bundle || echo -dynamiclib) $allow_undefined_flag -o $lib $libobjs $deplibs$linkopts $(test .$module != .yes && echo -install_name $rpath/$soname $tmp_verstring)'
+     # We need to add '_' to the symbols in $export_symbols first
+     #archive_expsym_cmds="$archive_cmds"' && strip -s $export_symbols'
+     hardcode_direct=yes
+@@ -10883,6 +10883,9 @@
+   HAVE_LIBAPM_FALSE=
+ fi
+ 
++	;;
++  *darwin*)
++	build_battstat_applet=no
+ 	;;
+   *solaris*)
+ 	build_battstat_applet=no
+diff -Naur gnome-applets-2.0.3.old/gkb-new/preset.c gnome-applets-2.0.3.new/gkb-new/preset.c
+--- gnome-applets-2.0.3.old/gkb-new/preset.c	Sat Sep 14 04:58:59 2002
++++ gnome-applets-2.0.3.new/gkb-new/preset.c	Fri Sep 27 04:04:24 2002
+@@ -29,6 +29,7 @@
+  * USA
+  */
+ 
++#include <sys/types.h>
+ #include <dirent.h>
+ #include "gkb.h"
+ 
+diff -Naur gnome-applets-2.0.3.old/ltmain.sh gnome-applets-2.0.3.new/ltmain.sh
+--- gnome-applets-2.0.3.old/ltmain.sh	Sat Sep 14 04:58:54 2002
++++ gnome-applets-2.0.3.new/ltmain.sh	Fri Sep 27 04:04:24 2002
+@@ -2858,6 +2858,11 @@
+ 	if test -n "$export_symbols" && test -n "$archive_expsym_cmds"; then
+ 	  eval cmds=\"$archive_expsym_cmds\"
+ 	else
++	  if test "x$verstring" = "x0.0"; then
++	    tmp_verstring=
++	  else
++	    tmp_verstring="$verstring"
++	  fi
+ 	  eval cmds=\"$archive_cmds\"
+ 	fi
+ 	IFS="${IFS= 	}"; save_ifs="$IFS"; IFS='~'
+diff -Naur gnome-applets-2.0.3.old/omf-install/Makefile.in gnome-applets-2.0.3.new/omf-install/Makefile.in
+--- gnome-applets-2.0.3.old/omf-install/Makefile.in	Sat Sep 14 05:03:27 2002
++++ gnome-applets-2.0.3.new/omf-install/Makefile.in	Fri Sep 27 04:05:03 2002
+@@ -260,7 +260,7 @@
+ 	-for file in $(srcdir)/*.omf; do \
+ 		$(INSTALL_DATA) $(srcdir)/$$file $(DESTDIR)$(omf_dest_dir); \
+ 	done
+-	-scrollkeeper-update -p $(scrollkeeper_localstate_dir) 
++#	-scrollkeeper-update -p $(scrollkeeper_localstate_dir) 
+ 
+ uninstall-local:
+ 	-for file in $(srcdir)/*.omf; do \
