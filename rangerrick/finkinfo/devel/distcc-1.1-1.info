@@ -1,0 +1,63 @@
+Package: distcc
+Version: 1.1
+Revision: 1
+Depends: popt-shlibs
+BuildDepends: popt
+BuildDependsOnly: true
+Maintainer: Benjamin Reed <ranger@befunk.com>
+Source: http://%n.samba.org/ftp/%n/%n-%v.tar.bz2
+Source-MD5: ad2a433dbe4361baffa8dc5f24ba2be7
+ConfigureParams: --mandir=%i/share/man --infodir=%i/share/info
+SetCPPFLAGS: -no-cpp-precomp -I%p/include
+SetLDFLAGS: -L%p/lib
+InstallScript: <<
+#!/bin/sh
+  make install DESTDIR=%d
+  install -d -m 755 %i/etc
+  install -d -m 755 %i/bin
+
+  echo "DISTCC_HOSTS='localhost'" > %i/etc/distcc.conf
+  cat <<END > %i/bin/distcc-ccache-wrapper.sh
+#!/bin/sh
+
+COMPILEPREFIX="%p/bin/distcc"
+DISTCC_HOSTS="localhost"
+
+if [ -f "%p/etc/distcc.conf" ]; then
+	. "%p/etc/distcc.conf"
+fi
+
+if [ -x %p/bin/ccache ]
+	COMPILEPREFIX="%p/bin/ccache $COMPILEPREFIX"
+fi
+
+$COMPILEPREFIX "$@"
+END
+
+  chmod 755 %i/bin/distcc-ccache-wrapper.sh
+
+  # now set up the symlinks for the -default package
+  for GCCNAME in c++ c++3 cc g++ g++3 gcc gcc3; do
+    ln -sf %p/bin/distcc-ccache-wrapper.sh %i/bin/$GCCNAME
+  done
+<<
+SplitOff: <<
+  Package: %N-default
+  Depends: %N (>= %v-%r)
+  Suggests: ccache
+  Conflicts: ccache-default
+  Replaces: ccache-default
+  Files: bin/c++ bin/c++3 bin/cc bin/g++ bin/g++3 bin/gcc bin/gcc3
+<<
+ConfFiles: %p/etc/distcc.conf
+DocFiles: AUTHORS COPYING* DEPENDENCIES INSTALL *NEWS README
+Description: Distributed compilation tool
+DescDetail: <<
+distcc is a program to distribute compilation of C or C++ code
+across several machines on a network. distcc should always
+generate the same results as a local compile, is simple to
+install and use, and is often two or more times faster than a
+local compile.
+<<
+Homepage: http://distcc.samba.org/
+License: GPL
