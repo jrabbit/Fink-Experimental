@@ -15,25 +15,30 @@ InstallScript: <<
 # Cleanup
 rm -rf `find . -name '*~' -o -name '.#*' -o -name '*.orig' -o -name '*.rej' -o -name '*.py[co]'` test sed-script
 
-# get current version info
+# Gget current version info
 echo "s/##VERSION##/`head -n 1 debian/changelog | sed -e 's/[^(]*(\([^)]*\).*/\1/'`/g" > sed-script
 cat sed-script
 
-# Install package into %i
+# Install
+mkdir -p %i/bin
+mkdir -p %i/share/reportbug
+mkdir -p %i/share/bug/reportbug
+mkdir -p %i/etc
+mkdir -p %i/share/man/man1
+
 debian/install-sed %i/bin reportbug querybts
 debian/install-sed %i/share/reportbug *.py
 
 # Remove unneeded .py files
-rm `pwd`/debian/reportbug/usr/share/reportbug/urllib2.py
-rm `pwd`/debian/reportbug/usr/share/reportbug/test_hiermatch.py
+rm %i/share/reportbug/urllib2.py
+rm %i/share/reportbug/test_hiermatch.py
 
 chmod 0755 %i/bin/*
 cp handle_bugscript reportbug.el %i/share/reportbug
 cp -p reportbug.conf %i/etc
-cp -p presubj script %i/share/bug/reportbug/
+cp -p presubj script %i/share/bug/reportbug
 
 # Install man pages
-mkdir -p %i/share/man/man1
 cp querybts.1 reportbug.1 %i/share/man/man1
  
 <<
@@ -58,8 +63,8 @@ PYTHON=python2.3
 case "$1" in
     configure|abort-upgrade|abort-remove|abort-deconfigure)
         for i in $DIRLIST ; do
-            /usr/bin/$PYTHON -O /usr/lib/$PYTHON/compileall.py -q $i
-            /usr/bin/$PYTHON /usr/lib/$PYTHON/compileall.py -q $i
+            %p/bin/$PYTHON -O %p/lib/$PYTHON/compileall.py -q $i
+            %p/bin/$PYTHON %p/lib/$PYTHON/compileall.py -q $i
         done
     ;;
 
@@ -82,10 +87,10 @@ PreRmScript: <<
 
 #DEBHELPER#
 
-PACKAGE=reportbug
+PACKAGE=%N
 
 dpkg --listfiles $PACKAGE |
-        awk '$0~/\.py$/ {print $0"c\n" $0"o"}' |
+        /usr/bin/awk '$0~/\.py$/ {print $0"c\n" $0"o"}' |
         xargs rm -f >&2
 <<
 
