@@ -1,6 +1,6 @@
-diff -ruN bash_completion.orig/bash-completion.sh bash_completion/bash-completion.sh
---- bash_completion.orig/bash-completion.sh	1969-12-31 17:00:00.000000000 -0700
-+++ bash_completion/bash-completion.sh	2002-11-20 16:15:57.000000000 -0700
+diff -uNbr bash_completion/bash-completion.sh bash_completion-new/bash-completion.sh
+--- bash_completion/bash-completion.sh	Wed Dec 31 19:00:00 1969
++++ bash_completion-new/bash-completion.sh	Thu Nov 21 10:17:06 2002
 @@ -0,0 +1,14 @@
 +#!/bin/sh
 +
@@ -16,9 +16,9 @@ diff -ruN bash_completion.orig/bash-completion.sh bash_completion/bash-completio
 +	fi
 +	unset bash bmajor bminor
 +fi
-diff -ruN bash_completion.orig/bash_completion bash_completion/bash_completion
---- bash_completion.orig/bash_completion	2002-09-09 12:31:59.000000000 -0600
-+++ bash_completion/bash_completion	2002-11-20 16:16:57.000000000 -0700
+diff -uNbr bash_completion/bash_completion bash_completion-new/bash_completion
+--- bash_completion/bash_completion	Sat Oct 26 02:11:59 2002
++++ bash_completion-new/bash_completion	Thu Nov 21 10:18:20 2002
 @@ -24,8 +24,8 @@
  
  # Alter the following to reflect the location of this file
@@ -30,7 +30,7 @@ diff -ruN bash_completion.orig/bash_completion bash_completion/bash_completion
  
  # Set a couple of useful vars
  #
-@@ -1176,12 +1176,12 @@
+@@ -1184,12 +1184,12 @@
  #
  _rpm_installed_packages()
  {
@@ -46,7 +46,7 @@ diff -ruN bash_completion.orig/bash_completion bash_completion/bash_completion
  	else
  		COMPREPLY=( $( rpm -qa | sed -ne \
  		's|^\('$cur'.*\)-[0-9a-zA-Z._]\+-[0-9a-z.@]\+$|\1|p' ) )
-@@ -1531,7 +1531,7 @@
+@@ -1581,7 +1581,7 @@
  have aptitude && {
  _comp-dpkg-hold-packages()
  {
@@ -55,7 +55,7 @@ diff -ruN bash_completion.orig/bash_completion bash_completion/bash_completion
  		| cut -d\  -f2
  }
  
-@@ -2769,7 +2769,7 @@
+@@ -2850,7 +2850,7 @@
  have dpkg && {
  _comp-dpkg-installed-packages()
  {
@@ -64,16 +64,16 @@ diff -ruN bash_completion.orig/bash_completion bash_completion/bash_completion
  		cut -d\  -f2
  
  }
-@@ -3189,7 +3189,7 @@
+@@ -3315,7 +3315,7 @@
  	# first try new urpmq option to get package list
- 	packages=$( urpmq --list 2>/dev/null ) 
+ 	packages=$( urpmq --media $media --list 2>/dev/null ) 
  	# default to old manual database extraction
--	[ -z "$packages" ] && packages=$( gzip -dc /var/lib/urpmi/synthesis.hdlist.* | awk -F'@' '/info/ {print $1}' )
-+	[ -z "$packages" ] && packages=$( gzip -dc @PREFIX@/var/lib/urpmi/synthesis.hdlist.* | awk -F'@' '/info/ {print $1}' )
+-	[ -z "$packages" ] && packages=$( gzip -dc /var/lib/urpmi/synthesis.hdlist.$media* | awk -F'@' '/info/ {print $1}' )
++	[ -z "$packages" ] && packages=$( gzip -dc @PREFIX@/var/lib/urpmi/synthesis.hdlist.$media* | awk -F'@' '/info/ {print $1}' )
  	# return list of available packages
  	COMPREPLY=( $( echo $packages | tr " " "\n" | grep "^$cur" ) )
  }
-@@ -3498,9 +3498,9 @@
+@@ -3644,9 +3644,9 @@
  		local admindir
  		# find wich admin dir to use
  		if [ -f /etc/debian_version ]; then
@@ -85,3 +85,21 @@ diff -ruN bash_completion.orig/bash_completion bash_completion/bash_completion
  		fi
  		for (( i=1; i < COMP_CWORD; i++ )); do
  			if [[ "${COMP_WORDS[i]}" == --admindir ]]; then
+@@ -4014,7 +4014,7 @@
+ {
+ 	local cur pkgdir
+ 
+-	pkgdir=/var/db/pkg/
++	pkgdir=@PREFIX@/var/db/pkg/
+ 	cur=${COMP_WORDS[COMP_CWORD]}
+ 
+ 	COMPREPLY=( $( compgen -d $pkgdir$cur ) )
+@@ -4034,7 +4034,7 @@
+ 	COMPREPLY=()
+ 	cur=${COMP_WORDS[COMP_CWORD]}
+ 
+-	COMPREPLY=( $( (cd /var/log/packages; compgen -f -- "$cur") ) )
++	COMPREPLY=( $( (cd @PREFIX@/var/log/packages; compgen -f -- "$cur") ) )
+ }
+ [ $have ] && complete -F _removepkg $filenames removepkg &&
+ 	complete -o dirnames -f -X '!*.tgz' installpkg upgradepkg explodepkg
