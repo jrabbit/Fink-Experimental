@@ -1,0 +1,379 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>Fink Documentation - Create a Fink Package - Quick Start</title></head><body>
+<table width="100%" cellspacing="0">
+<tr valign="bottom">
+<td align="center">
+Available Languages:  | 
+English | 
+</td>
+</tr>
+</table>
+<h1 style="text-align: center;">Create a Fink Package - Quick Start</h1>
+<p>
+This document is for people who want to create a package for Fink. It
+complements the Packaging Manual, which is a more detailed and comprehensive
+document.
+</p>
+<p>
+We'll guide you through the process of making a Fink package.
+First we explain the general procedure. Then we show the creation of two example Fink
+packages. The first one will be <a href="http://maxwell.sourceforge.net">
+maxwell</a> and the second <a href="http://www.gnu.org/software/stow/stow.html">GNU Stow</a>.
+</p>
+
+<h2>Contents</h2><ul><li><a href="#howtostart"><b>1 How to Start</b></a><ul><li><a href="#howtostart.Learn">1.1 Learn the Basics</a></li><li><a href="#howtostart.Make">1.2 Make your Package</a></li><li><a href="#howtostart.Validate">1.3 Validate your Package</a></li><li><a href="#howtostart.Submitt">1.4 Submit your Package</a></li></ul></li><li><a href="#example1"><b>2 Example 1 - the Maxwell Package</b></a><ul><li><a href="#example1.Basics">2.1 Basics</a></li><li><a href="#example1.build">2.2 Build</a></li></ul></li><li><a href="#example2"><b>3 Example 2 - the Stow Package</b></a><ul><li><a href="#example2.Basics">3.1 Basics</a></li><li><a href="#example2.build">3.2 Build</a></li></ul></li></ul><h2><a name="howtostart">1 How to Start</a></h2>
+
+
+
+<h3><a name="howtostart.Learn">1.1 Learn the Basics</a></h3>
+<p>
+First you should learn a few basic concept about how to build Fink packages. 
+We suggest you:
+</p>
+
+<ul>
+<li>
+Have a look at 
+<a href="http://fink.sourceforge.net/doc/UsingFink.pdf">
+Using Fink: A Developer's How To</a>
+(2MB pdf file) - slides from a presentation at the 
+<a href="http://conferences.oreillynet.com/macosx2002/">O'Reilly Mac OS X Conference</a>.
+</li>
+<li>
+Read and try to understand the two examples 
+(<a href="example1.php">Example 1</a>, <a href="example2.php">Example 2</a>)
+provided here.
+</li>
+<li>
+Look at other, similar packages in your '/sw/fink/dists/unstable/main/finkinfo/' 
+directory or 
+<a href="http://cvs.sourceforge.net/viewcvs.py/fink/dists/10.3/unstable/">
+in the online CVS repository</a> and take one (or several) info file(s) as 
+a starting point.
+</li>
+<li>
+Search the 
+<a href="http://sourceforge.net/tracker/?atid=414256&amp;group_id=17203">Package Submission Tracker</a>
+if somebody else already tried to package the same and the 
+<a href="http://sourceforge.net/tracker/?atid=371315&amp;group_id=17203">Package Request Tracker</a>
+if there is a matching request. You might find valuable information there.
+</li>
+<li>
+Maybe browse the 
+<a href="http://fink.sourceforge.net/doc/packaging/">Packaging Manual</a>
+if you think you need more detailed information.
+</li>
+</ul>
+
+
+
+
+<h3><a name="howtostart.Make">1.2 Make your Package</a></h3>
+<p>
+Save your new info file (and patch file - if needed) into your 
+'/sw/fink/dists/local/main/finkinfo/' directory. The file should be named
+'packagename.info' (and 'packagename.patch') where 'packagename' is the name of your
+package. If this directory doesn't exist you need to create it manually.
+</p>
+
+<p>
+To make your new package known to fink you need to run:
+</p>
+<pre>
+finkdev% fink index
+</pre>
+<p>
+Check if fink found your package by typing:
+</p>
+<pre>
+finkdev% fink list packagename
+</pre>
+<p>
+If it doesn't show up in the list you might need to change your
+<a href="http://fink.sourceforge.net/doc/users-guide/conf.php#optional">fink configuration file</a>
+to include your local tree.
+</p>
+<p>
+If you need more information read the 
+<a href="http://fink.sourceforge.net/doc/packaging/">Packaging Manual</a>
+or use one or more of different 
+<a href="http://fink.sourceforge.net/help/">help sources</a>.
+You should also subscribe to the 
+<a href="http://fink.sourceforge.net/lists/">fink-devel</a>
+mailling list.
+</p>
+
+
+
+<h3><a name="howtostart.Validate">1.3 Validate your Package</a></h3>
+<p>
+During validation of your package you should set the verbose level of fink
+to the highest possible value. Check the section on the
+<a href="http://fink.sourceforge.net/doc/users-guide/conf.php#optional">fink configuration file</a>
+about how to change the verbose level.
+</p>
+<p>
+Check if your package passes validation by running:
+</p>
+<pre>
+finkdev% fink validate packagename.info
+</pre>
+<p>
+If the validation passes try to build your package with:
+</p>
+<pre>
+finkdev% fink build packagename
+</pre>
+<p>
+If the build succeeds check the content of the binary package with:
+</p>
+<pre>
+finkdev% dpkg -c /sw/fink/dists/local/main/binary-darwin-powerpc/packagename.deb
+</pre>
+<p>
+Check if all files that you think should be in the package are actually
+in the .deb file. Make sure that nothing is installed directly into /sw.
+</p>
+<p>
+Now you can also validate the binary package by doing:
+</p>
+<pre>
+finkdev% fink validate /sw/fink/dists/local/main/binary-darwin-powerpc/packagename.deb
+</pre>
+<p>
+If all is well install the package with:
+</p>
+<pre>
+finkdev% fink install packagename
+</pre>
+<p>
+and test the functionality of your package.
+</p>
+<p>
+If any of the above steps fail try to correct the errors and restart at the 
+top with the 'fink index' step so that fink knows about your changes.
+</p>
+
+
+
+<h3><a name="howtostart.Submitt">1.4 Submit your Package</a></h3>
+<p>
+If your package passes all the checks above you now can submit the info 
+(and patch if necessary) file to the 
+<a href="http://sourceforge.net/tracker/?func=add&amp;group_id=17203&amp;atid=414256">
+Package Submission Tracker</a>.
+</p>
+<p>
+A package reviewer should now take a look at your package submission and
+add it to the Fink unstable tree if the package seems ready. If not you
+will be asked to bring the package into compliance with the policy.
+</p>
+<p>
+<b>Please note:</b>
+</p>
+<ul>
+<li>
+If feasible add multiple items one at a time to the same tracker item 
+(e.g. info and patch files).
+</li>
+<li>
+Add a note whether your package is intended for the '10.2-gcc3.3' tree, 
+'10.3' tree, or both,
+</li>
+<li>
+which 'section' (graphics, sci, etc.) you feel it belongs in, and
+</li>
+<li>
+that you have run the command 'fink validate' on your info and deb files.
+</li>
+<li>
+Set the "Group" field of the tracker item to "Undergoing Validation"
+when you create the new tracker. Also change it back to "Undergoing Validation"
+whenever you fixed problems package reviewers found in your submission.
+</li>
+</ul>
+
+
+
+<h2><a name="example1">2 Example 1 - the Maxwell Package</a></h2>
+
+
+
+
+<h3><a name="example1.Basics">2.1 Basics</a></h3>
+<p>
+First Maxwell. Lets open our editor and get started. We know the package name,
+its version and where to grab the source tar ball from. So we'll type this into
+our editor window:
+</p>
+<pre>
+Package: maxwell
+Version: 0.5.1
+Revision: 1
+Source: mirror:sourceforge:%n/%n-%v.tar.gz
+</pre>
+<p>
+So we have the name and version which are easy to understand, but what of these
+other two fields? Revision is the "version" of the Fink package,
+Version, on the other hand is the upstream source version. Since this is the
+first time we have attempted to make a maxwell-0.5.1 package, it is revision 1.
+</p>
+<p>
+The Source field is where fink will grab the source tarball from. Because 
+<a href="http://sourceforge.net">Sourceforge</a> has a system where
+packages are mirrored around the world, and since fink knows about it,
+we use mirror:sourceforge:. %n expands to the package name,
+maxwell, and %i expands to the package version, 0.5.1.
+</p>
+<p>
+Now we can save this as maxwell.info in 
+/sw/fink/dists/local/main/finkinfo/. That done, we can see how we
+are doing by using fink validate.
+</p>
+<pre>
+finkdev% fink validate maxwell.info 
+Validating package file maxwell.info...
+Error: Required field "Maintainer" missing. (maxwell.info)
+</pre>
+<p>
+Oops, looks like we missed a couple of fields. Lets add some more:
+</p>
+<pre>
+Maintainer: John Doe &lt;jdoe@example.com&gt;
+HomePage: http://maxwell.sourceforge.net
+License: MIT
+</pre>
+<p>
+We add ourselves as the maintainer of the Fink maxwell package and add it's
+homepage, looking at the sourceforge project page, we see that it is MIT
+Licensed, so we add that too. Now lets try again:
+</p>
+<pre>
+finkdev% fink validate maxwell.info
+Validating package file maxwell.info...
+Warning: Unknown license "MIT". (maxwell.info)
+Error: No MD5 checksum specified for "source". (maxwell.info)
+Error: No package description supplied. (maxwell.info)
+</pre>
+<p>
+Aaargh! We seem to be getting worse, not better, never mind, head off over to
+the packaging manual to see what is allowed for License, and we see that we
+can just change MIT to OSI-Approved, as the MIT license is, indeed, approved
+by the <a href="http://www.opensource.org/">OSI</a>. We can also grab a
+one line description of the package from the homepage. So we change those:
+</p>
+<pre>
+License: OSI-Approved
+Description: Mac OS X S.M.A.R.T. Tool
+</pre>
+<p>
+But what to do about that warning about MD5 checksums? Well, why don't we just
+ask fink to fetch the source?
+</p>
+<pre>
+finkdev% fink fetch maxwell
+/usr/bin/sudo /sw/bin/fink  fetch maxwell
+Reading package info...
+Updating package index... done.
+Information about 3377 packages read in 30 seconds.
+WARNING: No MD5 specified for Source of package maxwell-0.5.1-1 Maintainer: John Doe &lt;jdoe@example.com&gt;
+curl -f -L -O http://distfiles.opendarwin.org/maxwell-0.5.1.tar.gz
+  % Total    % Received % Xferd  Average Speed          Time             Curr.
+                                 Dload  Upload Total    Current  Left    Speed
+  0     0    0     0    0     0      0      0 --:--:--  0:00:00 --:--:--     0
+curl: (22) The requested URL returned error: 404
+### execution of curl failed, exit code 22
+Downloading the file "maxwell-0.5.1.tar.gz" failed.
+
+(1)      Give up
+(2)      Retry the same mirror
+(3)      Retry another mirror from your continent
+(4)      Retry another mirror
+(5)      Retry using next mirror set "sourceforge"
+
+How do you want to proceed? [3] 5
+curl -f -L -O http://west.dl.sourceforge.net/sourceforge/maxwell/maxwell-0.5.1.tar.gz
+  % Total    % Received % Xferd  Average Speed          Time             Curr.
+                                 Dload  Upload Total    Current  Left    Speed
+100  7856  100  7856    0     0  19838      0  0:00:00  0:00:00  0:00:00 6511k
+</pre>
+<p>
+So we can now get the md5 by running md5 /sw/src/maxwell-0.5.1.tar.gz,
+and add it to the .info file:
+</p>
+<pre>
+Source-MD5: ce5c354b2fed4e237524ad0bc59997a3
+</pre>
+<p>
+And now we find that fink validate passes, yippee!
+</p>
+
+
+
+<h3><a name="example1.build">2.2 Build</a></h3>
+<p>
+Now we can build the package, let's just try it:
+</p>
+<pre>
+finkdev% fink build maxwell
+/usr/bin/sudo /sw/bin/fink  build maxwell
+Reading package info...
+Updating package index... done.
+Information about 3498 packages read in 32 seconds.
+The following package will be built:
+ maxwell
+gzip -dc /sw/src/maxwell-0.5.1.tar.gz | /sw/bin/tar -xvf -  --no-same-owner --no-same-permissions 
+maxwell-0.5.1/
+maxwell-0.5.1/LICENSE
+maxwell-0.5.1/Makefile
+maxwell-0.5.1/maxwell.8
+maxwell-0.5.1/maxwell.c
+maxwell-0.5.1/README
+./configure --prefix=/sw 
+Can't exec "./configure": No such file or directory at /sw/lib/perl5/Fink/Services.pm line 403.
+</pre>
+<p>
+Hmm, well that did not go all that well. Let's read the README and see what it says...
+</p>
+<pre>
+To build type 'make'.
+
+To install in /usr/local type 'sudo make install', to install elsewhere, type 
+'sudo make install prefix=/elsewhere'
+</pre>
+<p>
+Ah hah, so we can't use the default compilescript and installscript here, we need our own,
+that's easily resolved:
+</p>
+<pre>
+CompileScript: make
+InstallScript: &lt;&lt;
+#! /bin/sh -ev
+make install prefix=%i
+&lt;&lt;
+</pre>
+
+
+<h2><a name="example2">3 Example 2 - the Stow Package</a></h2>
+
+
+
+
+<h3><a name="example2.Basics">3.1 Basics</a></h3>
+<p>
+bla bla
+</p>
+
+
+
+<h3><a name="example2.build">3.2 Build</a></h3>
+<p>
+Now we can build the package, let's just try it:
+</p>
+
+<hr><h2>Copyright Notice</h2><p>Copyright (c) 2001 Christoph Pfisterer,
+Copyright (c) 2001-2004 The Fink Project.
+You may distribute this document in print for private purposes,
+provided the document and this copyright notice remain complete and
+unmodified. Any commercial reproduction and any online publication
+requires the explicit consent of the author.</p><hr><p>Generated from <i>$Fink$</i></p></body></html>
