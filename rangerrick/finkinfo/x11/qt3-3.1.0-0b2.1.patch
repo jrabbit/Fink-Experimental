@@ -1,68 +1,201 @@
-diff -uNbr qt-x11-free-3.1.0-b2/include/qglobal.h qt-x11-free-3.1.0-b2-new/include/qglobal.h
---- qt-x11-free-3.1.0-b2/include/qglobal.h	Mon Sep 30 10:21:34 2002
-+++ qt-x11-free-3.1.0-b2-new/include/qglobal.h	Thu Oct 24 20:16:08 2002
-@@ -78,9 +78,10 @@
-      UNIX	- Any UNIX BSD/SYSV system
- */
+diff -uNbr qt-copy/config.tests/unix/nis.test qt-copy-new/config.tests/unix/nis.test
+--- qt-copy/config.tests/unix/nis.test	Fri Oct  4 11:20:17 2002
++++ qt-copy-new/config.tests/unix/nis.test	Fri Oct 25 14:09:23 2002
+@@ -30,7 +30,7 @@
+     # on Solaris it's -lnsl, it's not specified because X11 already links it
+     LIBS=nsl
+ else
+-    LIBS=`sed -n -e '/^QMAKE_LIBS_NIS[	 ]*=/ { s/[^=]*=[	 ]*//; s/-l/ /g; p; }' $XCONFIG`
++    LIBS=`sed -n -e '/^QMAKE_LIBS_NIS[[:space:]]*=/ { s/[^=]*=[[:space:]]*//; s/-l/ /g; p; }' $XCONFIG`
+ fi
+ LIBDIRS="$IN_LIBDIRS /usr/shlib /usr/lib /lib"
+ if [ -z "$LIBS" ]; then
+Binary files qt-copy/config.tests/x11/.xfreetype.test.swp and qt-copy-new/config.tests/x11/.xfreetype.test.swp differ
+diff -uNbr qt-copy/config.tests/x11/opengl.test qt-copy-new/config.tests/x11/opengl.test
+--- qt-copy/config.tests/x11/opengl.test	Fri Oct  4 11:20:17 2002
++++ qt-copy-new/config.tests/x11/opengl.test	Fri Oct 25 14:11:01 2002
+@@ -27,9 +27,9 @@
+ [ "$VERBOSE" = "yes" ] && echo "OpenGL auto-detection... ($*)"
  
--#if defined(__APPLE__) && defined(__GNUC__)
--#  define Q_OS_MACX
--#elif defined(__MACOSX__)
-+#if defined(__APPLE__) && defined(__GNUC__) && !defined(Q_OS_DARWIN)
-+#  define Q_OS_DARWIN
-+#  define Q_OS_FREEBSD
-+#elif defined(__MACOSX__) && !defined(Q_OS_DARWIN)
- #  define Q_OS_MACX
- #elif defined(macintosh)
- #  define Q_OS_MAC9
-@@ -150,10 +151,12 @@
- #  define Q_OS_UNIXWARE
- #  define Q_OS_UNIXWARE7
- #else
-+#  if !defined(Q_OS_DARWIN)
- #  error "Qt has not been ported to this OS - talk to qt-bugs@trolltech.com"
-+#  endif
- #endif
+ # check for lib
+-LIBS=`sed -n -e '/^QMAKE_LIBS_OPENGL[	 ]*=/ { s/[^=]*=[	 ]*//; s/-l/ /g; p; }' $XCONFIG`
+-GLDIRS=`sed -n -e '/^QMAKE_LIBDIR_OPENGL[	 ]*=/ { s/[^=]*=[	 ]*//; p; }' $XCONFIG`
+-XDIRS=`sed -n -e '/^QMAKE_LIBDIR_X11[	 ]*=/ { s/[^=]*=[	 ]*//; p; }' $XCONFIG`
++LIBS=`sed -n -e '/^QMAKE_LIBS_OPENGL[[:space:]]*=/ { s/[^=]*=[[:space:]]*//; s/-l/ /g; p; }' $XCONFIG`
++GLDIRS=`sed -n -e '/^QMAKE_LIBDIR_OPENGL[[:space:]]*=/ { s/[^=]*=[[:space:]]*//; p; }' $XCONFIG`
++XDIRS=`sed -n -e '/^QMAKE_LIBDIR_X11[[:space:]]*=/ { s/[^=]*=[[:space:]]*//; p; }' $XCONFIG`
+ LIBDIRS="$IN_LIBDIRS $GLDIRS $XDIRS /usr/shlib /usr/lib /lib"
+ for L in $LIBS; do
+     FOUND_LIB=
+@@ -71,8 +71,8 @@
+ # check for headers
+ if [ "$OPENGL" = "yes" ]; then
+     INCS="GL/gl.h GL/glu.h"
+-    GLDIRS=`sed -n -e '/^QMAKE_INCDIR_OPENGL[	 ]*=/ { s/[^=]*=[	 ]*//; p; }' $XCONFIG`
+-    XDIRS=`sed -n -e '/^QMAKE_INCDIR_X11[	]*=/ { s/[^=]*=[	 ]*//; p; }' $XCONFIG`
++    GLDIRS=`sed -n -e '/^QMAKE_INCDIR_OPENGL[[:space:]]*=/ { s/[^=]*=[[:space:]]*//; p; }' $XCONFIG`
++    XDIRS=`sed -n -e '/^QMAKE_INCDIR_X11[[:space:]]*=/ { s/[^=]*=[[:space:]]*//; p; }' $XCONFIG`
+     INCDIRS="$IN_INCDIRS $GLDIRS $XDIRS /usr/include /include"
  
--#if defined(Q_OS_MAC9) || defined(Q_OS_MACX)
-+#if defined(Q_OS_MAC9) || defined(Q_OS_MACX) || defined(Q_OS_DARWIN)
- #  define Q_OS_MAC
- #endif
+     for I in $INCS; do
+diff -uNbr qt-copy/config.tests/x11/sm.test qt-copy-new/config.tests/x11/sm.test
+--- qt-copy/config.tests/x11/sm.test	Fri Oct  4 11:20:17 2002
++++ qt-copy-new/config.tests/x11/sm.test	Fri Oct 25 14:11:29 2002
+@@ -23,7 +23,7 @@
+ # check for headers
+ if [ "$SM" = "yes" ]; then
+     INC="X11/SM/SM.h"
+-    XDIRS=`sed -n -e '/^QMAKE_INCDIR_X11[	]*=/ { s/[^=]*=[	 ]*//; s/-I/ /g; p; }' $XCONFIG`
++    XDIRS=`sed -n -e '/^QMAKE_INCDIR_X11[[:space:]]*=/ { s/[^=]*=[[:space:]]*//; s/-I/ /g; p; }' $XCONFIG`
+     INCDIRS="$IN_INCDIRS $XDIRS /usr/include /include"
+     F=
+     for INCDIR in $INCDIRS; do
+diff -uNbr qt-copy/config.tests/x11/xfreetype.test qt-copy-new/config.tests/x11/xfreetype.test
+--- qt-copy/config.tests/x11/xfreetype.test	Mon Oct 21 08:35:05 2002
++++ qt-copy-new/config.tests/x11/xfreetype.test	Fri Oct 25 15:33:23 2002
+@@ -33,7 +33,7 @@
+ rm -f $OUTDIR/config.tests/x11/xft2
  
-@@ -649,7 +652,7 @@
- #define Q_UINT64		Q_ULONG
- #endif
+ # check for the XftFreeType library
+-XDIRS=`sed -n -e '/^QMAKE_LIBDIR_X11[	]*=/ { s/[^=]*=[	 ]*//; s/-L/ /g; p; }' $XCONFIG`
++XDIRS=`sed -n -e '/^QMAKE_LIBDIR_X11[[:space:]]*=/ { s/[^=]*=[[:space:]]*//; s/-L/ /g; p; }' $XCONFIG`
+ LIBDIRS="$IN_LIBDIRS $XDIRS /usr/shlib /usr/lib /lib"
+ F=
+ for LIBDIR in $LIBDIRS; do
+@@ -53,7 +53,7 @@
+ XFT_H=
+ if [ "$XFREETYPE" = "yes" ]; then
+     INC="X11/Xft/Xft.h"
+-    XDIRS=`sed -n -e '/^QMAKE_INCDIR_X11[	]*=/ { s/[^=]*=[	 ]*//; s/-I/ /g; p; }' $XCONFIG`
++    XDIRS=`sed -n -e '/^QMAKE_INCDIR_X11[[:space:]]*=/ { s/[^=]*=[[:space:]]*//; s/-I/ /g; p; }' $XCONFIG`
+     INCDIRS="$IN_INCDIRS $XDIRS /usr/include /include"
+     F=
+     for INCDIR in $INCDIRS; do
+@@ -87,7 +87,7 @@
  
--#if defined(Q_OS_MACX) && !defined(QT_LARGEFILE_SUPPORT)
-+#if (defined(Q_OS_MACX) || defined(Q_OS_DARWIN)) && !defined(QT_LARGEFILE_SUPPORT)
- #  define QT_LARGEFILE_SUPPORT 64
- #endif
- #if defined(QT_LARGEFILE_SUPPORT)
-@@ -852,7 +855,7 @@
- #  define QT_DEBUG				// display debug messages
- #  if !defined(QT_NO_COMPAT)			// compatibility with Qt 2
- #    if !defined(NO_DEBUG) && !defined(DEBUG)
--#      if !defined(Q_OS_MACX)			// clash with MacOS X headers
-+#      if !defined(Q_OS_MACX) && !defined(Q_OS_DARWIN)	// clash with MacOS X headers
- #        define DEBUG
- #      endif
- #    endif
-diff -uNbr qt-x11-free-3.1.0-b2/include/qt.h qt-x11-free-3.1.0-b2-new/include/qt.h
---- qt-x11-free-3.1.0-b2/include/qt.h	Mon Sep  9 06:00:28 2002
-+++ qt-x11-free-3.1.0-b2-new/include/qt.h	Wed Oct 23 21:37:18 2002
-@@ -323,7 +323,7 @@
- #include <qfontfactoryttf_qws.h>
- #include <qgfx_qws.h>
- #include <qgfxvnc_qws.h>
--#if !defined( QT_NO_SOUND ) && !defined( Q_OS_MACX )
-+#if !defined( QT_NO_SOUND ) && !defined( Q_OS_MACX ) && !defined( Q_OS_DARWIN )
- # include <qsoundqss_qws.h>
- #endif
- #include "qwsdisplay_qws.h"
-diff -uNbr qt-x11-free-3.1.0-b2/mkspecs/darwin-g++/qmake.conf qt-x11-free-3.1.0-b2-new/mkspecs/darwin-g++/qmake.conf
---- qt-x11-free-3.1.0-b2/mkspecs/darwin-g++/qmake.conf	Mon Sep 30 10:22:13 2002
-+++ qt-x11-free-3.1.0-b2-new/mkspecs/darwin-g++/qmake.conf	Thu Oct 24 08:19:28 2002
-@@ -6,18 +6,18 @@
+ if [ "$XFREETYPE" = "yes" ] && [ -z "$XFTCOMPAT_H" ]; then
+     INC="X11/Xft/XftFreetype.h"
+-    XDIRS=`sed -n -e '/^QMAKE_INCDIR_X11[	]*=/ { s/[^=]*=[	 ]*//; s/-I/ /g; p; }' $XCONFIG`
++    XDIRS=`sed -n -e '/^QMAKE_INCDIR_X11[[:space:]]*=/ { s/[^=]*=[[:space:]]*//; s/-I/ /g; p; }' $XCONFIG`
+     INCDIRS="$IN_INCDIRS $XDIRS /usr/include /include"
+     F=
+     for INCDIR in $INCDIRS; do
+@@ -103,7 +103,6 @@
+     fi
+ fi
+ 
+-
+ # check for XftNameUnparse in X11/Xft/Xft.h
+ XFTNAMEUNPARSE=yes
+ if [ "$XFREETYPE" = "yes" ] && [ -f "$XFTCOMPAT_H" ]; then
+@@ -115,12 +114,26 @@
+     fi
+ fi
+ 
++# check for fontconfig headers
++#if [ "$XFREETYPE" = "yes" ]; then
++#    INC="fontconfig/fontconfig.h"
++#    XDIRS=`sed -n -e '/^QMAKE_INCDIR_X11[[:space:]]*=/ { s/[^=]*=[[:space:]]*//; s/-I/ /g; p; }' $XCONFIG`
++#    INCDIRS="$IN_INCDIRS $XDIRS $LDIRS /usr/include /include"
++#    for INCDIR in $INCDIRS; do
++#        if [ -f $INCDIR/$INC ]; then
++#            echo "yes" > $OUTDIR/config.tests/x11/xft2
++#            [ "$VERBOSE" = "yes" ] && echo "  Found $INC in $INCDIR"
++#            break
++#        fi
++#    done
++#fi
++
+ # check for freetype2 headers
+ FREETYPE2_INCDIR=
+ if [ "$XFREETYPE" = "yes" ]; then
+     INC="freetype2/freetype/freetype.h"
+-    XDIRS=`sed -n -e '/^QMAKE_INCDIR_X11[	]*=/ { s/[^=]*=[	 ]*//; s/-I/ /g; p; }' $XCONFIG`
+-    LDIRS=`sed -n -e '/^QMAKE_INCDIR[	]*=/ { s/[^=]*=[	 ]*//; s/-I/ /g; p; }' $XCONFIG`
++    XDIRS=`sed -n -e '/^QMAKE_INCDIR_X11[[:space:]]*=/ { s/[^=]*=[[:space:]]*//; s/-I/ /g; p; }' $XCONFIG`
++    LDIRS=`sed -n -e '/^QMAKE_INCDIR[[:space:]]*=/ { s/[^=]*=[[:space:]]*//; s/-I/ /g; p; }' $XCONFIG`
+     INCDIRS="$IN_INCDIRS $XDIRS $LDIRS /usr/include /include"
+     F=
+     for INCDIR in $INCDIRS; do
+diff -uNbr qt-copy/config.tests/x11/xinerama.test qt-copy-new/config.tests/x11/xinerama.test
+--- qt-copy/config.tests/x11/xinerama.test	Fri Oct  4 11:20:17 2002
++++ qt-copy-new/config.tests/x11/xinerama.test	Fri Oct 25 14:13:42 2002
+@@ -26,7 +26,7 @@
+ [ "$VERBOSE" = "yes" ] && echo "Xinerama auto-detection... ($*)"
+ 
+ # check for lib
+-XDIRS=`sed -n -e '/^QMAKE_LIBDIR_X11[	]*=/ { s/[^=]*=[	 ]*//; s/-L/ /g; p; }' $XCONFIG`
++XDIRS=`sed -n -e '/^QMAKE_LIBDIR_X11[[:space:]]*=/ { s/[^=]*=[[:space:]]*//; s/-L/ /g; p; }' $XCONFIG`
+ LIBDIRS="$IN_LIBDIRS $XDIRS /usr/shlib /usr/lib /lib"
+ F=
+ for LIBDIR in $LIBDIRS; do
+@@ -47,7 +47,7 @@
+ # check for headers
+ if [ "$XINERAMA" = "yes" ]; then
+     INC="X11/extensions/Xinerama.h"
+-    XDIRS=`sed -n -e '/^QMAKE_INCDIR_X11[	]*=/ { s/[^=]*=[	 ]*//; s/-I/ /g; p; }' $XCONFIG`
++    XDIRS=`sed -n -e '/^QMAKE_INCDIR_X11[[:space:]]*=/ { s/[^=]*=[[:space:]]*//; s/-I/ /g; p; }' $XCONFIG`
+     INCDIRS="$IN_INCDIRS $XDIRS /usr/include /include"
+     F=
+     for INCDIR in $INCDIRS; do
+diff -uNbr qt-copy/config.tests/x11/xinput.test qt-copy-new/config.tests/x11/xinput.test
+--- qt-copy/config.tests/x11/xinput.test	Fri Oct  4 11:20:17 2002
++++ qt-copy-new/config.tests/x11/xinput.test	Fri Oct 25 14:14:26 2002
+@@ -26,7 +26,7 @@
+ [ "$VERBOSE" = "yes" ] && echo "XInput auto-detection... ($*)"
+ 
+ # check for the XInput library
+-XDIRS=`sed -n -e '/^QMAKE_LIBDIR_X11[	]*=/ { s/[^=]*=[	 ]*//; s/-L/ /g; p; }' $XCONFIG`
++XDIRS=`sed -n -e '/^QMAKE_LIBDIR_X11[[:space:]]*=/ { s/[^=]*=[[:space:]]*//; s/-L/ /g; p; }' $XCONFIG`
+ LIBDIRS="$IN_LIBDIRS $XDIRS /usr/shlib /usr/lib /lib"
+ F=
+ for LIBDIR in $LIBDIRS; do
+@@ -45,7 +45,7 @@
+ # check for XInput.h and the IRIX wacom.h
+ if [ "$XINPUT" = "yes" ]; then
+     INCS="X11/extensions/XInput.h wacom.h"
+-    XDIRS=`sed -n -e '/^QMAKE_INCDIR_X11[	]*=/ { s/[^=]*=[	 ]*//; s/-I/ /g; p; }' $XCONFIG`
++    XDIRS=`sed -n -e '/^QMAKE_INCDIR_X11[[:space:]]*=/ { s/[^=]*=[[:space:]]*//; s/-I/ /g; p; }' $XCONFIG`
+     INCDIRS="$IN_INCDIRS $XDIRS /usr/include /include"
+ 
+     for I in $INCS; do
+diff -uNbr qt-copy/config.tests/x11/xkb.test qt-copy-new/config.tests/x11/xkb.test
+--- qt-copy/config.tests/x11/xkb.test	Fri Oct  4 11:20:17 2002
++++ qt-copy-new/config.tests/x11/xkb.test	Fri Oct 25 14:14:54 2002
+@@ -54,7 +54,7 @@
+ XKBLIB_H=
+ if [ "$XKB" = "yes" ]; then
+     INC="X11/XKBlib.h"
+-    XDIRS=`sed -n -e '/^QMAKE_INCDIR_X11[	]*=/ { s/[^=]*=[	 ]*//; s/-I/ /g; p; }' $XCONFIG`
++    XDIRS=`sed -n -e '/^QMAKE_INCDIR_X11[[:space:]]*=/ { s/[^=]*=[[:space:]]*//; s/-I/ /g; p; }' $XCONFIG`
+     INCDIRS="$IN_INCDIRS $XDIRS /usr/include /include"
+     F=
+     for INCDIR in $INCDIRS; do
+diff -uNbr qt-copy/config.tests/x11/xrender.test qt-copy-new/config.tests/x11/xrender.test
+--- qt-copy/config.tests/x11/xrender.test	Fri Oct  4 11:20:17 2002
++++ qt-copy-new/config.tests/x11/xrender.test	Fri Oct 25 14:15:23 2002
+@@ -26,7 +26,7 @@
+ [ "$VERBOSE" = "yes" ] && echo "XRender auto-detection... ($*)"
+ 
+ # check for lib
+-XDIRS=`sed -n -e '/^QMAKE_LIBDIR_X11[	]*=/ { s/[^=]*=[	 ]*//; s/-L/ /g; p; }' $XCONFIG`
++XDIRS=`sed -n -e '/^QMAKE_LIBDIR_X11[[:space:]]*=/ { s/[^=]*=[[:space:]]*//; s/-L/ /g; p; }' $XCONFIG`
+ LIBDIRS="$IN_LIBDIRS $XDIRS /usr/shlib /usr/lib /lib"
+ F=
+ for LIBDIR in $LIBDIRS; do
+@@ -45,7 +45,7 @@
+ # check for headers
+ if [ "$XRENDER" = "yes" ]; then
+     INC="X11/extensions/Xrender.h"
+-    XDIRS=`sed -n -e '/^QMAKE_INCDIR_X11[	]*=/ { s/[^=]*=[	 ]*//; s/-I/ /g; p; }' $XCONFIG`
++    XDIRS=`sed -n -e '/^QMAKE_INCDIR_X11[[:space:]]*=/ { s/[^=]*=[[:space:]]*//; s/-I/ /g; p; }' $XCONFIG`
+     INCDIRS="$IN_INCDIRS $XDIRS /usr/include /include"
+     F=
+     for INCDIR in $INCDIRS; do
+diff -uNbr qt-copy/mkspecs/darwin-g++/qmake.conf qt-copy-new/mkspecs/darwin-g++/qmake.conf
+--- qt-copy/mkspecs/darwin-g++/qmake.conf	Mon Oct 21 08:38:44 2002
++++ qt-copy-new/mkspecs/darwin-g++/qmake.conf	Fri Oct 25 09:47:08 2002
+@@ -6,18 +6,20 @@
  
  MAKEFILE_GENERATOR	= UNIX
  TEMPLATE		= app
@@ -79,12 +212,14 @@ diff -uNbr qt-x11-free-3.1.0-b2/mkspecs/darwin-g++/qmake.conf qt-x11-free-3.1.0-
  QMAKE_CFLAGS_DEPS	= -M
  QMAKE_CFLAGS_WARN_ON	= -Wall -W
  QMAKE_CFLAGS_WARN_OFF	= -w
--QMAKE_CFLAGS_RELEASE	= -O3
-+QMAKE_CFLAGS_RELEASE	= -Os -frename-registers -mmultiple -mcpu=750 -mtune=750
+-QMAKE_CFLAGS_RELEASE	= -O2
++#QMAKE_CFLAGS_RELEASE	= -Os -frename-registers -mmultiple -mcpu=750 -mtune=750
++#for debugging purposes, -frename-registers -mmultiple mess up gdb
++QMAKE_CFLAGS_RELEASE	= -Os -mcpu=750 -mtune=750
  QMAKE_CFLAGS_DEBUG	= -g
  QMAKE_CFLAGS_SHLIB	= -fPIC
  QMAKE_EXTENSION_SHLIB	= dylib
-@@ -35,8 +35,8 @@
+@@ -35,8 +37,8 @@
  QMAKE_CXXFLAGS_YACC	= $$QMAKE_CFLAGS_YACC
  QMAKE_CXXFLAGS_THREAD	=
  
@@ -95,7 +230,7 @@ diff -uNbr qt-x11-free-3.1.0-b2/mkspecs/darwin-g++/qmake.conf qt-x11-free-3.1.0-
  QMAKE_INCDIR_X11	= /usr/X11R6/include
  QMAKE_LIBDIR_X11	= /usr/X11R6/lib
  QMAKE_INCDIR_QT		= $(QTDIR)/include
-@@ -46,22 +46,22 @@
+@@ -46,22 +48,22 @@
  
  QMAKE_LINK		= c++
  QMAKE_LINK_SHLIB	= c++
@@ -122,9 +257,9 @@ diff -uNbr qt-x11-free-3.1.0-b2/mkspecs/darwin-g++/qmake.conf qt-x11-free-3.1.0-
  
  QMAKE_MOC		= $(QTDIR)/bin/moc
  QMAKE_UIC		= $(QTDIR)/bin/uic
-diff -uNbr qt-x11-free-3.1.0-b2/qmake/generators/mac/metrowerks_xml.cpp qt-x11-free-3.1.0-b2-new/qmake/generators/mac/metrowerks_xml.cpp
---- qt-x11-free-3.1.0-b2/qmake/generators/mac/metrowerks_xml.cpp	Mon Sep 30 10:21:58 2002
-+++ qt-x11-free-3.1.0-b2-new/qmake/generators/mac/metrowerks_xml.cpp	Wed Oct 23 22:35:51 2002
+diff -uNbr qt-copy/qmake/generators/mac/metrowerks_xml.cpp qt-copy-new/qmake/generators/mac/metrowerks_xml.cpp
+--- qt-copy/qmake/generators/mac/metrowerks_xml.cpp	Mon Oct 21 08:38:49 2002
++++ qt-copy-new/qmake/generators/mac/metrowerks_xml.cpp	Fri Oct 25 09:45:13 2002
 @@ -42,7 +42,7 @@
  #include <qregexp.h>
  #include <stdlib.h>
@@ -143,10 +278,10 @@ diff -uNbr qt-x11-free-3.1.0-b2/qmake/generators/mac/metrowerks_xml.cpp qt-x11-f
  	if(st_volume.isEmpty()) {
  	    uchar foo[512];
  	    HVolumeParam pb;
-diff -uNbr qt-x11-free-3.1.0-b2/qmake/generators/unix/unixmake.cpp qt-x11-free-3.1.0-b2-new/qmake/generators/unix/unixmake.cpp
---- qt-x11-free-3.1.0-b2/qmake/generators/unix/unixmake.cpp	Mon Sep 30 10:21:58 2002
-+++ qt-x11-free-3.1.0-b2-new/qmake/generators/unix/unixmake.cpp	Wed Oct 23 22:52:39 2002
-@@ -134,14 +134,6 @@
+diff -uNbr qt-copy/qmake/generators/unix/unixmake.cpp qt-copy-new/qmake/generators/unix/unixmake.cpp
+--- qt-copy/qmake/generators/unix/unixmake.cpp	Mon Oct 21 08:38:49 2002
++++ qt-copy-new/qmake/generators/unix/unixmake.cpp	Fri Oct 25 09:45:13 2002
+@@ -133,14 +133,6 @@
  	    !project->variables()["QMAKE_LIB_FLAG"].isEmpty() &&
  	    project->isActiveConfig("dll"))
  	project->variables()["QMAKE_LFLAGS"] += project->variables()["QMAKE_LFLAGS_PREBIND"];
@@ -161,7 +296,7 @@ diff -uNbr qt-x11-free-3.1.0-b2/qmake/generators/unix/unixmake.cpp qt-x11-free-3
      if ( extern_libs && (project->isActiveConfig("qt") || project->isActiveConfig("opengl")) ) {
  	if(configs.findIndex("x11lib") == -1)
  	    configs.append("x11lib");
-@@ -175,6 +167,14 @@
+@@ -174,6 +166,14 @@
  	    else
  		project->variables()["QMAKE_LIBS"] += project->variables()["QMAKE_LIBS_QT"];
  	}
@@ -176,9 +311,9 @@ diff -uNbr qt-x11-free-3.1.0-b2/qmake/generators/unix/unixmake.cpp qt-x11-free-3
      }
      if ( project->isActiveConfig("thread") ) {
  	if(project->isActiveConfig("qt"))
-diff -uNbr qt-x11-free-3.1.0-b2/src/kernel/qprocess_unix.cpp qt-x11-free-3.1.0-b2-new/src/kernel/qprocess_unix.cpp
---- qt-x11-free-3.1.0-b2/src/kernel/qprocess_unix.cpp	Mon Sep 30 10:21:42 2002
-+++ qt-x11-free-3.1.0-b2-new/src/kernel/qprocess_unix.cpp	Wed Oct 23 21:42:08 2002
+diff -uNbr qt-copy/src/kernel/qprocess_unix.cpp qt-copy-new/src/kernel/qprocess_unix.cpp
+--- qt-copy/src/kernel/qprocess_unix.cpp	Mon Oct 21 08:39:13 2002
++++ qt-copy-new/src/kernel/qprocess_unix.cpp	Fri Oct 25 09:45:13 2002
 @@ -746,7 +746,7 @@
  
  	if ( env == 0 ) { // inherit environment and start process
@@ -224,9 +359,9 @@ diff -uNbr qt-x11-free-3.1.0-b2/src/kernel/qprocess_unix.cpp qt-x11-free-3.1.0-b
  	    if(!QFile::exists(arglist[0])) {
  		QString command = arglist[0];
  		const QString mac_bundle_suffix = ".app/Contents/MacOS/";
-diff -uNbr qt-x11-free-3.1.0-b2/src/kernel/qt.h qt-x11-free-3.1.0-b2-new/src/kernel/qt.h
---- qt-x11-free-3.1.0-b2/src/kernel/qt.h	Mon Sep  9 06:00:28 2002
-+++ qt-x11-free-3.1.0-b2-new/src/kernel/qt.h	Wed Oct 23 21:37:18 2002
+diff -uNbr qt-copy/src/kernel/qt.h qt-copy-new/src/kernel/qt.h
+--- qt-copy/src/kernel/qt.h	Mon Oct 21 08:39:17 2002
++++ qt-copy-new/src/kernel/qt.h	Fri Oct 25 09:44:42 2002
 @@ -323,7 +323,7 @@
  #include <qfontfactoryttf_qws.h>
  #include <qgfx_qws.h>
@@ -236,9 +371,9 @@ diff -uNbr qt-x11-free-3.1.0-b2/src/kernel/qt.h qt-x11-free-3.1.0-b2-new/src/ker
  # include <qsoundqss_qws.h>
  #endif
  #include "qwsdisplay_qws.h"
-diff -uNbr qt-x11-free-3.1.0-b2/src/tools/qdir_unix.cpp qt-x11-free-3.1.0-b2-new/src/tools/qdir_unix.cpp
---- qt-x11-free-3.1.0-b2/src/tools/qdir_unix.cpp	Mon Sep 30 10:21:35 2002
-+++ qt-x11-free-3.1.0-b2-new/src/tools/qdir_unix.cpp	Wed Oct 23 21:43:39 2002
+diff -uNbr qt-copy/src/tools/qdir_unix.cpp qt-copy-new/src/tools/qdir_unix.cpp
+--- qt-copy/src/tools/qdir_unix.cpp	Mon Oct 21 08:39:29 2002
++++ qt-copy-new/src/tools/qdir_unix.cpp	Fri Oct 25 09:45:15 2002
 @@ -86,7 +86,7 @@
  
  bool QDir::mkdir( const QString &dirName, bool acceptAbsPath ) const
@@ -248,30 +383,40 @@ diff -uNbr qt-x11-free-3.1.0-b2/src/tools/qdir_unix.cpp qt-x11-free-3.1.0-b2-new
      QString name = dirName;
      if (dirName[dirName.length() - 1] == "/")
  	name = dirName.left( dirName.length() - 1 );
-diff -uNbr qt-x11-free-3.1.0-b2/src/tools/qglobal.h qt-x11-free-3.1.0-b2-new/src/tools/qglobal.h
---- qt-x11-free-3.1.0-b2/src/tools/qglobal.h	Mon Sep 30 10:21:34 2002
-+++ qt-x11-free-3.1.0-b2-new/src/tools/qglobal.h	Thu Oct 24 20:16:08 2002
-@@ -78,9 +78,10 @@
+diff -uNbr qt-copy/src/tools/qglobal.cpp qt-copy-new/src/tools/qglobal.cpp
+--- qt-copy/src/tools/qglobal.cpp	Tue Oct 22 12:45:02 2002
++++ qt-copy-new/src/tools/qglobal.cpp	Fri Oct 25 12:43:28 2002
+@@ -149,7 +149,7 @@
+     return TRUE;
+ }
+ 
+-#if defined(Q_OS_MAC)
++#if defined(Q_OS_MACX)
+ 
+ #include "qt_mac.h"
+ 
+diff -uNbr qt-copy/src/tools/qglobal.h qt-copy-new/src/tools/qglobal.h
+--- qt-copy/src/tools/qglobal.h	Tue Oct 22 12:45:03 2002
++++ qt-copy-new/src/tools/qglobal.h	Fri Oct 25 12:28:35 2002
+@@ -78,8 +78,9 @@
       UNIX	- Any UNIX BSD/SYSV system
  */
  
 -#if defined(__APPLE__) && defined(__GNUC__)
 -#  define Q_OS_MACX
--#elif defined(__MACOSX__)
 +#if defined(__APPLE__) && defined(__GNUC__) && !defined(Q_OS_DARWIN)
 +#  define Q_OS_DARWIN
 +#  define Q_OS_FREEBSD
-+#elif defined(__MACOSX__) && !defined(Q_OS_DARWIN)
+ #elif defined(__MACOSX__)
  #  define Q_OS_MACX
  #elif defined(macintosh)
- #  define Q_OS_MAC9
-@@ -150,10 +151,12 @@
+@@ -149,11 +150,11 @@
+ #elif defined(__USLC__)     /* UnixWare 7 + UDK, Open UNIX 8 + OUDK */
  #  define Q_OS_UNIXWARE
  #  define Q_OS_UNIXWARE7
- #else
-+#  if !defined(Q_OS_DARWIN)
+-#else
++#elsif !defined(Q_OS_DARWIN)
  #  error "Qt has not been ported to this OS - talk to qt-bugs@trolltech.com"
-+#  endif
  #endif
  
 -#if defined(Q_OS_MAC9) || defined(Q_OS_MACX)
@@ -279,7 +424,7 @@ diff -uNbr qt-x11-free-3.1.0-b2/src/tools/qglobal.h qt-x11-free-3.1.0-b2-new/src
  #  define Q_OS_MAC
  #endif
  
-@@ -649,7 +652,7 @@
+@@ -664,7 +665,7 @@
  #define Q_UINT64		Q_ULONG
  #endif
  
@@ -288,7 +433,7 @@ diff -uNbr qt-x11-free-3.1.0-b2/src/tools/qglobal.h qt-x11-free-3.1.0-b2-new/src
  #  define QT_LARGEFILE_SUPPORT 64
  #endif
  #if defined(QT_LARGEFILE_SUPPORT)
-@@ -852,7 +855,7 @@
+@@ -869,7 +870,7 @@
  #  define QT_DEBUG				// display debug messages
  #  if !defined(QT_NO_COMPAT)			// compatibility with Qt 2
  #    if !defined(NO_DEBUG) && !defined(DEBUG)
@@ -297,9 +442,9 @@ diff -uNbr qt-x11-free-3.1.0-b2/src/tools/qglobal.h qt-x11-free-3.1.0-b2-new/src
  #        define DEBUG
  #      endif
  #    endif
-diff -uNbr qt-x11-free-3.1.0-b2/src/tools/qgpluginmanager.cpp qt-x11-free-3.1.0-b2-new/src/tools/qgpluginmanager.cpp
---- qt-x11-free-3.1.0-b2/src/tools/qgpluginmanager.cpp	Mon Sep 30 10:21:34 2002
-+++ qt-x11-free-3.1.0-b2-new/src/tools/qgpluginmanager.cpp	Wed Oct 23 21:48:05 2002
+diff -uNbr qt-copy/src/tools/qgpluginmanager.cpp qt-copy-new/src/tools/qgpluginmanager.cpp
+--- qt-copy/src/tools/qgpluginmanager.cpp	Fri Oct  4 11:26:52 2002
++++ qt-copy-new/src/tools/qgpluginmanager.cpp	Fri Oct 25 09:45:15 2002
 @@ -316,7 +316,7 @@
  
  #if defined(Q_OS_WIN32)
@@ -327,10 +472,10 @@ diff -uNbr qt-x11-free-3.1.0-b2/src/tools/qgpluginmanager.cpp qt-x11-free-3.1.0-
  }
  
  const QLibrary* QGPluginManager::library( const QString& feature ) const
-diff -uNbr qt-x11-free-3.1.0-b2/src/tools/qlibrary.cpp qt-x11-free-3.1.0-b2-new/src/tools/qlibrary.cpp
---- qt-x11-free-3.1.0-b2/src/tools/qlibrary.cpp	Mon Sep 30 10:21:34 2002
-+++ qt-x11-free-3.1.0-b2-new/src/tools/qlibrary.cpp	Wed Oct 23 21:53:31 2002
-@@ -319,6 +319,7 @@
+diff -uNbr qt-copy/src/tools/qlibrary.cpp qt-copy-new/src/tools/qlibrary.cpp
+--- qt-copy/src/tools/qlibrary.cpp	Mon Oct 21 08:39:29 2002
++++ qt-copy-new/src/tools/qlibrary.cpp	Sun Oct 27 19:51:47 2002
+@@ -319,10 +319,11 @@
  
      QString filename = libfile;
  
@@ -338,9 +483,14 @@ diff -uNbr qt-x11-free-3.1.0-b2/src/tools/qlibrary.cpp qt-x11-free-3.1.0-b2-new/
  #if defined(Q_WS_WIN)
      if ( filename.findRev( '.' ) <= filename.findRev( '/' ) )
  	filename += ".dll";
-diff -uNbr qt-x11-free-3.1.0-b2/src/tools/qsettings.cpp qt-x11-free-3.1.0-b2-new/src/tools/qsettings.cpp
---- qt-x11-free-3.1.0-b2/src/tools/qsettings.cpp	Mon Sep 30 10:21:33 2002
-+++ qt-x11-free-3.1.0-b2-new/src/tools/qsettings.cpp	Thu Oct 24 09:31:04 2002
+-#elif defined(Q_OS_MACX)
++#elif defined(Q_OS_MACX) || defined(Q_OS_DARWIN)
+     if ( filename.find( ".dylib" ) == -1 )
+ 	filename += ".dylib";
+ #else
+diff -uNbr qt-copy/src/tools/qsettings.cpp qt-copy-new/src/tools/qsettings.cpp
+--- qt-copy/src/tools/qsettings.cpp	Mon Oct 21 08:39:30 2002
++++ qt-copy-new/src/tools/qsettings.cpp	Fri Oct 25 09:45:15 2002
 @@ -455,7 +455,7 @@
  QSettingsPrivate::QSettingsPrivate( QSettings::Format format )
      : groupDirty( TRUE ), modified(FALSE), globalScope(TRUE)
@@ -533,9 +683,9 @@ diff -uNbr qt-x11-free-3.1.0-b2/src/tools/qsettings.cpp qt-x11-free-3.1.0-b2-new
      if ( d->sysd )
  	return QDateTime();
  #endif
-diff -uNbr qt-x11-free-3.1.0-b2/tools/designer/app/main.cpp qt-x11-free-3.1.0-b2-new/tools/designer/app/main.cpp
---- qt-x11-free-3.1.0-b2/tools/designer/app/main.cpp	Thu Sep 19 08:18:07 2002
-+++ qt-x11-free-3.1.0-b2-new/tools/designer/app/main.cpp	Thu Oct 24 10:56:27 2002
+diff -uNbr qt-copy/tools/designer/app/main.cpp qt-copy-new/tools/designer/app/main.cpp
+--- qt-copy/tools/designer/app/main.cpp	Fri Oct  4 11:27:08 2002
++++ qt-copy-new/tools/designer/app/main.cpp	Fri Oct 25 09:45:15 2002
 @@ -174,7 +174,7 @@
  #ifdef Q_WS_WIN
      extern void qInitImages_designerlib();
@@ -545,19 +695,19 @@ diff -uNbr qt-x11-free-3.1.0-b2/tools/designer/app/main.cpp qt-x11-free-3.1.0-b2
      extern void qInitImages_designer();
      qInitImages_designer();
  #endif
-diff -uNbr qt-x11-free-3.1.0-b2/tools/designer/designer/designer.pro qt-x11-free-3.1.0-b2-new/tools/designer/designer/designer.pro
---- qt-x11-free-3.1.0-b2/tools/designer/designer/designer.pro	Thu Sep 26 11:50:24 2002
-+++ qt-x11-free-3.1.0-b2-new/tools/designer/designer/designer.pro	Thu Oct 24 13:49:05 2002
+diff -uNbr qt-copy/tools/designer/designer/designer.pro qt-copy-new/tools/designer/designer/designer.pro
+--- qt-copy/tools/designer/designer/designer.pro	Mon Oct 21 08:39:52 2002
++++ qt-copy-new/tools/designer/designer/designer.pro	Fri Oct 25 09:48:29 2002
 @@ -1,5 +1,5 @@
  TEMPLATE	= lib
--CONFIG		+= qt warn_on staticlib
-+CONFIG		+= qt warn_on
+-CONFIG		+= qt warn_on staticlib qmake_cache
++CONFIG		+= qt warn_on qmake_cache
  CONFIG 		-= dll
  !force_static:!win32:contains(QT_PRODUCT,qt-internal) {
     CONFIG          -= staticlib
-diff -uNbr qt-x11-free-3.1.0-b2/tools/designer/designer/mainwindow.cpp qt-x11-free-3.1.0-b2-new/tools/designer/designer/mainwindow.cpp
---- qt-x11-free-3.1.0-b2/tools/designer/designer/mainwindow.cpp	Thu Sep 26 07:50:02 2002
-+++ qt-x11-free-3.1.0-b2-new/tools/designer/designer/mainwindow.cpp	Thu Oct 24 10:57:07 2002
+diff -uNbr qt-copy/tools/designer/designer/mainwindow.cpp qt-copy-new/tools/designer/designer/mainwindow.cpp
+--- qt-copy/tools/designer/designer/mainwindow.cpp	Mon Oct 21 08:39:53 2002
++++ qt-copy-new/tools/designer/designer/mainwindow.cpp	Fri Oct 25 09:45:15 2002
 @@ -121,7 +121,7 @@
  #ifdef Q_WS_WIN
      extern void qInitImages_designerlib();
@@ -567,9 +717,9 @@ diff -uNbr qt-x11-free-3.1.0-b2/tools/designer/designer/mainwindow.cpp qt-x11-fr
      extern void qInitImages_designer();
      qInitImages_designer();
  #endif
-diff -uNbr qt-x11-free-3.1.0-b2/tools/designer/editor/editor.pro qt-x11-free-3.1.0-b2-new/tools/designer/editor/editor.pro
---- qt-x11-free-3.1.0-b2/tools/designer/editor/editor.pro	Wed Sep 25 04:07:06 2002
-+++ qt-x11-free-3.1.0-b2-new/tools/designer/editor/editor.pro	Thu Oct 24 13:48:28 2002
+diff -uNbr qt-copy/tools/designer/editor/editor.pro qt-copy-new/tools/designer/editor/editor.pro
+--- qt-copy/tools/designer/editor/editor.pro	Fri Oct  4 11:27:18 2002
++++ qt-copy-new/tools/designer/editor/editor.pro	Fri Oct 25 09:45:15 2002
 @@ -1,5 +1,5 @@
  TEMPLATE	= lib
 -CONFIG		+= qt warn_on staticlib

@@ -2,19 +2,21 @@ Package: qt3
 Version: 3.1.0
 Revision: 0b2.1
 GCC: 3.1
-Source: ftp://ftp.trolltech.com/qt/source/qt-x11-free-%v-b2.tar.bz2
-SourceDirectory: qt-%v
+#Source: ftp://ftp.trolltech.com/qt/source/qt-x11-free-%v-b2.tar.bz2
+#SourceDirectory: qt-x11-free-%v-b2
+Source: http://ranger.befunk.com/fink/qt-copy-20021027.tar.bz2
+SourceDirectory: qt-copy
 Description: Cross-Platform GUI application framework.
 Depends: %N-shlibs, %N-dev, %N-designer, %N-linguist, %N-doc
-Suggests: libpng, libjpeg, freetype2
+Suggests: libpng3, libjpeg, freetype2
 BuildDepends: dlcompat (>= 20020929), libgl, freetype2 (>= 2.0.8), libpng3 (>= 1.2.4), libjpeg (>= 6b), system-cups (>= 1.1.15), x11
 Replaces: qt, qt2, %N-doc
 Conflicts: qt, qt2
 BuildDependsOnly: true
-SourceDirectory: qt-x11-free-%v-b2
 PatchScript: sed 's|@PREFIX@|%p|g' <%a/%f.patch | patch -p1
 CompileScript: <<
 #!/bin/sh
+ make -f Makefile.cvs
  export QTDIR=`pwd`
  export DYLD_LIBRARY_PATH="$QTDIR/lib:%p/lib:$DYLD_LIBRARY_PATH"
  export PATH="$QTDIR/bin:$PATH"
@@ -24,7 +26,7 @@ CompileScript: <<
  echo "yes" | ./configure -I/usr/X11R6/include/freetype2 -I/usr/X11R6/include \
 	-I. -I../../../../include -I../../../include -I../../include -I../include \
 	-I%p/include -L. -L../../../../lib -L../../../lib -L../../lib -L../lib \
-	-L%p/lib -DQ_OS_DARWIN -DQ_OS_FREEBSD \
+	-L%p/lib -lfontconfig -DQ_OS_DARWIN -DQ_OS_FREEBSD \
 	-buildkey qt3-jaguar -platform darwin-g++ -xplatform darwin-g++ \
 	-prefix %p -bindir %p/bin -libdir %p/lib -docdir %p/share/doc/%n \
 	-datadir %p/share/qt3 -headerdir %p/include/qt -plugindir %p/lib/qt3-plugins \
@@ -33,7 +35,7 @@ CompileScript: <<
 	-system-libpng -system-libjpeg -system-zlib -largefile \
 	-sm -xinerama -xrender -xft -xkb `cat /tmp/qt-build-options`
 
- make -j4 INSTALLPREFIX=%p symlinks src-qmake src-moc sub-src sub-tools
+ make -j2 INSTALLPREFIX=%p symlinks src-qmake src-moc sub-src sub-tools
 <<
 InstallScript: <<
 #!/bin/sh
@@ -42,7 +44,7 @@ InstallScript: <<
  export DYLD_LIBRARY_PATH="$QTDIR/lib:%p/lib:$DYLD_LIBRARY_PATH"
  export PATH="$QTDIR/bin:$PATH"
  export QMAKESPEC=$QTDIR/mkspecs/darwin-g++
- make -j4 install INSTALL_ROOT=%d INSTALLPREFIX=%p
+ make -j2 install INSTALL_ROOT=%d INSTALLPREFIX=%p
 <<
 SplitOff: <<
   Package: %N-shlibs
