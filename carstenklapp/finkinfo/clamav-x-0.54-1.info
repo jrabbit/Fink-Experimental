@@ -1,15 +1,18 @@
 Package: clamav-x
 Version: 0.54
 Revision: 1
-Source: http://clamav.elektrapro.com/stable/clamav-%v.tar.gz
-Source-MD5: 1c2e2adffe9ed4d15fe2167dd7bad591
+# stable
+#Source: http://clamav.elektrapro.com/stable/clamav-%v.tar.gz
+#Source-MD5: 1c2e2adffe9ed4d15fe2167dd7bad591
 # snapshot
-#Source: http://clamav.elektrapro.com/snapshot/clamav-20021204.tar.gz
-#Source-MD5: 40b6be69f25447217e13a97d9d220a55
-BuildDepends: passwd (>> 20020329-2)
+Source: http://clamav.elektrapro.com/snapshot/clamav-20021209.tar.gz
+Source-MD5: 1328299bf0ad7ab5831786c672ba09a9
+#BuildDepends: passwd (>> 20020329-2)
 Recommends: passwd (>> 20020329-2)
 Suggests: unrar
-ConfigureParams: --mandir=%p/share/man --sysconfdir=%p/etc --disable-clamav --enable-shared=no CFLAGS='-O3 -prebind' LDFLAGS=-prebind
+SetLDFLAGS: -prebind
+SetCFLAGS: -prebind
+ConfigureParams: --mandir=%p/share/man --sysconfdir=%p/etc --disable-clamav --enable-shared=no
 InstallScript: <<
  make install DESTDIR=%d
  mkdir -p %i/etc
@@ -24,13 +27,30 @@ InstallScript: <<
 <<
 PostInstScript: <<
  printf "\n\nTo download the latest virus definitions, run 'sudo freshclam'."
- YN=yes;
- printf "\n\n*** Download the latest virus definitions now? [Yn] "
- read YN 
- : ${YN:=yes}
- case $YN in 
-  [yY]|[yY][eE][sS]) %p/bin/freshclam ;;
- esac 
+ dir=%p/share/clamav
+ db1=viruses.db
+ db2=viruses.db2
+ dist1=9c26ca57acf6a3fc8b0c2fa8790f96fb
+ dist2=666069df3c0e69195cb9ae216701e8e8
+ olddefs="0"
+ if [ -f $dir/$db1 ] && [ -f $dir/$db2 ]; then
+  test1=`md5sum $dir/$db1`
+  test2=`md5sum $dir/$db2`
+  if [ "$test1" == "$dist1  $db1" ] || [ "$test2" == "$dist2  $db2" ]; then
+   olddefs="1"
+  fi
+ else
+  olddefs="1"
+ fi
+ if [ "$olddefs" == "1" ]; then
+  YN=yes;
+  printf "\n\n*** Download the latest virus definitions now? [Yn] "
+  read YN 
+  : ${YN:=yes}
+  case $YN in 
+   [yY]|[yY][eE][sS]) %p/bin/freshclam ;;
+  esac 
+ fi
 <<
 ConfFiles: %p/etc/clamav.conf %p/share/clamav/viruses.db %p/share/clamav/viruses.db2
 DocFiles: TODO COPYING FAQ ChangeLog BUGS README NEWS AUTHORS

@@ -3,10 +3,12 @@ Version: 0.53
 Revision: 1
 Source: http://%n.elektrapro.com/stable/%n-%v.tar.gz
 Source-MD5: c635ecebf13dd6c42a72938eaf0cde50
-BuildDepends: passwd (>> 20020329-2)
+#BuildDepends: passwd (>> 20020329-2)
 Recommends: passwd (>> 20020329-2)
 Suggests: unrar
-ConfigureParams: --mandir=%p/share/man --sysconfdir=%p/etc --disable-clamav --enable-shared=no CFLAGS='-O3 -prebind' LDFLAGS=-prebind
+SetLDFLAGS: -prebind
+SetCFLAGS: -prebind
+ConfigureParams: --mandir=%p/share/man --sysconfdir=%p/etc --disable-clamav --enable-shared=no
 InstallScript: <<
  make install DESTDIR=%d
  chown -R %n %i/share/%n
@@ -19,13 +21,30 @@ InstallScript: <<
 <<
 PostInstScript: <<
  printf "\n\nTo download the latest virus definitions, run 'sudo freshclam'."
- YN=yes;
- printf "\n\n*** Download the latest virus definitions now? [Yn] "
- read YN 
- : ${YN:=yes}
- case $YN in 
-  [yY]|[yY][eE][sS]) %p/bin/freshclam ;;
- esac 
+ dir=%p/share/%n
+ db1=viruses.db
+ db2=viruses.db2
+ dist1=d1dc954308405cfd136aacd0db0862f8
+ dist2=7c92956adb4a0c286bb56816c88bbf29
+ olddefs="0"
+ if [ -f $dir/$db1 ] && [ -f $dir/$db2 ]; then
+  test1=`md5sum $dir/$db1`
+  test2=`md5sum $dir/$db2`
+  if [ "$test1" == "$dist1  $db1" ] || [ "$test2" == "$dist2  $db2" ]; then
+   olddefs="1"
+  fi
+ else
+  olddefs="1"
+ fi
+ if [ "$olddefs" == "1" ]; then
+  YN=yes;
+  printf "\n\n*** Download the latest virus definitions now? [Yn] "
+  read YN 
+  : ${YN:=yes}
+  case $YN in 
+   [yY]|[yY][eE][sS]) %p/bin/freshclam ;;
+  esac 
+ fi
 <<
 ConfFiles: %p/etc/%n.conf %p/share/%n/viruses.db %p/share/%n/viruses.db2
 DocFiles: TODO COPYING FAQ ChangeLog BUGS README NEWS AUTHORS
