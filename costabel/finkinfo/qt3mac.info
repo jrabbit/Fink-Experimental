@@ -1,0 +1,111 @@
+Package: qt3mac
+Version: 3.3.4
+Revision: 2
+GCC: 3.3
+CustomMirror: <<
+  Primary: ftp://ftp.trolltech.com/qt/source
+  aus-AU: http://public.ftp.planetmirror.com.au/pub/trolltech/qt/source
+  eur-DE: ftp://ftp.fu-berlin.de/unix/X11/gui/Qt/source
+  eur-DE: http://wftp.tu-chemnitz.de/pub/Qt/source
+  eur-ES: http://sunsite.rediris.es/mirror/Qt/source
+  eur-GR: http://ftp.ntua.gr/pub/X11/Qt/qt/source
+  eur-NO: ftp://ftp.trolltech.com/qt/source
+  eur-RO: http://ftp.iasi.roedu.net/mirrors/ftp.trolltech.com/qt/sources
+  nam-US: http://ftp.silug.org/mirrors/ftp.trolltech.com/qt/source
+<<
+Source: mirror:custom:qt-mac-free-%v.tar.bz2
+Source-MD5: 13eabc6c8b21f409de2a8d14ce40e8c6
+SourceDirectory: qt-mac-free-%v
+Description: Cross-Platform GUI application framework
+#Depends: %N-shlibs (>= %v-%r), %N-designer (>= %v-%r), %N-linguist (>= %v-%r), %N-doc (>= %v-%r), pkgconfig
+Depends: %N-shlibs (>= %v-%r), pkgconfig
+#Suggests: libpng3, libjpeg, %N-mysql (>= %v-%r), %N-postgresql (>= %v-%r)
+BuildDepends: cctools (>= 446) | cctools-single-module, cups-dev, fink (>= 0.17.3-1), freetype219, gcc3.3, libgl-dev, libpng3 (>= 1.2.5-4), libjpeg
+#Replaces:  %N-doc, %N-bin, %N-dev
+#Provides: %N-bin
+BuildDependsOnly: true
+PatchScript: <<
+#!/bin/sh -ex
+ sed -e 's|@PREFIX@|%p|g' <%a/%n.patch | patch -p1
+ perl -pi.bak -e 's|cp \-P|cp \-RL|' qmake/Makefile.unix
+<<
+NoSetLDFLAGS: true
+CompileScript: <<
+#!/bin/sh -ex
+
+ export QTDIR=`pwd`
+ export DYLD_LIBRARY_PATH="$QTDIR/lib:%p/lib/freetype219/lib:$DYLD_LIBRARY_PATH"
+ export PATH="$QTDIR/bin:%p/lib/freetype219/bin:$PATH"
+ export INSTALL_ROOT=""
+ LIBRESOLV="-lresolv"
+ # looks ugly, but it's better than patching the source
+ echo "yes" | ./configure \
+	'-I$(QTDIR)/include' '-I%p/lib/freetype219/include/freetype2' \
+	'-L%p/lib/freetype219/lib' '-I%p/include' \
+	'-L$(QTDIR)/lib' '-L%p/lib' $LIBRESOLV \
+	-platform macx-g++ -xplatform macx-g++ \
+	-translationdir '%p/share/%n/translations' \
+	-prefix '%p/lib/%n'  -docdir '%p/share/doc/%n' \
+	-datadir '%p/share/%n' \
+	-release -shared -no-exceptions -thread -cups -stl \
+	-qt-gif  \
+	-system-zlib -largefile
+
+ make
+# make symlinks src-qmake src-moc sub-src sub-tools
+<<
+InstallScript: <<
+ make install INSTALL_ROOT=%d
+# remove stuff from the libtool archive that libtool doesn't understand
+ perl -pi.bak -e "s,\$\(QTDIR\),%p,g;s,\-framework.*,\-lz \-ldl\',g" %i/lib/%n/lib/libqt-mt.la
+<<
+SplitOff: <<
+  Package: %N-shlibs
+  Suggests: %N-designer, %N-linguist, %N-doc
+  Depends: fink (>= 0.17.1-1), freetype219-shlibs, libgl-shlibs, libpng3-shlibs (>= 1.2.5-4), libjpeg-shlibs
+  Shlibs: <<
+    %p/lib/%N/lib/libqt-mt.3*.dylib 3.0.0 %n (>= 3.3.2-1)
+    %p/lib/%N/lib/libqui.1*.dylib 1.0.0 %n (>= 3.3.2-1)
+  <<
+  Files: <<
+    lib/%N/lib/libqt-mt.*.dylib
+    lib/%N/lib/libqui.*.dylib
+    lib/%N/plugins
+  <<
+<<
+#SplitOff2: <<
+#  Package: %N-designer
+#  Depends: %N-shlibs (>= %v-%r), libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4)
+#  Files: <<
+#    bin/designer
+#    lib/libdesigner*
+#    lib/qt3-plugins/designer
+#    share/applnk/Development/designer.desktop
+#    share/qt3/templates
+#  <<
+#<<
+#SplitOff3: <<
+#  Package: %N-linguist
+#  Depends: %N-shlibs (>= %v-%r), libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4)
+#  Files: <<
+#    bin/l*
+#    bin/qm2ts
+#    share/qt3/phrasebooks
+#    share/man/man1/lrelease.1
+#    share/man/man1/lupdate.1
+#    share/applnk/Development/linguist.desktop
+#  <<
+#<<
+#SplitOff4: <<
+#  Package: %N-dev
+#  Depends: %N (>= %v-%r), %N-shlibs (>= %v-%r), libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4)
+#  Files: share/doc/installed-packages/%n
+#<<
+#SplitOff5: <<
+#  Package: %N-doc
+#  Files: share/doc/%N
+#<<
+DocFiles: FAQ INSTALL LICENSE* MANIFEST PLATFORMS README*
+License: GPL
+Maintainer: Benjamin Reed <qt3@fink.racoonfink.com>
+Homepage: http://www.trolltech.com/
