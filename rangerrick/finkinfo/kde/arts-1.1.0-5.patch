@@ -1,18 +1,18 @@
 Index: admin/Makefile.common
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/admin/Makefile.common,v
-retrieving revision 1.1.1.3
-retrieving revision 1.4
-diff -u -u -r1.1.1.3 -r1.4
+retrieving revision 1.1.1.4
+retrieving revision 1.5
+diff -u -u -r1.1.1.4 -r1.5
 Index: admin/acinclude.m4.in
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/admin/acinclude.m4.in,v
-retrieving revision 1.1.1.4
-retrieving revision 1.17
-diff -u -u -r1.1.1.4 -r1.17
---- admin/acinclude.m4.in	1 Oct 2002 01:44:25 -0000	1.1.1.4
-+++ admin/acinclude.m4.in	20 Oct 2002 19:53:12 -0000	1.17
-@@ -699,13 +699,10 @@
+retrieving revision 1.1.1.5
+retrieving revision 1.18
+diff -u -u -r1.1.1.5 -r1.18
+--- admin/acinclude.m4.in	29 Oct 2002 02:27:18 -0000	1.1.1.5
++++ admin/acinclude.m4.in	29 Oct 2002 02:29:54 -0000	1.18
+@@ -704,13 +704,10 @@
       AC_CHECK_LIB(ipc, shmat, X_EXTRA_LIBS="$X_EXTRA_LIBS -lipc"))
     
     # darwin needs this to initialize the environment
@@ -28,7 +28,7 @@ diff -u -u -r1.1.1.4 -r1.17
     AC_CHECK_LIB(poll, poll, LIB_POLL="-lpoll")
  
     # CoreAudio framework
-@@ -714,6 +711,12 @@
+@@ -719,11 +716,36 @@
       FRAMEWORK_COREAUDIO="-framework CoreAudio"
     ])
  
@@ -38,13 +38,25 @@ diff -u -u -r1.1.1.4 -r1.17
 +     FRAMEWORK_CORESERVICES="-framework CoreServices"
 +   ])
 +
-    # Solaris 2.6 and others need -lresolv for res_init
-    AC_CHECK_FUNCS(res_init, , [
-      kde_libs_safe="$LIBS"
-@@ -732,10 +735,11 @@
-      LIBS=$kde_libs_safe
-    ])
- 
++   # Solaris 2.6 and others need -lresolv for res_init
++   AC_CHECK_FUNCS(res_init, , [
++     kde_libs_safe="$LIBS"
++     LIBS="$LIBS $X_EXTRA_LIBS -lresolv"
++     AC_TRY_LINK(
++[
++#include <resolv.h>
++],
++[ 
++res_init(); 
++],
++        LIBRESOLV="-lresolv"
++        X_EXTRA_LIBS="$X_EXTRA_LIBS $LIBRESOLV"
++        AC_DEFINE(HAVE_RES_INIT, 1, [Define if you have the res_init function])
++     )
++     LIBS=$kde_libs_safe
++   ])
++
+    AC_CHECK_RES_INIT
 -   AC_SUBST(LIB_POLL)
     AC_SUBST(FRAMEWORK_COREAUDIO)
     LIBSOCKET="$X_EXTRA_LIBS"
@@ -54,7 +66,7 @@ diff -u -u -r1.1.1.4 -r1.17
     AC_SUBST(LIBRESOLV)
     AC_SUBST(X_EXTRA_LIBS)
     AC_CHECK_LIB(ucb, killpg, [LIBUCB="-lucb"]) dnl for Solaris2.4
-@@ -905,7 +909,7 @@
+@@ -932,7 +954,7 @@
  kde_ldflags_safe="$LDFLAGS"
  kde_libs_safe="$LIBS"
  
@@ -63,7 +75,7 @@ diff -u -u -r1.1.1.4 -r1.17
  LIBS="-lXext -lX11 $LIBSOCKET"
  
  AC_TRY_LINK([
-@@ -947,9 +951,9 @@
+@@ -974,9 +996,9 @@
  kde_save_LDFLAGS="$LDFLAGS"
  kde_save_CFLAGS="$CFLAGS"
  kde_save_LIBS="$LIBS"
@@ -75,7 +87,7 @@ diff -u -u -r1.1.1.4 -r1.17
  
  if test "x$no_xinerama" = "xno"; then
  
-@@ -1846,15 +1850,29 @@
+@@ -1907,15 +1929,29 @@
     AC_REQUIRE([K_PATH_X])
  
  if test $kde_qtver = 3; then
@@ -110,7 +122,7 @@ diff -u -u -r1.1.1.4 -r1.17
  # these are for backward compatibility
     AC_SUBST(LIB_KSYCOCA, "-lkio")
     AC_SUBST(LIB_KFILE, "-lkio")
-@@ -2544,10 +2562,10 @@
+@@ -2646,10 +2682,10 @@
        if test $kde_use_debug_code = "full"; then
          CFLAGS="-g3 $CFLAGS"
        else
@@ -123,7 +135,7 @@ diff -u -u -r1.1.1.4 -r1.17
      fi
    fi
  
-@@ -2577,7 +2595,7 @@
+@@ -2679,7 +2715,7 @@
          if test "$kde_use_debug_code" = "full"; then
            CXXFLAGS="-g3 $CXXFLAGS"
          else
@@ -132,7 +144,7 @@ diff -u -u -r1.1.1.4 -r1.17
          fi
        fi
        KDE_CHECK_COMPILER_FLAG(fno-builtin,[CXXFLAGS="-fno-builtin $CXXFLAGS"])
-@@ -2589,7 +2607,7 @@
+@@ -2691,7 +2727,7 @@
        if test "$CXX" = "KCC"; then
          CXXFLAGS="+K3 $CXXFLAGS"
        else
@@ -141,7 +153,7 @@ diff -u -u -r1.1.1.4 -r1.17
        fi  
      fi
    fi
-@@ -3058,9 +3076,9 @@
+@@ -3188,9 +3224,9 @@
      ac_save_ldflags="$LDFLAGS"
      ac_save_cflags="$CFLAGS"
      if test "x$kde_use_qt_emb" != "xyes"; then
@@ -153,7 +165,7 @@ diff -u -u -r1.1.1.4 -r1.17
      fi
      CFLAGS="$CFLAGS $X_INCLUDES $USER_INCLUDES"
      test -n "$XPM_INCLUDE" && CFLAGS="-I$XPM_INCLUDE $CFLAGS"
-@@ -4521,6 +4539,83 @@
+@@ -4625,6 +4661,83 @@
  	done
  ])
  
@@ -237,7 +249,7 @@ diff -u -u -r1.1.1.4 -r1.17
  dnl KDE_CHEC_JAVA_DIR(onlyjre)
  AC_DEFUN(KDE_CHECK_JAVA_DIR,
  [
-@@ -4555,6 +4650,7 @@
+@@ -4659,6 +4772,7 @@
        KDE_JAVA_PREFIX(/usr/lib/IBMJava2*)
        KDE_JAVA_PREFIX(/usr/lib/IBMJava*)
        KDE_JAVA_PREFIX(/opt/java*)
@@ -245,7 +257,7 @@ diff -u -u -r1.1.1.4 -r1.17
      
        kde_cv_path="NONE"
        kde_save_IFS=$IFS
-@@ -4606,10 +4702,20 @@
+@@ -4710,10 +4824,20 @@
  dnl At this point kde_java_bindir and kde_java_includedir are either set or "no"
  if test "x$kde_java_bindir" != "xno"; then
  
@@ -267,7 +279,7 @@ diff -u -u -r1.1.1.4 -r1.17
  
    dnl Now check everything's fine under there
    dnl the include dir is our flag for having the JDK
-@@ -4638,17 +4744,29 @@
+@@ -4742,17 +4866,29 @@
      JAVAC=
      jni_includes=
    fi
@@ -305,11 +317,11 @@ diff -u -u -r1.1.1.4 -r1.17
 Index: admin/detect-autoconf.sh
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/admin/detect-autoconf.sh,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -u -r1.1.1.1 -r1.2
---- admin/detect-autoconf.sh	10 Jul 2002 02:47:38 -0000	1.1.1.1
-+++ admin/detect-autoconf.sh	15 Jul 2002 22:55:00 -0000	1.2
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -u -r1.1.1.2 -r1.3
+--- admin/detect-autoconf.sh	29 Oct 2002 02:27:20 -0000	1.1.1.2
++++ admin/detect-autoconf.sh	29 Oct 2002 02:29:54 -0000	1.3
 @@ -42,12 +42,12 @@
  checkAutomakeAclocal ()
  {
@@ -471,9 +483,9 @@ diff -u -u -r1.1.1.2 -r1.4
 Index: admin/missing
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/admin/missing,v
-retrieving revision 1.1.1.2
-retrieving revision 1.4
-diff -u -u -r1.1.1.2 -r1.4
+retrieving revision 1.1.1.3
+retrieving revision 1.5
+diff -u -u -r1.1.1.3 -r1.5
 Index: Makefile.am.in
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/arts/Makefile.am.in,v
@@ -494,18 +506,18 @@ diff -u -u -r1.1.1.2 -r1.3
 Index: configure.in.in
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/arts/configure.in.in,v
-retrieving revision 1.1.1.4
-diff -u -u -r1.1.1.4 configure.in.in
---- configure.in.in	1 Oct 2002 01:47:56 -0000	1.1.1.4
-+++ configure.in.in	21 Oct 2002 23:31:16 -0000
-@@ -282,6 +282,21 @@
+retrieving revision 1.1.1.5
+retrieving revision 1.14
+diff -u -u -r1.1.1.5 -r1.14
+--- configure.in.in	29 Oct 2002 02:31:10 -0000	1.1.1.5
++++ configure.in.in	29 Oct 2002 02:33:27 -0000	1.14
+@@ -282,6 +282,19 @@
  fi
  ])
  
 +dnl needed for mach realtime scheduling
 +AC_DEFUN([AC_CHECK_MACH_REALTIME_SCHED],
 +[
-+  AC_MSG_CHECKING([for mach realtime scheduling support])
 +  AC_CHECK_HEADERS([mach/mach.h mach/thread_policy.h sys/param.h sys/sysctl.h],
 +    AC_CHECK_FUNCS(thread_policy_set,
 +      arts_mach_realtime_sched=yes,
@@ -515,12 +527,11 @@ diff -u -u -r1.1.1.4 configure.in.in
 +    AC_DEFINE(HAVE_MACH_REALTIME_SCHED,1, [Define if your system supports mach realtime scheduling])
 +  fi
 +])
-+AC_MSG_RESULT($arts_realtime_sched)
 +
  dnl Type of the ioctl function test - after some tries, it seems that this
  dnl not required for Linux vs. FreeBSD (for which this test was written), and
  dnl that only the Linux documentation claims that it has an "int" as second
-@@ -432,6 +447,7 @@
+@@ -432,6 +445,7 @@
  AC_CHECK_LIBAUDIOFILE
  AC_CHECK_SGILIBAUDIO
  AC_CHECK_REALTIME_SCHED
@@ -528,7 +539,7 @@ diff -u -u -r1.1.1.4 configure.in.in
  AC_CHECK_GETDOMAINNAME
  AC_CHECK_IOCTL_TYPE
  AC_CHECK_X86_FLOAT_INT
-@@ -604,6 +620,22 @@
+@@ -604,6 +618,27 @@
  AC_CHECK_HEADERS(soundcard.h)
  AC_CHECK_LIB(ossaudio, _oss_ioctl, [LIBOSSAUDIO="-lossaudio"])
  AC_SUBST(LIBOSSAUDIO)
@@ -536,18 +547,23 @@ diff -u -u -r1.1.1.4 configure.in.in
 +dnl MacOSX has a similar library called liboss
 +AC_MSG_CHECKING([for liboss])
 +
-+AC_CHECK_HEADER(
-+	[liboss/soundcard.h],
-+	[
-+		AC_DEFINE([HAVE_LIBOSS_SOUNDCARD_H])
-+		liboss_incdir="yes"
-+	]
-+)
-+AC_CHECK_LIB(oss, oss_open, [LIBOSS="-loss"; arts_have_liboss="yes"])
-+if test x$liboss_incdir = xyes && test x$arts_have_liboss = xyes; then
-+  AC_SUBST(LIBOSS)
++LIBOSS_CFLAGS=
++LIBOSS_LIBADD=
++LIBOSS_LDFLAGS=
++
++if test "x$PKG_CONFIG" != "xno"; then
++  LIBOSS_CFLAGS="`$PKG_CONFIG --cflags liboss`"
++  LIBOSS_LIBADD="`$PKG_CONFIG --libs-only-l liboss`"
++  LIBOSS_LDFLAGS="`$PKG_CONFIG --libs-only-L liboss`"
 +  AC_DEFINE(HAVE_LIBOSS,1,[Define if you have the liboss compatibility library])
++  AC_MSG_RESULT(yes)
++else
++  AC_MSG_RESULT(not installed)
 +fi
++
++AC_SUBST(LIBOSS_CFLAGS)
++AC_SUBST(LIBOSS_LIBADD)
++AC_SUBST(LIBOSS_LDFLAGS)
  
  dnl Don't remove !
  dnl AC_OUTPUT(artsc/artsc-config)
@@ -596,16 +612,20 @@ Index: flow/Makefile.am
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/arts/flow/Makefile.am,v
 retrieving revision 1.1.1.3
-diff -u -u -r1.1.1.3 Makefile.am
+retrieving revision 1.12
+diff -u -u -r1.1.1.3 -r1.12
 --- flow/Makefile.am	1 Oct 2002 01:48:02 -0000	1.1.1.3
-+++ flow/Makefile.am	21 Oct 2002 23:31:16 -0000
-@@ -1,3 +1,5 @@
++++ flow/Makefile.am	23 Oct 2002 02:45:02 -0000	1.12
+@@ -1,18 +1,20 @@
 +AM_CFLAGS = -DGSL_WANT_GLIB_WRAPPER -DGSL_WANT_ARTS_THREADS
 +AM_CXXFLAGS = -DGSL_WANT_GLIB_WRAPPER -DGSL_WANT_ARTS_THREADS
  
  SUBDIRS = mcopclass gsl gslpp
- INCLUDES = -I$(top_srcdir)/mcop $(all_includes)
-@@ -7,12 +9,12 @@
+-INCLUDES = -I$(top_srcdir)/mcop $(all_includes)
++INCLUDES = -I$(top_srcdir)/mcop $(all_includes) $(LIBOSS_CFLAGS)
+ 
+ ####### Files
+ 
  lib_LTLIBRARIES = libartsflow_idl.la libartsflow.la
  
  libartsflow_idl_la_SOURCES = artsflow.cc
@@ -616,29 +636,40 @@ diff -u -u -r1.1.1.3 Makefile.am
 -libartsflow_la_LIBADD = $(top_builddir)/mcop/libmcop.la libartsflow_idl.la $(top_builddir)/flow/gslpp/libgslpp.la $(LIBAUDIOFILE) $(LIBASOUND) $(LIBAUDIOIO) $(LIBOSSAUDIO) $(LIBAUDIONAS) $(LIBCSL) $(SGILIBAUDIO) -lm \
 -  $(top_builddir)/flow/gsl/libgsl.la
 -libartsflow_la_LDFLAGS = -no-undefined -version-info 1:0
-+libartsflow_la_LIBADD = $(top_builddir)/mcop/libmcop.la libartsflow_idl.la $(top_builddir)/flow/gslpp/libgslpp.la $(LIBAUDIOFILE) $(LIBASOUND) $(LIBAUDIOIO) $(LIBOSSAUDIO) $(LIBOSS) $(LIBAUDIONAS) $(LIBCSL) $(SGILIBAUDIO) -lm \
++libartsflow_la_LIBADD = $(top_builddir)/mcop/libmcop.la libartsflow_idl.la $(top_builddir)/flow/gslpp/libgslpp.la $(LIBAUDIOFILE) $(LIBASOUND) $(LIBAUDIOIO) $(LIBOSSAUDIO) $(LIBOSS_LIBADD) $(LIBAUDIONAS) $(LIBCSL) $(SGILIBAUDIO) -lm \
 + $(top_builddir)/flow/gsl/libgsl.la $(LIB_POLL)
-+libartsflow_la_LDFLAGS = -no-undefined -version-info 1:7
++libartsflow_la_LDFLAGS = -no-undefined -version-info 1:7 $(LIBOSS_LDFLAGS)
  libartsflow_la_COMPILE_FIRST = artsflow.h
  libartsflow_la_SOURCES =  synth_play_impl.cc \
    synthschedule.cc gslschedule.cc audiosubsys.cc \
-@@ -26,7 +28,7 @@
-   audioionull.cc audioiolibaudioio.cc \
-   audioiosun.cc audioioaix.cc audioionas.cc cpuinfo.cc \
-   audioioossthreaded.cc audiotobytestream_impl.cc audioiosgi.cc \
--  audioiocsl.cc datahandle_impl.cc
-+  audioiocsl.cc datahandle_impl.cc audioioliboss.cc
+Index: flow/audioiooss.cc
+===================================================================
+RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/arts/flow/audioiooss.cc,v
+retrieving revision 1.1.1.3
+retrieving revision 1.4
+diff -u -u -r1.1.1.3 -r1.4
+--- flow/audioiooss.cc	29 Oct 2002 02:31:12 -0000	1.1.1.3
++++ flow/audioiooss.cc	29 Oct 2002 02:33:27 -0000	1.4
+@@ -34,6 +34,11 @@
+ 	#define COMPILE_AUDIOIO_OSS 1
+ #endif
  
- artsincludedir = $(includedir)/arts
- artsinclude_HEADERS = artsflow.h audiosubsys.h cache.h \
++#ifdef HAVE_LIBOSS
++#include <liboss/soundcard.h>
++#define COMPILE_AUDIOIO_OSS 1
++#endif
++
+ /**
+  * only compile 'oss' AudioIO class if sys/soundcard.h or soundcard.h is present
+  */
 Index: flow/gsl/Makefile.am
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/arts/flow/gsl/Makefile.am,v
-retrieving revision 1.1.1.4
-retrieving revision 1.8
-diff -u -u -r1.1.1.4 -r1.8
---- flow/gsl/Makefile.am	14 Aug 2002 13:21:16 -0000	1.1.1.4
-+++ flow/gsl/Makefile.am	14 Aug 2002 14:05:28 -0000	1.8
+retrieving revision 1.1.1.5
+retrieving revision 1.9
+diff -u -u -r1.1.1.5 -r1.9
+--- flow/gsl/Makefile.am	29 Oct 2002 02:31:19 -0000	1.1.1.5
++++ flow/gsl/Makefile.am	29 Oct 2002 02:33:27 -0000	1.9
 @@ -1,4 +1,3 @@
 -
  EXTRA_DIST =
