@@ -1,0 +1,213 @@
+diff -ruN mplayer-1.0pre1/configure mplayer-1.0pre1.new/configure
+--- mplayer-1.0pre1/configure	2003-09-01 06:51:11.000000000 -0400
++++ mplayer-1.0pre1.new/configure	2003-09-29 12:10:03.000000000 -0400
+@@ -241,6 +241,7 @@
+ 
+ Miscellaneous options:
+   --enable-runtime-cpudetection    Enable runtime CPU detection [disable]
++  --disable-cpu-optimization    Disable gcc CPU build optimization [enable]
+   --cc=COMPILER          use this C compiler to build MPlayer [gcc]
+   --target=PLATFORM      target platform (i386-linux, arm-linux, etc)
+   --enable-static        build a statically linked binary. Set further linking
+@@ -318,6 +319,7 @@
+ test "$CC" && _cc="$CC"
+ _as=auto
+ _runtime_cpudetection=no
++_cpu_optimization=yes
+ for ac_option do
+   case "$ac_option" in
+   --target=*)
+@@ -357,6 +359,12 @@
+   --disable-runtime-cpudetection)
+     _runtime_cpudetection=no
+     ;;
++  --disable-cpu-optimization)
++    _cpu_optimization=no
++    ;;
++  --enable-cpu-optimization)
++    _cpu_optimization=yes
++    ;;
+   --install-path=*)
+     _install=`echo $ac_option | cut -d '=' -f 2 | sed 's/\/$//'`"/install"
+     ;;
+@@ -565,6 +573,10 @@
+   # FreeBSD with Linux emulation /proc mounted,
+   # extract CPU information from it
+   _cpuinfo="cat /compat/linux/proc/cpuinfo"
++elif darwin; then
++  # use hostinfo on darwin
++  $_cc -o TOOLS/cpuinfo TOOLS/cpuinfo.c
++  _cpuinfo="hostinfo"
+ elif x86; then
+   # all other OSes try to extract CPU information from a small helper
+   # program TOOLS/cpuinfo instead
+@@ -759,11 +771,11 @@
+       if test "$host_arch" = "i586-i686"; then
+         _march="-march=i586"
+         _mcpu="-mcpu=i686"
+-      else      
++      else
+         _march="-march=$host_arch"
+         _mcpu="-mcpu=$host_arch"
+       fi
+-    
++
+       proc="$host_arch"
+ 
+       case "$proc" in
+@@ -836,8 +848,9 @@
+             _altivec_gcc_flags='-maltivec -mabi=altivec'
+ 	fi
+     fi
+-    if darwin ; then
+-	if [ `sysctl -n hw.vectorunit` -eq 1 ]; then
++    if darwin && test -n "$_cpuinfo"; then
++	proc=`$_cpuinfo | grep "Processor type" | cut -f 3 -d ' ' | sed 's/ppc//'`
++	if [ `sysctl -n hw.optional.altivec` -eq 1 ]; then
+ 	    _altivec=yes
+             _altivec_gcc_flags='-faltivec'
+  	fi
+@@ -845,24 +858,26 @@
+     echores "$proc"
+ 
+     echocheck "GCC & CPU optimization abilities"
+-    if test -n "$proc"; then
+-        case "$proc" in
+-	    601) _march='-mcpu=601' _mcpu='-mtune=601' ;;
+-	    603) _march='-mcpu=603' _mcpu='-mtune=603' ;;
+-	    603e|603ev) _march='-mcpu=603e' _mcpu='-mtune=603e' ;;
+-	    604|604e|604r|604ev) _march='-mcpu=604' _mcpu='-mtune=604' ;;
+-	    740|740/750|745/755) _march='-mcpu=740' _mcpu='-mtune=740' ;;
+-	    750|750CX) _march='-mcpu=750' _mcpu='-mtune=750' ;;
+-    	    *) ;;
+-        esac
+-	# gcc 3.1(.1) and up supports 7400 and 7450
+-	if test "$_cc_major" -ge "3" && test "$_cc_minor" -ge "1"; then
+-	    case "$proc" in
+-		7400*|7410*) _march='-mcpu=7400' _mcpu='-mtune=7400' ;;
+-		7450*) _march='-mcpu=7450' _mcpu='-mtune=7450' ;;
+-    		*) ;;
+-    	    esac
+-	fi
++    if test "$_cpu_optimization" = yes; then
++        if test -n "$proc"; then
++            case "$proc" in
++	        601) _march='-mcpu=601' _mcpu='-mtune=601' ;;
++	        603) _march='-mcpu=603' _mcpu='-mtune=603' ;;
++	        603e|603ev) _march='-mcpu=603e' _mcpu='-mtune=603e' ;;
++	        604|604e|604r|604ev) _march='-mcpu=604' _mcpu='-mtune=604' ;;
++	        740|740/750|745/755) _march='-mcpu=740' _mcpu='-mtune=740' ;;
++	        750|750CX) _march='-mcpu=750' _mcpu='-mtune=750' ;;
++    	        *) ;;
++            esac
++	    # gcc 3.1(.1) and up supports 7400 and 7450
++	    if test "$_cc_major" -ge "3" && test "$_cc_minor" -ge "1"; then
++	        case "$proc" in
++		    7400*|7410*) _march='-mcpu=7400' _mcpu='-mtune=7400' ;;
++		    7450*) _march='-mcpu=7450' _mcpu='-mtune=7450' ;;
++    		    *) ;;
++    	        esac
++	    fi
++        fi
+     fi
+     echores "$proc"
+     
+@@ -1162,6 +1177,8 @@
+   --with-extralibdir=*) ;;
+   --enable-runtime-cpudetection) ;;
+   --disable-runtime-cpudetection) ;;
++  --enable-cpu-optimization) ;;
++  --disable-cpu-optimization) ;;
+   --install-path=*) ;;
+ 
+   # Real 2nd pass
+@@ -1872,6 +1889,8 @@
+ cc_check -lsocket && _ld_sock="-lsocket"
+ cc_check -lnsl && _ld_sock="-lnsl"
+ cc_check -lsocket -lnsl && _ld_sock="-lsocket -lnsl"
++cc_check -lsocket -ldnet && _ld_sock="-lsocket -ldnet"
++
+ if test $_winsock2 = auto && not cygwin ; then
+   _winsock2=no
+   cat > $TMPC << EOF
+@@ -5109,7 +5128,11 @@
+   fi
+ 
+   _def_xmms='#define HAVE_XMMS 1'
+-  _xmms_lib="${_xmmslibdir}/libxmms.so.1 -export-dynamic"
++  if darwin ; then
++    _xmms_lib="${_xmmslibdir}/libxmms.dylib"
++  else
++    _xmms_lib="${_xmmslibdir}/libxmms.so.1 -export-dynamic"
++  fi
+ else
+   _def_xmms='#undef HAVE_XMMS'
+ fi
+@@ -5264,9 +5287,9 @@
+   _stripbinaries=no
+ elif test -z "$CFLAGS" ; then
+   if test "$host_arch" != "mips" ; then
+-    CFLAGS="-O4 $_march $_mcpu -pipe -ffast-math -fomit-frame-pointer"
++    CFLAGS="-O3 $_march $_mcpu -pipe -ffast-math -fomit-frame-pointer"
+   else
+-    CFLAGS="-O4 $_march $_mcpu -ffast-math -fomit-frame-pointer"
++    CFLAGS="-O3 $_march $_mcpu -ffast-math -fomit-frame-pointer"
+   fi
+   # always compile with '-g' if .developer:
+   if test -f ".developer" ; then
+@@ -5287,7 +5310,7 @@
+ fi
+ if darwin ; then
+   # use gnu style cpp on Darwin
+-  CFLAGS="$CFLAGS -no-cpp-precomp -DSYS_DARWIN"
++  CFLAGS="$CFLAGS -no-cpp-precomp -DSYS_DARWIN -Wl,-bind_at_load"
+   # libavcodec (from ffmpeg) requires CONFIG_DARWIN to enable AltiVec on Darwin/MacOSX
+   test "$_altivec" = yes && CFLAGS="$CFLAGS -DCONFIG_DARWIN"
+ fi
+@@ -5440,7 +5463,7 @@
+ AWK = $_awk
+ RANLIB = $_ranlib
+ INSTALL = $_install
+-# OPTFLAGS = -O4 $_profile $_debug $_march $_mcpu -pipe -fomit-frame-pointer -ffast-math
++# OPTFLAGS = -O3 $_profile $_debug $_march $_mcpu -pipe -fomit-frame-pointer -ffast-math
+ OPTFLAGS = $CFLAGS
+ EXTRA_INC = $_inc_extra $_inc_gtk
+ STRIPBINARIES = $_stripbinaries
+diff -ruN mplayer-1.0pre1/etc/example.conf mplayer-1.0pre1.new/etc/example.conf
+--- mplayer-1.0pre1/etc/example.conf	2003-05-14 18:49:02.000000000 -0400
++++ mplayer-1.0pre1.new/etc/example.conf	2003-09-26 09:24:37.000000000 -0400
+@@ -8,13 +8,13 @@
+ ## more flexibly here. See below.
+ ##
+ 
+-# vo=xv			# To specify default video driver (see -vo help for
++# vo=sdl		# To specify default video driver (see -vo help for
+ 			# list)
+ 
+-# ao=oss		# To specify default audio driver (see -ao help for
++# ao=sdl		# To specify default audio driver (see -ao help for
+ 			# list)
+ 
+-fs=yes			# Enlarges movie window to your desktop's size.
++fs=no			# Enlarges movie window to your desktop's size.
+ 			# Used by drivers: all
+ 
+ # vm=no			# Tries to change to a different videomode
+@@ -127,4 +127,4 @@
+ ## Delete this default :)
+ ##
+ 
+-include = /home/gabucino/.mplayer/i_did_not_RTFM_carefully_enough...
++#include = /home/gabucino/.mplayer/i_did_not_RTFM_carefully_enough...
+diff -ruN mplayer-1.0pre1/libmpcodecs/vf_fame.c mplayer-1.0pre1.new/libmpcodecs/vf_fame.c
+--- mplayer-1.0pre1/libmpcodecs/vf_fame.c	2003-03-15 13:01:02.000000000 -0500
++++ mplayer-1.0pre1.new/libmpcodecs/vf_fame.c	2003-09-26 09:26:58.000000000 -0400
+@@ -16,7 +16,7 @@
+ #include "vf.h"
+ 
+ //#include "../libvo/fastmemcpy.h"
+-#include "../libfame/fame.h"
++#include <fame.h>
+ 
+ struct vf_priv_s {
+     unsigned char* outbuf;
