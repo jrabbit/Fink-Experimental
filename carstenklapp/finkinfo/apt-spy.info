@@ -4,17 +4,17 @@ Revision: 1
 License: BSD
 Source: mirror:debian:pool/main/a/%n/%n_%v.orig.tar.gz
 Source-MD5: aa50413599c6fa47bec47f76937c43dc
-BuildDepends: curl-dev
-Depends: curl-shlibs
+BuildDepends: curl-dev | curl-ssl-dev
+Depends: curl-shlibs | curl-ssl-shlibs
 SourceDirectory: %n-%v
 PatchScript: sed 's|@PREFIX@|%p|g' < %a/%n.patch | patch -p1
-ConfFiles: %p/etc/%n.conf
+ConfFiles: %p/share/%n/%n.conf
 Docfiles: COPYRIGHT README TODO
 CompileScript: make
 InstallScript: <<
- mkdir -p %i/bin/ %i/etc/ %i/share/man/man5/ %i/share/man/man8/ %i/share/%n/
+ mkdir -p %i/bin/ %i/share/man/man5/ %i/share/man/man8/ %i/share/%n/
  install -m 755 %n %i/bin/
- install -m 644 %n.conf %i/etc/
+ install -m 644 %n.conf %i/share/%n/
  install -m 644 %n.conf.5 %i/share/man/man5/
  install -m 644 %n.8 %i/share/man/man8/
 <<
@@ -26,11 +26,33 @@ DescDetail: <<
 <<
 Maintainer: Carsten Klapp <carstenklapp@users.sourceforge.net>
 DescPort: <<
- TODO: make this work with Sourceforge urls. Right now it is only partially useful to help you decide on which debian mirror to use, but you need to edit /sw/etc/fink.conf manualy and restore your previous /sw/etc/apt/sources.list.bak yourself.
+ TODO: make this work with Sourceforge urls. Right now it is only
+ partially useful to help you decide on which debian mirror to use,
+ but you need to edit /sw/etc/fink.conf manualy and restore your
+ previous /sw/etc/apt/sources.list.bak yourself.
  
- Would be nice for this program to automatically handle all the various mirrors handled by fink. Email me if you would like to help with this.
+ Would be nice for this program to automatically handle all the
+ various mirrors handled by fink. Email me if you would like to help
+ with this.
  
  http://umn.dl.sourceforge.net/fink/direct_download/dists/10.2/release/main/source/base/gzip-1.2.4a.tar.gz
 <<
-DescUsage: sudo apt-spy -a North-America -d unstable
-PostInstScript: apt-spy update
+DescUsage: <<
+ This package does not work with Fink yet!
+
+ The "area" code has been patched but the "country" code needs a lot
+ more work.
+
+ If somehow you manage to get far enough, apt-spy will backup your
+ /sw/etc/apt/sources.list to /sw/etc/apt/sources.list.bak. Best to
+ back up /sw/etc/apt/sources.list to somewhere else before playing
+ with this program as-is.
+
+ Please email me if you are able to help rewrite/hack 'parse.c' to
+ read the Fink mirrors from the files /sw/lib/fink/mirrors/_keys and
+ /sw/lib/fink/mirrors/sourceforge, for someone like me with little C
+ experience it's been tough so far. :)
+
+ sudo apt-spy -a nam
+<<
+PostInstScript: %n update
