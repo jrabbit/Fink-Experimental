@@ -5,21 +5,26 @@ GCC: 3.3
 Source: http://www.math.uiuc.edu/Macaulay2/ftp-site/Macaulay2-%v-src.tar.gz
 Source-MD5: f2181baccdb9bbe75c4f6ee61f782533
 Depends: gdbm3-shlibs, gmp-shlibs (>= 4.1.2-11)
-BuildDepends: sed | ssed , gdbm3, gmp (>= 4.1.2-11), autoconf2.5, gc-static (>= 6.2-2), singular-factory (>= 2.05-1), singular-libfac (>= 2.05-1)
+BuildDepends: sed | ssed , gdbm3, gmp (>= 4.1.2-11), autoconf2.5, gc-static (>= 6.2-2), singular-factory (>= 2.05-1), singular-libfac (>= 2.05-1), ntl (>= 5.3.1-12) | singular-sntl | singular-sntl-sta
 Suggests: emacs | xemacs
 SourceDirectory: Macaulay2-%v
 PatchScript: <<
  sed "s|@PREFIX@|/sw|g" < %a/%n.patch | patch -p1
  mv Macaulay2/README.MacOSX Macaulay2/README.MacOSX.orig
  sed 's|/sw|%p|g' < Macaulay2/README.MacOSX.orig > Macaulay2/README.MacOSX
- sed -ri '/libfac_tmpl_inst.o/d' Macaulay2/d/Makefile.in
+ sed -ri.bak '/libfac_tmpl_inst.o/d' Macaulay2/d/Makefile.in
  sed -ri 's,\(PURIFYCMD\) \$\(CC\),\(PURIFYCMD\) g++ -dynamic -m,' Macaulay2/d/Makefile.in
  sed -ri 's,LIBRARYOPTIONS \+\= \-lgmp,LIBRARYOPTIONS \+\= \-lcfmem\nLIBRARYOPTIONS \+\= \-lntl\n&,' Macaulay2/d/Makefile.in
- sed -ri 's,^clean check,check \:\:\n\t\$\(MAKE\) \-C ComputationsBook changes\nclean,' Macaulay2/packages/Makefile.in
+ sed -ri.bak '/\$\(prefix\)\//d' include/config.Makefile.in
+ sed -ri.bak 's,^clean check,check \:\:\n\t\$\(MAKE\) \-C ComputationsBook changes\nclean,' Macaulay2/packages/Makefile.in
 <<
+#NoSetLDFLAGS: true
+NoSetCPPFLAGS: true
+#SetLIBRARY_PATH: %p/lib
 ConfigureParams: --disable-strip --disable-dumpdata
 CompileScript: <<
  #!/bin/bash
+ export CPATH=%p/include
  make -f Makefile-configuration
  ./configure %c
  (ulimit -s 16000; make; make check)

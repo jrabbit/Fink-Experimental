@@ -22,9 +22,10 @@ sed -ri.bak '/\.dl_o :/,+1s/ \$\{CXXFLAGS\}//' Singular/Makefile.in
 # (the first series is there just because it wasn't clear they were included in -O3 in Apple's version)
 # -fsched-spec-load gave very bad performance _ maybe removing the others too ? First try -fno-sched-spec_ was worse
 xtrflags="-fschedule-insns -fschedule-insns2 -fsched-interblock -fstrict-aliasing -fregmove -freorder-blocks"
-xtrflags="$xtrflags -floop-transpose --param max-gcse-passes=3 -malign-natural -ffast-math -faltivec"
-if ${noopt} ; then flags=$nooptflags; flags3=$flags; sflags="-fPIC $flags"
-  else flags3="-mdynamic-no-pic -O3"; flags="$flags3 $xtrflags"; sflags="-fPIC -O3 $xtrflags"
+ntlflags="$xtrflags -floop-transpose --param max-gcse-passes=3 -ffast-math -faltivec"
+xtrflags="$ntlflags -malign-natural"
+if ${noopt} ; then flags=$nooptflags; sflags="-fPIC $flags"; ntlflags=$flags
+  else ntlflags="-mdynamic-no-pic -O3 $ntlflags"; flags="$ntlflags -malign-natural"; sflags="-fPIC -O3 $xtrflags"
 fi
 if ! ${dyn} ; then sflags=$flags; fi
 ##
@@ -46,7 +47,7 @@ if ${sntl} ; then
 	perl -pi -e 's/configure/configure LDLIBS=""/g' ntl/configure
 	sed -i.bak -e '1i\
 #include <iostream\.h>' ntl/src/{*Test,subset}.c
-	perl -pi.bak -e "s/=\-O2/=$flags3 $mflags $warnflags/g" ntl/src/make.config
+	perl -pi.bak -e "s/=\-O2/=$ntlflags $mflags $warnflags/g" ntl/src/make.config
   else
 	rm -fR ntl
 fi
@@ -65,7 +66,7 @@ sed -ri.bak \
 # and to install the .so files in /sw/lib/singular (FS policy...) :
 # (was basically hard-coded that they were in the same dir as the executable)
 if ${dyn} ; then sed -ri -e 's,25,26,' -e "/BinDir/i\
-\ \ \{\"LibDir\",\t'L',\tfeResDir,\t\"SINGULAR_SO_DIR\",\t\"%r/lib/singular\",\t\"\"\}," Singular/feResource.cc
+\ \ \{\"SoDir\",\t'L',\tfeResDir,\t\"SINGULAR_SO_DIR\",\t\"%r/lib/singular\",\t\"\"\}," Singular/feResource.cc
 sed -ri.bak -e "s,'b','L'," Singular/mod_raw.cc ; fi
 # Removing hard-coded /usr/local...
 perl -pi.bak -e "s,/usr/local/bin/,,g; s,\$HOME/bin/\$MP_ARCH,${p}/bin," MP/mpviewer/displaymp
@@ -192,8 +193,8 @@ perl -pi.bak -e "s/\-O3/$flags $mflags $warnflags/g" libfac/configure.in
 sed -ri -e 's/CFLAGS=\"\-O3 \-w/CFLAGS=\"\-fast/' -e "s/\-fast/$flags $mflags $warnflags/" Singular/configure.in
 perl -pi -e "s/\-O3 \-w /$flags $mflags $warnflags /g" Singular/configure.in
 sed -ri -e "s/\-O2 *([$])/$flags $mflags $warnflags \1/g" Singular/Makefile.in
-# -fast causes runtime errors, thus -O3:
-perl -pi -e "s/\@CXXFLAGS\@/$flags3 $mflags $warnflags/g" IntegerProgramming/Makefile.in
+# -malign-natural causes runtime errors, thus :
+perl -pi -e "s/\@CXXFLAGS\@/$ntlflags $mflags $warnflags/g" IntegerProgramming/Makefile.in
 ####
 
 ### hdegree.cc _ apparently ~ line 651, corresponding to offset 0x74 in hZeroMult _
@@ -215,8 +216,8 @@ if ${strio} ; then
   sed -ri -e '/AC_DEFINE\(SINGULAR\)/,+1{/AC_DEFINE\(NOSTREAMIO\)/d}' libfac/configure.in
 fi
 
-# Will be hard _ we'll first get an independent build of macaulay2
-# (using the same version of libfac and factory) _ Thus, commented out :
+# Getting macaulay2 to build on this will be hard _ we'll first get an independent build
+# of macaulay2 (using the same version of libfac and factory) _ Thus, commented out :
 ## build also tmpl_inst.o in libfac, for (possible) use by macaulay2 :
 #sed -ri.bak '/^libsingfac.a:/s,OBJ1,OBJ,'  libfac/Makefile.in
 
