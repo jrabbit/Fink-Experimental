@@ -1,0 +1,203 @@
+--- gcc-3.1.1/gcc/config/darwin.h.old	Sun Jul 28 19:03:43 2002
++++ gcc-3.1.1/gcc/config/darwin.h	Sun Jul 28 20:01:11 2002
+@@ -78,6 +78,103 @@
+ #undef	DEFAULT_PCC_STRUCT_RETURN
+ #define DEFAULT_PCC_STRUCT_RETURN 0
+ 
++/* APPLE LOCAL begin flag translation */
++/* This table intercepts weirdo options whose names would interfere
++   with normal driver conventions, and either translates them into
++   standardly-named options, or adds a 'Z' so that they can get to
++   specs processing without interference.
++
++   Do not expand a linker option to "-Xlinker -<option>", since that
++   forfeits the ability to control via spec strings later.  However,
++   as a special exception, do this translation with -filelist, because
++   otherwise the driver will think there are no input files and quit.
++   (The alternative would be to hack the driver to recognize -filelist
++   specially, but it's simpler to use the translation table.)
++
++   Note that an option name with a prefix that matches another option
++   name, that also takes an argument, needs to be modified so the
++   prefix is different, otherwise a '*' after the shorter option will
++   match with the longer one.  */
++/* Ignore -dynamic for now */
++#define TARGET_OPTION_TRANSLATE_TABLE \
++  { "-all_load", "-Zall_load" },  \
++  { "-allowable_client", "-Zallowable_client" },  \
++  { "-arch_errors_fatal", "-Zarch_errors_fatal" },  \
++  { "-bundle", "-Zbundle" },  \
++  { "-bundle_loader", "-Zbundle_loader" },  \
++  { "-weak_reference_mismatches", "-Zweak_reference_mismatches" },  \
++  { "-dependency-file", "-MF" }, \
++  { "-dylib_file", "-Zdylib_file" }, \
++  { "-dynamic", " " },  \
++  { "-dynamiclib", "-Zdynamiclib" },  \
++  { "-seg_addr_table_filename", "-Zseg_addr_table_filename" }, \
++  { "-filelist", "-Xlinker -filelist -Xlinker" },  \
++  { "-flat_namespace", "-Zflat_namespace" },  \
++  { "-force_cpusubtype_ALL", "-Zforce_cpusubtype_ALL" },  \
++  { "-force_flat_namespace", "-Zforce_flat_namespace" },  \
++  { "-framework", "-Zframework" },  \
++  { "-image_base", "-Zimage_base" },  \
++  { "-init", "-Zinit" },  \
++  { "-install_name", "-Zinstall_name" },  \
++  { "-multiply_defined_unused", "-Zmultiplydefinedunused" },  \
++  { "-multiply_defined", "-Zmultiply_defined" },  \
++  { "-static", "-static -Wa,-static" },  \
++  { "-traditional-cpp", "-no-cpp-precomp" }
++/* APPLE LOCAL end flag translation */
++
++/* APPLE LOCAL framework headers */
++/* Need to look for framework headers.  */
++
++#define FRAMEWORK_HEADERS
++
++/* APPLE LOCAL -framework */
++/* These compiler options take n arguments.  */  
++   
++#undef  WORD_SWITCH_TAKES_ARG
++/* APPLE LOCAL begin -precomp-trustfile */
++/* APPLE LOCAL begin -arch */
++/* APPLE LOCAL begin linker flags */
++#define WORD_SWITCH_TAKES_ARG(STR)		\
++  (DEFAULT_WORD_SWITCH_TAKES_ARG (STR) ? 1 :	\
++   !strcmp (STR, "Zallowable_client") ? 1 :	\
++   !strcmp (STR, "arch") ? 1 :			\
++   !strcmp (STR, "arch_only") ? 1 :		\
++   !strcmp (STR, "Zbundle_loader") ? 1 :	\
++   !strcmp (STR, "client_name") ? 1 :		\
++   !strcmp (STR, "compatibility_version") ? 1 : \
++   !strcmp (STR, "current_version") ? 1 :	\
++   !strcmp (STR, "Zdylib_file") ? 1 :		\
++   !strcmp (STR, "Zframework") ? 1 :		\
++   !strcmp (STR, "Zimage_base") ? 1 :		\
++   !strcmp (STR, "Zinit") ? 1 :			\
++   !strcmp (STR, "Zinstall_name") ? 1 :		\
++   !strcmp (STR, "Zmultiplydefinedunused") ? 1 : \
++   !strcmp (STR, "Zmultiply_defined") ? 1 :	\
++   !strcmp (STR, "precomp-trustfile") ? 1 :	\
++   !strcmp (STR, "read_only_relocs") ? 1 :	\
++   !strcmp (STR, "sectcreate") ? 3 :		\
++   !strcmp (STR, "sectorder") ? 3 :		\
++   !strcmp (STR, "Zseg_addr_table_filename") ?1 :\
++   !strcmp (STR, "seg1addr") ? 1 :		\
++   !strcmp (STR, "segprot") ? 3 :		\
++   !strcmp (STR, "seg_addr_table") ? 1 :	\
++   !strcmp (STR, "sub_library") ? 1 :		\
++   !strcmp (STR, "sub_umbrella") ? 1 :		\
++   !strcmp (STR, "umbrella") ? 1 :		\
++   !strcmp (STR, "undefined") ? 1 :		\
++   !strcmp (STR, "Zweak_reference_mismatches") ? 1 : \
++   !strcmp (STR, "pagezero_size") ? 1 :		\
++   !strcmp (STR, "segs_read_only_addr") ? 1 :	\
++   !strcmp (STR, "segs_read_write_addr") ? 1 :	\
++   !strcmp (STR, "sectalign") ? 3 :		\
++   !strcmp (STR, "sectobjectsymbols") ? 2 :	\
++   !strcmp (STR, "segcreate") ? 3 :		\
++   !strcmp (STR, "dylinker_install_name") ? 1 :	\
++   0)
++/* APPLE LOCAL end -precomp-trustfile */
++/* APPLE LOCAL end -arch */
++/* APPLE LOCAL end linker flags */
++
+ /* Don't warn about MacOS-style 'APPL' four-char-constants.  */
+ 
+ #undef WARN_FOUR_CHAR_CONSTANTS
+@@ -99,6 +196,96 @@
+ #undef	CPP_SPEC
+ #define CPP_SPEC "-D__APPLE_CC__=" REALLY_STRINGIFY(APPLE_CC) "	\
+ 		  %{static:-D__STATIC__}%{!static:-D__DYNAMIC__}"
++
++/* APPLE LOCAL begin linker flags */
++/* This is mostly a clone of the standard LINK_COMMAND_SPEC, plus
++   framework, precomp, libtool, and fat build additions.  Also we
++   don't specify a second %G after %L because libSystem is
++   self-contained and doesn't need to link against libgcc.a.  */
++/* In general, random Darwin linker flags should go into LINK_SPEC
++   instead of LINK_COMMAND_SPEC.  The command spec is better for
++   specifying the handling of options understood by generic Unix
++   linkers, and for positional arguments like libraries.  */
++#define LINK_COMMAND_SPEC "\
++%{!fdump=*:%{!fsyntax-only:%{!precomp:%{!c:%{!M:%{!MM:%{!E:%{!S:\
++    %{!Zdynamiclib:%(linker)}%{Zdynamiclib:/usr/bin/libtool} \
++    %l %X %{d} %{s} %{t} %{Z} \
++    %{!Zdynamiclib:%{A} %{e*} %{m} %{N} %{n} %{r} %{u*} %{x} %{z}} \
++    %{@:-o %f%u.out}%{!@:%{o*}%{!o:-o a.out}} \
++    %{!Zdynamiclib:%{!A:%{!nostdlib:%{!nostartfiles:%S}}}} \
++    %{L*} %(link_libgcc) %o %{!nostdlib:%{!nodefaultlibs:%G %L}} \
++    %{!A:%{!nostdlib:%{!nostartfiles:%E}}} %{T*} %{F*} \
++    %{!--help:%{!no-c++filt|c++filt:| c++filt3 }} }}}}}}}}"
++
++/* Note that the linker
++   output is always piped through c++filt (unless -no-c++filt is
++   specified) to ensure error messages have demangled C++ names.
++   We do this even for C.  */
++/* nice idea, needs some work
++   "%{!no-c++filt|c++filt:| " STANDARD_BINDIR_PREFIX cppfilt " }}}}}}}}" */
++
++/* Please keep the random linker options in alphabetical order (modulo
++   'Z' and 'no' prefixes).  Options that can only go to one of libtool
++   or ld must be listed twice, under both !Zdynamiclib and
++   Zdynamiclib, with one of the cases reporting an error.  */
++/* Note that options taking arguments may appear multiple times on a
++   command line with different arguments each time, so put a * after
++   their names so all of them get passed.  */
++#define LINK_SPEC  \
++  "%{static}%{!static:-dynamic} \
++   %{!Zdynamiclib: \
++     %{Zbundle:-bundle} \
++     %{Zbundle_loader*:-bundle_loader %*} \
++     %{client_name*} \
++     %{compatibility_version*:%e-compatibility_version only allowed with -dynamiclib} \
++     %{current_version*:%e-current_version only allowed with -dynamiclib} \
++     %{Zforce_cpusubtype_ALL:-force_cpusubtype_ALL} \
++     %{Zforce_flat_namespace:-force_flat_namespace} \
++     %{Zinstall_name*:%e-install_name only allowed with -dynamiclib} \
++     %{keep_private_externs} \
++     %{private_bundle} \
++    } \
++   %{Zdynamiclib: \
++     %{Zbundle:%e-bundle not allowed with -dynamiclib} \
++     %{Zbundle_loader*:%e-bundle_loader not allowed with -dynamiclib} \
++     %{client_name*:%e-client_name not allowed with -dynamiclib} \
++     %{compatibility_version*} \
++     %{current_version*} \
++     %{Zforce_cpusubtype_ALL:%e-force_cpusubtype_ALL not allowed with -dynamiclib} \
++     %{Zforce_flat_namespace:%e-force_flat_namespace not allowed with -dynamiclib} \
++     %{Zinstall_name*:-install_name %*} \
++     %{keep_private_externs:%e-keep_private_externs not allowed with -dynamiclib} \
++     %{private_bundle:%e-private_bundle not allowed with -dynamiclib} \
++    } \
++   %{Zall_load:-all_load}%{Zdynamiclib:%{!Zall_load:-noall_load}} \
++   %{Zallowable_client*:-allowable_client %*} \
++   %{Zarch_errors_fatal:-arch_errors_fatal} \
++   %{Zdylib_file*:-dylib_file %*} \
++   %{Zflat_namespace:-flat_namespace} \
++   %{Zframework*:-framework %*} \
++   %{headerpad_max_install_names*} \
++   %{Zimage_base*:-image_base %*} \
++   %{Zinit*:-init %*} \
++   %{nomultidefs} \
++   %{Zmultiply_defined*:-multiply_defined %*} \
++   %{Zmultiplydefinedunused*:-multiply_defined_unused %*} \
++   %{prebind} %{noprebind} %{prebind_all_twolevel_modules} \
++   %{read_only_relocs} \
++   %{sectcreate*} %{sectorder*} %{seg1addr*} %{segprot*} %{seg_addr_table*} \
++   %{Zseg_addr_table_filename*:-seg_addr_table_filename %*} \
++   %{sub_library*} %{sub_umbrella*} \
++   %{twolevel_namespace} %{twolevel_namespace_hints} \
++   %{umbrella*} \
++   %{undefined*} \
++   %{Zweak_reference_mismatches*:-weak_reference_mismatches %*} \
++   %{X} \
++   %{y*} \
++   %{w} \
++   %{pagezero_size*} %{segs_read_*} %{seglinkedit} %{noseglinkedit}  \
++   %{sectalign*} %{sectobjectsymbols*} %{segcreate*} %{whyload} \
++   %{whatsloaded} %{dylinker_install_name*} \
++   %{dylinker} %{Mach} "
++
+ 
+ /* Machine dependent libraries.  */
+ 

@@ -1,0 +1,35 @@
+Package: gcc
+Version: 3.1.1
+Revision: 1
+Maintainer: Peter O'Gorman <peter@pogma.com>
+Source: ftp://ftp.dti.ad.jp/pub/lang/gcc/releases/%n-%v/%n-%v.tar.gz
+BuildDepends: darwin (>= 6.0)
+Description: FSF compiler
+DescDetail: <<
+Free Software Foundations release of gcc-3.1.1, includes everything that builds on
+darwin. c, c++, objc, f77 and ada. Does not include apple extensions.
+
+Small patch to make it understand the same linker options as apple cc. This package
+installs in %p/bin/gcc-3.1.1/, to use it, add %p/bin/gcc-3.1.1/bin to your path.
+
+Probably will never be a fink package, but it is fun to have in experimental :-)
+<<
+NoSetCPPFlags: true
+NoSetLDFlags: true
+Patch: %f.patch
+CompileScript: <<
+ #!/bin/sh
+ ulimit
+ cd .. 
+ mkdir build
+ cd build
+ ../gcc-3.1.1/configure --prefix=%p/bin/%n-%v --disable-nls --infodir=%i/share/info
+ make CC='cc -no-cpp-precomp' bootstrap
+<<
+InstallScript: <<
+cd ../build && make install prefix=%i
+<<
+InfoDocs: gcc.info gccint.info
+DocFiles: COPYING
+License: GPL
+HomePage: http://gcc.gnu.org
