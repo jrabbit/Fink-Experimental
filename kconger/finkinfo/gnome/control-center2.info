@@ -1,0 +1,51 @@
+Package: control-center2
+Version: 2.4.0
+Revision: 1
+Depends: %N-shlibs, gnome-desktop-shlibs
+BuildDepends: glib2-dev, nautilus-dev (>= 2.4.0), atk1, pango1-dev, gtk+2-dev, linc1, orbit2-dev, gconf2-dev, gnome-vfs2-dev (>= 2.4.0) | gnome-vfs2-ssl-dev (>= 2.4.0), libglade2, libart2, libgnomecanvas2-dev, libxml2, libbonobo2-dev, libgnome2-dev (>= 2.4.0), libbonoboui2-dev (>= 2.4.0), libgnomeui2-dev (>= 2.4.0), gnome-desktop-dev (>= 2.4.0), esound, pkgconfig, intltool, gettext-dev, gettext-bin
+Source: mirror:gnome:sources/control-center/2.4/control-center-%v.tar.bz2
+Source-MD5: 44115d3174d2f603f34a336ada562bae
+Patch: %n.patch
+SetCPPFLAGS: -no-cpp-precomp
+SetCFLAGS: -O3 -funroll-loops -fstrict-aliasing -pipe
+SetLIBS: -L%p/lib -lintl
+ConfigureParams: --mandir=%p/share/man
+InstallScript: <<
+  GCONF_DISABLE_MAKEFILE_SCHEMA_INSTALL=1 make install DESTDIR=%d
+<<
+PostInstScript: <<
+  export GCONF_CONFIG_SOURCE=`gconftool-2 --get-default-source`
+  gconftool-2 --makefile-install-rule %p/etc/gconf/schemas/apps_gnome_settings_daemon_default_editor.schemas >/dev/null
+  gconftool-2 --makefile-install-rule %p/etc/gconf/schemas/apps_gnome_settings_daemon_screensaver.schemas >/dev/null
+<<
+SplitOff: <<
+  Package: %N-shlibs
+  Depends: gnome-desktop-shlibs
+  Files: lib/libgnome-window-settings.*.dylib
+  Shlibs: %p/lib/libgnome-window-settings.1.dylib %n (>= %v-%r)
+  DocFiles: AUTHORS COPYING ChangeLog NEWS README TODO
+<<
+SplitOff2: <<
+  Package: %N-dev
+  BuildDependsOnly: True
+  Depends: %N-shlibs (= %v-%r)
+  Replaces %N (<< 2.0.1.1-1)
+  Files: include lib/libgnome-window-settings.* lib/pkgconfig
+  DocFiles: AUTHORS COPYING ChangeLog NEWS README TODO
+<<
+DocFiles: AUTHORS COPYING ChangeLog NEWS README TODO
+Description: The Gnome control center
+DescDetail: <<
+Control-center is a configuration tool for easily
+setting up your GNOME environment.
+
+GNOME is the GNU Network Object Model Environment. That's
+a fancy name, but really GNOME is a nice GUI desktop
+environment.
+
+It's a powerful, easy to configure environment which
+helps to make your computer easy to use.
+<<
+License: GPL
+Maintainer: Keith Conger <kconger@users.sourceforge.net>
+Homepage: http://www.gnome.org/
