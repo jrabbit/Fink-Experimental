@@ -27,6 +27,21 @@ diff -urN dpkg-1.10.21.orig/dpkg-deb/Makefile.in dpkg-1.10.21/dpkg-deb/Makefile.
 -	$(CC) $(LDFLAGS) -o $@ $(OBJECTS) $(LIBS) $(NLS_LIBS)
 +	$(CC) $(LDFLAGS) $(EXEFLAGS) -o $@ $(OBJECTS) $(LIBS) $(NLS_LIBS)
  
+diff -urN dpkg-1.10.21.orig/dpkg-deb/build.c dpkg-1.10.21/dpkg-deb/build.c
+--- dpkg-1.10.21.orig/dpkg-deb/build.c	Sun Oct 26 05:03:21 2003
++++ dpkg-1.10.21/dpkg-deb/build.c	Thu Jun  3 00:38:10 2004
+@@ -275,9 +275,11 @@
+       warns++;
+     }
+     for (field= checkedinfo->available.arbs; field; field= field->next) {
++	  if (strncmp("BuildDependsOnly",field->name,16)) {
+       fprintf(stderr, _("warning, `%s' contains user-defined field `%s'\n"),
+               controlfile, field->name);
+       warns++;
++	  }
+     }
+     checkversion(checkedinfo->available.version.version,"(upstream) version",&errs);
+     checkversion(checkedinfo->available.version.revision,"Debian revision",&errs);
 diff -urN dpkg-1.10.21.orig/dpkg-deb/dpkg-deb.1 dpkg-1.10.21/dpkg-deb/dpkg-deb.1
 --- dpkg-1.10.21.orig/dpkg-deb/dpkg-deb.1	Thu Aug  2 09:59:31 2001
 +++ dpkg-1.10.21/dpkg-deb/dpkg-deb.1	Wed Jun  2 22:18:56 2004
@@ -358,17 +373,6 @@ diff -urN dpkg-1.10.21.orig/lib/nfmalloc.c dpkg-1.10.21/lib/nfmalloc.c
  
  #define obstack_chunk_alloc m_malloc
  #define obstack_chunk_free free
-diff -urN dpkg-1.10.21.orig/lib/parse.c dpkg-1.10.21/lib/parse.c
---- dpkg-1.10.21.orig/lib/parse.c	Tue Mar  9 03:37:03 2004
-+++ dpkg-1.10.21/lib/parse.c	Wed Jun  2 22:29:28 2004
-@@ -69,6 +69,7 @@
-   { "MD5sum",           f_filecharf,       w_filecharf,      FILEFOFF(md5sum)         },
-   { "MSDOS-Filename",   f_filecharf,       w_filecharf,      FILEFOFF(msdosname)      },
-   { "Description",      f_charfield,       w_charfield,      PKGIFPOFF(description)   },
-+  { "BuildDependsOnly", f_charfield,       w_charfield  },
-   /* Note that aliases are added to the nicknames table in parsehelp.c. */
-   {  NULL   /* sentinel - tells code that list is ended */                               }
- };
 diff -urN dpkg-1.10.21.orig/lib/tarfn.c dpkg-1.10.21/lib/tarfn.c
 --- dpkg-1.10.21.orig/lib/tarfn.c	Tue Mar  9 02:31:16 2004
 +++ dpkg-1.10.21/lib/tarfn.c	Wed Jun  2 22:18:56 2004
