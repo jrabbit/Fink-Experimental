@@ -13,27 +13,41 @@ CustomMirror: <<
 Source: mirror:custom:%n-snapshot-20030323.tar.gz
 Source-MD5: b02659cb7f40f96927bfa3faf9d94177
 SourceDirectory: kmud2
-Source2: mirror:custom:kde-admindir-20040126.tar.bz2
-Source2-MD5: e746e3ab59cc70a6368ac85c0a31a238
+Source2: mirror:custom:kde-admindir-20040206.tar.bz2
+Source2-MD5: 0213c86066b613b446b259ed2d66688e
 Source2ExtractDir: kmud2
 
 PatchScript: sed 's|@PREFIX@|%p|g' <%a/%n.patch | patch -p1
 DocFiles: AUTHORS COPYING ChangeLog INSTALL README* TODO
-SetLIBS: -L%p/lib
-SetCPPFLAGS: -fno-common -no-cpp-precomp -I%p/include/-I/usr/X11R6/include -I%p/include
+
+NoSetLDFLAGS: true
+NoSetCPPFLAGS: true
 ConfigureParams: --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --disable-final --disable-dependency-tracking
+
 CompileScript: <<
-#!/bin/sh
- export KDEDIR=%p
- export QTDIR=%p
- make -f Makefile.dist
- ./configure %c
-#10.2 make FORCE_ALLOW_UNDEFINED="-Wl,-undefined -Wl,suppress -Wl,-flat_namespace"
-make FORCE_ALLOW_UNDEFINED="-Wl,-undefined -Wl,dynamic_lookup"
+#!/bin/sh -e
+
+  export PREFIX="%p"
+  . ./environment-helper.sh
+
+  ./build-helper.sh cvs       %N %v %r make -f admin/Makefile.common cvs
+  ./build-helper.sh configure %N %v %r ./configure %c
+#10.2 ./build-helper.sh make  %N %v %r make all_libraries="$ALL_LIBRARIES" FORCE_ALLOW_UNDEFINED="-Wl,-undefined -Wl,suppress -Wl,-flat_namespace"
+./build-helper.sh make  %N %v %r make all_libraries="$ALL_LIBRARIES" FORCE_ALLOW_UNDEFINED="-Wl,-undefined -Wl,dynamic_lookup"
 <<
+
 InstallScript: <<
- make install DESTDIR=%d
+#!/bin/sh -e
+
+  export PREFIX="%p"
+  . ./environment-helper.sh
+
+  ./build-helper.sh install %N %v %r make -j1 install DESTDIR=%d
+
+  mkdir -p %i/share/doc/kde-installed-packages
+  touch %i/share/doc/kde-installed-packages/%N
 <<
+
 Description: KDE - MUD client
 DescDetail: <<
 KMUD is a network application for connecting to Multi-User-Dungeons.

@@ -19,8 +19,8 @@ CustomMirror: <<
 <<
 Source: mirror:kde:stable/3.2/src/kdebase-%v.tar.bz2
 Source-MD5: 9d05be3ccd6cc0294d6153e5d4dfa63a
-Source2: mirror:custom:kde-admindir-20040126.tar.bz2
-Source2-MD5: e746e3ab59cc70a6368ac85c0a31a238
+Source2: mirror:custom:kde-admindir-20040206.tar.bz2
+Source2-MD5: 0213c86066b613b446b259ed2d66688e
 Source2ExtractDir: kdebase-%v
 
 PatchScript: <<
@@ -30,34 +30,32 @@ PatchScript: <<
   sed -e 's,@PREFIX@,%p,g' %a/%n.patch | patch -p1
 <<
 
-SetCPPFLAGS: -fno-common -no-cpp-precomp -I%p/include/-I/usr/X11R6/include -I%p/include
-SetLIBS: -L%p/lib
+NoSetCPPFLAGS: true
 NoSetLDFLAGS: true
-SetMACOSX_DEPLOYMENT_TARGET: 10.3
+
 ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-ssl-dir=%p --with-ssl --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --without-nfs --disable-final --with-ldap=framework --with-distribution='Fink/Mac OS X'
+
 CompileScript: <<
 #!/bin/sh -e
-  mkdir -p /tmp/kde-build
 
-# breaks a lot of plugins on 10.2, enable this again on 10.3
-  export LD_TWOLEVEL_NAMESPACE=true
+  export PREFIX="%p"
+  . ./environment-helper.sh
 
-  date > /tmp/kde-build/%N-%v-%r.cvs
-  make -f admin/Makefile.common cvs 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.cvs
-  date > /tmp/kde-build/%N-%v-%r.configure
-  FREETYPE_CONFIG=%p/bin/freetype-config sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure
-  date > /tmp/kde-build/%N-%v-%r.make
-  make all 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.make
+  ./build-helper.sh cvs       %N %v %r make -f admin/Makefile.common cvs
+  ./build-helper.sh configure %N %v %r ./configure %c
+  ./build-helper.sh make      %N %v %r make all all_libraries="$ALL_LIBRARIES"
 <<
 
 InstallScript: <<
 #!/bin/sh -e
-  mkdir -p /tmp/kde-build
+
+  export PREFIX="%p"
+  . ./environment-helper.sh
+
+  ./build-helper.sh install %N %v %r make -j1 install DESTDIR=%d
+
   mkdir -p %i/share/doc/kde-installed-packages
   touch %i/share/doc/kde-installed-packages/%N
-
-  date > /tmp/kde-build/%N-%v-%r.install
-  make -j1 install DESTDIR=%d 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.install
 
   install -d -m 755 %i/etc/pam.d
   install -c -m 444 /etc/pam.d/login %i/etc/pam.d/kde
@@ -65,7 +63,8 @@ InstallScript: <<
   install -c -m 444 /etc/pam.d/login %i/etc/pam.d/kcheckpass
   install -c -m 444 /etc/pam.d/login %i/etc/pam.d/kscreensaver
   rm -rf %i/share/fonts || true
-  make -C konsole/fonts install fontdir=`%p/bin/xfontpath basedir`/konsole DESTDIR=%d
+
+  ./build-helper.sh konsole-install %N %v %r make -C konsole/fonts install fontdir=`%p/bin/xfontpath basedir`/konsole DESTDIR=%d
 <<
 
 PostInstScript: <<

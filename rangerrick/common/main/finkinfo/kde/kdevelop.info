@@ -18,8 +18,8 @@ CustomMirror: <<
 Source: mirror:kde:stable/3.2/src/%n-%v.tar.bz2
 Source-MD5: fa823d9fa2444938ecafb97949500c27
 SourceDirectory: %n-%v
-Source2: mirror:custom:kde-admindir-20040126.tar.bz2
-Source2-MD5: e746e3ab59cc70a6368ac85c0a31a238
+Source2: mirror:custom:kde-admindir-20040206.tar.bz2
+Source2-MD5: 0213c86066b613b446b259ed2d66688e
 Source2ExtractDir: %n-%v
 
 PatchScript: <<
@@ -28,37 +28,32 @@ PatchScript: <<
   perl -pi -e 's,doc/HTML,doc/kde,g' admin/acinclude.m4.in
 <<
 
-SetCPPFLAGS: -fno-common -no-cpp-precomp -I%p/lib/flex/include -I%p/include/freetype2 -I/usr/X11R6/include -I%p/include -I%p/include/db4
-SetLIBS: -L%p/lib
+NoSetCPPFLAGS: true
+SetCPPFLAGS: -I%p/include/db4
 NoSetLDFLAGS: true
-SetLDFLAGS: -L%p/lib/flex/lib
-SetMACOSX_DEPLOYMENT_TARGET: 10.2
 ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --disable-final --with-pythondir=%p --with-qtdoc-dir=%p/share/doc/qt3/html --with-kdelibsdoxy-dir=%p/share/doc/kde/en/kdelibs-apidocs --with-kdelibsdoc-dir=%p/share/doc/kde/en/kdelibs-apidocs --enable-debug --with-distribution='Fink/Mac OS X' --enable-scripting --enable-autoproject --enable-scriptproject --enable-trollproject --enable-customproject --enable-cvs --disable-ada --disable-haskell --disable-java --disable-pascal
+
 CompileScript: <<
 #!/bin/sh -e
-  mkdir -p /tmp/kde-build
 
-# breaks a lot of plugins on 10.2, enable this again on 10.3
-#  export LD_TWOLEVEL_NAMESPACE=true
-  
-  date > /tmp/kde-build/%N-%v-%r.cvs
-  make -f admin/Makefile.common cvs 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.cvs
-  date > /tmp/kde-build/%N-%v-%r.configure
-  FREETYPE_CONFIG=%p/bin/freetype-config sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure
-  date > /tmp/kde-build/%N-%v-%r.make
-  find . -name \*.l -exec touch {} \;
-  find . -name \*.ll -exec touch {} \;
-  make LEX=%p/lib/flex/bin/flex LEXLIB="" USE_EXCEPTIONS="-fexceptions -fno-coalesce" >> /tmp/kde-build/%N-%v-%r.make
+  export PREFIX="%p"
+  . ./environment-helper.sh
+
+  ./build-helper.sh cvs       %N %v %r make -f admin/Makefile.common cvs
+  ./build-helper.sh configure %N %v %r ./configure %c
+  ./build-helper.sh make      %N %v %r make all LEX=%p/lib/flex/bin/flex LEXLIB="" USE_EXCEPTIONS="-fexceptions -fno-coalesce" all_libraries="$ALL_LIBRARIES"
 <<
 
 InstallScript: <<
 #!/bin/sh -e
-  mkdir -p /tmp/kde-build
+
+  export PREFIX="%p"
+  . ./environment-helper.sh
+
+  ./build-helper.sh install %N %v %r make -j1 install DESTDIR=%d
+
   mkdir -p %i/share/doc/kde-installed-packages
   touch %i/share/doc/kde-installed-packages/%N
-
-  date > /tmp/kde-build/%N-%v-%r.install
-  make -j1 install DESTDIR=%d 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.install
 <<
 
 DocFiles: AUTHORS COPYING* ChangeLog HACKING INSTALL NEWS README TODO

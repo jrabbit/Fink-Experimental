@@ -76,6 +76,7 @@ for my $file (sort keys %files) {
 									$line =~ s/--disable-(ada|haskell|pascal) *//g;
 									$line =~ s/^\#10.3\s+(.*)$/$1/;
 								} else {
+									$line =~ s/freetype2(-hinting)?-dev(\s+\([^\)]+\))?\s*\|\s*freetype2(-hinting)?-dev(\s+\([^\)]+\))?\s*[\,\s]*//g;
 									$line =~ s/^\#10.2\s+(.*)$/$1/;
 								}
 								print FILEOUT $line;
