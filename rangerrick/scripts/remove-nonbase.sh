@@ -26,6 +26,12 @@ dpkg --get-selections | \
 	grep -v '^uri-pm[[:space:]]' | \
 	grep -v '^xml-parser-pm[[:space:]]' | \
 	grep -v '^expat-shlibs[[:space:]]' | \
+	grep -v '^irssi[[:space:]]' | \
+	grep -v '^ccache[[:space:]]' | \
+	grep -v '^ccache-default[[:space:]]' | \
+	grep -v '^distcc[[:space:]]' | \
+	grep -v '^distcc-default[[:space:]]' | \
+	grep -v '^popt-shlibs[[:space:]]' | \
 	awk '{ print $1 }' | \
 	xargs sudo dpkg -r --force-depends
 
@@ -55,6 +61,12 @@ dpkg --get-selections | \
 	grep -v '^uri-pm[[:space:]]' | \
 	grep -v '^xml-parser-pm[[:space:]]' | \
 	grep -v '^expat-shlibs[[:space:]]' | \
+	grep -v '^irssi[[:space:]]' | \
+	grep -v '^ccache[[:space:]]' | \
+	grep -v '^ccache-default[[:space:]]' | \
+	grep -v '^distcc[[:space:]]' | \
+	grep -v '^distcc-default[[:space:]]' | \
+	grep -v '^popt-shlibs[[:space:]]' | \
 	awk '{ print $1 }' | \
 	xargs sudo dpkg --purge
 

@@ -17,10 +17,10 @@ PACKLIST=""
 for PACK in $PACKAGES; do
 	case $PACK in
 #		)					PACKLIST="$PACKLIST, $PACK";;
-		*-common)				PACKLIST="$PACKLIST, %N-common";;
-		arts*)					PACKLIST="$PACKLIST, $PACK (>= 1.1.1-1)";;
+		*-common)				PACKLIST="$PACKLIST, %N-common (>= %v-%r)";;
+		arts*)					PACKLIST="$PACKLIST, $PACK (>= 1.1.2-1)";;
 		bzip2*)					;;
-		dlcompat*)				PACKLIST="$PACKLIST, $PACK (>= 20021117-1)";;
+		dlcompat*)				PACKLIST="$PACKLIST, $PACK (>= 20021117-2)";;
 		freetype2*-shlibs)			PACKLIST="$PACKLIST, freetype2-shlibs | freetype2-hinting-shlibs";;
 		freetype2*)				PACKLIST="$PACKLIST, freetype2";;
 		gettext*)				;;
@@ -31,7 +31,7 @@ for PACK in $PACKAGES; do
 		kdebase*-dev)				PACKLIST="$PACKLIST, kdebase3-ssl-dev (>= %v-${KDEREL}) | kdebase3-dev (>= %v-${KDEREL})";;
 		kdebase*)				PACKLIST="$PACKLIST, kdebase3-ssl (>= %v-${KDEREL}) | kdebase3 (>= %v-${KDEREL})";;
 		kdelibs*-dev)				PACKLIST="$PACKLIST, kdelibs3-ssl-dev (>= %v-${KDEREL}) | kdelibs3-dev (>= %v-${KDEREL})";;
-		kdelibs*)				PACKLIST="$PACKLIST, kdelibs3-ssl (>= %v-${KDEREL})| kdelibs3 (>= %v-${KDEREL})";;
+		kdelibs*)				PACKLIST="$PACKLIST, kdelibs3-ssl (>= %v-${KDEREL}) | kdelibs3 (>= %v-${KDEREL})";;
 		libiconv*)				;;
 		libpng3*)				PACKLIST="$PACKLIST, $PACK (>= 1.2.5-4)";;
 		libpoll*)				PACKLIST="$PACKLIST, $PACK (>= 1.1-1)";;
@@ -59,5 +59,5 @@ for PACK in $PACKAGES; do
 	esac
 done
 PACKLIST=`echo $PACKLIST | sed -e 's#^, ##'`
-echo ${PACKLIST}, '%N-base'
+echo Depends: ${PACKLIST}, '%N-base (>= %v-%r)'
 echo ""
