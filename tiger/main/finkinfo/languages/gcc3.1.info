@@ -1,35 +1,56 @@
 Package: gcc3.1
-Version: 3.1
-Revision: 1
-BuildDepends: gettext-dev, libiconv-dev
-Conflicts: ccache-default (<= 2.4-10)
-Replaces: ccache-default (<= 2.4-10)
+Version: 1175
+Revision: 3
 Source: http://www.opensource.apple.com/darwinsource/tarballs/other/gcc3-1175.tar.gz
 Source-MD5: 0f0abd6694aceeedc1abff21641580c4
-ConfigureParams: --with-libiconv-prefix=%p
+NoSetCPPFLAGS: True
+NoSetLDFLAGS: True
+SourceDirectory: gcc3-%v
+BuildDepends: libiconv-dev
+BuildConflicts: autogen-dev
+Conflicts: ccache-default (<= 2.4-10)
+Replaces: ccache-default (<= 2.4-10)
+ConfigureParams: --with-libiconv-prefix=%p --enable-languages=c,c++,objc --infodir='${prefix}/share/info' --host=%m-apple-darwin --libexecdir='${prefix}/lib' --program-suffix=3 --with-system-zlib --with-included-gettext
 CompileScript: <<
- mkdir ../build
- cd ../build; CC=gcc-3.3 CXX=g++-3.3 ../gcc3-1175/configure %c
- perl -pi.bak -e 's|BASE_FLAGS_TO_PASS = \\|BASE_FLAGS_TO_PASS = "CC=cc"\\|' ../build/Makefile
- cd ../build; make bootstrap INTLLIBS="-L%p/lib -lintl -liconv"
+ #!/bin/sh
+ ulimit -S -s unlimited
+ mkdir darwin 
+ cd darwin
+ ../configure %c
+ make
 <<
-# cd ../build; ../gcc3-1175/configure %c
-# cd ../build; CC=gcc-3.3 CXX=g++-3.3 ../gcc3-1175/configure %c
-# cd ../build; make bootstrap CC=gcc-3.3 CXX=g++-3.3 INTLLIBS="-L%p/lib -lintl -liconv"
-# make -f Makefile bootstrap CC=gcc-3.3 CXX=g++-3.3 LDFLAGS="-L%p/lib"
-# cd ../build; make bootstrap INTLLIBS="-L%p/lib -lintl -liconv" HOST_CC=gcc-3.3
-DescPort: <<
- There is no configure flag to specify the location of -lintl, so we have to
- set INTLLIBS by hand during make. 
-
- NOT WORKING YET!
+InstallScript: <<
+ #!/bin/sh
+ cd darwin
+# make install DESTDIR=%d
+ make install prefix=%i
+ mkdir -p %i/share
+ mv %i/man %i/share/
+ rm %i/share/locale/locale.alias
+ rm %i/lib/charset.alias
+# now we remove stuff from tcltk and expect that we don't want to install
+ rm %i/bin/expect
+ rm %i/bin/tclsh
+ rm %i/include/expect*
+ rm %i/include/tcl*
+ rm %i/lib/libexpect5.26.a
+ rm %i/lib/libtcl8.0.a
+ rm %i/lib/tclConfig.sh
+ rm %i/share/man/man1/expect.1
+ rm %i/share/man/man1/tclsh.1
+ rm -R %i/share/man/man3
+ rm -R %i/share/tcl8.0
 <<
+License: GPL
 DescPackaging: <<
  This package is intended to ease the transition to gcc 3.3 (and later)
  compilers for older fink packages.  Package maintainers should make every
  effort to use gcc 3.3 or a more recent compiler, and should not assume that 
  this gcc3.1 package will be present forever.
+
+ Calls to this compiler must be given explicitly as gcc3 or g++3.  They
+ will fail unless -no-cpp-precomp is passed.
 <<
 Description: Version 3.1 of the Gnu Compiler Collection
-License: GPL
+Homepage: http://gcc.gnu.org/
 Maintainer: Fink Core Group <fink-core@lists.sourceforge.net>
