@@ -129,13 +129,13 @@ if ($DOSCP) {
 	for my $file (@FILES) {
 		$newfiles .= ' ' . $file . '.new';
 	}
-	#print "rsync -av -e $ENV{CVS_RSH} $newfiles rangerrick\@fink.sourceforge.net:/home/groups/f/fi/fink/htdocs/news/ >/tmp/rss-rsync.log 2>&1\n";
-	`rsync -av -e $ENV{CVS_RSH} $newfiles rangerrick\@fink.sourceforge.net:/home/groups/f/fi/fink/htdocs/news/ >/tmp/rss-rsync.log 2>&1`;
+	#print "rsync -av -e $ENV{CVS_RSH} $newfiles rangerrick\@fink.sourceforge.net:/home/groups/f/fi/fink/htdocs/news/rdf/ >/tmp/rss-rsync.log 2>&1\n";
+	`rsync -av -e $ENV{CVS_RSH} $newfiles rangerrick\@fink.sourceforge.net:/home/groups/f/fi/fink/htdocs/news/rdf/ >/tmp/rss-rsync.log 2>&1`;
 
 	my $movecommands;
 	for my $file (@FILES) {
 		$file =~ s/.*\///;
-		$movecommands .= "; mv news/${file}.new news/${file}; chgrp fink news/${file}";
+		$movecommands .= "; mv news/rdf/${file}.new news/rdf/${file}; chgrp fink news/rdf/${file}";
 	}
 	#print "$ENV{CVS_RSH} rangerrick\@fink.sourceforge.net 'cd /home/groups/f/fi/fink/htdocs; ./fix_perm.sh $movecommands' >/tmp/rss-mv.log 2>&1\n";
 	`$ENV{CVS_RSH} rangerrick\@fink.sourceforge.net 'cd /home/groups/f/fi/fink/htdocs; ./fix_perm.sh $movecommands' >/tmp/rss-mv.log 2>&1`;
@@ -235,17 +235,18 @@ sub get_cvs_log {
 	return;
 }
 
-sub make_rss {
-	my $packagehash = shift;
-	my $tree        = shift;
-	my $rss         = XML::RSS->new(version => '1.0');
+
+sub get_rss_object {
+	my $tree = shift;
+
+	my $rss = XML::RSS->new(version => '1.0');
 
 	$rss->channel(
 		title       => "Updated Fink Packages ($tree)",
 		link        => 'http://fink.sourceforge.net/pdb/',
 		description => "Updated Packages Released to the $tree Tree in the Last $DAYS Days.",
 		dc          => {
-			date      => w3c_date(time),
+			date      => w3c_date($NOW),
 			subject   => 'Fink Software',
 			creator   => 'fink-devel@lists.sourceforge.net',
 			publisher => 'fink-devel@lists.sourceforge.net',
@@ -257,6 +258,26 @@ sub make_rss {
 			updateBase      => '2000-01-01T00:30:00-05:00',
 		},
 	);
+	return $rss;
+}
+
+sub make_rss {
+	my $packagehash = shift;
+	my $tree        = shift;
+	my $split_rss;
+
+	for my $osver ('10.2', '10.2-gcc3.3', '10.3') {
+		$split_rss->{$osver} = get_rss_object("${osver}/${tree}");
+	}
+
+	for my $package (keys %{$packagehash}) {
+		my $package = $packagehash->{$package};
+		if (not exists $split_rss->{$package->{'tree'}}) {
+			$split_rss->{$package->{'tree'}} = get_rss_object($package->{'tree'} . '/' . $tree);
+		}
+	}
+
+	my $rss = get_rss_object($tree);
 
 	my $description;
 	for my $package (sort { $packagehash->{$b}->{'date'} <=> $packagehash->{$a}->{'date'} || $a <=> $b } keys %{$packagehash}) {
@@ -290,7 +311,7 @@ sub make_rss {
 			}
 		}
 
-		$rss->add_item(
+		my %itemdata = (
 			title       => encode_entities($package->{'package'} . ' ' . $package->{'version'} . '-' . $package->{'revision'} . ' (' . $package->{'description'} . ', ' . $package->{'tree'} . ' tree)'),
 			description => '<![CDATA[<pre>' . $description . '</pre>]]>',
 			#description => $description,
@@ -298,12 +319,20 @@ sub make_rss {
 			dc          => {
 				date => w3c_date($package->{'date'}),
 			},
-		) or die "couldn't add item: $!\n";
+		);
+
+		$rss->add_item( %itemdata ) or die "couldn't add item: $!\n";
+		$split_rss->{$package->{'tree'}}->add_item( %itemdata ) or die "couldn't add item: $!\n";
 	}
 
 	my $lctree = lc($tree);
 	$rss->save("$TOPDIR/fink-$lctree.rdf.new") or die "can't save rss: $!\n";
 	push(@FILES, "$TOPDIR/fink-$lctree.rdf");
+
+	for my $osver (sort keys %$split_rss) {
+		$split_rss->{$osver}->save("$TOPDIR/fink-$osver-$lctree.rdf.new") or die "can't save rss: $!\n";
+		push(@FILES, "$TOPDIR/fink-$osver-$lctree.rdf");
+	}
 }
 
 sub find_infofiles {
@@ -313,7 +342,7 @@ sub find_infofiles {
 
 	my @stat = stat($File::Find::name) or die "can't stat $_: $!\n";
 	return unless ($stat[9] >= $CUTOFF);
-	return unless ($stat[9] <= int (time - 60 * 60 * 2)); # skip the newest 2 hours, to account for mirroring
+	return unless ($stat[9] <= int ($NOW - 60 * 60 * 2)); # skip the newest 2 hours, to account for mirroring
 
 	my $properties = Fink::Package::read_properties($File::Find::name);
 	$properties = Fink::Package->handle_infon_block($properties, $File::Find::name);
