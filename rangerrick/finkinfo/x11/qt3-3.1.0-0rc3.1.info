@@ -23,6 +23,9 @@ CompileScript: <<
  if test -r /usr/X11R6/lib/libXft.2.dylib; then
   FONTCONFIG="-lfontconfig"
  fi
+ if test -x %p/bin/gcc-prebind; then
+  GCC_PREBIND=gcc-prebind
+ fi
  # we have to force header/lib ordering or things get really wiggy
  # looks ugly, but it's better than patching the source
  echo "yes" | ./configure -I/usr/X11R6/include/freetype2 -I/usr/X11R6/include \
@@ -37,7 +40,7 @@ CompileScript: <<
 	-system-libpng -system-libjpeg -system-zlib -largefile \
 	-sm -xinerama -xrender -xft -xkb `cat /tmp/qt-build-options`
 
- make -j2 INSTALLPREFIX=%p symlinks src-qmake src-moc sub-src sub-tools
+ make -j2 GCC_PREBIND="$GCC_PREBIND" INSTALLPREFIX=%p symlinks src-qmake src-moc sub-src sub-tools
 <<
 InstallScript: <<
 #!/bin/sh
