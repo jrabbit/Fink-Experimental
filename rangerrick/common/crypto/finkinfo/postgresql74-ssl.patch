@@ -1,6 +1,6 @@
 diff -uNr postgresql-7.4.3/pgsql.sh postgresql-7.4.3-new/pgsql.sh
 --- postgresql-7.4.3/pgsql.sh	1969-12-31 19:00:00.000000000 -0500
-+++ postgresql-7.4.3-new/pgsql.sh	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/pgsql.sh	2004-07-08 17:40:46.000000000 -0400
 @@ -0,0 +1,21 @@
 +#!/bin/sh
 +
@@ -25,7 +25,7 @@ diff -uNr postgresql-7.4.3/pgsql.sh postgresql-7.4.3-new/pgsql.sh
 +esac
 diff -uNr postgresql-7.4.3/src/Makefile.global.in postgresql-7.4.3-new/src/Makefile.global.in
 --- postgresql-7.4.3/src/Makefile.global.in	2003-12-19 18:29:29.000000000 -0500
-+++ postgresql-7.4.3-new/src/Makefile.global.in	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/Makefile.global.in	2004-07-08 17:40:46.000000000 -0400
 @@ -65,21 +65,21 @@
  libexecdir := @libexecdir@
  ifeq "$(findstring pgsql, $(libexecdir))" ""
@@ -80,7 +80,7 @@ diff -uNr postgresql-7.4.3/src/Makefile.global.in postgresql-7.4.3-new/src/Makef
  
 diff -uNr postgresql-7.4.3/src/Makefile.shlib postgresql-7.4.3-new/src/Makefile.shlib
 --- postgresql-7.4.3/src/Makefile.shlib	2003-10-19 21:34:33.000000000 -0400
-+++ postgresql-7.4.3-new/src/Makefile.shlib	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/Makefile.shlib	2004-07-08 17:40:46.000000000 -0400
 @@ -81,8 +81,24 @@
  endif
  
@@ -190,9 +190,50 @@ diff -uNr postgresql-7.4.3/src/Makefile.shlib postgresql-7.4.3-new/src/Makefile.
  ifdef EXPSUFF
  	rm -f lib$(NAME)$(EXPSUFF)
  endif
+diff -uNr postgresql-7.4.3/src/backend/main/main.c postgresql-7.4.3-new/src/backend/main/main.c
+--- postgresql-7.4.3/src/backend/main/main.c	2003-10-18 18:59:08.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/main/main.c	2004-07-08 17:40:52.000000000 -0400
+@@ -50,6 +50,7 @@
+ 	int			len;
+ 	struct passwd *pw;
+ 	char	   *pw_name_persist;
++	char	   *progname;
+ 
+ 	/*
+ 	 * Place platform-specific startup hacks here.	This is the right
+@@ -206,9 +207,27 @@
+ 	 * argument) we were called with.  The lack of consistency here is
+ 	 * historical.
+ 	 */
+-	len = strlen(new_argv[0]);
+ 
+-	if (len >= 10 && strcmp(new_argv[0] + len - 10, "postmaster") == 0)
++	/*
++	 * Find the program name, which is after the final slash in the
++	 * program argument.
++	 */
++	progname = strrchr(new_argv[0], '/');
++	if (progname != NULL)
++	{
++		progname = progname + 1;
++        } 
++	else 
++	{
++		progname = new_argv[0];
++	}
++
++	/*
++	 * Now check if the program name starts with the
++	 * word "postmaster", in which case PostmasterMain is called.
++	 */
++	len = strlen(progname);
++	if (len >= 10 && strncmp(progname, "postmaster", 10) == 0)
+ 	{
+ 		/* Called as "postmaster" */
+ 		exit(PostmasterMain(argc, new_argv));
 diff -uNr postgresql-7.4.3/src/backend/utils/fmgr/dfmgr.c postgresql-7.4.3-new/src/backend/utils/fmgr/dfmgr.c
 --- postgresql-7.4.3/src/backend/utils/fmgr/dfmgr.c	2003-09-25 02:58:05.000000000 -0400
-+++ postgresql-7.4.3-new/src/backend/utils/fmgr/dfmgr.c	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/utils/fmgr/dfmgr.c	2004-07-08 17:40:46.000000000 -0400
 @@ -300,6 +300,26 @@
  		pfree(full);
  	}
@@ -222,7 +263,7 @@ diff -uNr postgresql-7.4.3/src/backend/utils/fmgr/dfmgr.c postgresql-7.4.3-new/s
  	strcat(new, DLSUFFIX);
 diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/ascii_and_mic/Makefile postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/ascii_and_mic/Makefile
 --- postgresql-7.4.3/src/backend/utils/mb/conversion_procs/ascii_and_mic/Makefile	2002-08-21 22:18:45.000000000 -0400
-+++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/ascii_and_mic/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/ascii_and_mic/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -3,6 +3,9 @@
  # $Id$
  #
@@ -235,7 +276,7 @@ diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/ascii_and_mic/M
  include $(top_builddir)/src/Makefile.global
 diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/cyrillic_and_mic/Makefile postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/cyrillic_and_mic/Makefile
 --- postgresql-7.4.3/src/backend/utils/mb/conversion_procs/cyrillic_and_mic/Makefile	2002-08-21 17:33:55.000000000 -0400
-+++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/cyrillic_and_mic/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/cyrillic_and_mic/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -3,6 +3,9 @@
  # $Id$
  #
@@ -248,7 +289,7 @@ diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/cyrillic_and_mi
  include $(top_builddir)/src/Makefile.global
 diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/euc_cn_and_mic/Makefile postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/euc_cn_and_mic/Makefile
 --- postgresql-7.4.3/src/backend/utils/mb/conversion_procs/euc_cn_and_mic/Makefile	2002-08-21 17:33:55.000000000 -0400
-+++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/euc_cn_and_mic/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/euc_cn_and_mic/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -3,6 +3,9 @@
  # $Id$
  #
@@ -261,7 +302,7 @@ diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/euc_cn_and_mic/
  include $(top_builddir)/src/Makefile.global
 diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/euc_jp_and_sjis/Makefile postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/euc_jp_and_sjis/Makefile
 --- postgresql-7.4.3/src/backend/utils/mb/conversion_procs/euc_jp_and_sjis/Makefile	2002-08-21 17:33:55.000000000 -0400
-+++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/euc_jp_and_sjis/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/euc_jp_and_sjis/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -3,6 +3,9 @@
  # $Id$
  #
@@ -274,7 +315,7 @@ diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/euc_jp_and_sjis
  include $(top_builddir)/src/Makefile.global
 diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/euc_kr_and_mic/Makefile postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/euc_kr_and_mic/Makefile
 --- postgresql-7.4.3/src/backend/utils/mb/conversion_procs/euc_kr_and_mic/Makefile	2002-08-21 17:33:55.000000000 -0400
-+++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/euc_kr_and_mic/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/euc_kr_and_mic/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -3,6 +3,9 @@
  # $Id$
  #
@@ -287,7 +328,7 @@ diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/euc_kr_and_mic/
  include $(top_builddir)/src/Makefile.global
 diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/euc_tw_and_big5/Makefile postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/euc_tw_and_big5/Makefile
 --- postgresql-7.4.3/src/backend/utils/mb/conversion_procs/euc_tw_and_big5/Makefile	2002-08-21 17:33:55.000000000 -0400
-+++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/euc_tw_and_big5/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/euc_tw_and_big5/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -3,6 +3,9 @@
  # $Id$
  #
@@ -300,7 +341,7 @@ diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/euc_tw_and_big5
  include $(top_builddir)/src/Makefile.global
 diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/latin2_and_win1250/Makefile postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/latin2_and_win1250/Makefile
 --- postgresql-7.4.3/src/backend/utils/mb/conversion_procs/latin2_and_win1250/Makefile	2002-08-21 17:33:55.000000000 -0400
-+++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/latin2_and_win1250/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/latin2_and_win1250/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -3,6 +3,9 @@
  # $Id$
  #
@@ -313,7 +354,7 @@ diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/latin2_and_win1
  include $(top_builddir)/src/Makefile.global
 diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/latin_and_mic/Makefile postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/latin_and_mic/Makefile
 --- postgresql-7.4.3/src/backend/utils/mb/conversion_procs/latin_and_mic/Makefile	2002-08-21 17:33:55.000000000 -0400
-+++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/latin_and_mic/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/latin_and_mic/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -3,6 +3,9 @@
  # $Id$
  #
@@ -326,7 +367,7 @@ diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/latin_and_mic/M
  include $(top_builddir)/src/Makefile.global
 diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_ascii/Makefile postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_ascii/Makefile
 --- postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_ascii/Makefile	2002-08-21 17:33:55.000000000 -0400
-+++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_ascii/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_ascii/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -3,6 +3,9 @@
  # $Id$
  #
@@ -339,7 +380,7 @@ diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_ascii/
  include $(top_builddir)/src/Makefile.global
 diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_big5/Makefile postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_big5/Makefile
 --- postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_big5/Makefile	2002-08-21 17:33:55.000000000 -0400
-+++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_big5/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_big5/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -3,6 +3,9 @@
  # $Id$
  #
@@ -352,7 +393,7 @@ diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_big5/M
  include $(top_builddir)/src/Makefile.global
 diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_cyrillic/Makefile postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_cyrillic/Makefile
 --- postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_cyrillic/Makefile	2002-08-21 17:33:55.000000000 -0400
-+++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_cyrillic/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_cyrillic/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -3,6 +3,9 @@
  # $Id$
  #
@@ -365,7 +406,7 @@ diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_cyrill
  include $(top_builddir)/src/Makefile.global
 diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_euc_cn/Makefile postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_euc_cn/Makefile
 --- postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_euc_cn/Makefile	2002-08-21 17:33:55.000000000 -0400
-+++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_euc_cn/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_euc_cn/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -3,6 +3,9 @@
  # $Id$
  #
@@ -378,7 +419,7 @@ diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_euc_cn
  include $(top_builddir)/src/Makefile.global
 diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_euc_jp/Makefile postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_euc_jp/Makefile
 --- postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_euc_jp/Makefile	2002-08-21 17:33:55.000000000 -0400
-+++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_euc_jp/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_euc_jp/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -3,6 +3,9 @@
  # $Id$
  #
@@ -391,7 +432,7 @@ diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_euc_jp
  include $(top_builddir)/src/Makefile.global
 diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_euc_kr/Makefile postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_euc_kr/Makefile
 --- postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_euc_kr/Makefile	2002-08-21 17:33:55.000000000 -0400
-+++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_euc_kr/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_euc_kr/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -3,6 +3,9 @@
  # $Id$
  #
@@ -404,7 +445,7 @@ diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_euc_kr
  include $(top_builddir)/src/Makefile.global
 diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_euc_tw/Makefile postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_euc_tw/Makefile
 --- postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_euc_tw/Makefile	2002-08-21 17:33:55.000000000 -0400
-+++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_euc_tw/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_euc_tw/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -3,6 +3,9 @@
  # $Id$
  #
@@ -417,7 +458,7 @@ diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_euc_tw
  include $(top_builddir)/src/Makefile.global
 diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_gb18030/Makefile postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_gb18030/Makefile
 --- postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_gb18030/Makefile	2002-08-21 17:33:55.000000000 -0400
-+++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_gb18030/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_gb18030/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -3,6 +3,9 @@
  # $Id$
  #
@@ -430,7 +471,7 @@ diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_gb1803
  include $(top_builddir)/src/Makefile.global
 diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_gbk/Makefile postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_gbk/Makefile
 --- postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_gbk/Makefile	2002-08-21 17:33:55.000000000 -0400
-+++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_gbk/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_gbk/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -3,6 +3,9 @@
  # $Id$
  #
@@ -443,7 +484,7 @@ diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_gbk/Ma
  include $(top_builddir)/src/Makefile.global
 diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_iso8859/Makefile postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_iso8859/Makefile
 --- postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_iso8859/Makefile	2002-08-21 17:33:55.000000000 -0400
-+++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_iso8859/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_iso8859/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -3,6 +3,9 @@
  # $Id$
  #
@@ -456,7 +497,7 @@ diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_iso885
  include $(top_builddir)/src/Makefile.global
 diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_iso8859_1/Makefile postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_iso8859_1/Makefile
 --- postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_iso8859_1/Makefile	2002-08-21 17:33:55.000000000 -0400
-+++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_iso8859_1/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_iso8859_1/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -3,6 +3,9 @@
  # $Id$
  #
@@ -469,7 +510,7 @@ diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_iso885
  include $(top_builddir)/src/Makefile.global
 diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_johab/Makefile postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_johab/Makefile
 --- postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_johab/Makefile	2002-08-21 17:33:55.000000000 -0400
-+++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_johab/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_johab/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -3,6 +3,9 @@
  # $Id$
  #
@@ -482,7 +523,7 @@ diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_johab/
  include $(top_builddir)/src/Makefile.global
 diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_sjis/Makefile postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_sjis/Makefile
 --- postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_sjis/Makefile	2002-08-21 17:33:55.000000000 -0400
-+++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_sjis/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_sjis/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -3,6 +3,9 @@
  # $Id$
  #
@@ -495,7 +536,7 @@ diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_sjis/M
  include $(top_builddir)/src/Makefile.global
 diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_tcvn/Makefile postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_tcvn/Makefile
 --- postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_tcvn/Makefile	2002-08-21 17:33:55.000000000 -0400
-+++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_tcvn/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_tcvn/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -3,6 +3,9 @@
  # $Id$
  #
@@ -508,7 +549,7 @@ diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_tcvn/M
  include $(top_builddir)/src/Makefile.global
 diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_uhc/Makefile postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_uhc/Makefile
 --- postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_uhc/Makefile	2002-08-21 17:33:55.000000000 -0400
-+++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_uhc/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_uhc/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -3,6 +3,9 @@
  # $Id$
  #
@@ -521,7 +562,7 @@ diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_uhc/Ma
  include $(top_builddir)/src/Makefile.global
 diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_win1250/Makefile postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_win1250/Makefile
 --- postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_win1250/Makefile	2002-08-21 17:33:55.000000000 -0400
-+++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_win1250/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_win1250/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -3,6 +3,9 @@
  # $Id$
  #
@@ -534,7 +575,7 @@ diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_win125
  include $(top_builddir)/src/Makefile.global
 diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_win1256/Makefile postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_win1256/Makefile
 --- postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_win1256/Makefile	2002-08-21 17:33:55.000000000 -0400
-+++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_win1256/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_win1256/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -3,6 +3,9 @@
  # $Id$
  #
@@ -547,7 +588,7 @@ diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_win125
  include $(top_builddir)/src/Makefile.global
 diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_win874/Makefile postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_win874/Makefile
 --- postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_win874/Makefile	2002-08-21 17:33:55.000000000 -0400
-+++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_win874/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/utils/mb/conversion_procs/utf8_and_win874/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -3,6 +3,9 @@
  # $Id$
  #
@@ -560,7 +601,7 @@ diff -uNr postgresql-7.4.3/src/backend/utils/mb/conversion_procs/utf8_and_win874
  include $(top_builddir)/src/Makefile.global
 diff -uNr postgresql-7.4.3/src/backend/utils/misc/postgresql.conf.sample postgresql-7.4.3-new/src/backend/utils/misc/postgresql.conf.sample
 --- postgresql-7.4.3/src/backend/utils/misc/postgresql.conf.sample	2003-10-07 23:49:38.000000000 -0400
-+++ postgresql-7.4.3-new/src/backend/utils/misc/postgresql.conf.sample	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/backend/utils/misc/postgresql.conf.sample	2004-07-08 17:40:46.000000000 -0400
 @@ -27,7 +27,7 @@
  
  # - Connection Settings -
@@ -581,7 +622,7 @@ diff -uNr postgresql-7.4.3/src/backend/utils/misc/postgresql.conf.sample postgre
  #db_user_namespace = false
 diff -uNr postgresql-7.4.3/src/bin/initdb/initdb.sh postgresql-7.4.3-new/src/bin/initdb/initdb.sh
 --- postgresql-7.4.3/src/bin/initdb/initdb.sh	2004-05-05 12:09:56.000000000 -0400
-+++ postgresql-7.4.3-new/src/bin/initdb/initdb.sh	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/bin/initdb/initdb.sh	2004-07-08 17:40:46.000000000 -0400
 @@ -123,20 +123,20 @@
  # their trees to backup places, so $bindir might be inaccurate.
  
@@ -797,7 +838,7 @@ diff -uNr postgresql-7.4.3/src/bin/initdb/initdb.sh postgresql-7.4.3-new/src/bin
  exit 0
 diff -uNr postgresql-7.4.3/src/bin/initlocation/initlocation.sh postgresql-7.4.3-new/src/bin/initlocation/initlocation.sh
 --- postgresql-7.4.3/src/bin/initlocation/initlocation.sh	2003-07-23 04:46:57.000000000 -0400
-+++ postgresql-7.4.3-new/src/bin/initlocation/initlocation.sh	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/bin/initlocation/initlocation.sh	2004-07-08 17:40:46.000000000 -0400
 @@ -163,7 +163,7 @@
      echo "You can now create a database using"
      echo "  CREATE DATABASE <name> WITH LOCATION = '$Location'"
@@ -809,7 +850,7 @@ diff -uNr postgresql-7.4.3/src/bin/initlocation/initlocation.sh postgresql-7.4.3
  echo
 diff -uNr postgresql-7.4.3/src/bin/pg_ctl/pg_ctl.sh postgresql-7.4.3-new/src/bin/pg_ctl/pg_ctl.sh
 --- postgresql-7.4.3/src/bin/pg_ctl/pg_ctl.sh	2003-08-14 14:56:41.000000000 -0400
-+++ postgresql-7.4.3-new/src/bin/pg_ctl/pg_ctl.sh	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/bin/pg_ctl/pg_ctl.sh	2004-07-08 17:40:46.000000000 -0400
 @@ -14,6 +14,10 @@
  
  CMDNAME=`basename $0`
@@ -855,7 +896,7 @@ diff -uNr postgresql-7.4.3/src/bin/pg_ctl/pg_ctl.sh postgresql-7.4.3-new/src/bin
  	    else
 diff -uNr postgresql-7.4.3/src/interfaces/ecpg/compatlib/Makefile postgresql-7.4.3-new/src/interfaces/ecpg/compatlib/Makefile
 --- postgresql-7.4.3/src/interfaces/ecpg/compatlib/Makefile	2004-03-14 07:18:35.000000000 -0500
-+++ postgresql-7.4.3-new/src/interfaces/ecpg/compatlib/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/interfaces/ecpg/compatlib/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -17,6 +17,8 @@
  SO_MINOR_VERSION= 2
  
@@ -867,7 +908,7 @@ diff -uNr postgresql-7.4.3/src/interfaces/ecpg/compatlib/Makefile postgresql-7.4
  
 diff -uNr postgresql-7.4.3/src/interfaces/ecpg/ecpglib/Makefile postgresql-7.4.3-new/src/interfaces/ecpg/ecpglib/Makefile
 --- postgresql-7.4.3/src/interfaces/ecpg/ecpglib/Makefile	2004-02-10 02:26:48.000000000 -0500
-+++ postgresql-7.4.3-new/src/interfaces/ecpg/ecpglib/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/interfaces/ecpg/ecpglib/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -17,6 +17,7 @@
  SO_MINOR_VERSION= 1
  
@@ -878,7 +919,7 @@ diff -uNr postgresql-7.4.3/src/interfaces/ecpg/ecpglib/Makefile postgresql-7.4.3
  	connect.o misc.o
 diff -uNr postgresql-7.4.3/src/makefiles/Makefile.darwin postgresql-7.4.3-new/src/makefiles/Makefile.darwin
 --- postgresql-7.4.3/src/makefiles/Makefile.darwin	2003-10-27 02:42:34.000000000 -0500
-+++ postgresql-7.4.3-new/src/makefiles/Makefile.darwin	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/makefiles/Makefile.darwin	2004-07-08 17:40:46.000000000 -0400
 @@ -1,13 +1,28 @@
  AROPT = crs
  AWK= awk
@@ -914,7 +955,7 @@ diff -uNr postgresql-7.4.3/src/makefiles/Makefile.darwin postgresql-7.4.3-new/sr
  sqlmansect = 7
 diff -uNr postgresql-7.4.3/src/pl/plperl/GNUmakefile postgresql-7.4.3-new/src/pl/plperl/GNUmakefile
 --- postgresql-7.4.3/src/pl/plperl/GNUmakefile	2004-01-21 14:25:11.000000000 -0500
-+++ postgresql-7.4.3-new/src/pl/plperl/GNUmakefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/pl/plperl/GNUmakefile	2004-07-08 17:40:46.000000000 -0400
 @@ -1,13 +1,13 @@
  # Makefile for PL/Perl
  # $Header$
@@ -933,7 +974,7 @@ diff -uNr postgresql-7.4.3/src/pl/plperl/GNUmakefile postgresql-7.4.3-new/src/pl
  # to work without, we have to skip it.
 diff -uNr postgresql-7.4.3/src/pl/plpgsql/Makefile postgresql-7.4.3-new/src/pl/plpgsql/Makefile
 --- postgresql-7.4.3/src/pl/plpgsql/Makefile	2001-05-24 18:33:18.000000000 -0400
-+++ postgresql-7.4.3-new/src/pl/plpgsql/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/pl/plpgsql/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -8,6 +8,8 @@
  #
  #-------------------------------------------------------------------------
@@ -945,7 +986,7 @@ diff -uNr postgresql-7.4.3/src/pl/plpgsql/Makefile postgresql-7.4.3-new/src/pl/p
  include $(top_builddir)/src/Makefile.global
 diff -uNr postgresql-7.4.3/src/pl/plpgsql/src/Makefile postgresql-7.4.3-new/src/pl/plpgsql/src/Makefile
 --- postgresql-7.4.3/src/pl/plpgsql/src/Makefile	2004-02-10 02:26:48.000000000 -0500
-+++ postgresql-7.4.3-new/src/pl/plpgsql/src/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/pl/plpgsql/src/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -6,6 +6,8 @@
  #
  #-------------------------------------------------------------------------
@@ -965,7 +1006,7 @@ diff -uNr postgresql-7.4.3/src/pl/plpgsql/src/Makefile postgresql-7.4.3-new/src/
  
 diff -uNr postgresql-7.4.3/src/pl/plpython/Makefile postgresql-7.4.3-new/src/pl/plpython/Makefile
 --- postgresql-7.4.3/src/pl/plpython/Makefile	2004-01-21 14:25:11.000000000 -0500
-+++ postgresql-7.4.3-new/src/pl/plpython/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/pl/plpython/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -1,5 +1,7 @@
  # $Header$
  
@@ -1019,7 +1060,7 @@ diff -uNr postgresql-7.4.3/src/pl/plpython/Makefile postgresql-7.4.3-new/src/pl/
 -endif # can't build
 diff -uNr postgresql-7.4.3/src/pl/tcl/Makefile postgresql-7.4.3-new/src/pl/tcl/Makefile
 --- postgresql-7.4.3/src/pl/tcl/Makefile	2004-01-21 14:25:11.000000000 -0500
-+++ postgresql-7.4.3-new/src/pl/tcl/Makefile	2004-07-08 09:04:28.000000000 -0400
++++ postgresql-7.4.3-new/src/pl/tcl/Makefile	2004-07-08 17:40:46.000000000 -0400
 @@ -6,6 +6,8 @@
  #
  #-------------------------------------------------------------------------
@@ -1031,7 +1072,7 @@ diff -uNr postgresql-7.4.3/src/pl/tcl/Makefile postgresql-7.4.3-new/src/pl/tcl/M
  include $(top_builddir)/src/Makefile.global
 diff -uNr postgresql-7.4.3/src/template/darwin postgresql-7.4.3-new/src/template/darwin
 --- postgresql-7.4.3/src/template/darwin	2003-09-19 16:47:59.000000000 -0400
-+++ postgresql-7.4.3-new/src/template/darwin	2004-07-08 09:05:29.000000000 -0400
++++ postgresql-7.4.3-new/src/template/darwin	2004-07-08 17:40:46.000000000 -0400
 @@ -4,3 +4,10 @@
  
  # Select appropriate semaphore support
