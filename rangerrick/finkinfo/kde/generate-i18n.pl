@@ -1,8 +1,8 @@
 #!/usr/bin/perl
 
-my $VERSION   = '3.0.99';
-my $DIRECTORY = 'unstable/kde-3.1-rc3/src/';
-my $ARTSVER   = '1.1.0-7';
+my $VERSION   = '3.1';
+my $DIRECTORY = 'stable/3.1/src/';
+my $ARTSVER   = '1.1.0-8';
 my $VERBOSE   = 0;
 my $DRYRUN    = 0;
 my @packages;

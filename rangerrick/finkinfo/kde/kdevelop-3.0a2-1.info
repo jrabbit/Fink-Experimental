@@ -1,0 +1,40 @@
+Package: kdevelop
+Version: 3.0a2
+Revision: 1
+Description: KDE - Development IDE
+License: GPL/LGPL
+Maintainer: Benjamin Reed <ranger@befunk.com>
+
+Depends: kdelibs3-ssl (>= 3.1-1) | kdelibs3 (>= 3.1-1), kdebase3-ssl (>= 3.1-1) | kdebase3 (>= 3.1-1), dlcompat (>= 20020929), libjpeg-shlibs (>= 6b), libpng3-shlibs (>= 1.2.5), qt3-shlibs (>= 3.1.0), qt3-dev (>= 3.1.0)
+BuildDepends: arts-dev (>= 1.1.0-8), flex, kdelibs3-ssl-dev (>= 3.1-1) | kdelibs3-dev (>= 3.1-1), kdebase3-ssl-dev (>= 3.1-1) | kdebase3-dev (>= 3.1-1), automake (>= 1.6), autoconf25, libtool14, fink (>= 0.11.0), dlcompat (>= 20020929), libjpeg (>= 6b), libpng3 (>= 1.2.5), qt3-dev (>= 3.1.0)
+Recommends: qt3-bin (>= 3.1.0)
+GCC: 3.1
+
+Source: mirror:kde:unstable/kdevelop-3.0-alpha2/src/%n-%v.tar.bz2
+Source-MD5: 0b89e48b2163f906c407ed5511e21ab7
+
+PatchScript: sed 's|@PREFIX@|%p|g' <%a/%f.patch | patch -p0
+
+setcflags: -fno-common
+setcppflags: -no-cpp-precomp -Ddlsym=dlsym_auto_underscore -isystem %p/include -I%p/include
+setlibs: -L%p/lib
+ConfigureParams: --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --disable-final --disable-dependency-tracking --with-pythondir=%p --with-qtdoc-dir=%p/share/doc/qt3/html --enable-scripting --enable-javasupport `cat /tmp/kde-build-options`
+CompileScript: <<
+#!/bin/sh
+  export KDEDIR=%p
+  make -f Makefile.cvs
+  [ $? = 0 ] && sh ./configure %c
+  [ $? = 0 ] && make -j2
+<<
+
+InstallScript: <<
+  make -j8 install DESTDIR=%d
+  rm -rf %i/bin/extractrc
+  rm -rf %i/share/icons/hicolor/16x16/actions/brace.png
+  rm -rf %i/share/icons/locolor/16x16/actions/brace.png
+<<
+DocFiles: AUTHORS COPYING* ChangeLog HACKING INSTALL NEWS README TODO
+
+DescDetail: <<
+  A full integrated development environment for KDE.
+<<

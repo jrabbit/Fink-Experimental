@@ -1,8 +1,8 @@
 
 ===================================================================
-diff -u -u -r1.1.1.7 -r1.24
+diff -u -u -r1.1.1.7 -r1.25
 --- admin/acinclude.m4.in	20 Nov 2002 00:45:10 -0000	1.1.1.7
-+++ admin/acinclude.m4.in	26 Nov 2002 21:00:47 -0000	1.24
++++ admin/acinclude.m4.in	29 Nov 2002 18:19:37 -0000	1.25
 @@ -31,6 +31,9 @@
  dnl thanks to Raja R Harinath.
  dnl ------------------------------------------------------------------------
@@ -106,16 +106,31 @@ diff -u -u -r1.1.1.7 -r1.24
   LDFLAGS="$LDFLAGS $all_libraries $USER_LDFLAGS"
  
   AC_TRY_LINK([
-@@ -1916,7 +1941,7 @@
-    AC_SUBST(LIB_KHTML, "-lkhtml")
+@@ -1917,6 +1942,7 @@
     AC_SUBST(LIB_KSPELL, "-lkspell")
     AC_SUBST(LIB_KPARTS, "-lkparts")
--   AC_SUBST(LIB_KDEPRINT, "-lkdeprint")
+    AC_SUBST(LIB_KDEPRINT, "-lkdeprint")
 +   AC_SUBST(LIB_KDED, "-lkded_main")
  # these are for backward compatibility
     AC_SUBST(LIB_KSYCOCA, "-lkio")
     AC_SUBST(LIB_KFILE, "-lkio")
-@@ -2647,10 +2672,10 @@
+@@ -2156,6 +2182,7 @@
+ [
+ 	KDE_CHECK_FUNC_EXT(mkstemp, [
+ #include <stdlib.h>
++#include <unistd.h>
+ ],
+ 	[
+ mkstemp("/tmp/aaaXXXXXX");
+@@ -2168,6 +2195,7 @@
+ [
+ 	KDE_CHECK_FUNC_EXT(mkstemps, [
+ #include <stdlib.h>
++#include <unistd.h>
+ ],
+ 	[
+ mkstemps("/tmp/aaaXXXXXX", 6);
+@@ -2647,10 +2675,10 @@
        if test $kde_use_debug_code = "full"; then
          CFLAGS="-g3 $CFLAGS"
        else
@@ -128,7 +143,7 @@ diff -u -u -r1.1.1.7 -r1.24
      fi
    fi
  
-@@ -2680,7 +2705,7 @@
+@@ -2680,7 +2708,7 @@
          if test "$kde_use_debug_code" = "full"; then
            CXXFLAGS="-g3 $CXXFLAGS"
          else
@@ -137,7 +152,7 @@ diff -u -u -r1.1.1.7 -r1.24
          fi
        fi
        KDE_CHECK_COMPILER_FLAG(fno-builtin,[CXXFLAGS="-fno-builtin $CXXFLAGS"])
-@@ -2692,7 +2717,7 @@
+@@ -2692,7 +2720,7 @@
        if test "$CXX" = "KCC"; then
          CXXFLAGS="+K3 $CXXFLAGS"
        else
@@ -146,7 +161,7 @@ diff -u -u -r1.1.1.7 -r1.24
        fi  
      fi
    fi
-@@ -2832,7 +2857,7 @@
+@@ -2832,7 +2860,7 @@
  AC_LIBTOOL_CXX
  
  LIBTOOL_SHELL="/bin/sh ./libtool"
@@ -155,7 +170,7 @@ diff -u -u -r1.1.1.7 -r1.24
  KDE_PLUGIN="-avoid-version -module -no-undefined \$(KDE_RPATH) \$(KDE_MT_LDFLAGS)"
  AC_SUBST(KDE_PLUGIN)
  
-@@ -2888,7 +2913,7 @@
+@@ -2888,7 +2916,7 @@
  [
  AC_CANONICAL_SYSTEM
  AC_ARG_PROGRAM
@@ -164,7 +179,7 @@ diff -u -u -r1.1.1.7 -r1.24
  AM_DISABLE_LIBRARIES
  AC_PREFIX_DEFAULT(${KDEDIR:-/usr/local/kde})
  AC_CHECK_COMPILERS
-@@ -3189,9 +3214,9 @@
+@@ -3189,9 +3217,9 @@
      ac_save_ldflags="$LDFLAGS"
      ac_save_cflags="$CFLAGS"
      if test "x$kde_use_qt_emb" != "xyes"; then
@@ -176,7 +191,7 @@ diff -u -u -r1.1.1.7 -r1.24
      fi
      CFLAGS="$CFLAGS $X_INCLUDES $USER_INCLUDES"
      test -n "$XPM_INCLUDE" && CFLAGS="-I$XPM_INCLUDE $CFLAGS"
-@@ -3418,13 +3443,23 @@
+@@ -3418,13 +3446,23 @@
            AC_CHECK_LIB(pam, pam_start,
              [ AC_CHECK_HEADER(security/pam_appl.h,
                  [ use_pam=yes
@@ -201,7 +216,7 @@ diff -u -u -r1.1.1.7 -r1.24
    AC_MSG_CHECKING(for PAM)
    if test "x$use_pam" = xno; then
      AC_MSG_RESULT(no)
-@@ -3434,17 +3469,18 @@
+@@ -3434,17 +3472,18 @@
      AC_DEFINE(HAVE_PAM, 1, [Defines if you have PAM (Pluggable Authentication Modules)])
      PAMLIBS="$PAM_MISC_LIB -lpam $LIBDL"
  
@@ -223,7 +238,7 @@ diff -u -u -r1.1.1.7 -r1.24
    AC_SUBST(PAMLIBS)
  ])
  
-@@ -4604,6 +4640,83 @@
+@@ -4604,6 +4643,83 @@
       LIBS="$kde_save_LIBS"
  ])
  
@@ -307,7 +322,7 @@ diff -u -u -r1.1.1.7 -r1.24
  AC_DEFUN(KDE_JAVA_PREFIX,
  [
  	dir=`dirname "$1"`
-@@ -4660,6 +4773,7 @@
+@@ -4660,6 +4776,7 @@
        KDE_JAVA_PREFIX(/usr/lib/IBMJava2*)
        KDE_JAVA_PREFIX(/usr/lib/IBMJava*)
        KDE_JAVA_PREFIX(/opt/java*)
@@ -315,7 +330,7 @@ diff -u -u -r1.1.1.7 -r1.24
      
        kde_cv_path="NONE"
        kde_save_IFS=$IFS
-@@ -4711,10 +4825,20 @@
+@@ -4711,10 +4828,20 @@
  dnl At this point kde_java_bindir and kde_java_includedir are either set or "no"
  if test "x$kde_java_bindir" != "xno"; then
  
@@ -337,7 +352,7 @@ diff -u -u -r1.1.1.7 -r1.24
  
    dnl Now check everything's fine under there
    dnl the include dir is our flag for having the JDK
-@@ -4743,19 +4867,31 @@
+@@ -4743,19 +4870,31 @@
      JAVAC=
      jni_includes=
    fi
@@ -374,7 +389,7 @@ diff -u -u -r1.1.1.7 -r1.24
    if test -n "$jni_includes"; then
      dnl Check for JNI version
      AC_LANG_SAVE
-@@ -5119,8 +5255,7 @@
+@@ -5119,8 +5258,7 @@
    LDFLAGS="$LDFLAGS -L$ssl_libdir $all_libraries"
    LIBS="$LIBS $LIBSSL -lRSAglue -lrsaref"
  
@@ -680,7 +695,7 @@ diff -u -u -r1.1.1.2 -r1.2
 ===================================================================
 diff -u -u -r1.1.1.1 Makefile.am
 --- ./kwin-styles/cde/Makefile.am	25 Jun 2002 01:56:42 -0000	1.1.1.1
-+++ ./kwin-styles/cde/Makefile.am	28 Nov 2002 06:51:33 -0000
++++ ./kwin-styles/cde/Makefile.am	29 Nov 2002 18:25:54 -0000
 @@ -6,7 +6,7 @@
  kde_module_LTLIBRARIES = kwin_cde.la
  
@@ -693,7 +708,7 @@ diff -u -u -r1.1.1.1 Makefile.am
 ===================================================================
 diff -u -u -r1.1.1.1 Makefile.am
 --- ./kwin-styles/glow/Makefile.am	25 Jun 2002 01:56:42 -0000	1.1.1.1
-+++ ./kwin-styles/glow/Makefile.am	28 Nov 2002 06:51:33 -0000
++++ ./kwin-styles/glow/Makefile.am	29 Nov 2002 18:25:54 -0000
 @@ -6,7 +6,7 @@
  kde_module_LTLIBRARIES = kwin_glow.la
  
@@ -706,7 +721,7 @@ diff -u -u -r1.1.1.1 Makefile.am
 ===================================================================
 diff -u -u -r1.1.1.1 Makefile.am
 --- ./kwin-styles/openlook/Makefile.am	25 Jun 2002 01:56:42 -0000	1.1.1.1
-+++ ./kwin-styles/openlook/Makefile.am	28 Nov 2002 06:51:33 -0000
++++ ./kwin-styles/openlook/Makefile.am	29 Nov 2002 18:25:54 -0000
 @@ -2,7 +2,7 @@
  kde_module_LTLIBRARIES      = kwin_openlook.la
  kwin_openlook_la_SOURCES    = OpenLook.cpp
