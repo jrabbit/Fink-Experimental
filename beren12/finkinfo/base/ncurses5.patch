@@ -1,0 +1,125 @@
+diff -r -U 3 ncurses-5.4/aclocal.m4 ncurses-5.4-fix-misappended-w/aclocal.m4
+--- ncurses-5.4/aclocal.m4	Fri Jan 30 15:59:56 2004
++++ ncurses-5.4-fix-misappended-w/aclocal.m4	Thu Sep  2 13:58:19 2004
+@@ -1170,13 +1170,27 @@
+ 				case "$cf_cv_shlib_version" in #(vi
+ 				rel) #(vi
+ 					case "$cf_cv_system_name" in #(vi
+-					darwin*) cf_suffix='.$(REL_VERSION)'"$cf_suffix" ;; #(vi
++					darwin*)
++					if test -n "$LIB_SUFFIX" -a x`echo $LIB_SUFFIX | cut -c1` = xw ; then
++						cf_suffix=`echo $cf_suffix | sed 's/^w//'`
++						cf_suffix=w'.$(REL_VERSION)'"$cf_suffix"
++					else
++						cf_suffix='.$(REL_VERSION)'"$cf_suffix"
++					fi
++					;; #(vi
+ 					*) cf_suffix="$cf_suffix"'.$(REL_VERSION)' ;;
+ 					esac
+ 					;;
+ 				abi)
+ 					case "$cf_cv_system_name" in #(vi
+-					darwin*) cf_suffix='.$(ABI_VERSION)'"$cf_suffix" ;; #(vi
++					darwin*)
++					if test -n "$LIB_SUFFIX" -a x`echo $LIB_SUFFIX | cut -c1` = xw ; then
++						cf_suffix=`echo $cf_suffix | sed 's/^w//'`
++						cf_suffix=w'.$(ABI_VERSION)'"$cf_suffix"
++					else
++						cf_suffix='.$(ABI_VERSION)'"$cf_suffix"
++					fi
++					;; #(vi
+ 					*) cf_suffix="$cf_suffix"'.$(ABI_VERSION)' ;;
+ 					esac
+ 					;;
+@@ -1240,9 +1254,18 @@
+ 			elif test -f $srcdir/$cf_dir/curses.priv.h; then
+ 				cf_depend="$cf_depend $cf_reldir/curses.priv.h"
+ 			fi
++			
++			cf_dir_suffix=
++			old_cf_suffix="$cf_suffix"
++			if test "$cf_cv_shlib_version_infix" = yes ; then
++				if test -n "$LIB_SUFFIX" -a x`echo $LIB_SUFFIX | cut -c1` = xw ; then
++					cf_suffix=`echo $cf_suffix | sed 's/^w//'`
++					cf_dir_suffix=w
++				fi
++			fi
+ 
+ 			$AWK -f $srcdir/mk-1st.awk \
+-				name=$cf_dir \
++				name=${cf_dir}$cf_dir_suffix \
+ 				traces=$LIB_TRACING \
+ 				MODEL=$CF_ITEM \
+ 				model=$cf_subdir \
+@@ -1258,6 +1281,9 @@
+ 				depend="$cf_depend" \
+ 				host="$host" \
+ 				$srcdir/$cf_dir/modules >>$cf_dir/Makefile
++
++			cf_suffix="$old_cf_suffix"
++
+ 			for cf_subdir2 in $cf_subdirs lib
+ 			do
+ 				test $cf_subdir = $cf_subdir2 && break
+diff -r -U 3 ncurses-5.4/configure ncurses-5.4-fix-misappended-w/configure
+--- ncurses-5.4/configure	Sat Jan 31 20:03:42 2004
++++ ncurses-5.4-fix-misappended-w/configure	Thu Sep  2 14:02:15 2004
+@@ -13026,13 +13026,27 @@
+ 				case "$cf_cv_shlib_version" in #(vi
+ 				rel) #(vi
+ 					case "$cf_cv_system_name" in #(vi
+-					darwin*) cf_suffix='.$(REL_VERSION)'"$cf_suffix" ;; #(vi
++					darwin*)
++					if test -n "$LIB_SUFFIX" -a x`echo $LIB_SUFFIX | cut -c1` = xw ; then
++						cf_suffix=`echo $cf_suffix | sed 's/^w//'`
++						cf_suffix=w'.$(REL_VERSION)'"$cf_suffix"
++					else
++						cf_suffix='.$(REL_VERSION)'"$cf_suffix"
++					fi
++					;; #(vi
+ 					*) cf_suffix="$cf_suffix"'.$(REL_VERSION)' ;;
+ 					esac
+ 					;;
+ 				abi)
+ 					case "$cf_cv_system_name" in #(vi
+-					darwin*) cf_suffix='.$(ABI_VERSION)'"$cf_suffix" ;; #(vi
++					darwin*)
++					if test -n "$LIB_SUFFIX" -a x`echo $LIB_SUFFIX | cut -c1` = xw ; then
++						cf_suffix=`echo $cf_suffix | sed 's/^w//'`
++						cf_suffix=w'.$(ABI_VERSION)'"$cf_suffix"
++					else
++						cf_suffix='.$(ABI_VERSION)'"$cf_suffix"
++					fi
++					;; #(vi
+ 					*) cf_suffix="$cf_suffix"'.$(ABI_VERSION)' ;;
+ 					esac
+ 					;;
+@@ -13130,8 +13144,17 @@
+ 				cf_depend="$cf_depend $cf_reldir/curses.priv.h"
+ 			fi
+ 
++			cf_dir_suffix=
++			old_cf_suffix="$cf_suffix"
++			if test "$cf_cv_shlib_version_infix" = yes ; then
++				if test -n "$LIB_SUFFIX" -a x`echo $LIB_SUFFIX | cut -c1` = xw ; then
++					cf_suffix=`echo $cf_suffix | sed 's/^w//'`
++					cf_dir_suffix=w
++				fi
++			fi
++
+ 			$AWK -f $srcdir/mk-1st.awk \
+-				name=$cf_dir \
++				name=${cf_dir}$cf_dir_suffix \
+ 				traces=$LIB_TRACING \
+ 				MODEL=$CF_ITEM \
+ 				model=$cf_subdir \
+@@ -13147,6 +13170,9 @@
+ 				depend="$cf_depend" \
+ 				host="$host" \
+ 				$srcdir/$cf_dir/modules >>$cf_dir/Makefile
++
++			cf_suffix="$old_cf_suffix"
++
+ 			for cf_subdir2 in $cf_subdirs lib
+ 			do
+ 				test $cf_subdir = $cf_subdir2 && break
