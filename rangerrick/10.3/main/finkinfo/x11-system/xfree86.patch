@@ -1,7 +1,7 @@
-diff -u -r1.43 darwin.cf
---- config/cf/darwin.cf	11 Nov 2003 01:29:46 -0000	1.43
-+++ config/cf/darwin.cf	14 Nov 2003 20:48:37 -0000
-@@ -155,8 +155,8 @@
+diff -uNr ../xc/config/cf/darwin.cf ./config/cf/darwin.cf
+--- ../xc/config/cf/darwin.cf	Fri Nov 21 00:55:04 2003
++++ ./config/cf/darwin.cf	Sun Nov 23 08:17:03 2003
+@@ -163,8 +163,8 @@
  #endif
  
  /* we have a gcc compatible compiler, but its not called gcc */
@@ -12,19 +12,75 @@ diff -u -r1.43 darwin.cf
  
  /* default flags to pass to cc */
  #ifndef DefaultCCOptions
-Index: lib/fontenc/Imakefile
-===================================================================
-RCS file: /cvs/xc/lib/fontenc/Imakefile,v
-retrieving revision 1.8
-diff -u -r1.8 Imakefile
---- lib/fontenc/Imakefile	17 Nov 2003 15:30:11 -0000	1.8
-+++ lib/fontenc/Imakefile	18 Nov 2003 21:23:28 -0000
-@@ -3,6 +3,8 @@
-    INCLUDES = -I$(FONTINCSRC) -I$(FONTLIBSRC)/include -I$(FONTLIBSRC)/fontfile \
- 	      -I$(INCLUDESRC)
+diff -uNr ../xc/programs/Xserver/Imakefile ./programs/Xserver/Imakefile
+--- ../xc/programs/Xserver/Imakefile	Fri Nov 21 00:58:14 2003
++++ ./programs/Xserver/Imakefile	Sun Nov 23 08:16:18 2003
+@@ -1233,8 +1233,7 @@
+ /*
+  * IOKit X server
+  */
+-SetUIDServerTarget(XDarwin,$(DARWINDIRS),$(DARWINOBJS), \
+-	$(DARWINLIBS) $(IOKITLIB) $(DARWINEXTLIBS),$(DARWINSYSLIBS))
++SetUIDServerTarget(XDarwin,$(DARWINDIRS),$(DARWINOBJS),$(DARWINLIBS) $(IOKITLIB) $(DARWINEXTLIBS),$(DARWINSYSLIBS))
  
-+REQUIREDLIBS = -lz
-+
- FONTENCDEFS = -DFONTENC_NO_LIBFONT \
- 	      -DFONT_ENCODINGS_DIRECTORY=\"$(FONTDIR)/encodings/encodings.dir\"
+ #if DarwinQuartzSupport
+ 
+@@ -1267,9 +1266,7 @@
+ /*
+  * Quartz X server (installed in its application bundle)
+  */
+-SetUIDServerTarget(XDarwinApp,$(DARWINDIRS),$(QUARTZOBJS), \
+-	$(DARWINLIBS) $(QUARTZLIB) $(QUARTZEXTLIBS), \
+-	$(DARWINSYSLIBS) $(QUARTZSYSLIBS) -u _miDCInitialize)
++SetUIDServerTarget(XDarwinApp,$(DARWINDIRS),$(QUARTZOBJS),$(DARWINLIBS) $(QUARTZLIB) $(QUARTZEXTLIBS),$(DARWINSYSLIBS) $(QUARTZSYSLIBS) -u _miDCInitialize)
+ 
+ install::
+ 	$(MKDIRHIER) $(DESTDIR)$(XDARWINAPPDIR)/MacOS
+@@ -1286,41 +1283,30 @@
+ XPRDIRS = $(QUARTZDIR)/xpr $(ROOTLESSDIR) $(ROOTLESSDIR)/safeAlpha
+ XPRLIBS = $(QUARTZDIR)/xpr/LibraryTargetName(xpr) $(ROOTLESSLIB)
+ 
+-BundleProgramTarget(xpr,XDarwinApp,$(XPRDIRS),$(QUARTZDIR)/xpr/xprScreen.o, \
+-	$(XPRLIBS),-framework ApplicationServices $(XPLUGINLIB), \
+-	$(XDARWINAPPDIR)/Resources)
++BundleProgramTarget(xpr,XDarwinApp,$(XPRDIRS),$(QUARTZDIR)/xpr/xprScreen.o,$(XPRLIBS),-framework ApplicationServices $(XPLUGINLIB),$(XDARWINAPPDIR)/Resources)
+ #endif
+ 
+ CRDIRS = $(QUARTZDIR)/cr $(ROOTLESSDIR) $(ROOTLESSDIR)/safeAlpha
+ CRLIBS = $(QUARTZDIR)/cr/LibraryTargetName(cr) $(ROOTLESSLIB)
+ 
+-BundleProgramTarget(cr,XDarwinApp,$(CRDIRS),$(QUARTZDIR)/cr/crScreen.o, \
+-	$(CRLIBS),-framework ApplicationServices -framework Cocoa \
+-	-framework Carbon -ObjC, $(XDARWINAPPDIR)/Resources)
++BundleProgramTarget(cr,XDarwinApp,$(CRDIRS),$(QUARTZDIR)/cr/crScreen.o,$(CRLIBS),-framework ApplicationServices -framework Cocoa -framework Carbon -ObjC,$(XDARWINAPPDIR)/Resources)
+ 
+ FSDIRS = $(QUARTZDIR)/fullscreen $(SHADOWDIR)
+ FSLIBS = $(QUARTZDIR)/fullscreen/LibraryTargetName(fullscreen) $(SHADOW)
+ 
+-BundleProgramTarget(fullscreen,XDarwinApp,$(FSDIRS), \
+-	$(QUARTZDIR)/fullscreen/fullscreen.o,$(FSLIBS), \
+-	-framework ApplicationServices,$(XDARWINAPPDIR)/Resources)
++BundleProgramTarget(fullscreen,XDarwinApp,$(FSDIRS),$(QUARTZDIR)/fullscreen/fullscreen.o,$(FSLIBS),-framework ApplicationServices,$(XDARWINAPPDIR)/Resources)
+ 
+ /*
+  * GLX bundles for Quartz
+  * (installed in their own bundles inside XDarwin's)
+  */
+-BundleProgramTarget(glxAGL,XDarwinApp,GL,GL/glx/glxext.o,GL/glx/libglx.a \
+-	GL/apple/libAGLcore.a,-framework AGL -framework OpenGL, \
+-	$(XDARWINAPPDIR)/Resources)
++BundleProgramTarget(glxAGL,XDarwinApp,GL,GL/glx/glxext.o,GL/glx/libglx.a GL/apple/libAGLcore.a,-framework AGL -framework OpenGL,$(XDARWINAPPDIR)/Resources)
+ 
+ #if BuildAppleDRI
+-BundleProgramTarget(glxCGL,XDarwinApp,GL,GL/glx/glxext.o,GL/glx/libglx.a \
+-	GL/apple/libCGLcore.a,-framework OpenGL $(XPLUGINLIB), \
+-	$(XDARWINAPPDIR)/Resources)
++BundleProgramTarget(glxCGL,XDarwinApp,GL,GL/glx/glxext.o,GL/glx/libglx.a GL/apple/libCGLcore.a,-framework OpenGL $(XPLUGINLIB),$(XDARWINAPPDIR)/Resources)
+ #endif
+ 
+-BundleProgramTarget(glxMesa,XDarwinApp,GL,GL/glx/glxext.o,GL/glx/libglx.a \
+-	GL/mesa/GLcore/libGLcore.a,NullParameter,$(XDARWINAPPDIR)/Resources)
++BundleProgramTarget(glxMesa,XDarwinApp,GL,GL/glx/glxext.o,GL/glx/libglx.a GL/mesa/GLcore/libGLcore.a,NullParameter,$(XDARWINAPPDIR)/Resources)
+ 
+ #else /* !DarwinQuartzSupport */
  
