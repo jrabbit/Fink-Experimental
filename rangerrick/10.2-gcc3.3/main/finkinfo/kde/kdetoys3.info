@@ -5,8 +5,8 @@ Description: KDE - toys
 License: GPL/LGPL
 Maintainer: Benjamin Reed <ranger@befunk.com>
 
-Depends: amor (>= %v-%r), kmoon (>= %v-%r), kodo (>= %v-%r), kteatime (>= %v-%r), kworldclock (>= %v-%r), kde-panel-eyes (>= %v-%r), kde-panel-fifteen (>= %v-%r), kde-panel-worldwatch (>= %v-%r), ktux (>= %v-%r), kweather (>= %v-%r)
-BuildDepends: pcre, arts-dev (>= 1.2.92-11), autoconf2.5 (>= 2.58-1), automake1.8, cctools (>= 446-1) | cctools-single-module, dlcompat-dev (>= 20030629-5), fink (>= 0.20.2.1-1), freetype2 | freetype2-hinting, kdelibs3-ssl-dev (>= %v-11) | kdelibs3-dev (>= %v-11), libart2, libjpeg, libpng3 (>= 1.2.5-4), qt3 (>= 3.3.2-11), x11-dev
+Depends: amor (>= %v-%r), kde-panel-kmoon (>= %v-%r), kodo (>= %v-%r), kteatime (>= %v-%r), kworldclock (>= %v-%r), kde-panel-eyes (>= %v-%r), kde-panel-fifteen (>= %v-%r), kde-panel-worldwatch (>= %v-%r), ktux (>= %v-%r), kweather (>= %v-%r)
+BuildDepends: pcre, arts-dev (>= 1.2.92-11), autoconf2.5 (>= 2.58-1), cctools (>= 446-1) | cctools-single-module, dlcompat-dev (>= 20030629-5), fink (>= 0.20.2.1-1), freetype2 | freetype2-hinting, kdelibs3-ssl-dev (>= %v-11) | kdelibs3-dev (>= %v-11), libart2, libjpeg, libpng3 (>= 1.2.5-4), qt3 (>= 3.3.2-11), unsermake, x11-dev
 Conflicts: %N (<< %v-%r)
 Replaces: %N (<< %v-%r)
 GCC: 3.3
@@ -25,11 +25,12 @@ Source2ExtractDir: kdetoys-%v
 PatchScript: <<
   perl -pi -e 's,-O2,-Os,' admin/acinclude.m4.in
   perl -pi -e 's,doc/HTML,doc/kde,g' admin/acinclude.m4.in
+  patch -p1 < %a/%n.patch
 <<
 
 NoSetCPPFLAGS: true
 NoSetLDFLAGS: true
-ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --disable-final --with-distribution='Fink/Mac OS X'
+ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --enable-final --with-distribution='Fink/Mac OS X'
 
 CompileScript: <<
 #!/bin/sh -e
@@ -37,6 +38,7 @@ CompileScript: <<
   export HOME=/tmp
   export PREFIX="%p"
   . ./environment-helper.sh
+  export UNSERMAKE=%p/bin/unsermake
 
   ./build-helper.sh cvs       %N %v %r make -f admin/Makefile.common cvs
   ./build-helper.sh configure %N %v %r ./configure %c
@@ -74,14 +76,15 @@ SplitOff: <<
   <<
 <<
 SplitOff2: <<
-  Package: kmoon
+  Package: kde-panel-kmoon
   Description: KDE - moon phases
   Depends: %N-base (>= %v-%r)
-  Replaces: %N (<< %v-%r)
+  Replaces: %N (<< %v-%r), kmoon
+  Conflicts: kmoon
   Recommends: %N (>= %v-%r)
   Files: <<
-    bin/kmoon
-    share/applications/kde/kmoon.desktop
+    lib/kde3/*kmoon_panelapplet*
+    share/apps/kicker/applets/kmoonapplet.desktop
     share/apps/kmoon
     share/doc/kde/en/kmoon
     share/icons/crystalsvg/16x16/apps/kmoon.png
@@ -231,8 +234,8 @@ kdetoys packages.  kdetoys3 contains:
   kaphorism
   kde-panel-eyes
   kde-panel-fifteen
+  kde-panel-kmoon
   kde-panel-worldwatch
-  kmoon
   kodo
   kteatime
   kworldclock

@@ -6,7 +6,7 @@ License: GPL/LGPL
 Maintainer: Benjamin Reed <ranger@befunk.com>
 
 Depends: kde-extra-sounds (>= %v-%r), kde-extra-themes (>= %v-%r), kde-extra-wallpapers (>= %v-%r), kde-icons-classic (>= %v-%r), kde-icons-kids (>= %v-%r), kde-icons-ikons (>= %v-%r), kde-icons-locolor (>= %v-%r), kde-icons-technical (>= %v-%r), kde-icons-slick (>= %v-%r), kworldclock-maps (>= %v-%r), kde-extra-screensavers (>= %v-%r)
-BuildDepends: arts-dev (>= 1.2.92-1), autoconf2.5 (>= 2.58-1), automake1.8, cctools (>= 446-1) | cctools-single-module, dlcompat-dev (>= 20030629-5), fink (>= 0.20.2.1-1), freetype2 | freetype2-hinting, kdebase3-ssl-dev (>= %v-1) | kdebase3-dev (>= %v-1), kdelibs3-ssl-dev (>= %v-1) | kdelibs3-dev (>= %v-1), kworldclock (>= %v-1), libart2, libjpeg, libpng3 (>= 1.2.5-4), qt3 (>= 3.3.2-1), x11-dev
+BuildDepends: arts-dev (>= 1.2.92-1), autoconf2.5 (>= 2.58-1), cctools (>= 446-1) | cctools-single-module, dlcompat-dev (>= 20030629-5), fink (>= 0.20.2.1-1), freetype2 | freetype2-hinting, kdebase3-ssl-dev (>= %v-1) | kdebase3-dev (>= %v-1), kdelibs3-ssl-dev (>= %v-1) | kdelibs3-dev (>= %v-1), kworldclock (>= %v-1), libart2, libjpeg, libpng3 (>= 1.2.5-4), qt3 (>= 3.3.2-1), unsermake, x11-dev
 GCC: 3.3
 
 CustomMirror: <<
@@ -23,11 +23,12 @@ Source2ExtractDir: kdeartwork-%v
 PatchScript: <<
   perl -pi -e 's,-O2,-Os,' admin/acinclude.m4.in
   perl -pi -e 's,doc/HTML,doc/kde,g' admin/acinclude.m4.in
+  patch -p1 < %a/%n.patch
 <<
 
 NoSetLDFLAGS: true
 NoSetCPPFLAGS: true
-ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --disable-final --with-distribution='Fink/Mac OS X' 
+ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --enable-final --with-distribution='Fink/Mac OS X' 
 
 CompileScript: <<
 #!/bin/sh -e
@@ -35,6 +36,7 @@ CompileScript: <<
   export HOME=/tmp
   export PREFIX="%p"
   . ./environment-helper.sh
+  export UNSERMAKE=%p/bin/unsermake
 
   ./build-helper.sh cvs       %N %v %r make -f admin/Makefile.common cvs
   ./build-helper.sh configure %N %v %r ./configure %c
