@@ -50,7 +50,7 @@ for my $i18n (@KDEI18N) {
 		my $contents = <<END;
 Package: kde-i18n-${normalized}
 Source: mirror:kde:${KDEDIRECTORY}kde-i18n/${filename}
-SourceDirectory: kde-i18n-${shortname}-${KDEVERSION}
+SourceDirectory: kde-i18n-${shortname}
 Description: KDE - language files for $MAPPINGS{$shortname}
 DescDetail: Language files for the K Desktop Environment: $MAPPINGS{$shortname}
 Source-MD5: $md5
@@ -69,7 +69,7 @@ InstallScript: <<
 License: GPL/LGPL
 END
 		print $contents if ($VERBOSE);
-		my $infofile = "kde-i18n-${normalized}-${KDEVERSION}-${KDEI18NRELNUM}.info";
+		my $infofile = "kde-i18n-${normalized}.info";
 		unless ($DRYRUN) {
 			open(FILEOUT, ">$infofile") or die "can't write to $infofile: $!\n";
 			print FILEOUT $contents;
@@ -112,7 +112,7 @@ InstallScript: <<
 License: GPL/LGPL
 END
 		print $contents if ($VERBOSE);
-		my $infofile = "koffice-i18n-${normalized}-${KOVERSION}-${KOI18NRELNUM}.info";
+		my $infofile = "koffice-i18n-${normalized}.info";
 		unless ($DRYRUN) {
 			open(FILEOUT, ">$infofile") or die "can't write to $infofile: $!\n";
 			print FILEOUT $contents;
@@ -125,7 +125,7 @@ END
 
 unless ($DRYRUN) {
 	my $packagelist = join(', ', map { $_ . " (>= ${KDEVERSION}-${KDEI18NRELNUM})" } @kdepackages);
-	open(FILEOUT, ">bundle-kde-i18n-${KDEVERSION}-${KDEI18NRELNUM}.info") or die "can't write to bundle-kde-i18n-${KDEVERSION}-${KDEI18NRELNUM}.info: $!\n";
+	open(FILEOUT, ">bundle-kde-i18n.info") or die "can't write to bundle-kde-i18n.info: $!\n";
 	print FILEOUT <<END;
 Package: bundle-kde-i18n
 Version: ${KDEVERSION}
@@ -142,7 +142,7 @@ END
 	close(FILEOUT);
 
 	$packagelist = join(', ', map { $_ . " (>= ${KOVERSION}-${KOI18NRELNUM})" } @kopackages);
-	open(FILEOUT, ">bundle-koffice-i18n-${KOVERSION}-${KOI18NRELNUM}.info") or die "can't write to bundle-koffice-i18n-${KOVERSION}-${KOI18NRELNUM}.info: $!\n";
+	open(FILEOUT, ">bundle-koffice-i18n.info") or die "can't write to bundle-koffice-i18n.info: $!\n";
 	print FILEOUT <<END;
 Package: bundle-koffice-i18n
 Version: ${KOVERSION}
