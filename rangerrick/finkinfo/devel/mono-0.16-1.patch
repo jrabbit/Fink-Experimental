@@ -1,6 +1,16 @@
+diff -uNbr mono-0.16/config.h.in mono-0.16-new/config.h.in
+--- mono-0.16/config.h.in	Tue Oct  1 17:55:31 2002
++++ mono-0.16-new/config.h.in	Thu Oct 10 13:53:15 2002
+@@ -112,3 +112,6 @@
+ 
+ /* Version number of package */
+ #undef VERSION
++
++/* Define the real type of socklen_t */
++#undef socklen_t
 diff -uNbr mono-0.16/configure mono-0.16-new/configure
 --- mono-0.16/configure	Tue Oct  1 18:13:15 2002
-+++ mono-0.16-new/configure	Thu Oct 10 10:56:57 2002
++++ mono-0.16-new/configure	Thu Oct 10 13:50:01 2002
 @@ -1780,6 +1780,14 @@
  		CPPFLAGS="$CPPFLAGS -DGC_WIN32_THREADS"
  		libdl=
@@ -16,7 +26,126 @@ diff -uNbr mono-0.16/configure mono-0.16-new/configure
  	*-*-*bsd*)
  		platform_win32=no
  		CPPFLAGS="$CPPFLAGS -D_THREAD_SAFE"
-@@ -9901,7 +9909,7 @@
+@@ -8756,6 +8764,118 @@
+ echo "$as_me: WARNING: No 64 bit file size support available" >&2;}
+ 	fi
+ 
++                                echo "$as_me:$LINENO: checking for socklen_t" >&5
++echo $ECHO_N "checking for socklen_t... $ECHO_C" >&6
++        if test "${ac_cv_socklen_t+set}" = set; then
++  echo $ECHO_N "(cached) $ECHO_C" >&6
++else
++
++                cat >conftest.$ac_ext <<_ACEOF
++#line $LINENO "configure"
++#include "confdefs.h"
++
++#include <sys/types.h>
++#include <sys/socket.h>
++
++#ifdef F77_DUMMY_MAIN
++#  ifdef __cplusplus
++     extern "C"
++#  endif
++   int F77_DUMMY_MAIN() { return 1; }
++#endif
++int
++main ()
++{
++
++socklen_t a=0;
++getsockname(0,(struct sockaddr*)0, &a);
++
++  ;
++  return 0;
++}
++_ACEOF
++rm -f conftest.$ac_objext
++if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
++  (eval $ac_compile) 2>&5
++  ac_status=$?
++  echo "$as_me:$LINENO: \$? = $ac_status" >&5
++  (exit $ac_status); } &&
++         { ac_try='test -s conftest.$ac_objext'
++  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
++  (eval $ac_try) 2>&5
++  ac_status=$?
++  echo "$as_me:$LINENO: \$? = $ac_status" >&5
++  (exit $ac_status); }; }; then
++  ac_cv_socklen_t=socklen_t
++else
++  echo "$as_me: failed program was:" >&5
++cat conftest.$ac_ext >&5
++cat >conftest.$ac_ext <<_ACEOF
++#line $LINENO "configure"
++#include "confdefs.h"
++
++#include <sys/types.h>
++#include <sys/socket.h>
++
++#ifdef F77_DUMMY_MAIN
++#  ifdef __cplusplus
++     extern "C"
++#  endif
++   int F77_DUMMY_MAIN() { return 1; }
++#endif
++int
++main ()
++{
++
++int a=0;
++getsockname(0,(struct sockaddr*)0, &a);
++
++  ;
++  return 0;
++}
++_ACEOF
++rm -f conftest.$ac_objext
++if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
++  (eval $ac_compile) 2>&5
++  ac_status=$?
++  echo "$as_me:$LINENO: \$? = $ac_status" >&5
++  (exit $ac_status); } &&
++         { ac_try='test -s conftest.$ac_objext'
++  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
++  (eval $ac_try) 2>&5
++  ac_status=$?
++  echo "$as_me:$LINENO: \$? = $ac_status" >&5
++  (exit $ac_status); }; }; then
++  ac_cv_socklen_t=int
++else
++  echo "$as_me: failed program was:" >&5
++cat conftest.$ac_ext >&5
++ac_cv_socklen_t=size_t
++
++fi
++rm -f conftest.$ac_objext conftest.$ac_ext
++
++fi
++rm -f conftest.$ac_objext conftest.$ac_ext
++
++fi
++
++
++        echo "$as_me:$LINENO: result: $ac_cv_socklen_t" >&5
++echo "${ECHO_T}$ac_cv_socklen_t" >&6
++        if test "$ac_cv_socklen_t" != "socklen_t"; then
++
++cat >>confdefs.h <<_ACEOF
++#define socklen_t $ac_cv_socklen_t
++_ACEOF
++
++        fi
++
++cat >>confdefs.h <<_ACEOF
++#define ksize_t socklen_t
++_ACEOF
++
++
+ 				echo "$as_me:$LINENO: checking for socket in -lsocket" >&5
+ echo $ECHO_N "checking for socket in -lsocket... $ECHO_C" >&6
+ if test "${ac_cv_lib_socket_socket+set}" = set; then
+@@ -9901,7 +10021,7 @@
  sparc*-*-*) TARGET=SPARC; arch_target=sparc; ACCESS_UNALIGNED="no";;
  #alpha*-*-linux* | alpha*-*-osf*) TARGET=ALPHA; ACCESS_UNALIGNED="no";;
  #m68k-*-linux*) TARGET=M68K;;
@@ -27,7 +156,7 @@ diff -uNbr mono-0.16/configure mono-0.16-new/configure
  
 diff -uNbr mono-0.16/configure.in mono-0.16-new/configure.in
 --- mono-0.16/configure.in	Tue Oct  1 17:32:16 2002
-+++ mono-0.16-new/configure.in	Thu Oct 10 10:59:02 2002
++++ mono-0.16-new/configure.in	Thu Oct 10 13:45:22 2002
 @@ -15,6 +15,12 @@
  		CPPFLAGS="$CPPFLAGS -DGC_WIN32_THREADS"
  		libdl=
@@ -41,7 +170,48 @@ diff -uNbr mono-0.16/configure.in mono-0.16-new/configure.in
  	*-*-*bsd*)
  		platform_win32=no
  		CPPFLAGS="$CPPFLAGS -D_THREAD_SAFE"
-@@ -469,7 +475,7 @@
+@@ -203,6 +209,40 @@
+ 	fi
+ 	
+ 	dnl *****************************
++	dnl *** Checks for socklen_t  ***
++	dnl *****************************
++	AC_MSG_CHECKING(for socklen_t)
++	AC_CACHE_VAL(ac_cv_socklen_t, [
++		AC_TRY_COMPILE([
++#include <sys/types.h>
++#include <sys/socket.h>
++			],[
++socklen_t a=0;
++getsockname(0,(struct sockaddr*)0, &a);
++			],
++			ac_cv_socklen_t=socklen_t,
++			AC_TRY_COMPILE([
++#include <sys/types.h>
++#include <sys/socket.h>
++				],[
++int a=0;
++getsockname(0,(struct sockaddr*)0, &a);
++				],
++				ac_cv_socklen_t=int,
++				ac_cv_socklen_t=size_t
++			)
++		)
++		AC_LANG_RESTORE
++	])
++
++	AC_MSG_RESULT($ac_cv_socklen_t)
++	if test "$ac_cv_socklen_t" != "socklen_t"; then
++		AC_DEFINE_UNQUOTED(socklen_t, $ac_cv_socklen_t,
++			[Define the real type of socklen_t])
++	fi
++	AC_DEFINE_UNQUOTED(ksize_t, socklen_t, [Compatibility define])
++
++	dnl *****************************
+ 	dnl *** Checks for libsocket  ***
+ 	dnl *****************************
+ 	AC_CHECK_LIB(socket, socket, LIBS="$LIBS -lsocket")
+@@ -469,7 +509,7 @@
  sparc*-*-*) TARGET=SPARC; arch_target=sparc; ACCESS_UNALIGNED="no";;
  #alpha*-*-linux* | alpha*-*-osf*) TARGET=ALPHA; ACCESS_UNALIGNED="no";;
  #m68k-*-linux*) TARGET=M68K;;
@@ -52,7 +222,7 @@ diff -uNbr mono-0.16/configure.in mono-0.16-new/configure.in
  
 diff -uNbr mono-0.16/mono/interpreter/interp.h mono-0.16-new/mono/interpreter/interp.h
 --- mono-0.16/mono/interpreter/interp.h	Fri Aug  2 07:02:35 2002
-+++ mono-0.16-new/mono/interpreter/interp.h	Thu Oct 10 11:08:44 2002
++++ mono-0.16-new/mono/interpreter/interp.h	Thu Oct 10 13:35:35 2002
 @@ -1,4 +1,4 @@
 -
 +#include <config.h>
@@ -61,7 +231,7 @@ diff -uNbr mono-0.16/mono/interpreter/interp.h mono-0.16-new/mono/interpreter/in
  #include <mono/metadata/object.h>
 diff -uNbr mono-0.16/mono/io-layer/Makefile.am mono-0.16-new/mono/io-layer/Makefile.am
 --- mono-0.16/mono/io-layer/Makefile.am	Thu Aug  1 08:15:41 2002
-+++ mono-0.16-new/mono/io-layer/Makefile.am	Thu Oct 10 10:59:52 2002
++++ mono-0.16-new/mono/io-layer/Makefile.am	Thu Oct 10 13:35:35 2002
 @@ -5,7 +5,8 @@
  	$(GMODULE_CFLAGS)	\
  	-D_WAPI_BUILDING=1	\
@@ -74,7 +244,7 @@ diff -uNbr mono-0.16/mono/io-layer/Makefile.am mono-0.16-new/mono/io-layer/Makef
  
 diff -uNbr mono-0.16/mono/io-layer/Makefile.in mono-0.16-new/mono/io-layer/Makefile.in
 --- mono-0.16/mono/io-layer/Makefile.in	Tue Oct  1 18:31:17 2002
-+++ mono-0.16-new/mono/io-layer/Makefile.in	Thu Oct 10 10:59:29 2002
++++ mono-0.16-new/mono/io-layer/Makefile.in	Thu Oct 10 13:35:35 2002
 @@ -103,7 +103,8 @@
  	$(GMODULE_CFLAGS)	\
  	-D_WAPI_BUILDING=1	\
@@ -85,17 +255,99 @@ diff -uNbr mono-0.16/mono/io-layer/Makefile.in mono-0.16-new/mono/io-layer/Makef
  
  
  libwapiincludedir = $(includedir)/mono/io-layer
-diff -uNbr mono-0.16/mono/io-layer/sockets.h mono-0.16-new/mono/io-layer/sockets.h
---- mono-0.16/mono/io-layer/sockets.h	Fri Jul 19 13:07:42 2002
-+++ mono-0.16-new/mono/io-layer/sockets.h	Thu Oct 10 10:35:05 2002
-@@ -18,6 +18,10 @@
- #include <netdb.h>
- #include <arpa/inet.h>
+diff -uNbr mono-0.16/mono/metadata/decimal.c mono-0.16-new/mono/metadata/decimal.c
+--- mono-0.16/mono/metadata/decimal.c	Fri May 31 06:14:30 2002
++++ mono-0.16-new/mono/metadata/decimal.c	Thu Oct 10 13:57:11 2002
+@@ -13,6 +13,7 @@
+  * CSharp value type System.Decimal
+  */
  
-+#if defined(__APPLE__)
-+typedef int socklen_t;
-+#endif
++#include <config.h>
+ #include <stdio.h>
+ #include <memory.h>
+ #include <stdlib.h>
+diff -uNbr mono-0.16/mono/metadata/exception.c mono-0.16-new/mono/metadata/exception.c
+--- mono-0.16/mono/metadata/exception.c	Wed Aug 14 12:08:11 2002
++++ mono-0.16-new/mono/metadata/exception.c	Thu Oct 10 13:58:15 2002
+@@ -10,6 +10,7 @@
+  * (C) 2001, 2002 Ximian, Inc.
+  */
+ 
++#include <config.h>
+ #include <mono/metadata/exception.h>
+ #include <mono/metadata/class.h>
+ #include <mono/metadata/appdomain.h>
+diff -uNbr mono-0.16/mono/metadata/monosn.c mono-0.16-new/mono/metadata/monosn.c
+--- mono-0.16/mono/metadata/monosn.c	Tue Sep 24 05:31:42 2002
++++ mono-0.16-new/mono/metadata/monosn.c	Thu Oct 10 13:59:45 2002
+@@ -7,6 +7,7 @@
+  * (C) 2002 Ximian, Inc.
+  *
+  */
++#include <config.h>
+ #include <mono/metadata/class.h>
+ #include <mono/metadata/debug-helpers.h>
+ #include <mono/metadata/tokentype.h>
+diff -uNbr mono-0.16/mono/metadata/profiler.c mono-0.16-new/mono/metadata/profiler.c
+--- mono-0.16/mono/metadata/profiler.c	Sat Aug 24 13:29:06 2002
++++ mono-0.16-new/mono/metadata/profiler.c	Thu Oct 10 13:59:20 2002
+@@ -1,4 +1,5 @@
+ 
++#include <config.h>
+ #include "mono/metadata/profiler-private.h"
+ #include "mono/metadata/debug-helpers.h"
+ #include <string.h>
+diff -uNbr mono-0.16/mono/metadata/verify.c mono-0.16-new/mono/metadata/verify.c
+--- mono-0.16/mono/metadata/verify.c	Mon Sep 16 13:07:44 2002
++++ mono-0.16-new/mono/metadata/verify.c	Thu Oct 10 13:56:36 2002
+@@ -1,4 +1,4 @@
+-
++#include <config.h>
+ #include <mono/metadata/object.h>
+ #include <mono/metadata/verify.h>
+ #include <mono/metadata/opcodes.h>
+diff -uNbr mono-0.16/mono/monograph/monograph.c mono-0.16-new/mono/monograph/monograph.c
+--- mono-0.16/mono/monograph/monograph.c	Fri Jul 19 08:25:53 2002
++++ mono-0.16-new/mono/monograph/monograph.c	Thu Oct 10 14:01:27 2002
+@@ -1,3 +1,4 @@
++#include <config.h>
+ #include <glib.h>
+ #include <string.h>
+ #include "mono/metadata/class.h"
+diff -uNbr mono-0.16/scripts/Makefile.am mono-0.16-new/scripts/Makefile.am
+--- mono-0.16/scripts/Makefile.am	Fri Feb 15 05:12:19 2002
++++ mono-0.16-new/scripts/Makefile.am	Thu Oct 10 13:35:35 2002
+@@ -4,6 +4,12 @@
+ 
+ CLEANFILES = mcs
+ 
++if X86
++MONO_INTERP = mono
++else
++MONO_INTERP = mint
++endif
 +
- #include "mono/io-layer/wapi.h"
+ mcs: mcs.in
+-	sed -e 's^\@bindir\@^$(bindir)^g' < $(srcdir)/mcs.in > mcs.tmp \
++	sed -e 's^\@bindir\@^$(bindir)^g' -e 's^\@mono_interp\@^$(MONO_INTERP)^g' < $(srcdir)/mcs.in > mcs.tmp \
+ 	&& mv mcs.tmp mcs 
+diff -uNbr mono-0.16/scripts/Makefile.in mono-0.16-new/scripts/Makefile.in
+--- mono-0.16/scripts/Makefile.in	Tue Oct  1 18:31:28 2002
++++ mono-0.16-new/scripts/Makefile.in	Thu Oct 10 13:35:35 2002
+@@ -106,6 +106,9 @@
+ CONFIG_CLEAN_FILES = 
+ SCRIPTS =  $(bin_SCRIPTS)
  
- #define WSADESCRIPTION_LEN 256
++@X86_TRUE@MONO_INTERP = mono
++@X86_FALSE@MONO_INTERP = mint
++
+ DIST_COMMON =  Makefile.am Makefile.in
+ 
+ 
+diff -uNbr mono-0.16/scripts/mcs.in mono-0.16-new/scripts/mcs.in
+--- mono-0.16/scripts/mcs.in	Tue May  7 13:37:37 2002
++++ mono-0.16-new/scripts/mcs.in	Thu Oct 10 13:35:35 2002
+@@ -1,2 +1,2 @@
+ #!/bin/sh
+-@bindir@/mono @bindir@/mcs.exe "$@"
++@bindir@/@mono_interp@ @bindir@/mcs.exe "$@"
