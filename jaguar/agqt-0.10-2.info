@@ -1,0 +1,61 @@
+Package: agqt
+Version: 0.10
+Revision: 2
+Suggests: x11, tcltk
+Source: mirror:sourceforge:%n/%n-%v.tar.bz2
+SourceDirectory: %n
+License: GPL
+Patch: %f.patch
+PatchScript: perl -pi -e 's|g\+\+|c++|g' */Makefile
+CompileScript: <<
+make clean
+make CXXFLAGS=-O3 COMPILE.cc='c++ -O3 -I%p/include -c' 
+cd hammer; make CXXFLAGS=-O3 COMPILE.cc='c++ -O3 -I%p/include -c'
+<<
+InstallScript: <<
+mkdir -p %i/bin
+cp binaries/* %i/bin/
+cp hammer/hammer %i/bin
+strip %i/bin/*
+install -m 755 agrename.pl %i/bin/
+sed 's|/usr/bin/wish|%p/bin/wish|' agqt.tcl > %i/bin/agqt.tcl
+chmod 755 %i/bin/agqt.tcl
+<<
+DocFiles: README ChangeLog agrc.sample
+Description: 6's Spiffy AudioGalaxy Query Tool
+DescDetail: <<
+ 6's Spiffy AudioGalaxy Query Tool is a package that automates queries to 
+ the AudioGalaxy music sharing system. It enables you to queue any song 
+ (at a minimum configurable bitrate) with one command line, even if the 
+ AudioGalaxy site is busy or unresponsive. It will also allow you to queue most 
+ full albums with one command line, by going on AllMusic.Com to look up the 
+ song list, and queueing up each of the songs listed. 
+<<
+DescPort:<<
+ Replacing g++ by c++ had to be done twice, because g++ is also used by the 
+ implicit rules of make.
+ Stacksize had to be upped from the default 512kB. Thanks to Finlay Dobbie and
+ Peter O'Gorman for showing how to do this.
+ A patch from the sourceforge agqt project is included in the patch file
+ that adds the "show-tracks" option to am and the "agrename.pl" script.
+<<
+DescUsage:<<
+ The 4 command line tools "ag", "am", "fdb", and "agrename.pl" print short 
+   usage instructions when used without arguments.
+ The README file contains detailed instructions for the usage of the two
+   command line tools "ag" and "am".
+ "fdb" is new since version 0.9; it is like "am", except it uses FreeDB instead 
+   of AllMusic Guide. 
+ The "hammer" utility is included now, too. 
+   See the ChangeLog file for a description.
+   
+ Version 0.10 now contains the tcl/tk based GUI agqt.tcl. 
+   To use it, you have to have the fink package tcltk installed.
+   You need to have X11 running.
+   To start the GUI, type "agqt.tcl".
+   
+ You need to create a .agrc file in your home directory. 
+   A sample file "agrc.sample" is supplied.
+<<
+Maintainer: Martin Costabel <costabel@wanadoo.fr>
+Homepage: http://agqt.sourceforge.net
