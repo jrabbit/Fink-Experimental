@@ -21,11 +21,18 @@ echo "We build and install at once, so all the work is in InstallScript"
 InstallScript: <<
 cd scripts; PATH=%b/bootstrap/bin:$PATH M3GC_SIMPLE=yes ./do-cm3-core.sh buildship
 cd scripts; PATH=%b/bootstrap/bin:$PATH M3GC_SIMPLE=yes ./do-pkg.sh buildship tcp
+
 ln -s %p/cm3/pkg/cm3/PPC_DARWIN/cm3 %i/cm3/bin/cm3
 cp bootstrap.cm3.cfg %i/cm3/bin/cm3.cfg
 perl -i -pe 's|\@USE_ROOT\@|%p/cm3/|; s|\@INSTALL_ROOT\@|%p/cm3/|' %i/cm3/bin/cm3.cfg
+
+echo Fixing .M3EXPORT files...
+find %i -name .M3EXPORTS -print -exec perl -i -pe 's|%d||' '{}' ';'
+echo Fixing dynamic libraries...
+find %i -name '*.[0-9].[0-9].dylib'|perl -pe '($i=$_)=~s|%d||;chomp($i);`install_name_tool -id $i $_`'
+
 <<
-DocFiles: COPYRIGHT_CMASS COPYRIGHT_DEC
+DocFiles: COPYRIGHT-CMASS COPYRIGHT-DEC
 Description: Critical Mass Modula-3 Compiler
 DescDetail: <<
 <<
@@ -33,9 +40,8 @@ DescPort: <<
 This port was mainly accomplished by reverse engineering the darwinports
 version by Landon Fuller. 
 
-Right now, the port does not work, because it has tons of paths
-referring to %i instead of %p. Furthermore, the file organization is
-distincly non-fink. However, all of this should be fixable.
+The port now seems to actually work, but the file organization is
+distincly non-fink. This will be fixed RSN.
 << 
 License: Restrictive Homepage:
 http://www.m3.org
