@@ -18,72 +18,6 @@
  
  	return XVID_ERR_OK;
  }
---- xvid-20020806/xvidcore/build/generic/Makefile.darwin	2002-08-06 16:22:28.000000000 -0700
-+++ xvid-20020806-patched/xvidcore/build/generic/Makefile.darwin	2002-08-06 16:17:03.000000000 -0700
-@@ -0,0 +1,63 @@
-+#/**************************************************************************
-+# *
-+# * Darwin PPC makefile
-+# *
-+# * Adapted from linux PPC Makefile by Guillaume Morin <guillaume@morinfr.org>
-+# * 
-+# *
-+# *************************************************************************/
-+
-+
-+include Makefile.inc
-+
-+CC = gcc
-+
-+#Remove NO_CBP_ASM when asm is ported to MachO
-+CFLAGS = -DFREEBSD -DARCH_PPC -DARCH_IS_BIG_ENDIAN -DNO_CBP_ASM
-+LIBDIR = /usr/local/lib
-+
-+CFLAGS += -Wall -O3 -funroll-loops -ffast-math  
-+CFLAGS += -fstrict-aliasing -fomit-frame-pointer 
-+
-+## for profiling, uncomment the next line.
-+#CFLAGS += -D_PROFILING_ 
-+
-+## for debugging, comment the previous lines and uncomment the next one.
-+#CFLAGS += -Wall -g
-+
-+AS = as
-+
-+%.o: %.s
-+	$(AS) $< -o $@
-+
-+RM = rm -rf
-+
-+all: $(LIB) $(LIBSO)
-+
-+
-+#Add .s when Assembly is ported to MachO
-+$(LIB): $(SRC:.c=.o) 
-+#$(LIB): $(SRC:.c=.o) $(SRC_PPC:.s=.o)
-+	ar rcs $@ $^
-+
-+#Add .s  out when Assembly is ported
-+$(LIBSO): $(SRC:.c=.o) 
-+#$(LIBSO): $(SRC:.c=.o)  $(SRC_PPC:.s=.o)
-+	$(CC) $(CFLAGS) $^ -bundle -o $@
-+
-+clean:	
-+	$(RM) `find $(SRCDIR) -name "*.o"`
-+
-+remove-all:
-+	$(RM) $(DIRS)
-+	$(RM) $(DIRS_PPC)
-+	$(RM) $(LIB)
-+	$(RM) $(LIBSO)
-+
-+
-+install: libxvidcore.so
-+	cp libxvidcore.so $(LIBDIR)			# you have to be root for this
-+
-+
-+install-test: libxvidcore.so				# if you don't want to overwrite previous compile
-+	cp libxvidcore.so $(LIBDIR)/libtestcore.so
 --- xvid-20020806/xvidcore/build/generic/Makefile.darwin_altivec	2002-08-06 16:22:33.000000000 -0700
 +++ xvid-20020806-patched/xvidcore/build/generic/Makefile.darwin_altivec	2002-08-06 16:11:54.000000000 -0700
 @@ -0,0 +1,62 @@
@@ -149,3 +83,81 @@
 +install-test: libxvidcore.so				# if you don't want to overwrite previous compile
 +	cp libxvidcore.so $(LIBDIR)/libtestcore.so
 +	/sbin/ldconfig
+--- xvid-20020806/xvidcore/build/generic/Makefile.darwin	2002-08-06 16:22:28.000000000 -0700
++++ xvid-20020806-patched/xvidcore/build/generic/Makefile.darwin	2002-08-06 19:06:42.000000000 -0700
+@@ -0,0 +1,66 @@
++#/**************************************************************************
++# *
++# * Darwin PPC makefile
++# *
++# * Adapted from linux PPC Makefile by Guillaume Morin <guillaume@morinfr.org>
++# * 
++# *
++# *************************************************************************/
++
++
++include Makefile.inc
++
++CC = gcc
++
++#Remove NO_CBP_ASM when asm is ported to MachO
++CFLAGS = -DFREEBSD -DARCH_PPC -DARCH_IS_BIG_ENDIAN -DNO_CBP_ASM
++LIBDIR = /usr/local/lib
++
++CFLAGS += -Wall -O3 -funroll-loops -ffast-math  
++CFLAGS += -fstrict-aliasing -fomit-frame-pointer  -fno-common 
++
++## for profiling, uncomment the next line.
++#CFLAGS += -D_PROFILING_ 
++
++## for debugging, comment the previous lines and uncomment the next one.
++#CFLAGS += -Wall -g
++
++AS = as
++
++%.o: %.s
++	$(AS) $< -o $@
++
++RM = rm -rf
++
++all: $(LIB) $(LIBSO) $(DYLIB)
++
++
++#Add .s when Assembly is ported to MachO
++$(LIB): $(SRC:.c=.o) 
++#$(LIB): $(SRC:.c=.o) $(SRC_PPC:.s=.o)
++	ar rcs $@ $^
++
++#Add .s  out when Assembly is ported
++$(LIBSO): $(SRC:.c=.o) 
++#$(LIBSO): $(SRC:.c=.o)  $(SRC_PPC:.s=.o)
++	$(CC) $(CFLAGS) $^ -bundle -flat_namespace -o $@
++
++$(DYLIB): $(SRC:.c=.o)
++	$(CC) $(LDFLAGS) $^ -dynamiclib -install_name $(LIBDIR)/$(DYLIB) -compatibility_version 1 -current_version 1 -o $@
++    
++clean:	
++	$(RM) `find $(SRCDIR) -name "*.o"`
++
++remove-all:
++	$(RM) $(DIRS)
++	$(RM) $(DIRS_PPC)
++	$(RM) $(LIB)
++	$(RM) $(LIBSO)
++
++
++install: libxvidcore.so
++	cp libxvidcore.so $(LIBDIR)			# you have to be root for this
++
++
++install-test: libxvidcore.so				# if you don't want to overwrite previous compile
++	cp libxvidcore.so $(LIBDIR)/libtestcore.so
+--- xvid-20020806/xvidcore/build/generic/Makefile.inc	2002-07-24 13:21:55.000000000 -0700
++++ xvid-20020806-patched/xvidcore/build/generic/Makefile.inc	2002-08-06 18:54:29.000000000 -0700
+@@ -1,5 +1,6 @@
+ LIB=libxvidcore.a
+ LIBSO=libxvidcore.so
++DYLIB=libxvidcore.0.0.0.dylib
+ 
+ 
+ SRCDIR = ../../src
