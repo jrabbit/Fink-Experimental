@@ -1,6 +1,6 @@
 Package: bittornado
 Version: 0.3.10
-Revision: 10
+Revision: 11
 Depends: python23
 BuildDepends: python23
 Source: http://www.bittornado.com/download/BitTornado-%v.tar.gz
@@ -90,49 +90,53 @@ Splitoff: <<
 
   PostInstScript: <<
     # postinst script for bittorrent
-    set -e
+  case "$1" in
+    configure)
+
       for i in btcompletedirgui btdownloadgui ; do
         update-alternatives \
           --install %p/bin/$i $i %p/bin/$i.bittornado 120 \
-          --slave %p/share/man/man1/$i.1.gz $i.1.gz %p/share/man/man1/$i.bittornado.1.gz
+          --slave %p/share/man/man1/$i.1 $i.1 %p/share/man/man1/$i.bittornado.1
       done
+
     ;;
+
     abort-upgrade|abort-remove|abort-deconfigure)
         for i in btcompletedirgui btdownloadgui ; do
                 update-alternatives \
                 --install %p/bin/$i $i %p/bin/$i.bittornado 120 \
-                --slave %p/share/man/man1/$i.1.gz $i.1.gz %p/share/man/man1/$i.bittornado.1.gz
+                --slave %p/share/man/man1/$i.1 $i.1 %p/share/man/man1/$i.bittornado.1
         done
+
     ;;
 
     *)
         echo "postinst called with unknown argument \`$1'" >&2
         exit 1
+
     ;;
+
   esac
-  exit 0
   <<
   PreRmScript: <<
-  PACKAGE="bittornado"
+    case "$1" in
+        remove|upgrade|deconfigure)
+        for i in btcompletedir btcompletedirgui btdownloadcurses btdownloadgui btdownloadheadless btlaunchmany btlaunchmanycurses btmakemetafile btreannounce btrename btshowmetainfo bttrack ; do
+        update-alternatives --remove $i %p/bin/$i.bittornado
+    done
 
-dpkg --listfiles $PACKAGE |
-        awk '$0~/\.py$/ {print $0"c\n" $0"o"}' |
-        xargs rm -f >&2
-
-case "$1" in
-    remove|upgrade|deconfigure)
-        for i in btcompletedirgui btdownloadgui ; do
-                update-alternatives --remove $i %p/bin/$i.bittornado
-        done
         ;;
+
     failed-upgrade)
+
         ;;
+
     *)
         echo "prerm called with unknown argument \`$1'" >&2
         exit 1
     ;;
 esac
-exit 0
+
   <<
 <<
 
@@ -145,15 +149,10 @@ PostInstScript: <<
   case "$1" in
     configure)
 
-        # Run the mimetypes program to add mimetypes into Netscape.
-        if [ -e /etc/init.d/mimetypes ]; then
-                /etc/init.d/mimetypes
-        fi
-
         for i in btcompletedir btdownloadcurses btdownloadheadless btlaunchmany btlaunchmanycurses btmakemetafile btreannounce btrename btshowmetainfo bttrack ; do
                   update-alternatives \
                   --install %p/bin/$i $i %p/bin/$i.bittornado 120 \
-                  --slave %p/share/man/man1/$i.1.gz $i.1.gz %p/share/man/man1/$i.bittornado.1.gz
+                  --slave %p/share/man/man1/$i.1 $i.1 %p/share/man/man1/$i.bittornado.1
     done
     ;;
 
@@ -162,8 +161,9 @@ PostInstScript: <<
 
                   update-alternatives \
                   --install %p/bin/$i $i %p/bin/$i.bittornado 120 \
-                  --slave %p/share/man/man1/$i.1.gz $i.1.gz %p/share/man/man1/$i.bittornado.1.gz
+                  --slave %p/share/man/man1/$i.1 $i.1 %p/share/man/man1/$i.bittornado.1
     done
+
     ;;
 
     *)
@@ -171,15 +171,9 @@ PostInstScript: <<
         exit 1
     ;;
 esac
-exit 0
 <<
 
 PreRmScript: <<
-  PACKAGE="bittornado"
-
-dpkg --listfiles $PACKAGE |
-        awk '$0~/\.py$/ {print $0"c\n" $0"o"}' |
-        xargs rm -f >&2
 
 case "$1" in
     remove|upgrade|deconfigure)
@@ -189,6 +183,7 @@ case "$1" in
         done
 
         ;;
+
     failed-upgrade)
         ;;
     *)
@@ -196,8 +191,7 @@ case "$1" in
         exit 1
     ;;
 esac
-exit 0
 <<
-License: MIT
+License: BSD
 Maintainer: Chris Zubrzycki <beren12@users.sourceforge.net>
 Homepage: http://www.bittornado.com/
