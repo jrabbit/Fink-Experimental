@@ -73,6 +73,7 @@ for my $file (sort keys %files) {
 									$line =~ s/freetype2(\S*)(\s+\([^\)]+\))?\s*\|\s*freetype2(\S*)(\s+\([^\)]+\))?\s*[\,\s]*//g;
 									$line =~ s/(dlcompat|freetype2|libpoll)(\S*)(\s+\([^\)]+\))?[\,\s]*//g;
 									$line =~ s/^SetMACOSX_DEPLOYMENT_TARGET: 10.2/SetMACOSX_DEPLOYMENT_TARGET: 10.3/;
+									$line =~ s/--disable-(ada|haskell|java) *//g;
 								}
 								print FILEOUT $line;
 							}
