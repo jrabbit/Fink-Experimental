@@ -83,7 +83,7 @@ for my $file (sort keys %files) {
 								print FILEOUT $line;
 							}
 						}
-						if ($filename =~ /(arts|kde\S+3|koffice|quanta)/ and open(DESCUSAGE, $path . '/kdedesc.txt')) {
+						if ($filename =~ /(arts|kde\S+3|koffice|quanta|bundle-kde)/ and open(DESCUSAGE, $path . '/kdedesc.txt')) {
 							while (<DESCUSAGE>) {
 								print FILEOUT;
 							}
