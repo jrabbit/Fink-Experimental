@@ -1,15 +1,25 @@
-Package: singular
+Info2: <<
+Package: singular%type_pkg[-sntl]%type_pkg[-strio]%type_pkg[-dyn]%type_pkg[-noopt]
+# disabled %type_pkg[-strio] for the moment, since it needs <strstream.h>,
+# and even when replacing this by <strstream> one gets :
+# < int_poly.cc: In member function `virtual void
+# <    InternalPoly::print(std::ostream&, char*)':
+# < int_poly.cc:174: error: `ostrstream' undeclared (first use this function)
+# and similar problems : doesn't seem gcc3.3 ready
 Version: 2.05
-Revision: 0
-GCC: 3.3
-Conlicts: ntl
-# Also singular-factory and singular-libfac _ for the moment :
-Replaces: singular-factory, singular-libfac
-Depends: gmp-shlibs (>= 4.1.2-11), readline-shlibs, tetex
-## Soo little dep on tetex ...
-BuildDepends: gmp (>= 4.1.2-11), autoconf, readline, netpbm-bin (>= 10.18-3), latex2html, texinfo, tetex
-## For documentation, as long as not fixed
+Revision: 7
+Type: -sntl (boolean), -strio (boolean), -dyn (boolean), -noopt (boolean)
+Conflicts: (%type_raw[-sntl] = -sntl) ntl, %{ni}-variants
+Provides: %{ni}-variants
+# Also singular-factory and singular-libfac (headers) _ for the moment :
+Replaces: singular-factory, singular-libfac, %{ni}-variants
+Depends: (%type_raw[-sntl] = .) ntl, gmp-shlibs (>= 4.1.2-11), readline-shlibs
+Recommends: mozilla, xemacs
+BuildDepends: gmp (>= 4.1.2-11), autoconf, readline, netpbm-bin (>= 10.18-3), latex2html, texinfo, tetex, sed | ssed
+## For documentation, as long as not fixed :
 BuildConflicts: bison (= 1.875)
+GCC: 3.3
+# And how to specify that some srcs are not needed for some variants ?
 Source: ftp://www.mathematik.uni-kl.de/pub/Math/Singular/src/Singular-main-2-0-5.tar.gz
 Source2: ftp://www.mathematik.uni-kl.de/pub/Math/Singular/src/Singular-IntProg-2-0-5.tar.gz
 Source3: ftp://www.mathematik.uni-kl.de/pub/Math/Singular/src/Singular-MP-2-0-5.tar.gz
@@ -36,152 +46,82 @@ Source10-MD5: 2cc39a94e1e1c555cbbdfea2a825286e
 Source11-MD5: 149cd0f1249388e58138a6b1de17dd7c
 Source12-MD5: 7dc82f3822f35268c47c86edb9822e6f
 Source13-MD5: 375274293a5228c590454a37911fab27
-Source13Rename: README.%n
+Source13Rename: README.%{ni}
 NoSourceDirectory: true
 ## And where are the sources for sgroup, Plural, etc ?
 PatchScript: <<
 #!/bin/sh -v
-## The first line here _ together with the configure-params _ ensures correctness of paths in the installed pkg. 
-  cd Singular; patch -b -z '.bak' < %a/feResource.patch; cd ..
-  . %a/%n.patch
+ p=%p
+ n=%n
+ sntl='[ "%type_raw[-sntl]" == "-sntl" ]'
+# To disable :
+# strio='[ "%type_raw[-strio]" == "-strio" ]'
+ strio='[ "." == "-strio" ]'
+ dyn='[ "%type_raw[-dyn]" == "-dyn" ]'
+ noopt='[ "%type_raw[-noopt]" == "-noopt" ]'
+ . %a/%{ni}.patch 2>&1 | tee /tmp/%{n}.log
 <<
 UpdateConfigGuessInDirs: . MP
-##ConfigureParams: --disable-streamio
-#ConfigureParams: --enable-doc --enable-emacs --with-malloc=stdlib.h --with-malloc=external --with-external-malloc-h=stdlib.h
-# Don't use "--with-namespaces" , else "ipshell.h:167: error: too few arguments to function `sleftv*" (called from iparith.cc:4098)
 NoSetLDFLAGS: true
 NoSetCPPFLAGS: true
 # CFLAGS and CXXFLAGS have to set differently in each dir _ because eg ntl doesn't respect CFLAGS,
-# and Singular/configure.in does not add its own flags when C(XX)FLAGS is set...  
-## Try to remove the next, to se it in each dir _ this way optimization flags are unchanged
-# SetCFLAGS: -no-cpp-precomp -O3 -Wall -Wno-unused
-# SetCXXFLAGS: -no-cpp-precomp -fno-common
-CompileScript: <<
-#!/bin/sh -v
-export PATH=${PATH}:/usr/libexec/binutils
-export CPATH=%p/include/pari:%p/include
-export LIBRARY_PATH=%p/lib
-export DYLD_LIBRARY_PATH=%p/lib
-## I thought this was the default ?? :
-export MACOSX_DEPLOYMENT_TARGET=10.3
-##
-# Else the configure might wrongly find things there from a previous build :
-rm -fR %i
-## removed -with-malloc=external (<- omalloc, removal for MP) _  Try now: malloc=system in omalloc; malloc=stdlib.h in MP :
-./configure --prefix=%i/share/%n --exec-prefix=%i --bindir=%i/bin --with-rootdir=%p/share/%n --datadir=%i/share  --mandir=%i/share/man --infodir=%i/share/info --enable-doc --enable-emacs --enable-MP --enable-NTL -enable-factory --enable-libfac --enable-Singular --enable-IntegerProgramming --with-malloc=system --with-readline=dynamic -without-dynamic-kernel
-<<
+# and Singular/configure.in does not add its own flags when C(XX)FLAGS is set...
+CompileScript: echo -n
+# Put even the configure in the InstallScript, else we would first have to do a separate 'rm -fR %i',
+# otherwise the configure might wrongly find things there from a previous build.
+# Further, this avoids repeating the exports...
 InstallScript: <<
 #!/bin/sh -v
-export PATH=${PATH}:/usr/libexec/binutils
-export CPATH=%p/include/pari:%p/include
-export LIBRARY_PATH=%p/lib
-export DYLD_LIBRARY_PATH=%p/lib
-export MACOSX_DEPLOYMENT_TARGET=10.3
-# mkdir -p %i/share/%n/localdir
-mkdir -p %i/bin
-make install
-# Fixing the install in doc
-mkdir -p %i/share/doc/%n
-mv %i/share/%n/html %i/share/%n/examples %i/share/doc/%n
-mv doc/%n.idx %i/share/%n
-mkdir -p %i/share/info
-mv %i/share/%n/info/%n.hlp %i/share/info/%n.info
-# Still to fix the install in emacs _ for the moment
-mkdir -p %i/share/emacs/site-lisp %i/share/%n/emacs %i/share/info
-cd emacs; cp -p *.el %i/share/emacs/site-lisp ; cp .emacs* singular.xpm %i/share/%n/emacs ; cd ..
-# conffiles go in etc
-mkdir -p %i/etc
-mv %i/share/%n/LIB/.singularrc %i/etc/singularrc
-ln -s %p/etc/singularrc %i/share/%n/LIB/.singularrc
-### Finally, "make test" :
-singtst () {
-# This one OK :
-cd omalloc; make check > %p/var/logs/%n.test 2>&1 ; cd ..
-# Here : "make: *** No rule to make target `test.cc', needed by `test'.  Stop"  :
-cd MP/MPT; make test >> %p/var/logs/%n.test 2>&1 ; cd ../..
-# Here :
-## make QuickTest
-## g++ -I../include -I.  -O2  -o QuickTest QuickTest.c ntl.a   -lgmp
-## QuickTest.c: In function `int main()':
-## QuickTest.c:42: error: `cerr' undeclared (first use this function)
-cd ntl/src; make check  >> %p/var/logs/%n.test 2>&1 ; cd ../..
-# Here: need to configure "--without-Singular --with-memman --enable-streamio" to
-# make the first 2 targets, and need the tables for the last target ...
-# Thus, disabled for the moment :
-# cd factory; make gengftables; make gftables; make installtest; cd ..
-## And in the next one, :
-# test.cc: In function `void setVarNames(char*)':
-# test.cc:10: error: `strlen' undeclared (first use this function)
-# test.cc:23: error: `cout' undeclared (first use this function)
-# etc...
-cd libfac; make tests >> %p/var/logs/%n.test 2>&1 ; cd ..
-## 
-#cd Tst; ln -s ../ppcMac-darwin/Singular; perl ./regress.cmd `find . -name '*\.lst'`; cd ..
-# We first rm the NFlist from the distrib, which causes errors
-#  (despite being apparently identical _ at least in perms and size _ to the one generated) :
-#	>    ? DBM link I/O error. Is 'NFlist' readonly?
-#	>    ? write: Error for link of type DBM, mode: rw, name: NFlist
-#	>    ? cannot write to NFlist
-# NFlist.pag from the dist and the one generated here differ in that every odd byte is
-# swapped with the following even byte: seems a sequence of short int's.
-rm Tst/Short/N*
-# We also disable for the moment mpsr_s, as long as 'system("sh",...)' returns -1 instead of 0
-perl -i -e 's,mpsr_s,;mpsr_s,g' Tst/Short/ok_s.lst
-# Now:
-make Tst-All >> %p/var/logs/%n.test 2>&1
-cd Tst; perl ./regress.cmd -k -v 4 Buch/buch.lst >> %p/var/logs/%n.test 2>&1; cd ..
-# Save the diff-files
-cd Tst; find . -name '*.diff'|xargs tar -cjf %i/share/%n/diffs.tar.bz2 ; cd ..
-mv Tst %i/share/doc/%n
-}
-## Uncomment to run the tests ..
-singtst
-###
-## Cleanup
-rm -fR %i/share/%n/LIB{,/gftables}/CVS
-## Rough check for direct installs
-egrep '[^=][iI]nstall[^_].*\ %p/(bin|etc|lib|share|var|sbin|include|App)' %p/var/logs/%n.log |grep -v '[Cc]hecking for'|grep -v '[iI]nstall path'|grep -v mkinstalldirs|grep -v 'will be installed in'|grep -v 'echo '|grep -v ': warning'
-# Finally, let's save the logs
-cp -p %p/var/logs/%n.* %i/share/doc/%n
+ a=%a
+ p=%p
+ i=%i
+ b=%b
+ n=%n
+ ni=%{ni}
+ sntl='[ "%type_raw[-sntl]" == "-sntl" ]'
+ dyn='[ "%type_raw[-dyn]" == "-dyn" ]'
+ mkdir -p %{i}/share/doc/%{n}
+ mv /tmp/%{n}.log %{i}/share/doc/%{n}
+ . %a/%{ni}.inst 2>&1 | tee -a %{i}/share/doc/%{n}/%{n}.log
 <<
-InfoDocs: %p/share/info/%n.info
-DocFiles: doc/COPYING doc/README README.%n
-ConfFiles: %p/etc/singularrc
+InfoDocs: %{ni}.info
+DocFiles: doc/COPYING README.%{ni}
+ConfFiles: %p/etc/%{ni}rc
 License: GPL
-Description: A pkg for commutative algebra 
-DescPort: << 
-From singular-factory.info :
- Had trouble compiling ftmpl_inst.cc, so tried adding 
-  --disable-streamio, but then make gftables doesn't work at all.
-Conflicts :
-Plus ntl ...
-dpkg - warning, overriding problem because --force enabled:
- trying to overwrite `/sw/include/templates/ftmpl_inst.cc', which is also in package singular-factory dpkg - warning,
-overriding problem because --force enabled:
- trying to overwrite `/sw/include/templates/ftmpl_array.cc', which is also in package singular-factory dpkg - warning,
-overriding problem because --force enabled:
- trying to overwrite `/sw/include/templates/ftmpl_factor.cc', which is also in package singular-factory dpkg - warning,
-overriding problem because --force enabled:
- trying to overwrite `/sw/include/templates/ftmpl_functions.h', which is also in package singular-factory dpkg - warning,
-overriding problem because --force enabled:
- trying to overwrite `/sw/include/templates/ftmpl_list.cc', which is also in package singular-factory dpkg - warning,
-overriding problem because --force enabled:
- trying to overwrite `/sw/include/templates/ftmpl_matrix.cc', which is also in package singular-factory dpkg - warning,
-overriding problem because --force enabled:
- trying to overwrite `/sw/include/templates/ftmpl_array.h', which is also in package singular-factory dpkg - warning,
-overriding problem because --force enabled:
- trying to overwrite `/sw/include/templates/ftmpl_factor.h', which is also in package singular-factory dpkg - warning,
-overriding problem because --force enabled:
- trying to overwrite `/sw/include/templates/ftmpl_list.h', which is also in package singular-factory dpkg - warning,
-overriding problem because --force enabled:
- trying to overwrite `/sw/include/templates/ftmpl_matrix.h', which is also in package singular-factory dpkg - warning,
-overriding problem because --force enabled:
- trying to overwrite `/sw/include/factory.h', which is also in package singular-factory dpkg - warning, overriding problem
-because --force enabled:
- trying to overwrite `/sw/include/factoryconf.h', which is also in package singular-factory dpkg - warning, overriding
-problem because --force enabled:
- trying to overwrite `/sw/include/factor.h', which is also in package singular-libfac
-Setting up singular (2.05-0) ...
+Description: CAS for commutative algebra, and singularities
+DescUsage: <<
+- "Singular -h" will tell how to invoke help from within Singular.
+This is very extensive. (It comes up by default trough Safari
+when DISPLAY is not set, through mozilla else _ with ESingular, ie
+the xemacs interface, it comes through info _ but in all cases
+the default can be reset.)
+- TSingular gives in xterm interface.
+<<
+DescPort: <<
+- the -sntl variant is like the upstream 'default'-build,
+   without it, the build relies on fink's NTL.
+- the attempted -strio variant tries to enable streamio in factory and libfac
+- the -dyn variant disables '--without-dynamic-kernel'
+_ the -noopt variant sets -O0 -ggdb
+TODO:
+- since the last xemacs vers in fink, ESingular no longer launches.
+  Seems like in lines ~ 212-215 of %p/share/singular/emacs/.emacs-singular
+  something (toolbar-related) is not a list and should be.
+- an annoying series of warnings came up with fink's latest texinfo when building the doc.
+- lots of clean-up
+- the -noopt variant is a poor man's substitute (just sufficient to get up to here) for the
+  'debug' and 'profile' variants which are implicit in the Makefiles. Would be nice to get
+  a handle on those in the infofile (additional switch ?) .
+- get -strio working: so libfac and factory can better be used standalone; their tests
+  should then work _ and one would be able to re-generate the gftables.
+- find a way to put the .so files in %p/lib/%ni (s.t. they're still found by the executable).
+  (FS policy).
+- there might be a way to build with alternative memory-managers (say omalloc, old, new, and none).
+  This might help for the next point (currently, macaulay2 builds with singular-* having the "old"
+  memory-manager _ afraid of confusion with its own mem-manager (gc) if straying from this).
+  Additional switch - horror !
+- Try to get a build s.t. macaulay2 can build on it ...
 <<
 Homepage: http://www.singular.uni-kl.de/
 Maintainer: Jean-Francois Mertens <jfmertens@users.sourceforge.net>
+<<
