@@ -25,11 +25,9 @@ for PACK in $PACKAGES; do
 	case $PACK in
 		*-common)				PACKLIST="$PACKLIST, %N-common (>= %v-%r)";;
 		arts*)					PACKLIST="$PACKLIST, $PACK (>= 1.1.2-2)";;
-		bzip2*)					;;
 		dlcompat*)				PACKLIST="$PACKLIST, $PACK (>= 20021117-2)";;
 		freetype2*-shlibs)			PACKLIST="$PACKLIST, freetype2-shlibs | freetype2-hinting-shlibs";;
 		freetype2*)				PACKLIST="$PACKLIST, freetype2";;
-		gettext*)				;;
 		giflib-shlibs|libungif-shlibs)		PACKLIST="$PACKLIST, giflib-shlibs | libungif-shlibs";;
 		giflib|libungif)			PACKLIST="$PACKLIST, giflib | libungif";;
 		giflib-bin|libungif-bin)		PACKLIST="$PACKLIST, giflib-bin | libungif-bin";;
@@ -38,12 +36,10 @@ for PACK in $PACKAGES; do
 		kdebase*)				PACKLIST="$PACKLIST, kdebase3-ssl (>= %v-${KDEREL}) | kdebase3 (>= %v-${KDEREL})";;
 		kdelibs*-dev)				PACKLIST="$PACKLIST, kdelibs3-ssl-dev (>= %v-${KDEREL}) | kdelibs3-dev (>= %v-${KDEREL})";;
 		kdelibs*)				PACKLIST="$PACKLIST, kdelibs3-ssl (>= %v-${KDEREL}) | kdelibs3 (>= %v-${KDEREL})";;
-		libiconv*)				;;
 		libpng3*)				PACKLIST="$PACKLIST, $PACK (>= 1.2.5-4)";;
 		libpoll*)				PACKLIST="$PACKLIST, $PACK (>= 1.1-1)";;
 		libxml2*)				PACKLIST="$PACKLIST, $PACK (>= 2.5.2-1)";;
 		libxslt*)				PACKLIST="$PACKLIST, $PACK (>= 1.0.27-1)";;
-		ncurses*)				;;
 		openslp*-dev)				PACKLIST="$PACKLIST, openslp-ssl-dev | openslp-dev";;
 		openslp*-shlibs)			PACKLIST="$PACKLIST, openslp-ssl-shlibs | openslp-shlibs";;
 		openslp*-doc)				PACKLIST="$PACKLIST, openslp-ssl-doc | openslp-doc";;
