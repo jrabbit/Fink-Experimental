@@ -1,0 +1,59 @@
+diff -Naur eel-1.1.17/Makefile.in eel-new/Makefile.in
+--- eel-1.1.17/Makefile.in	2002-06-03 17:31:50.000000000 -0400
++++ eel-new/Makefile.in	2002-06-13 06:33:16.000000000 -0400
+@@ -119,7 +119,7 @@
+ 
+ NULL = 
+ 
+-SUBDIRS = eel test po
++SUBDIRS = eel po
+ 
+ EXTRA_DIST =  	COPYING.LIB					HACKING						MAINTAINERS					eel.spec.in					$(NULL)
+ 
+diff -Naur eel-1.1.17/configure eel-new/configure
+--- eel-1.1.17/configure	2002-06-03 15:39:05.000000000 -0400
++++ eel-new/configure	2002-06-10 03:48:56.000000000 -0400
+@@ -5066,7 +5066,7 @@
+     # FIXME: Relying on posixy $() will cause problems for
+     #        cross-compilation, but unfortunately the echo tests do not
+     #        yet detect zsh echo's removal of \ escapes.
+-    archive_cmds='$nonopt $(test "x$module" = xyes && echo -bundle || echo -dynamiclib) $allow_undefined_flag -o $lib $libobjs $deplibs$linker_flags -install_name $rpath/$soname $verstring'
++    archive_cmds='$nonopt $(test x$module = xyes && echo -bundle || echo -dynamiclib) $allow_undefined_flag -o $lib $libobjs $deplibs$linker_flags $(test x$module = yes || echo -install_name $rpath/$soname $verstring)'
+     # We need to add '_' to the symbols in $export_symbols first
+     #archive_expsym_cmds="$archive_cmds"' && strip -s $export_symbols'
+     hardcode_direct=yes
+diff -Naur eel-1.1.17/eel/eel-types.c eel-new/eel/eel-types.c
+--- eel-1.1.17/eel/eel-types.c	2002-03-04 11:06:21.000000000 -0500
++++ eel-new/eel/eel-types.c	2002-06-13 06:31:49.000000000 -0400
+@@ -27,6 +27,7 @@
+ 
+ #include <eel/eel.h>
+ 
++#define EELTYPEBUILTINS_VAR
+ #include "eel-type-builtins-vars.c"
+ #include "eel-type-builtins-evals.c"
+ 
+diff -Naur eel-1.1.17/eel/maketypes.awk eel-new/eel/maketypes.awk
+--- eel-1.1.17/eel/maketypes.awk	2002-03-04 11:06:21.000000000 -0500
++++ eel-new/eel/maketypes.awk	2002-06-13 06:31:20.000000000 -0400
+@@ -33,7 +33,7 @@
+       printf ("#  endif\n");
+       printf ("#else\n");
+       printf ("#  ifdef EEL_COMPILATION\n");
+-      printf ("#    define EELTYPEBUILTINS_VAR\n");
++      printf ("#    define EELTYPEBUILTINS_VAR extern\n");
+       printf ("#  else\n");
+       printf ("#    define EELTYPEBUILTINS_VAR extern\n");
+       printf ("#  endif\n");
+diff -Naur eel-1.1.17/ltmain.sh eel-new/ltmain.sh
+--- eel-1.1.17/ltmain.sh	2002-05-30 10:40:38.000000000 -0400
++++ eel-new/ltmain.sh	2002-06-10 06:29:19.000000000 -0400
+@@ -1739,7 +1739,7 @@
+ 
+ 	  if test "$installed" = no; then
+ 	    notinst_deplibs="$notinst_deplibs $lib"
+-	    need_relink=yes
++	    # need_relink=yes
+ 	  fi
+ 
+ 	  if test -n "$old_archive_from_expsyms_cmds"; then

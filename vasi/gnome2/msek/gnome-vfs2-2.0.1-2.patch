@@ -1,0 +1,1117 @@
+diff -Naur gnome-vfs-2.0.1.old/Makefile.in gnome-vfs-2.0.1.new/Makefile.in
+--- gnome-vfs-2.0.1.old/Makefile.in	Fri Jun 21 04:08:46 2002
++++ gnome-vfs-2.0.1.new/Makefile.in	Sun Jun 23 08:51:57 2002
+@@ -170,7 +170,7 @@
+ 
+ SUBDIRS_GNOME = monikers doc schemas
+ 
+-SUBDIRS =  	libgnomevfs					modules						schemas						devel-docs					doc						test						monikers					po
++SUBDIRS =  	libgnomevfs					modules						schemas						devel-docs					doc						monikers					po
+ 
+ 
+ EXTRA_DIST =  	HACKING						TODO						autogen.sh					gnome-vfs.spec					gnome-vfs-2.0.pc.in				gnome-vfs-module-2.0.pc.in			intltool-extract.in				intltool-merge.in				intltool-update.in
+diff -Naur gnome-vfs-2.0.1.old/config.h.in gnome-vfs-2.0.1.new/config.h.in
+--- gnome-vfs-2.0.1.old/config.h.in	Fri Jun 21 03:53:18 2002
++++ gnome-vfs-2.0.1.new/config.h.in	Sun Jun 23 08:34:49 2002
+@@ -156,6 +156,9 @@
+ /* Define if you have the `statvfs' function. */
+ #undef HAVE_STATVFS
+ 
++/* Define if you have the `strtok_r' function. */
++#undef HAVE_STRTOK_R
++
+ /* Define if you have the <stdint.h> header file. */
+ #undef HAVE_STDINT_H
+ 
+diff -Naur gnome-vfs-2.0.1.old/configure gnome-vfs-2.0.1.new/configure
+--- gnome-vfs-2.0.1.old/configure	Fri Jun 21 03:53:38 2002
++++ gnome-vfs-2.0.1.new/configure	Sun Jun 23 08:36:14 2002
+@@ -5254,7 +5254,7 @@
+     # FIXME: Relying on posixy $() will cause problems for
+     #        cross-compilation, but unfortunately the echo tests do not
+     #        yet detect zsh echo's removal of \ escapes.
+-    archive_cmds='$nonopt $(test "x$module" = xyes && echo -bundle || echo -dynamiclib) $allow_undefined_flag -o $lib $libobjs $deplibs$linker_flags -install_name $rpath/$soname $verstring'
++    archive_cmds='$nonopt $(test x$module = xyes && echo -bundle || echo -dynamiclib) $allow_undefined_flag -o $lib $libobjs $deplibs$linker_flags $(test .$module != .yes && echo -install_name $rpath/$soname $tmp_verstring)'
+     # We need to add '_' to the symbols in $export_symbols first
+     #archive_expsym_cmds="$archive_cmds"' && strip -s $export_symbols'
+     hardcode_direct=yes
+@@ -10640,7 +10640,7 @@
+ 
+ fi
+ 
+-for ac_func in getdtablesize open64 lseek64 statvfs
++for ac_func in getdtablesize open64 lseek64 statvfs strtok_r
+ do
+ as_ac_var=`echo "ac_cv_func_$ac_func" | $as_tr_sh`
+ echo "$as_me:10646: checking for $ac_func" >&5
+diff -Naur gnome-vfs-2.0.1.old/libgnomevfs/Makefile.in gnome-vfs-2.0.1.new/libgnomevfs/Makefile.in
+--- gnome-vfs-2.0.1.old/libgnomevfs/Makefile.in	Fri Jun 21 04:08:48 2002
++++ gnome-vfs-2.0.1.new/libgnomevfs/Makefile.in	Sun Jun 23 08:34:49 2002
+@@ -188,7 +188,7 @@
+ libgnomevfsinclude_HEADERS =  	gnome-vfs-application-registry.h		gnome-vfs-async-ops.h				gnome-vfs-cancellation.h			gnome-vfs-context.h				gnome-vfs-directory.h				gnome-vfs-file-info.h				gnome-vfs-file-size.h				gnome-vfs-find-directory.h			gnome-vfs-handle.h				gnome-vfs-init.h				gnome-vfs-job-limit.h				gnome-vfs-mime-utils.h				gnome-vfs-mime-handlers.h			gnome-vfs-mime-monitor.h			gnome-vfs-module-callback.h			gnome-vfs-monitor.h				gnome-vfs-ops.h					gnome-vfs-result.h				gnome-vfs-standard-callbacks.h			gnome-vfs-types.h				gnome-vfs-uri.h					gnome-vfs-utils.h				gnome-vfs-xfer.h				gnome-vfs.h					$(NULL)
+ 
+ 
+-libgnomevfs_2_la_SOURCES =  	gnome-vfs-application-registry.c		gnome-vfs-async-job-map.c			gnome-vfs-async-ops.c				gnome-vfs-backend.h				gnome-vfs-cancellable-ops.c	 		gnome-vfs-cancellable-ops.h			gnome-vfs-cancellation.c			gnome-vfs-configuration.c			gnome-vfs-configuration.h			gnome-vfs-context.c				gnome-vfs-directory.c				gnome-vfs-file-info.c				gnome-vfs-find-directory.c			gnome-vfs-handle.c				gnome-vfs-i18n.c				gnome-vfs-i18n.h				gnome-vfs-inet-connection.c			gnome-vfs-init.c				gnome-vfs-iobuf.c				gnome-vfs-job-queue.c				gnome-vfs-job-slave.c				gnome-vfs-job.c					gnome-vfs-method.c				gnome-vfs-mime-handlers.c			gnome-vfs-mime-info.c				gnome-vfs-mime-magic.c				gnome-vfs-mime-monitor.c			gnome-vfs-mime-private.h			gnome-vfs-mime-sniff-buffer.c			gnome-vfs-mime-sniff-buffer-private.h		gnome-vfs-mime.c				gnome-vfs-module-callback-module-api.c		gnome-vfs-module-callback-private.c		gnome-vfs-module-callback-private.h		gnome-vfs-module-callback.c			gnome-vfs-module-shared.c			gnome-vfs-module.c				gnome-vfs-monitor.c				gnome-vfs-monitor-private.h			gnome-vfs-ops.c					gnome-vfs-parse-ls.c				gnome-vfs-private-utils.c			gnome-vfs-private-utils.h			gnome-vfs-private.c				gnome-vfs-private.h				gnome-vfs-process.c				gnome-vfs-process.h				gnome-vfs-pthread.c				gnome-vfs-result.c				gnome-vfs-socket-buffer.c			gnome-vfs-socket.c				gnome-vfs-ssl.c					gnome-vfs-ssl-private.h				gnome-vfs-thread-pool.c				gnome-vfs-transform.c				gnome-vfs-uri.c					gnome-vfs-utils.c				gnome-vfs-xfer.c				gnome-vfs-async-job-map.h			gnome-vfs-backend.h				gnome-vfs-i18n.h				gnome-vfs-job-queue.h				gnome-vfs-job-slave.h				gnome-vfs-job.h					gnome-vfs-mime-private.h			gnome-vfs-mime-sniff-buffer-private.h		gnome-vfs-module-callback-private.h		gnome-vfs-process.h				gnome-vfs-pthread.h				gnome-vfs-thread-pool.h				$(NULL)
++libgnomevfs_2_la_SOURCES =  	gnome-vfs-application-registry.c		gnome-vfs-async-job-map.c			gnome-vfs-async-ops.c				gnome-vfs-backend.h				gnome-vfs-cancellable-ops.c	 		gnome-vfs-cancellable-ops.h			gnome-vfs-cancellation.c			gnome-vfs-configuration.c			gnome-vfs-configuration.h			gnome-vfs-context.c				gnome-vfs-directory.c				gnome-vfs-file-info.c				gnome-vfs-find-directory.c			gnome-vfs-handle.c				gnome-vfs-i18n.c				gnome-vfs-i18n.h				gnome-vfs-inet-connection.c			gnome-vfs-init.c				gnome-vfs-iobuf.c				gnome-vfs-job-queue.c				gnome-vfs-job-slave.c				gnome-vfs-job.c					gnome-vfs-method.c				gnome-vfs-mime-handlers.c			gnome-vfs-mime-info.c				gnome-vfs-mime-magic.c				gnome-vfs-mime-monitor.c			gnome-vfs-mime-private.h			gnome-vfs-mime-sniff-buffer.c			gnome-vfs-mime-sniff-buffer-private.h		gnome-vfs-mime.c				gnome-vfs-module-callback-module-api.c		gnome-vfs-module-callback-private.c		gnome-vfs-module-callback-private.h		gnome-vfs-module-callback.c			gnome-vfs-module-shared.c			gnome-vfs-module.c				gnome-vfs-monitor.c				gnome-vfs-monitor-private.h			gnome-vfs-ops.c					gnome-vfs-parse-ls.c				gnome-vfs-private-utils.c			gnome-vfs-private-utils.h			gnome-vfs-private.c				gnome-vfs-private.h				gnome-vfs-process.c				gnome-vfs-process.h				gnome-vfs-pthread.c				gnome-vfs-result.c				gnome-vfs-socket-buffer.c			gnome-vfs-socket.c				gnome-vfs-ssl.c					gnome-vfs-ssl-private.h				gnome-vfs-thread-pool.c				gnome-vfs-transform.c				gnome-vfs-uri.c					gnome-vfs-utils.c				gnome-vfs-xfer.c				gnome-vfs-async-job-map.h			gnome-vfs-backend.h				gnome-vfs-i18n.h				gnome-vfs-job-queue.h				gnome-vfs-job-slave.h				gnome-vfs-job.h					gnome-vfs-mime-private.h			gnome-vfs-mime-sniff-buffer-private.h		gnome-vfs-module-callback-private.h		gnome-vfs-process.h				gnome-vfs-pthread.h				gnome-vfs-thread-pool.h				strptime.c $(NULL)
+ 
+ 
+ # Platform specific includes
+@@ -225,7 +225,7 @@
+ gnome-vfs-private.lo gnome-vfs-process.lo gnome-vfs-pthread.lo \
+ gnome-vfs-result.lo gnome-vfs-socket-buffer.lo gnome-vfs-socket.lo \
+ gnome-vfs-ssl.lo gnome-vfs-thread-pool.lo gnome-vfs-transform.lo \
+-gnome-vfs-uri.lo gnome-vfs-utils.lo gnome-vfs-xfer.lo
++gnome-vfs-uri.lo gnome-vfs-utils.lo gnome-vfs-xfer.lo strptime.lo
+ COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+ LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+ CCLD = $(CC)
+diff -Naur gnome-vfs-2.0.1.old/libgnomevfs/gnome-vfs-async-job-map.c gnome-vfs-2.0.1.new/libgnomevfs/gnome-vfs-async-job-map.c
+--- gnome-vfs-2.0.1.old/libgnomevfs/gnome-vfs-async-job-map.c	Sat Aug  4 04:03:53 2001
++++ gnome-vfs-2.0.1.new/libgnomevfs/gnome-vfs-async-job-map.c	Sun Jun 23 08:34:49 2002
+@@ -30,7 +30,7 @@
+ 
+ static GHashTable *async_job_map;
+ static guint async_job_map_next_id;
+-static pthread_mutex_t async_job_map_lock;
++static GnomeVFSMutex async_job_map_lock;
+ gboolean async_job_map_locked;
+ volatile static gboolean async_job_map_shutting_down;
+ 
+@@ -153,7 +153,7 @@
+ void 
+ gnome_vfs_async_job_map_lock (void)
+ {
+-	pthread_mutex_lock (&async_job_map_lock);
++	gnome_vfs_pthread_recursive_mutex_lock (&async_job_map_lock);
+ 	async_job_map_locked = TRUE;
+ }
+ 
+@@ -161,7 +161,7 @@
+ gnome_vfs_async_job_map_unlock (void)
+ {
+ 	async_job_map_locked = FALSE;
+-	pthread_mutex_unlock (&async_job_map_lock);
++	gnome_vfs_pthread_recursive_mutex_unlock (&async_job_map_lock);
+ }
+ 
+ void 
+diff -Naur gnome-vfs-2.0.1.old/libgnomevfs/gnome-vfs-configuration.c gnome-vfs-2.0.1.new/libgnomevfs/gnome-vfs-configuration.c
+--- gnome-vfs-2.0.1.old/libgnomevfs/gnome-vfs-configuration.c	Tue Jan 29 04:10:07 2002
++++ gnome-vfs-2.0.1.new/libgnomevfs/gnome-vfs-configuration.c	Sun Jun 23 08:34:49 2002
+@@ -24,6 +24,7 @@
+ #include <config.h>
+ #include "gnome-vfs-configuration.h"
+ 
++#include <sys/types.h>
+ #include <dirent.h>
+ #include <errno.h>
+ #include <glib/ghash.h>
+diff -Naur gnome-vfs-2.0.1.old/libgnomevfs/gnome-vfs-job-queue.c gnome-vfs-2.0.1.new/libgnomevfs/gnome-vfs-job-queue.c
+--- gnome-vfs-2.0.1.old/libgnomevfs/gnome-vfs-job-queue.c	Sun Oct 28 11:15:59 2001
++++ gnome-vfs-2.0.1.new/libgnomevfs/gnome-vfs-job-queue.c	Sun Jun 23 08:34:49 2002
+@@ -62,7 +62,7 @@
+ /* This is the maximum number of threads reserved for higher priority jobs */
+ static float max_decrease;
+ 
+-static pthread_mutex_t job_queue_lock;
++static GnomeVFSMutex job_queue_lock;
+ static int running_job_count;
+ static int job_id;
+ 
+@@ -270,7 +270,7 @@
+ 		return;
+ 	}
+ 
+-	pthread_mutex_lock (&job_queue_lock);
++	gnome_vfs_pthread_recursive_mutex_lock (&job_queue_lock);
+ 	running_job_count--;
+ 	Q_DEBUG (("job finished;\t\t\t\t       %d jobs running, %d waiting\n",
+ 		 running_job_count,
+@@ -287,10 +287,10 @@
+ 				 job_to_run->priority,
+ 				 running_job_count,
+ 				 job_queue_length));
+-			pthread_mutex_unlock (&job_queue_lock);
++			gnome_vfs_pthread_recursive_mutex_unlock (&job_queue_lock);
+ 			gnome_vfs_job_create_slave (job_to_run);
+ 		} else {
+-			pthread_mutex_unlock (&job_queue_lock);
++			gnome_vfs_pthread_recursive_mutex_unlock (&job_queue_lock);
+ 			Q_DEBUG (("waiting job is too low priority (%2d) to start;"
+ 				 " %d jobs running, %d waiting\n",
+ 				 job_to_run->priority,
+@@ -298,7 +298,7 @@
+ 				 job_queue_length));
+ 		}
+ 	} else {
+-		pthread_mutex_unlock (&job_queue_lock);
++		gnome_vfs_pthread_recursive_mutex_unlock (&job_queue_lock);
+ 		Q_DEBUG (("the queue is empty;\t\t\t       %d jobs running\n", running_job_count));
+ 	}
+ }
+@@ -306,7 +306,7 @@
+ gboolean
+ gnome_vfs_job_schedule (GnomeVFSJob *job)
+ {
+-	pthread_mutex_lock (&job_queue_lock);
++	gnome_vfs_pthread_recursive_mutex_lock (&job_queue_lock);
+       	if (!job_can_start (job->priority)) {
+ 	  	job_queue_add (job);
+ 		Q_DEBUG (("adding a %2d priority job to the queue;"
+@@ -314,14 +314,14 @@
+ 			 job->priority,
+ 			 running_job_count,
+ 			 job_queue_length));
+-		pthread_mutex_unlock (&job_queue_lock);
++		gnome_vfs_pthread_recursive_mutex_unlock (&job_queue_lock);
+ 	} else {
+ 		running_job_count++;
+ 		Q_DEBUG (("starting a %2d priority job;\t\t       %d jobs running, %d waiting\n",
+ 			job->priority,
+ 			running_job_count,
+ 			job_queue_length));
+-		pthread_mutex_unlock (&job_queue_lock);
++		gnome_vfs_pthread_recursive_mutex_unlock (&job_queue_lock);
+ 		gnome_vfs_job_create_slave (job);
+ 	}
+ 	return TRUE;
+@@ -335,11 +335,11 @@
+ 			   LIMIT_FUNCTION_LOWER_BOUND);
+ 		return;
+ 	}
+-	pthread_mutex_lock (&job_queue_lock);
++	gnome_vfs_pthread_recursive_mutex_lock (&job_queue_lock);
+ 	thread_count_limit = limit;
+ 	max_decrease = (float)thread_count_limit - LIMIT_FUNCTION_LOWER_BOUND;
+ 	Q_DEBUG (("changing the thread count limit to %d\n", limit));
+-	pthread_mutex_unlock (&job_queue_lock);
++	gnome_vfs_pthread_recursive_mutex_unlock (&job_queue_lock);
+ }
+ 
+ int
+diff -Naur gnome-vfs-2.0.1.old/libgnomevfs/gnome-vfs-job.c gnome-vfs-2.0.1.new/libgnomevfs/gnome-vfs-job.c
+--- gnome-vfs-2.0.1.old/libgnomevfs/gnome-vfs-job.c	Tue Oct 16 03:18:57 2001
++++ gnome-vfs-2.0.1.new/libgnomevfs/gnome-vfs-job.c	Sun Jun 23 08:34:49 2002
+@@ -1676,8 +1676,8 @@
+ 
+ void
+ gnome_vfs_dispatch_module_callback (GnomeVFSAsyncModuleCallback callback,
+-				    gconstpointer in, size_t in_size,
+-				    gpointer out, size_t out_size,
++				    gconstpointer in, gsize in_size,
++				    gpointer out, gsize out_size,
+ 				    gpointer user_data,
+ 				    GnomeVFSModuleCallbackResponse response,
+ 				    gpointer response_data)
+diff -Naur gnome-vfs-2.0.1.old/libgnomevfs/gnome-vfs-mime.c gnome-vfs-2.0.1.new/libgnomevfs/gnome-vfs-mime.c
+--- gnome-vfs-2.0.1.old/libgnomevfs/gnome-vfs-mime.c	Wed Apr 24 21:20:36 2002
++++ gnome-vfs-2.0.1.new/libgnomevfs/gnome-vfs-mime.c	Sun Jun 23 08:34:49 2002
+@@ -81,6 +81,31 @@
+ #endif /* G_LOCK_DEFINE_STATIC */
+ 
+ 
++#ifndef HAVE_STRTOK_R
++static char *
++strtok_r (char *s, const char *delim, char **save_ptr)
++{
++	char *token;
++
++	if (s == NULL)
++		s = *save_ptr;
++
++	s += strspn (s, delim);
++	if (*s == '\0')
++		return NULL;
++
++	token = s;
++	s = strpbrk (token, delim);
++	if (s == NULL) {
++		*save_ptr = strchr (token, '\0');
++	} else {
++		*s = '\0';
++		*save_ptr = s + 1;
++	}
++	return token;
++}
++#endif
++
+ static char *
+ get_priority (char *def, int *priority)
+ {
+diff -Naur gnome-vfs-2.0.1.old/libgnomevfs/gnome-vfs-pthread.c gnome-vfs-2.0.1.new/libgnomevfs/gnome-vfs-pthread.c
+--- gnome-vfs-2.0.1.old/libgnomevfs/gnome-vfs-pthread.c	Tue Oct 16 03:18:57 2001
++++ gnome-vfs-2.0.1.new/libgnomevfs/gnome-vfs-pthread.c	Sun Jun 23 08:34:49 2002
+@@ -16,7 +16,9 @@
+ 	return TRUE;
+ }
+ 
+-int 
++#ifdef PTHREAD_MUTEX_RECURSIVE
++
++int
+ gnome_vfs_pthread_recursive_mutex_init (pthread_mutex_t *mutex)
+ {
+ 	pthread_mutexattr_t attr;
+@@ -30,3 +32,55 @@
+ 	return result;
+ }
+ 
++#else /* ! PTHREAD_MUTEX_RECURSIVE */
++
++int 
++gnome_vfs_pthread_recursive_mutex_init (GnomeVFSMutex *mutex)
++{
++	if (pthread_mutex_init (&mutex->id, NULL) == -1)
++		return -1;
++	mutex->recursive = 0;
++	mutex->owner = NULL;
++
++	return 0;
++}
++
++int
++gnome_vfs_pthread_recursive_mutex_lock (GnomeVFSMutex *mutex)
++{
++	pthread_t self;
++
++	self = pthread_self ();
++	if (mutex->owner == self) {
++		mutex->recursive++;
++	} else {
++		if (pthread_mutex_lock (&mutex->id) == -1)
++			return -1;
++		mutex->owner = self;
++		mutex->recursive = 0;
++	}
++	return 0;
++}
++
++int
++gnome_vfs_pthread_recursive_mutex_unlock (GnomeVFSMutex *mutex)
++{
++	if (mutex->owner == pthread_self ()) {
++		if (mutex->recursive) {
++			mutex->recursive--;
++		} else {
++			mutex->owner = 0;
++			if (pthread_mutex_unlock (&mutex->id) == -1)
++				return -1;
++		}
++	}
++	return 0;
++}
++
++int
++gnome_vfs_pthread_recursive_mutex_destroy (GnomeVFSMutex *mutex)
++{
++	return pthread_mutex_destroy (mutex);
++}
++
++#endif /* ! PTHREAD_MUTEX_RECURSIVE */
+diff -Naur gnome-vfs-2.0.1.old/libgnomevfs/gnome-vfs-pthread.h gnome-vfs-2.0.1.new/libgnomevfs/gnome-vfs-pthread.h
+--- gnome-vfs-2.0.1.old/libgnomevfs/gnome-vfs-pthread.h	Fri Aug  3 09:40:21 2001
++++ gnome-vfs-2.0.1.new/libgnomevfs/gnome-vfs-pthread.h	Sun Jun 23 08:34:49 2002
+@@ -4,7 +4,24 @@
+ #include <glib/gtypes.h>
+ #include <pthread.h>
+ 
++#ifdef PTHREAD_MUTEX_RECURSIVE
++#  define GnomeVFSRecursiveMutex pthread_mutex_t
++#  define gnome_vfs_pthread_recursive_mutex_lock     pthread_mutex_lock
++#  define gnome_vfs_pthread_recursive_mutex_unlock   pthread_mutex_unlock
++#  define gnome_vfs_pthread_recursive_mutex_destroy  pthread_mutex_destroy
++#else
++typedef struct {
++	pthread_mutex_t	id;
++	int		recursive;
++	pthread_t	owner;
++} GnomeVFSMutex;
++
++int      gnome_vfs_pthread_recursive_mutex_lock    (GnomeVFSMutex *mutex);
++int      gnome_vfs_pthread_recursive_mutex_unlock  (GnomeVFSMutex *mutex);
++int      gnome_vfs_pthread_recursive_mutex_destroy (GnomeVFSMutex *mutex);
++#endif /* ! PTHREAD_MUTEX_RECURSIVE */
++
+ gboolean gnome_vfs_pthread_init                 (gboolean          init_deps);
+-int      gnome_vfs_pthread_recursive_mutex_init (pthread_mutex_t *);
++int      gnome_vfs_pthread_recursive_mutex_init (GnomeVFSMutex    *mutex);
+ 
+ #endif
+diff -Naur gnome-vfs-2.0.1.old/libgnomevfs/gnome-vfs-thread-pool.c gnome-vfs-2.0.1.new/libgnomevfs/gnome-vfs-thread-pool.c
+--- gnome-vfs-2.0.1.old/libgnomevfs/gnome-vfs-thread-pool.c	Tue Oct 16 03:18:57 2001
++++ gnome-vfs-2.0.1.new/libgnomevfs/gnome-vfs-thread-pool.c	Sun Jun 23 08:34:49 2002
+@@ -48,7 +48,7 @@
+ 	volatile gboolean exit_requested;
+ } GnomeVFSThreadState;
+ 
+-static pthread_mutex_t thread_list_lock;
++static GnomeVFSMutex thread_list_lock;
+ 
+ static const int MAX_AVAILABLE_THREADS = 20; 
+ static GList *available_threads;
+@@ -113,7 +113,7 @@
+ 	state->entry_point = NULL;
+ 	pthread_mutex_unlock (&state->waiting_for_work_lock);
+ 
+-	pthread_mutex_lock (&thread_list_lock);
++	gnome_vfs_pthread_recursive_mutex_lock (&thread_list_lock);
+ 
+ 	job_limit = gnome_vfs_async_get_job_limit();
+ 	if (thread_count < MIN(MAX_AVAILABLE_THREADS, job_limit)) {
+@@ -127,7 +127,7 @@
+ 			      (guint)state->thread_id, thread_count));
+ 	}
+ 
+-	pthread_mutex_unlock (&thread_list_lock);
++	gnome_vfs_pthread_recursive_mutex_unlock (&thread_list_lock);
+ 	
+ 	return !delete_thread;
+ }
+@@ -202,7 +202,7 @@
+ {
+ 	GnomeVFSThreadState *available_thread;
+ 	
+-	pthread_mutex_lock (&thread_list_lock);
++	gnome_vfs_pthread_recursive_mutex_lock (&thread_list_lock);
+ 	if (available_threads == NULL) {
+ 		/* Thread pool empty, create a new thread. */
+ 		available_thread = new_thread_state ();
+@@ -214,7 +214,7 @@
+ 		DEBUG_PRINT (("got thread %x from the pool, %d threads left\n",
+ 			(guint)available_thread->thread_id, thread_count));
+ 	}
+-	pthread_mutex_unlock (&thread_list_lock);
++	gnome_vfs_pthread_recursive_mutex_unlock (&thread_list_lock);
+ 	
+ 	if (available_thread == NULL) {
+ 		/* Failed to allocate a new thread. */
+@@ -246,13 +246,13 @@
+ 	for (;;) {
+ 		thread_state = NULL;
+ 		
+-		pthread_mutex_lock (&thread_list_lock);
++		gnome_vfs_pthread_recursive_mutex_lock (&thread_list_lock);
+ 		if (available_threads != NULL) {
+ 			/* Pick the next thread from the list. */
+ 			thread_state = (GnomeVFSThreadState *)available_threads->data;
+ 			available_threads = g_list_remove (available_threads, thread_state);
+ 		}
+-		pthread_mutex_unlock (&thread_list_lock);
++		gnome_vfs_pthread_recursive_mutex_unlock (&thread_list_lock);
+ 		
+ 		if (thread_state == NULL) {
+ 			break;
+diff -Naur gnome-vfs-2.0.1.old/libgnomevfs/strptime.c gnome-vfs-2.0.1.new/libgnomevfs/strptime.c
+--- gnome-vfs-2.0.1.old/libgnomevfs/strptime.c	Thu Jan  1 09:00:00 1970
++++ gnome-vfs-2.0.1.new/libgnomevfs/strptime.c	Sun Jun 23 08:34:49 2002
+@@ -0,0 +1,366 @@
++/*
++ * Copyright (c) 1994 Powerdog Industries.  All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, without
++ * modification, are permitted provided that the following conditions
++ * are met:
++ * 1. Redistributions of source code must retain the above copyright
++ *    notice, this list of conditions and the following disclaimer.
++ * 2. Redistributions in binary form must reproduce the above copyright
++ *    notice, this list of conditions and the following disclaimer
++ *    in the documentation and/or other materials provided with the
++ *    distribution.
++ * 3. All advertising materials mentioning features or use of this
++ *    software must display the following acknowledgement:
++ *	This product includes software developed by Powerdog Industries.
++ * 4. The name of Powerdog Industries may not be used to endorse or
++ *    promote products derived from this software without specific prior
++ *    written permission.
++ *
++ * THIS SOFTWARE IS PROVIDED BY POWERDOG INDUSTRIES ``AS IS'' AND ANY
++ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
++ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE POWERDOG INDUSTRIES BE
++ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
++ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
++ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
++ * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
++ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
++ * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
++ * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++#ifndef HAVE_STRPTIME
++
++#include <time.h>
++#include <ctype.h>
++#include <locale.h>
++#include <string.h>
++
++#define asizeof(a)	(sizeof (a) / sizeof ((a)[0]))
++
++struct dtconv {
++    char	*abbrev_month_names[12];
++    char	*month_names[12];
++    char	*abbrev_weekday_names[7];
++    char	*weekday_names[7];
++    char	*time_format;
++    char	*sdate_format;
++    char	*dtime_format;
++    char	*am_string;
++    char	*pm_string;
++    char	*ldate_format;
++};
++
++static struct dtconv	En_US = {
++    { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
++      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" },
++    { "January", "February", "March", "April",
++      "May", "June", "July", "August",
++      "September", "October", "November", "December" },
++    { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" },
++    { "Sunday", "Monday", "Tuesday", "Wednesday",
++      "Thursday", "Friday", "Saturday" },
++    "%H:%M:%S",
++    "%m/%d/%y",
++    "%a %b %e %T %Z %Y",
++    "AM",
++    "PM",
++    "%A, %B, %e, %Y"
++};
++
++#if defined(__APPLE__)
++__private_extern__
++#endif
++char	*
++strptime(char *buf, char *fmt, struct tm *tm)
++{
++    char c, *ptr;
++    int	i, len = 0;
++
++    ptr = fmt;
++    while (*ptr != 0)
++    {
++	if (*buf == 0)
++	    break;
++
++	c = *ptr++;
++
++	if (c != '%')
++	{
++	    if (isspace(c))
++		while (*buf != 0 && isspace(*buf))
++		    buf++;
++	    else if (c != *buf++)
++		return 0;
++	    continue;
++	}
++
++	c = *ptr++;
++	switch (c)
++	{
++	    case 0:
++	    case '%':
++		if (*buf++ != '%')
++		    return 0;
++		break;
++
++	    case 'C':
++		buf = strptime(buf, En_US.ldate_format, tm);
++		if (buf == 0)
++		    return 0;
++		break;
++
++	    case 'c':
++		buf = strptime(buf, "%x %X", tm);
++		if (buf == 0)
++		    return 0;
++		break;
++
++	    case 'D':
++		buf = strptime(buf, "%m/%d/%y", tm);
++		if (buf == 0)
++		    return 0;
++		break;
++
++	    case 'R':
++		buf = strptime(buf, "%H:%M", tm);
++		if (buf == 0)
++		    return 0;
++		break;
++
++	    case 'r':
++		buf = strptime(buf, "%I:%M:%S %p", tm);
++		if (buf == 0)
++		    return 0;
++		break;
++
++	    case 'T':
++		buf = strptime(buf, "%H:%M:%S", tm);
++		if (buf == 0)
++		    return 0;
++		break;
++
++	    case 'X':
++		buf = strptime(buf, En_US.time_format, tm);
++		if (buf == 0)
++		    return 0;
++		break;
++
++	    case 'x':
++		buf = strptime(buf, En_US.sdate_format, tm);
++		if (buf == 0)
++		    return 0;
++		break;
++
++	    case 'j':
++		if (!isdigit(*buf))
++		    return 0;
++
++		for (i = 0; *buf != 0 && isdigit(*buf); buf++)
++		{
++		    i *= 10;
++		    i += *buf - '0';
++		}
++		if (i > 365)
++		    return 0;
++
++		tm->tm_yday = i;
++		break;
++
++	    case 'M':
++	    case 'S':
++		if (*buf == 0 || isspace(*buf))
++		    break;
++
++		if (!isdigit(*buf))
++		    return 0;
++
++		for (i = 0; *buf != 0 && isdigit(*buf); buf++)
++		{
++		    i *= 10;
++		    i += *buf - '0';
++		}
++		if (i > 59)
++		    return 0;
++
++		if (c == 'M')
++		    tm->tm_min = i;
++		else
++		    tm->tm_sec = i;
++
++		if (*buf != 0 && isspace(*buf))
++		    while (*ptr != 0 && !isspace(*ptr))
++			ptr++;
++		break;
++
++	    case 'H':
++	    case 'I':
++	    case 'k':
++	    case 'l':
++		if (!isdigit(*buf))
++		    return 0;
++
++		for (i = 0; *buf != 0 && isdigit(*buf); buf++)
++		{
++		    i *= 10;
++		    i += *buf - '0';
++		}
++		if (c == 'H' || c == 'k') {
++		    if (i > 23)
++			return 0;
++		} else if (i > 11)
++		    return 0;
++
++		tm->tm_hour = i;
++
++		if (*buf != 0 && isspace(*buf))
++		    while (*ptr != 0 && !isspace(*ptr))
++			ptr++;
++		break;
++
++	    case 'p':
++		len = strlen(En_US.am_string);
++		if (strncasecmp(buf, En_US.am_string, len) == 0)
++		{
++		    if (tm->tm_hour > 12)
++			return 0;
++		    if (tm->tm_hour == 12)
++			tm->tm_hour = 0;
++		    buf += len;
++		    break;
++		}
++
++		len = strlen(En_US.pm_string);
++		if (strncasecmp(buf, En_US.pm_string, len) == 0)
++		{
++		    if (tm->tm_hour > 12)
++			return 0;
++		    if (tm->tm_hour != 12)
++			tm->tm_hour += 12;
++		    buf += len;
++		    break;
++		}
++
++		return 0;
++
++	    case 'A':
++	    case 'a':
++		for (i = 0; i < asizeof(En_US.weekday_names); i++)
++		{
++		    len = strlen(En_US.weekday_names[i]);
++		    if (strncasecmp(buf,
++				      En_US.weekday_names[i],
++				      len) == 0)
++			break;
++
++		    len = strlen(En_US.abbrev_weekday_names[i]);
++		    if (strncasecmp(buf,
++				      En_US.abbrev_weekday_names[i],
++				      len) == 0)
++			break;
++		}
++		if (i == asizeof(En_US.weekday_names))
++		    return 0;
++
++		tm->tm_wday = i;
++		buf += len;
++		break;
++
++	    case 'd':
++	    case 'e':
++		if (!isdigit(*buf))
++		    return 0;
++
++		for (i = 0; *buf != 0 && isdigit(*buf); buf++)
++		{
++		    i *= 10;
++		    i += *buf - '0';
++		}
++		if (i > 31)
++		    return 0;
++
++		tm->tm_mday = i;
++
++		if (*buf != 0 && isspace(*buf))
++		    while (*ptr != 0 && !isspace(*ptr))
++			ptr++;
++		break;
++
++	    case 'B':
++	    case 'b':
++	    case 'h':
++		for (i = 0; i < asizeof(En_US.month_names); i++)
++		{
++		    len = strlen(En_US.month_names[i]);
++		    if (strncasecmp(buf,
++				      En_US.month_names[i],
++				      len) == 0)
++			break;
++
++		    len = strlen(En_US.abbrev_month_names[i]);
++		    if (strncasecmp(buf,
++				      En_US.abbrev_month_names[i],
++				      len) == 0)
++			break;
++		}
++		if (i == asizeof(En_US.month_names))
++		    return 0;
++
++		tm->tm_mon = i;
++		buf += len;
++		break;
++
++	    case 'm':
++		if (!isdigit(*buf))
++		    return 0;
++
++		for (i = 0; *buf != 0 && isdigit(*buf); buf++)
++		{
++		    i *= 10;
++		    i += *buf - '0';
++		}
++		if (i < 1 || i > 12)
++		    return 0;
++
++		tm->tm_mon = i - 1;
++
++		if (*buf != 0 && isspace(*buf))
++		    while (*ptr != 0 && !isspace(*ptr))
++			ptr++;
++		break;
++
++	    case 'Y':
++	    case 'y':
++		if (*buf == 0 || isspace(*buf))
++		    break;
++
++		if (!isdigit(*buf))
++		    return 0;
++
++		for (i = 0; *buf != 0 && isdigit(*buf); buf++)
++		{
++		    i *= 10;
++		    i += *buf - '0';
++		}
++		if (c == 'y' && i < 69)	/* Unix Epoch pivot year */
++		    i += 100;
++		if (c == 'Y')
++		    i -= 1900;
++		if (i < 0)
++		    return 0;
++
++		tm->tm_year = i;
++
++		if (*buf != 0 && isspace(*buf))
++		    while (*ptr != 0 && !isspace(*ptr))
++			ptr++;
++		break;
++	}
++    }
++
++    return buf;
++}
++
++#endif /* !HAVE_STRPTIME */
++
+diff -Naur gnome-vfs-2.0.1.old/ltmain.sh gnome-vfs-2.0.1.new/ltmain.sh
+--- gnome-vfs-2.0.1.old/ltmain.sh	Fri Jun 21 03:53:08 2002
++++ gnome-vfs-2.0.1.new/ltmain.sh	Wed Jun 26 19:36:49 2002
+@@ -2896,6 +2896,11 @@
+ 	if test -n "$export_symbols" && test -n "$archive_expsym_cmds"; then
+ 	  eval cmds=\"$archive_expsym_cmds\"
+ 	else
++	  if test "x$verstring" = "x0.0"; then
++	    tmp_verstring=
++	  else
++	    tmp_verstring="$verstring"
++	  fi
+ 	  eval cmds=\"$archive_cmds\"
+ 	fi
+ 	IFS="${IFS= 	}"; save_ifs="$IFS"; IFS='~'
+@@ -3950,10 +3955,10 @@
+ 
+ # Directory that this library needs to be installed in:
+ libdir='$install_libdir'"
+-	  if test "$installed" = no && test $need_relink = yes; then
+-	    $echo >> $output "\
+-relink_command=\"$relink_command\""
+-	  fi
++#	  if test "$installed" = no && test $need_relink = yes; then
++#	    $echo >> $output "\
++#relink_command=\"$relink_command\""
++#	  fi
+ 	done
+       fi
+ 
+diff -Naur gnome-vfs-2.0.1.old/modules/Makefile.in gnome-vfs-2.0.1.new/modules/Makefile.in
+--- gnome-vfs-2.0.1.old/modules/Makefile.in	Fri Jun 21 04:08:50 2002
++++ gnome-vfs-2.0.1.new/modules/Makefile.in	Sun Jun 23 08:34:49 2002
+@@ -171,7 +171,7 @@
+ NULL = 
+ SUBDIRS = extfs
+ 
+-INCLUDES =  	-I$(top_srcdir)					-I$(top_builddir)				$(MODULES_XML_GCONF_CFLAGS)			$(MODULES_FILE_CFLAGS) 				$(LIBEFS_CFLAGS)				$(VFS_CFLAGS)					-D_FILE_OFFSET_BITS=64				-D_BSD_SOURCE					-D_GNU_SOURCE					-D_LARGEFILE64_SOURCE				-D_POSIX_PTHREAD_SEMANTICS			-D_REENTRANT					-DG_DISABLE_DEPRECATED				-DDATADIR=\"$(datadir)\"			-DPREFIX=\"$(prefix)\"				-DSYSCONFDIR=\"$(sysconfdir)\"			-DG_LOG_DOMAIN=\"gnome-vfs-modules\"		$(NULL)
++INCLUDES =  	-I$(top_srcdir)					-I$(top_builddir)				$(MODULES_XML_GCONF_CFLAGS)			$(MODULES_FILE_CFLAGS) 				$(LIBEFS_CFLAGS)				$(VFS_CFLAGS)					-D_FILE_OFFSET_BITS=64				-D_BSD_SOURCE					-D_GNU_SOURCE					-D_LARGEFILE64_SOURCE				-D_POSIX_PTHREAD_SEMANTICS			-D_REENTRANT					-DG_DISABLE_DEPRECATED				-DDATADIR=\"$(datadir)\"			-DPREFIX=\"$(prefix)\"				-DLIBDIR=\"$(libdir)\" -DSYSCONFDIR=\"$(sysconfdir)\"			-DG_LOG_DOMAIN=\"gnome-vfs-modules\"		$(NULL)
+ 
+ 
+ EXTRA_DIST =  	applications.vfolder-info.in			preferences.vfolder-info.in			default-modules.conf				cdda-module.conf				ssl-modules.conf
+@@ -181,7 +181,7 @@
+ @BUILD_CDEMENU_MODULE_TRUE@CDEMENU_LTLIBS = libcdemenu-desktop.la
+ @BUILD_CDEMENU_MODULE_FALSE@CDEMENU_LTLIBS = 
+ 
+-module_flags = -export_dynamic -avoid-version
++module_flags = -export_dynamic -avoid-version -module
+ modulesdir = $(libdir)/gnome-vfs-2.0/modules
+ 
+ modules_LTLIBRARIES =  	$(CDDA_LTLIBS)					libdesktop.la					libvfolder-desktop.la				libextfs.la					libfile.la					libnntp.la					libvfs-test.la					$(HTTP_LTLIBS)					libbzip2.la					libgzip.la					libftp.la					libvfs-pipe.la					libvfs-translate.la				$(CDEMENU_LTLIBS)                       	libssh.la					libtar.la					$(NULL)
+diff -Naur gnome-vfs-2.0.1.old/modules/file-method.c gnome-vfs-2.0.1.new/modules/file-method.c
+--- gnome-vfs-2.0.1.old/modules/file-method.c	Fri Jun 14 04:24:04 2002
++++ gnome-vfs-2.0.1.new/modules/file-method.c	Sun Jun 23 08:34:49 2002
+@@ -36,6 +36,7 @@
+ #include <libgnomevfs/gnome-vfs-utils.h>
+ #include <libgnomevfs/gnome-vfs-mime.h>
+ #include <libgnomevfs/gnome-vfs-monitor-private.h>
++#include <sys/types.h>
+ #include <dirent.h>
+ #include <errno.h>
+ #include <fcntl.h>
+@@ -46,13 +47,46 @@
+ #include <stdlib.h>
+ #include <string.h>
+ #include <sys/stat.h>
+-#include <sys/types.h>
+ #include <unistd.h>
+ #include <utime.h>
+ #include <string.h>
+ #ifdef HAVE_FAM
+ #include <fam.h>
+ #include <glib/giochannel.h>
++#endif
++
++#ifndef HAVE_READDIR_R
++static int
++readdir_r (DIR *dirp, struct dirent *entry, struct dirent **result)
++{
++	static int readdir_mutex_inited = 0;
++	static pthread_mutex_t readdir_mutex;
++	struct dirent *tmp;
++	int old_errno;
++
++	if (!readdir_mutex_inited) {
++		readdir_mutex_inited = 1;
++		pthread_mutex_init (&readdir_mutex, NULL);
++	}
++
++	old_errno = errno;
++	errno = 0;
++
++	pthread_mutex_lock (&readdir_mutex);
++	if ((tmp = readdir (dirp)) != NULL)
++		memcpy (entry, tmp, sizeof (*entry));
++	pthread_mutex_unlock (&readdir_mutex);
++
++	if (errno && !tmp)
++		return errno;
++
++	if (!errno)
++		errno = old_errno;
++
++	*result = (tmp) ? entry : NULL;
++
++	return 0;
++}
+ #endif
+ 
+ #ifdef HAVE_FAM
+diff -Naur gnome-vfs-2.0.1.old/modules/fstype.c gnome-vfs-2.0.1.new/modules/fstype.c
+--- gnome-vfs-2.0.1.old/modules/fstype.c	Tue May  7 09:45:59 2002
++++ gnome-vfs-2.0.1.new/modules/fstype.c	Sun Jun 23 08:34:49 2002
+@@ -352,7 +352,7 @@
+   char *p;
+ 
+   if (S_ISLNK (statp->st_mode))
+-    p = dirname (relpath);
++    p = g_path_get_dirname (relpath);
+   else
+     p = relpath;
+ 
+diff -Naur gnome-vfs-2.0.1.old/modules/http-cache.c gnome-vfs-2.0.1.new/modules/http-cache.c
+--- gnome-vfs-2.0.1.old/modules/http-cache.c	Sat Aug  4 04:04:20 2001
++++ gnome-vfs-2.0.1.new/modules/http-cache.c	Sun Jun 23 08:34:49 2002
+@@ -30,7 +30,7 @@
+ #include <glib/gstrfuncs.h>
+ #include <libgnomevfs/gnome-vfs-method.h>
+ #include <libgnomevfs/gnome-vfs-utils.h>
+-#include <pthread.h>
++#include <libgnomevfs/gnome-vfs-pthread.h>
+ #include <string.h>
+ 
+ /* Cache file info for 5 minutes */
+@@ -39,7 +39,7 @@
+ #define US_CACHE_DIRECTORY (1000 * 500)
+ 
+ /* Mutex for cache data structures */
+-static pthread_mutex_t cache_rlock;
++static GnomeVFSMutex cache_rlock;
+ 
+ /* Hash maps char * URI ---> FileInfoCacheEntry */
+ static GHashTable * gl_file_info_cache = NULL;
+@@ -69,16 +69,7 @@
+ void
+ http_cache_init (void)
+ {
+-	pthread_mutexattr_t attr;
+-
+-	/* Initialize cache_rlock to be a recursive mutex. (Not using the static
+-	 * recursive mutex initializer macro here because it is not too portable.
+-	 */
+-	pthread_mutexattr_init (&attr);
+-	pthread_mutexattr_settype (&attr, PTHREAD_MUTEX_RECURSIVE);
+-	pthread_mutex_init (&cache_rlock, &attr);
+-	pthread_mutexattr_destroy (&attr);
+-
++	gnome_vfs_pthread_recursive_mutex_init (&cache_rlock);
+ 	gl_file_info_cache = g_hash_table_new (g_str_hash, g_str_equal);
+ }
+ 
+@@ -87,7 +78,7 @@
+ {
+ 	GList *node, *node_next;
+ 
+-	pthread_mutex_lock (&cache_rlock);
++	gnome_vfs_pthread_recursive_mutex_lock (&cache_rlock);
+ 
+ 	for (	node = g_list_first (gl_file_info_cache_list) ; 
+ 		node != NULL; 
+@@ -101,9 +92,9 @@
+ 	
+ 	g_hash_table_destroy (gl_file_info_cache);
+ 
+-	pthread_mutex_unlock (&cache_rlock);
++	gnome_vfs_pthread_recursive_mutex_unlock (&cache_rlock);
+ 
+-	pthread_mutex_destroy (&cache_rlock);
++	gnome_vfs_pthread_recursive_mutex_destroy (&cache_rlock);
+ 
+ }
+ 
+@@ -112,7 +103,7 @@
+ {
+ 	FileInfoCacheEntry *ret;
+ 
+-	pthread_mutex_lock (&cache_rlock);
++	gnome_vfs_pthread_recursive_mutex_lock (&cache_rlock);
+ 
+ 	ret = g_new0 (FileInfoCacheEntry, 1);
+ 	ret->create_time = http_util_get_utime();
+@@ -127,7 +118,7 @@
+ 		gl_file_info_cache_list_last = ret->my_list_node;
+ 	}
+ 
+-	pthread_mutex_unlock (&cache_rlock);
++	gnome_vfs_pthread_recursive_mutex_unlock (&cache_rlock);
+ 
+ 	return ret;
+ }
+@@ -141,7 +132,7 @@
+ 	if (entry) {
+ 		GList *node;
+ 		
+-		pthread_mutex_lock (&cache_rlock);
++		gnome_vfs_pthread_recursive_mutex_lock (&cache_rlock);
+ 
+ 		g_hash_table_remove (gl_file_info_cache, entry->uri_string);
+ 		g_free (entry->uri_string);	/* This is the same string as in the hash table */
+@@ -162,7 +153,7 @@
+ 		
+ 		g_free (entry);
+ 
+-		pthread_mutex_unlock (&cache_rlock);
++		gnome_vfs_pthread_recursive_mutex_unlock (&cache_rlock);
+ 	}
+ }
+ 
+@@ -172,7 +163,7 @@
+ 	GList *node, *node_previous;
+ 	utime_t utime_expire;
+ 
+-	pthread_mutex_lock (&cache_rlock);
++	gnome_vfs_pthread_recursive_mutex_lock (&cache_rlock);
+ 
+ 	utime_expire = http_util_get_utime() - US_CACHE_FILE_INFO;
+ 
+@@ -187,7 +178,7 @@
+ 		http_cache_entry_free ((FileInfoCacheEntry *)(node->data));
+ 	}
+ 
+-	pthread_mutex_unlock (&cache_rlock);
++	gnome_vfs_pthread_recursive_mutex_unlock (&cache_rlock);
+ }
+ 
+ /* Note: doesn't bother trimming entries, so the check can fast */
+@@ -198,7 +189,7 @@
+ 	utime_t utime_expire;
+ 	GnomeVFSFileInfo *ret;
+ 
+-	pthread_mutex_lock (&cache_rlock);
++	gnome_vfs_pthread_recursive_mutex_lock (&cache_rlock);
+ 
+ 	utime_expire = http_util_get_utime() - US_CACHE_FILE_INFO;
+ 
+@@ -217,7 +208,7 @@
+ 	} else {
+ 		ret = NULL;
+ 	}
+-	pthread_mutex_unlock (&cache_rlock);
++	gnome_vfs_pthread_recursive_mutex_unlock (&cache_rlock);
+ 	return ret;
+ }
+ 
+@@ -267,7 +258,7 @@
+ 	GList *child_file_info_list = NULL;
+ 	gboolean cache_incomplete;
+ 
+-	pthread_mutex_lock (&cache_rlock);
++	gnome_vfs_pthread_recursive_mutex_lock (&cache_rlock);
+ 
+ 	utime_expire = http_util_get_utime() - US_CACHE_DIRECTORY;
+ 
+@@ -325,7 +316,7 @@
+ 		}
+ 	}
+ 
+-	pthread_mutex_unlock (&cache_rlock);
++	gnome_vfs_pthread_recursive_mutex_unlock (&cache_rlock);
+ 
+ 	return ret;
+ }
+@@ -351,7 +342,7 @@
+ 	FileInfoCacheEntry *entry_existing;
+ 	FileInfoCacheEntry *entry;
+ 
+-	pthread_mutex_lock (&cache_rlock);
++	gnome_vfs_pthread_recursive_mutex_lock (&cache_rlock);
+ 
+ 	entry_existing = (FileInfoCacheEntry *)g_hash_table_lookup (gl_file_info_cache, uri_string);
+ 
+@@ -372,7 +363,7 @@
+ 
+ 	g_hash_table_insert (gl_file_info_cache, entry->uri_string, entry);
+ 
+-	pthread_mutex_unlock (&cache_rlock);
++	gnome_vfs_pthread_recursive_mutex_unlock (&cache_rlock);
+ 
+ 	return entry;
+ }
+@@ -394,7 +385,7 @@
+ 
+ 	http_cache_trim();
+ 
+-	pthread_mutex_lock (&cache_rlock);
++	gnome_vfs_pthread_recursive_mutex_lock (&cache_rlock);
+ 
+ 	uri_string = http_cache_uri_to_string (uri);
+ 
+@@ -426,7 +417,7 @@
+ 		parent_entry->has_filenames = TRUE;
+ 	}
+ 
+-	pthread_mutex_unlock (&cache_rlock);
++	gnome_vfs_pthread_recursive_mutex_unlock (&cache_rlock);
+ 
+ 	g_free (uri_string);
+ }
+@@ -445,7 +436,7 @@
+ {
+ 	FileInfoCacheEntry *entry;
+ 
+-	pthread_mutex_lock (&cache_rlock);
++	gnome_vfs_pthread_recursive_mutex_lock (&cache_rlock);
+ 
+ 	entry = (FileInfoCacheEntry *)g_hash_table_lookup (gl_file_info_cache, uri_string);
+ 
+@@ -455,7 +446,7 @@
+ 		http_cache_entry_free (entry);
+ 	}
+ 
+-	pthread_mutex_unlock (&cache_rlock);
++	gnome_vfs_pthread_recursive_mutex_unlock (&cache_rlock);
+ }
+ 
+ void
+@@ -479,7 +470,7 @@
+ {
+ 	FileInfoCacheEntry *entry;
+ 
+-	pthread_mutex_lock (&cache_rlock);
++	gnome_vfs_pthread_recursive_mutex_lock (&cache_rlock);
+ 
+ 	entry = (FileInfoCacheEntry *)g_hash_table_lookup (gl_file_info_cache, uri_string);
+ 
+@@ -498,7 +489,7 @@
+ 		http_cache_entry_free (entry);
+ 	}
+ 
+-	pthread_mutex_unlock (&cache_rlock);
++	gnome_vfs_pthread_recursive_mutex_unlock (&cache_rlock);
+ }
+ 
+ /* Invalidates entry and everything cached immediately beneath it */
