@@ -1,6 +1,6 @@
-diff -uNr mono-1.0.1/data/config.in mono-1.0.1-new/data/config.in
---- mono-1.0.1/data/config.in	Wed Jun 23 13:21:02 2004
-+++ mono-1.0.1-new/data/config.in	Wed Aug 25 10:55:01 2004
+diff -uNr mono-1.0.2/data/config.in mono-1.0.2-new/data/config.in
+--- mono-1.0.2/data/config.in	Wed Jun 23 13:21:02 2004
++++ mono-1.0.2-new/data/config.in	Wed Sep 22 10:01:00 2004
 @@ -7,4 +7,8 @@
  	<dllmap dll="odbc32.dll" target="libodbc@libsuffix@" />
  	<dllmap dll="oci" target="clntsh" />
@@ -10,127 +10,10 @@ diff -uNr mono-1.0.1/data/config.in mono-1.0.1-new/data/config.in
 +	<dllmap dll="gnomevfs-2" target="libgnomevfs-2.dylib"/>
 +	<dllmap dll="gtksourceview-1.0" target="libgtksourceview-1.0.dylib"/>
  </configuration>
-diff -uNr mono-1.0.1/libgc/include/gc_local_alloc.h mono-1.0.1-new/libgc/include/gc_local_alloc.h
---- mono-1.0.1/libgc/include/gc_local_alloc.h	Tue May 18 14:43:06 2004
-+++ mono-1.0.1-new/libgc/include/gc_local_alloc.h	Wed Aug 25 10:56:49 2004
-@@ -37,10 +37,7 @@
-  * These routines normally require an explicit call to GC_init(), though
-  * that may be done from a constructor function.
-  */
--
--#ifndef GC_LOCAL_ALLOC_H
--#define GC_LOCAL_ALLOC_H
--
-+ 
- #ifndef _GC_H
- #   include "gc.h"
- #endif
-@@ -49,6 +46,9 @@
- #   include "gc_gcj.h"
- #endif
- 
-+#ifndef GC_LOCAL_ALLOC_H
-+#define GC_LOCAL_ALLOC_H
-+
- /* We assume ANSI C for this interface.	*/
- 
- GC_PTR GC_local_malloc(size_t bytes);
-@@ -58,6 +58,8 @@
- #if defined(GC_GCJ_SUPPORT)
-   GC_PTR GC_local_gcj_malloc(size_t bytes,
- 			     void * ptr_to_struct_containing_descr);
-+  GC_PTR GC_local_gcj_fast_malloc(size_t lw,
-+			     void * ptr_to_struct_containing_descr);
- #endif
- 
- # ifdef GC_DEBUG
-@@ -66,12 +68,14 @@
- #   define GC_LOCAL_MALLOC_ATOMIC(s) GC_debug_malloc_atomic(s,GC_EXTRAS)
- #   ifdef GC_GCJ_SUPPORT
- #	define GC_LOCAL_GCJ_MALLOC(s,d) GC_debug_gcj_malloc(s,d,GC_EXTRAS)
-+#	define GC_LOCAL_GCJ_FAST_MALLOC(s,d) GC_debug_gcj_fast_malloc(s,d,GC_EXTRAS)
- #   endif
- # else
- #   define GC_LOCAL_MALLOC(s) GC_local_malloc(s)
- #   define GC_LOCAL_MALLOC_ATOMIC(s) GC_local_malloc_atomic(s)
- #   ifdef GC_GCJ_SUPPORT
- #	define GC_LOCAL_GCJ_MALLOC(s,d) GC_local_gcj_malloc(s,d)
-+#	define GC_LOCAL_GCJ_FAST_MALLOC(s,d) GC_local_gcj_fast_malloc(s,d)
- #   endif
- # endif
- 
-@@ -82,7 +86,9 @@
- #   define GC_MALLOC_ATOMIC(s) GC_LOCAL_MALLOC_ATOMIC(s)
- #   ifdef GC_GCJ_SUPPORT
- #	undef GC_GCJ_MALLOC
-+#	undef GC_GCJ_FAST_MALLOC
- # 	define GC_GCJ_MALLOC(s,d) GC_LOCAL_GCJ_MALLOC(s,d)
-+# 	define GC_GCJ_FAST_MALLOC(s,d) GC_LOCAL_GCJ_FAST_MALLOC(s,d)
- #   endif
- # endif
- 
-diff -uNr mono-1.0.1/libgc/pthread_support.c mono-1.0.1-new/libgc/pthread_support.c
---- mono-1.0.1/libgc/pthread_support.c	Tue May 18 15:26:46 2004
-+++ mono-1.0.1-new/libgc/pthread_support.c	Wed Aug 25 10:56:40 2004
-@@ -168,6 +168,7 @@
- 
- /* We don't really support thread-local allocation with DBG_HDRS_ALL */
- 
-+static
- #ifdef USE_COMPILER_TLS
-   __thread
- #endif
-@@ -390,6 +391,46 @@
- 	    return GC_local_gcj_malloc(bytes, ptr_to_struct_containing_descr);
- 	}
-     }
-+}
-+
-+/* Similar to GC_local_gcj_malloc, but the size is in words, and we don't	*/
-+/* adjust it.  The size is assumed to be such that it can be 	*/
-+/* allocated as a small object.					*/
-+void * GC_local_gcj_fast_malloc(size_t lw, void * ptr_to_struct_containing_descr)
-+{
-+    GC_ASSERT(GC_gcj_malloc_initialized);
-+
-+	ptr_t * my_fl = ((GC_thread)GC_getspecific(GC_thread_key))
-+		-> gcj_freelists + lw;
-+	ptr_t my_entry = *my_fl;
-+	if (EXPECT((word)my_entry >= HBLKSIZE, 1)) {
-+	    GC_PTR result = (GC_PTR)my_entry;
-+	    GC_ASSERT(!GC_incremental);
-+	    /* We assert that any concurrent marker will stop us.	*/
-+	    /* Thus it is impossible for a mark procedure to see the 	*/
-+	    /* allocation of the next object, but to see this object 	*/
-+	    /* still containing a free list pointer.  Otherwise the 	*/
-+	    /* marker might find a random "mark descriptor".		*/
-+	    *(volatile ptr_t *)my_fl = obj_link(my_entry);
-+	    /* We must update the freelist before we store the pointer.	*/
-+	    /* Otherwise a GC at this point would see a corrupted	*/
-+	    /* free list.						*/
-+	    /* A memory barrier is probably never needed, since the 	*/
-+	    /* action of stopping this thread will cause prior writes	*/
-+	    /* to complete.						*/
-+	    GC_ASSERT(((void * volatile *)result)[1] == 0); 
-+	    *(void * volatile *)result = ptr_to_struct_containing_descr; 
-+	    return result;
-+	} else if ((word)my_entry - 1 < DIRECT_GRANULES) {
-+	    if (!GC_incremental) *my_fl = my_entry + lw + 1;
-+	    	/* In the incremental case, we always have to take this */
-+	    	/* path.  Thus we leave the counter alone.		*/
-+            return GC_gcj_fast_malloc(lw, ptr_to_struct_containing_descr);
-+	} else {
-+	    GC_generic_malloc_many(BYTES_FROM_INDEX(lw), GC_gcj_kind, my_fl);
-+	    if (*my_fl == 0) return GC_oom_fn(BYTES_FROM_INDEX(lw));
-+	    return GC_local_gcj_fast_malloc(lw, ptr_to_struct_containing_descr);
-+	}
- }
- 
- #endif /* GC_GCJ_SUPPORT */
-diff -uNr mono-1.0.1/mono/metadata/loader.c mono-1.0.1-new/mono/metadata/loader.c
---- mono-1.0.1/mono/metadata/loader.c	Thu Jun 24 16:41:39 2004
-+++ mono-1.0.1-new/mono/metadata/loader.c	Wed Aug 25 10:55:01 2004
-@@ -643,6 +643,12 @@
+diff -uNr mono-1.0.2/mono/metadata/loader.c mono-1.0.2-new/mono/metadata/loader.c
+--- mono-1.0.2/mono/metadata/loader.c	Tue Sep 21 14:27:39 2004
++++ mono-1.0.2-new/mono/metadata/loader.c	Wed Sep 22 10:01:04 2004
+@@ -656,6 +656,12 @@
  		}
  
  		if (!gmodule) {
