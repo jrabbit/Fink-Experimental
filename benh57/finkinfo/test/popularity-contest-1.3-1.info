@@ -11,13 +11,12 @@ SourceDirectory: %n-%v
 Source-MD5: 75ca129f79533cfd23b1da6077ba48cf
 PatchScript: <<
 #!/bin/sh
-  perl -pi.bak -e 's#(/etc)|(/var)#%p$1#' %n debian/%n.8 debian/cron.weekly
-  perl -pi.bak -e 's#(/usr)#%p#' debian/cron.weekly
-  perl -pi.bak -e 's#(/log)#/var/log#' debian/cron.weekly
+  sed 's|@PREFIX@|%p|g' < %a/%f.patch | patch -p1
+  perl -pi.bak -e 's#(/etc)|(/var)#%p$1#' debian/%n.8
   # Comment out savelog, until Fink's debianutils gets it
   perl -pi.bak -e 's|savelog|echo|' debian/cron.weekly
   MY_HOSTID=`dd if=/dev/urandom bs=1k count=1 2>/dev/null | md5sum`
-  MAILTO="benh57@fink.sf.net"
+  MAILTO="benh57@users.sf.net"
   PARTICIPATE="yes"
   cat > %n.conf << EOF
 # Config file for Debian's popularity-contest package.
