@@ -1,0 +1,100 @@
+Package: autoconf2.57
+Version: 2.57
+Revision: 2
+Depends: m4
+BuildDepends: emacsen
+Conflicts: autoconf (<< 2.13-4), autoconf25 (<= 2.54-1), autoconf2.5 (<< 2.57-2), autoconf2.54 (<< 2.54-2)
+Replaces: autoconf (<< 2.13-4), autoconf25 (<= 2.54-1), autoconf2.5 (<< 2.57-2), autoconf2.54 (<< 2.54-2)
+Source: mirror:gnu:autoconf/autoconf-%v.tar.bz2
+Source-MD5: 407ea53787ce13f5ca427e9a51e05bc2
+ConfigureParams: --infodir='${prefix}/share/info' --mandir='${prefix}/share/man' --program-suffix='-%v'
+CompileScript: <<
+ ./configure %c
+ make pkgdatadir='$(datadir)/autoconf-%v'
+<<
+InstallScript: <<
+ make install DESTDIR=%d pkgdatadir='$(datadir)/autoconf-%v'
+ cd doc && make html
+ install -d -m 755 %i/share/doc/%n/html
+ install -m 644 doc/*.html %i/share/doc/%n/html/
+ mv %i/share/info/autoconf.info                %i/share/info/autoconf-%v.info
+ mv %i/share/info/standards.info               %i/share/info/standards-%v.info
+ mv %i/share/emacs/site-lisp/autoconf-mode.el  %i/share/emacs/site-lisp/autoconf-mode-%v.el
+ mv %i/share/emacs/site-lisp/autoconf-mode.elc %i/share/emacs/site-lisp/autoconf-mode-%v.elc
+ mv %i/share/emacs/site-lisp/autotest-mode.el  %i/share/emacs/site-lisp/autotest-mode-%v.el
+ mv %i/share/emacs/site-lisp/autotest-mode.elc %i/share/emacs/site-lisp/autotest-mode-%v.elc
+<<
+PostInstScript: <<
+ # $prefix/bin
+ for binfile in autoconf autoheader autom4te autoreconf autoscan autopdate ifnames; do
+  update-alternatives --install %p/bin/${binfile} ${binfile} %p/bin/${binfile}-%v 257
+  update-alternatives --install %p/bin/${binfile}-2.5x ${binfile}-2.5x %p/bin/${binfile}-%v 257
+ done
+
+ # $prefix/share/autoconf
+ update-alternatives --install %p/share/autoconf autoconf-dir %p/share/autoconf-%v 257
+ update-alternatives --install %p/share/autoconf-2.5x autoconf-2.5x-dir %p/share/autoconf-%v 257
+
+ # info files
+ for infofile in autoconf standards; do
+  update-alternatives --install %p/share/info/${infofile}.info ${infofile}.info %p/share/info/${infofile}-%v.info 257
+  update-alternatives --install %p/share/info/${infofile}-2.5x.info ${infofile}-2.5x.info %p/share/info/${infofile}-%v.info 257
+ done
+
+ # man pages
+ for manpage in autoconf autoheader autom4te autoreconf autoscan autoupdate config.guess config.sub ifnames; do
+  update-alternatives --install %p/share/man/man1/${manpage}.1 ${manpage}.1 %p/share/man/man1/${manpage}-%v.1 257
+  update-alternatives --install %p/share/man/man1/${manpage}-2.5x.1 ${manpage}-2.5x.1 %p/share/man/man1/${manpage}-%v.1 257
+ done
+
+ # lisp files
+ for lispfile in autoconf-mode autotest-mode; do
+  update-alternatives --install %p/share/emacs/site-lisp/${lispfile}.el ${lispfile}.el %p/share/emacs/site-lisp/${lispfile}-%v.el 257
+  update-alternatives --install %p/share/emacs/site-lisp/${lispfile}.elc ${lispfile}.elc %p/share/emacs/site-lisp/${lispfile}-%v.elc 257
+ done
+<<
+PostRmScript: <<
+ if [ "$1" != "upgrade" ]; then
+  # $prefix/bin
+  for binfile in autoconf autoheader autom4te autoreconf autoscan autopdate ifnames; do
+   update-alternatives --remove ${binfile} %p/bin/${binfile}-%v
+   update-alternatives --remove ${binfile}-2.5x %p/bin/${binfile}-%v
+  done
+
+  # $prefix/share/autoconf
+  update-alternatives --remove autoconf-dir %p/share/autoconf-%v
+  update-alternatives --remove autoconf-2.5x-dir %p/share/autoconf-%v
+
+  # info files
+  for infofile in autoconf standards; do
+   update-alternatives --remove ${infofile}.info %p/share/info/${infofile}-%v.info
+   update-alternatives --remove ${infofile}-2.5x.info %p/share/info/${infofile}-%v.info
+  done
+ fi
+
+ # man pages
+ for manpage in autoconf autoheader autom4te autoreconf autoscan autoupdate config.guess config.sub ifnames; do
+  update-alternatives --remove ${manpage}.1 %p/share/man/man1/${manpage}-%v.1
+  update-alternatives --remove ${manpage}-2.5x.1 %p/share/man/man1/${manpage}-%v.1
+ done
+
+ # lisp files
+ for lispfile in autoconf-mode autotest-mode; do
+  update-alternatives --remove ${lispfile}.el %p/share/emacs/site-lisp/${lispfile}-%v.el
+  update-alternatives --remove ${lispfile}.elc %p/share/emacs/site-lisp/${lispfile}-%v.elc
+ done
+<<
+DocFiles: README COPYING AUTHORS NEWS THANKS
+InfoDocs: autoconf-%v.info standards-%v.info
+#
+Description: System for generating configure scripts, v2.57
+DescDetail: <<
+GNU Autoconf is a package for generating configure scripts. These scripts are present in a large number of free software packages and are used to detect system features at compilation time.
+
+This package installs the latest Autoconf version. It has some compatibility problems with older packages. If you want to work on a package that requires Autoconf 2.13, install the autoconf package instead.
+
+Previously by Christoph Pfisterer <chrisp@users.sourceforge.net>
+<<
+License: GPL
+Homepage: http://www.gnu.org/software/autoconf/
+Maintainer: Chris Zubrzycki <beren12@users.sourceforge.net>

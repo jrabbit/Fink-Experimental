@@ -1,0 +1,58 @@
+Package: autoconf2.13
+Version: 2.13
+Revision: 1
+Depends: m4
+Conflicts: autoconf (<< 2.13-4), autoconf2.54 (<< 2.54-2), autoconf2.5 (<< 2.57-2)
+Replaces: autoconf (<< 2.13-4), autoconf2.54 (<< 2.54-2), autoconf2.5 (<< 2.57-2)
+Source: mirror:gnu:autoconf/autoconf-%v.tar.gz
+Patch: %n.patch
+Source-MD5: 9de56d4a161a723228220b0f425dc711
+ConfigureParams: --infodir=%p/share/info --program-suffix="-%v"
+InstallScript: <<
+ make install prefix=%i infodir=%i/share/info
+ mkdir -p %i/share/doc/%n
+ install -m 644 README COPYING AUTHORS NEWS %i/share/doc/%n/
+ mv %i/share/info/autoconf.info %i/share/info/autoconf-%v.info
+ mv %i/share/info/standards.info %i/share/info/standards-%v.info
+<<
+PostInstScript: <<
+ update-alternatives --install %p/bin/autoconf autoconf %p/bin/autoconf-%v 213
+ update-alternatives --install %p/bin/autoheader autoheader %p/bin/autoheader-%v 213
+ update-alternatives --install %p/bin/autoreconf autoreconf %p/bin/autoreconf-%v 213
+ update-alternatives --install %p/bin/autoscan autoscan %p/bin/autoscan-%v 213
+ update-alternatives --install %p/bin/autoupdate autoupdate %p/bin/autoupdate-%v 213
+ update-alternatives --install %p/bin/ifnames ifnames %p/bin/ifnames-%v 213
+ update-alternatives --install %p/share/autoconf autoconf-dir %p/share/autoconf-%v 213
+ update-alternatives --install %p/share/info/autoconf.info autoconf.info %p/share/info/autoconf-%v.info 213
+ update-alternatives --install %p/share/info/standards.info standards.info %p/share/info/autoconf-%v.info 213
+<<
+PostRmScript: <<
+ if [ "$1" != "upgrade" ]; then
+  update-alternatives --remove autoconf %p/bin/autoconf-%v
+  update-alternatives --remove autoheader %p/bin/autoheader-%v
+  update-alternatives --remove autoreconf %p/bin/autoreconf-%v
+  update-alternatives --remove autoscan %p/bin/autoscan-%v
+  update-alternatives --remove autoupdate %p/bin/autoupdate-%v
+  update-alternatives --remove ifnames %p/bin/ifnames-%v
+  update-alternatives --remove autoconf-dir %p/share/autoconf-%v
+  update-alternatives --remove autoconf.info %p/share/info/autoconf-%v.info
+  update-alternatives --remove standards.info %p/share/info/standards-%v.info
+ fi
+<<
+InfoDocs: autoconf-%v.info standards-%v.info
+#
+Description: System for generating configure scripts, v2.13
+DescDetail: <<
+GNU Autoconf is a package for generating configure scripts.
+These scripts are present in a large number of free software packages
+and are used to detect system features at compilation time.
+
+This package installs Autoconf 2.13. There are newer versions
+available, but there are some compatibility problems and some packages
+require version 2.13. To get one of the new versions, install the
+autoconf25 package instead.
+<<
+License: GPL
+Homepage: http://www.gnu.org/software/autoconf/
+Maintainer: Chris Zubrzycki <beren12@users.sourceforge.net>
+
