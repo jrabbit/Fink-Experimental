@@ -93,6 +93,88 @@ diff -ruN giFT/autogen.sh giFT.new/autogen.sh
 +#echo Running $srcdir/configure $conf_flags "$@" ...
 +#$srcdir/configure --cache-file=config.cache $conf_flags "$@" && \
 +#  echo "Now type \`make' to compile giFT."
+diff -ruN giFT/configure.ac giFT.new/configure.ac
+--- giFT/configure.ac	2003-05-18 20:50:38.000000000 -0400
++++ giFT.new/configure.ac	2003-05-20 21:45:18.000000000 -0400
+@@ -37,6 +37,9 @@
+ AH_VERBATIM([PLUGIN_OPENFT], [
+ #undef PLUGIN_OPENFT
+ ])
++AH_VERBATIM([PLUGIN_FASTTRACK], [
++#undef PLUGIN_FASTTRACK
++])
+ AH_VERBATIM([PLUGIN_GNUTELLA], [
+ #undef PLUGIN_GNUTELLA
+ ])
+@@ -241,6 +244,8 @@
+ AM_CONDITIONAL(DAEMON,      test x$enable_daemon   = xyes)
+ AC_ARG_ENABLE(openft,      [  --disable-openft        disable compiling the OpenFT plugin],,[enable_openft=yes])
+ AM_CONDITIONAL(OPENFT,      test x$enable_openft   = xyes)
++AC_ARG_ENABLE(fasttrack,    [  --enable-fasttrack       enable compiling the FastTrack plugin],[enable_fasttrack=yes],[enable_fasttrack=no])
++AM_CONDITIONAL(FASTTRACK,    test x$enable_fasttrack = xyes)
+ AC_ARG_ENABLE(gnutella,    [  --enable-gnutella       enable compiling the Gnutella plugin],[enable_gnutella=yes],[enable_gnutella=no])
+ AM_CONDITIONAL(GNUTELLA,    test x$enable_gnutella = xyes)
+ AC_ARG_ENABLE(perl,        [  --enable-perl           enable perl support],[enable_perl=yes],[enable_perl=no])
+@@ -268,6 +273,11 @@
+   AC_SUBST(PLUGIN_GNUTELLA)
+ fi
+ 
++if test x$enable_fasttrack = xyes; then
++  AC_DEFINE(PLUGIN_FASTTRACK)
++  AC_SUBST(PLUGIN_FASTTRACK)
++fi
++
+ dnl ###########################################################################
+ dnl Overrides
+ dnl ###########################################################################
+@@ -331,6 +341,10 @@
+     GIFT_LIBS="$GIFT_LIBS \$(top_builddir)/Gnutella/libGnutella.la"
+ fi
+ 
++if test x$enable_fasttrack = xyes; then
++    GIFT_LIBS="$GIFT_LIBS \$(top_builddir)/FastTrack/libFastTrack.la"
++fi
++
+ GIFT_LDFLAGS=""
+ 
+ if test x$enable_ltdl = xyes; then
+@@ -644,6 +658,7 @@
+ OpenFT/Makefile
+ OpenFT/proto/Makefile
+ Gnutella/Makefile
++FastTrack/Makefile
+ data/Makefile
+ data/OpenFT/Makefile
+ data/Gnutella/Makefile
+@@ -670,6 +685,7 @@
+ echo "--------------- protocols ---"
+ echo
+ echo "OpenFT..................: $enable_openft"
++echo "FastTrack...............: $enable_fasttrack"
+ echo "Gnutella................: $enable_gnutella"
+ echo
+ echo "-------------- extensions ---"
+diff -ruN giFT/etc/gift.conf giFT.new/etc/gift.conf
+--- giFT/etc/gift.conf	2003-05-18 20:50:41.000000000 -0400
++++ giFT.new/etc/gift.conf	2003-05-20 21:47:15.000000000 -0400
+@@ -1,4 +1,5 @@
+ # gift.conf
++
+ ###############################################################################
+ 
+ ###############################################################################
+@@ -71,9 +72,9 @@
+ #
+ #  Protocol names are case sensitive.
+ #
+-# For example, to use the OpenFT and Gnutella protocols use:
++# For example, to use the OpenFT, Gnutella and FastTrack protocols use:
+ #
+-#  plugins = OpenFT:Gnutella
++#  plugins = OpenFT:Gnutella:FastTrack
+ #
+ # Default: none
+ #
 diff -ruN giFT/src/Makefile.am giFT.new/src/Makefile.am
 --- giFT/src/Makefile.am	2003-05-03 13:03:59.000000000 -0400
 +++ giFT.new/src/Makefile.am	2003-05-20 19:54:45.000000000 -0400
@@ -104,3 +186,17 @@ diff -ruN giFT/src/Makefile.am giFT.new/src/Makefile.am
  	$(IMAGEMAGICK_LDFLAGS) \
  	-export-dynamic
  
+diff -ruN giFT/src/main.c giFT.new/src/main.c
+--- giFT/src/main.c	2003-05-18 20:50:42.000000000 -0400
++++ giFT.new/src/main.c	2003-05-20 21:49:49.000000000 -0400
+@@ -241,6 +241,10 @@
+ 	string_appendf (s, "  OpenFT %i.%i.%i-%i\n", OPENFT_MAJOR, OPENFT_MINOR,
+ 	                OPENFT_MICRO, OPENFT_REV);
+ # endif /* PLUGIN_OPENFT */
++# ifdef PLUGIN_FASTTRACK
++	string_appendf (s, "  FastTrack Enabled\n");
++# endif /* PLUGIN_FASTTRACK */
++#endif
+ # ifdef PLUGIN_GNUTELLA
+ 	string_appendf (s, "  Gnutella %s\n", GT_VERSION);
+ # endif /* PLUGIN_GNUTELLA */
