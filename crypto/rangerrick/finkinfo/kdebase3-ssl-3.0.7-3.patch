@@ -1,3 +1,4 @@
+? admin/.ccache
 Index: admin/Makefile.common
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/admin/Makefile.common,v
@@ -8,10 +9,10 @@ Index: admin/acinclude.m4.in
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/admin/acinclude.m4.in,v
 retrieving revision 1.1.1.3
-retrieving revision 1.9
-diff -u -b -u -r1.1.1.3 -r1.9
+retrieving revision 1.11
+diff -u -b -u -r1.1.1.3 -r1.11
 --- admin/acinclude.m4.in	14 Aug 2002 13:18:45 -0000	1.1.1.3
-+++ admin/acinclude.m4.in	14 Aug 2002 13:20:08 -0000	1.9
++++ admin/acinclude.m4.in	16 Sep 2002 14:31:34 -0000	1.11
 @@ -699,13 +699,10 @@
       AC_CHECK_LIB(ipc, shmat, X_EXTRA_LIBS="$X_EXTRA_LIBS -lipc"))
     
@@ -28,7 +29,20 @@ diff -u -b -u -r1.1.1.3 -r1.9
     AC_CHECK_LIB(poll, poll, LIB_POLL="-lpoll")
  
     # CoreAudio framework
-@@ -736,6 +733,8 @@
+@@ -714,6 +711,12 @@
+      FRAMEWORK_COREAUDIO="-framework CoreAudio"
+    ])
+ 
++   # CoreServices framework
++   AC_CHECK_HEADER(CoreServices/CoreServices.h, [
++     AC_DEFINE(HAVE_CORESERVICES, 1, [Define if you have the CoreServices API])
++     FRAMEWORK_CORESERVICES="-framework CoreServices"
++   ])
++
+    # Solaris 2.6 and others need -lresolv for res_init
+    AC_CHECK_FUNCS(res_init, , [
+      kde_libs_safe="$LIBS"
+@@ -736,6 +739,8 @@
     AC_SUBST(FRAMEWORK_COREAUDIO)
     LIBSOCKET="$X_EXTRA_LIBS"
     AC_SUBST(LIBSOCKET)
@@ -37,7 +51,7 @@ diff -u -b -u -r1.1.1.3 -r1.9
     AC_SUBST(LIBRESOLV)
     AC_SUBST(X_EXTRA_LIBS)
     AC_CHECK_LIB(ucb, killpg, [LIBUCB="-lucb"]) dnl for Solaris2.4
-@@ -905,7 +904,7 @@
+@@ -905,7 +910,7 @@
  kde_ldflags_safe="$LDFLAGS"
  kde_libs_safe="$LIBS"
  
@@ -46,7 +60,7 @@ diff -u -b -u -r1.1.1.3 -r1.9
  LIBS="-lXext -lX11 $LIBSOCKET"
  
  AC_TRY_LINK([
-@@ -947,9 +946,9 @@
+@@ -947,9 +952,9 @@
  kde_save_LDFLAGS="$LDFLAGS"
  kde_save_CFLAGS="$CFLAGS"
  kde_save_LIBS="$LIBS"
@@ -58,7 +72,7 @@ diff -u -b -u -r1.1.1.3 -r1.9
  
  if test "x$no_xinerama" = "xno"; then
  
-@@ -1846,15 +1845,29 @@
+@@ -1846,15 +1851,29 @@
     AC_REQUIRE([K_PATH_X])
  
  if test $kde_qtver = 3; then
@@ -93,38 +107,38 @@ diff -u -b -u -r1.1.1.3 -r1.9
  # these are for backward compatibility
     AC_SUBST(LIB_KSYCOCA, "-lkio")
     AC_SUBST(LIB_KFILE, "-lkio")
-@@ -2544,10 +2557,10 @@
+@@ -2544,10 +2563,10 @@
        if test $kde_use_debug_code = "full"; then
          CFLAGS="-g3 $CFLAGS"
        else
 -        CFLAGS="-g -O2 $CFLAGS"
-+        CFLAGS="-g -Os $CFLAGS"
++        CFLAGS="-g -O $CFLAGS"
        fi
      else
 -      CFLAGS="-O2 $CFLAGS"
-+      CFLAGS="-Os $CFLAGS"
++      CFLAGS="-Os -frename-registers $CFLAGS"
      fi
    fi
  
-@@ -2577,7 +2590,7 @@
+@@ -2577,7 +2596,7 @@
          if test "$kde_use_debug_code" = "full"; then
            CXXFLAGS="-g3 $CXXFLAGS"
          else
 -          CXXFLAGS="-g -O2 $CXXFLAGS"
-+          CXXFLAGS="-g -Os $CXXFLAGS"
++          CXXFLAGS="-g -O $CXXFLAGS"
          fi
        fi
        KDE_CHECK_COMPILER_FLAG(fno-builtin,[CXXFLAGS="-fno-builtin $CXXFLAGS"])
-@@ -2589,7 +2602,7 @@
+@@ -2589,7 +2608,7 @@
        if test "$CXX" = "KCC"; then
          CXXFLAGS="+K3 $CXXFLAGS"
        else
 -        CXXFLAGS="-O2 $CXXFLAGS"
-+        CXXFLAGS="-Os $CXXFLAGS"
++        CXXFLAGS="-Os -frename-registers $CXXFLAGS"
        fi  
      fi
    fi
-@@ -3059,9 +3072,9 @@
+@@ -3059,9 +3078,9 @@
      ac_save_ldflags="$LDFLAGS"
      ac_save_cflags="$CFLAGS"
      if test "x$kde_use_qt_emb" != "xyes"; then
@@ -136,16 +150,7 @@ diff -u -b -u -r1.1.1.3 -r1.9
      fi
      CFLAGS="$CFLAGS $X_INCLUDES $USER_INCLUDES"
      test -n "$XPM_INCLUDE" && CFLAGS="-I$XPM_INCLUDE $CFLAGS"
-@@ -4106,7 +4119,7 @@
- AC_DEFUN(KDE_CREATE_SUBDIRSLIST,
- [
- 
--DO_NOT_COMPILE="$DO_NOT_COMPILE CVS debian bsd-port admin"
-+DO_NOT_COMPILE="$DO_NOT_COMPILE CVS debian bsd-port admin kdm ksysguard kscd"
- 
- if test ! -s $srcdir/subdirs; then
-   dnl Note: Makefile.common creates subdirs, so this is just a fallback
-@@ -4553,6 +4566,7 @@
+@@ -4553,6 +4572,7 @@
        KDE_JAVA_PREFIX(/usr/lib/IBMJava2*)
        KDE_JAVA_PREFIX(/usr/lib/IBMJava*)
        KDE_JAVA_PREFIX(/opt/java*)
@@ -153,7 +158,7 @@ diff -u -b -u -r1.1.1.3 -r1.9
      
        kde_cv_path="NONE"
        kde_save_IFS=$IFS
-@@ -4604,10 +4618,20 @@
+@@ -4604,10 +4624,20 @@
  dnl At this point kde_java_bindir and kde_java_includedir are either set or "no"
  if test "x$kde_java_bindir" != "xno"; then
  
@@ -174,7 +179,7 @@ diff -u -b -u -r1.1.1.3 -r1.9
  
    dnl Now check everything's fine under there
    dnl the include dir is our flag for having the JDK
-@@ -4635,17 +4659,29 @@
+@@ -4635,17 +4665,29 @@
      JAVAC=
      jni_includes=
    fi
@@ -238,10 +243,10 @@ Index: admin/libtool.m4.in
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/admin/libtool.m4.in,v
 retrieving revision 1.1.1.3
-retrieving revision 1.6
-diff -u -b -u -r1.1.1.3 -r1.6
+retrieving revision 1.7
+diff -u -b -u -r1.1.1.3 -r1.7
 --- admin/libtool.m4.in	14 Aug 2002 13:18:45 -0000	1.1.1.3
-+++ admin/libtool.m4.in	14 Aug 2002 13:20:08 -0000	1.6
++++ admin/libtool.m4.in	16 Sep 2002 14:31:34 -0000	1.7
 @@ -609,6 +609,12 @@
      lt_cv_sys_max_cmd_len=-1;
      ;;
@@ -255,6 +260,15 @@ diff -u -b -u -r1.1.1.3 -r1.6
    *)
      # If test is not a shell built-in, we'll probably end up computing a
      # maximum length that is only half of the actual maximum length, but
+@@ -1132,7 +1138,7 @@
+ darwin* | rhapsody*)
+   dynamic_linker="$host_os dyld"
+   version_type=darwin
+-  need_lib_prefix=no
++  need_lib_prefix=yes
+   need_version=no
+   # FIXME: Relying on posixy $() will cause problems for
+   #        cross-compilation, but unfortunately the echo tests do not
 @@ -1901,16 +1907,7 @@
    ;;
  
@@ -441,7 +455,7 @@ Index: doc/kaddressbook/index.cache.bz2
 ===================================================================
 RCS file: doc/kaddressbook/index.cache.bz2
 diff -N doc/kaddressbook/index.cache.bz2
-Binary files /dev/null and /tmp/cvs020810 differ
+Binary files /dev/null and /tmp/cvs024832 differ
 Index: kate/app/Makefile.am
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kate/app/Makefile.am,v
@@ -1721,19 +1735,41 @@ Index: kdialog/kdialog.cpp
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kdialog/kdialog.cpp,v
 retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.1 -r1.3
 --- kdialog/kdialog.cpp	14 Aug 2002 14:27:19 -0000	1.1.1.1
-+++ kdialog/kdialog.cpp	23 Aug 2002 15:30:43 -0000	1.2
-@@ -20,7 +20,7 @@
++++ kdialog/kdialog.cpp	26 Aug 2002 19:38:08 -0000	1.3
+@@ -20,8 +20,10 @@
  
  #include <fcntl.h>
  #include <unistd.h>
 -#include <stream.h>
 +#include <iostream>
  #include <stdlib.h>
++
++using namespace std;
  
  #include <qlist.h>
+ #include <qfile.h>
+Index: kdm/backend/dm.h
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kdm/backend/dm.h,v
+retrieving revision 1.1.1.2
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.2 -r1.2
+--- kdm/backend/dm.h	10 Jul 2002 03:20:52 -0000	1.1.1.2
++++ kdm/backend/dm.h	16 Sep 2002 14:14:13 -0000	1.2
+@@ -41,6 +41,10 @@
+ #ifndef _DM_H_
+ #define _DM_H_ 1
+ 
++#ifdef __APPLE__
++#define CSRG_BASED
++#endif
++
+ #include "greet.h"
+ 
+ #include <X11/Xos.h>
 Index: khelpcenter/khelpcenter.desktop
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdebase/khelpcenter/khelpcenter.desktop,v
@@ -1895,6 +1931,58 @@ diff -u -b -u -r1.1.1.1 -r1.2
  
  METASOURCES = AUTO
  
+Index: kioslave/nfs/.cvsignore
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kioslave/nfs/.cvsignore,v
+retrieving revision 1.1.1.2
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.2 -r1.2
+--- kioslave/nfs/.cvsignore	10 Jul 2002 03:23:11 -0000	1.1.1.2
++++ kioslave/nfs/.cvsignore	16 Sep 2002 13:19:20 -0000	1.2
+@@ -1,4 +1,4 @@
+-kio_*
++kio_nfs.loT
+ Makefile.in
+ Makefile
+ *~
+Index: kioslave/nfs/README
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kioslave/nfs/README,v
+retrieving revision 1.1.1.1
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.1 -r1.4
+--- kioslave/nfs/README	25 Jun 2002 02:03:52 -0000	1.1.1.1
++++ kioslave/nfs/README	16 Sep 2002 14:52:42 -0000	1.4
+@@ -1,3 +1,29 @@
+ this is an ioslave for KDE 2 for NFS, version 2.
+ 
+ Alex
++
++Darwin notes --
++
++It looks like there are C++ type issues with the Darwin headers
++(try building, you'll see the "too many arguments to function" stuff)
++
++The problem seems to be <rpc/clnt.h> having definitions that don't
++play nice with C++.  The client rpc handle does a bunch of void stuff
++in the struct which is fine in C but makes an empty arg list in C++.
++
++typedef struct {
++        AUTH    *cl_auth;                       /* authenticator */
++        struct clnt_ops {
++                enum clnt_stat  (*cl_call)();   /* call remote procedure */
++                void            (*cl_abort)();  /* abort a call */
++                void            (*cl_geterr)(); /* get specific error code */
++                bool_t          (*cl_freeres)(); /* frees results */
++                void            (*cl_destroy)();/* destroy this structure */
++                bool_t          (*cl_control)();/* the ioctl() of rpc */
++        } *cl_ops;
++        caddr_t                 cl_private;     /* private stuff */
++} CLIENT;
++
++
++The only solution is to probably reimplement clnt.h locally to fix
++these (wrapping the "#include <rpc/rpc.h>" in an extern "C" isn't enough).
 Index: kioslave/nfs/configure.in.in
 ===================================================================
 RCS file: kioslave/nfs/configure.in.in
@@ -1909,6 +1997,18 @@ diff -N kioslave/nfs/configure.in.in
 +)dnl
 +AC_MSG_RESULT($withval)
 +AM_CONDITIONAL(include_kioslave_nfs, test "$with_nfs" = "yes")
+Index: kioslave/nfs/kio_nfs.cpp
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kioslave/nfs/kio_nfs.cpp,v
+retrieving revision 1.1.2.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.2.2 -r1.3
+Index: kioslave/nfs/kio_nfs.h
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kioslave/nfs/kio_nfs.h,v
+retrieving revision 1.1.2.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.2.2 -r1.3
 Index: klipper/Makefile.am
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdebase/klipper/Makefile.am,v
@@ -2067,6 +2167,80 @@ diff -u -b -u -r1.1.1.2 -r1.3
  ksmserver_LDADD = ksmserver.la
  
  picsdir = $(kde_datadir)/ksmserver/pics
+Index: ksysguard/CContLib/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/ksysguard/CContLib/Makefile.am,v
+retrieving revision 1.1.1.2
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.2 -r1.2
+--- ksysguard/CContLib/Makefile.am	10 Jul 2002 03:24:36 -0000	1.1.1.2
++++ ksysguard/CContLib/Makefile.am	16 Sep 2002 14:31:34 -0000	1.2
+@@ -4,5 +4,3 @@
+ include_HEADERS = ccont.h
+ 
+ libccont_a_SOURCES = ccont.c
+-
+-AM_CFLAGS = -ggdb
+Index: ksysguard/gui/SensorDisplayLib/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/ksysguard/gui/SensorDisplayLib/Makefile.am,v
+retrieving revision 1.1.1.3
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.3 -r1.2
+--- ksysguard/gui/SensorDisplayLib/Makefile.am	14 Aug 2002 14:27:16 -0000	1.1.1.3
++++ ksysguard/gui/SensorDisplayLib/Makefile.am	16 Sep 2002 14:31:34 -0000	1.2
+@@ -4,8 +4,9 @@
+  
+ lib_LTLIBRARIES = libsensordisplays.la
+ 
+-libsensordisplays_la_LDFLAGS = $(all_libraries)
+-libsensordisplays_la_LIBADD = $(LIB_KDEUI)
++libsensordisplays_la_LDFLAGS = $(all_libraries) -fno-common
++libsensordisplays_la_LIBADD = $(LIB_KDEUI) $(LIB_KIO) $(LIB_QT) $(LIB_KDECORE) \
++	$(top_builddir)/ksysguard/gui/ksgrd/libksgrd.la
+ 
+ # Which sources should be compiled for the sensor display lib.
+ libsensordisplays_la_SOURCES = \
+Index: ksysguard/gui/SensorDisplayLib/SensorDisplay.cc
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/ksysguard/gui/SensorDisplayLib/SensorDisplay.cc,v
+retrieving revision 1.1.1.3
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.3 -r1.2
+--- ksysguard/gui/SensorDisplayLib/SensorDisplay.cc	14 Aug 2002 14:27:17 -0000	1.1.1.3
++++ ksysguard/gui/SensorDisplayLib/SensorDisplay.cc	16 Sep 2002 14:31:34 -0000	1.2
+@@ -62,7 +62,6 @@
+ 	pausedWhileHidden = false;
+ 
+ 	timerOn();
+-	QWhatsThis::add(this, "dummy");
+ 
+ 	frame = new QGroupBox(2, Qt::Vertical, "", this, "displayFrame"); 
+ 	Q_CHECK_PTR(frame);
+Index: ksysguard/gui/ksgrd/StyleEngine.h
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/ksysguard/gui/ksgrd/StyleEngine.h,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- ksysguard/gui/ksgrd/StyleEngine.h	25 Jun 2002 02:03:54 -0000	1.1.1.1
++++ ksysguard/gui/ksgrd/StyleEngine.h	16 Sep 2002 14:31:34 -0000	1.2
+@@ -68,11 +68,12 @@
+ 	}
+ 	const QColor& getSensorColor(uint i)
+ 	{
+-		static QColor dummy;
+-		if (i < sensorColors.count())
++		if (i < sensorColors.count()) {
+ 			return *(sensorColors.at(i));
+-		else
++		} else {
++			QColor dummy;
+ 			return dummy;
++		}
+ 	}
+ 	uint getSensorColorCount() const
+ 	{
 Index: kwin/Makefile.am
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kwin/Makefile.am,v
