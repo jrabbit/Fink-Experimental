@@ -268,7 +268,7 @@ function insert_sub ($navbox, $active_page) {
 			display: block ; 
 			border-style: solid ; 
 			border-width: 0px 0px 4px 0px ; 
-			border-color: #fc9 ; 
+			border-color: #fc6 ; 
 			text-align: center ; 
 			margin: 0px ;
 			padding: 6px 3px">

@@ -202,6 +202,11 @@ function AddFlags($between = "", $showCurrent = false, $root = '')
 			echo("\t\t<img src=\"" . $root . phpLang_images . $name[0] . '.png" border="0" align="middle" width="24" height="16" alt="' . $name[1] . "\" />\n");
 			echo("\t</a>\n");
 			$temp = $between;
+		} elseif (file_exists(phpLang_localizedFileName($name[0]))) {
+			// Shows selected language
+			echo("\t\t<img src=\"" . $root . phpLang_images . $name[0] . '.png" border="0" align="middle" width="24" height="16" alt="' . $name[1] . "\"  \n");
+			echo("\t\t\tstyle=\"border-style: solid; border-width: 0px 0px 4px 0px; border-color: #fc6; padding: 2px\" />\n");
+			$temp = $between;
 		}
 	}
 }
