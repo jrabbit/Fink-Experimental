@@ -1,6 +1,20 @@
-diff -uNbr kmud2/lib/Makefile.am kmud2-new/lib/Makefile.am
+diff -uNr kmud2/Makefile.am kmud2-new/Makefile.am
+--- kmud2/Makefile.am	Thu Jun  6 13:13:29 2002
++++ kmud2-new/Makefile.am	Sun Feb  1 11:00:03 2004
+@@ -14,8 +14,8 @@
+ $(top_srcdir)/subdirs:
+ 	cd $(top_srcdir) && $(MAKE) -f admin/Makefile.common subdirs
+ 
+-$(top_srcdir)/acinclude.m4: $(top_srcdir)/admin/acinclude.m4.in $(top_srcdir)/admin/libtool.m4.in
+-	@cd $(top_srcdir) && cat admin/acinclude.m4.in admin/libtool.m4.in > acinclude.m4
++$(top_srcdir)/acinclude.m4: $(top_srcdir)/admin/acinclude.m4.in $(top_srcdir)/admin/libtool.m4.in $(top_srcdir)/admin/ltsugar.m4.in $(top_srcdir)/admin/lt~obsolete.m4.in
++	@cd $(top_srcdir) && cat admin/acinclude.m4.in admin/libtool.m4.in admin/ltsugar.m4.in admin/lt~obsolete.m4.in > acinclude.m4
+ 
+ MAINTAINERCLEANFILES = subdirs configure.in acinclude.m4 configure.files 
+ 
+diff -uNr kmud2/lib/Makefile.am kmud2-new/lib/Makefile.am
 --- kmud2/lib/Makefile.am	Tue Aug  6 17:58:50 2002
-+++ kmud2-new/lib/Makefile.am	Wed May 14 11:22:15 2003
++++ kmud2-new/lib/Makefile.am	Sun Feb  1 10:59:38 2004
 @@ -7,7 +7,7 @@
  
  lib_LTLIBRARIES = libkmud.la
@@ -10,9 +24,9 @@ diff -uNbr kmud2/lib/Makefile.am kmud2-new/lib/Makefile.am
  libkmud_la_SOURCES = \
  	kmudviewmanager.cpp \
  	kmudpart.cpp \
-diff -uNbr kmud2/parts/mapper/Makefile.am kmud2-new/parts/mapper/Makefile.am
+diff -uNr kmud2/parts/mapper/Makefile.am kmud2-new/parts/mapper/Makefile.am
 --- kmud2/parts/mapper/Makefile.am	Sat Aug 10 15:31:23 2002
-+++ kmud2-new/parts/mapper/Makefile.am	Wed May 14 11:25:45 2003
++++ kmud2-new/parts/mapper/Makefile.am	Sun Feb  1 10:59:38 2004
 @@ -5,11 +5,18 @@
  
  METASOURCES = AUTO
@@ -35,9 +49,9 @@ diff -uNbr kmud2/parts/mapper/Makefile.am kmud2-new/parts/mapper/Makefile.am
  	kmudmapperfactory.cpp \
  	cmapelementutil.cpp \
  	cmaptoolbase.cpp \
-diff -uNbr kmud2/parts/mapper/kmudmapper_init.cpp kmud2-new/parts/mapper/kmudmapper_init.cpp
+diff -uNr kmud2/parts/mapper/kmudmapper_init.cpp kmud2-new/parts/mapper/kmudmapper_init.cpp
 --- kmud2/parts/mapper/kmudmapper_init.cpp	Wed Dec 31 19:00:00 1969
-+++ kmud2-new/parts/mapper/kmudmapper_init.cpp	Wed May 14 11:25:28 2003
++++ kmud2-new/parts/mapper/kmudmapper_init.cpp	Sun Feb  1 10:59:38 2004
 @@ -0,0 +1,10 @@
 +#include "kmudmapperfactory.h"
 +
@@ -49,9 +63,9 @@ diff -uNbr kmud2/parts/mapper/kmudmapper_init.cpp kmud2-new/parts/mapper/kmudmap
 +	}
 +};
 +
-diff -uNbr kmud2/parts/mapper/kmudmapperfactory.cpp kmud2-new/parts/mapper/kmudmapperfactory.cpp
+diff -uNr kmud2/parts/mapper/kmudmapperfactory.cpp kmud2-new/parts/mapper/kmudmapperfactory.cpp
 --- kmud2/parts/mapper/kmudmapperfactory.cpp	Sat Apr 13 11:39:39 2002
-+++ kmud2-new/parts/mapper/kmudmapperfactory.cpp	Wed May 14 11:25:17 2003
++++ kmud2-new/parts/mapper/kmudmapperfactory.cpp	Sun Feb  1 10:59:38 2004
 @@ -20,15 +20,6 @@
  #include "kmudmapperfactory.h"
  #include "cmapmanager.h"
@@ -68,39 +82,55 @@ diff -uNbr kmud2/parts/mapper/kmudmapperfactory.cpp kmud2-new/parts/mapper/kmudm
  KmudMapperFactory::KmudMapperFactory(QObject* parent, const char* name)
  	: KmudFactory(parent, name)
  {
-diff -uNbr kmud2/parts/mapper/plugins/movetracker/Makefile.am kmud2-new/parts/mapper/plugins/movetracker/Makefile.am
+diff -uNr kmud2/parts/mapper/plugins/movetracker/Makefile.am kmud2-new/parts/mapper/plugins/movetracker/Makefile.am
 --- kmud2/parts/mapper/plugins/movetracker/Makefile.am	Sun Jun  9 06:05:36 2002
-+++ kmud2-new/parts/mapper/plugins/movetracker/Makefile.am	Wed May 14 11:22:15 2003
-@@ -5,7 +5,7 @@
++++ kmud2-new/parts/mapper/plugins/movetracker/Makefile.am	Sun Feb  1 11:40:56 2004
+@@ -5,8 +5,8 @@
  METASOURCES = AUTO
  
  kde_module_LTLIBRARIES = libkmudmapper_movetracker.la
 -libkmudmapper_movetracker_la_LIBADD = $(LIB_KPARTS) ../../libkmudmapper.la
+-libkmudmapper_movetracker_la_LDFLAGS = $(all_libraries) -version-info 1:0 $(KDE_PLUGIN)
 +libkmudmapper_movetracker_la_LIBADD = $(LIB_KPARTS) ../../libkmudmapper_shared.la
- libkmudmapper_movetracker_la_LDFLAGS = $(all_libraries) -version-info 1:0 $(KDE_PLUGIN)
++libkmudmapper_movetracker_la_LDFLAGS = $(all_libraries) -version-info 1:0 $(KDE_PLUGIN) $(FORCE_ALLOW_UNDEFINED)
  libkmudmapper_movetracker_la_SOURCES = \
  	cmapmovetrackerfactory.cpp \
-diff -uNbr kmud2/parts/mapper/plugins/speedwalk/Makefile.am kmud2-new/parts/mapper/plugins/speedwalk/Makefile.am
+ 	cmapviewmovetracker.cpp \
+diff -uNr kmud2/parts/mapper/plugins/speedwalk/Makefile.am kmud2-new/parts/mapper/plugins/speedwalk/Makefile.am
 --- kmud2/parts/mapper/plugins/speedwalk/Makefile.am	Sun Jun  9 06:05:37 2002
-+++ kmud2-new/parts/mapper/plugins/speedwalk/Makefile.am	Wed May 14 11:22:15 2003
-@@ -5,7 +5,7 @@
++++ kmud2-new/parts/mapper/plugins/speedwalk/Makefile.am	Sun Feb  1 11:36:09 2004
+@@ -5,8 +5,8 @@
  METASOURCES = AUTO
  
  kde_module_LTLIBRARIES = libkmudmapper_speedwalk.la
 -libkmudmapper_speedwalk_la_LIBADD = $(LIB_KPARTS) ../../libkmudmapper.la 
+-libkmudmapper_speedwalk_la_LDFLAGS = $(all_libraries) -version-info 1:0 $(KDE_PLUGIN)
 +libkmudmapper_speedwalk_la_LIBADD = $(LIB_KPARTS) ../../libkmudmapper_shared.la 
- libkmudmapper_speedwalk_la_LDFLAGS = $(all_libraries) -version-info 1:0 $(KDE_PLUGIN)
++libkmudmapper_speedwalk_la_LDFLAGS = $(all_libraries) -version-info 1:0 $(KDE_PLUGIN) $(FORCE_ALLOW_UNDEFINED)
  libkmudmapper_speedwalk_la_SOURCES = \
  	cmapspeedwalkfactory.cpp \
-diff -uNbr kmud2/parts/mapper/plugins/standard/Makefile.am kmud2-new/parts/mapper/plugins/standard/Makefile.am
+ 	cmappluginspeedwalk.cpp  \
+diff -uNr kmud2/parts/mapper/plugins/standard/Makefile.am kmud2-new/parts/mapper/plugins/standard/Makefile.am
 --- kmud2/parts/mapper/plugins/standard/Makefile.am	Sun Mar  9 12:39:34 2003
-+++ kmud2-new/parts/mapper/plugins/standard/Makefile.am	Wed May 14 11:22:15 2003
-@@ -5,7 +5,7 @@
++++ kmud2-new/parts/mapper/plugins/standard/Makefile.am	Sun Feb  1 11:33:17 2004
+@@ -5,8 +5,8 @@
  METASOURCES = AUTO
  
  kde_module_LTLIBRARIES = libkmudmapper_standard.la
 -libkmudmapper_standard_la_LIBADD = $(LIB_KPARTS) ../../libkmudmapper.la ./tools/libstandard_tools.la ./views/libstandard_views.la ./propertyPanes/libstandard_propertypanes.la
+-libkmudmapper_standard_la_LDFLAGS = $(all_libraries) -version-info 1:0 $(KDE_PLUGIN)
 +libkmudmapper_standard_la_LIBADD = $(LIB_KPARTS) ../../libkmudmapper_shared.la ./tools/libstandard_tools.la ./views/libstandard_views.la ./propertyPanes/libstandard_propertypanes.la
- libkmudmapper_standard_la_LDFLAGS = $(all_libraries) -version-info 1:0 $(KDE_PLUGIN)
++libkmudmapper_standard_la_LDFLAGS = $(all_libraries) -version-info 1:0 $(KDE_PLUGIN) $(FORCE_ALLOW_UNDEFINED)
  libkmudmapper_standard_la_SOURCES = \
  	cmapstandardfactory.cpp \
+ 	cmapcmdmoveelements.cpp \
+diff -uNr kmud2/parts/mapper/plugins/standard/propertyPanes/Makefile.am kmud2-new/parts/mapper/plugins/standard/propertyPanes/Makefile.am
+--- kmud2/parts/mapper/plugins/standard/propertyPanes/Makefile.am	Wed Aug  8 16:33:33 2001
++++ kmud2-new/parts/mapper/plugins/standard/propertyPanes/Makefile.am	Sun Feb  1 11:30:31 2004
+@@ -5,5 +5,6 @@
+ 
+ noinst_LTLIBRARIES = libstandard_propertypanes.la
+ 
++libstandard_propertypanes_la_LDFLAGS = $(FORCE_ALLOW_UNDEFINED)
+ libstandard_propertypanes_la_SOURCES = \
+ 	cmapnotespane.cpp
