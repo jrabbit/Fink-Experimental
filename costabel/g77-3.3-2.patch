@@ -1,0 +1,71 @@
+--- g77-3.3-2/gcc-3.3/gcc/varasm.c~	Sun Jul 27 15:10:00 2003
++++ g77-3.3-2/gcc-3.3/gcc/varasm.c	Sun Jul 27 15:11:52 2003
+@@ -2825,6 +2825,8 @@
+      int labelno;
+ {
+   int align;
++  HOST_WIDE_INT size;
++  char label[256];
+ 
+   /* Align the location counter as required by EXP's data type.  */
+   align = TYPE_ALIGN (TREE_TYPE (exp));
+@@ -2843,16 +2845,23 @@
+     }
+ 
+   /* Output the label itself.  */
++  size = int_size_in_bytes (TREE_TYPE (exp));
++  if (TREE_CODE (exp) == STRING_CST)
++    size = MAX (TREE_STRING_LENGTH (exp), size);
++
++  /* Do any machine/system dependent processing of the constant.  */
++#ifdef ASM_DECLARE_CONSTANT_NAME
++  /* Create a string containing the label name, in LABEL.  */
++  ASM_GENERATE_INTERNAL_LABEL (label, "LC", labelno);
++  ASM_DECLARE_CONSTANT_NAME (asm_out_file, label, exp, size);
++#else
++  /* Standard thing is just output label for the constant.  */
+   ASM_OUTPUT_INTERNAL_LABEL (asm_out_file, "LC", labelno);
++#endif /* ASM_DECLARE_CONSTANT_NAME */
+ 
+-  /* Output the value of EXP.  */
+-  output_constant (exp,
+-		   (TREE_CODE (exp) == STRING_CST
+-		    ? MAX (TREE_STRING_LENGTH (exp),
+-			   int_size_in_bytes (TREE_TYPE (exp)))
+-		    : int_size_in_bytes (TREE_TYPE (exp))),
+-		   align);
+ 
++  /* Output the value of EXP.  */
++  output_constant (exp, size, align);
+ }
+ 
+ /* Used in the hash tables to avoid outputting the same constant
+--- g77-3.3-2/gcc-3.3/gcc/config/darwin.h~	Fri Dec 20 02:49:57 2002
++++ g77-3.3-2/gcc-3.3/gcc/config/darwin.h	Sun Jul 27 15:04:01 2003
+@@ -380,6 +380,10 @@
+         || DECL_INITIAL (DECL))                                         \
+       (* targetm.encode_section_info) (DECL, false);			\
+     ASM_OUTPUT_LABEL (FILE, xname);                                     \
++    /* Darwin doesn't support zero-size objects, so give them a        \
++       byte.  */                                                       \
++    if (tree_low_cst (DECL_SIZE_UNIT (DECL), 1) == 0)                  \
++      assemble_zeros (1);                                              \
+   } while (0)
+ 
+ #define ASM_DECLARE_FUNCTION_NAME(FILE, NAME, DECL)                     \
+@@ -400,6 +404,15 @@
+        outputting any required stub name label now.  */			\
+     machopic_output_possible_stub_label (FILE, xname);			\
+   } while (0)
++
++#define ASM_DECLARE_CONSTANT_NAME(FILE, NAME, EXP, SIZE)       \
++  do {                                                         \
++    ASM_OUTPUT_LABEL (FILE, NAME);                             \
++    /* Darwin doesn't support zero-size objects, so give them a        \
++       byte.  */                                               \
++    if ((SIZE) == 0)                                           \
++      assemble_zeros (1);                                      \
++   } while (0)
+ 
+ /* Wrap new method names in quotes so the assembler doesn't gag.
+    Make Objective-C internal symbols local.  */
