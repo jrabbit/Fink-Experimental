@@ -1,0 +1,332 @@
+diff -Naur gtk+-2.2.1.old/Makefile.in gtk+-2.2.1.new/Makefile.in
+--- gtk+-2.2.1.old/Makefile.in	Mon Feb  3 00:27:58 2003
++++ gtk+-2.2.1.new/Makefile.in	Wed Mar  5 11:57:51 2003
+@@ -167,7 +167,7 @@
+ ms_librarian = @ms_librarian@
+ xinput_progs = @xinput_progs@
+ 
+-SRC_SUBDIRS = gdk-pixbuf gdk gtk modules demos tests contrib
++SRC_SUBDIRS = gdk-pixbuf gdk gtk modules demos contrib
+ SUBDIRS = po $(SRC_SUBDIRS) docs build m4macros
+ 
+ # require automake 1.4
+diff -Naur gtk+-2.2.1.old/configure gtk+-2.2.1.new/configure
+--- gtk+-2.2.1.old/configure	Mon Feb  3 00:09:40 2003
++++ gtk+-2.2.1.new/configure	Wed Mar  5 11:57:51 2003
+@@ -13050,7 +13050,7 @@
+ 
+     if $have_freetype ; then
+       gtk_save_cppflags="$CPPFLAGS"
+-      CPPFLAGS="$CPPFLAGS $FREETYPE_CFLAGS"
++      CPPFLAGS="$FREETYPE_CFLAGS $CPPFLAGS"
+ 
+       echo "$as_me:$LINENO: checking For sufficiently new FreeType (at least 2.0.1)" >&5
+ echo $ECHO_N "checking For sufficiently new FreeType (at least 2.0.1)... $ECHO_C" >&6
+@@ -14898,7 +14898,9 @@
+ fi
+ echo "$as_me:$LINENO: result: $ac_cv_header_X11_extensions_Xinerama_h" >&5
+ echo "${ECHO_T}$ac_cv_header_X11_extensions_Xinerama_h" >&6
+-if test $ac_cv_header_X11_extensions_Xinerama_h = yes; then
++## Disable Xinerama.
++#if test $ac_cv_header_X11_extensions_Xinerama_h = yes; then
++if test no = yes; then
+   x_extra_libs="-lXinerama $x_extra_libs"
+ 		  if test -z "`echo $x_extra_libs $x_libs | grep "\-lXext" 2> /dev/null`"; then
+ 		      x_extra_libs="-lXext $x_extra_libs"
+diff -Naur gtk+-2.2.1.old/demos/gtk-demo/main.c gtk+-2.2.1.new/demos/gtk-demo/main.c
+--- gtk+-2.2.1.old/demos/gtk-demo/main.c	Fri Oct  4 07:49:31 2002
++++ gtk+-2.2.1.new/demos/gtk-demo/main.c	Wed Mar  5 11:57:51 2003
+@@ -96,7 +96,7 @@
+     {
+       int c;
+       
+-#ifndef G_OS_WIN32
++#ifdef HAVE_FLOCKFILE
+       c = getc_unlocked (stream);
+ #else
+       c = getc (stream);
+diff -Naur gtk+-2.2.1.old/gdk/Makefile.in gtk+-2.2.1.new/gdk/Makefile.in
+--- gtk+-2.2.1.old/gdk/Makefile.in	Mon Feb  3 00:28:41 2003
++++ gtk+-2.2.1.new/gdk/Makefile.in	Wed Mar  5 11:57:51 2003
+@@ -208,7 +208,7 @@
+ # libtool stuff: set version and export symbols for resolving
+ # since automake doesn't support conditionalized libsomething_la_LDFLAGS
+ # we use the general approach here
+-LDFLAGS = @STRIP_BEGIN@ 						\
++AM_LDFLAGS = @STRIP_BEGIN@ 						\
+ 	@LDFLAGS@							\
+ 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) 		\
+ 	-export-dynamic 						\
+@@ -382,7 +382,7 @@
+ COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+ LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+ CCLD = $(CC)
+-LINK = $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(LDFLAGS) -o $@
++LINK = $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+ DATA =  $(noinst_DATA)
+ 
+ HEADERS =  $(gdkinclude_HEADERS)
+diff -Naur gtk+-2.2.1.old/gdk/x11/gdkdrawable-x11.c gtk+-2.2.1.new/gdk/x11/gdkdrawable-x11.c
+--- gtk+-2.2.1.old/gdk/x11/gdkdrawable-x11.c	Fri Nov  8 07:27:22 2002
++++ gtk+-2.2.1.new/gdk/x11/gdkdrawable-x11.c	Wed Mar  5 11:57:51 2003
+@@ -1006,6 +1006,7 @@
+     }
+   else
+     {
++      /* RGBA */
+       pf.direct.alpha = 0;
+     }
+   
+@@ -1022,10 +1023,18 @@
+    * RENDER's preferred order
+    */
+   pf.direct.alphaMask = 0;
+-  /* ARGB */
+-  pf.direct.red = 16;
+-  pf.direct.green = 8;
+-  pf.direct.blue = 0;
++  if (ImageByteOrder (xdisplay) == LSBFirst)
++    {
++      /* ARGB */
++      pf.direct.red = 16;
++      pf.direct.green = 8;
++      pf.direct.blue = 0;
++    } else {
++      /* BGRA */
++      pf.direct.red = 8;
++      pf.direct.green = 16;
++      pf.direct.blue = 24;
++    }
+   
+   *format = XRenderFindFormat (xdisplay,
+ 			       (PictFormatType | PictFormatDepth |
+@@ -1037,7 +1046,14 @@
+ 			       0);
+ 
+   pf.direct.alphaMask = 0xff;
+-  pf.direct.alpha = 24;
++  if (ImageByteOrder (xdisplay) == LSBFirst)
++    {
++      /* ARGB */
++      pf.direct.alpha = 24;
++    } else {
++      /* BGRA */
++      pf.direct.alpha = 0;
++    }
+   
+   *mask = XRenderFindFormat (xdisplay,
+ 			     (PictFormatType | PictFormatDepth |
+@@ -1054,11 +1070,19 @@
+ 
+   pf.type = PictTypeDirect;
+   pf.depth = 32;
+-  pf.direct.red = 16;
+-  pf.direct.green = 8;
+-  pf.direct.blue = 0;
++  if (ImageByteOrder (xdisplay) == LSBFirst)
++    {
++      pf.direct.red = 16;
++      pf.direct.green = 8;
++      pf.direct.blue = 0;
++      pf.direct.alpha = 24;
++    } else {
++      pf.direct.red = 8;
++      pf.direct.green = 16;
++      pf.direct.blue = 24;
++      pf.direct.alpha = 0;
++    }
+   pf.direct.alphaMask = 0xff;
+-  pf.direct.alpha = 24;
+ 
+   *format = XRenderFindFormat (xdisplay,
+ 			       (PictFormatType | PictFormatDepth |
+diff -Naur gtk+-2.2.1.old/gdk/x11/gdkim-x11.c gtk+-2.2.1.new/gdk/x11/gdkim-x11.c
+--- gtk+-2.2.1.old/gdk/x11/gdkim-x11.c	Fri Nov  1 09:45:32 2002
++++ gtk+-2.2.1.new/gdk/x11/gdkim-x11.c	Wed Mar  5 12:00:30 2003
+@@ -24,7 +24,11 @@
+  * GTK+ at ftp://ftp.gtk.org/pub/gtk/. 
+  */
+ 
+-#include <locale.h>
++#if defined(X_LOCALE)
++# include <X11/Xlocale.h>
++#else
++# include <locale.h>
++#endif
+ #include <stdlib.h>
+ 
+ #include "gdkx.h"
+diff -Naur gtk+-2.2.1.old/gtk/Makefile.in gtk+-2.2.1.new/gtk/Makefile.in
+--- gtk+-2.2.1.old/gtk/Makefile.in	Mon Feb  3 00:28:49 2003
++++ gtk+-2.2.1.new/gtk/Makefile.in	Wed Mar  5 11:57:51 2003
+@@ -208,7 +208,7 @@
+ # since automake doesn't support conditionalized libsomething_la_LDFLAGS
+ # we use the general approach here
+ libgtkincludedir = $(includedir)/gtk-2.0/gtk
+-LDFLAGS = @STRIP_BEGIN@ \
++AM_LDFLAGS = @STRIP_BEGIN@ \
+ 	@LDFLAGS@								\
+ 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)			\
+ 	-export-dynamic								\
+@@ -804,7 +804,7 @@
+ COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+ LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+ CCLD = $(CC)
+-LINK = $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(LDFLAGS) -o $@
++LINK = $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+ DATA =  $(noinst_DATA)
+ 
+ HEADERS =  $(gtkinclude_HEADERS)
+diff -Naur gtk+-2.2.1.old/gtk/gtkimmulticontext.c gtk+-2.2.1.new/gtk/gtkimmulticontext.c
+--- gtk+-2.2.1.old/gtk/gtkimmulticontext.c	Wed Oct 23 04:17:02 2002
++++ gtk+-2.2.1.new/gtk/gtkimmulticontext.c	Wed Mar  5 12:38:44 2003
+@@ -20,7 +20,11 @@
+ #include "config.h"
+ 
+ #include <string.h>
+-#include <locale.h>
++#if defined(X_LOCALE)
++# include <X11/Xlocale.h>
++#else
++# include <locale.h>
++#endif
+ 
+ #include "gtkimmulticontext.h"
+ #include "gtkimmodule.h"
+@@ -229,7 +233,7 @@
+ 	{
+ 	  const char *locale;
+ 	  
+-#ifdef HAVE_LC_MESSAGES
++#if defined(HAVE_LC_MESSAGES) && !defined(X_LOCALE)
+ 	  locale = setlocale (LC_MESSAGES, NULL);
+ #else
+ 	  locale = setlocale (LC_CTYPE, NULL);
+diff -Naur gtk+-2.2.1.old/gtk/gtkmain.c gtk+-2.2.1.new/gtk/gtkmain.c
+--- gtk+-2.2.1.old/gtk/gtkmain.c	Sun Jan 12 13:19:09 2003
++++ gtk+-2.2.1.new/gtk/gtkmain.c	Wed Mar  5 12:00:02 2003
+@@ -26,7 +26,11 @@
+ 
+ #include "gdkconfig.h"
+ 
+-#include <locale.h>
++#if defined(X_LOCALE)
++# include <X11/Xlocale.h>
++#else
++# include <locale.h>
++#endif
+ 
+ #ifdef HAVE_BIND_TEXTDOMAIN_CODESET
+ #include <libintl.h>
+diff -Naur gtk+-2.2.1.old/ltmain.sh gtk+-2.2.1.new/ltmain.sh
+--- gtk+-2.2.1.old/ltmain.sh	Sat Nov  9 05:40:11 2002
++++ gtk+-2.2.1.new/ltmain.sh	Wed Mar  5 11:57:51 2003
+@@ -4047,10 +4047,10 @@
+ 
+ # Directory that this library needs to be installed in:
+ libdir='$install_libdir'"
+-	  if test "$installed" = no && test $need_relink = yes; then
+-	    $echo >> $output "\
+-relink_command=\"$relink_command\""
+-	  fi
++#	  if test "$installed" = no && test $need_relink = yes; then
++#	    $echo >> $output "\
++#relink_command=\"$relink_command\""
++#	  fi
+ 	done
+       fi
+ 
+diff -Naur gtk+-2.2.1.old/modules/input/Makefile.in gtk+-2.2.1.new/modules/input/Makefile.in
+--- gtk+-2.2.1.old/modules/input/Makefile.in	Mon Feb  3 00:28:54 2003
++++ gtk+-2.2.1.new/modules/input/Makefile.in	Wed Mar  5 11:57:51 2003
+@@ -800,22 +800,15 @@
+ # Running this if cross compiling or if DESTDIR is set is going to
+ # not work at all, so skip it.
+ install-data-local:
+-	@if $(RUN_QUERY_IMMODULES_TEST) ; then \
+-	  echo $(mkinstalldirs) $(DESTDIR)$(sysconfdir)/gtk-2.0 ; \
+-	  $(mkinstalldirs) $(DESTDIR)$(sysconfdir)/gtk-2.0 ; \
+-	  echo "$(top_builddir)/gtk/gtk-query-immodules-2.0 > $(DESTDIR)$(sysconfdir)/gtk-2.0/gtk.immodules" ; \
+-	  $(top_builddir)/gtk/gtk-query-immodules-2.0 > $(DESTDIR)$(sysconfdir)/gtk-2.0/gtk.immodules ; \
+-	else \
+-	  echo "***" ; \
+-	  echo "*** Warning: gtk.immodules not built" ; \
+-	  echo "***" ; \
+-	  echo "*** Generate this file manually on host" ; \
+-	  echo "*** system using gtk-query-immodules-2.0" ; \
+-	  echo "***" ; \
+-        fi
++	$(mkinstalldirs) $(DESTDIR)$(sysconfdir)/gtk-2.0 ;	\
++#	$(top_builddir)/gtk/gtk-query-immodules-2.0		\
++#	  $(DESTDIR)$(moduledir)/*				\
++#	  | sed -e 's|$(DESTDIR)||g'				\
++#	  > $(DESTDIR)$(sysconfdir)/gtk-2.0/gtk.immodules	\
++#	  2>&1
+ 
+ gtk.immodules: Makefile.am $(module_LTLIBRARIES)
+-	$(top_builddir)/gtk/gtk-query-immodules-2.0 *.la > gtk.immodules
++#	$(top_builddir)/gtk/gtk-query-immodules-2.0 *.la > gtk.immodules
+ 
+ @CROSS_COMPILING_FALSE@all-local: gtk.immodules
+ 
+diff -Naur gtk+-2.2.1.old/po/Makefile.in.in gtk+-2.2.1.new/po/Makefile.in.in
+--- gtk+-2.2.1.old/po/Makefile.in.in	Thu Dec 12 08:29:50 2002
++++ gtk+-2.2.1.new/po/Makefile.in.in	Wed Mar  5 11:57:51 2003
+@@ -24,7 +24,7 @@
+ exec_prefix = @exec_prefix@
+ datadir = @datadir@
+ libdir = @libdir@
+-localedir = $(libdir)/locale
++localedir = $(datadir)/locale
+ gnulocaledir = $(datadir)/locale
+ gettextsrcdir = $(datadir)/gettext/po
+ subdir = po
+diff -Naur gtk+-2.2.1.old/update-gdk-pixbuf-loaders gtk+-2.2.1.new/update-gdk-pixbuf-loaders
+--- gtk+-2.2.1.old/update-gdk-pixbuf-loaders	Thu Jan  1 09:00:00 1970
++++ gtk+-2.2.1.new/update-gdk-pixbuf-loaders	Wed Mar  5 11:57:51 2003
+@@ -0,0 +1,21 @@
++#!/bin/sh -e
++#
++# update-gdk-pixbuf-loaders
++#
++#   Package which install gdk-pixbuf loader(s) should call update-gdk-pixbuf-
++#   loaders in it's PostInstScript/PostRmScript to update gdk-pixbuf.loaders
++#   file.
++#
++
++CONFDIR=@PREFIX@/etc/gtk-2.0
++CONFFILE=$CONFDIR/gdk-pixbuf.loaders
++
++mkdir -p $CONFDIR
++
++TMPFILE=`tempfile`
++gdk-pixbuf-query-loaders >$TMPFILE
++
++mv -f $TMPFILE $CONFFILE
++chmod 0644 $CONFFILE
++
++exit 0
+diff -Naur gtk+-2.2.1.old/update-gtk-immodules gtk+-2.2.1.new/update-gtk-immodules
+--- gtk+-2.2.1.old/update-gtk-immodules	Thu Jan  1 09:00:00 1970
++++ gtk+-2.2.1.new/update-gtk-immodules	Wed Mar  5 11:57:51 2003
+@@ -0,0 +1,20 @@
++#!/bin/sh -e
++#
++# update-gtk-immodules
++#
++#   Package which install gtk immodule(s) should call update-gtk-immodules in
++#   it's PostInstScript/PostRmScript to update gtk.immodules file.
++#
++
++CONFDIR=@PREFIX@/etc/gtk-2.0
++CONFFILE=$CONFDIR/gtk.immodules
++
++mkdir -p $CONFDIR
++
++TMPFILE=`tempfile`
++gtk-query-immodules-2.0 >$TMPFILE
++
++mv -f $TMPFILE $CONFFILE
++chmod 0644 $CONFFILE
++
++exit 0
