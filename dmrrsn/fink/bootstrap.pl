@@ -324,7 +324,7 @@ print "Copying package descriptions...\n";
 
 $script = "cp packages/*.info packages/*.patch $installto/fink/dists/local/bootstrap/finkinfo/\n";
 
-$script .= "sed -e 's/\@VERSION\@/$packageversion/' -e 's/\@REVISION\@/$packagerevision/' -e 's|\@PREFIX\@|$basepath|' <fink.info.in >$installto/fink/dists/local/bootstrap/finkinfo/fink-$packageversion.info\n";
+$script .= "sed -e 's/\@VERSION\@/$packageversion/' -e 's/\@REVISION\@/$packagerevision/' -e 's|\@PREFIX\@|$installto|' <fink.info.in >$installto/fink/dists/local/bootstrap/finkinfo/fink-$packageversion.info\n";
 
 foreach $cmd (split(/\n/,$script)) {
   next unless $cmd;   # skip empty lines
