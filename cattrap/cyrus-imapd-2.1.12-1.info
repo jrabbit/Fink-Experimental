@@ -2,24 +2,57 @@ Package: cyrus-imapd
 Version: 2.1.12
 Revision: 1
 Maintainer: Matt Stephenson <cattrap@users.sourceforge.net>
-Depends: cyrus-sasl2-shlibs
-BuildDepends: openssl097-dev, db41 | db41-ssl, cyrus-sasl2-dev, dlcompat-dev
+Depends: cyrus-sasl2-shlibs, db3-shlibs
+BuildDepends: openssl097-dev, db3, cyrus-sasl2-dev, dlcompat-dev
 UpdatePOD: true
-Source: ftp://ftp.andrew.cmu.edu/pub/cyrus-mail/%N-%v.tar.gz
+Source: mirror:custom:%N-%v.tar.gz
+CustomMirror: <<
+  nam-US: ftp://ftp.andrew.cmu.edu/pub/cyrus-mail/
+  nam-US: ftp://ftp.andrew.cmu.edu/pub/cyrus-mail/OLD-VERSIONS/imap/
+<<
 Source-MD5: dc3355d0170509ccebd9788ed2daad39
 PatchScript: sed 's|@prefix@|%p|g' <%a/%f.patch | patch -p1
 UpdateConfigGuess: true
-ConfigureParams: --with-bdb-incdir=%p/include/db4 --with-cyrus-prefix=%p --with-statedir=%p/var
+ConfigureParams: --with-bdb-incdir=%p/include/db3 --with-cyrus-prefix=%p --with-statedir=%p/var --with-auth=unix --with-pidfile=%p/var/run/cyrus-master.pid --with-cyrus-group=cyrus
 InstallScript: <<
-  mkdir -p %i/share/man/man1
-  mkdir -p %i/share/man/man3
-  mkdir -p %i/share/man/man5
-  mkdir -p %i/share/man/man8
-  make install DESTDIR=%d INSTALLPRIVLIB=%i/lib/perl5 INSTALLARCHLIB=%i/lib/perl5/darwin INSTALLSITELIB=%i/lib/perl5 INSTALLSITEARCH=%i/lib/perl5/darwin INSTALLMAN1DIR=%i/share/man/man1 INSTALLMAN3DIR=%i/share/man/man3
-  mv %i/share/man/man8/master.8 %i/share/man/man8/master_imapd.8
-  rm -rf %i/man
+    mkdir -p %i/etc
+    mkdir -p %i/share/doc/%N/man
+    mkdir -p %i/share/%N/master/conf
+    mkdir -p %i/var/imap/user
+    mkdir -p %i/var/imap/quota
+    mkdir -p %i/var/imap/proc
+    mkdir -p %i/var/imap/db
+    mkdir -p %i/var/imap/socket
+    mkdir -p %i/var/imap/log
+    mkdir -p %i/var/imap/msg
+    mkdir -p %i/var/imap/sieve
+    mkdir -p %i/var/spool/imap
+    make install DESTDIR=%d INSTALLPRIVLIB=%i/lib/perl5 INSTALLARCHLIB=%i/lib/perl5/darwin INSTALLSITELIB=%i/lib/perl5 INSTALLSITEARCH=%i/lib/perl5/darwin INSTALLMAN1DIR=%i/share/man/man1 INSTALLMAN3DIR=%i/share/man/man3
+    cd master/conf; cp *.conf %i/share/%N/master/conf
+    cd %i/share/%N/master/conf; cp normal.conf %i/etc/cyrus.conf
+    mv %i/share/man/man8/master.8 %i/share/man/man8/master_imapd.8
+    cp imapd.conf %i/etc
+    cd %i/var/imap; chown cyrus user quota proc db socket log msg sieve
+    cd %i/var/imap; chgrp cyrus user quota proc db socket log msg sieve
+    cd %i/var/imap; chmod 0755 user quota proc db socket log msg sieve
+    chown cyrus %i/var/imap
+    chgrp cyrus %i/var/imap
+    chmod 750 %i/var/imap  
+    chown cyrus %i/var/spool/imap
+    chgrp cyrus %i/var/spool/imap
+    chmod 750 %i/var/spool/imap  
+    mkdir -p %i/var/log
+    mkdir -p %i/var/run
+    touch %i/var/log/imapd.log
+    touch %i/var/run/cyrus-master.pid
+    cd doc; cp *.html %i/share/doc/%N
+    cd doc/man; cp *.html %i/share/doc/%N/man
 <<
-DocFiles: COPYRIGHT README doc/*.html doc/man/*.html
+ConfFiles: <<
+ %p/etc/cyrus.conf
+ %p/etc/imapd.conf
+<<
+DocFiles: COPYRIGHT README
 Splitoff: <<
  Package: %N-dev
  Files: include lib/*.a
