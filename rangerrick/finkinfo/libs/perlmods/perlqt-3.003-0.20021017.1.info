@@ -1,0 +1,55 @@
+Package: perlqt
+Version: 3.003
+Revision: 0.20021017.1
+Depends: glut-shlibs (>= 3.7-3), libpng-shlibs (>= 1.0.12), qt3-shlibs (>= 3.0.5-9), x11
+BuildDepends: glut (>= 3.7-3), libpng (>= 1.0.12), qt3 (>= 3.0.5-9), x11
+Maintainer: Benjamin Reed <ranger@befunk.com>
+Source: http://ranger.befunk.com/fink/PerlQt-20021017.tar.bz2
+SourceDirectory: PerlQt-3
+PatchScript: sed 's|@PREFIX@|%p|g' <%a/%f.patch | patch -p1
+DocFiles: AUTHORS COPYING ChangeLog INSTALL README TODO
+SetLDFLAGS: -L%p/lib
+SetCPPFLAGS: -no-cpp-precomp
+SetCFLAGS: -I%p/include -fno-common -fno-rtti
+SetCXXFLAGS: -I%p/include -fno-common -fno-rtti
+ConfigureParams: --prefix=%p --with-qt-dir=%p --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --enable-final --disable-dependency-tracking --enable-smoke `cat /tmp/kde-build-options`
+CompileScript: <<
+#!/bin/sh
+ export KDEDIR=%p
+ export QTDIR=%p
+ make -f admin/Makefile.common cvs
+ ./configure %c
+# pushd PerlQt
+# perl Makefile.PL PREFIX=%p \
+#  INSTALLPRIVLIB=%p/lib/perl5 \
+#  INSTALLARCHLIB=%p/lib/perl5/darwin \
+#  INSTALLSITELIB=%p/lib/perl5 \
+#  INSTALLSITEARCH=%p/lib/perl5/darwin \
+#  INSTALLMAN1DIR=%p/share/man/man1 \
+#  INSTALLMAN3DIR=%p/share/man/man3
+# popd
+ make -j4 CC="c++" CXX="c++" CCLD="c++" CXXLD="c++"
+<<
+InstallScript: <<
+#!/bin/sh
+ make install DESTDIR=%d
+ pushd PerlQt
+ make install PREFIX=%i \
+  INSTALLPRIVLIB=\%i/lib/perl5 \
+  INSTALLARCHLIB=\%i/lib/perl5/darwin \
+  INSTALLSITELIB=\%i/lib/perl5 \
+  INSTALLSITEARCH=\%i/lib/perl5/darwin \
+  INSTALLMAN1DIR=\%i/share/man/man1 \
+  INSTALLMAN3DIR=\%i/share/man/man3
+ install -d -m 755 %i/share/doc/%n
+ find . -name \*.pl -exec perl -pi -e 's,use blib;,,' {} \;
+ gnutar -cf - examples tutorials | (cd %i/share/doc/%n; gnutar -xf -)
+ popd
+<<
+Description: Qt language bindings for Perl
+DescDetail: <<
+The goal of this project is to create a Perl Object Oriented
+interface to the Qt GUI Toolkit.  Access to the KDE Desktop
+Environment libraries is planned as well.
+<<
+License: GPL
