@@ -1,7 +1,155 @@
+diff -uNr kdegraphics-3.3.0/admin/ltmain.sh kdegraphics-3.3.0-new/admin/ltmain.sh
+--- kdegraphics-3.3.0/admin/ltmain.sh	Tue Jun 15 12:47:06 2004
++++ kdegraphics-3.3.0-new/admin/ltmain.sh	Sun Sep  5 14:37:06 2004
+@@ -986,6 +986,19 @@
+ 	  prev=
+ 	  continue
+ 	  ;;
++        framework)
++          case $host in
++            *-*-darwin*)
++              case "$deplibs " in
++                *" $qarg.ltframework "*) ;;
++                *) deplibs="$deplibs $qarg.ltframework" # this is fixed later
++                   ;;
++              esac
++              ;;
++          esac
++          prev=
++          continue
++          ;;
+ 	inst_prefix)
+ 	  inst_prefix_dir="$arg"
+ 	  prev=
+@@ -1207,6 +1220,11 @@
+ 	continue
+ 	;;
+ 
++      -framework)
++        prev=framework
++        continue
++        ;;
++
+       -inst-prefix-dir)
+ 	prev=inst_prefix
+ 	continue
+@@ -1276,7 +1294,7 @@
+ 	    ;;
+ 	  *-*-rhapsody* | *-*-darwin1.[012])
+ 	    # Rhapsody C and math libraries are in the System framework
+-	    deplibs="$deplibs -framework System"
++	    deplibs="$deplibs System.ltframework"
+ 	    continue
+ 	  esac
+ 	elif test "X$arg" = "X-lc_r"; then
+@@ -1883,6 +1901,21 @@
+ 	    fi
+ 	  fi
+ 	  ;; # -l
++        *.ltframework)
++          if test "$linkmode,$pass" = "prog,link"; then
++            compile_deplibs="$deplib $compile_deplibs"
++            finalize_deplibs="$deplib $finalize_deplibs"
++          else
++            deplibs="$deplib $deplibs"
++            if test "$linkmode" = lib ; then
++                case "$inherited_linker_flags " in
++                    *" $deplib "*) ;;
++                    * ) inherited_linker_flags="$inherited_linker_flags $deplib" ;;
++                esac
++            fi
++          fi
++          continue
++          ;;
+ 	-L*)
+ 	  case $linkmode in
+ 	  lib)
+@@ -2011,6 +2044,16 @@
+ 	*) . ./$lib ;;
+ 	esac
+ 
++        case $host in
++        *-*-darwin*)
++          # Convert "-framework foo" to "foo.ltframework"
++          if test -n "$inherited_linker_flags"; then
++            inherited_linker_flags=`$echo "X$inherited_linker_flags" | $Xsed -e 's/-framework \([^ $]*\)/\1.ltframework/g'`
++          fi
++          dependency_libs=`$echo "X $dependency_libs" | $Xsed -e 's% \([^ $]*\).ltframework% -framework \1%g'`
++          ;;
++        esac
++
+ 	if test "$linkmode,$pass" = "lib,link" ||
+ 	   test "$linkmode,$pass" = "prog,scan" ||
+ 	   { test "$linkmode" != prog && test "$linkmode" != lib; }; then
+@@ -3130,7 +3173,7 @@
+ 	    ;;
+ 	  *-*-rhapsody* | *-*-darwin1.[012])
+ 	    # Rhapsody C library is in the System framework
+-	    deplibs="$deplibs -framework System"
++	    deplibs="$deplibs System.ltframework"
+ 	    ;;
+ 	  *-*-netbsd*)
+ 	    # Don't link with libc until the a.out ld.so is fixed.
+@@ -3429,7 +3472,7 @@
+ 	case $host in
+ 	*-*-rhapsody* | *-*-darwin1.[012])
+ 	  # On Rhapsody replace the C library is the System framework
+-	  newdeplibs=`$echo "X $newdeplibs" | $Xsed -e 's/ -lc / -framework System /'`
++	  newdeplibs=`$echo "X $newdeplibs" | $Xsed -e 's/ -lc / System.ltframework /'`
+ 	  ;;
+ 	esac
+ 
+@@ -3479,6 +3522,15 @@
+ 	deplibs=$newdeplibs
+       fi
+ 
++      # Time to change all our "foo.ltframework" stuff back to "-framework foo"
++      case $host in
++        *-*-darwin*)
++          newdeplibs=`$echo "X $newdeplibs" | $Xsed -e 's% \([^ $]*\).ltframework% -framework \1%g'`
++          inherited_linker_flags=`$echo "X $inherited_linker_flags" | $Xsed -e 's% \([^ $]*\).ltframework% -framework \1%g'`
++          deplibs=`$echo "X $deplibs" | $Xsed -e 's% \([^ $]*\).ltframework% -framework \1%g'`
++          ;;
++      esac
++
+       # All the library-specific variables (install_libdir is set above).
+       library_names=
+       old_library=
+@@ -4057,8 +4109,8 @@
+       case $host in
+       *-*-rhapsody* | *-*-darwin1.[012])
+ 	# On Rhapsody replace the C library is the System framework
+-	compile_deplibs=`$echo "X $compile_deplibs" | $Xsed -e 's/ -lc / -framework System /'`
+-	finalize_deplibs=`$echo "X $finalize_deplibs" | $Xsed -e 's/ -lc / -framework System /'`
++	compile_deplibs=`$echo "X $compile_deplibs" | $Xsed -e 's/ -lc / System.ltframework /'`
++	finalize_deplibs=`$echo "X $finalize_deplibs" | $Xsed -e 's/ -lc / System.ltframework /'`
+ 	;;
+       esac
+ 
 diff -uNr kdegraphics-3.3.0/configure kdegraphics-3.3.0-new/configure
 --- kdegraphics-3.3.0/configure	Fri Aug 13 19:55:30 2004
-+++ kdegraphics-3.3.0-new/configure	Sun Aug 29 10:49:41 2004
-@@ -9623,10 +9623,21 @@
++++ kdegraphics-3.3.0-new/configure	Sun Sep  5 14:37:15 2004
+@@ -7980,6 +7980,19 @@
+     lt_cv_sys_max_cmd_len=8192;
+     ;;
+ 
++  netbsd* | freebsd* | openbsd* | darwin* )
++    # This has been around since 386BSD, at least.  Likely further.
++    if test -x /sbin/sysctl; then
++      lt_cv_sys_max_cmd_len=`/sbin/sysctl -n kern.argmax`
++    elif test -x /usr/sbin/sysctl; then
++      lt_cv_sys_max_cmd_len=`/usr/sbin/sysctl -n kern.argmax`
++    else
++      lt_cv_sys_max_cmd_len=65536 # usable default for *BSD
++    fi
++    # And add a safety zone
++    lt_cv_sys_max_cmd_len=`expr $lt_cv_sys_max_cmd_len \/ 4`
++    ;;
++
+  *)
+     # If test is not a shell built-in, we'll probably end up computing a
+     # maximum length that is only half of the actual maximum length, but
+@@ -9623,10 +9636,21 @@
        archive_cmds_need_lc=no
        case "$host_os" in
        rhapsody* | darwin1.[012])
@@ -25,7 +173,7 @@ diff -uNr kdegraphics-3.3.0/configure kdegraphics-3.3.0-new/configure
  	;;
        esac
      	lt_int_apple_cc_single_mod=no
-@@ -11476,7 +11487,18 @@
+@@ -11476,7 +11500,18 @@
        allow_undefined_flag='-undefined suppress'
        ;;
      *) # Darwin 1.3 on
@@ -45,7 +193,7 @@ diff -uNr kdegraphics-3.3.0/configure kdegraphics-3.3.0-new/configure
        ;;
      esac
      output_verbose_link_cmd='echo'
-@@ -12527,7 +12549,18 @@
+@@ -12527,7 +12562,18 @@
        allow_undefined_flag_CXX='-undefined suppress'
        ;;
      *) # Darwin 1.3 on
@@ -65,7 +213,7 @@ diff -uNr kdegraphics-3.3.0/configure kdegraphics-3.3.0-new/configure
        ;;
      esac
      lt_int_apple_cc_single_mod=no
-@@ -16350,7 +16383,18 @@
+@@ -16350,7 +16396,18 @@
  	allow_undefined_flag_F77='-undefined suppress'
  	;;
        *) # Darwin 1.3 on
@@ -85,7 +233,7 @@ diff -uNr kdegraphics-3.3.0/configure kdegraphics-3.3.0-new/configure
  	;;
        esac
      	lt_int_apple_cc_single_mod=no
-@@ -18632,7 +18676,18 @@
+@@ -18632,7 +18689,18 @@
  	allow_undefined_flag_GCJ='-undefined suppress'
  	;;
        *) # Darwin 1.3 on
@@ -107,7 +255,7 @@ diff -uNr kdegraphics-3.3.0/configure kdegraphics-3.3.0-new/configure
      	lt_int_apple_cc_single_mod=no
 diff -uNr kdegraphics-3.3.0/kdvi/Makefile.in kdegraphics-3.3.0-new/kdvi/Makefile.in
 --- kdegraphics-3.3.0/kdvi/Makefile.in	Fri Aug 13 19:55:25 2004
-+++ kdegraphics-3.3.0-new/kdvi/Makefile.in	Sun Aug 29 10:08:15 2004
++++ kdegraphics-3.3.0-new/kdvi/Makefile.in	Sun Sep  5 14:37:07 2004
 @@ -470,7 +470,7 @@
  xdg_menudir = @xdg_menudir@
  
@@ -119,7 +267,7 @@ diff -uNr kdegraphics-3.3.0/kdvi/Makefile.in kdegraphics-3.3.0-new/kdvi/Makefile
  
 diff -uNr kdegraphics-3.3.0/kpdf/xpdf/Makefile.in kdegraphics-3.3.0-new/kpdf/xpdf/Makefile.in
 --- kdegraphics-3.3.0/kpdf/xpdf/Makefile.in	Fri Aug 13 19:55:27 2004
-+++ kdegraphics-3.3.0-new/kpdf/xpdf/Makefile.in	Sun Aug 29 10:09:30 2004
++++ kdegraphics-3.3.0-new/kpdf/xpdf/Makefile.in	Sun Sep  5 14:37:07 2004
 @@ -419,7 +419,7 @@
  xdg_appsdir = @xdg_appsdir@
  xdg_directorydir = @xdg_directorydir@
@@ -131,7 +279,7 @@ diff -uNr kdegraphics-3.3.0/kpdf/xpdf/Makefile.in kdegraphics-3.3.0-new/kpdf/xpd
  libxpdf_la_LDFLAGS = $(all_libraries) -no-undefined $(KDE_NO_UNDEFINED)
 diff -uNr kdegraphics-3.3.0/kpovmodeler/Makefile.in kdegraphics-3.3.0-new/kpovmodeler/Makefile.in
 --- kdegraphics-3.3.0/kpovmodeler/Makefile.in	Fri Aug 13 19:55:27 2004
-+++ kdegraphics-3.3.0-new/kpovmodeler/Makefile.in	Sun Aug 29 10:10:19 2004
++++ kdegraphics-3.3.0-new/kpovmodeler/Makefile.in	Sun Sep  5 14:37:07 2004
 @@ -603,7 +603,7 @@
  xdg_appsdir = @xdg_appsdir@
  xdg_directorydir = @xdg_directorydir@
@@ -143,7 +291,7 @@ diff -uNr kdegraphics-3.3.0/kpovmodeler/Makefile.in kdegraphics-3.3.0-new/kpovmo
  
 diff -uNr kdegraphics-3.3.0/ksvg/impl/libs/libtext2path/src/Makefile.in kdegraphics-3.3.0-new/ksvg/impl/libs/libtext2path/src/Makefile.in
 --- kdegraphics-3.3.0/ksvg/impl/libs/libtext2path/src/Makefile.in	Fri Aug 13 19:55:28 2004
-+++ kdegraphics-3.3.0-new/ksvg/impl/libs/libtext2path/src/Makefile.in	Sun Aug 29 10:11:33 2004
++++ kdegraphics-3.3.0-new/ksvg/impl/libs/libtext2path/src/Makefile.in	Sun Sep  5 14:37:07 2004
 @@ -415,11 +415,11 @@
  xdg_menudir = @xdg_menudir@
  lib_LTLIBRARIES = libtext2path.la
@@ -160,7 +308,7 @@ diff -uNr kdegraphics-3.3.0/ksvg/impl/libs/libtext2path/src/Makefile.in kdegraph
  all: docs-am  all-am
 diff -uNr kdegraphics-3.3.0/ksvg/plugin/backends/libart/Makefile.in kdegraphics-3.3.0-new/ksvg/plugin/backends/libart/Makefile.in
 --- kdegraphics-3.3.0/ksvg/plugin/backends/libart/Makefile.in	Fri Aug 13 19:55:28 2004
-+++ kdegraphics-3.3.0-new/ksvg/plugin/backends/libart/Makefile.in	Sun Aug 29 10:12:12 2004
++++ kdegraphics-3.3.0-new/ksvg/plugin/backends/libart/Makefile.in	Sun Sep  5 14:37:07 2004
 @@ -422,7 +422,7 @@
  #>- libksvgrendererlibart_la_METASOURCES = AUTO
  kde_services_DATA = ksvglibartcanvas.desktop
@@ -170,3 +318,30 @@ diff -uNr kdegraphics-3.3.0/ksvg/plugin/backends/libart/Makefile.in kdegraphics-
  #>- all: all-am
  #>+ 1
  all: docs-am  all-am
+diff -uNr kdegraphics-3.3.0/libkscan/img_canvas.cpp kdegraphics-3.3.0-new/libkscan/img_canvas.cpp
+--- kdegraphics-3.3.0/libkscan/img_canvas.cpp	Sun Sep 21 04:38:40 2003
++++ kdegraphics-3.3.0-new/libkscan/img_canvas.cpp	Sun Sep  5 14:37:07 2004
+@@ -702,7 +702,7 @@
+                            double(image->width());
+             kdDebug(29000) << "FIT WIDTH scrollbar to substract: " << sbWidth << endl;
+         }
+-        scale_factor = 100*used_xscaler;
++        scale_factor = (int)(100*used_xscaler);
+         break;
+     case FIT_HEIGHT:
+         used_yscaler = used_xscaler = double(noSBSize.height())/double(image->height());
+@@ -717,12 +717,12 @@
+             kdDebug(29000) << "FIT HEIGHT scrollbar to substract: " << sbWidth << endl;
+             // scale = int(100.0*(noSBSize.height() -sbWidth) / image->height());
+         }
+-        scale_factor = 100*used_xscaler;
++        scale_factor = (int)(100*used_xscaler);
+ 
+         break;
+     case ZOOM:
+         used_xscaler = used_yscaler = double(getScaleFactor())/100.0;
+-        scale_factor = 100*used_xscaler;
++        scale_factor = (int)(100*used_xscaler);
+         break;
+     default:
+         break;
