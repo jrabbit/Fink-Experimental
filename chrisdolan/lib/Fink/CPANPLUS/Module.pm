@@ -7,7 +7,7 @@ use File::Slurp;
 
 my $min_perl_version = 5.008;
 
-# TODO: add buildfile() method like makefile()
+# TODO: fill out buildfile() method like makefile()
 
 # This is a translation from CPAN "dslip" codes to Module::Build YAML codes
 #   From: http://cpan.uwinnipeg.ca/htdocs/faqs/dslip.html
@@ -103,10 +103,12 @@ sub doc_files
    my @docfiles = grep !/^(
                            .*\.(pm|pl|PM|PL|bat|xs|c|h|a|bs|so|dylib|pod) |
                            Makefile |
+                           Build |
                            MANIFEST\.SKIP |
                            INSTALL.* |
                            [Ii]nstall.* |
-                           pm_to_blib
+                           pm_to_blib |
+                           typemap
                            )$/x, $self->root_files();
    return @docfiles;
 }
@@ -130,6 +132,14 @@ sub license
    my $self = shift;
 
    return $self->yml->{license} || $self->dslip->{license};
+}
+
+sub version_from
+{
+   my $self = shift;
+   return
+       $self->buildfile->{version_from} ||
+       $self->makefile->{version_from};
 }
 
 sub description
@@ -222,9 +232,9 @@ sub makefile
             $self->{makefile}->{abstract} = substr($2,1);
          }
          # Check if there are any script outputs
-         if ($makefile =~ /([\'\"]?)EXE_FILES\1\s*(?:=>|,)/s)
+         if ($makefile =~ /([\'\"]?)EXE_FILES\1\s*(?:=>|,)\s*(\[\s*\]|)/s)
          {
-            $self->{makefile}->{bin} = 1;
+            $self->{makefile}->{bin} = ($2 ne "");
          }
          # Check for prereqs
          if ($makefile =~ /([\'\"]?)PREREQ_PM\1\s*(?:=>|,)\s*(\{.*?\})/s)
@@ -262,15 +272,34 @@ sub makefile
    return $self->{makefile};
 }
 
+sub buildfile
+{
+   my $self = shift;
+
+   if (!$self->{buildfile})
+   {
+      $self->{buildfile} = {};
+      my $filename = $self->extract_dir()."/Build.PL";
+      if (-f $filename)
+      {
+         my $buildfile = read_file($filename);
+         # ...
+      }
+   }
+   return $self->{buildfile};
+}
+
 sub mainfile
 {
    my $self = shift;
    if (!defined $self->{mainfile})
    {
       $self->{mainfile} = "";
-      if ($self->makefile->{version_from})
+      my $version_from = ($self->buildfile->{version_from} ||
+                          $self->makefile->{version_from});
+      if ($version_from)
       {
-         my $filename = $self->extract_dir."/".$self->makefile->{version_from};
+         my $filename = $self->extract_dir."/".$version_from;
          if (-f $filename)
          {
             $self->{mainfile} = read_file($filename);
