@@ -1,6 +1,6 @@
 diff -ruN Fink/Config.pm Fink.new/Config.pm
 --- Fink/Config.pm	Sun Sep  8 20:11:38 2002
-+++ Fink.new/Config.pm	Thu Nov  7 20:03:30 2002
++++ Fink.new/Config.pm	Thu Nov  7 21:38:04 2002
 @@ -36,12 +36,12 @@
    @ISA         = qw(Exporter Fink::Base);
    @EXPORT      = qw();
@@ -16,21 +16,22 @@ diff -ruN Fink/Config.pm Fink.new/Config.pm
  $debarch = "darwin-powerpc";
  
  my %globals = ();
-@@ -87,6 +87,11 @@
+@@ -87,6 +87,12 @@
    $basepath = $self->param("Basepath");
    die "Basepath not set in config file \"".$self->{_path}."\"!\n"
      unless (defined $basepath and $basepath);
 +
 +  #hmm...a hidden option atm ;-)
-+  unless ( $buildpath = $self->param("Buildpath") ) {
-+    $buildpath = "$basepath/src"; }
++  $buildpath = $config->param_default("Buildpath", "$basepath/src");
++print $buildpath;
++
 +
    $libpath = "$basepath/lib/fink";
    $distribution = $self->param("Distribution");
  
 diff -ruN Fink/Depends.pm Fink.new/Depends.pm
 --- Fink/Depends.pm	Wed Dec 31 19:00:00 1969
-+++ Fink.new/Depends.pm	Thu Nov  7 20:03:30 2002
++++ Fink.new/Depends.pm	Thu Nov  7 21:38:04 2002
 @@ -0,0 +1,135 @@
 +#
 +# Fink::Depends class
@@ -169,7 +170,7 @@ diff -ruN Fink/Depends.pm Fink.new/Depends.pm
 +}
 diff -ruN Fink/Engine.pm Fink.new/Engine.pm
 --- Fink/Engine.pm	Tue Oct 15 18:34:13 2002
-+++ Fink.new/Engine.pm	Thu Nov  7 20:03:30 2002
++++ Fink.new/Engine.pm	Thu Nov  7 21:38:04 2002
 @@ -28,7 +28,7 @@
                        &file_MD5_checksum);
  use Fink::Package;
@@ -287,9 +288,51 @@ diff -ruN Fink/FinkVersion.pm Fink.new/FinkVersion.pm
 -
 -### EOF
 -1;
+diff -ruN Fink/NetAccess.pm Fink.new/NetAccess.pm
+--- Fink/NetAccess.pm	Sat Sep 28 15:53:38 2002
++++ Fink.new/NetAccess.pm	Thu Nov  7 21:38:04 2002
+@@ -52,11 +52,11 @@
+ 
+ sub fetch_url {
+   my $url = shift;
+-  my $destdir = shift || "$basepath/src";
++  my $downloaddir = shift || "$basepath/src";
+   my ($file, $cmd);
+ 
+   $file = &filename($url);
+-  return &fetch_url_to_file($url, $file, 0, 0, 0, $destdir);
++  return &fetch_url_to_file($url, $file, 0, 0, 0, $downloaddir);
+ }
+ 
+ ### download a file to the designated directory and save it under the
+@@ -69,18 +69,18 @@
+   my $custom_mirror = shift || 0;
+   my $tries = shift || 0;
+   my $cont = shift || 0;  
+-  my $destdir = shift || "$basepath/src";
++  my $downloaddir = shift || "$basepath/src";
+   my ($http_proxy, $ftp_proxy);
+   my ($url, $cmd, $cont_cmd, $result);
+ 
+   # create destination directory if necessary
+-  if (not -d $destdir) {
+-    &execute("mkdir -p $destdir");
+-    if (not -d $destdir) {
+-      die "Download directory \"$destdir\" can not be created!\n";
++  if (not -d $downloaddir) {
++    &execute("mkdir -p $downloaddir");
++    if (not -d $downloaddir) {
++      die "Download directory \"$downloaddir\" can not be created!\n";
+     }
+   }
+-  chdir $destdir;
++  chdir $downloaddir;
+ 
+   # determine download command
+   $cmd = &download_cmd($origurl, $file);
 diff -ruN Fink/Package.pm Fink.new/Package.pm
 --- Fink/Package.pm	Thu Sep 19 16:03:02 2002
-+++ Fink.new/Package.pm	Thu Nov  7 20:03:30 2002
++++ Fink.new/Package.pm	Thu Nov  7 21:38:04 2002
 @@ -24,7 +24,7 @@
  use Fink::Base;
  use Fink::Services qw(&read_properties &latest_version &version_cmp
@@ -319,7 +362,7 @@ diff -ruN Fink/Package.pm Fink.new/Package.pm
    
 diff -ruN Fink/PkgVersion.pm Fink.new/PkgVersion.pm
 --- Fink/PkgVersion.pm	Sun Oct 13 19:37:23 2002
-+++ Fink.new/PkgVersion.pm	Thu Nov  7 20:03:30 2002
++++ Fink.new/PkgVersion.pm	Thu Nov  7 21:38:04 2002
 @@ -28,7 +28,7 @@
  		      &prompt_boolean &prompt_selection
  		      &collapse_space &read_properties_var
@@ -467,9 +510,50 @@ diff -ruN Fink/PkgVersion.pm Fink.new/PkgVersion.pm
  
    if (not -d "$destdir/DEBIAN") {
      if (&execute("mkdir -p $destdir/DEBIAN")) {
+diff -ruN Fink/SelfUpdate.pm Fink.new/SelfUpdate.pm
+--- Fink/SelfUpdate.pm	Sun Sep  8 20:11:38 2002
++++ Fink.new/SelfUpdate.pm	Thu Nov  7 21:38:04 2002
+@@ -356,7 +356,7 @@
+ 
+ sub do_tarball {
+   my $newversion = shift;
+-  my ($destdir, $dir);
++  my ($downloaddir, $dir);
+   my ($pkgtarball, $url, $verbosity, $unpack_cmd);
+ 
+   print "\n";
+@@ -366,8 +366,8 @@
+ 		  "using commands like 'fink update-all'.");
+   print "\n";
+ 
+-  $destdir = "$basepath/src";
+-  chdir $destdir or die "Can't cd to $destdir: $!\n";
++  $downloaddir = "$basepath/src";
++  chdir $downloaddir or die "Can't cd to $downloaddir: $!\n";
+ 
+   # go ahead and upgrade
+   # first, download the packages tarball
+@@ -376,7 +376,7 @@
+   $url = "mirror:sourceforge:fink/$pkgtarball";
+ 
+   if (not -f $pkgtarball) {
+-    if (&fetch_url($url, $destdir)) {
++    if (&fetch_url($url, $downloaddir)) {
+       die "Downloading the update tarball '$pkgtarball' from the URL '$url' failed.\n";
+     }
+   }
+@@ -402,7 +402,7 @@
+   if (&execute("./inject.pl $basepath -quiet")) {
+     die "injecting the new package definitions from $pkgtarball failed\n";
+   }
+-  chdir $destdir or die "Can't cd to $destdir: $!\n";
++  chdir $downloaddir or die "Can't cd to $downloaddir: $!\n";
+   if (-e $dir) {
+     &execute("rm -rf $dir");
+   }
 diff -ruN Fink/Validation.pm Fink.new/Validation.pm
 --- Fink/Validation.pm	Sun Oct 13 21:36:43 2002
-+++ Fink.new/Validation.pm	Thu Nov  7 20:03:30 2002
++++ Fink.new/Validation.pm	Thu Nov  7 21:38:04 2002
 @@ -23,7 +23,7 @@
  package Fink::Validation;
  
