@@ -1,7 +1,7 @@
-#!/bin/csh
+#!/bin/tcsh
 
 if ($#argv < 1) then
-  echo "Syntax: $0 [opts] <info file> [<perlversion>]"
+  echo "Syntax: $0 [opts] <info file> [<perlversion> ...]"
   echo "  opt '-n' means no reindexing"
   echo "  <perlversion> is like '581'"
   exit
@@ -15,25 +15,29 @@ if ("q$1" == "q-n") then
 endif
 
 set info = $1
-set perlver = $2
-set pkg = `echo $info | sed "s,.*/,," | sed "s,\.info,,"`$perlver
+shift
+set perlvers = "$*"
 
 if (! -f $info) then
   echo "info file not found"
   exit
 endif
 
-/sw/bin/fink validate $1
+/sw/bin/fink validate $info
 if ($index == "true") then
   /sw/bin/fink index
 endif
-nice +10 /sw/bin/fink -k -K rebuild $pkg
-if ($status == 0) then
-  foreach deb (/sw/fink/debs/$pkg*)
-    echo " ****** $deb ******"
-    /sw/bin/fink validate $deb
-    if ($status == 0) then
-      dpkg-deb -c $deb
-    endif
-  end
-endif
+
+foreach perlver (`echo $perlvers`)
+  set pkg = `echo $info | sed "s,.*/,," | sed "s,\.info,,"`$perlver
+  nice +10 /sw/bin/fink -k -K rebuild $pkg
+  if ($status == 0) then
+    foreach deb (/sw/fink/debs/$pkg*)
+      echo " ****** $deb ******"
+      /sw/bin/fink validate $deb
+      if ($status == 0) then
+        dpkg-deb -c $deb
+      endif
+    end
+  endif
+end

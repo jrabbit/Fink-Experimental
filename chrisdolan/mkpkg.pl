@@ -11,10 +11,12 @@ mkpkg.pl [options] Some::Module ...
   Options:
     -m --maintainer=s   specify the maintainer.  This is a required parameter
                           (e.g. -m "Joe Maintainer <joe@foo.com>")
+    -u --update         use update mode instead of create mode
     -d --diff           use difference mode instead of create mode
     -P --prereqs        show prereq info (not yet finished)
     -t --typepkg        force %type_pkg[perl] variants
     -b --bin            force a %N-bin splitoff
+    -D --details        print CPAN details for the module(s)
     -f --force          force overwrite of .info file (not used in difference mode)
     -p --prefix=s       specify Fink prefix (defaults to /sw)
     -T --tree=s         specify where in Fink to write .info file
@@ -38,10 +40,16 @@ package itself, various files in the package, and prerequisite Fink
 packages (if any).  To collect the CPAN data easily, this program
 relies heavily on the CPANPLUS infrastructure.
 
-There are two main modes to this program: create mode and difference
-mode.  In create mode (the default), the program attempts to create a
-brand new .info file.  If one already exists, it refuses to overwrite
-it without the C<--force> option.
+There are three main modes to this program: create mode, update mode
+and difference mode.  In create mode (the default), the program
+attempts to create a brand new .info file.  If one already exists, it
+refuses to overwrite it without the C<--force> option.
+
+In update mode, the program creates a .info.new file that is the same
+as what create mode would have created, plus comments reflecting
+changes from the existing version.  Note: This mode has not been well
+tested against existing .info files that were not created by this
+program!
 
 In difference mode, the program creates the new .info file in memory
 and compares it to the existing .info file.  Any changes are
@@ -54,9 +62,7 @@ create mode.  I have not really tested it against other .info files.
 CPANPLUS 0.051 must be installed.  This is untested with other
 versions of CPANPLUS.  CPANPLUS is not in Fink as of this writing.
 
-yaml-pm must be installed.
-
-file-slurp-pm must be installed.
+file-slurp-pm, module-corelist-pm, and yaml-pm must be installed.
  
 =head1 CAVEATS
 
@@ -89,11 +95,13 @@ my %opts = (
             help       => 0,
             version    => 0,
 
+            update     => 0,
             diff       => 0,
             force      => 0,
             prereqs    => 0,
             typepkg    => 0,
             bin        => 0, # make a %N-bin splitoff
+            details    => 0,
 
             prefix     => "/sw",
             maintainer => undef,
@@ -108,11 +116,13 @@ GetOptions("v|verbose"  => \$opts{verbose},
            "h|help"     => \$opts{help},
            "V|version"  => \$opts{version},
 
+           "u|update"   => \$opts{update},
            "d|diff"     => \$opts{diff},
            "f|force"    => \$opts{force},
            "P|prereqs"  => \$opts{prereqs},
            "t|typepkg"  => \$opts{typepkg},
            "b|bin"      => \$opts{bin},
+           "D|details"  => \$opts{details},
 
            "p|prefix=s"     => \$opts{prefix},
            "m|maintainer=s" => \$opts{maintainer},
@@ -142,6 +152,7 @@ my $fink = Fink::BuildPerlMod->new(
                                    prereqs    => $opts{prereqs},
                                    typepkg    => $opts{typepkg},
                                    bin        => $opts{bin},
+                                   details    => $opts{details},
 
                                    prefix     => $opts{prefix},
                                    maintainer => $opts{maintainer},
@@ -157,7 +168,11 @@ if (!$fink)
 
 foreach my $module (@ARGV)
 {
-   if ($opts{diff})
+   if ($opts{update})
+   {
+      $fink->update_pkg($module);
+   }
+   elsif ($opts{diff})
    {
       my $diff = $fink->diff_pkg($module);
       print $diff if ($diff);

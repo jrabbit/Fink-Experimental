@@ -15,7 +15,7 @@ sub new
       modcache => {},
    }, $pkg);
    $self->{cb} = CPANPLUS::Backend->new();
-   print "Started CPANPLUS\n" if ($self->{verbose});
+   #print "Started CPANPLUS\n" if ($self->{verbose});
    $self->{cb}->configure_object->set_conf(verbose => $self->{verbose});
    
    return $self;
@@ -46,28 +46,42 @@ sub set_host
    }
 }
 
-sub module_tree
+sub module_by_name
 {
+   # Returns CPANPLUS module (internal only)
    my $self = shift;
-   return $self->{cb}->module_tree(@_);
+   my $modname = shift;
+
+   if ($modname =~ /::/)
+   {
+      return $self->{cb}->module_tree($modname);
+   }
+   else
+   {
+      my $re = qr/^\Q$modname\E-\d[\d\.]*\.(?:tar\.gz|zip|tgz)$/i;
+      my ($mod) = $self->{cb}->search(type => "package", allow => [$re]);
+      #print "Search yielded ".$mod->name." for package $modname\n" if ($mod && $self->{verbose});
+      return $mod;
+   }
 }
 
 sub get_module
 {
+   # Returns Fink::CPANPLUS::Module (public interface)
    my $self = shift;
    my $modname = shift;
 
    my $cache = $self->{modcache};
-   if (!$cache->{$modname})
+   if (!$cache->{lc$modname})
    {
       my $mod = Fink::CPANPLUS::Module->new($self, $modname);
-      $cache->{$modname} = $mod;
+      $cache->{lc$modname} = $mod;
       if ($mod)
       {
-         $cache->{$mod->package_name} = $mod;
+         $cache->{lc($mod->package_name)} = $mod;
       }
    }
-   return $cache->{$modname};
+   return $cache->{lc$modname};
 }
 
 1;

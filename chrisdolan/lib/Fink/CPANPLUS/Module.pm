@@ -5,6 +5,8 @@ use strict;
 use CPANPLUS::Internals::Constants;
 use File::Slurp;
 
+my $min_perl_version = 5.008;
+
 # TODO: add buildfile() method like makefile()
 
 # This is a translation from CPAN "dslip" codes to Module::Build YAML codes
@@ -27,7 +29,7 @@ sub new
    my $self = bless({
       cp => $cp,
       name => $name,
-      mod => $cp->module_tree($name),
+      mod => $cp->module_by_name($name),
    }, $pkg);
    
    return $self->{mod} ? $self : undef;
@@ -66,7 +68,7 @@ sub license_filename
       if (-f $filename)
       {
          my $content = read_file($filename);
-         if ($content =~ /license|copyright/i)
+         if ($content =~ /licen[sc]e|licensing|copyright/i) # [sc] is to catch a common typo
          {
             return $file;
          }
@@ -99,14 +101,12 @@ sub doc_files
 {
    my $self = shift;
    my @docfiles = grep !/^(
-                           Build.PL |
-                           Makefile(\.PL|) |
+                           .*\.(bat|xs|pm|pl|PM|PL) |
+                           Makefile |
                            MANIFEST\.SKIP |
-                           test\.pl |
-                           [Ii]nstall.* |
                            INSTALL.* |
-                           .*\.(bat|xs|pm|pl)
-                           )$/x, $self->root_files();
+                           pm_to_blib
+                           )$/xi, $self->root_files();
    return @docfiles;
 }
 
@@ -229,9 +229,18 @@ sub makefile
          if ($makefile =~ /([\'\"]?)PREREQ_PM\1\s*(?:=>|,)\s*(\{.*?\})/s)
          {
             my $hash = $2;
-            $hash =~ s/\s+/ /g;
-            my $libs = eval $hash;
-            if (!$@)
+            my $libs;
+            {
+               no strict;
+               no warnings;
+               eval "\$libs = $hash";
+            }
+            #$hash =~ s/\s+/ /g;
+            if ($@)
+            {
+               print "Eval error for PREREQ_PM: $@\n$hash\n" if ($self->verbose);
+            }
+            else
             {
                foreach my $type ("depends")
                {
@@ -245,10 +254,6 @@ sub makefile
                      }
                   }
                }
-            }
-            else
-            {
-               print "Eval error for PREREQ_PM: $@\n" if ($self->verbose);
             }
          }
       }
@@ -378,9 +383,17 @@ sub get_dep_pkg
    if (lc($name) eq "perl")
    {
       print "$type Perl: $val\n" if ($self->verbose);
+      return undef;
    }
    else
    {
+      require Module::CoreList;
+      my $corever = Module::CoreList->first_release($name);
+      if ($corever && $corever <= $min_perl_version)
+      {
+         return undef;
+      }
+
       my $mod = $self->{cp}->get_module($name);
       if ($mod)
       {
@@ -406,7 +419,7 @@ sub extract
    $self->fetch();
    if (!$self->{mod}->status->extract)
    {
-      print "Extract module\n" if ($self->verbose);
+      #print "Extract module\n" if ($self->verbose);
       $self->{mod}->extract;
       print "Extracted to ".$self->{mod}->status->extract."\n" if ($self->verbose);
    }
@@ -418,7 +431,7 @@ sub fetch
 
    if (!$self->{mod}->status->fetch)
    {
-      print "Fetch module\n" if ($self->verbose);
+      #print "Fetch module\n" if ($self->verbose);
       $self->{mod}->fetch;
    }
    return $self->{mod}->status->fetch;
