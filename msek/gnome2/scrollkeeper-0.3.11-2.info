@@ -1,0 +1,46 @@
+Package: scrollkeeper
+Version: 0.3.11
+Revision: 2
+Source: mirror:gnome:sources/%n/0.3/%n-%v.tar.bz2
+Source-MD5: 91212198f6d11adabdaf429d24acb21c
+PatchScript: sed 's|@PREFIX@|%p|g' < %a/%f.patch | patch -p1
+Depends: docbook-dtd-catalog, libxslt-shlibs
+BuildDepends: libxml2, libxslt, intltool
+SetCPPFLAGS: -no-cpp-precomp
+SetCFLAGS: -O3 -funroll-loops -fstrict-aliasing
+NoSetLDFLAGS: true
+SetLIBS: -L%p/lib -lintl
+ConfigureParams: --localstatedir=%p/var --mandir=%p/share/man --with-omfdirs=%p/share/omf
+InstallScript: make install DESTDIR=%d
+PostInstScript: <<
+  xmlcatalog --noout --add "public" \
+    "-//OMF//DTD Scrollkeeper OMF Variant V1.0//EN" \
+    %p/share/xml/scrollkeeper/dtds/scrollkeeper-omf.dtd \
+    %p/etc/xml/catalog
+  scrollkeeper-rebuilddb
+<<
+PostRmScript: <<
+  xmlcatalog --noout --del \
+    %p/share/xml/scrollkeeper/dtds/scrollkeeper-omf.dtd \
+    %p/etc/xml/catalog
+  rm -rf %p/var/lib/scrollkeeper
+<<
+ConfFiles: %p/etc/scrollkeeper.conf
+DocFiles: AUTHORS COPYING* ChangeLog NEWS README TODO
+Description: Cataloging system for documentation on open systems
+DescDetail: <<
+ScrollKeeper is a cataloging system for documentation. It manages
+documentation metadata, as specified by the Open Source Metadata
+Framework (OMF), as well as metadata which it extracts directly
+from DocBook documents.  It provides a simple API to allow help
+browsers to find, sort, and search the document catalog. Some
+day it may also be able to communicate with catalog servers on
+the Net to search for documents which are not on the local system.
+<<
+DescPort: <<
+- Patches update.c to use local docbook DTDs even if they aren't
+  registered to catalog.
+<<
+License: GPL/GFDL
+Maintainer: Masanori Sekino <msek@users.sourceforge.net>
+Homepage: http://www.gnome.org/
