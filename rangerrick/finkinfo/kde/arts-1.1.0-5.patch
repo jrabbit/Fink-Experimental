@@ -8,10 +8,9 @@ Index: admin/acinclude.m4.in
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/admin/acinclude.m4.in,v
 retrieving revision 1.1.1.5
-retrieving revision 1.18
-diff -u -u -r1.1.1.5 -r1.18
+diff -u -u -r1.1.1.5 acinclude.m4.in
 --- admin/acinclude.m4.in	29 Oct 2002 02:27:18 -0000	1.1.1.5
-+++ admin/acinclude.m4.in	29 Oct 2002 02:29:54 -0000	1.18
++++ admin/acinclude.m4.in	31 Oct 2002 18:47:42 -0000
 @@ -704,13 +704,10 @@
       AC_CHECK_LIB(ipc, shmat, X_EXTRA_LIBS="$X_EXTRA_LIBS -lipc"))
     
@@ -507,10 +506,9 @@ Index: configure.in.in
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/arts/configure.in.in,v
 retrieving revision 1.1.1.5
-retrieving revision 1.14
-diff -u -u -r1.1.1.5 -r1.14
+diff -u -u -r1.1.1.5 configure.in.in
 --- configure.in.in	29 Oct 2002 02:31:10 -0000	1.1.1.5
-+++ configure.in.in	29 Oct 2002 02:33:27 -0000	1.14
++++ configure.in.in	31 Oct 2002 18:50:02 -0000
 @@ -282,6 +282,19 @@
  fi
  ])
@@ -552,7 +550,7 @@ diff -u -u -r1.1.1.5 -r1.14
 +LIBOSS_LDFLAGS=
 +
 +if test "x$PKG_CONFIG" != "xno"; then
-+  LIBOSS_CFLAGS="`$PKG_CONFIG --cflags liboss`"
++  LIBOSS_CFLAGS=""
 +  LIBOSS_LIBADD="`$PKG_CONFIG --libs-only-l liboss`"
 +  LIBOSS_LDFLAGS="`$PKG_CONFIG --libs-only-L liboss`"
 +  AC_DEFINE(HAVE_LIBOSS,1,[Define if you have the liboss compatibility library])
@@ -646,22 +644,157 @@ Index: flow/audioiooss.cc
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/arts/flow/audioiooss.cc,v
 retrieving revision 1.1.1.3
-retrieving revision 1.4
-diff -u -u -r1.1.1.3 -r1.4
+diff -u -u -r1.1.1.3 audioiooss.cc
 --- flow/audioiooss.cc	29 Oct 2002 02:31:12 -0000	1.1.1.3
-+++ flow/audioiooss.cc	29 Oct 2002 02:33:27 -0000	1.4
-@@ -34,6 +34,11 @@
- 	#define COMPILE_AUDIOIO_OSS 1
- #endif
++++ flow/audioiooss.cc	31 Oct 2002 18:50:02 -0000
+@@ -28,10 +28,43 @@
  
-+#ifdef HAVE_LIBOSS
-+#include <liboss/soundcard.h>
-+#define COMPILE_AUDIOIO_OSS 1
+ #if defined(HAVE_SYS_SOUNDCARD_H)
+ 	#include <sys/soundcard.h>
++	#include <sys/ioctl.h>
+ 	#define COMPILE_AUDIOIO_OSS 1
++	#define OSS_OPEN open
++	#define OSS_CLOSE close
++	#define OSS_IOCTL ioctl
+ #elif defined(HAVE_SOUNDCARD_H)
+ 	#include <soundcard.h>
++	#include <sys/ioctl.h>
+ 	#define COMPILE_AUDIOIO_OSS 1
++	#define OSS_OPEN open
++	#define OSS_CLOSE close
++	#define OSS_IOCTL ioctl
 +#endif
 +
++#ifdef HAVE_LIBOSS
++	extern "C" {
++		extern int oss_ioctl (int,unsigned long,va_list);
++		extern int oss_open (const char *,int,va_list);
++		extern void oss_close (int);
++		static inline int OSS_IOCTL(int x, unsigned long y,...)
++		{
++			va_list l;
++			va_start(l,y);
++			return oss_ioctl(x,y,l);
++		}
++		static inline int OSS_OPEN(const char* x, int y,...)
++		{
++			va_list l;
++			va_start(l,y);
++			return oss_open(x,y,l);
++		}
++		static inline void OSS_CLOSE(int x) {oss_close(x);}
++	}
++	#define LIBOSS_INTERNAL 1
++	#define COMPILE_AUDIOIO_OSS 1
++	#include <liboss/soundcard.h>
++	#include <sys/ioctl.h>
+ #endif
+ 
  /**
-  * only compile 'oss' AudioIO class if sys/soundcard.h or soundcard.h is present
-  */
+@@ -40,7 +73,6 @@
+ #ifdef COMPILE_AUDIOIO_OSS
+ 
+ #include <sys/types.h>
+-#include <sys/ioctl.h>
+ #include <sys/time.h>
+ #include <sys/stat.h>
+ 
+@@ -159,7 +191,7 @@
+ 		return false;
+ 	}
+ 
+-	audio_fd = ::open(_deviceName.c_str(), mode, 0);
++	audio_fd = ::OSS_OPEN(_deviceName.c_str(), mode, 0);
+ 
+ 	if(audio_fd == -1)
+ 	{
+@@ -174,7 +206,7 @@
+ 	 * check device capabilities
+ 	 */
+ 	int device_caps;
+-	if(ioctl(audio_fd,SNDCTL_DSP_GETCAPS,&device_caps) == -1)
++	if(OSS_IOCTL(audio_fd,SNDCTL_DSP_GETCAPS,&device_caps) == -1)
+             device_caps=0;
+ 
+ 	string caps = "";
+@@ -189,7 +221,7 @@
+ 
+ 	int requestedFormat = (_format == 8)?AFMT_U8:AFMT_S16_LE;
+ 	int gotFormat = requestedFormat;
+-	if (ioctl(audio_fd, SNDCTL_DSP_SETFMT, &gotFormat)==-1)  
++	if (OSS_IOCTL(audio_fd, SNDCTL_DSP_SETFMT, &gotFormat)==-1)  
+ 	{
+ 		_error = "SNDCTL_DSP_SETFMT failed - ";
+ 		_error += strerror(errno);
+@@ -252,7 +284,7 @@
+ 
+ 	int requeststereo = stereo;
+ 
+-	if (ioctl(audio_fd, SNDCTL_DSP_STEREO, &stereo)==-1)
++	if (OSS_IOCTL(audio_fd, SNDCTL_DSP_STEREO, &stereo)==-1)
+ 	{
+ 		_error = "SNDCTL_DSP_STEREO failed - ";
+ 		_error += strerror(errno);
+@@ -271,7 +303,7 @@
+ 
+ 	int speed = _samplingRate;
+ 
+-	if (ioctl(audio_fd, SNDCTL_DSP_SPEED, &speed)==-1)  
++	if (OSS_IOCTL(audio_fd, SNDCTL_DSP_SPEED, &speed)==-1)  
+ 	{
+ 		_error = "SNDCTL_DSP_SPEED failed - ";
+ 		_error += strerror(errno);
+@@ -322,7 +354,7 @@
+ 	int size = _fragmentSize;
+ 	while(size > 1) { size /= 2; frag_arg++; }
+ 	frag_arg += (_fragmentCount << 16);
+-	if(ioctl(audio_fd, SNDCTL_DSP_SETFRAGMENT, &frag_arg) == -1)
++	if(OSS_IOCTL(audio_fd, SNDCTL_DSP_SETFRAGMENT, &frag_arg) == -1)
+ 	{
+ 		char buffer[1024];
+ 		_error = "can't set requested fragments settings";
+@@ -336,7 +368,7 @@
+ 	 * we asked for
+ 	 */
+ 	audio_buf_info info;
+-	if(ioctl(audio_fd,SNDCTL_DSP_GETOSPACE, &info) == -1)
++	if(OSS_IOCTL(audio_fd,SNDCTL_DSP_GETOSPACE, &info) == -1)
+ 	{
+ 		_error = "can't retrieve fragment settings";
+ 		close();
+@@ -393,7 +425,7 @@
+ 		if(param(direction) & 1) enable_bits |= PCM_ENABLE_INPUT;
+ 		if(param(direction) & 2) enable_bits |= PCM_ENABLE_OUTPUT;
+ 
+-		if(ioctl(audio_fd,SNDCTL_DSP_SETTRIGGER, &enable_bits) == -1)
++		if(OSS_IOCTL(audio_fd,SNDCTL_DSP_SETTRIGGER, &enable_bits) == -1)
+ 		{
+ 			_error = "can't start sound i/o";
+ 
+@@ -406,7 +438,7 @@
+ 
+ void AudioIOOSS::close()
+ {
+-	::close(audio_fd);
++	::OSS_CLOSE(audio_fd);
+ }
+ 
+ void AudioIOOSS::setParam(AudioParam p, int& value)
+@@ -431,12 +463,12 @@
+ 	switch(p)
+ 	{
+ 		case canRead:
+-				ioctl(audio_fd, SNDCTL_DSP_GETISPACE, &info);
++				OSS_IOCTL(audio_fd, SNDCTL_DSP_GETISPACE, &info);
+ 				return info.bytes;
+ 			break;
+ 
+ 		case canWrite:
+-				ioctl(audio_fd, SNDCTL_DSP_GETOSPACE, &info);
++				OSS_IOCTL(audio_fd, SNDCTL_DSP_GETOSPACE, &info);
+ 				return info.bytes;
+ 			break;
+ 
 Index: flow/gsl/Makefile.am
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/arts/flow/gsl/Makefile.am,v
