@@ -1,0 +1,307 @@
+diff -Naur gtk+-2.4.9.old/configure gtk+-2.4.9.new/configure
+--- gtk+-2.4.9.old/configure	2004-08-26 04:27:19.000000000 +1000
++++ gtk+-2.4.9.new/configure	2004-09-15 09:52:28.000000000 +1000
+@@ -26662,7 +26662,7 @@
+ 
+     if $have_freetype ; then
+       gtk_save_cppflags="$CPPFLAGS"
+-      CPPFLAGS="$CPPFLAGS $FREETYPE_CFLAGS"
++      CPPFLAGS="$FREETYPE_CFLAGS $CPPFLAGS"
+ 
+       echo "$as_me:$LINENO: checking For sufficiently new FreeType (at least 2.0.1)" >&5
+ echo $ECHO_N "checking For sufficiently new FreeType (at least 2.0.1)... $ECHO_C" >&6
+@@ -28414,7 +28414,7 @@
+ 
+   # GTK+ uses some X calls, so needs to link against X directly
+   if test $enable_explicit_deps != yes ; then
+-    GTK_DEP_LIBS_FOR_X="$X_LIBS -lX11 $X_EXTRA_LIBS"
++    GTK_DEP_LIBS_FOR_X="$X_LIBS -lX11 -lfontconfig $X_EXTRA_LIBS"
+   fi
+ 
+   # Check for Xinerama extension (Solaris impl or Xfree impl)
+@@ -28545,7 +28545,7 @@
+ fi
+ echo "$as_me:$LINENO: result: $ac_cv_header_X11_extensions_xinerama_h" >&5
+ echo "${ECHO_T}$ac_cv_header_X11_extensions_xinerama_h" >&6
+-if test $ac_cv_header_X11_extensions_xinerama_h = yes; then
++#if test $ac_cv_header_X11_extensions_xinerama_h = yes; then
+    case "$x_extra_libs " in
+     *-lXext[\ \	]*)               ;;
+     *)               x_extra_libs="-lXext $x_extra_libs" ;;
+@@ -28559,9 +28559,9 @@
+ #define HAVE_XINERAMA 1
+ _ACEOF
+ 
+-else
+-  use_solaris_xinerama=no
+-fi
++#else
++#  use_solaris_xinerama=no
++#fi
+ 
+ 
+ 	  fi
+diff -Naur gtk+-2.4.9.old/demos/gtk-demo/Makefile.in gtk+-2.4.9.new/demos/gtk-demo/Makefile.in
+--- gtk+-2.4.9.old/demos/gtk-demo/Makefile.in	2004-08-26 04:28:27.000000000 +1000
++++ gtk+-2.4.9.new/demos/gtk-demo/Makefile.in	2004-09-15 09:30:50.000000000 +1000
+@@ -376,7 +376,7 @@
+ 	tree_store.$(OBJEXT) ui_manager.$(OBJEXT)
+ am_gtk_demo_OBJECTS = $(am__objects_1) main.$(OBJEXT)
+ gtk_demo_OBJECTS = $(am_gtk_demo_OBJECTS)
+-gtk_demo_LDFLAGS =
++gtk_demo_LDFLAGS = -L../../gdk-pixbuf/.libs -L../../gdk/.libs
+ 
+ DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)
+ depcomp = $(SHELL) $(top_srcdir)/depcomp
+diff -Naur gtk+-2.4.9.old/gdk/x11/gdkdrawable-x11.c gtk+-2.4.9.new/gdk/x11/gdkdrawable-x11.c
+--- gtk+-2.4.9.old/gdk/x11/gdkdrawable-x11.c	2004-08-26 02:52:17.000000000 +1000
++++ gtk+-2.4.9.new/gdk/x11/gdkdrawable-x11.c	2004-09-15 09:32:57.000000000 +1000
+@@ -977,6 +977,7 @@
+     }
+   else
+     {
++      /* RGBA */
+       pf.direct.alpha = 0;
+     }
+   
+@@ -993,10 +994,18 @@
+    * RENDER's preferred order
+    */
+   pf.direct.alphaMask = 0;
+-  /* ARGB */
+-  pf.direct.red = 16;
+-  pf.direct.green = 8;
+-  pf.direct.blue = 0;
++  if (ImageByteOrder (xdisplay) == LSBFirst)
++    {
++      /* ARGB */
++      pf.direct.red = 16;
++      pf.direct.green = 8;
++      pf.direct.blue = 0;
++    } else {
++      /* BGRA */
++      pf.direct.red = 8;
++      pf.direct.green = 16;
++      pf.direct.blue = 24;
++    }
+   
+   *format = XRenderFindFormat (xdisplay,
+ 			       (PictFormatType | PictFormatDepth |
+@@ -1008,7 +1017,14 @@
+ 			       0);
+ 
+   pf.direct.alphaMask = 0xff;
+-  pf.direct.alpha = 24;
++  if (ImageByteOrder (xdisplay) == LSBFirst)
++    {
++      /* ARGB */
++      pf.direct.alpha = 24;
++    } else {
++      /* BGRA */
++      pf.direct.alpha = 0;
++    }
+   
+   *mask = XRenderFindFormat (xdisplay,
+ 			     (PictFormatType | PictFormatDepth |
+@@ -1025,11 +1041,19 @@
+ 
+   pf.type = PictTypeDirect;
+   pf.depth = 32;
+-  pf.direct.red = 16;
+-  pf.direct.green = 8;
+-  pf.direct.blue = 0;
++  if (ImageByteOrder (xdisplay) == LSBFirst)
++    {
++      pf.direct.red = 16;
++      pf.direct.green = 8;
++      pf.direct.blue = 0;
++      pf.direct.alpha = 24;
++    } else {
++      pf.direct.red = 8;
++      pf.direct.green = 16;
++      pf.direct.blue = 24;
++      pf.direct.alpha = 0;
++    }
+   pf.direct.alphaMask = 0xff;
+-  pf.direct.alpha = 24;
+ 
+   *format = XRenderFindFormat (xdisplay,
+ 			       (PictFormatType | PictFormatDepth |
+diff -Naur gtk+-2.4.9.old/gdk/x11/gdkim-x11.c gtk+-2.4.9.new/gdk/x11/gdkim-x11.c
+--- gtk+-2.4.9.old/gdk/x11/gdkim-x11.c	2004-08-26 02:52:17.000000000 +1000
++++ gtk+-2.4.9.new/gdk/x11/gdkim-x11.c	2004-09-15 09:33:24.000000000 +1000
+@@ -26,7 +26,11 @@
+ 
+ #include <config.h>
+ 
+-#include <locale.h>
++#if defined(X_LOCALE)
++# include <X11/Xlocale.h>
++#else
++# include <locale.h>
++#endif
+ #include <stdlib.h>
+ #include <string.h>
+ 
+diff -Naur gtk+-2.4.9.old/gdk/x11/gdkspawn-x11.c gtk+-2.4.9.new/gdk/x11/gdkspawn-x11.c
+--- gtk+-2.4.9.old/gdk/x11/gdkspawn-x11.c	2004-08-26 02:52:17.000000000 +1000
++++ gtk+-2.4.9.new/gdk/x11/gdkspawn-x11.c	2004-09-15 09:38:17.000000000 +1000
+@@ -27,6 +27,9 @@
+ #include <glib.h>
+ #include <gdk/gdk.h>
+ 
++#include <crt_externs.h>
++#define environ (*_NSGetEnviron())
++
+ extern char **environ;
+ 
+ /**
+diff -Naur gtk+-2.4.9.old/gtk/gtkimmulticontext.c gtk+-2.4.9.new/gtk/gtkimmulticontext.c
+--- gtk+-2.4.9.old/gtk/gtkimmulticontext.c	2004-08-26 02:52:20.000000000 +1000
++++ gtk+-2.4.9.new/gtk/gtkimmulticontext.c	2004-09-15 09:33:46.000000000 +1000
+@@ -20,7 +20,11 @@
+ #include <config.h>
+ 
+ #include <string.h>
+-#include <locale.h>
++#if defined(X_LOCALE)
++# include <X11/Xlocale.h>
++#else
++# include <locale.h>
++#endif
+ 
+ #include "gtkimmulticontext.h"
+ #include "gtkimmodule.h"
+diff -Naur gtk+-2.4.9.old/gtk/gtkmain.c gtk+-2.4.9.new/gtk/gtkmain.c
+--- gtk+-2.4.9.old/gtk/gtkmain.c	2004-08-26 02:52:20.000000000 +1000
++++ gtk+-2.4.9.new/gtk/gtkmain.c	2004-09-15 09:34:03.000000000 +1000
+@@ -28,7 +28,11 @@
+ 
+ #include "gdkconfig.h"
+ 
+-#include <locale.h>
++#if defined(X_LOCALE)
++# include <X11/Xlocale.h>
++#else
++# include <locale.h>
++#endif
+ 
+ #ifdef HAVE_BIND_TEXTDOMAIN_CODESET
+ #include <libintl.h>
+diff -Naur gtk+-2.4.9.old/ltmain.sh gtk+-2.4.9.new/ltmain.sh
+--- gtk+-2.4.9.old/ltmain.sh	2004-04-08 23:34:47.000000000 +1000
++++ gtk+-2.4.9.new/ltmain.sh	2004-09-15 09:34:23.000000000 +1000
+@@ -5247,10 +5247,10 @@
+ 
+ # Directory that this library needs to be installed in:
+ libdir='$install_libdir'"
+-	  if test "$installed" = no && test "$need_relink" = yes; then
+-	    $echo >> $output "\
+-relink_command=\"$relink_command\""
+-	  fi
++#	  if test "$installed" = no && test "$need_relink" = yes; then
++#	    $echo >> $output "\
++#relink_command=\"$relink_command\""
++#	  fi
+ 	done
+       fi
+ 
+diff -Naur gtk+-2.4.9.old/modules/input/Makefile.in gtk+-2.4.9.new/modules/input/Makefile.in
+--- gtk+-2.4.9.old/modules/input/Makefile.in	2004-08-26 04:28:24.000000000 +1000
++++ gtk+-2.4.9.new/modules/input/Makefile.in	2004-09-15 09:35:20.000000000 +1000
+@@ -767,25 +767,19 @@
+ # install-data-am, and not install-exec-am. We need to ensure this gets run
+ # after the libraries are installed in their final locations.
+ install-data-hook:
+-	@if $(RUN_QUERY_IMMODULES_TEST) ; then \
+-	  echo $(mkinstalldirs) $(DESTDIR)$(sysconfdir)/gtk-2.0 ; \
+-	  $(mkinstalldirs) $(DESTDIR)$(sysconfdir)/gtk-2.0 ; \
+-	  echo "$(top_builddir)/gtk/gtk-query-immodules-2.0 > $(DESTDIR)$(sysconfdir)/gtk-2.0/gtk.immodules" ; \
+-	  $(top_builddir)/gtk/gtk-query-immodules-2.0 > $(DESTDIR)$(sysconfdir)/gtk-2.0/gtk.immodules ; \
+-	else \
+-	  echo "***" ; \
+-	  echo "*** Warning: gtk.immodules not built" ; \
+-	  echo "***" ; \
+-	  echo "*** Generate this file manually on host" ; \
+-	  echo "*** system using gtk-query-immodules-2.0" ; \
+-	  echo "***" ; \
+-        fi
++		$(mkinstalldirs) $(DESTDIR)$(sysconfdir)/gtk-2.0 ;      \
++#     $(top_builddir)/gtk/gtk-query-immodules-2.0             \
++#       $(DESTDIR)$(moduledir)/*                              \
++#       | sed -e 's|$(DESTDIR)||g'                            \
++#       > $(DESTDIR)$(sysconfdir)/gtk-2.0/gtk.immodules       \
++#       2>&1
++
+ 
+ uninstall-local:
+ 	rm -f $(DESTDIR)$(sysconfdir)/gtk-2.0/gtk.immodules
+ 
+ gtk.immodules: Makefile.am $(module_LTLIBRARIES)
+-	$(top_builddir)/gtk/gtk-query-immodules-2.0 $(module_LTLIBRARIES) > gtk.immodules
++#	$(top_builddir)/gtk/gtk-query-immodules-2.0 $(module_LTLIBRARIES) > gtk.immodules
+ 
+ @CROSS_COMPILING_FALSE@all-local: gtk.immodules
+ # Tell versions [3.59,3.63) of GNU make to not export all variables.
+diff -Naur gtk+-2.4.9.old/po/Makefile.in.in gtk+-2.4.9.new/po/Makefile.in.in
+--- gtk+-2.4.9.old/po/Makefile.in.in	2004-08-26 02:52:22.000000000 +1000
++++ gtk+-2.4.9.new/po/Makefile.in.in	2004-09-15 09:35:33.000000000 +1000
+@@ -27,7 +27,7 @@
+ exec_prefix = @exec_prefix@
+ datadir = @datadir@
+ libdir = @libdir@
+-localedir = $(libdir)/locale
++localedir = $(datadir)/locale
+ gnulocaledir = $(datadir)/locale
+ gettextsrcdir = $(datadir)/glib-2.0/gettext/po
+ subdir = po
+diff -Naur gtk+-2.4.9.old/update-gdk-pixbuf-loaders gtk+-2.4.9.new/update-gdk-pixbuf-loaders
+--- gtk+-2.4.9.old/update-gdk-pixbuf-loaders	1970-01-01 10:00:00.000000000 +1000
++++ gtk+-2.4.9.new/update-gdk-pixbuf-loaders	2004-09-15 09:36:23.000000000 +1000
+@@ -0,0 +1,21 @@
++#!/bin/sh -e
++#
++# update-gdk-pixbuf-loaders
++#
++#   Package which install gdk-pixbuf loader(s) should call update-gdk-pixbuf-
++#   loaders in it's PostInstScript/PostRmScript to update gdk-pixbuf.loaders
++#   file.
++#
++
++CONFDIR=/opt/etc/gtk-2.0
++CONFFILE=$CONFDIR/gdk-pixbuf.loaders
++
++mkdir -p $CONFDIR
++
++TMPFILE=`tempfile`
++gdk-pixbuf-query-loaders >$TMPFILE
++
++mv -f $TMPFILE $CONFFILE
++chmod 0644 $CONFFILE
++
++exit 0
+diff -Naur gtk+-2.4.9.old/update-gtk-immodules gtk+-2.4.9.new/update-gtk-immodules
+--- gtk+-2.4.9.old/update-gtk-immodules	1970-01-01 10:00:00.000000000 +1000
++++ gtk+-2.4.9.new/update-gtk-immodules	2004-09-15 09:37:08.000000000 +1000
+@@ -0,0 +1,20 @@
++#!/bin/sh -e
++#
++# update-gtk-immodules
++#
++#   Package which install gtk immodule(s) should call update-gtk-immodules in
++#   it's PostInstScript/PostRmScript to update gtk.immodules file.
++#
++
++CONFDIR=/opt/etc/gtk-2.0
++CONFFILE=$CONFDIR/gtk.immodules
++
++mkdir -p $CONFDIR
++
++TMPFILE=`tempfile`
++gtk-query-immodules-2.0 >$TMPFILE
++
++mv -f $TMPFILE $CONFFILE
++chmod 0644 $CONFFILE
++
++exit 0
+\ No newline at end of file
