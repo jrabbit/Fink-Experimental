@@ -304,27 +304,25 @@ DescUsage: <<
  Some tools (e.g. cvs2svn) and examples are stored in %p/share/svn-ssl/tools
 
  PLEAE NOTE:
- In order to make commits more responsive, repository
- deltification is no longer automatic.  However, you may want
- to run deltification as a background process in your repository
- post-commit hook.  For example, the new post-commit.tmpl file
- recommends 'nice -2 svnadmin deltify "$REPOS" -r "$REV" &'.
-
- NOTICE:
+ As of release 0.35.0, Subversion once again does deltification
+ automatically.  This means that the deltification step most
+ repositories introduced into their post-commit hooks as of
+ release 0.33.0 should now be reverted.  Look for a line with
+ "svnadmin deltify" in hooks/post-commit, and remove it.
+       
 #####################################################################
-##  WARNING  WARNING  WARNING  WARNING  WARNING  WARNING  WARNING  ##
+##  WARNING: Incompatible change in database in 0.34 release       ##
 #####################################################################
 ##                                                                 ##
-##  The 0.28 releases did an incompatible change to the Subversion ##
-##  repository filesystem schema.  Repositories created with       ##
-##  Subversion code prior to 0.28 will unable to operate           ##
-##  with this new code.  To maintain the ability to use said       ##
-##  repositories, you must use a version 'svnadmin dump' prior to  ##
-##  this change to dump your repository to a dumpfile, then use    ##
-##  this new Subversion code to create, and load your dumpfile     ##
-##  a new repository using 'svnadmin load'.  And don't forget to   ##
-##  copy over any custom configuration/hooks from the old to the   ##
-##  new repository.                                                ##
+## The 0.34 release made an incompatible change to the Subversion  ##
+## database. Repositories created with versions of Subversion      ##
+## prior to 0.34 will not work with Subversion 0.34 and later.     ##
+## To  upgrade, first use 'svnadmin dump' with  your existing      ##
+## Subversion binaries. Then upgrade your binaries to 0.34, and    ##
+## use 'svnadmin load' to create a new repository from your        ##
+## dumpfile.                                                       ##
+## Don't  forget  to  copy any custom configuration/hooks from the ##
+## old to the new repository.                                      ##
 ##                                                                 ##
 #####################################################################
 
@@ -338,6 +336,10 @@ DescPort: <<
 Patch needed to stop relinking a .dylib in the install path, 
 but hardcoding the %p/lib path in the link command (i.e. %p) instead 
 of using %i
+
+The patch also fixes problem with dependency_libs in other packages 
+having -ldb-4.1 ot libdb-4.1.la in there, so that libtool ignores 
+these.
 
 Many thanks to Peter O'Gorman for the help with the libtool patch.
 <<
