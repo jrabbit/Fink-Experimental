@@ -1,0 +1,200 @@
+diff -uNr postgresql-8.0.1/contrib/Makefile postgresql-8.0.1-new/contrib/Makefile
+--- postgresql-8.0.1/contrib/Makefile	2004-12-14 17:50:23.000000000 -0500
++++ postgresql-8.0.1-new/contrib/Makefile	2005-04-01 12:47:55.000000000 -0500
+@@ -37,7 +37,6 @@
+ 		string		\
+ 		tablefunc	\
+ 		tips		\
+-		tsearch		\
+ 		tsearch2	\
+ 		userlock	\
+ 		vacuumlo
+diff -uNr postgresql-8.0.1/pgsql.sh postgresql-8.0.1-new/pgsql.sh
+--- postgresql-8.0.1/pgsql.sh	1969-12-31 19:00:00.000000000 -0500
++++ postgresql-8.0.1-new/pgsql.sh	2005-04-01 12:47:55.000000000 -0500
+@@ -0,0 +1,21 @@
++#!/bin/sh
++
++for flag in "-n" "-d" "-s" "-u" "-v"; do
++	ulimit $flag 65536 >/dev/null 2>&1 || :
++done
++
++PREFIX="@INSTPREFIX@"
++DATADIR="${PREFIX}/var/postgresql-8.0/data"
++LOGFILE="${PREFIX}/var/postgresql-8.0/pgsql.log"
++
++case "$1" in
++	start)
++		unset LC_ALL; LANG=C sudo -u postgres "${PREFIX}/bin/pg_ctl-8.0" start -D "$DATADIR" -l "$LOGFILE"
++		;;
++	restart)
++		unset LC_ALL; LANG=C sudo -u postgres "${PREFIX}/bin/pg_ctl-8.0" restart -D "$DATADIR" -m fast
++		;;
++	stop)
++		unset LC_ALL; LANG=C sudo -u postgres "${PREFIX}/bin/pg_ctl-8.0" stop -D "$DATADIR" -m fast
++		;;
++esac
+diff -uNr postgresql-8.0.1/src/Makefile.global.in postgresql-8.0.1-new/src/Makefile.global.in
+--- postgresql-8.0.1/src/Makefile.global.in	2005-01-26 14:24:15.000000000 -0500
++++ postgresql-8.0.1-new/src/Makefile.global.in	2005-04-01 12:47:55.000000000 -0500
+@@ -65,21 +65,21 @@
+ libexecdir := @libexecdir@
+ ifeq "$(findstring pgsql, $(libexecdir))" ""
+ ifeq "$(findstring postgres, $(libexecdir))" ""
+-override libexecdir := $(libexecdir)/postgresql
++override libexecdir := $(libexecdir)/postgresql-8.0
+ endif
+ endif
+ 
+ datadir := @datadir@
+ ifeq "$(findstring pgsql, $(datadir))" ""
+ ifeq "$(findstring postgres, $(datadir))" ""
+-override datadir := $(datadir)/postgresql
++override datadir := $(datadir)/postgresql-8.0
+ endif
+ endif
+ 
+ sysconfdir := @sysconfdir@
+ ifeq "$(findstring pgsql, $(sysconfdir))" ""
+ ifeq "$(findstring postgres, $(sysconfdir))" ""
+-override sysconfdir := $(sysconfdir)/postgresql
++override sysconfdir := $(sysconfdir)/postgresql-8.0
+ endif
+ endif
+ 
+@@ -87,7 +87,7 @@
+ pkglibdir = $(libdir)
+ ifeq "$(findstring pgsql, $(pkglibdir))" ""
+ ifeq "$(findstring postgres, $(pkglibdir))" ""
+-override pkglibdir := $(pkglibdir)/postgresql
++override pkglibdir := $(pkglibdir)/postgresql-8.0
+ endif
+ endif
+ 
+@@ -95,7 +95,7 @@
+ pkgincludedir = $(includedir)
+ ifeq "$(findstring pgsql, $(pkgincludedir))" ""
+ ifeq "$(findstring postgres, $(pkgincludedir))" ""
+-override pkgincludedir := $(pkgincludedir)/postgresql
++override pkgincludedir := $(pkgincludedir)/postgresql-8.0
+ endif
+ endif
+ includedir_server = $(pkgincludedir)/server
+@@ -109,7 +109,7 @@
+ ifneq (,$(docdir))
+ ifeq "$(findstring pgsql, $(docdir))" ""
+ ifeq "$(findstring postgres, $(docdir))" ""
+-override docdir := $(docdir)/postgresql
++override docdir := $(docdir)/postgresql-8.0
+ endif
+ endif
+ endif
+diff -uNr postgresql-8.0.1/src/Makefile.shlib postgresql-8.0.1-new/src/Makefile.shlib
+--- postgresql-8.0.1/src/Makefile.shlib	2004-11-20 16:13:04.000000000 -0500
++++ postgresql-8.0.1-new/src/Makefile.shlib	2005-04-01 12:49:38.000000000 -0500
+@@ -101,11 +101,11 @@
+   ifeq ($(DLTYPE), library)
+     # linkable library
+     DLSUFFIX		:= .dylib
+-    LINK.shared		= $(COMPILER) -dynamiclib -install_name $(libdir)/lib$(NAME).$(SO_MAJOR_VERSION)$(DLSUFFIX) $(version_link) -multiply_defined suppress
++    LINK.shared		= $(CXX) $(CFLAGS) -dynamiclib -install_name $(libdir)/lib$(NAME).$(SO_MAJOR_VERSION)$(DLSUFFIX) $(version_link) -multiply_defined suppress
+   else
+     # loadable module (default case)
+     DLSUFFIX		:= .so
+-    LINK.shared		= $(COMPILER) -bundle
++    LINK.shared		= $(CXX) $(CFLAGS) -bundle
+   endif
+   shlib			= lib$(NAME).$(SO_MAJOR_VERSION).$(SO_MINOR_VERSION)$(DLSUFFIX)
+   shlib_major		= lib$(NAME).$(SO_MAJOR_VERSION)$(DLSUFFIX)
+diff -uNr postgresql-8.0.1/src/backend/main/main.c postgresql-8.0.1-new/src/backend/main/main.c
+--- postgresql-8.0.1/src/backend/main/main.c	2004-12-31 16:59:53.000000000 -0500
++++ postgresql-8.0.1-new/src/backend/main/main.c	2005-04-01 12:47:55.000000000 -0500
+@@ -56,6 +56,7 @@
+ 	struct passwd *pw;
+ #endif
+ 	char	   *pw_name_persist;
++	char	   *progname;
+ 
+ 	/*
+ 	 * Place platform-specific startup hacks here.	This is the right
+@@ -258,7 +259,26 @@
+ 	 */
+ 	len = strlen(argv[0]);
+ 
+-	if ((len >= 10 && strcmp(argv[0] + len - 10, "postmaster") == 0)
++	/*
++	 * Find the program name, which is after the final slash in the
++	 * program argument.
++	 */
++	progname = strrchr(argv[0], '/');
++	if (progname != NULL)
++	{
++		progname = progname + 1;
++	  }
++	else
++	{
++		progname = argv[0];
++	}
++
++	/*
++	 * Now check if the program name starts with the
++	 * word "postmaster", in which case PostmasterMain is called.
++	 */
++	len = strlen(progname);
++	if ((len >= 10 && strncmp(progname, "postmaster", 10) == 0)
+ #ifdef WIN32
+ 	  || (len >= 14 && strcmp(argv[0] + len - 14, "postmaster.exe") == 0)
+ #endif
+diff -uNr postgresql-8.0.1/src/backend/utils/fmgr/dfmgr.c postgresql-8.0.1-new/src/backend/utils/fmgr/dfmgr.c
+--- postgresql-8.0.1/src/backend/utils/fmgr/dfmgr.c	2004-12-31 17:01:31.000000000 -0500
++++ postgresql-8.0.1-new/src/backend/utils/fmgr/dfmgr.c	2005-04-01 12:47:55.000000000 -0500
+@@ -305,6 +305,26 @@
+ 		pfree(full);
+ 	}
+ 
++	new = palloc(strlen(name) + strlen(".so") + 1);
++	strcpy(new, name);
++	strcat(new, ".so");
++
++	if (!have_slash)
++	{
++		full = find_in_dynamic_libpath(new);
++		pfree(new);
++		if (full)
++			return full;
++	}
++	else
++	{
++		full = substitute_libpath_macro(new);
++		pfree(new);
++		if (file_exists(full))
++			return full;
++		pfree(full);
++	}
++
+ 	new = palloc(strlen(name) + strlen(DLSUFFIX) + 1);
+ 	strcpy(new, name);
+ 	strcat(new, DLSUFFIX);
+diff -uNr postgresql-8.0.1/src/backend/utils/misc/postgresql.conf.sample postgresql-8.0.1-new/src/backend/utils/misc/postgresql.conf.sample
+--- postgresql-8.0.1/src/backend/utils/misc/postgresql.conf.sample	2004-11-05 14:16:16.000000000 -0500
++++ postgresql-8.0.1-new/src/backend/utils/misc/postgresql.conf.sample	2005-04-01 12:47:55.000000000 -0500
+@@ -61,7 +61,7 @@
+ # - Security & Authentication -
+ 
+ #authentication_timeout = 60	# 1-600, in seconds
+-#ssl = false
++ssl = false
+ #password_encryption = true
+ #krb_server_keyfile = ''
+ #db_user_namespace = false
+diff -uNr postgresql-8.0.1/src/makefiles/Makefile.darwin postgresql-8.0.1-new/src/makefiles/Makefile.darwin
+--- postgresql-8.0.1/src/makefiles/Makefile.darwin	2004-12-16 22:52:48.000000000 -0500
++++ postgresql-8.0.1-new/src/makefiles/Makefile.darwin	2005-04-01 12:48:36.000000000 -0500
+@@ -13,6 +13,6 @@
+ # Rule for building shared libs (currently used only for regression test
+ # shlib ... should go away, since this is not really enough knowledge)
+ %.so: %.o
+-	$(CC) -bundle -o $@ $< $(BE_DLLLIBS)
++	$(CXX) -bundle -undefined dynamic_lookup -o $@ $< $(BE_DLLLIBS)
+ 
+ sqlmansect = 7
