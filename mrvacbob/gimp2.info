@@ -31,13 +31,14 @@ libpng3, libjpeg, libtiff, glib2-dev, netpbm, giflib, imlib, aalib (>= 1.4rc5-2)
 BuildConflicts: glib2-dev (>= 2.7.0), gtk+2-dev (>= 2.7.0), pango1-xft2-dev (>= 1.9.0), pango1-xft2-ft219-dev (>= 1.9.0)
 Source-MD5: 99e2b9391e87f8930bc22e791c8342d8
 Source2-MD5: aee429af1f99e3d1f9e23d5d4a6d3622
-SetCC: gcc -I%p/lib/fontconfig2/include/ -L%p/lib/fontconfig2/lib -I%p/lib/freetype219/include -L%p/lib/freetype219/lib/ %p/lib/freetype219/lib/libfreetype.a
+SetCC: %b/gcc.sh 
 SetLIBS: -liconv -lintl -lexpat
-SetLDFLAGS: -Wl,-search_paths_first
 DocFiles: COPYING AUTHORS NEWS README README.i18n
 ConfigureParams: --disable-dependency-tracking --enable-altivec --enable-mp --enable-gtk-doc --with-shm=posix --with-aa --with-sendmail=/usr/sbin/sendmail --mandir=%p/share/man
 PatchScript: <<
 #!/bin/sh -ev
+sed 's|@PREFIX@|%p|g' < %a/%n.patch > %b/gcc.sh
+chmod +x %b/gcc.sh
 if [ "%type_raw[-svg]" != "-svg" ]; then
  sed 's;SVG = @SVG@;SVG = ;' < plug-ins/common/Makefile.in > tmp
  mv tmp plug-ins/common/Makefile.in
@@ -49,7 +50,7 @@ fi
 
 CompileScript: <<
 #!/bin/sh -ev
-export PKG_CONFIG_PATH="%p/lib/fontconfig2/lib/pkgconfig/"
+export PKG_CONFIG_PATH="%p/lib/fontconfig2/lib/pkgconfig/:%p/lib/pango-ft219/lib/pkgconfig/"
 export F77=no
 export FREETYPE_CONFIG="%p/lib/freetype219/bin/freetype-config"
   if [ "%type_raw[-noprint]" == "-noprint" ]; then
@@ -59,6 +60,7 @@ export FREETYPE_CONFIG="%p/lib/freetype219/bin/freetype-config"
   fi
 
 find . -name Makefile -exec perl -pi -e 's|-lfreetype||g' {} \;
+perl -pi -e 's/^whole_archive_flag_spec=.*/whole_archive_flag_spec=/g' libtool
 make
 (cd ../gimp-help-2-0.7; ./configure --prefix=%p --without-gimp && make)
 <<
