@@ -67,7 +67,7 @@ include_once "header<xsl:value-of select="$lang-ext" />.inc";
 
 <xsl:apply-templates select="chapter" />
 
-<xsl:text disable-output-escaping="yes">&lt;?</xsl:text> include_once "../footer.inc"; <xsl:text disable-output-escaping="yes">?&gt;\n</xsl:text> 
+<xsl:text disable-output-escaping="yes">&lt;?</xsl:text> include_once "../footer.inc"; <xsl:text disable-output-escaping="yes">?&gt;</xsl:text> 
 </xsl:document>
 
 <!-- Generate header.inc -->
@@ -140,7 +140,7 @@ Next: <a href="{@filename}{$lang-ext}.php"><xsl:number format="1 " /><xsl:value-
 </xsl:if>
 </xsl:for-each>
 
-<xsl:text disable-output-escaping="yes">&lt;?</xsl:text> include_once "../footer.inc"; <xsl:text disable-output-escaping="yes">?&gt;\n</xsl:text> 
+<xsl:text disable-output-escaping="yes">&lt;?</xsl:text> include_once "../footer.inc"; <xsl:text disable-output-escaping="yes">?&gt;</xsl:text> 
 </xsl:document>
 </xsl:template>
 
@@ -163,7 +163,7 @@ include_once "header<xsl:value-of select="$lang-ext" />.inc";
 
 <xsl:apply-templates select="section" />
 
-<xsl:text disable-output-escaping="yes">&lt;?</xsl:text> include_once "../footer.inc"; <xsl:text disable-output-escaping="yes">?&gt;\n</xsl:text> 
+<xsl:text disable-output-escaping="yes">&lt;?</xsl:text> include_once "../footer.inc"; <xsl:text disable-output-escaping="yes">?&gt;</xsl:text> 
 
 </xsl:document>
 </xsl:template>
