@@ -1,0 +1,1590 @@
+diff -uNbr keramik/Makefile.am keramik-new/Makefile.am
+--- keramik/Makefile.am	Wed May 29 15:39:13 2002
++++ keramik-new/Makefile.am	Tue Jun  4 21:25:17 2002
+@@ -4,8 +4,6 @@
+ 
+ AUTOMAKE_OPTIONS = foreign 1.4
+ 
+-bin_SCRIPTS = startkde
+-
+ install-data-local:
+ 	@echo ""
+ 	@echo ""
+diff -uNbr keramik/admin/Makefile.common keramik-new/admin/Makefile.common
+--- keramik/admin/Makefile.common	Wed Apr 24 12:19:58 2002
++++ keramik-new/admin/Makefile.common	Tue Jun  4 21:25:17 2002
+@@ -1,34 +1,371 @@
+-### Makefile.common
+-###
+-### Copyright (C) 2002 by the KDE developers
+-
+-### All the real work is done by the shellscript cvs.sh
+ 
+ SHELL=/bin/sh
+ 
+-cvs dist cvs-clean configure.in configure.files subdirs package-messages:
+-	@admindir=$(admindir); \
+-	if test "x$$admindir" = x; then \
+-	  admindir=.; until test -f $$admindir/admin/cvs.sh; do \
+-	    admindir=$$admindir/..; \
+-	    if test `cd $$admindir && pwd` = / ; then break; fi; \
+-	  done; \
+-	  admindir=$$admindir/admin; \
+-	  if test -f $$admindir/cvs.sh; then :; else \
+-	    echo "Can't find the admin/ directory in any parent of the"; \
+-	    echo "current directory.  Please set it with admindir=..."; \
++ACLOCAL=aclocal-1.5
++AUTOMAKE=automake-1.5
++AUTOCONF=autoconf
++
++cvs:
++	@chmod a+x admin/*
++	@if grep '$$(top_srcdir)/acinclude.m4:' Makefile.am >/dev/null; then \
++	  echo "*** Creating acinclude.m4" ;\
++	  rm -f acinclude.m4 configure.files ;\
++	  $(MAKE) -f Makefile.am top_srcdir=. acinclude.m4 ;\
++	fi
++	@echo "!!! If you get recursion errors from autoconf, it is advisable to set the"
++	@echo "    environment variable M4 to something including \"--nesting-limit=500\""
++	@if test -r configure.in.in; then \
++	  rm -f subdirs configure.in ;\
++	  echo "*** Creating list of subdirectories" ;\
++	  $(MAKE) -f Makefile.am top_srcdir=. subdirs ;\
++	  echo "*** Creating configure.in" ;\
++	  $(MAKE) -f Makefile.am top_srcdir=. configure.in ;\
++	fi
++	@echo "*** Creating aclocal.m4"
++	@$(ACLOCAL)
++	@echo "*** Creating configure"
++	@autoconf
++	@if test -r configure.in.in ; then \
++	  perl -pi -e 'print "if test \"x\$$with_fast_perl\" = \"xyes\" ;\
++	  then\n  perl -i.bak \$$ac_aux_dir/conf.change.pl \$$CONFIG_STATUS\
++	  || mv \$$CONFIG_STATUS.bak \$$CONFIG_STATUS;\
++	  \n  rm -f \$$CONFIG_STATUS.bak;\nfi\
++	  \n" if /^\s*chmod\s+.*\+x\s+.*CONFIG_STATUS/;' configure ;\
++	fi
++	@if grep '} \$$ac_kw foo' configure >/dev/null 2>&1; then perl -p -i -e "s/ac_kw foo/ac_kw int foo/" configure; fi
++#David's hack for autoconf bug when $INSTALL is set
++	@perl -pi -e 'if (/\[\/\$$\]\*. INSTALL=/) { print $$_ ; $$_ = "\"\") ;;\n"; }' configure
++	@if egrep "^AM_CONFIG_HEADER" configure.in >/dev/null 2>&1; then \
++	  echo "*** Creating config.h template" ;\
++		autoheader ;\
++	fi
++	@echo "*** Creating Makefile templates"
++	@$(AUTOMAKE)
++	@echo "*** Postprocessing Makefile templates"
++	@perl admin/am_edit
++	@if egrep "^cvs-local:" Makefile.am >/dev/null; then \
++	  $(MAKE) -f Makefile.am cvs-local ;\
++	fi
++	@echo "*** Creating date/time stamp"
++	@touch stamp-h.in
++	@echo "*** Finished"
++	@echo "    Don't forget to run ./configure"
++	@echo "    If you haven't done so in a while, run ./configure --help"
++
++dist:	
++	@if grep -e '$$(top_srcdir)/acinclude.m4:' Makefile.am >/dev/null; then \
++	  $(MAKE) -f Makefile.am top_srcdir=. acinclude.m4 ;\
++	fi
++	@if test -r configure.in.in; then \
++	  $(MAKE) -f Makefile.am top_srcdir=. subdirs configure.in; \
++	fi ;\
++	$(ACLOCAL); \
++	autoheader; \
++	$(AUTOMAKE) --foreign --include-deps; \
++	perl admin/am_edit; \
++	autoconf; \
++	if test -r configure.in.in ; then \
++	  perl -pi -e 'print "if test \"x\$$with_fast_perl\" = \"xyes\" ;\
++	  then\n  perl -i.bak \$$ac_aux_dir/conf.change.pl \$$CONFIG_STATUS\
++	  || mv \$$CONFIG_STATUS.bak \$$CONFIG_STATUS;\
++	  \n  rm -f \$$CONFIG_STATUS.bak;\nfi\
++	  \n" if /^\s*chmod\s+.*\+x\s+.*CONFIG_STATUS/;' configure ;\
++	fi ;\
++	touch stamp-h.in; \
++	if grep -e "^cvs-local:" Makefile.am >/dev/null; then \
++	  $(MAKE) -f Makefile.am cvs-local ;\
++	fi ;\
++	if grep "ac_kw foo" configure >/dev/null 2>&1; then perl -p -i -e "s/ac_kw foo/ac_kw int foo/" configure; fi ;\
++	if test -d po; then \
++	 LIST=`find ./po -name "*.po"`; \
++	 for i in $$LIST; do \
++	  file2=`echo $$i | sed -e "s#\.po#\.gmo#"`; \
++	  msgfmt -o $$file2 $$i || touch $$file2; \
++	 done ;\
++	fi
++	@if grep -e "^cvs-dist-local:" Makefile.am >/dev/null; then \
++	  $(MAKE) -f Makefile.am cvs-dist-local ;\
++	fi
++
++cvs-clean:
++	@if test ! -d CVS; then \
++	  echo "You don't have a toplevel CVS directory."; \
++	  echo "You most certainly didn't use cvs to get these sources."; \
++	  echo "But this function depends on cvs's information."; \
+ 	    exit 1; \
+ 	  fi; \
+-	fi; \
+-	MAKE=$(MAKE) $(SHELL) $$admindir/cvs.sh $@
++	perl -e '\
++	sub rmrf() \
++	{ \
++	  my $$fn = shift; \
++	  lstat ($$fn); \
++	  if (-d _) { \
++	    if (opendir (DIR, $$fn)) { \
++	      for my $$efn (grep (!/^\.\.?$$/, readdir (DIR))) { \
++	        &rmrf ($$fn."/".$$efn); \
++	      } \
++	      closedir (DIR); \
++	      rmdir ($$fn); \
++	    } \
++	  } else { \
++	    unlink ($$fn); \
++	  } \
++	} \
++	 \
++	sub newfiles() \
++	{ \
++	  my ($$indir, $$incvs) = @_; \
++	  for my $$n (keys (%$$incvs)) { delete $$$$indir{$$n} } \
++	  return sort (keys (%$$indir)); \
++	} \
++	 \
++	sub cvsclean() \
++	{ \
++	  my $$dir = shift; \
++	  my (%dirsdir, %filesdir, %dirscvs, %filescvs); \
++	  my $$dnam = $$dir ? $$dir : "."; \
++	  if (!opendir (DIR, $$dnam)) { \
++	    print STDERR "Cannot enter \"".$$dnam."\".\n"; \
++	    return; \
++	  } \
++	  for my $$fn (grep (!/^\.\.?$$/, readdir (DIR))) { \
++	    if (-d $$dir.$$fn) { \
++	      $$fn eq "CVS" or $$dirsdir{$$fn} = 1; \
++	    } else { \
++	      $$filesdir{$$fn} = 1; \
++	    } \
++	  } \
++	  closedir (DIR); \
++	  if (!open (FILE, "<".$$dir."CVS/Entries")) { \
++	    print STDERR "No CVS information in \"".$$dnam."\".\n"; \
++	    return; \
++	  } \
++	  while (<FILE>) { \
++	    m%^D/([^/]+)/.*$$% and $$dirscvs{$$1} = 1; \
++	    m%^/([^/]+)/.*$$% and $$filescvs{$$1} = 1; \
++	  } \
++	  close (FILE); \
++	  if (open (FILE, "<".$$dir."CVS/Entries.Log")) { \
++	    while (<FILE>) { \
++	      m%^A D/([^/]+)/.*$$% and $$dirscvs{$$1} = 1; \
++	      m%^A /([^/]+)/.*$$% and $$filescvs{$$1} = 1; \
++	      m%^R D/([^/]+)/.*$$% and delete $$dirscvs{$$1}; \
++	      m%^R /([^/]+)/.*$$% and delete $$filescvs{$$1}; \
++	    } \
++	    close (FILE); \
++	  } \
++	  for my $$fn (&newfiles (\%filesdir, \%filescvs)) { \
++	    print ("F ".$$dir.$$fn."\n"); \
++	    &rmrf ($$dir.$$fn); \
++	  } \
++	  for my $$fn (&newfiles (\%dirsdir, \%dirscvs)) { \
++	    print ("D ".$$dir.$$fn."\n"); \
++	    &rmrf ($$dir.$$fn); \
++	  } \
++	  for my $$fn (sort (keys (%dirscvs))) { \
++	    &cvsclean ($$dir.$$fn."/"); \
++	  } \
++	} \
++	 \
++	&cvsclean ("");'
+ 
+-package-merge:
+-	@MAKE=$(MAKE) POFILES=$(POFILES) PACKAGE=$(PACKAGE) \
+-	  $(SHELL) admin/cvs.sh package-merge
+ 
++# The Makefiles have to be sorted for slashes, since configure creates
++# only one directory per Makefile not the whole hierarchy
+ configure.in: configure.files $(shell test -f configure.files && cat configure.files) subdirs
++	@rm -f configure.in configure.in.new ;\
++	kde_use_qt_param= ; \
++	cat `cat configure.files | egrep -v "^configure.in.bot"` >> configure.in.new ;\
++	echo "KDE_CREATE_SUBDIRSLIST" >> configure.in.new ;\
++	echo "AC_OUTPUT( \\" >> configure.in.new ;\
++	mfs=`find . -type d -print | fgrep -v "/." | sed -e "s#\./##" -e "/^debian/d" | sort`; \
++	for i in $$mfs; do \
++	  topleveldir=`echo $$i| sed -e "s#/.*##"`; \
++	  if test -f $$topleveldir/configure.in; then \
++		continue; \
++	  fi ;\
++	  if test ! -f $$i/Makefile.am; then \
++		continue; \
++	  fi ;\
++	  if test -s inst-apps; then \
++	    if test -z "`grep \"^$$topleveldir\" inst-apps`"; then \
++		continue; \
++	    fi ;\
++	  fi ;\
++	  echo "$$i/Makefile \\" >> configure.in.new ;\
++	done ;\
++	egrep '^dnl AC_OUTPUT\(.*\)' `cat configure.files` | sed -e "s#^.*dnl AC_OUTPUT(\(.*\))#\1 \\\\#" >> configure.in.new ;\
++	echo ")" >> configure.in.new
++	@modulename= ;\
++	if test -f configure.in.in; then \
++	   if head -2 configure.in.in | egrep "^#MIN_CONFIG\(.*\)$$" > /dev/null; then \
++	      line=`egrep "^#MIN_CONFIG\(" configure.in.in` ;\
++	      if test -n "$$line"; then \
++		  kde_use_qt_param=`echo $$line | sed -e "s/#MIN_CONFIG(\(.*\))/\1/"` ;\
++	      fi ;\
++	   fi ;\
++	   if head -2 configure.in.in | egrep "^#MIN_CONFI(G|G\(.*\))$$" > /dev/null; then \
++	      line=`egrep "^AM_INIT_AUTOMAKE\(" configure.in.in` ;\
++	      if test -n "$$line"; then \
++		  modulename=`echo $$line | sed -e "s#AM_INIT_AUTOMAKE(\([^,]*\),.*#\1#"` ;\
++		  VERSION=`echo $$line | sed -e "s#AM_INIT_AUTOMAKE([^,]*, *\([^)]*\)).*#\1#"` ;\
++	       fi ;\
++	      sed -e "s#AM_INIT_AUTOMAKE([^@].*#dnl PACKAGE set before#" configure.in.new > configure.in \
++		  && mv configure.in configure.in.new ;\
++	   fi ;\
++	fi ;\
++	if test -z "$$modulename" || test "$$modulename" = "@MODULENAME@"; then \
++	   modulename=`pwd`; modulename=`basename $$modulename`; \
++	fi ;\
++	if test -z "$$VERSION" || test "$$VERSION" = "@VERSION@"; then \
++	     VERSION="\"3.0.1\"";  \
++	fi ;\
++	if test -n "$$kde_use_qt_param"; then \
++	      sed -e "s#^dnl KDE_USE_QT#KDE_USE_QT($$kde_use_qt_param)#" configure.in.new > configure.in \
++		  && mv configure.in configure.in.new ;\
++	fi ; \
++	sed -e "s#@MODULENAME@#$$modulename#" configure.in.new | \
++		sed -e "s#@VERSION@#$$VERSION#" > configure.in
++	@if test -f configure.in.bot ; then cat configure.in.bot >> configure.in ; fi
++	@rm -f configure.in.new
++
+ configure.files: subdirs
++	@admindir=NO ;\
++	for i in . .. ../.. ../../..; do \
++	  if test -x $$i/admin; then admindir=$$i/admin; break; fi; \
++	done ;\
++	rm -rf configure.files ;\
++	if test -f configure.in.in && head -2 configure.in.in | egrep "^#MIN_CONFI(G|G\(.*\))$$" > /dev/null; then \
++		echo $$admindir/configure.in.min >> configure.files  ;\
++	fi
++	@test -f configure.in.in && echo configure.in.in >> configure.files
++	@list=`find . -name "configure.in.in" | sort`; \
++	for i in $$list; do if test -f $$i && test ! `dirname $$i` = "." ; then \
++	  echo $$i >> configure.files ;\
++	fi; done
++	@if test -f configure.in.mid ; then echo configure.in.mid >> configure.files ; fi
++	@if test -f configure.in.bot ; then echo configure.in.bot >> configure.files ; fi
++
++subdirs:
++	@files=`ls -1 | sort`; \
++	dirs= ;\
++	lib_dirs= ;\
++	first_dirs= ;\
++	last_dirs= ;\
++	compilefirst=`grep '^COMPILE_FIRST[ ]*=' Makefile.am | \
++		sed -e 's#^COMPILE_FIRST[ ]*=[ ]*#|#' | sed -e 's#$$#|#' | sed -e 's# #|#g'`;\
++	compilelast=`grep '^COMPILE_LAST[ ]*=' Makefile.am | \
++		sed -e 's#^COMPILE_LAST[ ]*=[ ]*#|#' | sed -e 's#$$#|#' | sed -e 's# #|#g'`;\
++	for i in $$files; do if test -d $$i; then \
++	    if test -f $$i/Makefile.am; then \
++		if echo $$compilefirst | grep "|$$i|" >/dev/null; then \
++			first_dirs="$$first_dirs $$i" ;\
++		elif echo $$compilelast | grep "|$$i|" >/dev/null; then \
++			last_dirs="$$last_dirs $$i" ; \
++		else dirs="$$dirs $$i" ;\
++		fi ;\
++	     fi ;\
++	   fi; \
++	done ;\
++	rm -f _SUBDIRS ;\
++	for i in $$dirs; do \
++	if [ $$i != "kdm" ]; then \
++	echo $$i >> ./_SUBDIRS; \
++        fi \
++	done
++	@if test -r subdirs && diff subdirs _SUBDIRS > /dev/null; then \
++	  rm -f _SUBDIRS; \
++	fi
++	@test -r _SUBDIRS && mv _SUBDIRS subdirs || true
++
++package-merge:
++	@catalogs='$(POFILES)'; \
++	for cat in $$catalogs; do \
++	echo $$cat $$name; \
++	msgmerge -o $$cat.new $$cat $(PACKAGE).pot ; \
++	if test -s $$cat.new; then \
++	  grep -v "\"POT-Creation" $$cat.new > $$cat.new.2 ; \
++	  grep -v "\"POT-Creation" $$cat >> $$cat.new.1; \
++	  if diff $$cat.new.1 $$cat.new.2; then \
++		rm $$cat.new;  \
++	  else  \
++		mv $$cat.new $$cat ; \
++	fi; \
++	rm -f $$cat.new.1 $$cat.new.2 ;\
++	fi ;\
++	done
++
++
++package-messages:
++	@rm -rf po.backup ;\
++	mkdir po.backup ;\
++	for i in `ls -1 po/*.pot 2>/dev/null | sed -e "s#po/##"`; do \
++	  egrep -v '^#([^:]|$)' po/$$i | egrep '^.*[^ ]+.*$$' | grep -v "\"POT-Creation" > po.backup/$$i ; \
++	  cp po/$$i po.backup/backup_$$i ;  \
++	  touch -r po/$$i po.backup/backup_$$i ;\
++	  rm po/$$i ;\
++	done
++	@podir=$${podir:-$$PWD/po} ;\
++	files=`find . -name Makefile.am | xargs egrep -l '^messages:' `; \
++	dirs=`for i in $$files; do echo \`dirname $$i\`; done`; \
++	tmpname="$$PWD/messages.log" ;\
++	if test -z "$$EXTRACTRC"; then EXTRACTRC=extractrc ; fi ;\
++	if test -z "$$PREPARETIPS"; then PREPARETIPS=preparetips ; fi ;\
++	export EXTRACTRC PREPARETIPS ;\
++	for subdir in $$dirs; do \
++	  test -z "$$VERBOSE" || echo "Making messages in $$subdir"; \
++	  (cd $$subdir ;\
++	   if test -n "`grep -e '^messages:.*rc.cpp' Makefile.am`"; then \
++	   	$$EXTRACTRC *.rc *.ui > rc.cpp ;\
++	   else \
++		candidates=`ls -1 *.rc *.ui 2>/dev/null` ;\
++		if test -n "$$candidates"; then \
++		    echo "$$subdir has *.rc or *.ui files, but not correct messages line" ;\
++		fi ;\
++	   fi ;\
++	   if test -n "`grep -r KAboutData *.c* *.C* 2>/dev/null`"; then \
++		echo -e 'i18n("_: NAME OF TRANSLATORS\\n"\n"Your names")\ni18n("_: EMAIL OF TRANSLATORS\\n"\n"Your emails")' > _translatorinfo.cpp ;\
++	   else echo " " > _translatorinfo.cpp ;\
++	   fi; \
++	   perl -e '$$mes=0; while (<STDIN>) { if (/^messages:/) { $$mes=1; print $$_; next; } if ($$mes) { if (/$$\\(XGETTEXT\)/ && / -o/) { s/ -o \$$\(podir\)/ _translatorinfo.cpp -o \$$\(podir\)/ } print $$_; } else { print $$_; } }' < Makefile.am > _transMakefile ;\
++	   $(MAKE) -s -f _transMakefile podir=$$podir EXTRACTRC="$$EXTRACTRC" PREPARETIPS="$$PREPARETIPS" \
++	   XGETTEXT="$${XGETTEXT:-xgettext} -C -ki18n -ktr2i18n \
++	   -kI18N_NOOP -ktranslate -kaliasLocale \
++	   -x $${includedir:-$$KDEDIR/include}/kde.pot" \
++	   messages ) 2>&1 | grep -v '^make\[1\]' > $$tmpname; \
++	   test -s $$tmpname && (echo $$subdir ; cat $$tmpname) ;\
++	   test ! -f $$subdir/rc.cpp || rm -f $$subdir/rc.cpp ;\
++	   rm -f $$subdir/_translatorinfo.cpp ;\
++	   rm -f $$subdir/_transMakefile ;\
++	done
++	rm -f $$tmpname
++	@for i in `ls -1 po.backup/*.pot 2>/dev/null | sed -e "s#po.backup/##" | egrep -v '^backup_'`; do \
++	  if test ! -f po/$$i; then echo "disappeared: $$i"; fi ;\
++	done
++	@for  i in `ls -1 po/*.pot 2>/dev/null | sed -e "s#po/##"`; do \
++	   msgmerge -q -o po/$$i po/$$i po/$$i ;\
++	   egrep -v '^#([^:]|$)' po/$$i | egrep '^.*[^ ]+.*$$' | grep -v "\"POT-Creation" > temp.pot ;\
++	  if test -f po.backup/$$i && test -n "`diff temp.pot po.backup/$$i`"; then \
++	 	echo "will update $$i"; \
++		msgmerge -q po.backup/backup_$$i po/$$i > temp.pot ;\
++	        mv temp.pot po/$$i; \
++	   else \
++	    if test -f po.backup/backup_$$i; then \
++	      test -z "$$VERBOSE" || echo "I'm restoring $$i" ;\
++	      mv po.backup/backup_$$i po/$$i; \
++	      rm po.backup/$$i; \
++	    else \
++	      echo "will add $$i" ;\
++	    fi ;\
++	fi ;\
++	done
++	@rm -f temp.pot
++	@rm -rf po.backup
++
++test:
++	perl -e '$$mes=0; while (<STDIN>) { if (/^messages:/) { $$mes=1; print $$_; next; } if ($$mes) { if (! /^\t/) { exit(0); } if (/$$\\(XGETTEXT\)/ && / -o/) { s/ -o/ _translatorinfo.cpp -o/ } print $$_;  } }' < Makefile.am
+ 
+ .SILENT:
+ 
+-.PHONY: cvs dist cvs-clean package-merge package-messages
++.PHONY: cvs test dist cvs-clean package-merge package-messages
++
+diff -uNbr keramik/admin/acinclude.m4.in keramik-new/admin/acinclude.m4.in
+--- keramik/admin/acinclude.m4.in	Tue May 28 10:52:49 2002
++++ keramik-new/admin/acinclude.m4.in	Tue Jun  4 21:25:46 2002
+@@ -21,7 +21,9 @@
+ 
+ dnl IMPORTANT NOTE:
+ dnl Please do not modify this file unless you expect your modifications to be
+-dnl carried into every other module in the repository. 
++dnl carried into every other module in the repository. If you decide that you
++dnl really want to modify it, contact coolo@kde.org mentioning that you have
++dnl and that the modified file should be committed to every module.
+ dnl
+ dnl Single-module modifications are best placed in configure.in for kdelibs
+ dnl and kdebase or configure.in.in if present.
+@@ -509,13 +511,6 @@
+ ])
+ ])
+ 
+-AC_DEFUN(KDE_MISSING_ARTS_ERROR,
+-[
+-    AC_MSG_ERROR([The important program $1 was not found!
+-Please check whether you installed aRts correctly.
+-])
+-])
+-
+ AC_DEFUN(KDE_SUBST_PROGRAMS,
+ [
+ 
+@@ -531,8 +526,8 @@
+         kde_default_bindirs="$exec_prefix/bin $prefix/bin $kde_default_bindirs"
+         KDE_FIND_PATH(dcopidl, DCOPIDL, [$kde_default_bindirs], [KDE_MISSING_PROG_ERROR(dcopidl)])
+         KDE_FIND_PATH(dcopidl2cpp, DCOPIDL2CPP, [$kde_default_bindirs], [KDE_MISSING_PROG_ERROR(dcopidl2cpp)])
+-        KDE_FIND_PATH(mcopidl, MCOPIDL, [$kde_default_bindirs], [KDE_MISSING_ARTS_ERROR(mcopidl)])
+-        KDE_FIND_PATH(artsc-config, ARTSCCONFIG, [$kde_default_bindirs], [KDE_MISSING_ARTS_ERROR(artsc-config)])
++        KDE_FIND_PATH(mcopidl, MCOPIDL, [$kde_default_bindirs], [KDE_MISSING_PROG_ERROR(mcopidl)])
++        KDE_FIND_PATH(artsc-config, ARTSCCONFIG, [$kde_default_bindirs], [KDE_MISSING_PROG_ERROR(artsc-config)])
+         KDE_FIND_PATH(kde-config, KDECONFIG, [$kde_default_bindirs])
+         KDE_FIND_PATH(meinproc, MEINPROC, [$kde_default_bindirs])
+       
+@@ -699,13 +694,10 @@
+      AC_CHECK_LIB(ipc, shmat, X_EXTRA_LIBS="$X_EXTRA_LIBS -lipc"))
+    
+    # darwin needs this to initialize the environment
+-   AC_CHECK_HEADERS(crt_externs.h)
++   AC_CHECK_HEADERS([crt_externs.h sys/types.h])
+    AC_CHECK_FUNC(_NSGetEnviron, [AC_DEFINE(HAVE_NSGETENVIRON, 1, [Define if your system needs _NSGetEnviron to set up the environment])])
+  
+-   # more headers that need to be explicitly included on darwin
+-   AC_CHECK_HEADERS(sys/types.h stdint.h)
+-
+-   # darwin requires a poll emulation library
++   # darwin requires a poll.h emulation library
+    AC_CHECK_LIB(poll, poll, LIB_POLL="-lpoll")
+ 
+    # CoreAudio framework
+@@ -732,10 +724,10 @@
+      LIBS=$kde_libs_safe
+    ])
+ 
+-   AC_SUBST(LIB_POLL)
+-   AC_SUBST(FRAMEWORK_COREAUDIO)
+    LIBSOCKET="$X_EXTRA_LIBS"
+    AC_SUBST(LIBSOCKET)
++   AC_SUBST(FRAMEWORK_COREAUDIO)
++   AC_SUBST(LIB_POLL)
+    AC_SUBST(LIBRESOLV)
+    AC_SUBST(X_EXTRA_LIBS)
+    AC_CHECK_LIB(ucb, killpg, [LIBUCB="-lucb"]) dnl for Solaris2.4
+@@ -985,8 +977,9 @@
+ 
+ else
+   dnl We're using QT Embedded
+-  CPPFLAGS=-DQWS
+-  CXXFLAGS="$CXXFLAGS -fno-rtti"
++  CXXFLAGS="$CXXFLAGS -fno-rtti -DQWS"
++  CFLAGS="$CFLAGS -DQWS"
++  LDFLAGS="$LDFLAGS -DQWS"
+   QTE_NORTTI="-fno-rtti -DQWS"
+   X_PRE_LIBS=""
+   LIB_X11=""
+@@ -1575,7 +1568,7 @@
+ 
+ if test -z "$1"; then
+ 
+-kde_incdirs="/usr/lib/kde/include /usr/local/kde/include /usr/local/include /usr/kde/include /usr/include/kde /usr/include /opt/kde3/include /opt/kde/include $x_includes $qt_includes"
++kde_incdirs="/usr/lib/kde/include /usr/local/kde/include /usr/local/include /usr/kde/include /usr/include/kde /usr/include /opt/kde3/include /opt/kde/include $x_includes $qt_includes $includedir"
+ test -n "$KDEDIR" && kde_incdirs="$KDEDIR/include $KDEDIR/include/kde $KDEDIR $kde_incdirs"
+ kde_incdirs="$ac_kde_includes $kde_incdirs"
+ AC_FIND_FILE($kde_check_header, $kde_incdirs, kde_incdir)
+@@ -1846,36 +1839,91 @@
+    AC_REQUIRE([K_PATH_X])
+ 
+ if test $kde_qtver = 3; then
+-   AC_SUBST(LIB_KDECORE, "-lkdecore")
+-   AC_SUBST(LIB_KDEUI, "-lkdeui")
+-   AC_SUBST(LIB_KIO, "-lkio")
+-   AC_SUBST(LIB_SMB, "-lsmb")
+-   AC_SUBST(LIB_KAB, "-lkab")
+-   AC_SUBST(LIB_KHTML, "-lkhtml")
+-   AC_SUBST(LIB_KSPELL, "-lkspell")
+-   AC_SUBST(LIB_KPARTS, "-lkparts")
+-   AC_SUBST(LIB_KDEPRINT, "-lkdeprint")
++   LIB_KDECORE='-lkdecore'
++   AC_SUBST(LIB_KDECORE)
++   LIB_KDEFX='-lkdefx'
++   AC_SUBST(LIB_KDEFX)
++   LIB_ARTSKDE='-lartskde'
++   AC_SUBST(LIB_ARTSKDE)
++   LIB_KABC='-lkabc'
++   AC_SUBST(LIB_KABC)
++   LIB_KDESASL='-lkdesasl'
++   AC_SUBST(LIB_KDESASL)
++   LIB_KDESU='-lkdesu'
++   AC_SUBST(LIB_KDESU)
++   LIB_KJAVA='-lkjava'
++   AC_SUBST(LIB_KJAVA)
++   LIB_KJS='-lkjs'
++   AC_SUBST(LIB_KJS)
++   LIB_KMID='-lkmid'
++   AC_SUBST(LIB_KMID)
++   LIB_KSCRIPT='-lkscript'
++   AC_SUBST(LIB_KSCRIPT)
++   LIB_KTEXTEDITOR='-lktexteditor'
++   AC_SUBST(LIB_KTEXTEDITOR)
++   LIB_SHELLSCRIPT='-lshellscript'
++   AC_SUBST(LIB_SHELLSCRIPT)
++   LIB_VCARD='-lvcard'
++   AC_SUBST(LIB_VCARD)
++   LIB_DCOP='-lDCOP'
++   AC_SUBST(LIB_DCOP)
++   LIB_KDEUI='-lkdeui'
++   AC_SUBST(LIB_KDEUI)
++   LIB_KIO='-lkio'
++   AC_SUBST(LIB_KIO)
++   LIB_SMB='-lsmb'
++   AC_SUBST(LIB_SMB)
++   LIB_KAB='-lkab'
++   AC_SUBST(LIB_KAB)
++   LIB_KHTML='-lkhtml'
++   AC_SUBST(LIB_KHTML)
++   LIB_KSPELL='-lkspell'
++   AC_SUBST(LIB_KSPELL)
++   LIB_KPARTS='-lkparts'
++   AC_SUBST(LIB_KPARTS)
++   LIB_KDEPRINT='-lkdeprint'
++   AC_SUBST(LIB_KDEPRINT)
++   LIB_KDED='@PREFIX@/lib/kded.la'
++   AC_SUBST(LIB_KDED)
+ # these are for backward compatibility
+-   AC_SUBST(LIB_KSYCOCA, "-lkio")
+-   AC_SUBST(LIB_KFILE, "-lkio")
++   LIB_KSYCOCA='-lkio'
++   AC_SUBST(LIB_KSYCOCA)
++   LIB_KFILE='-lkio'
++   AC_SUBST(LIB_KFILE)
+ elif test $kde_qtver = 2; then
+-   AC_SUBST(LIB_KDECORE, "-lkdecore")
+-   AC_SUBST(LIB_KDEUI, "-lkdeui")
+-   AC_SUBST(LIB_KIO, "-lkio")
+-   AC_SUBST(LIB_KSYCOCA, "-lksycoca")
+-   AC_SUBST(LIB_SMB, "-lsmb")
+-   AC_SUBST(LIB_KFILE, "-lkfile")
+-   AC_SUBST(LIB_KAB, "-lkab")
+-   AC_SUBST(LIB_KHTML, "-lkhtml")
+-   AC_SUBST(LIB_KSPELL, "-lkspell")
+-   AC_SUBST(LIB_KPARTS, "-lkparts")
+-   AC_SUBST(LIB_KDEPRINT, "-lkdeprint")
+-else
+-   AC_SUBST(LIB_KDECORE, "-lkdecore -lXext $(LIB_QT)")
+-   AC_SUBST(LIB_KDEUI, "-lkdeui $(LIB_KDECORE)")
+-   AC_SUBST(LIB_KFM, "-lkfm $(LIB_KDECORE)")
+-   AC_SUBST(LIB_KFILE, "-lkfile $(LIB_KFM) $(LIB_KDEUI)")
+-   AC_SUBST(LIB_KAB, "-lkab $(LIB_KIMGIO) $(LIB_KDECORE)")
++   LIB_KDECORE='-lkdecore'
++   AC_SUBST(LIB_KDECORE)
++   LIB_KDEUI='-lkdeui'
++   AC_SUBST(LIB_KDEUI)
++   LIB_KIO='-lkio'
++   AC_SUBST(LIB_KIO)
++   LIB_KSYCOCA='-lksycoca'
++   AC_SUBST(LIB_KSYCOCA)
++   LIB_SMB='-lsmb'
++   AC_SUBST(LIB_SMB)
++   LIB_KFILE='-lkfile'
++   AC_SUBST(LIB_KFILE)
++   LIB_KAB='-lkab'
++   AC_SUBST(LIB_KAB)
++   LIB_KHTML='-lkhtml'
++   AC_SUBST(LIB_KHTML)
++   LIB_KSPELL='-lkspell'
++   AC_SUBST(LIB_KSPELL)
++   LIB_KPARTS='-lkparts'
++   AC_SUBST(LIB_KPARTS)
++   LIB_KDEPRINT='-lkdeprint'
++   AC_SUBST(LIB_KDEPRINT)
++else
++   LIB_KDECORE='-lkdecore -lXext $(LIB_QT)'
++   AC_SUBST(LIB_KDECORE)
++   LIB_KDEUI='-lkdeui $(LIB_KDECORE)'
++   AC_SUBST(LIB_KDEUI)
++   LIB_KFM='-lkfm $(LIB_KDECORE)'
++   AC_SUBST(LIB_KFM)
++   LIB_KFILE='-lkfile $(LIB_KFM) $(LIB_KDEUI)'
++   AC_SUBST(LIB_KFILE)
++   LIB_KAB='-lkab $(LIB_KIMGIO) $(LIB_KDECORE)'
++   AC_SUBST(LIB_KAB)
+ fi
+ ])
+ 
+@@ -2513,14 +2561,14 @@
+     fi
+    ], [kde_use_strict_options="no"])
+ 
+-  AC_ARG_ENABLE(warnings,[  --disable-warnings      disables compilation with -Wall and similiar],
++  AC_ARG_ENABLE(warnings,[  --enable-warnings       compiles with -Wall and similiar],
+    [
+     if test $enableval = "no"; then
+          kde_use_warnings="no"
+        else
+          kde_use_warnings="yes"
+     fi
+-   ], [kde_use_warnings="yes"])
++   ], [kde_use_warnings="no"])
+ 
+   dnl enable warnings for debug build
+   if test "$kde_use_debug_code" != "no"; then
+@@ -2691,9 +2739,42 @@
+ 
+   AC_PROG_CXXCPP
+ 
+-  if test "$GCC" = yes; then
+-     NOOPT_CXXFLAGS=-O0
+-     NOOPT_CFLAGS=-O0
++  # the following is to allow programs, that are known to
++  # have problems when compiled with -O2
++  if test -n "$CXXFLAGS"; then
++      kde_safe_IFS=$IFS
++      IFS=" "
++      NOOPT_CXXFLAGS=""
++      for i in $CXXFLAGS; do
++        case $i in
++          -O*)
++                ;;
++          *)
++                NOOPT_CXXFLAGS="$NOOPT_CXXFLAGS $i"
++                ;;
++        esac
++      done
++      IFS=$kde_safe_IFS
++  fi
++
++  if test -n "$CFLAGS"; then
++      kde_safe_IFS=$IFS
++      IFS=" "
++      NOOPT_CFLAGS=""
++      for i in $CFLAGS; do
++        case $i in
++          -O*)
++                ;;
++          *)
++                NOOPT_CFLAGS="$NOOPT_CFLAGS $i"
++                ;;
++        esac
++      done
++      IFS=$kde_safe_IFS
++  fi
++
++  if test "x$kde_use_qt_emb" = "xyes"; then
++    NOOPT_CXXFLAGS="$NOOPT_CXXFLAGS -fno-rtti -DQWS"
+   fi
+ 
+   AC_SUBST(NOOPT_CXXFLAGS)
+@@ -2702,6 +2783,9 @@
+   KDE_CHECK_FINAL
+ 
+   ifdef([AM_DEPENDENCIES], AC_REQUIRE([KDE_ADD_DEPENDENCIES]), [])
++
++  KDE_CXXFLAGS=
++  AC_SUBST(KDE_CXXFLAGS)
+ ])
+ 
+ AC_DEFUN(KDE_ADD_DEPENDENCIES,
+@@ -4117,7 +4201,7 @@
+ AC_DEFUN(KDE_CREATE_SUBDIRSLIST,
+ [
+ 
+-DO_NOT_COMPILE="$DO_NOT_COMPILE CVS debian bsd-port admin"
++DO_NOT_COMPILE="$DO_NOT_COMPILE CVS debian bsd-port admin kdm ksysguard kscd"
+ 
+ if test ! -s $srcdir/subdirs; then
+   dnl Note: Makefile.common creates subdirs, so this is just a fallback
+@@ -4148,12 +4232,8 @@
+     install_it="no"
+   fi
+   AC_MSG_RESULT($install_it)
+-  vari=`echo $i | sed -e 's,[[-+]],_,g'`
+   if test $install_it = "yes"; then
+     TOPSUBDIRS="$TOPSUBDIRS $i"
+-    eval "$vari""_SUBDIR_included=yes"
+-  else
+-    eval "$vari""_SUBDIR_included=no"
+   fi
+ done
+ 
+@@ -4302,19 +4382,6 @@
+    AC_LANG_RESTORE
+ ])
+ 
+-AC_DEFUN(KDE_CHECK_HEADERS,
+-[
+-   AC_LANG_SAVE
+-   kde_safe_cppflags=$CPPFLAGS
+-   CPPFLAGS="$CPPFLAGS $all_includes"
+-   AC_LANG_CPLUSPLUS
+-   for k_header in $1; do
+-      AC_CHECK_HEADER($k_header, $2, $3)
+-   done
+-   CPPFLAGS=$kde_safe_cppflags
+-   AC_LANG_RESTORE
+-])
+-
+ AC_DEFUN(KDE_FAST_CONFIGURE,
+ [
+   dnl makes configure fast (needs perl)
+@@ -4506,9 +4573,12 @@
+            [initgroups may exist but not its prototype (e.g. AIX<4.3.3:8)])
+ ])
+ 
+-
+ AC_DEFUN(KDE_CHECK_JAVA_DIR,
+ [
++
++# needed by the MacOS X JVM in certain circumstances
++AC_CHECK_HEADERS([TargetConditionals.h])
++
+ AC_MSG_CHECKING([for Java directory])
+ 
+ AC_ARG_WITH(java,
+@@ -4517,6 +4587,7 @@
+ ], ac_java_dir=""
+ )
+ 
++
+ dnl at this point ac_java_dir is either a dir, 'no' to disable, or '' to say look in $PATH
+ if test "x$ac_java_dir" = "xno"; then
+    kde_cv_java_bindir=no
+@@ -4548,10 +4619,20 @@
+ dnl At this point kde_cv_java_bindir and kde_cv_java_includedir are either set or "no"
+ if test "x$kde_cv_java_bindir" != "xno"; then
+ 
++  case $host_os in
++    darwin*)
++      dnl Look for libjvm.dylib
++      kde_java_libjvmdir=`find /System/Library/Frameworks/JavaVM.framework/ -name libjvm.dylib | sed 's,libjvm.dylib,,'|head -n 1`
++      kd_java_libhpidir=''
++      dnl Darwin doesn't have libhpi
++      ;;
++    *)
+   dnl Look for libjvm.so
+   kde_java_libjvmdir=`find $kde_cv_java_bindir/.. -name libjvm.so | sed 's,libjvm.so,,'|head -n 1`
+   dnl Look for libhpi.so and avoid green threads
+   kde_java_libhpidir=`find $kde_cv_java_bindir/.. -name libhpi.so | grep -v green | sed 's,libhpi.so,,'`
++      ;;
++  esac
+ 
+   dnl Now check everything's fine under there
+ 
+@@ -4567,12 +4648,26 @@
+   if test ! -r "$kde_cv_java_includedir/jni.h"; then
+     AC_MSG_ERROR([jni.h not found under $kde_cv_java_includedir. Use --with-java or --without-java.])
+   fi
++  case $host_os in
++    darwin*)
++      if test ! -r "$kde_java_libjvmdir/libjvm.dylib"; then
++        AC_MSG_ERROR([libjvm.dylib not found under $kde_java_libjvmdir. Use --without-java.])
++      fi
++      dnl Darwin doesn't have libhpi, but it's not fatal
++      LIB_JVM="-framework JavaVM"
++      LIB_HPI=""
++      ;;
++    *)
+   if test ! -r "$kde_java_libjvmdir/libjvm.so"; then
+     AC_MSG_ERROR([libjvm.so not found under $kde_java_libjvmdir. Use --without-java.])
+   fi
++      LIB_JVM="-L$kde_java_libjvmdir -ljvm"
+   if test ! -r "$kde_java_libhpidir/libhpi.so"; then
+     AC_MSG_ERROR([libhpi.so not found under $kde_java_libhpidir. Use --without-java.])
+   fi
++      LIB_HPI="-L$kde_java_libhpidir -lhpi"
++      ;;
++  esac
+ 
+   jni_includes="-I$kde_cv_java_includedir"
+   dnl Strange thing, jni.h requires jni_md.h which is under genunix here..
+@@ -4619,7 +4714,7 @@
+   JAR=$kde_cv_java_bindir/jar
+   AC_SUBST(JAR)
+   AC_SUBST(jni_includes)
+-  JVMLIBS="-L$kde_java_libjvmdir -ljvm -L$kde_java_libhpidir -lhpi"
++  JVMLIBS="$LIB_JVM $LIB_HPI"
+   AC_SUBST(JVMLIBS)
+ fi
+ ])
+@@ -4755,39 +4850,3 @@
+   AC_MSG_RESULT([found version $qtopia_verstr with headers at $qtopia_incdir])
+ ])
+ 
+-
+-AC_DEFUN(KDE_INIT_DOXYGEN,
+-[
+-AC_MSG_CHECKING([for Qt docs])
+-kde_qtdir=
+-if test "${with_qt_dir+set}" = set; then
+-  kde_qtdir="$with_qt_dir"
+-fi
+-
+-AC_FIND_FILE(qsql.html, [ $kde_qtdir/doc/html $QTDIR/doc/html /usr/share/doc/packages/qt3/html /usr/lib/qt/doc /usr/lib/qt3/doc /usr/lib/qt3/doc/html /usr/doc/qt3/html /usr/doc/qt3], QTDOCDIR)
+-AC_MSG_RESULT($QTDOCDIR)
+-
+-AC_SUBST(QTDOCDIR)
+-
+-KDE_FIND_PATH(dot, DOT, [], [])
+-if test -n "$DOT"; then
+-  KDE_HAVE_DOT="YES"
+-else
+-  KDE_HAVE_DOT="NO"
+-fi
+-AC_SUBST(KDE_HAVE_DOT)
+-KDE_FIND_PATH(doxygen, DOXYGEN, [], [])
+-AC_SUBST(DOXYGEN)
+-
+-DOXYGEN_PROJECT_NAME="$1"
+-DOXYGEN_PROJECT_NUMBER="$2"
+-AC_SUBST(DOXYGEN_PROJECT_NAME)
+-AC_SUBST(DOXYGEN_PROJECT_NUMBER)
+-
+-KDE_HAS_DOXYGEN=no
+-if test -n "$DOXYGEN" && test -x "$DOXYGEN" && test -f $QTDOCDIR/qsql.html; then
+-  KDE_HAS_DOXYGEN=yes
+-fi
+-AC_SUBST(KDE_HAS_DOXYGEN)
+-
+-])
+diff -uNbr keramik/admin/am_edit keramik-new/admin/am_edit
+--- keramik/admin/am_edit	Fri May 24 10:26:27 2002
++++ keramik-new/admin/am_edit	Tue Jun  4 21:25:17 2002
+@@ -56,7 +56,6 @@
+ sub tag_METASOURCES ();
+ sub tag_POFILES ();
+ sub tag_DOCFILES ();
+-sub tag_doxygen_docs();
+ sub tag_LOCALINSTALL();
+ sub tag_IDLFILES();
+ sub tag_UIFILES();
+@@ -118,15 +117,15 @@
+     {
+         print STDOUT "Usage $thisProg [OPTION] ... [dir/Makefile.in]...\n",
+                 "\n",
+-                "Patches dir/Makefile.in generated by automake\n",
+-                "(where dir can be an absolute or relative directory name)\n",
++                "Patches dir/Makefile.in generated from automake\n",
++                "(where dir can be a full or relative directory name)",
+                 "\n",
+                 "  -v, --verbose      verbosely list files processed\n",
+                 "  -h, --help         print this help, then exit\n",
+                 "  --version          print version number, then exit\n",
+                 "  -p, --path=        use the path to am_edit if the path\n",
+-                "                     called from is not the one to be used\n",
+-	        "  --no-final         don't patch for --enable-final\n";
++	        "  --no-final         don't patch for --enable-final\n",
++                "                     called from is not the one to be used\n";
+ 	
+         exit 0;
+     }
+@@ -169,7 +168,7 @@
+     find (\&add_makefile, cwd());
+     #chdir('$topdir');
+ } else {
+-    print STDOUT "Using input files specified by user\n"   if ($verbose);
++    print STDOUT "Using user enter input files\n"   if ($verbose);
+ }
+ 
+ foreach $makefile (sort(@makefiles))
+@@ -232,8 +231,6 @@
+     local $cleanMoc       = "";
+     local $closure_output = "";
+ 
+-    local %varcontent     = ();
+-
+     $makefileDir = dirname($makefile);
+     chdir ($makefileDir);
+     $printname = $makefile;
+@@ -314,7 +311,6 @@
+ 
+     tag_POFILES ();             # language rules for po directory
+     tag_DOCFILES ();            # language rules for doc directories
+-    tag_doxygen_docu();
+     tag_LOCALINSTALL();         # add $(DESTDIR) before all kde_ dirs
+     tag_ICON();
+     tag_SUBDIRS();
+@@ -371,11 +367,12 @@
+         } else {
+             $lines = "DEP_FILES = $dep_files $depfiles\n";
+         }
++        
+         substituteLine($lookup, $lines);
+     }
+ 
+     my $cvs_lines = "cvs-clean:\n";
+-    $cvs_lines .= "\t\$(MAKE) admindir=\$(top_srcdir)/admin -f \$(top_srcdir)/admin/Makefile.common cvs-clean\n";
++    $cvs_lines .= "\t\$(MAKE) -f \$(top_srcdir)/admin/Makefile.common cvs-clean\n";
+     appendLines($cvs_lines);
+ 
+     $cvs_lines  = "kde-rpo-clean:\n";
+@@ -383,15 +380,17 @@
+     appendLines($cvs_lines);
+     $target_adds{"clean"} .= "kde-rpo-clean ";
+ 
+-    my %target_dels = ("install-data-am" => "");
+-
+     # some strange people like to do a install-exec, and expect that also
+     # all modules are installed.  automake doesn't know this, so we need to move
+     # this here from install-data to install-exec.
+     if ($MakefileData =~ m/\nkde_module_LTLIBRARIES\s*=/) {
+-      $target_adds{"install-exec-am"} .= "install-kde_moduleLTLIBRARIES ";
+-      $target_dels{"install-data-am"} .= "install-kde_moduleLTLIBRARIES ";
+-
++      $target_adds{"install-exec-am"} .= "install-kde_moduleLTLIBRARIES";
++      my $lookup = 'install-data-am:\s*(.*)';
++      if ($MakefileData =~ /\n$lookup\n/) {
++        my $newdeps = $1;
++	$newdeps =~ s/\s*install-kde_moduleLTLIBRARIES\s*/ /g;
++	substituteLine($lookup, "install-data-am: " . $newdeps);
++      }
+     }
+ 
+     my $lines = "";
+@@ -399,14 +398,7 @@
+     foreach $add (keys %target_adds) {
+ 	my $lookup = quotemeta($add) . ':([^\n]*)';
+         if ($MakefileData =~ /\n$lookup\n/) {
+-	  my $newlines = $1;
+-	  my $oldlines = $lookup;
+-	  if (defined $target_dels{$add}) {
+-	    foreach $del (split(' ', $target_dels{$add})) {
+-	      $newlines =~ s/\s*$del\s*/ /g;
+-	    }
+-	  }
+-	  substituteLine($oldlines, "$add: " . $target_adds{$add} . $newlines);
++            substituteLine($lookup, "$add: " . $target_adds{$add} . $1);
+         } else {
+ 	  $lines .= "$add: " . $target_adds{$add} . "\n";
+         }
+@@ -459,16 +451,6 @@
+ 
+ #-----------------------------------------------------------------------------
+ 
+-# Beware: This procedure is not complete.  E.g. it also parses lines
+-# containing a '=' in rules (for instance setting shell vars).  For our
+-# usage this us enough, though.
+-sub read_variables ()
+-{
+-    while ($MakefileData =~ /\n\s*(\S+)\s*=([^\n]*)/g) {
+-        $varcontent{$1} = $2;
+-    }
+-}
+-
+ # Check to see whether we should process this make file.
+ # This is where we look for tags that we need to process.
+ # A small amount of initialising on the tags is also done here.
+@@ -512,9 +494,6 @@
+     $kdeopts{"noautodist"} = 0;
+     $kdeopts{"foreign-libtool"} = $foreign_libtool;
+     $kdeopts{"nofinal"} = !$use_final; # default
+-    $kdeopts{"doxygen"} = 0;
+-
+-    read_variables();
+ 
+     if ($MakefileData =~ /\nKDE_OPTIONS\s*=\s*([^\n]*)\n/) {
+         local @kde_options = split(/[\s\034]/, $1);
+@@ -564,13 +543,9 @@
+ 
+         my @objlist = split(/[\s\034]+/, $objs);
+         foreach $obj (@objlist) {
+-            if ($obj =~ /(\S*)\$\((\S+)\)/ ) {
+-		my $pre = $1;
+-                my $variable = $2;
+-		if ($pre eq '' && exists($varcontent{$variable})) {
+-		    my @addlist = split(/[\s\034]+/, $varcontent{$variable});
+-		    push(@objlist, @addlist);
+-                } elsif ($variable !~ 'OBJEXT') {
++            if ($obj =~ /\$\((\S+)\)/ ) {
++                my $variable = $1;
++                if ($variable !~ 'OBJEXT') {
+                     $ocv = 1;
+ 		}
+             }
+@@ -597,7 +572,7 @@
+         }
+         
+         my $realprogram = $program;
+-        $realprogram =~ s/_/\\./g; # unmask to regexp
++        $realprogram =~ s/_/./g; # unmask to regexp
+         if ($MakefileData =~ /\n($realprogram)(\$\(EXEEXT\)?)?:.*\$\($program\_OBJECTS\)/) {
+             $realname{$program} = $1;
+         } else {
+@@ -685,12 +660,16 @@
+             my $suffix = $source;
+             $suffix =~ s/^.*\.([^\.]+)$/$1/;
+             
+-            $sourcelist{$suffix} .= $source . " ";
++            if (defined($sourcelist{$suffix})) {
++                $sourcelist{$suffix} .= " " . $source;
++            } else {
++                $sourcelist{$suffix} .= $source;
++            }
+         }
+         
+         foreach $suffix (keys %sourcelist) {
+             
+-            # See if this file contains c++ code. (i.e., just check the file's suffix against c++ extensions)
++            # See if this file contains c++ code. (ie Just check the files suffix against
+             my $suffix_is_cxx = 0;
+             if($suffix =~ /($cppExt)$/) {
+               $cxxsuffix = $1;
+@@ -705,8 +684,8 @@
+             if ((@sourcelist == 1 && !$mocfiles_in) || $suffix_is_cxx != 1 ) {
+                 
+                 # we support IDL on our own
+-                if ($suffix eq "skel" || $suffix =~ /^stub/ || $suffix =~ /^signals/ 
+-                    || $suffix eq "h" || $suffix eq "ui" ) {
++                if ($suffix =~ /^skel$/ || $suffix =~ /^stub/ || $suffix =~ /^signals/ 
++                    || $suffix =~ /^h$/ || $suffix =~ /^ui$/ ) {
+                     next;
+                 }
+                 
+@@ -727,12 +706,14 @@
+             my $source_deps = "";
+             foreach $source (@sourcelist) {
+                 if (-f $source) {
+-                    $source_deps .= " \$(srcdir)/$source";
++                    $source_deps .= "\$(srcdir)/$source ";
+                 } else {
+-                    $source_deps .= " $source";
++                    $source_deps .= "$source ";
+                 }
+             }
+             
++            $handling = "$program.all_$suffix.$suffix: \$(srcdir)/Makefile.in " . $source_deps . " ";
++            
+             if ($mocfiles_in) {
+                 $handling .= $depedmocs{$program};
+                 foreach $mocfile (split(' ', $depedmocs{$program})) {
+@@ -743,11 +724,11 @@
+                 }
+             }
+ 
+-            $handling = "$program.all_$suffix.$suffix: \$(srcdir)/Makefile.in" . $source_deps . "\n";
++            $handling .= "\n";
+             $handling .= "\t\@echo 'creating $program.all_$suffix.$suffix ...'; \\\n";
+             $handling .= "\trm -f $program.all_$suffix.files $program.all_$suffix.final; \\\n";
+             $handling .= "\techo \"#define KDE_USE_FINAL 1\" >> $program.all_$suffix.final; \\\n";
+-            $handling .= "\tfor file in " . $sourcelist{$suffix} . "$mocsources; do \\\n";
++            $handling .= "\tfor file in " . $sourcelist{$suffix} . " $mocsources; do \\\n";
+             $handling .= "\t  echo \"#include \\\"\$\$file\\\"\" >> $program.all_$suffix.files; \\\n";
+             $handling .= "\t  test ! -f \$\(srcdir\)/\$\$file || egrep '^#pragma +implementation' \$\(srcdir\)/\$\$file >> $program.all_$suffix.final; \\\n";
+             $handling .= "\tdone; \\\n";
+@@ -757,13 +738,12 @@
+             appendLines($handling);
+ 
+             push(@final_names, "$program.all_$suffix.$suffix");
+-            my $finalObj = "$program.all_$suffix.";
++            $finalObjs{$program} .= "$program.all_$suffix.";
+             if ($program =~ /_la$/) {
+-                $finalObj .= "lo";
++                $finalObjs{$program} .= "lo ";
+             } else {
+-                $finalObj .= "o";
++                $finalObjs{$program} .= "o ";
+             }
+-	    $finalObjs{$program} .= $finalObj . " ";
+         }
+     }
+     
+@@ -1016,7 +996,7 @@
+             
+             if ($allidls !~ /$source\_kidl/) {
+                 
+-                $dep_lines .= "$source.kidl: $sourcedir$source.h \$(DCOP_DEPENDENCIES)\n";
++                $dep_lines .= "$source.kidl: $sourcedir$source.h \$(DCOPIDL_DEPENDENCIES)\n";
+                 $dep_lines .= "\t\$(DCOPIDL) $sourcedir$source.h > $source.kidl || ( rm -f $source.kidl ; /bin/false )\n";
+                 
+                 $allidls .= $source . "_kidl ";
+@@ -1513,9 +1493,9 @@
+     my %foundfiles = ();
+     opendir (THISDIR, ".");
+     foreach $entry (readdir(THISDIR)) {
+-        next if ($entry eq "CVS" || $entry =~ /^\./  || $entry eq "Makefile" || $entry =~ /~$/ || $entry =~ /^\#.*\#$/);
++        next if ($entry eq "CVS" || $entry =~ /^\./  || $entry =~ /^Makefile$$/ || $entry =~ /~$/ || $entry =~ /^\#.*\#$/);
+         next if (! -f $entry);
+-        next if ($entry =~ /\.moc/ || $entry =~ /\.moc.$cppExt$/ || $entry =~ /\.lo$/ || $entry =~ /\.la$/ || $entry =~ /\.o/);
++        next if ($entry =~ /\.moc/ || $entry =~ /\.lo$/ || $entry =~ /\.la$/ || $entry =~ /\.o/);
+         next if ($entry =~ /.+meta_unload.$cppExt$/ || $entry =~ /\.all_$cppExt\.$cppExt$/);
+         $foundfiles{$entry} = 1;
+     }
+@@ -1532,8 +1512,7 @@
+         }
+     }
+     my @files = ("Makefile", "config.cache", "config.log", "stamp-h",
+-                 "stamp-h1", "stamp-h1", "config.h", "Makefile", 
+-                 "config.status", "config.h", "libtool", "core" );
++                 "stamp-h1", "stamp-h1", "config.h", "Makefile", "config.status", "config.h", "libtool");
+     foreach $file (@files) {
+         $foundfiles{$file} = 0 if (defined $foundfiles{$file});
+     }
+@@ -1559,6 +1538,16 @@
+ # Errors are logged in the global $errorflags
+ sub tag_DOCFILES ()
+ {
++#    if ($MakefileData =~ /\nSUBDIRS\s*=/) { # subdirs
++#      $MakefileData =~ /\n(.*-recursive:\s*)\n/;
++#      my $orig_rules = $1;
++#      my $rules = $orig_rules;
++#      $rules =~ s/:\s*$//;
++#      substituteLine($orig_rules, "$rules docs-recursive:");
++#      appendLines("docs: docs-recursive docs-am\n");
++#    } else {
++#      appendLines("docs: docs-am\n");
++#    }
+     $target_adds{"all"} .= "docs-am ";
+ 
+     my $lookup = 'KDE_DOCS\s*=\s*([^\n]*)';
+@@ -1613,7 +1602,7 @@
+       $lookup = '\nindex.cache.bz2:';
+       if ($MakefileData !~ /\n($lookup)/) {
+          $lines .= "index.cache.bz2: \$(srcdir)/index.docbook \$(KDE_XSL_STYLESHEET) $files\n";
+-         $lines .= "\t\@if test -n \"\$(MEINPROC)\"; then echo \$(MEINPROC) --check --cache index.cache.bz2 \$(srcdir)/index.docbook; \$(MEINPROC) --check --cache index.cache.bz2 \$(srcdir)/index.docbook; fi\n";
++         $lines .= "\t-\@if test -n \"\$(MEINPROC)\"; then echo \$(MEINPROC) --check --cache index.cache.bz2 \$(srcdir)/index.docbook; \$(MEINPROC) --check --cache index.cache.bz2 \$(srcdir)/index.docbook; fi\n";
+          $lines .= "\n";
+       }
+ 
+@@ -1643,7 +1632,7 @@
+       appendLines("docs-am: $files\n");
+     }
+ 
+-    $target_adds{"install-data-am"} .= "install-nls ";
++    $target_adds{"install-data-am"} .= "install-nls";
+     $target_adds{"uninstall"} .= "uninstall-nls ";
+ 
+     $tmp = "install-nls:\n";
+@@ -1654,13 +1643,13 @@
+     $tmp .= "\tdone\n";
+     if ($appname eq 'common') {
+       $tmp .= "\t\@echo \"merging common and language specific dir\" ;\\\n";
+-      $tmp .= "\tif test ! -f \$(kde_htmldir)/en/common/kde-common.css; then echo 'no english docs found in \$(kde_htmldir)/en/common/'; exit 1; fi \n";
++      $tmp .= "\tif test ! -e \$(kde_htmldir)/en/common/kde-common.css; then echo 'no english docs found in \$(kde_htmldir)/en/common/'; exit 1; fi \n";
+       $tmp .= "\t\@com_files=`cd \$(kde_htmldir)/en/common && echo *` ;\\\n";
+       $tmp .= "\tcd \$(DESTDIR)\$(kde_htmldir)/$kdelang/common ;\\\n";
+       $tmp .= "\tif test -n \"\$\$com_files\"; then for p in \$\$com_files ; do \\\n";
+       $tmp .= "\t  case \" $files \" in \\\n";
+       $tmp .= "\t    *\" \$\$p \"*) ;; \\\n";
+-      $tmp .= "\t    *) test ! -f \$\$p && echo \$(LN_S) ../../en/common/\$\$p \$(DESTDIR)\$(kde_htmldir)/$kdelang/common/\$\$p && \$(LN_S) ../../en/common/\$\$p \$\$p ;; \\\n";
++      $tmp .= "\t    *) test ! -e \$\$p && echo \$(LN_S) ../../en/common/\$\$p \$(DESTDIR)\$(kde_htmldir)/$kdelang/common/\$\$p && \$(LN_S) ../../en/common/\$\$p \$\$p ;; \\\n";
+       $tmp .= "\t  esac ; \\\n";
+       $tmp .= "\tdone ; fi ; true\n";
+     }
+@@ -1687,156 +1676,6 @@
+     return 1;
+ }
+ 
+-sub tag_doxygen_docu()
+-{
+-  my $lines;
+-
+-
+-
+-  my $added_apidox = 0;
+-
+-  if ($kdeopts{"doxygen"}) {
+-    $added_apidox = 1;
+-    $lines  = "apidox-am-yes:\n";
+-    $lines .= "\t\@echo \"*** Creating API documentation main page\"; \\\n";
+-    $lines .= "\tcp \$(top_srcdir)/Doxyfile.global Doxyfile; \\\n";
+-    $lines .= "\techo \"PROJECT_NAME           = \$(DOXYGEN_PROJECT_NAME)\" >> Doxyfile ; \\\n";
+-    $lines .= "\techo \"PROJECT_NUMBER         = \$(DOXYGEN_PROJECT_NUMBER)\" >> Doxyfile ; \\\n";
+-    $lines .= "\techo \"INPUT                  = \$(top_srcdir)\" >> Doxyfile ; \\\n";
+-    $lines .= "\techo \"OUTPUT_DIRECTORY       = \$(top_builddir)/apidocs\" >> Doxyfile ; \\\n";
+-    $lines .= "\techo \"FILE_PATTERNS          = *.dox\" >> Doxyfile ; \\\n";
+-    $lines .= "\techo \"RECURSIVE              = NO\" >> Doxyfile ; \\\n";
+-    $lines .= "\techo \"SOURCE_BROWSER         = NO\" >> Doxyfile ; \\\n";
+-    $lines .= "\techo \"ALPHABETICAL_INDEX     = NO\" >> Doxyfile ; \\\n";
+-    $lines .= "\techo \"HTML_OUTPUT            = .\" >> Doxyfile ; \\\n";
+-    $lines .= "\techo \"HTML_HEADER            = apidocs/common/mainheader.html\" >> Doxyfile ; \\\n";
+-    $lines .= "\techo \"HTML_FOOTER            = apidocs/common/mainfooter.html\" >> Doxyfile ; \\\n";
+-    $lines .= "\techo \"HTML_STYLESHEET        = apidocs/common/doxygen.css\" >> Doxyfile ; \\\n";
+-    $lines .= "\techo \"GENERATE_LATEX         = NO\" >> Doxyfile ; \\\n";
+-    $lines .= "\techo \"GENERATE_RTF           = NO\" >> Doxyfile ; \\\n";
+-    $lines .= "\techo \"GENERATE_MAN           = NO\" >> Doxyfile ; \\\n";
+-    $lines .= "\techo \"GENERATE_XML           = NO\" >> Doxyfile ; \\\n";
+-    $lines .= "\techo \"GENERATE_AUTOGEN_DEF   = NO\" >> Doxyfile ; \\\n";
+-    $lines .= "\techo \"ENABLE_PREPROCESSING   = NO\" >> Doxyfile ; \\\n";
+-    $lines .= "\techo \"CLASS_DIAGRAMS         = NO\" >> Doxyfile ; \\\n";
+-    $lines .= "\techo \"HAVE_DOT               = NO\" >> Doxyfile ; \\\n";
+-    $lines .= "\t\$(mkinstalldirs) \$(top_builddir)/apidocs ; \\\n";
+-    $lines .= "\trm -f \$(top_builddir)/apidocs/common ; \\\n";
+-    $lines .= "\tcommon_dir=`cd \$(top_srcdir)/doc/common && pwd` ;\\\n";
+-    $lines .= "\t\$(LN_S) \$\$common_dir \$(top_builddir)/apidocs/common; \\\n";
+-    $lines .= "\tdoxygen Doxyfile; \\\n";
+-    $lines .= "\trm -f Doxyfile; \\\n";
+-    $lines .= "\techo \"*** Creating a tag file for the Qt library:\"; \\\n";
+-    $lines .= "\t\$(mkinstalldirs) \$(top_builddir)/apidocs/qt; \\\n";
+-    $lines .= "\tdoxytag -t \$(top_builddir)/apidocs/qt/qt.tag \$(QTDOCDIR)\n";
+-  } else {
+-    if ($MakefileData =~ /\nDOXYGEN_REFERENCES\s*=/) {
+-      $added_apidox = 1;
+-      $lines = "## generate API documentation with doxygen\n";
+-      $lines .= "apidox-am-yes:\n";
+-      $lines .= "\t\@if test \"\$(subdir)\" != \".\"; then \\\n";
+-      $lines .= "\t\t\$(mkinstalldirs) \$(top_builddir)/apidocs/\$(subdir) ;\\\n";
+-      $lines .= "\t\tif test ! -d \$(top_builddir)/apidocs/common; then \\\n";
+-      $lines .= "\t\t\t\$(LN_S) \$(top_srcdir)/doc/common \$(top_builddir)/apidocs/common; \\\n";
+-      $lines .= "\t\tfi; \\\n";
+-      $lines .= "\t\tcp \$(top_srcdir)/Doxyfile.global Doxyfile; \\\n";
+-      $lines .= "\t\techo \"PROJECT_NAME           = \\\"\$(subdir) Library\\\"\" >> Doxyfile; \\\n";
+-      $lines .= "\t\techo \"INPUT                  = \$(srcdir)\" >> Doxyfile; \\\n";
+-      $lines .= "\t\techo \"OUTPUT_DIRECTORY       = \$(top_builddir)/apidocs\" >> Doxyfile; \\\n";
+-      $lines .= "\t\techo \"HTML_OUTPUT            = \$(subdir)/html\" >> Doxyfile; \\\n";
+-      $lines .= "\t\techo \"LATEX_OUTPUT           = \$(subdir)/latex\" >> Doxyfile; \\\n";
+-      $lines .= "\t\techo \"RTF_OUTPUT             = \$(subdir)/rtf\" >> Doxyfile; \\\n";
+-      $lines .= "\t\techo \"MAN_OUTPUT             = \$(subdir)/man\" >> Doxyfile; \\\n";
+-      $lines .= "\t\tif test -n \"\$(DOXYGEN_EXCLUDE)\"; then \\\n";
+-      $lines .= "\t\t\techo \"EXCLUDE_PATTERNS      += \$(DOXYGEN_EXCLUDE)\" >> Doxyfile; \\\n";
+-      $lines .= "\t\tfi ;\\\n";
+-      $lines .= "\t\techo \"TAGFILES = \\\\\" >> Doxyfile; \\\n";
+-      $lines .= "\t\ttags='\$(DOXYGEN_REFERENCES)'; for tag in \$\$tags; do \\\n";
+-      $lines .= "\t\t\techo \"\$(top_builddir)/apidocs/\$\$tag/\$\$tag.tag=../../\$\$tag/html \\\\\" >> Doxyfile ;\\\n";
+-      $lines .= "\t\tdone ;\\\n";
+-      $lines .= "\t\techo \$(top_builddir)/apidocs/qt/qt.tag=\$(QTDOCDIR) >> Doxyfile ;\\\n";
+-      $lines .= "\t\techo \"GENERATE_TAGFILE       = \$(top_builddir)/apidocs/\$(subdir)/\$(subdir).tag\" >> Doxyfile ;\\\n";
+-      $lines .= "\t\techo \"IGNORE_PREFIX          = K\" >> Doxyfile ;\\\n";
+-      $lines .= "\t\techo \"HAVE_DOT = \$(KDE_HAVE_DOT)\" >> Doxyfile ;\\\n";
+-      $lines .= "\t\t\$(DOXYGEN) Doxyfile; \\\n";
+-      $lines .= "\t\trm -f Doxyfile ;\\\n";
+-      $lines .= "\tfi\n";
+-    }
+-  }
+-
+-  if ($added_apidox) {
+-    appendLines ($lines);
+-    $lines  = "apidox-am-no:\n";
+-    $lines .= "apidox-am: apidox-am-\@KDE_HAS_DOXYGEN\@\n";
+-
+-    appendLines ($lines);
+-
+-    $lines = "## install API documentation\n";
+-    $lines .= "install-apidox:\n";
+-    $lines .= "\t\@if test \"\$(subdir)\" != \".\"; then \\\n";
+-    $lines .= "\t\t\$(mkinstalldirs) \$(DESTDIR)\$(kde_htmldir)/en/\$(PACKAGE)-apidocs/\$(subdir)/html ; \\\n";
+-    $lines .= "\t\tif test -f \$(top_builddir)/apidocs/\$(subdir)/\$(subdir).tag; then \\\n";
+-    $lines .= "\t\techo \$(INSTALL_DATA) \$(top_builddir)/apidocs/\$(subdir)/\$(subdir).tag \$(DESTDIR)\$(kde_htmldir)/en/\$(PACKAGE)-apidocs/\$(subdir); \\\n";
+-    $lines .= "\t\t\$(INSTALL_DATA) \$(top_builddir)/apidocs/\$(subdir)/\$(subdir).tag \$(DESTDIR)\$(kde_htmldir)/en/\$(PACKAGE)-apidocs/\$(subdir); \\\n";
+-    $lines .= "\t\tfi; \\\n";
+-    $lines .= "\t\tif test -d \$(top_builddir)/apidocs/\$(subdir)/html; then \\\n";
+-    $lines .= "\t\t\tlist=`ls \$(top_builddir)/apidocs/\$(subdir)/html`; \\\n";
+-    $lines .= "\t\t\tfor file in \$\$list; do \\\n";
+-    $lines .= "\t\t\t\techo \$(INSTALL_DATA) \$(top_builddir)/apidocs/\$(subdir)/html/\$\$file \$(DESTDIR)\$(kde_htmldir)/en/\$(PACKAGE)-apidocs/\$(subdir)/html; \\\n";
+-    $lines .= "\t\t\t\t\t\$(INSTALL_DATA) \$(top_builddir)/apidocs/\$(subdir)/html/\$\$file \$(DESTDIR)\$(kde_htmldir)/en/\$(PACKAGE)-apidocs/\$(subdir)/html; \\\n";
+-    $lines .= "\t\tdone; \\\n";
+-    $lines .= "\t\tfi; \\\n";
+-    $lines .= "\t\trm -f \$(DESTDIR)\$(kde_htmldir)/en/\$(PACKAGE)-apidocs/common; \\\n";
+-    $lines .= "\t\t\$(LN_S) \$(kde_libs_htmldir)/en/common \$(DESTDIR)\$(kde_htmldir)/en/\$(PACKAGE)-apidocs/common; \\\n";
+-    $lines .= "\telse\\\n";
+-    $lines .= "\t\t\$(mkinstalldirs) \$(DESTDIR)\$(kde_htmldir)/en/\$(PACKAGE)-apidocs ;\\\n";
+-    $lines .= "\t\tlist=`cd \$(top_builddir)/apidocs && ls -1d`; \\\n";
+-    $lines .= "\t\tfor file in \$\$list; do \\\n";
+-    $lines .= "\t\t\tif test -f \$(top_builddir)/apidocs/\$\$file; then \\\n";
+-    $lines .= "\t\t\t\techo \$(INSTALL_DATA) \$(top_builddir)/apidocs/\$\$file \$(DESTDIR)\$(kde_htmldir)/en/\$(PACKAGE)-apidocs; \\\n";
+-    $lines .= "\t\t\t\t\$(INSTALL_DATA) \$(top_builddir)/apidocs/\$\$file \$(DESTDIR)\$(kde_htmldir)/en/\$(PACKAGE)-apidocs; \\\n";
+-    $lines .= "\t\t\tfi; \\\n";
+-    $lines .= "\t\tdone ;\\\n";
+-    $lines .= "\tfi\n";
+-
+-    appendLines($lines);
+-    $target_adds{"install-data-am"} .= "install-apidox ";
+-
+-    $lines = "## uninstall API documentation\n";
+-    $lines .= "uninstall-apidox:\n";
+-    $lines .= "\t\@if test \"\$(subdir)\" != \".\"; then \\\n";
+-    $lines .= "\t\tif test -d \$(DESTDIR)\$(kde_htmldir)/en/\$(PACKAGE)-apidocs/\$(subdir); then \\\n";
+-    $lines .= "\t\t\trm -rfv \$(DESTDIR)\$(kde_htmldir)/en/\$(PACKAGE)-apidocs/\$(subdir); \\\n";
+-    $lines .= "\t\tfi\\\n";
+-    $lines .= "\telse\\\n";
+-    $lines .= "\t\tif test -d \$(DESTDIR)\$(kde_htmldir)/en/\$(PACKAGE)-apidocs; then \\\n";
+-    $lines .= "\t\t\trm -rfv \$(DESTDIR)\$(kde_htmldir)/en/\$(PACKAGE)-apidocs; \\\n";
+-    $lines .= "\t\tfi\\\n";
+-    $lines .= "\tfi\n";
+-
+-    appendLines ($lines);
+-    $target_adds{"uninstall-am"} .= "uninstall-apidox ";
+-
+-  } else {
+-    $lines = "apidox-am:\n";
+-    appendLines ($lines);
+-  }
+-
+-  if ($MakefileData =~ /\nSUBDIRS\s*=/) { # subdirs
+-    $lines  = "apidox: apidox-am\n";
+-    $lines .= "\t\@set fnord \$(MAKEFLAGS); amf=\$\$2; \\\n";
+-    $lines .= "\tlist='\$(SUBDIRS)'; for subdir in \$\$list; do \\\n";
+-    $lines .= "\t\techo \"Making apidox in \$\$subdir\"; \\\n";
+-    $lines .= "\t\tif test \"\$\$subdir\" != \".\"; then \\\n";
+-    $lines .= "\t\t\t(cd \$\$subdir && \$(MAKE) \$(AM_MAKEFLAGS) apidox) || exit 1; \\\n";
+-    $lines .= "\t\tfi ;\\\n";
+-    $lines .= "\tdone\n";
+-    appendLines($lines);
+-  } else {
+-    appendLines("apidox: apidox-am\n");
+-  }
+-}
+-
+ #-----------------------------------------------------------------------------
+ # Find headers in any of the source directories specified previously, that
+ # are candidates for "moc-ing".
+@@ -1989,9 +1828,7 @@
+         $dir =~ s#^\.#\$(srcdir)#;
+         if (defined ($cppFile))
+         {
+-	  $cppFile =~ s,\.[^.]*$,,;
+-	  $target_adds{"$cppFile.o"} .= "$mocFile.moc ";
+-	  $target_adds{"$cppFile.lo"} .= "$mocFile.moc ";
++            $target_adds{"\$(srcdir)/$cppFile"} .= "$mocFile.moc ";
+ 	  appendLines ("$mocFile.moc: $dir/$hFile\n\t\$(MOC) $dir/$hFile -o $mocFile.moc\n");
+ 	  $cleanMoc .= " $mocFile.moc";
+         }
+@@ -2069,7 +1906,7 @@
+ 	    $realObjs{$program} .= " \034" . $objfile . " ";
+ 	    $sources{$program} .= " $srcfile";
+             $sources_changed{$program} = 1;
+-            $dep_files .= " \$(DEPDIR)/$sourcename.P" if($dep_files !~/$sourcename\.P/);
++            $dep_files .= " \$(DEPDIR)/$sourcename.P" if($dep_files !~/$sourcename.P/);
+ 	    appendLines ($appl);
+ 	}
+ 	print STDOUT "\n" if $verbose;
+diff -uNbr keramik/admin/config.pl keramik-new/admin/config.pl
+--- keramik/admin/config.pl	Fri May 24 07:06:24 2002
++++ keramik-new/admin/config.pl	Tue Jun  4 21:25:17 2002
+@@ -179,11 +179,14 @@
+ }
+ 
+ sub patch_file {
+-    my ($outf, $infiles, $identline) = @_;
++    my ($outf, $infiles, $firstline) = @_;
+     my $filedata;
+     my @infiles=split(' ', $infiles);
+     my $i=0;
+ 
++    if ($firstline) {
++	$filedata = $firstline;
++    }
+     foreach my $name (@infiles) {
+ 	if (open(CF, "< $name")) {
+ 	    while (<CF>) {
+@@ -193,10 +196,6 @@
+ 	} else {
+ 	    print STDERR "can't open $name: $!"."\n";
+ 	}
+-    }
+-    if ($identline) {
+-	# Put the ident in the second line.  For shitty automake 1.6x.
+-	$filedata =~ s%\n%\n$identline%;
+     }
+ 
+     $filedata =~ s%\@configure_input\@%$configure_input%g;
+diff -uNbr keramik/admin/libtool.m4.in keramik-new/admin/libtool.m4.in
+--- keramik/admin/libtool.m4.in	Thu May 16 14:16:13 2002
++++ keramik-new/admin/libtool.m4.in	Tue Jun  4 21:25:17 2002
+@@ -65,7 +65,7 @@
+ LIBTOOL_DEPS="$ac_aux_dir/ltmain.sh"
+ 
+ # Always use our own libtool.
+-LIBTOOL='$(SHELL) $(top_builddir)/libtool --silent'
++LIBTOOL='$(SHELL) $(top_builddir)/libtool'
+ AC_SUBST(LIBTOOL)dnl
+ 
+ # Prevent multiple expansion
+@@ -593,6 +593,12 @@
+     lt_cv_sys_max_cmd_len=-1;
+     ;;
+ 
++  darwin*)
++    # this should be enough... the length test freaks out some versions
++    # of OSX's `expr`
++    lt_cv_sys_max_cmd_len=16384;
++    ;;
++
+   *)
+     # If test is not a shell built-in, we'll probably end up computing a
+     # maximum length that is only half of the actual maximum length, but
+@@ -1876,16 +1882,7 @@
+   ;;
+ 
+ darwin* | rhapsody*)
+-  lt_cv_deplibs_check_method='file_magic Mach-O dynamically linked shared library'
+-  lt_cv_file_magic_cmd='/usr/bin/file -L'
+-  case "$host_os" in
+-  rhapsody* | darwin1.[[012]])
+-    lt_cv_file_magic_test_file=`/System/Library/Frameworks/System.framework/System`
+-    ;;
+-  *) # Darwin 1.3 on
+-    lt_cv_file_magic_test_file='/usr/lib/libSystem.dylib'
+-    ;;
+-  esac
++  lt_cv_deplibs_check_method='pass_all'
+   ;;
+ 
+ freebsd*)
+@@ -2535,6 +2532,11 @@
+ 	;;
+     esac
+     ;;
++  darwin*)
++    shared_flag='-dynamiclib'
++    _LT_AC_TAGVAR(archive_cmds, $1)='$CC -r -keep_private_externs -nostdlib -o ${lib}-master.o $libobjs && $CC -dynamiclib -install_name $rpath/$soname $predep_objects ${lib}-master.o $deplibs $postdep_objects $compiler_flags -o $lib'
++    output_verbose_link_cmd='$CC -dynamiclib $CFLAGS -v conftest.$objext 2>&1 | egrep "\-L"'
++    ;;
+   dgux*)
+     case $cc_basename in
+       ec++)
+@@ -4725,7 +4727,9 @@
+ 	_LT_AC_TAGVAR(allow_undefined_flag, $1)='-undefined suppress'
+ 	;;
+       *) # Darwin 1.3 on
+-	_LT_AC_TAGVAR(allow_undefined_flag, $1)='-flat_namespace -undefined suppress'
++	#_LT_AC_TAGVAR(allow_undefined_flag, $1)='-flat_namespace -undefined suppress'
++        # testing with twolevel namespaces
++	_LT_AC_TAGVAR(allow_undefined_flag, $1)=unsupported
+ 	;;
+       esac
+ 
+@@ -4733,7 +4737,7 @@
+       #        cross-compilation, but unfortunately the echo tests do not
+       #        yet detect zsh echo's removal of \ escapes.  Also zsh mangles
+       #	       `"' quotes if we put them in here... so don't!
+-      _LT_AC_TAGVAR(archive_cmds, $1)='$CC $(test .$module = .yes && echo -bundle || echo -dynamiclib) $allow_undefined_flag -o $lib $libobjs $deplibs$linker_flags -install_name $rpath/$soname $verstring'
++      _LT_AC_TAGVAR(archive_cmds, $1)='$CC -r -keep_private_externs -nostdlib -o ${lib}-master.o $libobjs && $CC $(test .$module = .yes && echo -bundle || echo -dynamiclib) -install_name $rpath/$soname $allow_undefined_flag -o $lib ${lib}-master.o $deplibs $linker_flags $verstring'
+       # We need to add '_' to the symbols in $export_symbols first
+       #_LT_AC_TAGVAR(archive_expsym_cmds, $1)="$_LT_AC_TAGVAR(archive_cmds, $1)"' && strip -s $export_symbols'
+       _LT_AC_TAGVAR(hardcode_direct, $1)=yes
+diff -uNbr keramik/admin/ltmain.sh keramik-new/admin/ltmain.sh
+--- keramik/admin/ltmain.sh	Thu May  9 14:37:37 2002
++++ keramik-new/admin/ltmain.sh	Tue Jun  4 21:25:18 2002
+@@ -3324,7 +3324,18 @@
+ 	if test -n "$export_symbols" && test -n "$archive_expsym_cmds"; then
+ 	  eval cmds=\"$archive_expsym_cmds\"
+ 	else
++ 	  save_deplibs="$deplibs"
++ 	  for conv in $convenience; do
++            tmp_deplibs=
++            for test_deplib in $deplibs; do
++              if test "$test_deplib" != "$conv"; then
++                tmp_deplibs="$tmp_deplibs $test_deplib"
++              fi
++            done
++            deplibs="$tmp_deplibs"
++ 	  done
+ 	  eval cmds=\"$archive_cmds\"
++ 	  deplibs="$save_deplibs"
+ 	fi
+ 
+ 	if len=`expr "X$cmds" : ".*"` &&
+@@ -3635,6 +3646,14 @@
+ 	compile_deplibs=`$echo "X $compile_deplibs" | $Xsed -e 's/ -lc / -framework System /'`
+ 	finalize_deplibs=`$echo "X $finalize_deplibs" | $Xsed -e 's/ -lc / -framework System /'`
+ 	;;
++      esac
++
++      case $host in
++      *darwin*)
++        # Don't allow lazy linking, it breaks C++ global constructors
++        compile_command="$compile_command ${wl}-bind_at_load"
++        finalize_command="$finalize_command ${wl}-bind_at_load"
++        ;;
+       esac
+ 
+       compile_command="$compile_command $compile_deplibs"
+diff -uNbr keramik/admin/missing keramik-new/admin/missing
+--- keramik/admin/missing	Mon May 27 12:55:11 2002
++++ keramik-new/admin/missing	Tue Jun  4 21:25:18 2002
+@@ -28,6 +28,8 @@
+   exit 1
+ fi
+ 
++run=:
++
+ # In the cases where this matters, `missing' is being run in the
+ # srcdir already.
+ if test -f configure.ac; then
+@@ -41,28 +43,7 @@
+   # Try to run requested program, and just exit if it succeeds.
+   run=
+   shift
+-  exec="$@"
+-
+-  # Suck in the AUTOCONF detection code.
+-  admindir=`echo "$0" | sed 's%[\\/][^\\/][^\\/]*$%%'`
+-  test "x$admindir" = "x$0" && admindir=.  
+-  . $admindir/detect-autoconf.sh
+-
+-  case "$1" in
+-  aclocal)
+-    exec="`echo $exec|sed -e \"s^aclocal^$ACLOCAL^\"`"
+-    ;;
+-  autoheader)
+-    exec="`echo $exec|sed -e \"s^autoheader^$AUTOHEADER^\"`"
+-    ;; 
+-  autoconf)
+-    exec="`echo $exec|sed -e \"s^autoconf^$AUTOCONF^\"`"
+-    ;;
+-  automake)
+-    exec="`echo $exec|sed -e \"s^automake^$AUTOMAKE^\"`"
+-    ;;
+-  esac
+-  $exec && exit 0
++  "$@" && exit 0
+   ;;
+ esac
+ 
+@@ -106,7 +87,7 @@
+     exit 1
+     ;;
+ 
+-  aclocal)
++  aclocal*)
+     echo 1>&2 "\
+ WARNING: \`$1' is missing on your system.  You should only need it if
+          you modified \`acinclude.m4' or \`${configure_ac}'.  You might want
+@@ -143,7 +124,7 @@
+     touch $touch_files
+     ;;
+ 
+-  automake)
++  automake*)
+     echo 1>&2 "\
+ WARNING: \`$1' is missing on your system.  You should only need it if
+          you modified \`Makefile.am', \`acinclude.m4' or \`${configure_ac}'.
+diff -uNbr keramik/kstyles/keramik/Makefile.am keramik-new/kstyles/keramik/Makefile.am
+--- keramik/kstyles/keramik/Makefile.am	Wed May 22 18:10:34 2002
++++ keramik-new/kstyles/keramik/Makefile.am	Tue Jun  4 21:39:38 2002
+@@ -7,7 +7,7 @@
+ noinst_HEADERS = keramik.h pixmaploader.h
+ kde_style_LTLIBRARIES = keramik.la
+ keramik_la_LDFLAGS = $(all_libraries) $(KDE_PLUGIN) -module
+-keramik_la_LIBADD = ../../kdefx/libkdefx.la
++keramik_la_LIBADD = @PREFIX@/lib/libkdefx.la
+ keramik_la_SOURCES = keramik.cpp pixmaploader.cpp
+ keramik_la_METASOURCES = AUTO
+ 
+diff -uNbr keramik/kwin/Makefile.am keramik-new/kwin/Makefile.am
+--- keramik/kwin/Makefile.am	Wed May 29 12:15:57 2002
++++ keramik-new/kwin/Makefile.am	Tue Jun  4 21:25:21 2002
+@@ -9,7 +9,7 @@
+ kwin_la_SOURCES = workspace.cpp atoms.cpp  client.cpp main.cpp \
+ 	popupinfo.cpp tabbox.cpp options.cpp plugins.cpp events.cpp KWinInterface.skel \
+ 	killwindow.cpp kwinbutton.cpp
+-kwin_la_LIBADD = $(LIB_KDEUI) $(LIBXINERAMA)
++kwin_la_LIBADD = $(LIB_KDEUI) $(LIBXINERAMA) $(LIB_KDECORE) $(LIB_DCOP) $(LIB_QT)
+ kwin_la_LDFLAGS = $(all_libraries) -module -avoid-version
+ 
+ include_HEADERS = KWinInterface.h
+diff -uNbr keramik/kwin/clients/keramik/Makefile.am keramik-new/kwin/clients/keramik/Makefile.am
+--- keramik/kwin/clients/keramik/Makefile.am	Thu May 23 16:07:29 2002
++++ keramik-new/kwin/clients/keramik/Makefile.am	Tue Jun  4 21:38:48 2002
+@@ -7,7 +7,7 @@
+ kde_module_LTLIBRARIES    = kwin_keramik.la
+ 
+ kwin_keramik_la_SOURCES   = keramik.cpp
+-kwin_keramik_la_LIBADD    = ../../kwin.la
++kwin_keramik_la_LIBADD    = @PREFIX@/lib/kwin.la
+ kwin_keramik_la_LDFLAGS   = $(all_libraries) $(KDE_PLUGIN) -module
+ 
+ METASOURCES               = AUTO

@@ -1,0 +1,44 @@
+Package: kio-fish
+Version: 1.1.2
+Revision: 2
+Replaces: %n-shlibs
+Depends: kdelibs3 (>= 3.0.1-1) | kdelibs3-ssl (>= 3.0.1-1), kdebase3 (>= 3.0.1-1) | kdebase3-ssl (>= 3.0.1-1), dlcompat, libpng-shlibs, qt3-shlibs
+BuildDepends: kdelibs3-dev (>= 3.0.1-1) | kdelibs3-ssl-dev (>= 3.0.1-1), kdebase3-dev (>= 3.0.1-1) | kdebase3-ssl-dev (>= 3.0.1-1), fink (>= 0.9.12), automake15, autoconf25, libtool14, dlcompat, libpng, qt3
+Maintainer: Benjamin Reed <ranger@befunk.com>
+Source: mirror:custom:kio_fish-%v.tar.bz2
+CustomMirror: <<
+  nam-US: ftp://ftp.kde.com/Networking_Internet/Remote_Access/kio_fish/
+  eur-DE: http://ich.bin.kein.hoschi.de/fish/
+<<
+SourceDirectory: kio_fish-%v
+PatchScript: sed 's|@PREFIX@|%p|g' <%a/%f.patch | patch -p1
+NoSetCPPFLAGS: true
+ConfigureParams: --prefix=%p --with-qt-dir=%p --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --mandir=%i/share/man --with-xinerama --enable-final $KDEOPTS
+CompileScript: <<
+ (export KDEDIR=%p; sh configure %c; make)
+<<
+InstallScript: <<
+ make install DESTDIR=%d
+<<
+Description: A KIO module for remote SSH access
+DescDetail: <<
+kio_fish is a kioslave for KDE 2/3 that lets you view and
+manipulate your remote files using just a simple shell
+account and some standard unix commands on the remote
+machine.  You get full filesystem access without setting
+up a server - no NFS, Samba, ... needed.
+
+Usage is really simple: open up a konqueror window (or
+use the Alt-F2 dialog) and type
+'fish://user@remote.machi.ne'.  kio_fish will ask you for
+the password, if any is needed, and you will start out in
+your home directory.  Now you can do everything you do on
+your local hard disk.
+<<
+DescPort: <<
+NOTE: KDE packages do *not* have an -shlibs because of KDE's use of  
+libltdl!  The .la's *must* be used in conjunction with the dynamic
+libraries, and they are unversioned filenames, so multiple -shlibs would
+conflict.
+<<
+License: GPL
