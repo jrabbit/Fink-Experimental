@@ -1,0 +1,129 @@
+diff -Naur -X /sw/fink/xml/diff_exclude.txt freej-0.7/src/blitter.cpp freej-0.7-patched/src/blitter.cpp
+--- freej-0.7/src/blitter.cpp	2004-09-19 05:13:40.000000000 +0200
++++ freej-0.7-patched/src/blitter.cpp	2004-10-04 11:42:38.000000000 +0200
+@@ -131,14 +131,6 @@
+ 
+ /// Linear non-transparent blits
+ 
+-BLIT memcpy_blit(void *src, void *dst, int bytes, void *value) {
+-  memcpy(dst,src,bytes);
+-}
+-
+-BLIT accel_memcpy_blit(void *src, void *dst, int bytes, void *value) {
+-  jmemcpy(dst,src,bytes);
+-}
+-
+ BLIT schiffler_neg(void *src, void *dst, int bytes, void *value) {
+   SDL_imageFilterBitNegation((unsigned char*)src,(unsigned char*)dst,bytes);
+ }
+@@ -292,17 +284,13 @@
+ 
+   /* fill up linklist of blits */
+ 
+-  // default blit is MEMCPY
+-  b = new Blit(); sprintf(b->get_name(),"MEMCPY");
+-  sprintf(b->desc,"vanilla glibc memcpy");
+-  b->type = LINEAR_BLIT;
+-  b->fun = memcpy_blit; blitlist.append(b);
++  // default blit is SDLCPY
++  b = new Blit(); b->set_name("SDLCPY");
++  sprintf(b->desc,"RGB blit (SDL)");
++  b->type = SDL_BLIT;
++  b->sdl_fun = sdl_rgb; blitlist.append(b);
+   current_blit = b; b->sel(true);
+ 
+-  b = new Blit(); b->set_name("AMEMCPY");
+-  sprintf(b->desc,"cpu accelerated memcpy");
+-  b->type = LINEAR_BLIT;
+-  b->fun = accel_memcpy_blit; blitlist.append(b);
+ 
+   b = new Blit(); b->set_name("ADD");
+   sprintf(b->desc,"bytewise addition");
+@@ -420,11 +408,6 @@
+   b->fun = schiffler_binarize; blitlist.append(b);
+ 
+   // SDL blits
+-  b = new Blit(); b->set_name("SDLCPY");
+-  sprintf(b->desc,"RGB blit (SDL)");
+-  b->type = SDL_BLIT;
+-  b->sdl_fun = sdl_rgb; blitlist.append(b);
+-
+   b = new Blit(); b->set_name("ALPHA");
+   sprintf(b->desc,"alpha blit (SDL)");
+   b->type = SDL_BLIT; b->has_value = true;
+diff -Naur -X /sw/fink/xml/diff_exclude.txt freej-0.7/src/freej.cpp freej-0.7-patched/src/freej.cpp
+--- freej-0.7/src/freej.cpp	2004-09-29 17:07:22.000000000 +0200
++++ freej-0.7-patched/src/freej.cpp	2004-10-04 11:42:38.000000000 +0200
+@@ -106,7 +106,8 @@
+ 	    char *tmp=strrchr(script,'#');
+ 	    int script_name_size=tmp-script;
+ 
+-	    script=strndup(layer_files,script_name_size);
++	    script=strdup(layer_files); //,script_name_size);
++	    script[script_name_size]='\0';
+ 	    if(!script)
+ 		return false;
+ 	}
+@@ -115,7 +116,7 @@
+ 	// open script
+ 	fd=fopen(script,"r");
+ 	if(!fd) {
+-	    error("Can't open script %d",script);
++	    error("Can't open script %s",script);
+ 	    return false;
+ 	}
+ 
+diff -Naur -X /sw/fink/xml/diff_exclude.txt freej-0.7/src/kbd_ctrl.cpp freej-0.7-patched/src/kbd_ctrl.cpp
+--- freej-0.7/src/kbd_ctrl.cpp	2004-09-29 17:07:22.000000000 +0200
++++ freej-0.7-patched/src/kbd_ctrl.cpp	2004-10-04 11:42:38.000000000 +0200
+@@ -288,7 +288,7 @@
+ 
+       /* BLIT ALGOS */
+     case SDLK_1: // RGB straight blit
+-      layer->blitter.set_blit("AMEMCPY");
++      layer->blitter.set_blit("SDLCPY");
+       break;
+     case SDLK_2: // RED CHAN
+       layer->blitter.set_blit("RED");
+diff -Naur -X /sw/fink/xml/diff_exclude.txt freej-0.7/src/sdl_screen.cpp freej-0.7-patched/src/sdl_screen.cpp
+--- freej-0.7/src/sdl_screen.cpp	2004-09-17 13:58:33.000000000 +0200
++++ freej-0.7-patched/src/sdl_screen.cpp	2004-10-04 11:42:38.000000000 +0200
+@@ -58,8 +58,10 @@
+ }
+ 
+ bool SdlScreen::init(int width, int height) {
++  char temp[120];
++ 
+   /* initialize SDL */
+-
++  
+   setenv("SDL_VIDEO_HWACCEL", "1", 1);  
+ 
+   if( SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) < 0 ) {
+@@ -75,11 +77,12 @@
+   bpp = 32;
+   size = w*h*(bpp>>3);
+   pitch = w*(bpp>>3);
++  SDL_VideoDriverName(temp,120);
+ 
+-  notice("SDL Viewport is %ix%i %ibpp",w,h,screen->format->BytesPerPixel<<3);
++  notice("SDL Viewport is %s %ix%i %ibpp",
++	 temp,w,h,screen->format->BytesPerPixel<<3);
+ 
+   /* be nice with the window manager */
+-  char temp[120];
+   sprintf(temp,"%s %s",PACKAGE,VERSION);
+   SDL_WM_SetCaption (temp, temp);
+ 
+diff -Naur -X /sw/fink/xml/diff_exclude.txt freej-0.7/src/xhacks_layer.cpp freej-0.7-patched/src/xhacks_layer.cpp
+--- freej-0.7/src/xhacks_layer.cpp	2004-06-15 12:48:48.000000000 +0200
++++ freej-0.7-patched/src/xhacks_layer.cpp	2004-10-04 11:58:39.000000000 +0200
+@@ -22,7 +22,7 @@
+ 
+ XHacksLayer::XHacksLayer() 
+   :Layer() {
+-  setname("XSS");
++  set_name("XSS");
+ }
+ 
+ XHacksLayer::~XHacksLayer() {
