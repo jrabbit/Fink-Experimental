@@ -5,6 +5,7 @@ BuildDepends: cm3-shlibs-src, cm3-dev
 Depends: cm3-shlibs, %N-shlibs
 Source: ftp://ftp3.freebsd.org/pub/FreeBSD/development/CVSup/sources/%n-snap-%v.tar.gz
 Source-MD5: 253e773eb9d213f9bf3ce12acef184e8
+Patch: %f.patch
 
 PatchScript: <<
 perl -i -pe 's|/usr/local/lib|%p/lib|g' suplib/src/m3makefile
@@ -17,6 +18,8 @@ perl -i -pe 's|/usr/local/etc|%p/etc|g' client/src/cvsup.cat
 perl -i -pe 's|/usr/local/etc|%p/etc|g' suplib/src/SupMisc.i3
 perl -i -pe 's|/usr/local/etc|%p/etc|g' doc/faq.faq
 perl -i -pe 's|/usr/local/etc|%p/etc|g' doc/faq_ru.faq
+perl -i -pe 's|^SUBDIR=.*$|SUBDIR= suptcp suplib server client cvpasswd doc|g' Makefile 
+perl -i -pe 's|AWK=.*awk|AWK= gawk|g' doc/Makefile
 mv Install Install.txt
 <<
 
@@ -38,16 +41,44 @@ install -d -m 755 %i/etc
 install -d -m 755 %i/share/man/man1
 install -d -m 755 %i/share/man/man8
 install -d -m 755 %i/share/man/man5
+install -d -m 755 %i/share/doc/cvsup
+install -d -m 755 %i/share/doc/cvsup/images
 make PREFIX=%i MANDIR=%i/share/man M3=cm3 M3FLAGS=-DNOGUI install
 install -c -p ./suplib/PPC_DARWIN/libsuplib*.dylib %i/lib/cm3
 install -c -p ./suptcp/PPC_DARWIN/libsuptcp*.dylib %i/lib/cm3
 install -c -p ./server/PPC_DARWIN/cvsupd.class.5 %i/share/man/man5
+install -c -p ./doc/faq.html %i/share/doc/cvsup
+install -c -p ./doc/faq_ru.html %i/share/doc/cvsup
+install -c -p ./doc/images/*.gif %i/share/doc/cvsup/images
+<<
+
+SplitOff: <<
+Package: cvsup-faq
+BuildDepends: gawk
+Files: <<
+ share/doc/cvsup/faq.html
+ share/doc/cvsup/faq_ru.html
+ share/doc/cvsup/images/cvsup128.gif
+ share/doc/cvsup/images/yelnew.gif
 <<
 
 
-SplitOff: <<
+ install -c -p ./doc/faq.html %i/share/doc/cvsup
+ install -c -p ./doc/faq_ru.html %i/share/doc/cvsup
+ install -c -p ./doc/images/*.gif %i/share/doc/cvsup/images
+
+Description: CVSup FAQ.
+DescDetail: <<
+The CVSup FAQ.
+Please consider reading this document very carefully it contains vital information. The FAQ also explains strategies on how you can build a sane CVSup Server.
+<<
+
+<<
+
+
+SplitOff2: <<
  Package: cvsup-daemon
- Depends: cm3-shlibs, %N-shlibs
+ Depends: cm3-shlibs, %N-shlibs cvsup-faq
  Files: <<
   sbin/cvsupd
   share/man/man8/cvsupd.8
@@ -70,7 +101,7 @@ See cvsup-client if you wish to access CVSup repositories.
 
 
 
-SplitOff2: <<
+SplitOff3: <<
 Package: cvsup-client
 Depends: cm3-shlibs, %N-shlibs
 Files: <<
@@ -87,7 +118,7 @@ This package supplies the CVSup client. If you are only interested in accessing 
 <<
 	     
 
-SplitOff3: <<
+SplitOff4: <<
  Package: cvsup-shlibs
   Files: <<
     lib/cm3/libsuptcp.5.2.dylib
