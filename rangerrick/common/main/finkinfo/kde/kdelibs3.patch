@@ -2,9 +2,9 @@ Index: kdecore/Makefile.am
 ===================================================================
 RCS file: /home/kde/kdelibs/kdecore/Makefile.am,v
 retrieving revision 1.343
-diff -u -r1.343 Makefile.am
+diff -u -u -r1.343 Makefile.am
 --- kdecore/Makefile.am	2 Oct 2003 14:42:21 -0000	1.343
-+++ kdecore/Makefile.am	11 Nov 2003 16:35:41 -0000
++++ kdecore/Makefile.am	20 Nov 2003 00:43:48 -0000
 @@ -24,7 +24,7 @@
  
  if include_SVGICONS
@@ -14,18 +14,93 @@ diff -u -r1.343 Makefile.am
  endif
  
  SUBDIRS = malloc $(SVGICONS) . kconfig_compiler tests
+Index: kdecore/kglobalsettings.cpp
+===================================================================
+RCS file: /home/kde/kdelibs/kdecore/kglobalsettings.cpp,v
+retrieving revision 1.76
+diff -u -u -r1.76 kglobalsettings.cpp
+--- kdecore/kglobalsettings.cpp	26 Oct 2003 20:42:15 -0000	1.76
++++ kdecore/kglobalsettings.cpp	20 Nov 2003 00:43:49 -0000
+@@ -466,7 +466,7 @@
+       s_desktopPath->append('/');
+ 
+     // Trash Path
+-    *s_trashPath = *s_desktopPath + i18n("Trash") + "/";
++    *s_trashPath = *s_desktopPath + "." + i18n("Trash") + "/";
+     *s_trashPath = config->readPathEntry( "Trash" , *s_trashPath);
+     if ( !s_trashPath->startsWith("/") )
+       s_trashPath->prepend( QDir::homeDirPath() + "/" );
+Index: kdecore/kgrantpty.c
+===================================================================
+RCS file: /home/kde/kdelibs/kdecore/kgrantpty.c,v
+retrieving revision 1.9
+diff -u -u -r1.9 kgrantpty.c
+--- kdecore/kgrantpty.c	20 Jan 2003 21:23:19 -0000	1.9
++++ kdecore/kgrantpty.c	20 Nov 2003 00:43:49 -0000
+@@ -88,28 +88,31 @@
+ 
+   /* get slave pty name from master pty file handle in PTY_FILENO *********/
+ 
++  /* Check that PTY_FILENO is a valid master pseudo terminal.  */
++  pty = ttyname(PTY_FILENO);          /* posix */
++
+ #if defined(BSD_PTY_HACK)
++  if (pty == NULL)
++  {
+   /*
+-    Hack to make kgrantpty work on FreeBSD (and possibly other systems).
+-    ttyname(3) does not work on FreeBSD with a file descriptor opened on a
+-    /dev/pty?? device.
++    Hack to make kgrantpty work on some versions of FreeBSD (and possibly
++    other systems): ttyname(3) does not work with a file descriptor opened
++    on a /dev/pty?? device.
+ 
+     Instead, this code looks through all the devices in /dev for a device
+     which has the same inode as our PTY_FILENO descriptor... if found, we
+     have the name for our pty.
+   */
+ 
+-  if (uid == 0) {
+-    p = getgrnam("wheel");
+-    gid = p ? p->gr_gid : getgid();
+-  }
+-
+-  pty = NULL;
+-  {
+     struct dirent *dirp;
+     DIR *dp;
+     struct stat dsb;
+ 
++    if (uid == 0) {
++      p = getgrnam("wheel");
++      gid = p ? p->gr_gid : getgid();
++    }
++
+     if (fstat(PTY_FILENO, &dsb) != -1) {
+       if ((dp = opendir(_PATH_DEV)) != NULL) {
+         while ((dirp = readdir(dp))) {
+@@ -130,9 +133,6 @@
+       }
+     }
+   }
+-#else
+-  /* Check that PTY_FILENO is a valid master pseudo terminal.  */
+-  pty = ttyname(PTY_FILENO);          /* posix */
+ #endif
+ 
+   if (pty == NULL)
 Index: kdecore/kpty.cpp
 ===================================================================
 RCS file: /home/kde/kdelibs/kdecore/kpty.cpp,v
 retrieving revision 1.9
-diff -u -r1.9 kpty.cpp
+diff -u -u -r1.9 kpty.cpp
 --- kdecore/kpty.cpp	29 Sep 2003 08:52:52 -0000	1.9
-+++ kdecore/kpty.cpp	11 Nov 2003 16:35:41 -0000
++++ kdecore/kpty.cpp	20 Nov 2003 00:43:49 -0000
 @@ -225,6 +225,7 @@
        struct group* p = getgrnam(TTY_GROUP);    /* posix */
        gid_t gid = p ? p->gr_gid : getgid ();    /* posix */
  
-+#if !defined(__APPLE__)
++#if !defined(__APPLE__) && !defined(BSD_PTY_HACK)
        if (fchown(d->slaveFd, (uid_t) -1, gid) < 0)
        {
           int e = errno;
@@ -41,27 +116,11 @@ Index: kdecore/svgicons/Makefile.am
 ===================================================================
 RCS file: /home/kde/kdelibs/kdecore/svgicons/Makefile.am,v
 retrieving revision 1.7
-diff -u -r1.7 Makefile.am
+diff -u -u -r1.7 Makefile.am
 --- kdecore/svgicons/Makefile.am	24 Aug 2003 09:58:48 -0000	1.7
-+++ kdecore/svgicons/Makefile.am	11 Nov 2003 16:35:42 -0000
++++ kdecore/svgicons/Makefile.am	20 Nov 2003 00:43:49 -0000
 @@ -4,3 +4,4 @@
  
  include_HEADERS = ksvgiconengine.h
  libkdesvgicons_la_SOURCES = ksvgiconengine.cpp ksvgiconpainter.cpp
 +libkdesvgicons_la_LIBADD = $(LIBZ)
-Index: kdecore/kglobalsettings.cpp
-===================================================================
-RCS file: /home/kde/kdelibs/kdecore/kglobalsettings.cpp,v
-retrieving revision 1.76
-diff -u -u -r1.76 kglobalsettings.cpp
---- kdecore/kglobalsettings.cpp	26 Oct 2003 20:42:15 -0000	1.76
-+++ kdecore/kglobalsettings.cpp	13 Nov 2003 01:18:13 -0000
-@@ -466,7 +466,7 @@
-       s_desktopPath->append('/');
- 
-     // Trash Path
--    *s_trashPath = *s_desktopPath + i18n("Trash") + "/";
-+    *s_trashPath = *s_desktopPath + "." + i18n("Trash") + "/";
-     *s_trashPath = config->readPathEntry( "Trash" , *s_trashPath);
-     if ( !s_trashPath->startsWith("/") )
-       s_trashPath->prepend( QDir::homeDirPath() + "/" );
