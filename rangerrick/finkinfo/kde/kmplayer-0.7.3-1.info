@@ -1,0 +1,43 @@
+Package: kmplayer
+Version: 0.7.3
+Revision: 1
+Depends: 
+BuildDepends: 
+Maintainer: Benjamin Reed <ranger@befunk.com>
+CustomMirror: <<
+  nam-US: http://ranger.befunk.com/fink
+  nam-US: http://astrange.ithinksw.net/ranger-fink
+  nam-CA: http://www.southofheaven.net/befunk
+<<
+Source: http://www.xs4all.nl/~jjvrieze/%n-%v.tar.bz2
+Source-MD5: 5533bbbd2df768f4445ba72567cf178e
+SourceDirectory: %n
+Source2: mirror:custom:kde-admindir-20030321.tar.bz2
+Source2-MD5: b5234e83cc6623816ee7ab2441c05a57
+Source2ExtractDir: %n
+
+PatchScript: sed 's|@PREFIX@|%p|g' <%a/%f.patch | patch -p1
+DocFiles: AUTHORS COPYING ChangeLog INSTALL README TODO
+SetLIBS: -L%p/lib
+SetCPPFLAGS: -no-cpp-precomp
+SetCFLAGS: -I%p/include -fno-common
+SetCXXFLAGS: -I%p/include -fno-common
+ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --enable-final --disable-dependency-tracking
+CompileScript: <<
+#!/bin/sh
+ export KDEDIR=%p
+ export QTDIR=%p
+ make -f Makefile.dist
+ ./configure %c
+ make
+<<
+InstallScript: <<
+ make install DESTDIR=%d
+ rm -rf %i/share/mimelnk/application/x-applix.desktop
+<<
+Description: KDE - media player (MPlayer wrapper)
+DescDetail: <<
+KMPlayer is an MPlayer wrapper for KDE, that is both a standalone
+media playing app and a KPart (for embedding into konqueror).
+<<
+License: GPL
