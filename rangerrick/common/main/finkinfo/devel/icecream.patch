@@ -1,0 +1,72 @@
+diff -uNr icecream/daemon/load.cpp icecream-new/daemon/load.cpp
+--- icecream/daemon/load.cpp	Wed Aug  4 04:46:24 2004
++++ icecream-new/daemon/load.cpp	Thu Sep 23 11:13:40 2004
+@@ -26,6 +26,9 @@
+ #ifdef __FreeBSD__
+ #  include <dkstat.h>
+ #endif
++#ifdef __APPLE__
++#  include <sys/dkstat.h>
++#endif
+ 
+ using namespace std;
+ 
+diff -uNr icecream/daemon/main.cpp icecream-new/daemon/main.cpp
+--- icecream/daemon/main.cpp	Sun Aug 29 07:27:02 2004
++++ icecream-new/daemon/main.cpp	Thu Sep 23 11:13:40 2004
+@@ -57,7 +57,7 @@
+ #endif
+ #include <netdb.h>
+ 
+-#ifdef __FreeBSD__
++#if defined(__FreeBSD__) || defined(__APPLE__)
+ #include <signal.h> // for kill(2)
+ #include <sys/time.h>
+ #include <sys/resource.h>
+diff -uNr icecream/daemon/serve.cpp icecream-new/daemon/serve.cpp
+--- icecream/daemon/serve.cpp	Sun Aug 29 07:27:02 2004
++++ icecream-new/daemon/serve.cpp	Thu Sep 23 11:13:40 2004
+@@ -55,7 +55,7 @@
+ #include <exception>
+ #include <sys/time.h>
+ 
+-#ifdef __FreeBSD__
++#if defined(__FreeBSD__) || defined(__APPLE__)
+ #include <sys/socket.h>
+ #include <sys/uio.h>
+ #endif
+diff -uNr icecream/daemon/workit.cpp icecream-new/daemon/workit.cpp
+--- icecream/daemon/workit.cpp	Mon Aug 23 08:46:14 2004
++++ icecream-new/daemon/workit.cpp	Thu Sep 23 11:14:46 2004
+@@ -36,7 +36,7 @@
+ #include <sys/wait.h>
+ #include <sys/user.h>
+ 
+-#ifdef __FreeBSD__
++#if defined(__FreeBSD__) || defined(__APPLE__)
+ #include <signal.h>
+ #include <sys/resource.h>
+ #ifndef RUSAGE_SELF
+@@ -50,6 +50,10 @@
+ #include <stdio.h>
+ #include <errno.h>
+ #include <string>
++
++#ifndef RLIMIT_AS
++#define RLIMIT_AS RLIMIT_DATA
++#endif
+ 
+ using namespace std;
+ 
+diff -uNr icecream/services/logging.cpp icecream-new/services/logging.cpp
+--- icecream/services/logging.cpp	Tue Aug 17 14:33:37 2004
++++ icecream-new/services/logging.cpp	Thu Sep 23 11:13:40 2004
+@@ -64,8 +64,6 @@
+         logfile_error = &logfile_null;
+ }
+ 
+-#define HAVE_BACKTRACE
+-
+ #ifdef HAVE_BACKTRACE
+ #include <execinfo.h>
+ #endif
