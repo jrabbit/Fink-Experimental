@@ -11,20 +11,28 @@ Conflicts: bundle-kde, kdelibs3, kdelibs3-shlibs, kdelibs3-dev, kdebase3, kdebas
 Replaces: kdelibs3, kdelibs3-ssl-dev, kdelibs3-dev, keramik, kde-icons-crystal, conectiva-crystal, kdeartwork3
 GCC: 3.3
 
+CustomMirror: <<
+  nam-US: http://ranger.befunk.com/fink
+  nam-US: http://astrange.ithinksw.net/~astrange/ranger-fink
+  nam-CA: http://www.southofheaven.net/befunk
+<<
 Source: mirror:kde:unstable/%v/src/kdelibs-%v.tar.bz2
 Source-MD5: 6d1fbdf9d2740d779b564274e7344b79
+Source2: mirror:custom:kde-libltdl-%v.tar.bz2
+Source2-MD5: 0ef75bd302d3449aa3e7aab48d1a3f08
 
 PatchScript: <<
   patch -p0 < %a/%n.patch
   perl -pi -e 's,-O2,-Os,' admin/acinclude.m4.in
   perl -pi -e 's,doc/HTML,doc/kde,g' admin/acinclude.m4.in
+  (cd ..; tar -cf - libltdl) | tar -xf -
 <<
 
 SetCPPFLAGS: -fno-common -no-cpp-precomp -I/usr/X11R6/include/freetype2 -I/usr/X11R6/include -I%p/include
 SetLIBS: -L%p/lib
 NoSetLDFLAGS: true
 SetMACOSX_DEPLOYMENT_TARGET: 10.2
-ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-ssl-dir=%p --with-ssl=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --disable-final --enable-cups --with-ldap=framework
+ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-ssl-dir=%p --with-ssl=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --disable-final --enable-cups --with-ldap=framework --with-distribution='Fink/Mac OS X'
 CompileScript: <<
 #!/bin/sh -e
   mkdir -p /tmp/kde-build
