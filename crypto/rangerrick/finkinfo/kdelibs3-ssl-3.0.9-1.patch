@@ -1,18 +1,17 @@
 Index: admin/Makefile.common
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/admin/Makefile.common,v
-retrieving revision 1.1.1.3
-retrieving revision 1.4
-diff -u -u -r1.1.1.3 -r1.4
+retrieving revision 1.1.1.4
+retrieving revision 1.5
+diff -u -u -r1.1.1.4 -r1.5
 Index: admin/acinclude.m4.in
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/admin/acinclude.m4.in,v
-retrieving revision 1.1.1.4
-retrieving revision 1.15
-diff -u -u -r1.1.1.4 -r1.15
---- admin/acinclude.m4.in	1 Oct 2002 01:44:25 -0000	1.1.1.4
-+++ admin/acinclude.m4.in	1 Oct 2002 01:46:54 -0000	1.15
-@@ -699,13 +699,10 @@
+retrieving revision 1.1.1.5
+diff -u -u -r1.1.1.5 acinclude.m4.in
+--- admin/acinclude.m4.in	29 Oct 2002 02:27:18 -0000	1.1.1.5
++++ admin/acinclude.m4.in	29 Oct 2002 14:20:22 -0000
+@@ -704,13 +704,10 @@
       AC_CHECK_LIB(ipc, shmat, X_EXTRA_LIBS="$X_EXTRA_LIBS -lipc"))
     
     # darwin needs this to initialize the environment
@@ -28,7 +27,7 @@ diff -u -u -r1.1.1.4 -r1.15
     AC_CHECK_LIB(poll, poll, LIB_POLL="-lpoll")
  
     # CoreAudio framework
-@@ -714,6 +711,12 @@
+@@ -719,11 +716,36 @@
       FRAMEWORK_COREAUDIO="-framework CoreAudio"
     ])
  
@@ -38,19 +37,35 @@ diff -u -u -r1.1.1.4 -r1.15
 +     FRAMEWORK_CORESERVICES="-framework CoreServices"
 +   ])
 +
-    # Solaris 2.6 and others need -lresolv for res_init
-    AC_CHECK_FUNCS(res_init, , [
-      kde_libs_safe="$LIBS"
-@@ -736,6 +739,8 @@
++   # Solaris 2.6 and others need -lresolv for res_init
++   AC_CHECK_FUNCS(res_init, , [
++     kde_libs_safe="$LIBS"
++     LIBS="$LIBS $X_EXTRA_LIBS -lresolv"
++     AC_TRY_LINK(
++[
++#include <resolv.h>
++],
++[ 
++res_init(); 
++],
++        LIBRESOLV="-lresolv"
++        X_EXTRA_LIBS="$X_EXTRA_LIBS $LIBRESOLV"
++        AC_DEFINE(HAVE_RES_INIT, 1, [Define if you have the res_init function])
++     )
++     LIBS=$kde_libs_safe
++   ])
++
+    AC_CHECK_RES_INIT
+-   AC_SUBST(LIB_POLL)
     AC_SUBST(FRAMEWORK_COREAUDIO)
     LIBSOCKET="$X_EXTRA_LIBS"
     AC_SUBST(LIBSOCKET)
-+   AC_SUBST(FRAMEWORK_COREAUDIO)
++   AC_SUBST(FRAMEWORK_CORESERVICES)
 +   AC_SUBST(LIB_POLL)
     AC_SUBST(LIBRESOLV)
     AC_SUBST(X_EXTRA_LIBS)
     AC_CHECK_LIB(ucb, killpg, [LIBUCB="-lucb"]) dnl for Solaris2.4
-@@ -905,7 +910,7 @@
+@@ -932,7 +954,7 @@
  kde_ldflags_safe="$LDFLAGS"
  kde_libs_safe="$LIBS"
  
@@ -59,7 +74,7 @@ diff -u -u -r1.1.1.4 -r1.15
  LIBS="-lXext -lX11 $LIBSOCKET"
  
  AC_TRY_LINK([
-@@ -947,9 +952,9 @@
+@@ -974,9 +996,9 @@
  kde_save_LDFLAGS="$LDFLAGS"
  kde_save_CFLAGS="$CFLAGS"
  kde_save_LIBS="$LIBS"
@@ -71,7 +86,7 @@ diff -u -u -r1.1.1.4 -r1.15
  
  if test "x$no_xinerama" = "xno"; then
  
-@@ -1846,15 +1851,29 @@
+@@ -1907,15 +1929,29 @@
     AC_REQUIRE([K_PATH_X])
  
  if test $kde_qtver = 3; then
@@ -106,7 +121,7 @@ diff -u -u -r1.1.1.4 -r1.15
  # these are for backward compatibility
     AC_SUBST(LIB_KSYCOCA, "-lkio")
     AC_SUBST(LIB_KFILE, "-lkio")
-@@ -2544,10 +2563,10 @@
+@@ -2646,10 +2682,10 @@
        if test $kde_use_debug_code = "full"; then
          CFLAGS="-g3 $CFLAGS"
        else
@@ -115,11 +130,11 @@ diff -u -u -r1.1.1.4 -r1.15
        fi
      else
 -      CFLAGS="-O2 $CFLAGS"
-+      CFLAGS="-Os -Ddlsym=dlsym_auto_underscore -frename-registers -mmultiple -mcpu=750 -mtune=750 $CFLAGS"
++      CFLAGS="-Os -frename-registers -mmultiple -mcpu=750 -mtune=750 $CFLAGS"
      fi
    fi
  
-@@ -2577,7 +2596,7 @@
+@@ -2679,7 +2715,7 @@
          if test "$kde_use_debug_code" = "full"; then
            CXXFLAGS="-g3 $CXXFLAGS"
          else
@@ -128,16 +143,16 @@ diff -u -u -r1.1.1.4 -r1.15
          fi
        fi
        KDE_CHECK_COMPILER_FLAG(fno-builtin,[CXXFLAGS="-fno-builtin $CXXFLAGS"])
-@@ -2589,7 +2608,7 @@
+@@ -2691,7 +2727,7 @@
        if test "$CXX" = "KCC"; then
          CXXFLAGS="+K3 $CXXFLAGS"
        else
 -        CXXFLAGS="-O2 $CXXFLAGS"
-+        CXXFLAGS="-Os -Ddlsym=dlsym_auto_underscore -frename-registers -mmultiple -mcpu=750 -mtune=750 $CXXFLAGS"
++        CXXFLAGS="-Os -frename-registers -mmultiple -mcpu=750 -mtune=750 $CXXFLAGS"
        fi  
      fi
    fi
-@@ -3058,9 +3077,9 @@
+@@ -3188,9 +3224,9 @@
      ac_save_ldflags="$LDFLAGS"
      ac_save_cflags="$CFLAGS"
      if test "x$kde_use_qt_emb" != "xyes"; then
@@ -149,7 +164,91 @@ diff -u -u -r1.1.1.4 -r1.15
      fi
      CFLAGS="$CFLAGS $X_INCLUDES $USER_INCLUDES"
      test -n "$XPM_INCLUDE" && CFLAGS="-I$XPM_INCLUDE $CFLAGS"
-@@ -4555,6 +4574,7 @@
+@@ -4625,6 +4661,83 @@
+ 	done
+ ])
+ 
++AC_DEFUN(KDE_CHECK_LDAP,
++[
++  AC_MSG_CHECKING([for LDAP])
++
++  if test -n "$1"; then
++    ldap_extra_dirs="$1"
++  fi
++
++  ldap_incdirs="$ldap_extra_dirs/include /usr/include /usr/local/include/ $kde_extra_includes"
++  AC_FIND_FILE(ldap.h, $ldap_incdirs, ldap_incdir)
++  if test ! -r $ldap_incdir/ldap.h; then
++    ldap_incdir=no
++  fi
++
++  ldap_libdirs="$ldap_extra_dirs/lib /usr/lib /usr/local /usr/lib $kde_extra_libs"
++  for ext in la so sl dylib a; do
++    AC_FIND_FILE(libldap.$ext, $ldap_libdirs, ldap_libdir_test)
++    if test -r $ldap_libdir_test/libldap.$ext; then
++      ldap_libdir=$ldap_libdir_test
++      break
++    fi
++  done
++  if test -z "$ldap_libdir"; then
++    ldap_libdir=no
++  fi
++  if test x$ldap_libdir != xno && test x$ldap_incdir != xno; then
++    LDAP_INCS=-I$ldap_incdir
++    LDAP_LIBS=-L$ldap_libdir
++    # on MacOSX, we link against the framework instead of
++    # directly to the libraries, for forward-compatibility
++    if test -d "/System/Library/Frameworks/LDAP.framework"; then
++      LIBLDAP="-framework LDAP"
++    else
++      LIBLDAP="-lldap -llber -lresolv"
++    fi
++    if test "$USE_RPATH" = "yes"; then
++      LDAP_RPATH="-R $LDAPLIBDIR/lib"
++    fi
++
++    kde_safe_LIBS="$LIBS"
++    kde_safe_CFLAGS="$CFLAGS"
++    LIBS="$LIBS $all_libraries $LDAP_LIBS $LIBLDAP $KERBEROS_LIBS $X_EXTRA_LIBS"
++    CFLAGS="$CFLAGS $all_includes $LDAP_INCS $KERBEROS_INCS"
++    AC_LANG_SAVE
++    AC_LANG_C
++    AC_TRY_LINK(
++      [#include <lber.h>
++#include <ldap.h>
++#if LDAP_VENDOR_VERSION < 20000
++#error OpenLDAP version too old, please upgrade to version 2 or higher
++#endif
++],
++      [ LDAP *ldap; ],
++      [ ldap_old=no ],
++      [ ldap_old=yes ]
++    )
++    LIBS="$kde_safe_LIBS"
++    CFLAGS="$kde_safe_CFLAGS"
++
++    if test x$ldap_old = xno; then
++      AC_SUBST(LDAP_INCS)
++      AC_SUBST(LDAP_LIBS)
++      AC_SUBST(LDAP_RPATH)
++      AC_SUBST(LIBLDAP)
++      AC_DEFINE_UNQUOTED(HAVE_LIBLDAP,1,[Define if you have LDAP libraries])
++    else
++      LDAP_INCS=
++      LDAP_LIBS=
++      LDAP_RPATH=
++      LIBLDAP=
++    fi
++    AC_MSG_RESULT([libraries $ldap_libdir, headers $ldap_incdir])
++  else
++    AC_MSG_RESULT([not found])
++  fi
++])
++
+ dnl KDE_CHEC_JAVA_DIR(onlyjre)
+ AC_DEFUN(KDE_CHECK_JAVA_DIR,
+ [
+@@ -4659,6 +4772,7 @@
        KDE_JAVA_PREFIX(/usr/lib/IBMJava2*)
        KDE_JAVA_PREFIX(/usr/lib/IBMJava*)
        KDE_JAVA_PREFIX(/opt/java*)
@@ -157,7 +256,7 @@ diff -u -u -r1.1.1.4 -r1.15
      
        kde_cv_path="NONE"
        kde_save_IFS=$IFS
-@@ -4606,10 +4626,20 @@
+@@ -4710,10 +4824,20 @@
  dnl At this point kde_java_bindir and kde_java_includedir are either set or "no"
  if test "x$kde_java_bindir" != "xno"; then
  
@@ -179,7 +278,7 @@ diff -u -u -r1.1.1.4 -r1.15
  
    dnl Now check everything's fine under there
    dnl the include dir is our flag for having the JDK
-@@ -4638,17 +4668,29 @@
+@@ -4742,17 +4866,29 @@
      JAVAC=
      jni_includes=
    fi
@@ -217,11 +316,11 @@ diff -u -u -r1.1.1.4 -r1.15
 Index: admin/detect-autoconf.sh
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/admin/detect-autoconf.sh,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -u -r1.1.1.1 -r1.2
---- admin/detect-autoconf.sh	10 Jul 2002 02:47:38 -0000	1.1.1.1
-+++ admin/detect-autoconf.sh	15 Jul 2002 22:55:00 -0000	1.2
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -u -r1.1.1.2 -r1.3
+--- admin/detect-autoconf.sh	29 Oct 2002 02:27:20 -0000	1.1.1.2
++++ admin/detect-autoconf.sh	29 Oct 2002 02:29:54 -0000	1.3
 @@ -42,12 +42,12 @@
  checkAutomakeAclocal ()
  {
@@ -319,17 +418,6 @@ diff -u -u -r1.1.1.3 -r1.7
        # We need to add '_' to the symbols in $export_symbols first
        #_LT_AC_TAGVAR(archive_expsym_cmds, $1)="$_LT_AC_TAGVAR(archive_cmds, $1)"' && strip -s $export_symbols'
        _LT_AC_TAGVAR(hardcode_direct, $1)=yes
-Index: admin/ltconfig
-===================================================================
-RCS file: admin/ltconfig
-diff -N admin/ltconfig
---- /dev/null	1 Jan 1970 00:00:00 -0000
-+++ admin/ltconfig	25 Jun 2002 03:34:27 -0000	1.1.1.1
-@@ -0,0 +1,4 @@
-+#! /bin/sh
-+# Written by <matz@kde.org> and placed into the public domain ;-)
-+echo "This file shouldn't be called.  It exists solely for the purpose"
-+echo "to make automake 1.4 cope with newer libtools."
 Index: admin/ltmain.sh
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/admin/ltmain.sh,v
@@ -394,38 +482,18 @@ diff -u -u -r1.1.1.2 -r1.4
 Index: admin/missing
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/admin/missing,v
-retrieving revision 1.1.1.2
-retrieving revision 1.3
-diff -u -u -r1.1.1.2 -r1.3
---- admin/missing	10 Jul 2002 02:47:39 -0000	1.1.1.2
-+++ admin/missing	10 Jul 2002 02:50:11 -0000	1.3
-@@ -106,7 +106,7 @@
-     exit 1
-     ;;
- 
--  aclocal)
-+  aclocal*)
-     echo 1>&2 "\
- WARNING: \`$1' is missing on your system.  You should only need it if
-          you modified \`acinclude.m4' or \`${configure_ac}'.  You might want
-@@ -143,7 +143,7 @@
-     touch $touch_files
-     ;;
- 
--  automake)
-+  automake*)
-     echo 1>&2 "\
- WARNING: \`$1' is missing on your system.  You should only need it if
-          you modified \`Makefile.am', \`acinclude.m4' or \`${configure_ac}'.
+retrieving revision 1.1.1.3
+retrieving revision 1.5
+diff -u -u -r1.1.1.3 -r1.5
 Index: configure.in.in
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/kdelibs/configure.in.in,v
-retrieving revision 1.1.1.2
-retrieving revision 1.3
-diff -u -u -r1.1.1.2 -r1.3
---- configure.in.in	10 Jul 2002 04:40:42 -0000	1.1.1.2
-+++ configure.in.in	10 Jul 2002 05:12:43 -0000	1.3
-@@ -146,6 +146,18 @@
+retrieving revision 1.1.1.3
+retrieving revision 1.4
+diff -u -u -r1.1.1.3 -r1.4
+--- configure.in.in	29 Oct 2002 02:36:25 -0000	1.1.1.3
++++ configure.in.in	29 Oct 2002 02:58:39 -0000	1.4
+@@ -191,6 +191,18 @@
  AC_SUBST(LIB_KDEUI, '$(top_builddir)/kdeui/libkdeui.la')
  AC_SUBST(LIB_KIO, '$(top_builddir)/kio/libkio.la')
  AC_SUBST(LIB_KPARTS, '$(top_builddir)/kparts/libkparts.la')
@@ -470,11 +538,11 @@ diff -u -u -r1.1.1.2 -r1.6
 Index: kabc/Makefile.am
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/kdelibs/kabc/Makefile.am,v
-retrieving revision 1.1.1.4
-retrieving revision 1.4
-diff -u -u -r1.1.1.4 -r1.4
---- kabc/Makefile.am	1 Oct 2002 03:04:54 -0000	1.1.1.4
-+++ kabc/Makefile.am	1 Oct 2002 03:59:09 -0000	1.4
+retrieving revision 1.1.1.5
+retrieving revision 1.5
+diff -u -u -r1.1.1.5 -r1.5
+--- kabc/Makefile.am	29 Oct 2002 02:36:40 -0000	1.1.1.5
++++ kabc/Makefile.am	29 Oct 2002 02:58:39 -0000	1.5
 @@ -5,7 +5,7 @@
  
  lib_LTLIBRARIES   = libkabc.la
@@ -484,40 +552,138 @@ diff -u -u -r1.1.1.4 -r1.4
  
  libkabc_la_SOURCES = \
    address.cpp addressbook.cpp addressee.cpp addresseedialog.cpp agent.cpp \
+Index: kabc/plugins/ldap/Makefile.am
+===================================================================
+RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/kdelibs/kabc/plugins/ldap/Makefile.am,v
+retrieving revision 1.1.1.2
+retrieving revision 1.2
+diff -u -u -r1.1.1.2 -r1.2
+--- kabc/plugins/ldap/Makefile.am	14 Aug 2002 14:00:22 -0000	1.1.1.2
++++ kabc/plugins/ldap/Makefile.am	21 Oct 2002 01:34:23 -0000	1.2
+@@ -8,7 +8,7 @@
+ kabc_ldap_la_SOURCES = resourceldap.cpp resourceldapconfig.cpp
+ 
+ kabc_ldap_la_LDFLAGS	= $(all_libraries) -module $(KDE_PLUGIN) $(LDAP_LIBS)
+-kabc_ldap_la_LIBADD	= ../../libkabc.la ../../../kdeui/libkdeui.la
++kabc_ldap_la_LIBADD	= ../../libkabc.la ../../../kdeui/libkdeui.la $(LIBLDAP)
+ 
+ # let automoc handle all of the meta source files (moc)
+ METASOURCES = AUTO
 Index: kabc/plugins/ldap/configure.in.in
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/kdelibs/kabc/plugins/ldap/configure.in.in,v
 retrieving revision 1.1.1.1
-diff -u -u -r1.1.1.1 configure.in.in
+retrieving revision 1.5
+diff -u -u -r1.1.1.1 -r1.5
 --- kabc/plugins/ldap/configure.in.in	10 Jul 2002 04:42:27 -0000	1.1.1.1
-+++ kabc/plugins/ldap/configure.in.in	17 Oct 2002 04:33:20 -0000
-@@ -19,7 +19,7 @@
-   fi
-   if test $with_ldap = FOUND ; then
-     with_ldap=NOTFOUND
++++ kabc/plugins/ldap/configure.in.in	20 Oct 2002 19:12:01 -0000	1.5
+@@ -1,97 +1,13 @@
+-AC_MSG_CHECKING(whether to compile LDAP support)
++AC_MSG_CHECKING([whether to compile LDAP support])
+ AC_ARG_WITH(ldap,
+-[  --without-ldap=PATH     Set path for LDAP files [default=check]],
+-[ case "$withval" in
+-  yes)
+-    with_ldap=CHECK
+-    ;;
+-  esac ],
+-[ with_ldap=CHECK ]
+-)dnl
++  [  --without-ldap=PATH     Set path for LDAP files [default=check]],
++  [ ac_use_ldap="$withval" ],
++  [ ac_use_ldap=no ]
++)
++AC_MSG_RESULT($ac_use_ldap)
+ 
+-if test "x$with_ldap" = "xCHECK" ; then
+-  with_ldap=NOTFOUND
+-  search_incs="$kde_includes /usr/include /usr/local/include"
+-  AC_FIND_FILE(ldap.h, $search_incs, ldap_incdir)
+-  if test -r $ldap_incdir/ldap.h ; then
+-    test "x$ldap_incdir" != "x/usr/include" && LDAP_INCS="-I$ldap_incdir"
+-    with_ldap=FOUND
+-  fi
+-  if test $with_ldap = FOUND ; then
+-    with_ldap=NOTFOUND
 -    for ext in la so sl a ; do
-+    for ext in la dylib so sl a ; do
-       AC_FIND_FILE(libldap.$ext, $kde_libraries /usr/lib /usr/local/lib,
-         ldap_libdir)
-       if test -r $ldap_libdir/libldap.$ext ; then
-@@ -27,7 +27,7 @@
-           LDAP_LIBS="-L$ldap_libdir "
-           test "$USE_RPATH" = yes && LDAP_RPATH="-R $ldap_libdir"
-         fi
+-      AC_FIND_FILE(libldap.$ext, $kde_libraries /usr/lib /usr/local/lib,
+-        ldap_libdir)
+-      if test -r $ldap_libdir/libldap.$ext ; then
+-        if test "x$ldap_libdir" != "x/usr/lib" ; then
+-          LDAP_LIBS="-L$ldap_libdir "
+-          test "$USE_RPATH" = yes && LDAP_RPATH="-R $ldap_libdir"
+-        fi
 -        LDAP_LIBS="${LDAP_LIBS}-lldap -llber -lresolv"
-+        LDAP_LIBS="${LDAP_LIBS}-framework LDAP"
-         with_ldap=FOUND
-         break
-       fi
-@@ -51,7 +51,7 @@
-         LDAP_RPATH="-R ${LDAP_ROOT}/lib"
-       fi
-     fi
+-        with_ldap=FOUND
+-        break
+-      fi
+-    done
+-  fi
++if test "x$ac_use_ldap" != "no" ; then
++  KDE_CHECK_LDAP($ac_use_ldap)
+ fi
+ 
+-case "$with_ldap" in
+-no) AC_MSG_RESULT(no) ;;
+-NOTFOUND) AC_MSG_RESULT(searched but not found) ;;
+-*)
+-  if test "x$with_ldap" = "xFOUND" ; then
+-    msg="incs=$ldap_incdir libs=$ldap_libdir"
+-  else
+-    msg="$with_ldap"
+-    LDAP_ROOT="$with_ldap"
+-    if test "x$LDAP_ROOT" != "x/usr" ; then
+-      LDAP_INCS="-I${LDAP_ROOT}/include"
+-      LDAP_LIBS="-L${LDAP_ROOT}/lib "
+-      if test "$USE_RPATH" = "yes" ; then
+-        LDAP_RPATH="-R ${LDAP_ROOT}/lib"
+-      fi
+-    fi
 -    LDAP_LIBS="${LDAP_LIBS}-lldap -llber -lresolv"
-+    LDAP_LIBS="${LDAP_LIBS}-framework LDAP"
-   fi
-   kde_safe_LIBS="$LIBS"
-   kde_safe_CFLAGS="$CFLAGS"
+-  fi
+-  kde_safe_LIBS="$LIBS"
+-  kde_safe_CFLAGS="$CFLAGS"
+-  LIBS="$LIBS $all_libraries $LDAP_LIBS $KERBEROS_LIBS $X_EXTRA_LIBS"
+-  CFLAGS="$CFLAGS $all_includes $LDAP_INCS $KERBEROS_INCS"
+-  AC_LANG_SAVE
+-  AC_LANG_C
+-  AC_TRY_LINK(dnl
+-  [
+-  #include <lber.h>
+-  #include <ldap.h>
+-  #if LDAP_VENDOR_VERSION < 20000
+-  #error OpenLDAP version too old, please upgrade to version 2 or higher
+-  #endif
+-  ],
+-  [
+-  LDAP *ldap;
+-  ],
+-  , with_ldap=no
+-  )
+-  AC_LANG_RESTORE
+-  CFLAGS=$kde_safe_CFLAGS
+-  LIBS=$kde_safe_LIBS
+-  if test "$with_ldap" = "no" ; then
+-    LDAP_INCS=
+-    LDAP_LIBS=
+-    LDAP_RPATH=
+-    LDAP_SUBDIR=
+-    AC_MSG_RESULT(no (but first try gave $msg))
+-  else
+-    AC_DEFINE_UNQUOTED(HAVE_LIBLDAP, 1, [Define if you have LDAP libraries])
+-    LDAP_SUBDIR="ldap"
+-    AC_MSG_RESULT($msg)
+-  fi
+-  ;;
+-esac
+-
+-AC_SUBST(LDAP_INCS)
+-AC_SUBST(LDAP_LIBS)
+-AC_SUBST(LDAP_RPATH)
+-
+-AM_CONDITIONAL(include_LDAP, test -n "$LDAP_SUBDIR")
+-
++AM_CONDITIONAL(include_LDAP, test -n "$LIBLDAP")
 Index: kabc/vcard/Makefile.am
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/kdelibs/kabc/vcard/Makefile.am,v
@@ -538,28 +704,53 @@ diff -u -u -r1.1.1.2 -r1.3
 Index: kdecore/Makefile.am
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/kdelibs/kdecore/Makefile.am,v
-retrieving revision 1.1.1.4
-retrieving revision 1.2
-diff -u -u -r1.1.1.4 -r1.2
---- kdecore/Makefile.am	1 Oct 2002 03:05:22 -0000	1.1.1.4
-+++ kdecore/Makefile.am	6 Oct 2002 21:20:12 -0000	1.2
+retrieving revision 1.1.1.5
+retrieving revision 1.3
+diff -u -u -r1.1.1.5 -r1.3
+--- kdecore/Makefile.am	29 Oct 2002 02:37:02 -0000	1.1.1.5
++++ kdecore/Makefile.am	29 Oct 2002 02:58:40 -0000	1.3
 @@ -54,7 +54,7 @@
  	ksortablevaluelist.h kdebugclasses.h kclipboard.h
  
  libkdefakes_la_SOURCES = fakes.c vsnprintf.c
 -libkdefakes_la_LDFLAGS = -version-info 5:0:1
 +libkdefakes_la_LDFLAGS = -version-info 5:0:1 -no-undefined
+ libkdefakes_la_LIBADD  = $(LIBSOCKET) ../kdefx/libkdefx.la
  
  noinst_HEADERS = kaccelaction.h kaccelbase.h kaccelprivate.h kckey.h \
- 	kcompletion_private.h \
+Index: kdecore/fakes.c
+===================================================================
+RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/kdelibs/kdecore/fakes.c,v
+retrieving revision 1.1.1.4
+retrieving revision 1.2
+diff -u -u -r1.1.1.4 -r1.2
+--- kdecore/fakes.c	29 Oct 2002 02:36:51 -0000	1.1.1.4
++++ kdecore/fakes.c	29 Oct 2002 14:19:18 -0000	1.2
+@@ -19,6 +19,7 @@
+    Boston, MA 02111-1307, USA.
+ */
+ 
++#include <sys/types.h>
+ #include <config.h>
+ 
+ #ifndef HAVE_SETENV
+@@ -137,7 +138,7 @@
+ #include <errno.h>
+ #include <stdio.h>
+ 
+-int getdomainname(char *name, size_t len)
++int getdomainname(char *name, unsigned int len)
+ {
+         struct utsname uts;
+         struct hostent *hent;
 Index: kdecore/kglobalsettings.cpp
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/kdelibs/kdecore/kglobalsettings.cpp,v
-retrieving revision 1.1.1.2
-retrieving revision 1.3
-diff -u -u -r1.1.1.2 -r1.3
---- kdecore/kglobalsettings.cpp	10 Jul 2002 04:43:36 -0000	1.1.1.2
-+++ kdecore/kglobalsettings.cpp	10 Jul 2002 05:12:43 -0000	1.3
+retrieving revision 1.1.1.3
+retrieving revision 1.4
+diff -u -u -r1.1.1.3 -r1.4
+--- kdecore/kglobalsettings.cpp	29 Oct 2002 02:36:56 -0000	1.1.1.3
++++ kdecore/kglobalsettings.cpp	29 Oct 2002 02:58:40 -0000	1.4
 @@ -455,7 +455,7 @@
          *s_desktopPath += "/";
  
@@ -569,6 +760,23 @@ diff -u -u -r1.1.1.2 -r1.3
      *s_trashPath = config->readEntry( "Trash" , *s_trashPath);
      if ( (*s_trashPath)[0] != '/' )
        s_trashPath->prepend( QDir::homeDirPath() + "/" );
+Index: kdecore/kiconloader.cpp
+===================================================================
+RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/kdelibs/kdecore/kiconloader.cpp,v
+retrieving revision 1.1.1.6
+retrieving revision 1.2
+diff -u -u -r1.1.1.6 -r1.2
+--- kdecore/kiconloader.cpp	29 Oct 2002 02:36:56 -0000	1.1.1.6
++++ kdecore/kiconloader.cpp	29 Oct 2002 14:19:18 -0000	1.2
+@@ -385,7 +385,7 @@
+     return icon;
+ }
+ 
+-inline QString KIconLoader::unknownIconPath( int size ) const
++QString KIconLoader::unknownIconPath( int size ) const
+ {
+     static const QString &str_unknown = KGlobal::staticQString("unknown");
+ 
 Index: kdecore/tests/ksimpleconfigtest.cpp
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/kdelibs/kdecore/tests/ksimpleconfigtest.cpp,v
@@ -595,11 +803,11 @@ diff -u -u -r1.1.1.4 -r1.5
 Index: kdeui/kedittoolbar.cpp
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/kdelibs/kdeui/kedittoolbar.cpp,v
-retrieving revision 1.1.1.4
-retrieving revision 1.5
-diff -u -u -r1.1.1.4 -r1.5
---- kdeui/kedittoolbar.cpp	14 Aug 2002 14:02:36 -0000	1.1.1.4
-+++ kdeui/kedittoolbar.cpp	14 Aug 2002 14:17:57 -0000	1.5
+retrieving revision 1.1.1.5
+retrieving revision 1.6
+diff -u -u -r1.1.1.5 -r1.6
+--- kdeui/kedittoolbar.cpp	29 Oct 2002 02:37:31 -0000	1.1.1.5
++++ kdeui/kedittoolbar.cpp	29 Oct 2002 02:58:40 -0000	1.6
 @@ -141,13 +141,13 @@
     */
    ToolbarList findToolbars(QDomElement elem)
@@ -646,27 +854,27 @@ diff -u -u -r1.1.1.3 -r1.5
 Index: khtml/html/html_formimpl.cpp
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/kdelibs/khtml/html/html_formimpl.cpp,v
-retrieving revision 1.1.1.5
-retrieving revision 1.7
-diff -u -u -r1.1.1.5 -r1.7
+retrieving revision 1.1.1.6
+retrieving revision 1.8
+diff -u -u -r1.1.1.6 -r1.8
 Index: khtml/html/html_formimpl.h
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/kdelibs/khtml/html/html_formimpl.h,v
-retrieving revision 1.1.1.5
-retrieving revision 1.6
-diff -u -u -r1.1.1.5 -r1.6
+retrieving revision 1.1.1.6
+retrieving revision 1.7
+diff -u -u -r1.1.1.6 -r1.7
 Index: khtml/html/html_objectimpl.cpp
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/kdelibs/khtml/html/html_objectimpl.cpp,v
-retrieving revision 1.1.1.5
-retrieving revision 1.5
-diff -u -u -r1.1.1.5 -r1.5
+retrieving revision 1.1.1.6
+retrieving revision 1.6
+diff -u -u -r1.1.1.6 -r1.6
 Index: khtml/rendering/render_table.cpp
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/kdelibs/khtml/rendering/render_table.cpp,v
-retrieving revision 1.1.1.2
-retrieving revision 1.3
-diff -u -u -r1.1.1.2 -r1.3
+retrieving revision 1.1.1.3
+retrieving revision 1.4
+diff -u -u -r1.1.1.3 -r1.4
 Index: kimgio/Makefile.am
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/kdelibs/kimgio/Makefile.am,v
@@ -835,12 +1043,12 @@ diff -u -u -r1.1.1.2 -r1.3
 Index: kio/kssl/kopenssl.cc
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/kdelibs/kio/kssl/kopenssl.cc,v
-retrieving revision 1.1.1.3
-retrieving revision 1.4
-diff -u -u -r1.1.1.3 -r1.4
---- kio/kssl/kopenssl.cc	14 Aug 2002 13:59:54 -0000	1.1.1.3
-+++ kio/kssl/kopenssl.cc	14 Aug 2002 14:17:57 -0000	1.4
-@@ -249,6 +249,9 @@
+retrieving revision 1.1.1.4
+retrieving revision 1.5
+diff -u -u -r1.1.1.4 -r1.5
+--- kio/kssl/kopenssl.cc	29 Oct 2002 02:38:36 -0000	1.1.1.4
++++ kio/kssl/kopenssl.cc	29 Oct 2002 02:58:41 -0000	1.5
+@@ -251,6 +251,9 @@
              #ifdef _AIX
              << "/opt/freeware/lib/"
  	    #endif
@@ -850,7 +1058,7 @@ diff -u -u -r1.1.1.3 -r1.4
  	    << "/usr/lib/"
  	    << "/usr/ssl/lib/"
              << "/usr/local/lib/"
-@@ -267,6 +270,7 @@
+@@ -269,6 +272,7 @@
  	     #elif defined(__APPLE__)
  	     << "libssl.dylib"
  	     << "libssl.0.9.dylib"
@@ -858,7 +1066,7 @@ diff -u -u -r1.1.1.3 -r1.4
               #else
               << "libssl.so"
  	     << "libssl.so.0"
-@@ -284,6 +288,7 @@
+@@ -286,6 +290,7 @@
  	     #elif defined(__APPLE__)
  	     << "libcrypto.dylib"
  	     << "libcrypto.0.9.dylib"
@@ -885,6 +1093,22 @@ diff -u -u -r1.1.1.2 -r1.3
  struct dhcp_msg
  {
  #define DHCP_BOOTREQUEST 1
+Index: kio/misc/kpac/kpac_dhcp_helper.c
+===================================================================
+RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/kdelibs/kio/misc/kpac/kpac_dhcp_helper.c,v
+retrieving revision 1.1.1.2
+retrieving revision 1.2
+diff -u -u -r1.1.1.2 -r1.2
+--- kio/misc/kpac/kpac_dhcp_helper.c	10 Jul 2002 04:50:04 -0000	1.1.1.2
++++ kio/misc/kpac/kpac_dhcp_helper.c	29 Oct 2002 14:19:18 -0000	1.2
+@@ -19,6 +19,7 @@
+ /* $Id$ */
+ 
+ #include <config.h>
++#include <sys/types.h>
+ #include <grp.h>
+ 
+ #include <unistd.h>
 Index: kio/misc/kssld/Makefile.am
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/kdelibs/kio/misc/kssld/Makefile.am,v
@@ -905,11 +1129,11 @@ diff -u -u -r1.1.1.2 -r1.3
 Index: kioslave/http/http.cc
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/kdelibs/kioslave/http/http.cc,v
-retrieving revision 1.1.1.5
-retrieving revision 1.4
-diff -u -u -r1.1.1.5 -r1.4
---- kioslave/http/http.cc	1 Oct 2002 03:07:10 -0000	1.1.1.5
-+++ kioslave/http/http.cc	1 Oct 2002 03:59:14 -0000	1.4
+retrieving revision 1.1.1.6
+retrieving revision 1.5
+diff -u -u -r1.1.1.6 -r1.5
+--- kioslave/http/http.cc	29 Oct 2002 02:38:43 -0000	1.1.1.6
++++ kioslave/http/http.cc	29 Oct 2002 02:58:41 -0000	1.5
 @@ -33,9 +33,9 @@
  #include <sys/socket.h>
  #include <netinet/tcp.h>
@@ -938,6 +1162,69 @@ diff -u -u -r1.1.1.3 -r1.3
  
  kcookiejar_SOURCES = dummy.cpp
  kcookiejar_LDADD = kcookiejar.la
+Index: kstyles/highcolor/highcolor.cpp
+===================================================================
+RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/kdelibs/kstyles/highcolor/highcolor.cpp,v
+retrieving revision 1.1.1.5
+retrieving revision 1.2
+diff -u -u -r1.1.1.5 -r1.2
+Index: kstyles/keramik/genembed.cpp
+===================================================================
+RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/kdelibs/kstyles/keramik/genembed.cpp,v
+retrieving revision 1.1.1.4
+retrieving revision 1.3
+diff -u -u -r1.1.1.4 -r1.3
+Index: kstyles/keramik/keramik.cpp
+===================================================================
+RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/kdelibs/kstyles/keramik/keramik.cpp,v
+retrieving revision 1.1.1.4
+retrieving revision 1.3
+diff -u -u -r1.1.1.4 -r1.3
+--- kstyles/keramik/keramik.cpp	29 Oct 2002 02:39:01 -0000	1.1.1.4
++++ kstyles/keramik/keramik.cpp	29 Oct 2002 02:58:42 -0000	1.3
+@@ -30,7 +30,7 @@
+    Boston, MA 02111-1307, USA.
+ */
+ 
+-// $Id$
++// $Id$
+ 
+ #include <qbitmap.h>
+ #include <qcombobox.h>
+Index: kstyles/keramik/keramik.h
+===================================================================
+RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/kdelibs/kstyles/keramik/keramik.h,v
+retrieving revision 1.1.1.4
+retrieving revision 1.3
+diff -u -u -r1.1.1.4 -r1.3
+--- kstyles/keramik/keramik.h	29 Oct 2002 02:39:01 -0000	1.1.1.4
++++ kstyles/keramik/keramik.h	29 Oct 2002 02:58:42 -0000	1.3
+@@ -27,7 +27,7 @@
+    Boston, MA 02111-1307, USA.
+ */
+ 
+-// $Id$
++// $Id$
+ 
+ #ifndef __keramik_h__
+ #define __keramik_h__
+Index: kstyles/keramik/pixmaploader.cpp
+===================================================================
+RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/kdelibs/kstyles/keramik/pixmaploader.cpp,v
+retrieving revision 1.1.1.4
+retrieving revision 1.3
+diff -u -u -r1.1.1.4 -r1.3
+--- kstyles/keramik/pixmaploader.cpp	29 Oct 2002 02:39:01 -0000	1.1.1.4
++++ kstyles/keramik/pixmaploader.cpp	29 Oct 2002 02:58:42 -0000	1.3
+@@ -18,7 +18,7 @@
+    Boston, MA 02111-1307, USA->
+ */
+ 
+-// $Id$
++// $Id$
+ 
+ #include <qapplication.h>
+ #include <qbitmap.h>
 Index: libkscreensaver/Makefile.am
 ===================================================================
 RCS file: /Volumes/src/cvs/od/proj/KDE-Darwin/kdelibs/libkscreensaver/Makefile.am,v
@@ -1035,16 +1322,3 @@ diff -u -u -r1.1.1.2 -r1.3
  	esac
  ])
  if test "$libltdl_cv_sys_dlopen_deplibs" != yes; then
---- /dev/null	Thu Oct 17 00:34:11 2002
-+++ kdelibs.csh	Mon Jun 24 23:56:39 2002
-@@ -0,0 +1,3 @@
-+#!/bin/csh
-+
-+setenv KDEDIR @PREFIX@
---- /dev/null	Thu Oct 17 00:34:11 2002
-+++ kdelibs.sh	Mon Jun 24 23:56:39 2002
-@@ -0,0 +1,4 @@
-+#!/bin/sh
-+
-+KDEDIR="@PREFIX@"
-+export KDEDIR
