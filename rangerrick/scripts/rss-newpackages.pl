@@ -1,7 +1,9 @@
 #!/usr/bin/perl
-##!/sw/bin/perl5.8.0
 
 $|++;
+
+use lib '/home/ranger/cvs/fink/perlmod';
+use lib '/home/ranger/cvs/experimental/rangerrick';
 
 use Data::Dumper;
 use Cwd qw(abs_path);
@@ -23,6 +25,7 @@ use vars qw(
 	$DAYS
 	$DISTDIR
 	$DOCVS
+	$EXPDIR
 	$NOW
 	$PREFIX
 	$DOSCP
@@ -32,6 +35,8 @@ use vars qw(
 
 	$STABLE_RSS
 	$UNSTABLE_RSS
+
+	%EXPERIMENTAL_PACKAGES
 	%STABLE_PACKAGES
 	%UNSTABLE_PACKAGES
 
@@ -46,14 +51,15 @@ use vars qw(
 	$URIFINDER
 );
 
-$basepath = '/sw';
+$basepath = '/home/ranger/share/sw';
 $TOPDIR   = abs_path(dirname($0));
 $DAYS     = 8; # number of days to look back
 $NOW      = time;
 $CUTOFF   = ($NOW - (60 * 60 * 24 * $DAYS));
 $PREFIX   = '/tmp/fink-rss';
 $DISTDIR  = $PREFIX . '/dists';
-$DOSCP    = 1;
+$EXPDIR   = $PREFIX . '/experimental';
+$DOSCP    = 0;
 $DOCVS    = 1;
 $DOCACHE  = 0;
 
@@ -70,18 +76,21 @@ if (-f '/tmp/rss.cache' and $DOCACHE) {
 	$CACHE = retrieve('/tmp/rss.cache');
 }
 
-$ENV{CVS_RSH} = '/Users/ranger/bin/ssh.sh';
+$ENV{CVS_RSH} = '/home/ranger/bin/ssh.sh';
 #$ENV{CVS_RSH} = 'ssh';
 
 print "- updating cvs repository... ";
 `mkdir -p '$PREFIX'`;
 if (-d $DISTDIR) {
-	`cd $DISTDIR; CVS_RSH=/Users/ranger/bin/ssh.sh cvs -d :ext:rangerrick\@cvs.sourceforge.net:/cvsroot/fink up -A >$PREFIX/cvs.log 2>&1`;
+	`cd $DISTDIR; CVS_RSH=/home/ranger/bin/ssh.sh cvs -d :ext:rangerrick\@cvs.sourceforge.net:/cvsroot/fink up -A >$PREFIX/dists.log 2>&1`;
 } else {
-	`cd $PREFIX; CVS_RSH=/Users/ranger/bin/ssh.sh cvs -d :ext:rangerrick\@cvs.sourceforge.net:/cvsroot/fink co dists >$PREFIX/cvs.log 2>&1`;
+	`cd $PREFIX; CVS_RSH=/home/ranger/bin/ssh.sh cvs -d :ext:rangerrick\@cvs.sourceforge.net:/cvsroot/fink co dists >$PREFIX/dists.log 2>&1`;
 }
-#`cd $PREFIX; cvs -d :pserver:anonymous\@cvs.sourceforge.net:/cvsroot/fink co dists >$PREFIX/cvs.log 2>&1`;
-#`cd $PREFIX; rsync -azvr rsync://master.us.finkmirrors.net/finkinfo/ dists >$PREFIX/rsync.log 2>&1`;
+if (-d $EXPDIR) {
+	`cd $EXPDIR; CVS_RSH=/home/ranger/bin/ssh.sh cvs -d :ext:rangerrick\@cvs.sourceforge.net:/cvsroot/fink up -A >$PREFIX/experimental.log 2>&1`;
+} else {
+	`cd $PREFIX; CVS_RSH=/home/ranger/bin/ssh.sh cvs -d :ext:rangerrick\@cvs.sourceforge.net:/cvsroot/fink co experimental >$PREFIX/experimental.log 2>&1`;
+}
 print "done\n";
 
 print "- searching for new info files...\n";
@@ -105,7 +114,6 @@ if (-f $configpath) {
 	);
 }
 
-#find({ wanted => \&find_infofiles, follow => 1 }, $DISTDIR . '/');
 find({ wanted => \&find_infofiles, follow => 0 }, $DISTDIR . '/');
 
 print "- getting CVS log info... ";
@@ -175,7 +183,7 @@ sub get_cvs_log {
 	my $pwd = `pwd`;
 	my $count = 0;
 	chdir($DISTDIR);
-	if (open(CVSLOG, "CVS_RSH=/Users/ranger/bin/ssh.sh cvs -d :ext:rangerrick\@cvs.sourceforge.net:/cvsroot/fink log @keys 2>$PREFIX/cvslog.log |")) {
+	if (open(CVSLOG, "CVS_RSH=/home/ranger/bin/ssh.sh cvs -d :ext:rangerrick\@cvs.sourceforge.net:/cvsroot/fink log @keys 2>$PREFIX/cvslog.log |")) {
 		$count = 0;
 		open(FILEOUT, ">$PREFIX/cvslog-data.log");
 		while (my $line = <CVSLOG>) {
@@ -286,20 +294,38 @@ sub make_rss {
 		next if ($CACHE->{$tree}->{$package->{'package'}} eq $package->{'version'} . '-' . $package->{'revision'});
 		$CACHE->{$tree}->{$package->{'package'}} = $package->{'version'} . '-' . $package->{'revision'};
 
-		print "  - ", $package->{'package'}, " ", $package->{'version'} . "-" . $package->{'revision'}, "\n";
+		my $packagestring;
+
+		if ($package->{'type'} eq "info") {
+			$packagestring = $package->{'package'} . '-' . $package->{'version'} . '-' . $package->{'revision'};
+		} else {
+			$packagestring = $package->{'package'} . ' rev. ' . $package->{'revision'};
+		}
+
+		print "  - ", $packagestring, "\n";
 		if (not exists $package->{'descdetail'} or $package->{'descdetail'} =~ /^\s*$/gs) {
 			$description = $package->{'description'};
 		} else {
 			$description = $package->{'descdetail'};
 		}
 
-		$description =~ s/[\r\n]+$//gsi;
-		$description =~ s/<(http:\/\/[^>]+)>/$1/gsi;
-		$description =~ s/<(.+\@[^\@]+)>/mailto:$1"/gsi;
-		$description = encode_entities($description);
-		$URIFINDER->find(\$description);
+		if ($package->{'type'} eq "info") {
+			$description =~ s/[\r\n]+$//gsi;
+			$description =~ s/<(http:\/\/[^>]+)>/$1/gsi;
+			$description =~ s/<(.+\@[^\@]+)>/mailto:$1"/gsi;
+			$description = encode_entities($description);
+			$URIFINDER->find(\$description);
+		} else {
+			$description = encode_entities($description);
+		}
+			
 		if ($DOCVS) {
-			my $package_file = $package->get_info_filename();
+			my $package_file;
+			if ($package->{'type'} eq "info") {
+				$package_file = $package->get_info_filename();
+			} else {
+				$package_file = $package->{'filename'};
+			}
 			if (exists $CVS_FILES{$package_file} and ref($CVS_FILES{$package_file}) eq "ARRAY") {
 				my ($author, $content) = @{$CVS_FILES{$package_file}};
 				$content = encode_entities($content);
@@ -336,31 +362,78 @@ sub make_rss {
 }
 
 sub find_infofiles {
-	return unless (/\.info$/);
-	return if ($File::Find::name =~ /\/local\//);
-	my $tree = '10.2';
+
+	my ($shortname) = $_;
+	my $is_info = ($File::Find::name =~ /\.info$/);
+	my ($properties, @versions, $tree, $user);
+
+	if ($File::Find::name =~ m#/experimental/([^/]*)/#) {
+		$user = $1;
+	} else {
+		return unless ($is_info);
+	}
 
 	my @stat = stat($File::Find::name) or die "can't stat $_: $!\n";
 	return unless ($stat[9] >= $CUTOFF);
 	return unless ($stat[9] <= int ($NOW - 60 * 60 * 2)); # skip the newest 2 hours, to account for mirroring
 
-	my $properties = Fink::Package::read_properties($File::Find::name);
-	$properties = Fink::Package->handle_infon_block($properties, $File::Find::name);
-	my @versions = Fink::Package->setup_package_object($properties, $File::Find::name);
-	#print $File::Find::name, " - ", int(@versions), " version(s)\n";
+	if ($is_info) {
+		$properties = Fink::Package::read_properties($File::Find::name);
+		$properties = Fink::Package->handle_infon_block($properties, $File::Find::name);
+		@versions = Fink::Package->setup_package_object($properties, $File::Find::name);
+		for my $index (0..$#versions) {
+			$versions[$index]->{'type'} = 'info';
+		}
+	} else {
+		my $descdetail;
+		if ($File::Find::name =~ /\.(pl|pm)$/) {
+			my $escaped = $File::Find::name;
+			$escaped =~ s/\'/\\\'/gs;
+			if (open (SCRIPT, "/usr/bin/code2html '$escaped' |")) {
+				local $/ = undef;
+				$descdetail = <SCRIPT>;
+				$descdetail =~ s/^.*?<pre>\n//si;
+				$descdetail =~ s/<\/pre>.*?$//si;
+				close(SCRIPT);
+			} else {
+				warn "unable to run code2html on $File::Find::name: $!\n";
+				if (open (SCRIPT, $File::Find::name)) {
+					local $/ = undef;
+					$descdetail = <SCRIPT>;
+					close(SCRIPT);
+				} else {
+					warn "couldn't read from $File::Find::name: $!\n";
+				}
+			}
+			# make the package hash
+			my $package = {
+				filename   => $File::Find::name,
+				type       => 'perl',
+				package    => $shortname,
+				descdetail => $descdetail,
+				tree       => 'experimental',
+				owner      => $user,
+			};
+			push(@versions, $package);
+		}
+	}
 
 	for my $version (@versions) {
-		if ($version->get_info_filename() =~ /$DISTDIR\/([^\/]+)\//) {
+		if ($version->{'type'} eq "info" and $version->get_info_filename() =~ /$DISTDIR\/([^\/]+)\//) {
 			$version->{'tree'} = $1;
 		}
 		$version->{'date'} = $stat[9];
 	
 		$CVS_FILES{$File::Find::name} = undef;
-	
-		if ($File::Find::name =~ m#/stable/#) {
+
+		if ($version->{'tree'} eq 'experimental') {
+			$EXPERIMENTAL_PACKAGES{$version->{'tree'} . '/' . $user} = $version;
+		} elsif ($File::Find::name =~ m#$DISTDIR/$version->{'tree'}/stable/#) {
 			$STABLE_PACKAGES{$tree . '/' . $version->get_name()} = $version;
-		} else {
+		} elsif ($File::Find::name =~ m#$DISTDIR/$version->{'tree'}/unstable/#) {
 			$UNSTABLE_PACKAGES{$tree . '/' . $version->get_name()} = $version;
+		} else {
+			warn "unknown tree: " . $version->{'tree'} . "\n";
 		}
 	}
 }
