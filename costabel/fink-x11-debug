@@ -1,0 +1,154 @@
+#!/usr/bin/perl -w
+# fink-x11-debug
+# Copyright (c) 2004 Martin Costabel
+# Copyright (c) 2004 The Fink Package Manager Team
+
+use lib "/sw/lib/perl5";
+
+use Fink::Config qw($config $basepath);
+use POSIX qw(uname);
+use Fink::Status;
+use Fink::PkgVersion;
+use Fink::VirtPackage;
+use Fink::Services;
+use Fink::FinkVersion qw(:ALL);
+
+use strict;
+use warnings;
+
+my ($basepath) = Fink::Services::read_config('/sw/etc/fink.conf', { Basepath => '/sw' });
+
+my ($os_x_version) = &Fink::Services::get_sw_vers();
+print "OS X version: $os_x_version\n";
+
+my ($dummy, $darwin_version);
+($dummy,$dummy,$darwin_version) = uname();
+print "Darwin version: $darwin_version\n";
+
+my ($fink_version) = fink_version();
+print "fink package manager version: $fink_version\n";
+
+my ($dist_version) = distribution_version();
+print "Fink distribution version: $dist_version\n";
+
+my ($pkginfo_version) = pkginfo_version();
+print "Fink updated from: $pkginfo_version\n";
+
+print "\nChecking fink-installed xfree86 packages:\n";
+my $packagecount = 0;
+my $packagelist = "";
+for my $packagename ('system-xfree86', 'xfree86-base', 'xfree86-rootless',
+                     'xfree86-base-threaded', 'system-xfree86-43', 'system-xfree86-42',
+                     'xfree86-base-shlibs', 'xfree86', 'system-xtools',
+                     'xfree86-base-threaded-shlibs', 'xfree86-rootless-shlibs',
+                     'xfree86-rootless-threaded-shlibs')
+{
+   if (Fink::Status->query_package($packagename)){
+       $packagecount++;
+       $packagelist = $packagelist . " " . $packagename; 
+       print "Found $packagename\n";
+   }
+}
+
+print "   None\n" if ($packagecount == 0);
+
+die "No X11 installation: No /usr/X11R6 found! " if ( ! -x '/usr/X11R6');
+die "X11 installation incomplete: No /etc/X11 found! " if ( ! -x '/etc/X11');
+
+if ( ! Fink::VirtPackage::has_lib('libX11.6.dylib') ){
+    print "No valid X11 installed: Cannot find libX11.6.dylib, but\n";
+    print "the directories /usr/X11R6 and /etc/X11 exist:\n   Incomplete installation\n";
+    print "Here is what dpkg sees:\n\n";
+    system ("dpkg -l \*xfree86\*");
+    die "\nFinished";
+}
+
+my ($xver) = Fink::VirtPackage::check_x11_version();
+print "\nX11 version installed: $xver\n" if ($xver);
+
+if ($packagecount) {
+    print "Fink xfree86 packages found, therefore no virtual packages\n";
+    print "\nHere is the situation from dpkg:\n\n";
+    system ("dpkg -l " . $packagelist);
+    die "\nFinished";
+}
+
+my @xservers     = ('XDarwin', 'Xquartz', 'XDarwinQuartz');
+
+if (defined $xver) {
+#    $hash = {};
+    my $provides;
+
+    my $found_xserver = 0;
+    for my $xserver (@xservers) {
+	if (-x '/usr/X11R6/bin/' . $xserver) {
+	    $found_xserver++;
+	    print "Found X server $xserver\n";
+	    last;
+	}
+    }
+
+    # this is always there if we got this far
+    print "system-xfree86-shlibs provides 'x11-shlibs'\n";
+
+    if ( $found_xserver ) {
+	print "system-xfree86 provides 'xserver', 'x11'\n";
+    }
+
+    # "x11-dev" is for BuildDepends: on x11 packages
+    if ( Fink::VirtPackage::has_header('X11/Xlib.h') ) {
+	print "Found header X11/Xlib.h: system-xfree86-dev provides 'x11-dev'\n";
+    }
+    # now we do the same for libgl
+    if ( Fink::VirtPackage::has_lib('libGL.1.dylib') ) {
+	print "Found library libGL.1.dylib:\n   system-xfree86-shlibs provides 'libgl-shlibs' and\n";
+	print "   system-xfree86 provides 'libgl'\n";
+    }
+    if ( Fink::VirtPackage::has_header('GL/gl.h') and Fink::VirtPackage::has_lib('libGL.dylib') ) {
+        print "Found headers GL/gl.h: system-xfree86-dev provides 'libgl-dev'\n";
+    }
+    if ( Fink::VirtPackage::has_lib('libXft.dylib') and
+	 defined readlink('/usr/X11R6/lib/libXft.dylib') and
+	 readlink('/usr/X11R6/lib/libXft.dylib') =~ /libXft\.1/ and
+	 Fink::VirtPackage::has_header('X11/Xft/Xft.h') ) {
+        print "Found libXft.dylib as symlink to libXft.1\* and header X11/Xft/Xft.h:\n";
+	print "   system-xfree86-dev provides 'xft1-dev' and\n";
+        print "   system-xfree86 provides 'xft1'\n";
+    }
+    if ( Fink::VirtPackage::has_lib('libXft.1.dylib') ) {
+        print "Found library libXft.1.dylib: system-xfree86-shlibs provides 'xft1-shlibs'\n";
+    }
+    if ( Fink::VirtPackage::has_lib('libXft.dylib') and
+	 defined readlink('/usr/X11R6/lib/libXft.dylib') and
+	 readlink('/usr/X11R6/lib/libXft.dylib') =~ /libXft\.2/ and
+	 Fink::VirtPackage::has_header('X11/Xft/Xft.h') ) {
+        print "Found libXft.dylib as symlink to libXft.2\* and header X11/Xft/Xft.h:\n";
+        print "   system-xfree86-dev provides 'xft2-dev' and\n";
+        print "   system-xfree86 provides 'xft2'\n";
+    }
+    if ( Fink::VirtPackage::has_lib('libXft.2.dylib') ) {
+        print "Found library libXft.2.dylib: system-xfree86-shlibs provides 'xft2-shlibs'\n";
+    }
+    if ( Fink::VirtPackage::has_lib('libfontconfig.dylib') and
+	 defined readlink('/usr/X11R6/lib/libfontconfig.dylib') and
+	 readlink('/usr/X11R6/lib/libfontconfig.dylib') =~ /libfontconfig\.1/ and
+	 Fink::VirtPackage::has_header('fontconfig/fontconfig.h') ) {
+        print "Found libfontconfig.dylib as symlink to libfontconfig.1\*\n   and header fontconfig/fontconfig.h:\n";
+        print "   system-xfree86-dev provides 'fontconfig1-dev' and\n";
+        print "   system-xfree86 provides 'fontconfig1'\n";
+    }
+    if ( Fink::VirtPackage::has_lib('libfontconfig.1.dylib') ) {
+        print "Found library libfontconfig.1.dylib:\n   system-xfree86-shlibs provides 'fontconfig1-shlibs'\n";
+    }
+    if (-x '/usr/X11R6/bin/rman') {
+        print "Found binary rman: system-xfree86 provides 'rman'\n";
+    }
+    if (-f '/usr/X11R6/lib/libXt.6.dylib' and -x '/usr/bin/grep') {
+	if (system('/usr/bin/grep', '-q', '-a', 'pthread_mutex_lock', '/usr/X11R6/lib/libXt.6.dylib') == 0) {
+	    print "Found threaded version of libXt.6.dylib:\n";
+	    print "   system-xfree86-shlibs provides 'xfree86-base-threaded-shlibs' and\n";
+	    print "   system-xfree86 may provide 'xfree86-base-threaded'\n";
+	}
+    }
+}
+
