@@ -1,16 +1,16 @@
-diff -ruN devscripts-2.8.5/Makefile devscripts-2.8.5.new/Makefile
+diff --exclude=*~ -ruN devscripts-2.8.5/Makefile devscripts-2.8.5.new/Makefile
 --- devscripts-2.8.5/Makefile	Mon Aug 16 23:47:45 2004
-+++ devscripts-2.8.5.new/Makefile	Tue Nov 23 01:51:14 2004
-@@ -8,7 +8,7 @@
++++ devscripts-2.8.5.new/Makefile	Tue Nov 23 10:23:16 2004
+@@ -8,8 +8,6 @@
  	debrsign.sh debsign.sh dpkg-genbuilddeps.sh mergechanges.sh \
  	tagpending.sh uscan.sh uupdate.sh wnpp-alert.sh
  
 -LIBS = libvfork.so.0
-+#LIBS = libvfork.so.0
- 
+-
  PERL_MODULES = Devscripts
  
-@@ -22,14 +22,14 @@
+ CWRAPPERS = debpkg-wrapper
+@@ -22,14 +20,14 @@
  GEN_MAN1S = bts.1
  MAN5S = devscripts.conf.5
  
@@ -25,7 +25,7 @@ diff -ruN devscripts-2.8.5/Makefile devscripts-2.8.5.new/Makefile
 +BINDIR = @FINKPREFIX@/bin
 +LIBDIR = @FINKPREFIX@/lib/devscripts
 +EXAMPLES_DIR = @FINKPREFIX@/share/devscripts
-+PERLMOD_DIR = @FINKPREFIX@/share/devscripts
++PERLMOD_DIR = @FINKPREFIX@/lib/perl5/
 +BIN_LIBDIR = @FINKPREFIX@/lib/devscripts
 +MAN1DIR = @FINKPREFIX@/share/man/man1
 +MAN1_FR_DIR = @FINKPREFIX@/share/man/fr/man1
@@ -33,23 +33,29 @@ diff -ruN devscripts-2.8.5/Makefile devscripts-2.8.5.new/Makefile
  
  all: $(SCRIPTS) $(GEN_MAN1S) $(EXAMPLES) $(LIBS) $(CWRAPPERS)
  
-@@ -58,11 +58,11 @@
+@@ -58,12 +56,6 @@
  bts.1: bts.pl
  	pod2man --center=" " --release="Debian Utilities" $< > $@
  
 -libvfork.o: libvfork.c
 -	$(CC) -fPIC -D_REENTRANT $(CFLAGS) -c $<
-+#libvfork.o: libvfork.c
-+#	$(CC) -fPIC -D_REENTRANT $(CFLAGS) -c $<
- 
+-
 -libvfork.so.0: libvfork.o
 -	$(CC) -shared $< -ldl -lc -Wl,-soname -Wl,libvfork.so.0 -o $@
-+#libvfork.so.0: libvfork.o
-+#	$(CC) -shared $< -ldl -lc -Wl,-soname -Wl,libvfork.so.0 -o $@
- 
+-
  clean:
  	rm -f version conf.default $(SCRIPTS) $(GEN_MAN1S) $(SCRIPT_LIBS) \
-diff -ruN devscripts-2.8.5/README devscripts-2.8.5.new/README
+ 	    $(CWRAPPERS) libvfork.o libvfork.so.0
+@@ -74,8 +66,6 @@
+ 	cd $(DESTDIR)$(BINDIR) && ln -s debchange dch
+ 	cd $(DESTDIR)$(BINDIR) && ln -s debi debc
+ 	cd $(DESTDIR)$(BINDIR) && ln -s cvs-debi cvs-debc
+-	mkdir -p $(DESTDIR)$(LIBDIR)
+-	cp $(LIBS) $(DESTDIR)$(LIBDIR)
+ 	mkdir -p $(DESTDIR)$(PERLMOD_DIR)
+ 	cp -a $(PERL_MODULES) $(DESTDIR)$(PERLMOD_DIR)
+ 	# Special treatment for debpkg
+diff --exclude=*~ -ruN devscripts-2.8.5/README devscripts-2.8.5.new/README
 --- devscripts-2.8.5/README	Thu Jul 29 18:21:56 2004
 +++ devscripts-2.8.5.new/README	Tue Nov 23 01:51:14 2004
 @@ -138,7 +138,7 @@
@@ -70,7 +76,7 @@ diff -ruN devscripts-2.8.5/README devscripts-2.8.5.new/README
  
      once (and similarly for debuild if you really need it).  This will
      enable access to debpkg for all users who are members of the group
-diff -ruN devscripts-2.8.5/bts.pl devscripts-2.8.5.new/bts.pl
+diff --exclude=*~ -ruN devscripts-2.8.5/bts.pl devscripts-2.8.5.new/bts.pl
 --- devscripts-2.8.5/bts.pl	Fri Sep 24 05:02:10 2004
 +++ devscripts-2.8.5.new/bts.pl	Tue Nov 23 01:51:14 2004
 @@ -5,8 +5,10 @@
@@ -283,7 +289,7 @@ diff -ruN devscripts-2.8.5/bts.pl devscripts-2.8.5.new/bts.pl
  to use; if this is not set, B<bts> attempts to determine a name from
  your passwd entry.
  
-diff -ruN devscripts-2.8.5/debc.1 devscripts-2.8.5.new/debc.1
+diff --exclude=*~ -ruN devscripts-2.8.5/debc.1 devscripts-2.8.5.new/debc.1
 --- devscripts-2.8.5/debc.1	Thu Jul 29 18:21:56 2004
 +++ devscripts-2.8.5.new/debc.1	Tue Nov 23 01:51:15 2004
 @@ -83,7 +83,7 @@
@@ -295,7 +301,7 @@ diff -ruN devscripts-2.8.5/debc.1 devscripts-2.8.5.new/debc.1
  \fI~/.devscripts\fR are sourced in that order to set configuration
  variables.  Command line options can be used to override configuration
  file settings.  Environment variable settings are ignored for this
-diff -ruN devscripts-2.8.5/debchange.1 devscripts-2.8.5.new/debchange.1
+diff --exclude=*~ -ruN devscripts-2.8.5/debchange.1 devscripts-2.8.5.new/debchange.1
 --- devscripts-2.8.5/debchange.1	Thu Jul 29 18:21:56 2004
 +++ devscripts-2.8.5.new/debchange.1	Tue Nov 23 01:51:15 2004
 @@ -178,7 +178,7 @@
@@ -307,7 +313,7 @@ diff -ruN devscripts-2.8.5/debchange.1 devscripts-2.8.5.new/debchange.1
  \fI~/.devscripts\fR are sourced in that order to set configuration
  variables.  Command line options can be used to override configuration
  file settings.  Environment variable settings are ignored for this
-diff -ruN devscripts-2.8.5/debchange.pl devscripts-2.8.5.new/debchange.pl
+diff --exclude=*~ -ruN devscripts-2.8.5/debchange.pl devscripts-2.8.5.new/debchange.pl
 --- devscripts-2.8.5/debchange.pl	Sat Sep 25 12:30:39 2004
 +++ devscripts-2.8.5.new/debchange.pl	Tue Nov 23 01:51:15 2004
 @@ -157,7 +157,7 @@
@@ -319,7 +325,7 @@ diff -ruN devscripts-2.8.5/debchange.pl devscripts-2.8.5.new/debchange.pl
      my %config_vars = (
  		       'DEBCHANGE_PRESERVE' => 'no',
  		       'DEBCHANGE_QUERY_BTS' => 'yes',
-diff -ruN devscripts-2.8.5/debclean.1 devscripts-2.8.5.new/debclean.1
+diff --exclude=*~ -ruN devscripts-2.8.5/debclean.1 devscripts-2.8.5.new/debclean.1
 --- devscripts-2.8.5/debclean.1	Thu Jul 29 18:21:56 2004
 +++ devscripts-2.8.5.new/debclean.1	Tue Nov 23 01:51:15 2004
 @@ -85,7 +85,7 @@
@@ -331,7 +337,7 @@ diff -ruN devscripts-2.8.5/debclean.1 devscripts-2.8.5.new/debclean.1
  \fI~/.devscripts\fR are sourced in that order to set configuration
  variables.  Command line options can be used to override configuration
  file settings.  Environment variable settings are ignored for this
-diff -ruN devscripts-2.8.5/debclean.fr.1 devscripts-2.8.5.new/debclean.fr.1
+diff --exclude=*~ -ruN devscripts-2.8.5/debclean.fr.1 devscripts-2.8.5.new/debclean.fr.1
 --- devscripts-2.8.5/debclean.fr.1	Thu Jul 29 18:21:56 2004
 +++ devscripts-2.8.5.new/debclean.fr.1	Tue Nov 23 01:51:15 2004
 @@ -22,7 +22,7 @@
@@ -343,7 +349,7 @@ diff -ruN devscripts-2.8.5/debclean.fr.1 devscripts-2.8.5.new/debclean.fr.1
  \fI~/.devscripts\fR sont évalués dans cet ordre pour placer les variables 
  de configuration. Des options de ligne de commande peuvent être utilisées pour neutraliser les 
  paramètres des fichiers de configuration. Les paramètres des variables d'environnement sont ignorés 
-diff -ruN devscripts-2.8.5/debclean.sh devscripts-2.8.5.new/debclean.sh
+diff --exclude=*~ -ruN devscripts-2.8.5/debclean.sh devscripts-2.8.5.new/debclean.sh
 --- devscripts-2.8.5/debclean.sh	Thu Jul 29 18:21:56 2004
 +++ devscripts-2.8.5.new/debclean.sh	Tue Nov 23 01:51:15 2004
 @@ -75,7 +75,7 @@
@@ -355,7 +361,7 @@ diff -ruN devscripts-2.8.5/debclean.sh devscripts-2.8.5.new/debclean.sh
  	  do
  	  [ -r $file ] && . $file
  	done
-diff -ruN devscripts-2.8.5/debdiff.1 devscripts-2.8.5.new/debdiff.1
+diff --exclude=*~ -ruN devscripts-2.8.5/debdiff.1 devscripts-2.8.5.new/debdiff.1
 --- devscripts-2.8.5/debdiff.1	Thu Jul 29 18:21:56 2004
 +++ devscripts-2.8.5.new/debdiff.1	Tue Nov 23 01:51:15 2004
 @@ -112,7 +112,7 @@
@@ -367,7 +373,7 @@ diff -ruN devscripts-2.8.5/debdiff.1 devscripts-2.8.5.new/debdiff.1
  \fI~/.devscripts\fR are sourced by a shell in that order to set
  configuration variables.  Command line options can be used to override
  configuration file settings.  Environment variable settings are
-diff -ruN devscripts-2.8.5/debdiff.pl devscripts-2.8.5.new/debdiff.pl
+diff --exclude=*~ -ruN devscripts-2.8.5/debdiff.pl devscripts-2.8.5.new/debdiff.pl
 --- devscripts-2.8.5/debdiff.pl	Thu Jul 29 18:21:56 2004
 +++ devscripts-2.8.5.new/debdiff.pl	Tue Nov 23 01:51:15 2004
 @@ -91,7 +91,7 @@
@@ -397,7 +403,7 @@ diff -ruN devscripts-2.8.5/debdiff.pl devscripts-2.8.5.new/debdiff.pl
      warn "Can't compare control files; wdiff package not installed\n";
      exit 0;
  }
-diff -ruN devscripts-2.8.5/debi.1 devscripts-2.8.5.new/debi.1
+diff --exclude=*~ -ruN devscripts-2.8.5/debi.1 devscripts-2.8.5.new/debi.1
 --- devscripts-2.8.5/debi.1	Thu Jul 29 18:21:56 2004
 +++ devscripts-2.8.5.new/debi.1	Tue Nov 23 01:51:15 2004
 @@ -85,7 +85,7 @@
@@ -409,7 +415,7 @@ diff -ruN devscripts-2.8.5/debi.1 devscripts-2.8.5.new/debi.1
  \fI~/.devscripts\fR are sourced in that order to set configuration
  variables.  Command line options can be used to override configuration
  file settings.  Environment variable settings are ignored for this
-diff -ruN devscripts-2.8.5/debi.pl devscripts-2.8.5.new/debi.pl
+diff --exclude=*~ -ruN devscripts-2.8.5/debi.pl devscripts-2.8.5.new/debi.pl
 --- devscripts-2.8.5/debi.pl	Mon Aug 16 23:47:45 2004
 +++ devscripts-2.8.5.new/debi.pl	Tue Nov 23 01:51:15 2004
 @@ -115,7 +115,7 @@
@@ -421,7 +427,7 @@ diff -ruN devscripts-2.8.5/debi.pl devscripts-2.8.5.new/debi.pl
      my %config_vars = (
  		       'DEVSCRIPTS_CHECK_DIRNAME_LEVEL' => 1,
  		       'DEVSCRIPTS_CHECK_DIRNAME_REGEX' => 'PACKAGE(-.*)?',
-diff -ruN devscripts-2.8.5/debpkg-wrapper.c devscripts-2.8.5.new/debpkg-wrapper.c
+diff --exclude=*~ -ruN devscripts-2.8.5/debpkg-wrapper.c devscripts-2.8.5.new/debpkg-wrapper.c
 --- devscripts-2.8.5/debpkg-wrapper.c	Thu Jul 29 18:21:56 2004
 +++ devscripts-2.8.5.new/debpkg-wrapper.c	Tue Nov 23 01:51:15 2004
 @@ -6,7 +6,7 @@
@@ -433,7 +439,7 @@ diff -ruN devscripts-2.8.5/debpkg-wrapper.c devscripts-2.8.5.new/debpkg-wrapper.
  
  int main(int ac, char **av)
  {
-diff -ruN devscripts-2.8.5/debpkg.pl devscripts-2.8.5.new/debpkg.pl
+diff --exclude=*~ -ruN devscripts-2.8.5/debpkg.pl devscripts-2.8.5.new/debpkg.pl
 --- devscripts-2.8.5/debpkg.pl	Thu Jul 29 18:21:56 2004
 +++ devscripts-2.8.5.new/debpkg.pl	Tue Nov 23 01:51:15 2004
 @@ -67,7 +67,7 @@
@@ -445,7 +451,7 @@ diff -ruN devscripts-2.8.5/debpkg.pl devscripts-2.8.5.new/debpkg.pl
  # $ENV{'PATH'} = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11";
  $ENV{'TERM'}='dumb' unless defined $ENV{'TERM'};
  
-diff -ruN devscripts-2.8.5/debrelease.1 devscripts-2.8.5.new/debrelease.1
+diff --exclude=*~ -ruN devscripts-2.8.5/debrelease.1 devscripts-2.8.5.new/debrelease.1
 --- devscripts-2.8.5/debrelease.1	Thu Jul 29 18:21:56 2004
 +++ devscripts-2.8.5.new/debrelease.1	Tue Nov 23 01:51:15 2004
 @@ -91,7 +91,7 @@
@@ -457,7 +463,7 @@ diff -ruN devscripts-2.8.5/debrelease.1 devscripts-2.8.5.new/debrelease.1
  \fI~/.devscripts\fR are sourced in that order to set configuration
  variables.  Command line options can be used to override configuration
  file settings.  Environment variable settings are ignored for this
-diff -ruN devscripts-2.8.5/debrelease.sh devscripts-2.8.5.new/debrelease.sh
+diff --exclude=*~ -ruN devscripts-2.8.5/debrelease.sh devscripts-2.8.5.new/debrelease.sh
 --- devscripts-2.8.5/debrelease.sh	Thu Jul 29 18:21:56 2004
 +++ devscripts-2.8.5.new/debrelease.sh	Tue Nov 23 01:51:15 2004
 @@ -101,7 +101,7 @@
@@ -469,7 +475,7 @@ diff -ruN devscripts-2.8.5/debrelease.sh devscripts-2.8.5.new/debrelease.sh
  	  do
  	  [ -r $file ] && . $file
  	done
-diff -ruN devscripts-2.8.5/debrsign.1 devscripts-2.8.5.new/debrsign.1
+diff --exclude=*~ -ruN devscripts-2.8.5/debrsign.1 devscripts-2.8.5.new/debrsign.1
 --- devscripts-2.8.5/debrsign.1	Fri Jul 30 16:19:42 2004
 +++ devscripts-2.8.5.new/debrsign.1	Tue Nov 23 01:51:15 2004
 @@ -48,7 +48,7 @@
@@ -481,7 +487,7 @@ diff -ruN devscripts-2.8.5/debrsign.1 devscripts-2.8.5.new/debrsign.1
  \fI~/.devscripts\fR are sourced in that order to set configuration
  variables.  Command line options can be used to override configuration
  file settings.  Environment variable settings are ignored for this
-diff -ruN devscripts-2.8.5/debrsign.sh devscripts-2.8.5.new/debrsign.sh
+diff --exclude=*~ -ruN devscripts-2.8.5/debrsign.sh devscripts-2.8.5.new/debrsign.sh
 --- devscripts-2.8.5/debrsign.sh	Fri Sep  3 02:26:27 2004
 +++ devscripts-2.8.5.new/debrsign.sh	Tue Nov 23 01:51:15 2004
 @@ -97,7 +97,7 @@
@@ -502,7 +508,7 @@ diff -ruN devscripts-2.8.5/debrsign.sh devscripts-2.8.5.new/debrsign.sh
        [ -r $file ] && . $file
      done
  
-diff -ruN devscripts-2.8.5/debsign.1 devscripts-2.8.5.new/debsign.1
+diff --exclude=*~ -ruN devscripts-2.8.5/debsign.1 devscripts-2.8.5.new/debsign.1
 --- devscripts-2.8.5/debsign.1	Thu Jul 29 18:21:56 2004
 +++ devscripts-2.8.5.new/debsign.1	Tue Nov 23 01:51:15 2004
 @@ -86,7 +86,7 @@
@@ -514,7 +520,7 @@ diff -ruN devscripts-2.8.5/debsign.1 devscripts-2.8.5.new/debsign.1
  \fI~/.devscripts\fR are sourced in that order to set configuration
  variables.  Command line options can be used to override configuration
  file settings.  Environment variable settings are ignored for this
-diff -ruN devscripts-2.8.5/debsign.sh devscripts-2.8.5.new/debsign.sh
+diff --exclude=*~ -ruN devscripts-2.8.5/debsign.sh devscripts-2.8.5.new/debsign.sh
 --- devscripts-2.8.5/debsign.sh	Mon Sep  6 17:30:38 2004
 +++ devscripts-2.8.5.new/debsign.sh	Tue Nov 23 01:51:15 2004
 @@ -177,7 +177,7 @@
@@ -526,7 +532,7 @@ diff -ruN devscripts-2.8.5/debsign.sh devscripts-2.8.5.new/debsign.sh
  	  do
  	  [ -r $file ] && . $file
  	done
-diff -ruN devscripts-2.8.5/debuild.1 devscripts-2.8.5.new/debuild.1
+diff --exclude=*~ -ruN devscripts-2.8.5/debuild.1 devscripts-2.8.5.new/debuild.1
 --- devscripts-2.8.5/debuild.1	Thu Jul 29 18:21:56 2004
 +++ devscripts-2.8.5.new/debuild.1	Tue Nov 23 01:51:15 2004
 @@ -189,7 +189,7 @@
@@ -538,7 +544,7 @@ diff -ruN devscripts-2.8.5/debuild.1 devscripts-2.8.5.new/debuild.1
  \fI~/.devscripts\fR are sourced by a shell in that order to set
  configuration variables.  Command line options can be used to override
  some of these configuration file settings, otherwise the
-diff -ruN devscripts-2.8.5/debuild.pl devscripts-2.8.5.new/debuild.pl
+diff --exclude=*~ -ruN devscripts-2.8.5/debuild.pl devscripts-2.8.5.new/debuild.pl
 --- devscripts-2.8.5/debuild.pl	Fri Sep  3 02:26:27 2004
 +++ devscripts-2.8.5.new/debuild.pl	Tue Nov 23 01:51:15 2004
 @@ -205,7 +205,7 @@
@@ -568,7 +574,7 @@ diff -ruN devscripts-2.8.5/debuild.pl devscripts-2.8.5.new/debuild.pl
  required packages, or you can do it manually using dpkg or apt using
  the error messages just above this message.
  EOT
-diff -ruN devscripts-2.8.5/devscripts.1 devscripts-2.8.5.new/devscripts.1
+diff --exclude=*~ -ruN devscripts-2.8.5/devscripts.1 devscripts-2.8.5.new/devscripts.1
 --- devscripts-2.8.5/devscripts.1	Thu Jul 29 18:21:56 2004
 +++ devscripts-2.8.5.new/devscripts.1	Tue Nov 23 01:51:15 2004
 @@ -5,11 +5,11 @@
@@ -585,7 +591,7 @@ diff -ruN devscripts-2.8.5/devscripts.1 devscripts-2.8.5.new/devscripts.1
 +Also, the directory \fI@FINKPREFIX@/share/doc/devscripts/examples\fR contains
  examples of \fBprocmail\fR and \fBexim\fR scripts for sorting mail
  arriving to Debian mailing lists.
-diff -ruN devscripts-2.8.5/devscripts.conf.5 devscripts-2.8.5.new/devscripts.conf.5
+diff --exclude=*~ -ruN devscripts-2.8.5/devscripts.conf.5 devscripts-2.8.5.new/devscripts.conf.5
 --- devscripts-2.8.5/devscripts.conf.5	Thu Jul 29 18:21:56 2004
 +++ devscripts-2.8.5.new/devscripts.conf.5	Tue Nov 23 01:51:15 2004
 @@ -10,10 +10,10 @@
@@ -626,7 +632,7 @@ diff -ruN devscripts-2.8.5/devscripts.conf.5 devscripts-2.8.5.new/devscripts.con
  .SH AUTHOR
  This manpage was written for the \fBdevscripts\fR package by the
  package maintainer Julian Gilbey <jdg@debian.org>.
-diff -ruN devscripts-2.8.5/dpkg-depcheck.1 devscripts-2.8.5.new/dpkg-depcheck.1
+diff --exclude=*~ -ruN devscripts-2.8.5/dpkg-depcheck.1 devscripts-2.8.5.new/dpkg-depcheck.1
 --- devscripts-2.8.5/dpkg-depcheck.1	Thu Jul 29 18:21:56 2004
 +++ devscripts-2.8.5.new/dpkg-depcheck.1	Tue Nov 23 01:51:15 2004
 @@ -100,7 +100,7 @@
@@ -638,7 +644,7 @@ diff -ruN devscripts-2.8.5/dpkg-depcheck.1 devscripts-2.8.5.new/dpkg-depcheck.1
  \fI~/.devscripts\fR are sourced in that order to set configuration
  variables.  Command line options can be used to override configuration
  file settings.  Environment variable settings are ignored for this
-diff -ruN devscripts-2.8.5/dpkg-depcheck.pl devscripts-2.8.5.new/dpkg-depcheck.pl
+diff --exclude=*~ -ruN devscripts-2.8.5/dpkg-depcheck.pl devscripts-2.8.5.new/dpkg-depcheck.pl
 --- devscripts-2.8.5/dpkg-depcheck.pl	Tue Aug 24 21:41:50 2004
 +++ devscripts-2.8.5.new/dpkg-depcheck.pl	Tue Nov 23 01:51:15 2004
 @@ -23,7 +23,7 @@
@@ -674,7 +680,7 @@ diff -ruN devscripts-2.8.5/dpkg-depcheck.pl devscripts-2.8.5.new/dpkg-depcheck.p
      my %config_vars = (
  		       'DPKG_DEPCHECK_OPTIONS' => '',
  		       );
-diff -ruN devscripts-2.8.5/dscverify.1 devscripts-2.8.5.new/dscverify.1
+diff --exclude=*~ -ruN devscripts-2.8.5/dscverify.1 devscripts-2.8.5.new/dscverify.1
 --- devscripts-2.8.5/dscverify.1	Thu Jul 29 18:21:56 2004
 +++ devscripts-2.8.5.new/dscverify.1	Tue Nov 23 01:51:15 2004
 @@ -27,7 +27,7 @@
@@ -686,7 +692,7 @@ diff -ruN devscripts-2.8.5/dscverify.1 devscripts-2.8.5.new/dscverify.1
  \fI~/.devscripts\fR are sourced by a shell in that order to set
  configuration variables.  Environment variable settings are ignored
  for this purpose.  If the first command line option given is
-diff -ruN devscripts-2.8.5/dscverify.pl devscripts-2.8.5.new/dscverify.pl
+diff --exclude=*~ -ruN devscripts-2.8.5/dscverify.pl devscripts-2.8.5.new/dscverify.pl
 --- devscripts-2.8.5/dscverify.pl	Thu Jul 29 18:21:56 2004
 +++ devscripts-2.8.5.new/dscverify.pl	Tue Nov 23 01:51:15 2004
 @@ -89,9 +89,9 @@
@@ -710,7 +716,7 @@ diff -ruN devscripts-2.8.5/dscverify.pl devscripts-2.8.5.new/dscverify.pl
  	my %config_vars = (
  			   'DSCVERIFY_KEYRINGS' => '',
  			   );
-diff -ruN devscripts-2.8.5/grep-excuses.1 devscripts-2.8.5.new/grep-excuses.1
+diff --exclude=*~ -ruN devscripts-2.8.5/grep-excuses.1 devscripts-2.8.5.new/grep-excuses.1
 --- devscripts-2.8.5/grep-excuses.1	Thu Jul 29 18:21:56 2004
 +++ devscripts-2.8.5.new/grep-excuses.1	Tue Nov 23 01:51:15 2004
 @@ -22,7 +22,7 @@
@@ -722,7 +728,7 @@ diff -ruN devscripts-2.8.5/grep-excuses.1 devscripts-2.8.5.new/grep-excuses.1
  \fI~/.devscripts\fR are sourced in that order to set configuration
  variables.  Command line options can be used to override configuration
  file settings.  Environment variable settings are ignored for this
-diff -ruN devscripts-2.8.5/grep-excuses.pl devscripts-2.8.5.new/grep-excuses.pl
+diff --exclude=*~ -ruN devscripts-2.8.5/grep-excuses.pl devscripts-2.8.5.new/grep-excuses.pl
 --- devscripts-2.8.5/grep-excuses.pl	Thu Jul 29 18:21:56 2004
 +++ devscripts-2.8.5.new/grep-excuses.pl	Tue Nov 23 01:51:15 2004
 @@ -67,7 +67,7 @@
@@ -734,7 +740,7 @@ diff -ruN devscripts-2.8.5/grep-excuses.pl devscripts-2.8.5.new/grep-excuses.pl
      my %config_vars = (
  		       'GREP_EXCUSES_MAINTAINER' => '',
  		       );
-diff -ruN devscripts-2.8.5/plotchangelog.1 devscripts-2.8.5.new/plotchangelog.1
+diff --exclude=*~ -ruN devscripts-2.8.5/plotchangelog.1 devscripts-2.8.5.new/plotchangelog.1
 --- devscripts-2.8.5/plotchangelog.1	Thu Jul 29 18:21:56 2004
 +++ devscripts-2.8.5.new/plotchangelog.1	Tue Nov 23 01:51:15 2004
 @@ -104,7 +104,7 @@
@@ -746,7 +752,7 @@ diff -ruN devscripts-2.8.5/plotchangelog.1 devscripts-2.8.5.new/plotchangelog.1
  \fI~/.devscripts\fR are sourced by a shell in that order to set
  configuration variables.  The \fB\-\-no\-conf\fR option can be used to
  prevent reading these files.  Environment variable settings are
-diff -ruN devscripts-2.8.5/plotchangelog.pl devscripts-2.8.5.new/plotchangelog.pl
+diff --exclude=*~ -ruN devscripts-2.8.5/plotchangelog.pl devscripts-2.8.5.new/plotchangelog.pl
 --- devscripts-2.8.5/plotchangelog.pl	Thu Jul 29 18:21:56 2004
 +++ devscripts-2.8.5.new/plotchangelog.pl	Tue Nov 23 01:51:15 2004
 @@ -98,7 +98,7 @@
@@ -758,7 +764,7 @@ diff -ruN devscripts-2.8.5/plotchangelog.pl devscripts-2.8.5.new/plotchangelog.p
      my %config_vars = (
  		       'PLOTCHANGELOG_OPTIONS' => '',
  		       'PLOTCHANGELOG_GNUPLOT' => '',
-diff -ruN devscripts-2.8.5/rc-alert.pl devscripts-2.8.5.new/rc-alert.pl
+diff --exclude=*~ -ruN devscripts-2.8.5/rc-alert.pl devscripts-2.8.5.new/rc-alert.pl
 --- devscripts-2.8.5/rc-alert.pl	Thu Jul 29 18:21:56 2004
 +++ devscripts-2.8.5.new/rc-alert.pl	Tue Nov 23 01:51:15 2004
 @@ -19,7 +19,7 @@
@@ -770,7 +776,7 @@ diff -ruN devscripts-2.8.5/rc-alert.pl devscripts-2.8.5.new/rc-alert.pl
  use Devscripts::Packages;
  use File::Basename;
  
-diff -ruN devscripts-2.8.5/uscan.1 devscripts-2.8.5.new/uscan.1
+diff --exclude=*~ -ruN devscripts-2.8.5/uscan.1 devscripts-2.8.5.new/uscan.1
 --- devscripts-2.8.5/uscan.1	Fri Jul 30 20:01:12 2004
 +++ devscripts-2.8.5.new/uscan.1	Tue Nov 23 01:51:15 2004
 @@ -240,7 +240,7 @@
@@ -782,7 +788,7 @@ diff -ruN devscripts-2.8.5/uscan.1 devscripts-2.8.5.new/uscan.1
  \fI~/.devscripts\fR are sourced by a shell in that order to set
  configuration variables.  These may be overridden by command line
  options.  Environment variable settings are ignored for this purpose.
-diff -ruN devscripts-2.8.5/uscan.pl devscripts-2.8.5.new/uscan.pl
+diff --exclude=*~ -ruN devscripts-2.8.5/uscan.pl devscripts-2.8.5.new/uscan.pl
 --- devscripts-2.8.5/uscan.pl	Tue Aug 24 21:41:50 2004
 +++ devscripts-2.8.5.new/uscan.pl	Tue Nov 23 01:51:15 2004
 @@ -28,7 +28,7 @@
@@ -803,7 +809,7 @@ diff -ruN devscripts-2.8.5/uscan.pl devscripts-2.8.5.new/uscan.pl
      my %config_vars = (
  		       'USCAN_DOWNLOAD' => 'yes',
  		       'USCAN_PASV' => 'default',
-diff -ruN devscripts-2.8.5/uupdate.1 devscripts-2.8.5.new/uupdate.1
+diff --exclude=*~ -ruN devscripts-2.8.5/uupdate.1 devscripts-2.8.5.new/uupdate.1
 --- devscripts-2.8.5/uupdate.1	Thu Jul 29 18:21:56 2004
 +++ devscripts-2.8.5.new/uupdate.1	Tue Nov 23 01:51:15 2004
 @@ -83,7 +83,7 @@
@@ -815,7 +821,7 @@ diff -ruN devscripts-2.8.5/uupdate.1 devscripts-2.8.5.new/uupdate.1
  \fI~/.devscripts\fR are sourced in that order to set configuration
  variables.  Command line options can be used to override configuration
  file settings.  Environment variable settings are ignored for this
-diff -ruN devscripts-2.8.5/uupdate.sh devscripts-2.8.5.new/uupdate.sh
+diff --exclude=*~ -ruN devscripts-2.8.5/uupdate.sh devscripts-2.8.5.new/uupdate.sh
 --- devscripts-2.8.5/uupdate.sh	Thu Jul 29 18:21:56 2004
 +++ devscripts-2.8.5.new/uupdate.sh	Tue Nov 23 01:51:15 2004
 @@ -126,7 +126,7 @@
