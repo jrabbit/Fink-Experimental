@@ -41,8 +41,8 @@ CompileScript: <<
 
   perl -pi.bak -e 's,yytext_ptr,libical_ptr,g' libical/src/libical/icallexer.c
   perl -pi.bak -e 's,yytext_ptr,libicalss_ptr,g' libical/src/libicalss/icalsslexer.c
-  perl -pi.bak -e 's,yytext_ptr,holiday_ptr,g' korganizer/plugins/holidays/scanholiday.c
   perl -pi.bak -e 's,#include <malloc.h>,,g' libkcal/versit/vcc*
+  perl -pi.bak -e 's, holidays , ,g' korganizer/plugins/Makefile
 
   ./build-helper.sh make      %N %v %r make all all_libraries="$ALL_LIBRARIES"
 <<
@@ -59,9 +59,10 @@ InstallScript: <<
   touch %i/share/doc/kde-installed-packages/%N
   touch %i/share/doc/kde-installed-packages/%N-base
 
-  rm -rf %i/share/doc/kde/en/kontact
-
-  find %i -name \*knewstuff\* -exec rm -rf {} \;
+  find %i -name \*knewstuff\* -exec rm -rf {} \; || :
+  rm -rf %i/bin/ghns
+  rm -rf %i/bin/khotnewstuff
+  rm -rf %i/share/config/khotnewstuffrc
 <<
 
 DocFiles: README*
@@ -79,10 +80,40 @@ SplitOff: <<
     lib/libkdenetwork.dylib
     lib/libkdepim.dylib
     lib/libkgantt.dylib
+    lib/libgpgme++.dylib
+    lib/libkabc_imap.dylib
+    lib/libkabc_slox.dylib
+    lib/libkabc_xmlrpc.dylib
+    lib/libkabinterfaces.dylib
+    lib/libkaddressbook.dylib
+    lib/libkalarmd.dylib
+    lib/libkcal_imap.dylib
+    lib/libkcal_resourceremote.dylib
+    lib/libkcal_slox.dylib
+    lib/libkcal_xmlrpc.dylib
+    lib/libkitchensyncui.dylib
+    lib/libkleopatra.dylib
+    lib/libkmailprivate.dylib
+    lib/libknodecommon.dylib
+    lib/libknotes_imap.dylib
+    lib/libknotes_xmlrpc.dylib
+    lib/libkonnector.dylib
+    lib/libkontact.dylib
     lib/libkorganizer.dylib
+    lib/libkorganizer_calendar.dylib
+    lib/libkorganizer_eventviewer.dylib
     lib/libkpilot.dylib
     lib/libkpimexchange.dylib
+    lib/libkpimidentities.dylib
+    lib/libkpinterfaces.dylib
+    lib/libksharedfile.dylib
+    lib/libksieve.dylib
+    lib/libkslox.dylib
     lib/libksync.dylib
+    lib/libksync2.dylib
+    lib/libktnef.dylib
+    lib/libmimelib.dylib
+    lib/libqgpgme.dylib
   <<
 <<
 SplitOff2: <<
@@ -123,6 +154,7 @@ SplitOff3: <<
     share/doc/kde/en/kalarm
     share/doc/kde/en/kcontrol/kalarmd
     share/icons/*/*/actions/kalarm*
+    share/icons/*/*/apps/kalarm*
   <<
 <<
 SplitOff4: <<
@@ -137,8 +169,9 @@ SplitOff4: <<
     share/applications/kde/kandy.desktop
     share/applnk/Utilities/kandy.desktop
     share/apps/kandy
-    share/config.kcfg/kandy.kcfg
+    share/config.kcfg/kandy*
     share/doc/kde/en/kandy
+    share/mimelnk/kdedevice/cellphone*
   <<
 <<
 SplitOff5: <<
@@ -160,20 +193,29 @@ SplitOff6: <<
   Package: kmail
   Description: KDE - e-mail client
   Depends: %N-base (>= %v-%r), %N-common (>= %v-%r), kdebase3-ssl-shlibs (>= %v-21) | kdebase3-shlibs (>= %v-21)
-  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), kdenetwork3-common
+  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), kdenetwork3-common, %N-common (<< %v-%r)
   Recommends: %N (>= %v-%r)
   Files: <<
     bin/kmail*
-    share/applications/kde/KMail.desktop
+    lib/libkmailprivate*.dylib
+    share/applications/kde/KMail*
+    share/applications/kde/kmail*
     share/applnk/Utilities/kmailcvt.desktop
     share/apps/kconf_update/kmail*
     share/apps/kconf_update/kpgp*
     share/apps/kconf_update/upgrade*
     share/apps/kmail*
+    share/config.kcfg/kmail*
+    share/config/kmail*
     share/doc/kde/en/kmail*
     share/icons/*/*/apps/kmail*.png
+    share/services/kmail*
+    share/services/*imap*.protocol
     share/services/sieve.protocol
-    share/servicetypes/dcopmail.desktop
+    share/servicetypes/dcop*.desktop
+  <<
+  Shlibs: <<
+    %p/lib/libkmailprivate.0.dylib 1.0.0 %n (>= 3.3.0-1)
   <<
 <<
 SplitOff7: <<
@@ -189,6 +231,7 @@ SplitOff7: <<
     share/doc/kde/en/knode
     share/icons/*/*/apps/knode*
     share/services/knewsservice.protocol
+    share/services/knode*
   <<
 <<
 SplitOff8: <<
@@ -202,6 +245,8 @@ SplitOff8: <<
     lib/kde3/*knotes*
     share/applications/kde/knotes.desktop
     share/apps/knotes
+    share/config.kcfg/knoteconfig*
+    share/config.kcfg/knotesglobalconfig*
     share/doc/kde/en/knotes
     share/icons/*/*/apps/knotes*
   <<
@@ -216,8 +261,11 @@ SplitOff9: <<
     bin/kontact
     share/applications/kde/Kontact.desktop
     share/apps/kontact*
-    share/config.kcfg/kontact.kcfg
+    share/config.kcfg/kontact*
+    share/doc/kde/en/kontact
     share/icons/*/*/apps/kontact*
+    share/icons/*/*/actions/kontact*
+    share/services/kcm*summary*
     share/services/kontact*
     share/servicetypes/kontact*
   <<
@@ -229,20 +277,17 @@ SplitOff10: <<
   Replaces: %N (<< %v-%r), %N-dev (<< %v-%r)
   Recommends: %N (>= %v-%r)
   Files: <<
-    bin/ghns
-    bin/khotnewstuff
     bin/korg*
     lib/kde3/*korg*
     share/applications/kde/korganizer.desktop
     share/apps/korganizer
     share/apps/korgac
     share/autostart/korgac.desktop
-    share/config.kcfg/korganizer.kcfg
+    share/config.kcfg/korganizer*
     share/config/khotnewstuffrc
     share/doc/kde/en/korganizer
-    share/icons/*/*/actions/knewstuff*
     share/icons/*/*/apps/korganizer*
-    share/services/korganizer
+    share/services/korganizer*
     share/services/kresources/kcal
     share/servicetypes/dcopcalendar.desktop
     share/servicetypes/korganizerpart.desktop
@@ -273,11 +318,20 @@ SplitOff12: <<
     lib/kde3/*conduit*
     share/applications/kde/kpalmdoc.desktop
     share/applications/kde/kpilot*.desktop
+    share/apps/kconf_update/kpalmdoc.upd
+    share/apps/kconf_update/kpilot.upd
     share/apps/kpilot
+    share/config.kcfg/*conduit*
+    share/config.kcfg/kpalmdoc*
+    share/config.kcfg/kpilot*
+    share/config.kcfg/popmail*
     share/doc/kde/en/kpilot
     share/icons/*/*/apps/kpalm*
     share/icons/*/*/apps/kpilot*
+    share/mimelnk/kdedevice/pda*
     share/services/*conduit*
+    share/services/kfile_palm*
+    share/services/kpilot*
     share/servicetypes/*conduit*
   <<
 <<
@@ -288,9 +342,16 @@ SplitOff13: <<
   Replaces: %N (<< %v-%r), %N-dev (<< %v-%r)
   Recommends: %N (>= %v-%r)
   Files: <<
+    bin/kitchensync
     bin/ksync
     lib/kde3/libksync*
+    share/apps/kitchensync
     share/apps/ksync
+    share/services/kded/ksharedfile.desktop
+    share/services/kitchensync*
+    share/services/overview*
+    share/servicetypes/kitchensync*
+    share/servicetypes/konnector*
   <<
 <<
 SplitOff14: <<
@@ -303,6 +364,7 @@ SplitOff14: <<
     bin/ktnef
     share/applications/kde/ktnef.desktop
     share/apps/ktnef
+    share/doc/kde/en/ktnef
     share/icons/*/*/apps/ktnef*
     share/mimelnk/application/ms-tnef.desktop
   <<
@@ -314,28 +376,72 @@ SplitOff15: <<
   Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), kdenetwork3-common, kdenetwork3-dev (<< %v-1)
   Recommends: %N (>= %v-%r)
   Files: <<
+    bin/*wizard*
     bin/ical2vcal
+    bin/kleopatra
     bin/konsolekalendar
+    bin/kwatchgnupg
     lib
     share/applications/kde/konsolekalendar.desktop
+    share/applications/kde/kleopatra_import.desktop
     share/apps/kgantt
+    share/apps/kleopatra
+    share/apps/kwatchgnupg
+    share/apps/libkleopatra
+    share/config.kcfg/egroupware*
+    share/config.kcfg/kolab*
+    share/config.kcfg/slox*
+    share/config/libkleopatrarc
+    share/doc/kde/en/kleopatra
     share/doc/kde/en/konsolekalendar
+    share/doc/kde/en/kwatchgnupg
     share/services/kfile_vcf*
+    share/services/kleopatra*
+    share/services/kresources*
     share/services/webcal.protocol
     share/servicetypes/calendar*
+    share/icons/*/*/apps/gpg*
     share/icons/*/*/apps/konsolekalendar*
   <<
   Shlibs: <<
-    %p/lib/libkalarmd.0.dylib 1.0.0 %N-common (>= 3.2.0-11)
-    %p/lib/libkcal.2.dylib 3.0.0 %N-common (>= 3.2.0-11)
-    %p/lib/libkcalsystem.0.dylib 1.0.0 %N-common (>= 3.2.0-11)
-    %p/lib/libkdenetwork.2.dylib 0.0.0 %N-common (>= 3.2.0-1)
-    %p/lib/libkdepim.1.dylib 2.0.0 %N-common (>= 3.2.0-11)
-    %p/lib/libkgantt.0.dylib 1.0.0 %N-common (>= 3.2.0-11)
-    %p/lib/libkorganizer.1.dylib 2.0.0 %N-common (>= 3.2.0-11)
-    %p/lib/libkpilot.0.dylib 1.0.0 %N-common (>= 3.2.0-11)
-    %p/lib/libkpimexchange.1.dylib 2.0.0 %N-common (>= 3.2.0-11)
-    %p/lib/libksync.1.dylib 2.0.0 %N-common (>= 3.2.0-11)
+    %p/lib/libgpgme++.0.dylib 1.0.0 %n (>= 3.3.0-1)
+    %p/lib/libkabc_imap.0.dylib 1.0.0 %n (>= 3.3.0-1)
+    %p/lib/libkabc_slox.0.dylib 1.0.0 %n (>= 3.3.0-1)
+    %p/lib/libkabc_xmlrpc.1.dylib 2.0.0 %n (>= 3.3.0-1)
+    %p/lib/libkabinterfaces.1.dylib 2.0.0 %n (>= 3.3.0-1)
+    %p/lib/libkaddressbook.0.dylib 1.0.0 %n (>= 3.3.0-1)
+    %p/lib/libkalarmd.0.dylib 1.0.0 %n (>= 3.2.0-1)
+    %p/lib/libkcal.2.dylib 3.0.0 %n (>= 3.2.0-1)
+    %p/lib/libkcalsystem.0.dylib 1.0.0 %n (>= 3.2.0-1)
+    %p/lib/libkcal_imap.1.dylib 2.0.0 %n (>= 3.3.0-1)
+    %p/lib/libkcal_resourceremote.1.dylib 2.0.0 %n (>= 3.3.0-1)
+    %p/lib/libkcal_slox.0.dylib 1.0.0 %n (>= 3.3.0-1)
+    %p/lib/libkcal_xmlrpc.1.dylib 2.0.0 %n (>= 3.3.0-1)
+    %p/lib/libkdenetwork.2.dylib 5.0.0 %n (>= 3.3.0-1)
+    %p/lib/libkdepim.1.dylib 2.0.0 %n (>= 3.2.0-1)
+    %p/lib/libkgantt.0.dylib 1.0.0 %n (>= 3.2.0-1)
+    %p/lib/libkitchensyncui.0.dylib 1.0.0 %n (>= 3.3.0-1)
+    %p/lib/libkleopatra.0.dylib 1.0.0 %n (>= 3.3.0-1)
+    %p/lib/libknodecommon.0.dylib 1.0.0 %n (>= 3.3.0-1)
+    %p/lib/libknotes_imap.0.dylib 1.0.0 %n (>= 3.3.0-1)
+    %p/lib/libknotes_xmlrpc.1.dylib 2.0.0 %n (>= 3.3.0-1)
+    %p/lib/libkonnector.0.dylib 1.0.0 %n (>= 3.3.0-1)
+    %p/lib/libkontact.1.dylib 2.0.0 %n (>= 3.3.0-1)
+    %p/lib/libkorganizer.1.dylib 2.0.0 %n (>= 3.2.0-1)
+    %p/lib/libkorganizer_calendar.1.dylib 2.0.0 %n (>= 3.3.0-1)
+    %p/lib/libkorganizer_eventviewer.1.dylib 2.0.0 %n (>= 3.3.0-1)
+    %p/lib/libkpilot.0.dylib 1.0.0 %n (>= 3.2.0-1)
+    %p/lib/libkpimexchange.1.dylib 2.0.0 %n (>= 3.2.0-1)
+    %p/lib/libkpimidentities.1.dylib 2.0.0 %n (>= 3.3.0-1)
+    %p/lib/libkpinterfaces.1.dylib 2.0.0 %n (>= 3.3.0-1)
+    %p/lib/libksharedfile.0.dylib 1.0.0 %n (>= 3.3.0-1)
+    %p/lib/libksieve.0.dylib 1.0.0 %n (>= 3.3.0-1)
+    %p/lib/libkslox.0.dylib 1.0.0 %n (>= 3.3.0-1)
+    %p/lib/libksync.1.dylib 2.0.0 %n (>= 3.2.0-1)
+    %p/lib/libksync2.0.dylib 1.0.0 %n (>= 3.3.0-1)
+    %p/lib/libktnef.1.dylib 2.0.0 %n (>= 3.3.0-1)
+    %p/lib/libmimelib.1.dylib 2.0.0 %n (>= 3.3.0-1)
+    %p/lib/libqgpgme.0.dylib 1.0.0 %n (>= 3.3.0-1)
   <<
 <<
 SplitOff16: <<
