@@ -6,7 +6,7 @@ License: GPL/LGPL
 Maintainer: Benjamin Reed <kdesdk3@fink.racoonfink.com>
 
 Depends: cervisia (>= %v-%r), kapptemplate (>= %v-%r), kbabel (>= %v-%r), kbugbuster (>= %v-%r), kcachegrind (>= %v-%r), kcal-bugzilla (>= %v-%r), kdeaccounts-plugin (>= %v-%r), %N-extra-kfile-plugins (>= %v-%r), kompare (>= %v-%r), kspy (>= %v-%r), kuiviewer (>= %v-%r), poxml (>= %v-%r), scheck (>= %v-%r), umbrello (>= %v-%r), %N-scripts (>= %v-%r)
-BuildDepends: arts-dev (>= 1.3.92-21), cctools (>= 446-1) | cctools-single-module, db42 | db42-ssl, fink (>= 0.20.2.1-1), flex-devel (>= 2.5.31-1), freetype2 (>= 2.1.3-23) | freetype2-hinting (>= 2.1.3-23), gettext-dev, kdelibs3-ssl-dev (>= %v-21) | kdelibs3-dev (>= %v-21), kdepim3-dev (>= %v-21), libart2, libiconv-dev, libidn, libjpeg, libpng3 (>= 1.2.5-4), pcre, qt3 (>= 3.3.3-27), x11-dev
+BuildDepends: arts-dev (>= 1.3.92-21), autoconf2.5, automake1.9, cctools (>= 446-1) | cctools-single-module, db42 | db42-ssl, fink (>= 0.20.2.1-1), flex-devel (>= 2.5.31-1), freetype2 (>= 2.1.3-23) | freetype2-hinting (>= 2.1.3-23), gettext-dev, kdelibs3-ssl-dev (>= %v-21) | kdelibs3-dev (>= %v-21), kdepim3-dev (>= %v-21), libart2, libiconv-dev, libidn, libjpeg, libpng3 (>= 1.2.5-4), pcre, qt3 (>= 3.3.3-27), x11-dev
 Replaces: %N-dev (<< %v-1)
 GCC: 3.3
 
@@ -17,19 +17,17 @@ CustomMirror: <<
 <<
 Source: mirror:kde:stable/%v/src/kdesdk-%v.tar.bz2
 Source-MD5: 7bd1ffb6e6526bd978e87deea8cf1923
-Source2: mirror:custom:kde-build-20050127.tar.bz2
-Source2-MD5: 37a9842fd7ea79156fe8b6b06f05f5fe
+Source2: mirror:custom:kde-admindir-3.3.92.tar.bz2
+Source2-MD5: 1ebededa85c0c15ba0138e39a54fea2e
 Source2ExtractDir: kdesdk-%v
 
 PatchScript: <<
   sed -e 's,@FINKPREFIX@,%p,g' %a/%n.patch | patch -p1 
-  perl -pi.bak -e 's,-O2,-Os,g; s,doc/HTML,doc/kde,g; s,/usr/share/doc/packages/qt3/html,%p/share/doc/qt3/html,g' configure
+  perl -pi.bak -e 's,-O2,-Os,g; s,doc/HTML,doc/kde,g; s,/usr/share/doc/packages/qt3/html,%p/share/doc/qt3/html,g' admin/*
 <<
 
 NoSetCPPFLAGS: true
 NoSetLDFLAGS: true
-#SetMAKEFLAGS: -j1
-#NoSetMAKEFLAGS: true
 ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%p/share/man --with-xinerama --with-pam --disable-final --with-db-name=db-4.2 --with-distribution='Fink/Mac OS X'
 
 CompileScript: <<
@@ -40,6 +38,7 @@ CompileScript: <<
   export LEX="%p/lib/flex/bin/flex"
   . ./environment-helper.sh
 
+  ./build-helper.sh cvs       %N %v %r make -f admin/Makefile.common cvs
   ./build-helper.sh configure %N %v %r ./configure %c
 
   perl -pi -e 's,(..libdir.)/kde3,$1,g' kompare/libdialogpages/Makefile

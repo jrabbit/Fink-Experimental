@@ -1,108 +1,34 @@
-diff -uNr kdelibs-3.3.92/admin/ltmain.sh kdelibs-3.3.92-new/admin/ltmain.sh
---- kdelibs-3.3.92/admin/ltmain.sh	Mon Jan  3 09:53:16 2005
-+++ kdelibs-3.3.92-new/admin/ltmain.sh	Sat Feb  5 15:38:35 2005
-@@ -4453,6 +4453,7 @@
- 	# We should set the shlibpath_var
- 	rpath=
- 	for dir in $temp_rpath; do
-+     if test "$dir" != "@FINKPREFIX@/lib"; then
- 	  case $dir in
- 	  [\\/]* | [A-Za-z]:[\\/]*)
- 	    # Absolute path.
-@@ -4463,6 +4464,7 @@
- 	    rpath="$rpath\$thisdir/$dir:"
- 	    ;;
- 	  esac
-+     fi
- 	done
- 	temp_rpath="$rpath"
-       fi
-diff -uNr kdelibs-3.3.92/configure kdelibs-3.3.92-new/configure
---- kdelibs-3.3.92/configure	Fri Feb  4 07:58:17 2005
-+++ kdelibs-3.3.92-new/configure	Sat Feb  5 15:38:36 2005
-@@ -8528,6 +8528,19 @@
-     lt_cv_sys_max_cmd_len=8192;
-     ;;
+diff -uNr kdelibs-3.3.92/dnssd/configure.in.in kdelibs-3.3.92-new/dnssd/configure.in.in
+--- kdelibs-3.3.92/dnssd/configure.in.in	Thu Feb  3 18:33:05 2005
++++ kdelibs-3.3.92-new/dnssd/configure.in.in	Sun Feb 13 20:24:01 2005
+@@ -16,7 +16,11 @@
+ 			TXTRecordDeallocate( (TXTRecordRef*) 0);
+ 		],[
+ 			AC_DEFINE(HAVE_DNSSD,1,[Define if dns-sd is available])
+-                        LIB_DNSSD="-ldns_sd"
++			if [ `uname -s` = 'Darwin' ]; then
++				LIB_DNSSD="-framework System"
++			else
++                        	LIB_DNSSD="-ldns_sd"
++			fi
+ 			AC_MSG_RESULT(yes)
+ 		],[
+ 			AC_MSG_RESULT(no)
+diff -uNr kdelibs-3.3.92/kdecore/Makefile.am kdelibs-3.3.92-new/kdecore/Makefile.am
+--- kdelibs-3.3.92/kdecore/Makefile.am	Thu Feb  3 18:33:07 2005
++++ kdelibs-3.3.92-new/kdecore/Makefile.am	Sun Feb 13 23:18:21 2005
+@@ -24,7 +24,7 @@
  
-+  netbsd* | freebsd* | openbsd* | darwin* )
-+    # This has been around since 386BSD, at least.  Likely further.
-+    if test -x /sbin/sysctl; then
-+      lt_cv_sys_max_cmd_len=`/sbin/sysctl -n kern.argmax`
-+    elif test -x /usr/sbin/sysctl; then
-+      lt_cv_sys_max_cmd_len=`/usr/sbin/sysctl -n kern.argmax`
-+    else
-+      lt_cv_sys_max_cmd_len=65536 # usable default for *BSD
-+    fi
-+    # And add a safety zone
-+    lt_cv_sys_max_cmd_len=`expr $lt_cv_sys_max_cmd_len \/ 4`
-+    ;;
-+
-  *)
-     # If test is not a shell built-in, we'll probably end up computing a
-     # maximum length that is only half of the actual maximum length, but
-@@ -23095,6 +23108,9 @@
- 	darwin*)
- 	  libltdl_cv_sys_dlopen_deplibs=yes
- 	  ;;
-+	darwin*)
-+	  libltdl_cv_sys_dlopen_deplibs=yes
-+	  ;;
- 	linux*)
- 	  libltdl_cv_sys_dlopen_deplibs=yes
- 	  ;;
-@@ -44032,8 +44048,8 @@
- kde_save_libs="$LIBS"
- LIBS="$all_libraries $USER_LDFLAGS $kde_cups_libs"
- CFLAGS="$CFLAGS $all_includes $USER_INCLUDES"
--echo "$as_me:$LINENO: checking CUPS version >= 1.0120" >&5
--echo $ECHO_N "checking CUPS version >= 1.0120... $ECHO_C" >&6
-+echo "$as_me:$LINENO: checking CUPS version >= 1.0121" >&5
-+echo $ECHO_N "checking CUPS version >= 1.0121... $ECHO_C" >&6
- kde_save_link=$ac_link
- ac_link='${CC} $CFLAGS -o conftest conftest.c $LIBS 1>&5'
- cat > conftest.c <<EOF
-@@ -44043,7 +44059,7 @@
- {
-   if (CUPS_VERSION <
- EOF
--echo "1.0120" >> conftest.c
-+echo "1.0121" >> conftest.c
- cat >> conftest.c <<EOF
- )
-     printf("no\n");
-@@ -46631,7 +46647,7 @@
-   echo $ECHO_N "(cached) $ECHO_C" >&6
- else
-   ac_check_lib_save_LIBS=$LIBS
--LIBS="-lqt-mt  $LIBS"
-+LIBS="-lqt-mt -lXft $LIBS"
- cat >conftest.$ac_ext <<_ACEOF
- /* confdefs.h.  */
- _ACEOF
-@@ -48624,7 +48640,7 @@
- no) echo "$as_me:$LINENO: result: no" >&5
- echo "${ECHO_T}no" >&6 ;;
- framework)
--  GSSAPI_LIBS="-Xlinker -framework -Xlinker GSSAPI"
-+  GSSAPI_LIBS="-Xlinker -framework -Xlinker Kerberos"
+ if include_SVGICONS
+ SVGICONS=svgicons
+-SVGICON_LIB=svgicons/libkdesvgicons.la
++SVGICON_LIB=svgicons/libkdesvgicons.la $(LIBZ)
+ endif
  
- cat >>confdefs.h <<_ACEOF
- #define HAVE_LIBGSSAPI 1
-diff -uNr kdelibs-3.3.92/kdecore/Makefile.in kdelibs-3.3.92-new/kdecore/Makefile.in
---- kdelibs-3.3.92/kdecore/Makefile.in	Fri Feb  4 07:57:59 2005
-+++ kdelibs-3.3.92-new/kdecore/Makefile.in	Sat Feb  5 15:38:36 2005
-@@ -653,7 +653,7 @@
- xdg_menudir = @xdg_menudir@
- INCLUDES = -I$(top_srcdir)/kdefx -I$(top_srcdir)/kdecore/network $(all_includes) $(LIBART_CFLAGS)
- @include_SVGICONS_TRUE@SVGICONS = svgicons
--@include_SVGICONS_TRUE@SVGICON_LIB = svgicons/libkdesvgicons.la
-+@include_SVGICONS_TRUE@SVGICON_LIB = svgicons/libkdesvgicons.la $(LIBZ)
  SUBDIRS = malloc network $(SVGICONS) . kconfig_compiler tests
- 
- # For the future: examine if condensing the tons of *_LDFLAGS variables
 diff -uNr kdelibs-3.3.92/kdecore/kglobalsettings.cpp kdelibs-3.3.92-new/kdecore/kglobalsettings.cpp
 --- kdelibs-3.3.92/kdecore/kglobalsettings.cpp	Thu Feb  3 18:33:08 2005
-+++ kdelibs-3.3.92-new/kdecore/kglobalsettings.cpp	Sat Feb  5 15:38:36 2005
++++ kdelibs-3.3.92-new/kdecore/kglobalsettings.cpp	Sun Feb 13 20:30:57 2005
 @@ -472,7 +472,7 @@
        s_desktopPath->append('/');
  
@@ -114,7 +40,7 @@ diff -uNr kdelibs-3.3.92/kdecore/kglobalsettings.cpp kdelibs-3.3.92-new/kdecore/
      if ( !s_trashPath->endsWith("/") )
 diff -uNr kdelibs-3.3.92/kdecore/ksocks.cpp kdelibs-3.3.92-new/kdecore/ksocks.cpp
 --- kdelibs-3.3.92/kdecore/ksocks.cpp	Tue May 11 04:31:44 2004
-+++ kdelibs-3.3.92-new/kdecore/ksocks.cpp	Sat Feb  5 15:38:36 2005
++++ kdelibs-3.3.92-new/kdecore/ksocks.cpp	Sun Feb 13 20:30:57 2005
 @@ -475,7 +475,7 @@
                                                     ksocklen_t addrlen) {
     if (_useSocks && F_connect)
@@ -187,7 +113,7 @@ diff -uNr kdelibs-3.3.92/kdecore/ksocks.cpp kdelibs-3.3.92-new/kdecore/ksocks.cp
  
 diff -uNr kdelibs-3.3.92/kdecore/kstandarddirs.cpp kdelibs-3.3.92-new/kdecore/kstandarddirs.cpp
 --- kdelibs-3.3.92/kdecore/kstandarddirs.cpp	Thu Feb  3 18:33:08 2005
-+++ kdelibs-3.3.92-new/kdecore/kstandarddirs.cpp	Sat Feb  5 15:38:36 2005
++++ kdelibs-3.3.92-new/kdecore/kstandarddirs.cpp	Sun Feb 13 20:30:57 2005
 @@ -1020,7 +1020,7 @@
      if (!strcmp(type, "data"))
  	return "share/apps/";
@@ -199,7 +125,7 @@ diff -uNr kdelibs-3.3.92/kdecore/kstandarddirs.cpp kdelibs-3.3.92-new/kdecore/ks
      if (!strcmp(type, "config"))
 diff -uNr kdelibs-3.3.92/kdecore/network/kresolvermanager.cpp kdelibs-3.3.92-new/kdecore/network/kresolvermanager.cpp
 --- kdelibs-3.3.92/kdecore/network/kresolvermanager.cpp	Sat Dec  4 13:07:46 2004
-+++ kdelibs-3.3.92-new/kdecore/network/kresolvermanager.cpp	Sat Feb  5 15:38:36 2005
++++ kdelibs-3.3.92-new/kdecore/network/kresolvermanager.cpp	Sun Feb 13 20:30:57 2005
 @@ -31,6 +31,7 @@
  
  #ifdef HAVE_RES_INIT
@@ -210,7 +136,7 @@ diff -uNr kdelibs-3.3.92/kdecore/network/kresolvermanager.cpp kdelibs-3.3.92-new
  #endif
 diff -uNr kdelibs-3.3.92/kdecore/network/ksocketdevice.cpp kdelibs-3.3.92-new/kdecore/network/ksocketdevice.cpp
 --- kdelibs-3.3.92/kdecore/network/ksocketdevice.cpp	Thu Feb  3 18:33:08 2005
-+++ kdelibs-3.3.92-new/kdecore/network/ksocketdevice.cpp	Sat Feb  5 15:38:36 2005
++++ kdelibs-3.3.92-new/kdecore/network/ksocketdevice.cpp	Sun Feb 13 20:30:57 2005
 @@ -311,7 +311,7 @@
      }
  
@@ -249,7 +175,7 @@ diff -uNr kdelibs-3.3.92/kdecore/network/ksocketdevice.cpp kdelibs-3.3.92-new/kd
    if (kde_getpeername(m_sockfd, peerAddress.address(), &len) == -1)
 diff -uNr kdelibs-3.3.92/kdecore/network/syssocket.h kdelibs-3.3.92-new/kdecore/network/syssocket.h
 --- kdelibs-3.3.92/kdecore/network/syssocket.h	Tue May 25 22:34:35 2004
-+++ kdelibs-3.3.92-new/kdecore/network/syssocket.h	Sat Feb  5 15:38:36 2005
++++ kdelibs-3.3.92-new/kdecore/network/syssocket.h	Sun Feb 13 20:30:57 2005
 @@ -53,7 +53,7 @@
    }
  
@@ -289,9 +215,21 @@ diff -uNr kdelibs-3.3.92/kdecore/network/syssocket.h kdelibs-3.3.92-new/kdecore/
    {
      return ::getsockname(fd, sa, len);
    }
+diff -uNr kdelibs-3.3.92/kdeprint/configure.in.in kdelibs-3.3.92-new/kdeprint/configure.in.in
+--- kdelibs-3.3.92/kdeprint/configure.in.in	Sat Mar 13 08:13:23 2004
++++ kdelibs-3.3.92-new/kdeprint/configure.in.in	Sun Feb 13 20:24:37 2005
+@@ -80,7 +80,7 @@
+ 
+       dnl check if CUPS is at least 1.1.20
+       ac_have_new_cups="no"
+-      AC_CHECK_CUPS_VERSION(1.0120)
++      AC_CHECK_CUPS_VERSION(1.0121)
+       if test "$ac_have_new_cups" = "yes"; then
+  	AC_DEFINE(HAVE_CUPS_NO_PWD_CACHE, 1, CUPS doesn't have password caching)
+       fi
 diff -uNr kdelibs-3.3.92/kdesu/su.cpp kdelibs-3.3.92-new/kdesu/su.cpp
 --- kdelibs-3.3.92/kdesu/su.cpp	Tue Apr 13 09:33:21 2004
-+++ kdelibs-3.3.92-new/kdesu/su.cpp	Sat Feb  5 15:38:36 2005
++++ kdelibs-3.3.92-new/kdesu/su.cpp	Sun Feb 13 20:30:57 2005
 @@ -74,13 +74,14 @@
  	setTerminal(true);
  
@@ -308,50 +246,49 @@ diff -uNr kdelibs-3.3.92/kdesu/su.cpp kdelibs-3.3.92-new/kdesu/su.cpp
  
      QCString command = __PATH_SU;
      if (::access(__PATH_SU, X_OK) != 0)
-diff -uNr kdelibs-3.3.92/kdeui/Makefile.in kdelibs-3.3.92-new/kdeui/Makefile.in
---- kdelibs-3.3.92/kdeui/Makefile.in	Fri Feb  4 07:58:02 2005
-+++ kdelibs-3.3.92-new/kdeui/Makefile.in	Sat Feb  5 15:38:36 2005
-@@ -617,11 +617,11 @@
+diff -uNr kdelibs-3.3.92/kdeui/Makefile.am kdelibs-3.3.92-new/kdeui/Makefile.am
+--- kdelibs-3.3.92/kdeui/Makefile.am	Thu Feb  3 18:33:10 2005
++++ kdelibs-3.3.92-new/kdeui/Makefile.am	Sun Feb 13 20:28:58 2005
+@@ -27,10 +27,10 @@
+ AM_LDFLAGS = $(LDFLAGS_AS_NEEDED) $(LDFLAGS_NEW_DTAGS)
+ 
  lib_LTLIBRARIES = libkdeui.la libkspell.la
- #>- libkdeui_la_LDFLAGS = $(KDE_MT_LDFLAGS) -no-undefined -version-info 6:0:2
- #>+ 1
--libkdeui_la_LDFLAGS = $(KDE_MT_LDFLAGS) -no-undefined $(KDE_NO_UNDEFINED) -version-info 6:0:2
-+libkdeui_la_LDFLAGS = $(KDE_MT_LDFLAGS) $(all_libraries) -no-undefined $(KDE_NO_UNDEFINED) -version-info 6:0:2
+-libkdeui_la_LDFLAGS = $(KDE_MT_LDFLAGS) -no-undefined -version-info 6:0:2
++libkdeui_la_LDFLAGS = $(KDE_MT_LDFLAGS) $(all_libraries) -no-undefined -version-info 6:0:2
  libkdeui_la_LIBADD = ../kdecore/libkdecore.la
- #>- libkspell_la_LDFLAGS = $(KDE_MT_LDFLAGS) -version-info 6:0:2 -no-undefined
- #>+ 1
--libkspell_la_LDFLAGS = $(KDE_MT_LDFLAGS) -version-info 6:0:2 -no-undefined $(KDE_NO_UNDEFINED)
-+libkspell_la_LDFLAGS = $(KDE_MT_LDFLAGS) $(all_libraries) -version-info 6:0:2 -no-undefined $(KDE_NO_UNDEFINED)
+ 
+-libkspell_la_LDFLAGS = $(KDE_MT_LDFLAGS) -version-info 6:0:2 -no-undefined
++libkspell_la_LDFLAGS = $(KDE_MT_LDFLAGS) $(all_libraries) -version-info 6:0:2 -no-undefined
  libkspell_la_LIBADD = libkdeui.la
  libkspell_la_SOURCES = dummy.cpp
- picsdir = $(kde_datadir)/kdeui/pics
-diff -uNr kdelibs-3.3.92/kimgio/Makefile.in kdelibs-3.3.92-new/kimgio/Makefile.in
---- kdelibs-3.3.92/kimgio/Makefile.in	Fri Feb  4 07:58:06 2005
-+++ kdelibs-3.3.92-new/kimgio/Makefile.in	Sat Feb  5 15:38:36 2005
-@@ -581,7 +581,7 @@
+ 
+diff -uNr kdelibs-3.3.92/kimgio/Makefile.am kdelibs-3.3.92-new/kimgio/Makefile.am
+--- kdelibs-3.3.92/kimgio/Makefile.am	Mon Jan  3 09:53:24 2005
++++ kdelibs-3.3.92-new/kimgio/Makefile.am	Sun Feb 13 20:29:11 2005
+@@ -21,7 +21,7 @@
               kimg_pcx.la kimg_tga.la kimg_rgb.la kimg_xcf.la kimg_dds.la $(KIMGIO_EXR_MODULES) \
  			 kimg_psd.la
  
 -KIMGIO_PLUGIN = -avoid-version -export-symbols-regex 'kimgio_.*_(read|write)'
 +KIMGIO_PLUGIN = -avoid-version
+ 
  kimg_tiff_la_SOURCES = tiffr.cpp
- #>- kimg_tiff_la_LDFLAGS = -module $(KIMGIO_PLUGIN) -no-undefined $(all_libraries)
- #>+ 1
-diff -uNr kdelibs-3.3.92/kinit/Makefile.in kdelibs-3.3.92-new/kinit/Makefile.in
---- kdelibs-3.3.92/kinit/Makefile.in	Fri Feb  4 07:58:06 2005
-+++ kdelibs-3.3.92-new/kinit/Makefile.in	Sat Feb  5 15:38:36 2005
-@@ -596,7 +596,7 @@
- xdg_appsdir = @xdg_appsdir@
- xdg_directorydir = @xdg_directorydir@
- xdg_menudir = @xdg_menudir@
+ kimg_tiff_la_LDFLAGS = -module $(KIMGIO_PLUGIN) -no-undefined $(all_libraries)
+diff -uNr kdelibs-3.3.92/kinit/Makefile.am kdelibs-3.3.92-new/kinit/Makefile.am
+--- kdelibs-3.3.92/kinit/Makefile.am	Thu Feb  3 18:33:17 2005
++++ kdelibs-3.3.92-new/kinit/Makefile.am	Sun Feb 13 20:29:59 2005
+@@ -15,7 +15,7 @@
+ #    the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ #    Boston, MA 02111-1307, USA.
+ 
 -INCLUDES = -I$(srcdir)/../libltdl/ $(all_includes) $(KDEINIT_XFT_INCLUDES)
 +INCLUDES = -I$(srcdir)/../libltdl/ $(KDEINIT_XFT_INCLUDES) $(all_includes)
+ 
  SUBDIRS = . tests
- #>- lib_LTLIBRARIES = 
- #>+ 1
+ 
 diff -uNr kdelibs-3.3.92/kinit/setproctitle.cpp kdelibs-3.3.92-new/kinit/setproctitle.cpp
 --- kdelibs-3.3.92/kinit/setproctitle.cpp	Fri Nov 12 19:01:44 2004
-+++ kdelibs-3.3.92-new/kinit/setproctitle.cpp	Sat Feb  5 15:38:36 2005
++++ kdelibs-3.3.92-new/kinit/setproctitle.cpp	Sun Feb 13 20:30:57 2005
 @@ -76,7 +76,9 @@
  # endif
  # if SPT_TYPE == SPT_PSSTRINGS
@@ -365,7 +302,7 @@ diff -uNr kdelibs-3.3.92/kinit/setproctitle.cpp kdelibs-3.3.92-new/kinit/setproc
  #   define SPT_TYPE	SPT_REUSEARGV
 diff -uNr kdelibs-3.3.92/kio/kssl/kopenssl.cc kdelibs-3.3.92-new/kio/kssl/kopenssl.cc
 --- kdelibs-3.3.92/kio/kssl/kopenssl.cc	Tue May 11 04:31:45 2004
-+++ kdelibs-3.3.92-new/kio/kssl/kopenssl.cc	Sat Feb  5 15:38:42 2005
++++ kdelibs-3.3.92-new/kio/kssl/kopenssl.cc	Sun Feb 13 20:30:57 2005
 @@ -322,6 +322,7 @@
               #elif defined(_AIX)
               << "libcrypto.a(libcrypto.so.0)"
@@ -374,15 +311,27 @@ diff -uNr kdelibs-3.3.92/kio/kssl/kopenssl.cc kdelibs-3.3.92-new/kio/kssl/kopens
  	     << "libcrypto.dylib"
  	     << "libcrypto.0.9.dylib"
  	     #else
-diff -uNr kdelibs-3.3.92/kio/misc/kpac/Makefile.in kdelibs-3.3.92-new/kio/misc/kpac/Makefile.in
---- kdelibs-3.3.92/kio/misc/kpac/Makefile.in	Fri Feb  4 07:58:09 2005
-+++ kdelibs-3.3.92-new/kio/misc/kpac/Makefile.in	Sat Feb  5 15:38:42 2005
-@@ -533,7 +533,7 @@
-                              downloader.cpp discovery.cpp proxyscout_skel.cpp
- 
+diff -uNr kdelibs-3.3.92/kio/misc/kpac/Makefile.am kdelibs-3.3.92-new/kio/misc/kpac/Makefile.am
+--- kdelibs-3.3.92/kio/misc/kpac/Makefile.am	Thu Dec 25 10:52:00 2003
++++ kdelibs-3.3.92-new/kio/misc/kpac/Makefile.am	Sun Feb 13 20:30:29 2005
+@@ -10,7 +10,7 @@
+ kded_proxyscout_la_SOURCES = proxyscout.skel proxyscout.cpp script.cpp \
+                              downloader.cpp discovery.cpp
  kded_proxyscout_la_LDFLAGS = $(all_libraries) -module -avoid-version
 -kded_proxyscout_la_LIBADD = $(LIB_KIO) $(top_builddir)/kjs/libkjs.la
 +kded_proxyscout_la_LIBADD = $(LIB_KIO) $(top_builddir)/kjs/libkjs.la $(LIBRESOLV)
+ 
  kpac_dhcp_helper_SOURCES = kpac_dhcp_helper.c
  kpac_dhcp_helper_LDADD = $(LIBSOCKET)
- noinst_HEADERS = proxyscout.h script.h downloader.h discovery.h
+diff -uNr kdelibs-3.3.92/kioslave/http/configure.in.in kdelibs-3.3.92-new/kioslave/http/configure.in.in
+--- kdelibs-3.3.92/kioslave/http/configure.in.in	Thu Nov  4 16:05:13 2004
++++ kdelibs-3.3.92-new/kioslave/http/configure.in.in	Sun Feb 13 20:25:47 2005
+@@ -69,7 +69,7 @@
+ case "$with_gssapi" in
+ no) AC_MSG_RESULT(no) ;;
+ framework)
+-  GSSAPI_LIBS="-Xlinker -framework -Xlinker GSSAPI"
++  GSSAPI_LIBS="-Xlinker -framework -Xlinker Kerberos"
+   AC_DEFINE_UNQUOTED(HAVE_LIBGSSAPI, 1, [Define if you have GSSAPI libraries])
+   GSSAPI_SUBDIR="gssapi"
+   AC_MSG_RESULT(Apple framework)

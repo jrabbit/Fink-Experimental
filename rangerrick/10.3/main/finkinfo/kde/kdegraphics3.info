@@ -6,7 +6,7 @@ License: GPL/LGPL
 Maintainer: Benjamin Reed <kdegraphics3@fink.racoonfink.com>
 
 Depends: kcoloredit (>= %v-%r), kde-kfile-image-plugins (>= %v-%r), kdvi (>= %v-%r), kfax (>= %v-%r), kgamma (>= %v-%r), kghostview (>= %v-%r), kiconedit (>= %v-%r), kmrml (>= %v-%r), kolourpaint (>= %v-%r), kpdf (>= %v-%r), kpovmodeler (>= %v-%r), kooka (>= %v-%r), kruler (>= %v-%r), ksnapshot (>= %v-%r), ksvg (>= %v-%r), kuickshow (>= %v-%r), kview (>= %v-%r)
-BuildDepends: arts-dev (>= 1.3.92-11), cctools (>= 446-1) | cctools-single-module, fink (>= 0.20.2.1-1), freetype2 (>= 2.1.3-23) | freetype2-hinting (>= 2.1.3-23), fribidi (>= 0.10.4-1), fribidi-dev (>= 0.10.4-1), giflib | libungif, glut (>= 3.7-13), imlib (>= 1.9.14-2), kdelibs3-ssl-dev (>= %v-11) | kdelibs3-dev (>= %v-11), lcms, libart2, libidn, libjpeg, libpng3 (>= 1.2.5-4), libtiff, libtiff-bin, libusb, openexr-dev, pcre, sane-backends, xpdf, qt3 (>= 3.3.3-17), x11-dev
+BuildDepends: arts-dev (>= 1.3.92-11), autoconf2.5, automake1.9, cctools (>= 446-1) | cctools-single-module, fink (>= 0.20.2.1-1), freetype2 (>= 2.1.3-23) | freetype2-hinting (>= 2.1.3-23), fribidi (>= 0.10.4-1), fribidi-dev (>= 0.10.4-1), giflib | libungif, glut (>= 3.7-13), imlib (>= 1.9.14-2), kdelibs3-ssl-dev (>= %v-11) | kdelibs3-dev (>= %v-11), lcms, libart2, libidn, libjpeg, libpng3 (>= 1.2.5-4), libtiff, libtiff-bin, libusb, openexr-dev, pcre, sane-backends, xpdf, qt3 (>= 3.3.3-17), x11-dev
 Conflicts: %N (<< %v-%r)
 GCC: 3.3
 
@@ -17,13 +17,13 @@ CustomMirror: <<
 <<
 Source: mirror:kde:unstable/%v/src/kdegraphics-%v.tar.bz2
 Source-MD5: 70270e2a8e7926001728986e33fd0d5c
-Source2: mirror:custom:kde-build-20050127.tar.bz2
-Source2-MD5: 37a9842fd7ea79156fe8b6b06f05f5fe
+Source2: mirror:custom:kde-admindir-3.3.92.tar.bz2
+Source2-MD5: 1ebededa85c0c15ba0138e39a54fea2e
 Source2ExtractDir: kdegraphics-%v
 
 PatchScript: <<
   sed -e 's,@FINKPREFIX@,%p,g' %a/%n.patch | patch -p1 
-  perl -pi.bak -e 's,-O2,-Os,g; s,doc/HTML,doc/kde,g; s,/usr/share/doc/packages/qt3/html,%p/share/doc/qt3/html,g' configure
+  perl -pi.bak -e 's,-O2,-Os,g; s,doc/HTML,doc/kde,g; s,/usr/share/doc/packages/qt3/html,%p/share/doc/qt3/html,g' admin/*
 <<
 
 NoSetCPPFLAGS: true
@@ -39,6 +39,7 @@ CompileScript: <<
   export PREFIX="%p"
   . ./environment-helper.sh
 
+  ./build-helper.sh cvs       %N %v %r make -f admin/Makefile.common cvs
   ./build-helper.sh configure %N %v %r ./configure %c
   perl -pi.bak -e 's,-framework (CoreFoundation|IOKit),-Xlinker -framework -Xlinker $1,g; s,-lsane,%p/lib/libsane.dylib,g' libkscan/Makefile
   ./build-helper.sh make      %N %v %r make all all_libraries="$ALL_LIBRARIES"

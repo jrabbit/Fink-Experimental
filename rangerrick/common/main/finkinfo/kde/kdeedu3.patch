@@ -1,84 +1,6 @@
-diff -uNr kdeedu-3.3.92/admin/ltmain.sh kdeedu-3.3.92-new/admin/ltmain.sh
---- kdeedu-3.3.92/admin/ltmain.sh	Mon Jan  3 09:52:29 2005
-+++ kdeedu-3.3.92-new/admin/ltmain.sh	Sat Feb  5 16:40:34 2005
-@@ -4453,6 +4453,7 @@
- 	# We should set the shlibpath_var
- 	rpath=
- 	for dir in $temp_rpath; do
-+     if test "$dir" != "@FINKPREFIX@/lib"; then
- 	  case $dir in
- 	  [\\/]* | [A-Za-z]:[\\/]*)
- 	    # Absolute path.
-@@ -4463,6 +4464,7 @@
- 	    rpath="$rpath\$thisdir/$dir:"
- 	    ;;
- 	  esac
-+     fi
- 	done
- 	temp_rpath="$rpath"
-       fi
-diff -uNr kdeedu-3.3.92/configure kdeedu-3.3.92-new/configure
---- kdeedu-3.3.92/configure	Fri Feb  4 06:14:30 2005
-+++ kdeedu-3.3.92-new/configure	Sat Feb  5 16:40:35 2005
-@@ -8235,6 +8235,19 @@
-     lt_cv_sys_max_cmd_len=8192;
-     ;;
- 
-+  netbsd* | freebsd* | openbsd* | darwin* )
-+    # This has been around since 386BSD, at least.  Likely further.
-+    if test -x /sbin/sysctl; then
-+      lt_cv_sys_max_cmd_len=`/sbin/sysctl -n kern.argmax`
-+    elif test -x /usr/sbin/sysctl; then
-+      lt_cv_sys_max_cmd_len=`/usr/sbin/sysctl -n kern.argmax`
-+    else
-+      lt_cv_sys_max_cmd_len=65536 # usable default for *BSD
-+    fi
-+    # And add a safety zone
-+    lt_cv_sys_max_cmd_len=`expr $lt_cv_sys_max_cmd_len \/ 4`
-+    ;;
-+
-  *)
-     # If test is not a shell built-in, we'll probably end up computing a
-     # maximum length that is only half of the actual maximum length, but
-diff -uNr kdeedu-3.3.92/kstars/kstars/Makefile.in kdeedu-3.3.92-new/kstars/kstars/Makefile.in
---- kdeedu-3.3.92/kstars/kstars/Makefile.in	Fri Feb  4 06:14:25 2005
-+++ kdeedu-3.3.92-new/kstars/kstars/Makefile.in	Sat Feb  5 16:40:35 2005
-@@ -132,8 +132,7 @@
- 	fitshistogram.$(OBJEXT) opssolarsystem.$(OBJEXT) \
- 	streamwg.$(OBJEXT) indifitsconf.$(OBJEXT) \
- 	imagesequence.$(OBJEXT) kstarsinterface_skel.$(OBJEXT) simclockinterface_skel.$(OBJEXT) addcatdialogui.$(OBJEXT) addlinkdialogui.$(OBJEXT) detaildialogui.$(OBJEXT) devmanager.$(OBJEXT) focusdialogdlg.$(OBJEXT) indiconf.$(OBJEXT) indihostconf.$(OBJEXT) opsadvancedui.$(OBJEXT) opscatalogui.$(OBJEXT) opscolorsui.$(OBJEXT) opsguides.$(OBJEXT) opssolarsystemui.$(OBJEXT) telescopewizard.$(OBJEXT) fovdialogui.$(OBJEXT) newfovui.$(OBJEXT) kswizardui.$(OBJEXT) contrastbrightnessgui.$(OBJEXT) imagereductionui.$(OBJEXT) histdialog.$(OBJEXT) statform.$(OBJEXT) fitsheaderdialog.$(OBJEXT) streamformui.$(OBJEXT) imgsequencedlgui.$(OBJEXT) Options.$(OBJEXT)
--@KDE_USE_FINAL_FALSE@kstars_OBJECTS = $(kstars_nofinal_OBJECTS)
--@KDE_USE_FINAL_TRUE@kstars_OBJECTS = $(kstars_final_OBJECTS)
-+kstars_OBJECTS = $(kstars_nofinal_OBJECTS)
- kstars_DEPENDENCIES = indi/liblilxml.a indi/libindicom.a \
- 	tools/libkstarstools.a \
- 	$(top_builddir)/libkdeedu/kdeeduplot/libkdeeduplot.la \
-@@ -254,8 +253,6 @@
- KDE_RPATH = @KDE_RPATH@
- KDE_USE_CLOSURE_FALSE = @KDE_USE_CLOSURE_FALSE@
- KDE_USE_CLOSURE_TRUE = @KDE_USE_CLOSURE_TRUE@
--KDE_USE_FINAL_FALSE = @KDE_USE_FINAL_FALSE@
--KDE_USE_FINAL_TRUE = @KDE_USE_FINAL_TRUE@
- KDE_USE_NMCHECK_FALSE = @KDE_USE_NMCHECK_FALSE@
- KDE_USE_NMCHECK_TRUE = @KDE_USE_NMCHECK_TRUE@
- KDE_XSL_STYLESHEET = @KDE_XSL_STYLESHEET@
-@@ -1594,11 +1591,11 @@
- 
- #>+ 3
- final:
--	$(MAKE) kstars_OBJECTS="$(kstars_final_OBJECTS)" all-am
-+	$(MAKE) kstars_OBJECTS="$(kstars_nofinal_OBJECTS)" all-am
- 
- #>+ 3
- final-install:
--	$(MAKE) kstars_OBJECTS="$(kstars_final_OBJECTS)" install-am
-+	$(MAKE) kstars_OBJECTS="$(kstars_nofinal_OBJECTS)" install-am
- 
- #>+ 3
- no-final:
 diff -uNr kdeedu-3.3.92/kstars/kstars/indi/fli_ccd.c kdeedu-3.3.92-new/kstars/kstars/indi/fli_ccd.c
 --- kdeedu-3.3.92/kstars/kstars/indi/fli_ccd.c	Mon Jan  3 09:52:58 2005
-+++ kdeedu-3.3.92-new/kstars/kstars/indi/fli_ccd.c	Sat Feb  5 16:40:35 2005
++++ kdeedu-3.3.92-new/kstars/kstars/indi/fli_ccd.c	Mon Feb 14 10:01:26 2005
 @@ -19,6 +19,7 @@
  
  #endif
@@ -87,12 +9,3 @@ diff -uNr kdeedu-3.3.92/kstars/kstars/indi/fli_ccd.c kdeedu-3.3.92-new/kstars/ks
  #include <stdio.h>
  #include <stdlib.h>
  #include <string.h>
-@@ -1696,7 +1697,7 @@
-  
- 	/* get a private connection to new client */
- 	cli_len = sizeof(cli_socket);
--	s = accept (lsocket, (struct sockaddr *)&cli_socket, (socklen_t *)&cli_len);
-+	s = accept (lsocket, (struct sockaddr *)&cli_socket, (kde_socklen_t *)&cli_len);
- 	if(s < 0) {
- 	    fprintf (stderr, "%s: accept: %s", me, strerror(errno));
- 	    exit (1);

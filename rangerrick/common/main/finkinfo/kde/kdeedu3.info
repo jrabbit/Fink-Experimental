@@ -6,9 +6,8 @@ License: GPL/LGPL
 Maintainer: Benjamin Reed <kdeedu3@fink.racoonfink.com>
 
 Depends: kalzium (>= %v-%r), kbruch (>= %v-%r), keduca (>= %v-%r), khangman (>= %v-%r), kig (>= %v-%r), kiten (>= %v-%r), klatin (>= %v-%r), klettres (>= %v-%r), kmessedwords (>= %v-%r), kmplot (>= %v-%r), kpercentage (>= %v-%r), kstars (>= %v-%r), ktouch (>= %v-%r), kverbos (>= %v-%r), kvoctrain (>= %v-%r), kwordquiz (>= %v-%r), kturtle (>= %v-%r)
-BuildDepends: arts-dev (>= 1.3.92-1), cctools (>= 446-1) | cctools-single-module, dlcompat-dev (>= 20030629-5), fink (>= 0.20.2.1-1), freetype2 (>= 2.1.3-23) | freetype2-hinting (>= 2.1.3-23), kdelibs3-ssl-dev (>= %v-1) | kdelibs3-dev (>= %v-1), libart2, libidn, libjpeg, libpng3 (>= 1.2.5-4), pcre, python2.3 | python2.3-nox, qt3 (>= 3.3.3-7), x11-dev
+BuildDepends: arts-dev (>= 1.3.92-1), autoconf2.5, automake1.9, cctools (>= 446-1) | cctools-single-module, dlcompat-dev (>= 20030629-5), fink (>= 0.20.2.1-1), freetype2 (>= 2.1.3-23) | freetype2-hinting (>= 2.1.3-23), kdelibs3-ssl-dev (>= %v-1) | kdelibs3-dev (>= %v-1), libart2, libidn, libjpeg, libpng3 (>= 1.2.5-4), pcre, qt3 (>= 3.3.3-7), x11-dev
 Replaces: %N-dev (<< %v-%r), %N-shlibs (<< %v-%r)
-# FIXME: add boost1.31 and python23 | python23-nox when STL works
 GCC: 3.3
 
 CustomMirror: <<
@@ -18,20 +17,19 @@ CustomMirror: <<
 <<
 Source: mirror:kde:unstable/%v/src/kdeedu-%v.tar.bz2
 Source-MD5: f2d08ae4d295314be22df40f7343c64b
-SourceDirectory: kdeedu-%v
-Source2: mirror:custom:kde-build-20050127.tar.bz2
-Source2-MD5: 37a9842fd7ea79156fe8b6b06f05f5fe
+Source2: mirror:custom:kde-admindir-3.3.92.tar.bz2
+Source2-MD5: 1ebededa85c0c15ba0138e39a54fea2e
 Source2ExtractDir: kdeedu-%v
 
 PatchScript: <<
   sed -e 's,@FINKPREFIX@,%p,g' %a/%n.patch | patch -p1 
-  perl -pi.bak -e 's,-O2,-Os,g; s,doc/HTML,doc/kde,g; s,/usr/share/doc/packages/qt3/html,%p/share/doc/qt3/html,g' configure
+  perl -pi.bak -e 's,-O2,-Os,g; s,doc/HTML,doc/kde,g; s,/usr/share/doc/packages/qt3/html,%p/share/doc/qt3/html,g' admin/*
 <<
 
 NoSetCPPFLAGS: true
 NoSetLDFLAGS: true
-ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --disable-final --with-distribution='Fink/Mac OS X'
-# FIXME: remove --disable-kig-python-scripting when we get the STL junk worked out
+ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --disable-final --with-distribution='Fink/Mac OS X' --disable-kig-python-scripting
+# FIXME: remove --disable-kig-python-scripting when boost has python working
 
 CompileScript: <<
 #!/bin/sh -e
@@ -39,8 +37,9 @@ CompileScript: <<
   export HOME=/tmp
   export PREFIX="%p"
   . ./environment-helper.sh
-  export LDFLAGS="-L%p/lib/python2.3/config"
+  export LDFLAGS="-L%p/lib/python2.4/config"
 
+  ./build-helper.sh cvs       %N %v %r make -f admin/Makefile.common cvs
   ./build-helper.sh configure %N %v %r ./configure %c
   ./build-helper.sh make      %N %v %r make all all_libraries="$ALL_LIBRARIES"
 <<
@@ -137,7 +136,6 @@ SplitOff4: <<
     share/apps/khangman
     share/config.kcfg/khangman.kcfg
     share/config/khangmanrc
-    share/doc/kde/en/khangman
     share/icons/crystalsvg/128x128/apps/khangman*
     share/icons/crystalsvg/16x16/apps/khangman*
     share/icons/crystalsvg/32x32/apps/khangman*
@@ -160,7 +158,7 @@ SplitOff5: <<
     share/apps/kig
     share/config/magic/cabri.magic
     share/config/magic/drgeo.magic
-    share/doc/kde/en/kig
+    share/doc/kde/en/khangman
     share/icons/crystalsvg/128x128/apps/kig*
     share/icons/crystalsvg/128x128/mimetypes/kig*
     share/icons/crystalsvg/16x16/apps/kig*
@@ -196,6 +194,7 @@ SplitOff6: <<
     bin/kitengen
     share/applications/kde/kiten.desktop
     share/apps/kiten
+    share/config.kcfg/kiten.kcfg
     share/doc/kde/en/kiten
     share/icons/crystalsvg/128x128/apps/kiten*
     share/icons/crystalsvg/16x16/apps/kiten*
@@ -226,9 +225,6 @@ SplitOff7: <<
     share/icons/crystalsvg/32x32/apps/klettres*
     share/icons/crystalsvg/48x48/apps/klettres*
     share/icons/crystalsvg/scalable/apps/klettres.svgz
-    share/icons/hicolor/48x48/apps/grownup*
-    share/icons/hicolor/48x48/apps/kids*
-    share/icons/hicolor/48x48/apps/menubar*
   <<
 <<
 SplitOff8: <<
