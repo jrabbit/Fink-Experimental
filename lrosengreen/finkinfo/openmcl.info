@@ -1,25 +1,24 @@
-##### NOT FOR UNSTABLE ####
 Package: openmcl
-Epoch: 2
-Version: 0.14.2-p1+20040914cvs
-Revision: 1
+Version: 0.14.2.20040914
+Revision: 10
 Description: ANSI Common Lisp implementation
 License: LGPL
 Maintainer: Lars Rosengreen <lars@margay.org>
 
-Type: cl-impl
-
-Source: http://www.margay.org/files/%n/%n-src-%v.tar.bz2
+Source: http://www.margay.org/files/%n/%n-cvs-ccl-0.14-20040914.tar.bz2
 Source2: ftp://clozure.com/pub/%n-darwinppc-bin-0.14.2-p1.tar.gz
 Source3: ftp://clozure.com/pub/%n-darwin-interfaces-040505.tar.gz
 
-Source-MD5:  9226ddc198bf053a37528ae8bc2c14a7
+Source-MD5:  67dd02c8296a641d87a1a464239897b8
 Source2-MD5: a984baf2c55293baac14314d61c203b0
 Source3-MD5: b66cda4edbf5e18baa54dae060e30f37
 
 SourceDirectory: ccl
 
-PatchScript: sed -e 's|@PREFIX@|%p|g' -e 's|@DATE@|'`echo %v | awk -F'[^0-9A-Za-z]+' '{ print $NF }'`'|g' <%a/%n.patch | patch -p1
+PatchScript: <<
+  sed -e 's|@PREFIX@|%p|g' -e 's|@DATE@|'`echo %v | awk -F'[^0-9A-Za-z]+' '{ print $NF }'`'|g' <%a/%n.patch | patch -p1
+  echo  '(pushnew #P"%p/lib/common-lisp/openmcl/systems/" *central-registry*)' >> tools/asdf.lisp
+<<
 
 CompileScript: <<
   cd lisp-kernel/darwin ; make
@@ -35,18 +34,9 @@ InstallScript: <<
   echo '#! /bin/sh' >> %i/bin/%n
   echo 'CCL_DEFAULT_DIRECTORY=%p/lib/%n/ccl exec %p/lib/%n/ccl/dppccl $@' >> %i/bin/%n
   chmod +x %i/bin/%n
-  install -m 755 -d %i/lib/%n/ccl
 
-  install -m 755 dppccl %i/lib/%n/ccl
-  install -m 644 dppccl.image %i/lib/%n/ccl
-  
-  install -m 755 -d %i/lib/%n/ccl/tools
-  install -m 644 tools/*.dfsl %i/lib/%n/ccl/tools
-  
-  cp -Rp darwin-headers %i/lib/%n/ccl
-  cp -Rp examples %i/lib/%n/ccl
-  cp -Rp OpenMCL.app %i/lib/%n/ccl
-  cp -Rp library %i/lib/%n/ccl
+  install -m 755 -d %i/lib/%n/ccl
+  cp -Rp * %i/lib/%n/ccl
 <<
 
 DocFiles: LGPL LICENSE ChangeLog
