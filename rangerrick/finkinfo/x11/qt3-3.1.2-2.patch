@@ -795,3 +795,44 @@ diff -uNbr qt-x11-free-3.1.2/tools/designer/plugins/cppeditor/cppeditor.pro qt-x
  }
  
  target.path += $$plugins.path/designer
+diff -uNr qt-x11-free-3.1.2/qmake/GNUmakefile.in qt-x11-free-3.1.2-new/qmake/GNUmakefile.in
+--- qt-x11-free-3.1.2/qmake/GNUmakefile.in	Sat Dec 14 09:00:34 2002
++++ qt-x11-free-3.1.2-new/qmake/GNUmakefile.in	Wed Apr  2 15:42:58 2003
+@@ -19,7 +19,7 @@
+ 	-DQT_NO_TEXTCODEC -DQT_NO_UNICODETABLES -DQT_NO_COMPONENT -DQT_NO_STL \
+ 	-DQT_NO_COMPRESS -I@QMAKESPEC@
+ CXXFLAGS= $(CFLAGS)
+-LFLAGS=@QMAKE_LFLAGS@
++LFLAGS=@QMAKE_LFLAGS@ -mdynamic-no-pic
+ 
+ #if cc isn't gcc I need to use the bad makefile
+ ifeq ($(CC),gcc)
+diff -uNr qt-x11-free-3.1.2/qmake/Makefile.unix qt-x11-free-3.1.2-new/qmake/Makefile.unix
+--- qt-x11-free-3.1.2/qmake/Makefile.unix	Tue Feb 11 01:11:09 2003
++++ qt-x11-free-3.1.2-new/qmake/Makefile.unix	Wed Apr  2 15:42:58 2003
+@@ -17,7 +17,7 @@
+ 	-DQT_NO_TEXTCODEC -DQT_NO_UNICODETABLES -DQT_NO_COMPONENT -DQT_NO_STL \
+ 	-DQT_NO_COMPRESS -I@QMAKESPEC@
+ CXXFLAGS= $(CFLAGS)
+-LFLAGS=@QMAKE_LFLAGS@
++LFLAGS=@QMAKE_LFLAGS@ -mdynamic-no-pic
+ 
+ qmake: $(OBJS) $(QOBJS)
+ 	$(CXX) -o $@ $(OBJS) $(QOBJS) $(LFLAGS)
+diff -uNr qt-x11-free-3.1.2/qmake/generators/unix/unixmake2.cpp qt-x11-free-3.1.2-new/qmake/generators/unix/unixmake2.cpp
+--- qt-x11-free-3.1.2/qmake/generators/unix/unixmake2.cpp	Mon Feb 24 03:30:51 2003
++++ qt-x11-free-3.1.2-new/qmake/generators/unix/unixmake2.cpp	Wed Apr  2 15:50:11 2003
+@@ -124,7 +124,12 @@
+ 	else
+ 	    t << var("QMAKE_LINK") << endl;
+ 
+-	t << "LFLAGS   = " << var("QMAKE_LFLAGS") << endl;
++	if(project->first("TEMPLATE") == "app" && !project->isActiveConfig("turn_off_nopic_hack")) {
++	  t << "LFLAGS   = " << var("QMAKE_LFLAGS") << " -mdynamic-no-pic" << endl;
++	} else {
++	  t << "LFLAGS   = " << var("QMAKE_LFLAGS") << endl;
++	}
++
+ 	t << "LIBS     = " << "$(SUBLIBS) " << var("QMAKE_LIBDIR_FLAGS") << " " << var("QMAKE_LIBS") << endl;
+     }
+ 
