@@ -1,53 +1,53 @@
 Package: quanta
-Version: 3.1.4
+Version: 3.1.93
 Revision: 1
-Depends: dlcompat-shlibs (>= 20030629-1),  kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-1), x11
-BuildDepends: arts-dev (>= 1.1.4-1), cctools (>= 446-1) | cctools-single-module, dlcompat-dev (>= 20030629-1), autoconf2.54, automake1.6, fink (>= 0.12.1), kdebase3-ssl-dev (>= %v-1) | kdebase3-dev (>= %v-1), kdelibs3-ssl-dev (>= %v-1) | kdelibs3-dev (>= %v-1), libart2, libjpeg, libpng3 (>= 1.2.5-4), libtool14, qt3 (>= 3.2.1-1), x11
+Depends: dlcompat-shlibs (>= 20030629-5),  kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11
+BuildDepends: arts-dev (>= 1.1.93-1), cctools (>= 446-1) | cctools-single-module, dlcompat-dev (>= 20030629-5), autoconf2.54, automake1.6, fink (>= 0.14.0-1), kdebase3-ssl-dev (>= %v-1) | kdebase3-dev (>= %v-1), kdelibs3-ssl-dev (>= %v-1) | kdelibs3-dev (>= %v-1), libart2, libjpeg, libpng3 (>= 1.2.5-4), libtool14, qt3 (>= 3.2.1-11), x11
 Maintainer: Benjamin Reed <ranger@befunk.com>
 
-CustomMirror: <<
-  nam-US: http://ranger.befunk.com/fink
-  nam-US: http://astrange.ithinksw.net/~astrange/ranger-fink
-  nam-CA: http://www.southofheaven.net/befunk
-<<
-Source: mirror:kde:stable/%v/src/%n-%v.tar.bz2
-Source-MD5: fd0ce91e010912d8a29a1c23810fc88e
-Source2: mirror:custom:kde-admindir-20030916.tar.bz2
-Source2-MD5: 95d67207a2fd4e40c3c51f9c30f41e52
-Source2ExtractDir: %n-%v
+Source: mirror:kde:unstable/%v/src/%n-%v.tar.bz2
+Source-MD5: ef55cb1f10b428e51b58f08230f8cdc2
 
-PatchScript: sed 's|@PREFIX@|%p|g' <%a/%n.patch | patch -p0
+PatchScript: <<
+  patch -p0 < %a/%n.patch
+  perl -pi -e 's,-O2,-Os,' admin/acinclude.m4.in
+  perl -pi -e 's,doc/HTML,doc/kde,g' admin/acinclude.m4.in
+<<
+
 DocFiles: AUTHORS COPYING ChangeLog INSTALL* NEWS README VERSION
-NoSetLDFLAGS: true
 SetLIBS: -L%p/lib
-SetCPPFLAGS: -fno-common -no-cpp-precomp -I/usr/X11R6/include/freetype2 -I/usr/X11R6/include -I%p/include
+SetCPPFLAGS: -no-cpp-precomp -fno-common -I/usr/X11R6/include/freetype2 -I/usr/X11R6/include -I%p/include
+SetMACOSX_DEPLOYMENT_TARGET: 10.2
 ConfigureParams: --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --disable-final --disable-dependency-tracking
 CompileScript: <<
-#!/bin/sh
-  export KDEDIR=%p
+#!/bin/sh -e
   mkdir -p /tmp/kde-build
 
-  date > /tmp/kde-build/%N-%v-%r.cvs && \
-  (make -f admin/Makefile.common cvs 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.cvs) && \
-  date > /tmp/kde-build/%N-%v-%r.configure && \
-  (sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure) && \
-  date > /tmp/kde-build/%N-%v-%r.make && \
-  (make -j2 all 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.make)
+# breaks a lot of plugins on 10.2, enable this again on 10.3
+#  export LD_TWOLEVEL_NAMESPACE=true
+  export PATH="/usr/X11R6/bin:$PATH"
+
+  date > /tmp/kde-build/%N-%v-%r.cvs
+  make -f admin/Makefile.common cvs 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.cvs
+  date > /tmp/kde-build/%N-%v-%r.configure
+  FREETYPE_CONFIG=/usr/X11R6/bin/freetype-config sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure
+  date > /tmp/kde-build/%N-%v-%r.make
+  make all 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.make
 <<
 
 InstallScript: <<
-#!/bin/sh
+#!/bin/sh -e
   mkdir -p /tmp/kde-build
   mkdir -p %i/share/doc/kde-installed-packages
   touch %i/share/doc/kde-installed-packages/%N
   touch %i/share/doc/kde-installed-packages/%N-base
 
-  date > /tmp/kde-build/%N-%v-%r.install && \
-  (make install DESTDIR=%d 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.install) && \
-  rm -rf %i/share/apps/katepart && \
-  mkdir -p %i/share/applnk/Editors && \
-  mv %i/share/applnk/Applications/kmdr-executor.desktop %i/share/applnk/Editors/ && \
-  rmdir %i/share/applnk/Applications
+  date > /tmp/kde-build/%N-%v-%r.install
+  make -j1 install DESTDIR=%d 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.install
+<<
+
+Shlibs: <<
+  %p/lib/libkommanderwidgets.0.dylib 1.0.0 %n (>= 3.1.93-1)
 <<
 Description: KDE - HTML editor
 DescDetail: <<
