@@ -11,5 +11,6 @@ cvs up
 echo "=== running cvs2cl ==="
 $DIRNAME/cvs2cl.pl --xml --stdout > ChangeLog.xml
 echo "=== running xsltproc ==="
-xsltproc filter-cvs2cl.xslt ChangeLog.xml > ChangeLog-rangerrick.rdf
+xsltproc $DIRNAME/filter-cvs2cl.xslt ChangeLog.xml > ChangeLog-rangerrick.rdf
+cp ChangeLog-rangerrick.rdf $HOME/public_html/misc/
 popd >/dev/null 2>&1

@@ -24,11 +24,9 @@
 
 <xsl:template match="cl:entry">
  <item>
-  <title><xsl:value-of select="cl:author"/></title>
+  <title><xsl:for-each select="cl:file"><xsl:value-of select="cl:name"/><xsl:if test="position()!=last()">, </xsl:if></xsl:for-each></title>
   <dc:date><xsl:value-of select="cl:isoDate"/></dc:date>
-  <description><xsl:for-each select="cl:file"><xsl:value-of select="cl:name"/><xsl:if test="position()!=last()">, </xsl:if></xsl:for-each>&lt;br>
-<xsl:value-of select="cl:msg"/>
-  </description>
+  <description><xsl:value-of select="cl:msg"/></description>
   <x:body>
    <!-- Choose one of these lines depending on your preferred verbosity -->
    <xsl:apply-templates select="cl:file"/>
