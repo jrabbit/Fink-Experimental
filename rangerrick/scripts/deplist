@@ -25,7 +25,7 @@ usage: $0 [-d] [-h] [-m /path/to/version/file] [-a /path/to/alternates/file] [-v
 	-d          debug mode
 	-h          this help
 	-v <ver>    force version <ver> for package/alternate lookup
-   -m <file>   the path to the package-version mapping
+	-m <file>   the path to the package-version mapping
 	            (defaults to $DIRECTORY/mapping.deplist)
 	-a <file>   the path to the alternate-package listing
 	            (defaults to $DIRECTORY/alternates.deplist)
@@ -109,27 +109,44 @@ if (not @VERMAP or not @ALTMAP) {
 	die "no mappings found\n";
 }
 
-# FIXME: port the dpkg -L bit to IPC::Open3 so that
-# I can check for things like .idl files for orbit2 and
-# .omf files for scrollkeeper to add dependencies, and not
-# just pipe everything through otool -L without finding
-# other bits first
-
 for my $package (@ARGV) {
 	print "=== ($package) ===\n";
-	my (%depfiles, %deppackages);
-	if(open(OTOOL, "dpkg -L $package 2>/dev/null | xargs otool -L 2>/dev/null |")) {
-		while (<OTOOL>) {
-			if (my ($file) = $_ =~ /^\s*(\S+) \(/) {
-				$depfiles{$file}++;
+	my (%filelist, %depfiles, %deppackages);
+	if(open(DPKG, "dpkg -L $package 2>/dev/null |")) {
+		while (<DPKG>) {
+			chomp;
+			if (-f $_) {
+				$filelist{$_}++;
+			}
+			if (/\.omf$/) {
+				# scrollkeeper .omf files
+				$deppackages{'scrollkeeper'}++;
+			} elsif (/lib\/perl5\/([\d\.]+)\//) {
+				# /sw/lib/perl5/X.X.X/*
+				my $perlver = $1;
+				$perlver =~ s/\.//g;
+				$deppackages{'perl'.$perlver.'-core'}++;
 			}
 		}
-		close(OTOOL);
+		close(DPKG);
 	} else {
-		print "couldn't run otool -L on $package: $!\n";
+		print "couldn't run dpkg -L on $package: $!\n";
+	}
+	if (my $pid = open3(\*WRITER, \*READER, \*ERR, 'xargs otool -L')) {
+		print WRITER join("\n", keys %filelist), "\n";
+		close(WRITER);
+		while(<READER>) {
+			chomp;
+			$_ =~ s/^\s*(\S+)\s+.*$/$1/;
+			$depfiles{$_}++ if (-f $_);
+		}
+		close(READER);
+		close(ERR);
+	} else {
+		print "couldn't open3 otool -L: $!\n";
 	}
 	if (my $pid = open3(\*WRITER, \*READER, \*ERR, 'xargs dpkg -S')) {
-		print WRITER join("\n", sort keys %depfiles), "\n";
+		print WRITER join("\n", keys %depfiles), "\n";
 		close(WRITER);
 		while(<READER>) {
 			chomp;
@@ -196,3 +213,134 @@ for my $package (@ARGV) {
 	}
 	print "Depends: ", join(', ', @pkgspecs), "\n\n";
 }
+
+# ripped wholesale from perl.req from RPM
+# FIXME: use this sub to make automatic perl module dependencies
+sub process_perl_file {
+
+	my $file = shift;
+	chomp $file;
+
+	open(FILE, "<$file") || return;
+
+	while (<FILE>) {
+
+		# skip the documentation
+
+		# we should not need to have item in this if statement (it
+		# properly belongs in the over/back section) but people do not
+		# read the perldoc.
+
+		if ( (m/^=(head1|head2|pod|item)/) .. (m/^=(cut)/) ) {
+			next;
+		}
+
+		if ( (m/^=(over)/) .. (m/^=(back)/) ) {
+			next;
+		}
+
+		# skip the data section
+		if (m/^__(DATA|END)__$/) {
+			last;
+		}
+
+		if (
+
+			# ouch could be in a eval, perhaps we do not want these since we catch
+			# an exception they must not be required
+
+			#  eval { require Term::ReadLine } or die $@;
+			#  eval "require Term::Rendezvous;" or die $@;
+			#  eval { require Carp } if defined $^S; # If error/warning during compilation,
+
+
+			(m/^(\s*)                        # we hope the inclusion starts the line
+			 (require|use)\s+(?!\{)          # do not want 'do {' loops
+			 # quotes around name are always legal
+			 [\'\"]?([^\;\ \'\"\t]*)[\'\"]?[\t\;\ ]
+			 # the syntax for 'use' allows version requirements
+			 \s*([.0-9]*)
+			 /x)
+		) {
+			my ($whitespace, $statement, $module, $version) = ($1, $2, $3,$4);
+
+			# we only consider require statements that are flush against
+			# the left edge. any other require statements give too many
+			# false positives, as they are usually inside of an if statement
+			# as a fallback module or a rarely used option
+
+			($whitespace ne "" && $statement eq "require") && next;
+
+			# if there is some interpolation of variables just skip this
+			# dependency, we do not want
+			#  do "$ENV{LOGDIR}/$rcfile";
+
+			($module =~ m/\$/) && next;
+
+			# skip if the phrase was "use of" -- shows up in gimp-perl, et al
+			next if $module eq 'of';
+
+			# if the module ends in a comma we probaly caught some
+			# documentation of the form 'check stuff,\n do stuff, clean
+			# stuff.' there are several of these in the perl distribution
+
+			($module =~ m/[,>]$/) && next;
+
+			# if the module ends with .pm strip it to leave only basename.
+			# starts with /, which means its an absolute path to a file
+			if ($module =~ m(^/)) {
+				print "$module\n";
+				next;
+			}
+
+			# sometimes people do use POSIX qw(foo), or use POSIX(qw(foo)) etc
+			# we can strip qw.*$, as well as (.*$:
+			$module =~ s/qw.*$//;
+			$module =~ s/\(*$//;
+
+			$module =~ s/\.pm$//;
+
+			# some perl programmers write 'require URI/URL;' when
+			# they mean 'require URI::URL;'
+
+			$module =~ s/\//::/;
+
+			# trim off trailing parenthesis if any.	Sometimes people pass
+			# the module an empty list.
+
+			$module =~ s/\(\s*\)$//;
+
+			if ( $module =~ m/^[0-9._]+$/ ) {
+				# if module is a number then both require and use interpret that
+				# to mean that a particular version of perl is specified
+
+				# skip this since we do the perl560-core thing
+
+			};
+
+			# ph files do not use the package name inside the file.
+			# perlmodlib documentation says:
+
+			#  the .ph files made by h2ph will probably end up as
+			#  extension modules made by h2xs.
+
+			# so do not expend much effort on these.
+
+			# there is no easy way to find out if a file named systeminfo.ph
+			# will be included with the name sys/systeminfo.ph so only use the
+			# basename of *.ph files
+
+			($module =~ m/\.ph$/) && next;
+
+			$require{$module}=$version;
+			$line{$module}=$_;
+		}
+
+	}
+
+	close(FILE) ||
+		die("$0: Could not close file: '$file' : $!\n");
+
+	return ;
+}
+
