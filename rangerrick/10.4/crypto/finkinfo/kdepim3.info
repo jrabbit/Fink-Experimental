@@ -18,13 +18,14 @@ CustomMirror: <<
 Source: mirror:kde:stable/3.4/src/kdepim-%v.tar.bz2
 Source-MD5: 7f8cc9a40c0190c5a6723f6325bcba06
 SourceDirectory: kdepim-%v
-Source2: mirror:custom:kde-admindir-3.4.0-4.tar.bz2
+Source2: mirror:custom:kde-admindir-3.4.0-6.tar.bz2
 Source2-MD5: 5d0274369eba8c862178ba8e26639cc3
 Source2ExtractDir: kdepim-%v
 
 PatchScript: <<
   sed -e 's,@FINKPREFIX@,%p,g' %a/%n.patch | patch -p1 
   perl -pi.bak -e 's,-O2,-Os,g; s,doc/HTML,doc/kde,g; s,/usr/share/doc/packages/qt3/html,%p/share/doc/qt3/html,g' admin/*
+  perl -pi.bak -e 's,#include <malloc.h>,,g' libkcal/versit/vcc*
 <<
 
 NoSetMAKEFLAGS: true
@@ -44,9 +45,8 @@ CompileScript: <<
   ./build-helper.sh cvs       %N %v %r make -f admin/Makefile.common cvs
   ./build-helper.sh configure %N %v %r ./configure %c
 
-  perl -pi.bak -e 's,yytext_ptr,libical_ptr,g' libical/src/libical/icallexer.c
-  perl -pi.bak -e 's,yytext_ptr,libicalss_ptr,g' libical/src/libicalss/icalsslexer.c
-  perl -pi.bak -e 's,#include <malloc.h>,,g' libkcal/versit/vcc*
+#  perl -pi.bak -e 's,yytext_ptr,libical_ptr,g' libical/src/libical/icallexer.c
+#  perl -pi.bak -e 's,yytext_ptr,libicalss_ptr,g' libical/src/libicalss/icalsslexer.c
 #  perl -pi.bak -e 's, holidays , ,g' korganizer/plugins/Makefile
 
   ./build-helper.sh make      %N %v %r make -j1 all all_libraries="$ALL_LIBRARIES" LIB_GNOKII="-lgnokii -lintl -Xlinker -framework -Xlinker CoreFoundation -Xlinker -framework -Xlinker IOBluetooth -Xlinker -framework -Xlinker Foundation"
