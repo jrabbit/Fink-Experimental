@@ -17,7 +17,7 @@ for pkgname in $*; do
   # Compute the filename
   new_pkg=`echo $pkgname | sed "s|-$old_rev\.info|-$new_rev\.info|"`
 
-  # Copy the .info file to its new name (and increase the revision doing so)
+  # Rename the .info file to its new name (and increase the revision doing so)
   cat $pkgname | sed "s|^Revision: $old_rev|Revision: $new_rev|" > $new_pkg
   rm $pkgname
   
