@@ -124,9 +124,9 @@ sub make_rss {
 	my $rss         = XML::RSS->new(version => '1.0');
 
 	$rss->channel(
-		title       => "New Fink Packages ($tree)",
+		title       => "Updated Fink Packages ($tree)",
 		link        => 'http://fink.sourceforge.net/pdb/',
-		description => "New Packages Released to the $tree Tree in the Last $DAYS Days.",
+		description => "Updated Packages Released to the $tree Tree in the Last $DAYS Days.",
 		dc          => {
 			date      => w3c_date(time),
 			subject   => 'Fink Software',
