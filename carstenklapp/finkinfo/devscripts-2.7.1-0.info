@@ -1,0 +1,37 @@
+Package: devscripts
+Version: 2.7.1
+Revision: 0
+Description: Scripts to make the life of a Debian Package maintainer easier
+License: GPL
+DescDetail: <<
+ hack-patch screws libvfork.so to bypass errors, just wanna play with some perl scripts:
+ uupdate
+ uscan: Scan upstream sites for new releases of packages [libwww-perl]
+<<
+Enhances: dpkg
+Maintainer: Carsten Klapp <carstenklapp@users.sourceforge.net>
+Homepage: http://packages.debian.org/testing/devel/devscripts.html
+Depends: dlcompat, libwww-pm
+Recommends: time-date-pm, gnuplot, gnupg, wdiff, digest-md5-pm, ssh
+#dpkg-dev, perl-suid, debian-keyring
+BuildDepends: dlcompat-dev
+Source: mirror:debian:pool/main/d/%n/%n_%v.tar.gz
+Source-MD5: 10d129561ef10f6e029f5f78a34efb2a
+SourceDirectory: %n-%v
+PatchScript: <<
+ cat Makefile | sed 's|-Wl,libvfork.so.0|-undefined suppress -flat_namespace|g' | sed 's|-shared|-dynamic|g' | sed 's|-Wl,-soname|-L%p/lib -I%p/include|g' > Makefile-patched
+ mv Makefile-patched Makefile
+<<
+CompileScript: <<
+ make BINDIR=%p/bin LIBDIR=%p/lib/%n EXAMPLES_DIR=%p/share/%n/examples PERLMOD_DIR=%p/share/%n/perlmods BIN_LIBDIR=%p/lib/%n MANDIR=%p/share/man/man1
+<<
+ConfFiles:
+InstallScript: <<
+ make install DESTDIR=%d BINDIR=%p/bin LIBDIR=%p/lib/%n EXAMPLES_DIR=%p/share/%n/examples PERLMOD_DIR=%p/share/%n/perlmods BIN_LIBDIR=%p/lib/%n MANDIR=%p/share/man/man1
+<<
+DocFiles: COPYING README
+PostInstScript:
+DescPort: <<
+<<
+DescPackaging: <<
+<<
