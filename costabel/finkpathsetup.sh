@@ -95,12 +95,19 @@ if grep sw/sbin $TMPFILE >/dev/null 2>&1 ; then
     echo
 else
     # No: we need to do something
+    eval `grep LOGINSHELL $TMPFILE`
     echo
+    if [ -z $LOGINSHELL ]; then
+        echo Your startup scripts contain an error. I am giving up. Bye.
+	echo 
+	exit
+    fi
     echo Setting up your fink environment
     echo --------------------------------
-    eval `grep LOGINSHELL $TMPFILE`
     LOGINSHELL=`basename $LOGINSHELL`
     case $LOGINSHELL in
+    "")
+	;;
     *csh)
     # For csh and tcsh
         SOURCECMD="source /sw/bin/init.csh"
