@@ -34,23 +34,6 @@ if ! ${dyn} ; then sflags=$flags; fi
 # allow building with external NTL
 sed -ri.bak 's;AC_ARG_WITH\(MP;AC_ARG_ENABLE(NTL, \\\ \n \[    NTL                  NTL\]\)\nAC_ARG_WITH\(MP;g' configure.in
 sed -ri 's;([\]) $;\1;' configure.in
-if ${sntl} ; then
-	## setup2 missing in ntl/Makefile
-	perl -pi.bak -e 's/setup1 setup1/setup1 setup2/g' ntl/Makefile
-	# change GMP_PREFIX in ntl/configure
-	perl -pi.bak -e 's, GMP_PREFIX=\$prefix/\$\{ac_cv_singuname\},,g' ntl/configure
-	# re-run ranlib after cp
-	perl -pi.bak -e 's,cp ntl\.a \$\(LIBDIR\)/libntl\.a,cp ntl\.a \$\(LIBDIR\)/libntl\.a; ranlib \$\(LIBDIR\)/libntl\.a,g' \
-	ntl/src/make.tail
-	### libm is libSystem, and is always searched _ but should be searched last :
-	#perl -pi.bak -e 's/configure/configure NTL_STD_CXX=on LDLIBS=""/g' ntl/configure
-	perl -pi -e 's/configure/configure LDLIBS=""/g' ntl/configure
-	sed -i.bak -e '1i\
-#include <iostream\.h>' ntl/src/{*Test,subset}.c
-	perl -pi.bak -e "s/=\-O2/=$ntlflags $mflags $warnflags/g" ntl/src/make.config
-  else
-	rm -fR ntl
-fi
 #
 
 ### Getting control over installation paths ...
@@ -235,4 +218,3 @@ cd factory ; autoconf ; cd ..
 cd libfac ; autoconf ; cd ..
 cd Singular ; autoconf ; cd ..
 autoconf
-
