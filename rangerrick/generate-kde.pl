@@ -34,8 +34,14 @@ for my $file (sort keys %files) {
 						while (my $line = <FILEIN>) {
 							if ($line =~ /^\s*revision:\s*(.*?)\s*$/i) {
 								my $revision = $1;
-								$revision += 10 if ($tree eq '10.2-gcc3.3');
-								$revision += 20 if ($tree eq '10.3');
+								if (my ($pre, $post) = $revision =~ /^(.*\.)(\d+)$/) {
+									$post += 10 if ($tree eq '10.2-gcc3.3');
+									$post += 20 if ($tree eq '10.3');
+									$revision = $pre . $post;
+								} else {
+									$revision += 10 if ($tree eq '10.2-gcc3.3');
+									$revision += 20 if ($tree eq '10.3');
+								}
 								print FILEOUT "Revision: $revision\n";
 							} else {
 								if ($line =~ /^\s*(Build)?Depends/g) {
@@ -47,8 +53,14 @@ for my $file (sort keys %files) {
 										if ($version =~ /^(.+?)\s+(.+)-(.+?)$/) {
 											($comparator, $version, $revision) = ($1, $2, $3);
 											#print "$package ($version-$revision) -> ";
-											$revision += 10 if ($tree eq '10.2-gcc3.3');
-											$revision += 20 if ($tree eq '10.3');
+											if (my ($pre, $post) = $revision =~ /^(.*\.)(\d+)$/) {
+												$post += 10 if ($tree eq '10.2-gcc3.3');
+												$post += 20 if ($tree eq '10.3');
+												$revision = $pre . $post;
+											} else {
+												$revision += 10 if ($tree eq '10.2-gcc3.3');
+												$revision += 20 if ($tree eq '10.3');
+											}
 											$newline =~ s/${package}\s+\([^\)]*?\)/$package ($comparator $version-$revision)/g;
 											#print "($version-$revision)... ";
 										}
