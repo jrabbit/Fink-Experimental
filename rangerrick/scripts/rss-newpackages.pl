@@ -1,7 +1,9 @@
-#!/sw/bin/perl5.8.0
+#!/usr/bin/perl
+##!/sw/bin/perl5.8.0
 
 $|++;
 
+use Data::Dumper;
 use Cwd qw(abs_path);
 use File::Basename;
 use File::Find;
@@ -19,6 +21,7 @@ use strict;
 use vars qw(
 	$CUTOFF
 	$DAYS
+	$DISTDIR
 	$DOCVS
 	$NOW
 	$PREFIX
@@ -45,13 +48,16 @@ use vars qw(
 
 $basepath = '/sw';
 $TOPDIR   = abs_path(dirname($0));
-$DAYS     = 3; # number of days to look back
+$DAYS     = 8; # number of days to look back
 $NOW      = time;
 $CUTOFF   = ($NOW - (60 * 60 * 24 * $DAYS));
 $PREFIX   = '/tmp/fink-rss';
+$DISTDIR  = $PREFIX . '/dists';
 $DOSCP    = 1;
 $DOCVS    = 1;
 $DOCACHE  = 0;
+
+$DISTDIR = '/sw/fink' if (-e '/sw/fink/dists');
 
 $URIFINDER = URI::Find->new(
 	sub {
@@ -69,11 +75,8 @@ $ENV{CVS_RSH} = '/Users/ranger/bin/ssh.sh';
 
 print "- updating cvs repository... ";
 `mkdir -p '$PREFIX'`;
-unless (-f $PREFIX . '/dists/CVS') {
-  unlink($PREFIX . '/dists');
-}
-if (-d $PREFIX . '/dists') {
-	`cd $PREFIX . '/dists'; CVS_RSH=/Users/ranger/bin/ssh.sh cvs -d :ext:rangerrick\@cvs.sourceforge.net:/cvsroot/fink up -A >$PREFIX/cvs.log 2>&1`;
+if (-d $DISTDIR) {
+	`cd $DISTDIR; CVS_RSH=/Users/ranger/bin/ssh.sh cvs -d :ext:rangerrick\@cvs.sourceforge.net:/cvsroot/fink up -A >$PREFIX/cvs.log 2>&1`;
 } else {
 	`cd $PREFIX; CVS_RSH=/Users/ranger/bin/ssh.sh cvs -d :ext:rangerrick\@cvs.sourceforge.net:/cvsroot/fink co dists >$PREFIX/cvs.log 2>&1`;
 }
@@ -102,11 +105,16 @@ if (-f $configpath) {
 	);
 }
 
-find(\&find_infofiles, $PREFIX);
+#find({ wanted => \&find_infofiles, follow => 1 }, $DISTDIR . '/');
+find({ wanted => \&find_infofiles, follow => 0 }, $DISTDIR . '/');
 
 print "- getting CVS log info... ";
 get_cvs_log();
 print "done\n";
+
+#print Dumper(%CVS_FILES), "\n";
+#print Dumper(%STABLE_PACKAGES), "\n";
+#print Dumper(%UNSTABLE_PACKAGES), "\n";
 
 print "- generating RSS...\n";
 make_rss(\%STABLE_PACKAGES, 'Stable');
@@ -156,7 +164,7 @@ sub iso_date {
 sub get_cvs_log {
 	return unless ($DOCVS);
 
-	my @keys = map { $_ =~ s,^$PREFIX/dists/,,; $_ } sort keys %CVS_FILES;
+	my @keys = map { $_ =~ s,^${DISTDIR}/,,; $_ } sort keys %CVS_FILES;
 
 	my $filename;
 	my $revdone = 0;
@@ -166,7 +174,7 @@ sub get_cvs_log {
 	my @lines;
 	my $pwd = `pwd`;
 	my $count = 0;
-	chdir($PREFIX . '/dists');
+	chdir($DISTDIR);
 	if (open(CVSLOG, "CVS_RSH=/Users/ranger/bin/ssh.sh cvs -d :ext:rangerrick\@cvs.sourceforge.net:/cvsroot/fink log @keys 2>$PREFIX/cvslog.log |")) {
 		$count = 0;
 		open(FILEOUT, ">$PREFIX/cvslog-data.log");
@@ -177,10 +185,10 @@ sub get_cvs_log {
 				for my $index (0..$#lines) {
 					$lines[$index] =~ s/^\s{$spacecount}//;
 				}
-				if (not defined $CVS_FILES{$filename} and defined $author and int(@lines)) {
+				if (defined $author and int(@lines)) {
 					$CVS_FILES{$filename} = [ $author, join('', @lines) ];
 				}
-				$filename = $PREFIX . '/dists/' . $1;
+				$filename = $DISTDIR . '/' . $1;
 				$revdone = 0;
 				$lookfordesc = 0;
 				$spacecount = 0;
@@ -211,7 +219,7 @@ sub get_cvs_log {
 		for my $index (0..$#lines) {
 			$lines[$index] =~ s/^\s{$spacecount}//;
 		}
-		if (not defined $CVS_FILES{$filename} and defined $author and int(@lines)) {
+		if (defined $author and int(@lines)) {
 			$CVS_FILES{$filename} = [ $author, join('', @lines) ];
 		}
 	} else {
@@ -270,14 +278,15 @@ sub make_rss {
 		$description = encode_entities($description);
 		$URIFINDER->find(\$description);
 		if ($DOCVS) {
-			if (exists $CVS_FILES{$package->get_info_filename()}) {
-				my $content = $CVS_FILES{$package->get_info_filename()}->[1];
+			my $package_file = $package->get_info_filename();
+			if (exists $CVS_FILES{$package_file} and ref($CVS_FILES{$package_file}) eq "ARRAY") {
+				my ($author, $content) = @{$CVS_FILES{$package_file}};
 				$content = encode_entities($content);
 				$description = $description . "\n\ncommit log from " .
-					$CVS_FILES{$package->get_info_filename()}->[0] . ":\n" .
-					$content;
+					$author . ":\n" .  $content;
 			} else {
 				warn "no CVS information for " . $package->get_info_filename() . "\n";
+				Dumper(%CVS_FILES);
 			}
 		}
 
@@ -299,10 +308,8 @@ sub make_rss {
 
 sub find_infofiles {
 	return unless (/\.info$/);
+	return if ($File::Find::name =~ /\/local\//);
 	my $tree = '10.2';
-	if ($File::Find::name =~ /dists\/([^\/]+)\//) {
-		$tree = $1;
-	}
 
 	my @stat = stat($File::Find::name) or die "can't stat $_: $!\n";
 	return unless ($stat[9] >= $CUTOFF);
@@ -314,7 +321,7 @@ sub find_infofiles {
 	#print $File::Find::name, " - ", int(@versions), " version(s)\n";
 
 	for my $version (@versions) {
-		if ($version->get_info_filename() =~ /dists\/([^\/]+)\//) {
+		if ($version->get_info_filename() =~ /$DISTDIR\/([^\/]+)\//) {
 			$version->{'tree'} = $1;
 		}
 		$version->{'date'} = $stat[9];
