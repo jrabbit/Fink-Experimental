@@ -1,11 +1,15 @@
 #!/usr/bin/perl
 
-my $VERSION   = '3.1';
-my $DIRECTORY = 'stable/3.1/src/';
-my $ARTSVER   = '1.1.0-8';
-my $VERBOSE   = 0;
-my $DRYRUN    = 0;
-my @packages;
+my $KDEVERSION   = '3.1';
+my $KDEDIRECTORY = 'stable/3.1/src/';
+my $KOVERSION    = '1.2.1';
+my $KODIRECTORY  = 'stable/koffice-1.2.1/src/';
+my $ARTSVER      = '1.1.0-8';
+my $VERBOSE      = 0;
+my $DRYRUN       = 0;
+
+my @kdepackages;
+my @kopackages;
 
 my %MAPPINGS;
 
@@ -15,7 +19,11 @@ for my $arg (@ARGV) {
 }
 
 opendir(DIR, "/sw/src") or die "can't read from /sw/src: $!\n";
-my @I18N = sort(grep(/kde-i18n-.*-${VERSION}.*.tar.(gz|bz2)/, readdir(DIR)));
+my @KDEI18N = sort(grep(/kde-i18n-.*-${KDEVERSION}.*.tar.(gz|bz2)/, readdir(DIR)));
+closedir(DIR);
+
+opendir(DIR, "/sw/src") or die "can't read from /sw/src: $!\n";
+my @KOI18N = sort(grep(/koffice-i18n-.*-${KOVERSION}.*.tar.(gz|bz2)/, readdir(DIR)));
 closedir(DIR);
 
 open(MAPPING, "i18n-mappings.txt") or die "can't read i18n-mappings.txt: $!\n";
@@ -25,24 +33,24 @@ while (my $line = <MAPPING>) {
 }
 close(MAPPING);
 
-for my $i18n (@I18N) {
-	my ($shortname) = $i18n =~ /kde-i18n-(.+)-${VERSION}.tar.(gz|bz2)/;
+for my $i18n (@KDEI18N) {
+	my ($shortname) = $i18n =~ /kde-i18n-(.+)-${KDEVERSION}.tar.(gz|bz2)/;
 	if (exists $MAPPINGS{$shortname}) {
 		chomp(my $md5 = `md5 /sw/src/$i18n`);
 		$md5 =~ s/^.*\s*=\s*//;
 		my $normalized = lc($MAPPINGS{$shortname});
 		$normalized =~ s#[^a-zA-Z]+#-#g;
 		my $filename = $i18n;
-		$filename =~ s#${VERSION}#\%v#g;
-		push(@packages, "kde-i18n-${normalized}");
+		$filename =~ s#${KDEVERSION}#\%v#g;
+		push(@kdepackages, "kde-i18n-${normalized}");
 		my $contents = <<END;
 Package: kde-i18n-${normalized}
-Source: mirror:kde:${DIRECTORY}kde-i18n/${filename}
+Source: mirror:kde:${KDEDIRECTORY}kde-i18n/${filename}
 SourceDirectory: kde-i18n-${shortname}
 Description: KDE language files for $MAPPINGS{$shortname}
 DescDetail: Language files for the K Desktop Environment: $MAPPINGS{$shortname}
 Source-MD5: $md5
-Version: ${VERSION}
+Version: ${KDEVERSION}
 Revision: 1
 Depends: kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), arts (>= ${ARTSVER}), xfonts-intl
 BuildDepends: kdebase3-ssl (>= %v-1) | kdebase3 (>= %v-1), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), arts-dev (>= ${ARTSVER})
@@ -52,7 +60,45 @@ InstallScript: make -j8 install DESTDIR=%d
 License: GPL/LGPL
 END
 		print $contents if ($VERBOSE);
-		my $infofile = "kde-i18n-${normalized}-${VERSION}-1.info";
+		my $infofile = "kde-i18n-${normalized}-${KDEVERSION}-1.info";
+		unless ($DRYRUN) {
+			open(FILEOUT, ">$infofile") or die "can't write to $infofile: $!\n";
+			print FILEOUT $contents;
+			close(FILEOUT);
+		}
+	} else {
+		print "ERROR: no name mapping for $i18n!\n";
+	}
+}
+
+for my $i18n (@KOI18N) {
+	my ($shortname) = $i18n =~ /koffice-i18n-(.+)-${KOVERSION}.tar.(gz|bz2)/;
+	if (exists $MAPPINGS{$shortname}) {
+		chomp(my $md5 = `md5 /sw/src/$i18n`);
+		$md5 =~ s/^.*\s*=\s*//;
+		my $normalized = lc($MAPPINGS{$shortname});
+		$normalized =~ s#[^a-zA-Z]+#-#g;
+		my $filename = $i18n;
+		$filename =~ s#${KOVERSION}#\%v#g;
+		push(@kopackages, "koffice-i18n-${normalized}");
+		my $contents = <<END;
+Package: koffice-i18n-${normalized}
+Source: mirror:kde:${KODIRECTORY}${filename}
+SourceDirectory: koffice-i18n-${shortname}
+Description: KOffice language files for $MAPPINGS{$shortname}
+DescDetail: Language files for the KDE office suite: $MAPPINGS{$shortname}
+Source-MD5: $md5
+Version: ${KOVERSION}
+Revision: 1
+Depends: kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), arts (>= ${ARTSVER}), xfonts-intl, koffice (>= ${KOVERSION})
+BuildDepends: kdebase3-ssl (>= %v-1) | kdebase3 (>= %v-1), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), arts-dev (>= ${ARTSVER}), koffice-dev (>= ${KOVERSION})
+Maintainer: Benjamin Reed <ranger\@befunk.com>
+CompileScript: (export KDEDIR=%p; sh configure %c; make -j8)
+InstallScript: make -j8 install DESTDIR=%d
+License: GPL/LGPL
+END
+		print $contents if ($VERBOSE);
+		my $infofile = "koffice-i18n-${normalized}-${KOVERSION}-1.info";
 		unless ($DRYRUN) {
 			open(FILEOUT, ">$infofile") or die "can't write to $infofile: $!\n";
 			print FILEOUT $contents;
@@ -64,11 +110,11 @@ END
 }
 
 unless ($DRYRUN) {
-	my $packagelist = join(', ', map { $_ . " (>= ${VERSION}-1)" } @packages);
-	open(FILEOUT, ">bundle-kde-i18n-${VERSION}-1.info") or die "can't write to bundle-kde-i18n-${VERSION}-1.info: $!\n";
+	my $packagelist = join(', ', map { $_ . " (>= ${KDEVERSION}-1)" } @kdepackages);
+	open(FILEOUT, ">bundle-kde-i18n-${KDEVERSION}-1.info") or die "can't write to bundle-kde-i18n-${KDEVERSION}-1.info: $!\n";
 	print FILEOUT <<END;
 Package: bundle-kde-i18n
-Version: ${VERSION}
+Version: ${KDEVERSION}
 Revision: 1
 Type: bundle
 Depends: $packagelist
@@ -76,6 +122,23 @@ Description: KDE convenience package: all language files
 DescDetail: <<
 This package doesn't install any files of itself, but instead makes
 sure that all KDE language files get installed.
+<<
+Maintainer: Benjamin Reed <ranger\@befunk.com>
+END
+	close(FILEOUT);
+
+	$packagelist = join(', ', map { $_ . " (>= ${KOVERSION}-1)" } @kopackages);
+	open(FILEOUT, ">bundle-koffice-i18n-${KOVERSION}-1.info") or die "can't write to bundle-koffice-i18n-${KOVERSION}-1.info: $!\n";
+	print FILEOUT <<END;
+Package: bundle-koffice-i18n
+Version: ${KOVERSION}
+Revision: 1
+Type: bundle
+Depends: $packagelist
+Description: KOffice convenience package: all language files
+DescDetail: <<
+This package doesn't install any files of itself, but instead makes
+sure that all KOffice language files get installed.
 <<
 Maintainer: Benjamin Reed <ranger\@befunk.com>
 END
