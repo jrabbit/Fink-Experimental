@@ -1,0 +1,72 @@
+Info2: <<
+Package: clsql-%type_pkg[lisp]
+Version: 3.0.4
+Revision: 1
+Description: Multi-platform SQL interface for Common Lisp
+License: LGPL
+Maintainer: Lars Rosengreen <lars@margay.org>
+
+Type: lisp (openmcl sbcl)
+
+Depends: %type_pkg[lisp], cl-uffi-%type_pkg[lisp], cl-md5-%type_pkg[lisp]
+
+Source: http://files.b9.com/clsql/clsql-%v.tar.gz
+Source-MD5: af2aa271342280296948e2ff79aaf868
+
+SourceDirectory: clsql-%v
+
+
+CompileScript: <<
+  #! /bin/sh -ev
+  SYSTEM="clsql"
+  %p/bin/%type_pkg[lisp] <<EOF
+  (require :asdf)
+  (load "$SYSTEM.asd")
+  (asdf:oos 'asdf:compile-op '$SYSTEM)
+  (quit)
+  EOF
+<<
+
+InstallScript: <<
+  #! /bin/sh -ev
+  SYSTEM="clsql"
+  LISP="%type_pkg[lisp]"
+  install -d -m 755 %i/lib/common-lisp/%type_pkg[lisp]/systems
+  install -d -m 755 %i/lib/common-lisp/%type_pkg[lisp]/source/$SYSTEM
+  ln -s %p/lib/common-lisp/%type_pkg[lisp]/source/$SYSTEM/$SYSTEM.asd %i/lib/common-lisp/%type_pkg[lisp]/systems/$SYSTEM.asd
+  cp -Rp * %i/lib/common-lisp/%type_pkg[lisp]/source/$SYSTEM
+<<
+
+
+DocFiles: ChangeLog CONTRIBUTORS COPYING* NEWS README TODO doc/clsql.pdf
+
+
+DescDetail: << 
+CLSQL is a SQL database for Common Lisp interface maintained by Kevin
+M. Rosenberg. CLSQL uses the Universal Foreign Function Interface
+(UFFI) library for broad compatibility.
+<<
+
+DescUsage: <<
+Stilll a little rough around the edges :)
+
+%p --> where your fink installation is located (ie /sw)
+%type_pkg[lisp] --> lisp implementation you are using (ie openmcl)
+
+(require :asdf)
+(pushnew #P"%p/lib/common-lisp/%type_pkg[lisp]/systems/" 
+         asdf:*central-registry*)
+(asdf:oos 'asdf:load-op 'clsql)
+<<
+
+
+Homepage: http://clsql.b9.com/
+
+
+DescPackaging: <<
+TODO: 
+The makefile in db-mysql has a hardcoded /sw that needs to be fixed.
+Should depend on CL-MD5 package.
+<<
+
+<<

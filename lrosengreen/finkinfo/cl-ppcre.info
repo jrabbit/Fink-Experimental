@@ -1,0 +1,61 @@
+Info2: <<
+Package: cl-ppcre-%type_pkg[lisp]
+Version: 0.7.7
+Revision: 1
+Description: Perl compatible regex library for Common Lisp
+License: BSD
+Maintainer: Lars Rosengreen <lars@margay.org>
+
+Type: lisp (openmcl sbcl)
+
+Depends: %type_pkg[lisp]
+
+Source: http://weitz.de/files/cl-ppcre-%v.tgz
+Source-MD5: 1e634fd1348ff94b0d4ecf73138e95bd
+
+
+CompileScript: <<
+  #! /bin/sh -ev
+  SYSTEM="cl-ppcre"
+  %p/bin/%type_pkg[lisp] <<EOF
+  (require :asdf)
+  (load "$SYSTEM.asd")
+  (asdf:oos 'asdf:compile-op '$SYSTEM)
+  (quit)
+  EOF
+<<
+
+InstallScript: <<
+  #! /bin/sh -ev
+  SYSTEM="cl-ppcre"
+  LISP="%type_pkg[lisp]"
+  install -d -m 755 %i/lib/common-lisp/%type_pkg[lisp]/systems
+  install -d -m 755 %i/lib/common-lisp/%type_pkg[lisp]/source/$SYSTEM
+  ln -s %p/lib/common-lisp/%type_pkg[lisp]/source/$SYSTEM/$SYSTEM.asd %i/lib/common-lisp/%type_pkg[lisp]/systems/$SYSTEM.asd
+  cp -Rp * %i/lib/common-lisp/%type_pkg[lisp]/source/$SYSTEM
+<<
+
+DocFiles: doc/*
+
+
+DescDetail: <<
+A Perl compatible regular expressions library for Common Lisp
+<<
+
+DescUsage: <<
+Stilll a little rough around the edges :)
+
+%p --> where your fink installation is located (ie /sw)
+%type_pkg[lisp] --> lisp implementation you are using (ie openmcl)
+
+(require :asdf)
+(pushnew #P"%p/lib/common-lisp/%type_pkg[lisp]/systems/" 
+         asdf:*central-registry*)
+(asdf:oos 'asdf:load-op 'cl-ppcre)
+<<
+
+
+Homepage: http://weitz.de/cl-ppcre
+
+
+<<

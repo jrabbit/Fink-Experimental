@@ -1,0 +1,64 @@
+Info2: <<
+Package: cl-puri-%type_pkg[lisp]
+Version: 1.3.1.1
+Revision: 1
+Description: Common Lisp portable URI library
+License: LGPL
+Maintainer: Lars Rosengreen <lars@margay.org>
+
+Type: lisp (openmcl sbcl)
+
+Depends: %type_pkg[lisp]
+
+Source: http://files.b9.com/puri/puri-%v.tar.gz
+Source-MD5: 3037d9ff4efdd174c853cdce6d02dee4
+
+SourceDirectory: puri-%v
+
+
+CompileScript: <<
+  #! /bin/sh -ev
+  SYSTEM="puri"
+  %p/bin/%type_pkg[lisp] <<EOF
+  (require :asdf)
+  (load "$SYSTEM.asd")
+  (asdf:oos 'asdf:compile-op '$SYSTEM)
+  (quit)
+  EOF
+<<
+
+InstallScript: <<
+  #! /bin/sh -ev
+  SYSTEM="puri"
+  LISP="%type_pkg[lisp]"
+  install -d -m 755 %i/lib/common-lisp/%type_pkg[lisp]/systems
+  install -d -m 755 %i/lib/common-lisp/%type_pkg[lisp]/source/$SYSTEM
+  ln -s %p/lib/common-lisp/%type_pkg[lisp]/source/$SYSTEM/$SYSTEM.asd %i/lib/common-lisp/%type_pkg[lisp]/systems/$SYSTEM.asd
+  cp -Rp * %i/lib/common-lisp/%type_pkg[lisp]/source/$SYSTEM
+<<
+
+
+DescDetail: << 
+This is portable Universal Resource Identifier (RFC 2396) library for
+Common Lisp programs. It is based on Franz, Incorporated opensource
+package and ported to run on other CL implementations. A regression
+test package is included.
+<<
+
+DescUsage: <<
+Stilll a little rough around the edges :)
+
+%p --> where your fink installation is located (ie /sw)
+%type_pkg[lisp] --> lisp implementation you are using (ie openmcl)
+
+(require :asdf)
+(pushnew #P"%p/lib/common-lisp/%type_pkg[lisp]/systems/" 
+         asdf:*central-registry*)
+(asdf:oos 'asdf:load-op 'puri)
+<<
+
+
+Homepage: http://www.cliki.net/puri
+
+
+<<

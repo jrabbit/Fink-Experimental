@@ -1,0 +1,63 @@
+Info2: <<
+Package: cl-rt-%type_pkg[lisp]
+Version: 20040621
+Revision: 1
+Description: Simple regression test suite for Common Lisp
+License: BSD
+Maintainer: Lars Rosengreen <lars@margay.org>
+
+Type: lisp (openmcl sbcl)
+
+Depends: %type_pkg[lisp]
+
+Source: mirror:debian:/debian/pool/main/c/cl-rt/cl-rt_%v.orig.tar.gz
+Source-MD5: 538544848c3602e0ea3e47147877d116
+
+SourceDirectory: cl-rt-%v
+
+
+CompileScript: <<
+  #! /bin/sh -ev
+  SYSTEM="rt"
+  %p/bin/%type_pkg[lisp] <<EOF
+  (require :asdf)
+  (load "$SYSTEM.asd")
+  (asdf:oos 'asdf:compile-op '$SYSTEM)
+  (quit)
+  EOF
+<<
+
+InstallScript: <<
+  #! /bin/sh -ev
+  SYSTEM="rt"
+  LISP="%type_pkg[lisp]"
+  install -d -m 755 %i/lib/common-lisp/%type_pkg[lisp]/systems
+  install -d -m 755 %i/lib/common-lisp/%type_pkg[lisp]/source/$SYSTEM
+  ln -s %p/lib/common-lisp/%type_pkg[lisp]/source/$SYSTEM/$SYSTEM.asd %i/lib/common-lisp/%type_pkg[lisp]/systems/$SYSTEM.asd
+  cp -Rp * %i/lib/common-lisp/%type_pkg[lisp]/source/$SYSTEM
+<<
+
+
+DocFiles: rt-doc.txt
+
+
+DescDetail: <<
+A simple regression test suite for Common Lisp originally developed at MIT.
+<<
+
+DescUsage: <<
+Stilll a little rough around the edges :)
+
+%p --> where your fink installation is located (ie /sw)
+%type_pkg[lisp] --> lisp implementation you are using (ie openmcl)
+
+(require :asdf)
+(pushnew #P"%p/lib/common-lisp/%type_pkg[lisp]/systems/" 
+         asdf:*central-registry*)
+(asdf:oos 'asdf:load-op 'rt)
+<<
+
+
+Homepage: http://www.cliki.net/RT
+
+<<

@@ -1,0 +1,60 @@
+Info2: <<
+Package: cl-md5-%type_pkg[lisp]
+Version: 1.8.4
+Revision: 1
+Description: MD5 library for Common Lisp
+License: Public Domain
+Maintainer: Lars Rosengreen <lars@margay.org>
+
+Type: lisp (openmcl sbcl)
+
+Depends: %type_pkg[lisp]
+
+Source: mirror:debian:/debian/pool/main/c/cl-md5/cl-md5_%v.orig.tar.gz
+Source-MD5: ee385b6fe631f9cb4cc1dd755b5697f1
+
+SourceDirectory: cl-md5-%v
+
+
+CompileScript: <<
+  #! /bin/sh -ev
+  SYSTEM="md5"
+  %p/bin/%type_pkg[lisp] <<EOF
+  (require :asdf)
+  (load "$SYSTEM.asd")
+  (asdf:oos 'asdf:compile-op '$SYSTEM)
+  (quit)
+  EOF
+<<
+
+InstallScript: <<
+  #! /bin/sh -ev
+  SYSTEM="md5"
+  LISP="%type_pkg[lisp]"
+  install -d -m 755 %i/lib/common-lisp/%type_pkg[lisp]/systems
+  install -d -m 755 %i/lib/common-lisp/%type_pkg[lisp]/source/$SYSTEM
+  ln -s %p/lib/common-lisp/%type_pkg[lisp]/source/$SYSTEM/$SYSTEM.asd %i/lib/common-lisp/%type_pkg[lisp]/systems/$SYSTEM.asd
+  cp -Rp * %i/lib/common-lisp/%type_pkg[lisp]/source/$SYSTEM
+<<
+
+
+DescDetail: << 
+Pierre Mai's Message Digest 5 (MD5) calculation library for Common Lisp.
+<<
+
+DescUsage: <<
+Stilll a little rough around the edges :)
+
+%p --> where your fink installation is located (ie /sw)
+%type_pkg[lisp] --> lisp implementation you are using (ie openmcl)
+
+(require :asdf)
+(pushnew #P"%p/lib/common-lisp/%type_pkg[lisp]/systems/" 
+         asdf:*central-registry*)
+(asdf:oos 'asdf:load-op 'md5)
+<<
+
+
+Homepage: http://www.pmsf.de/resources/lisp/MD5.html
+
+<<
