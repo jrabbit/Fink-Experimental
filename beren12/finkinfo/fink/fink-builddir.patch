@@ -26,32 +26,6 @@ diff -ruN Fink.orig/Config.pm Fink/Config.pm
    $libpath = "$basepath/lib/fink";
    $distribution = $self->param("Distribution");
  
-diff -ruN Fink.orig/Configure.pm Fink/Configure.pm
---- Fink.orig/Configure.pm	Mon Aug  5 18:08:16 2002
-+++ Fink/Configure.pm	Fri Nov  8 00:46:31 2002
-@@ -47,7 +47,7 @@
- ### create/change configuration interactively
- 
- sub configure {
--  my ($otherdir, $verbose);
-+  my ($otherdir, $builddir, $dlmethod, $verbose);
-   my ($http_proxy, $ftp_proxy, $passive_ftp, $same_for_ftp, $default);
- 
-   print "\n";
-@@ -62,6 +62,14 @@
- 	    $config->param_default("FetchAltDir", ""));
-   if ($otherdir) {
-     $config->set_param("FetchAltDir", $otherdir);
-+  }
-+
-+  $builddir =
-+    &prompt("In what directory should Fink use to build packages? \(Most ".
-+	    "people should just leave this the default.\)",
-+	    $config->param_default("Buildpath", ""));
-+  if ($builddir) {
-+    $config->set_param("Buildpath", $builddir);
-   }
- 
    $verbose = $config->param_default("Verbose", 3);
 diff -ruN Fink.orig/Engine.pm Fink/Engine.pm
 --- Fink.orig/Engine.pm	Tue Oct 15 18:34:13 2002
@@ -329,14 +303,6 @@ diff -ruN Fink.orig/PkgVersion.pm Fink/PkgVersion.pm
  
    if (not -d "$destdir/DEBIAN") {
      if (&execute("mkdir -p $destdir/DEBIAN")) {
-@@ -1735,6 +1736,7 @@
-   foreach $varname ("CC", "CFLAGS",
- 		    "CPP", "CPPFLAGS",
- 		    "CXX", "CXXFLAGS",
-+		    "CXXCPP", "CXXCPPFLAGS",
- 		    "LD", "LDFLAGS", "LIBS",
- 		    "MAKE", "MFLAGS") {
-     if ($self->has_param("Set$varname")) {
 diff -ruN Fink.orig/SelfUpdate.pm Fink/SelfUpdate.pm
 --- Fink.orig/SelfUpdate.pm	Sun Sep  8 20:11:38 2002
 +++ Fink/SelfUpdate.pm	Thu Nov  7 21:28:50 2002
