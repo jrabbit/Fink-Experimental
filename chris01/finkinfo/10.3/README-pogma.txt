@@ -1,3 +1,6 @@
+chris01:
+Looks like the problem is dependency_libs in other packages having -ldb-4.1 ot libdb-4.1.la in there, patched libtool to ignore these and all tests pass.
+
 Pogma: thanks for looking into it.
 
 Things you would need to do:
