@@ -5,19 +5,19 @@ Revision: 1
 #Source: http://clamav.elektrapro.com/stable/clamav-%v.tar.gz
 #Source-MD5: 1c2e2adffe9ed4d15fe2167dd7bad591
 # snapshot
-Source: http://clamav.elektrapro.com/snapshot/clamav-20021209.tar.gz
-Source-MD5: 1328299bf0ad7ab5831786c672ba09a9
+Source: http://clamav.elektrapro.com/snapshot/clamav-20021213.tar.gz
+Source-MD5: 569cbd5c15a0ea60e4cf80ecca2c5246
 #BuildDepends: passwd (>> 20020329-2)
 Recommends: passwd (>> 20020329-2)
 Suggests: unrar
 SetLDFLAGS: -prebind
 SetCFLAGS: -prebind
-ConfigureParams: --mandir=%p/share/man --sysconfdir=%p/etc --disable-clamav --enable-shared=no
+ConfigureParams: --mandir=%p/share/man --with-dbdir=%p/var/db/clamav --sysconfdir=%p/etc --disable-clamav --enable-shared=no
 InstallScript: <<
  make install DESTDIR=%d
- mkdir -p %i/etc
+ mkdir -p %i/etc %i/var/db/clamav
  install -m 644 etc/clamav.conf %i/etc
- chown -R clamav %i/share/clamav
+ chown -R clamav %i/var/db/clamav
  mkdir -p %i/share/doc
  mv docs %i/share/doc/clamav
  rmdir %i/sbin
@@ -27,11 +27,11 @@ InstallScript: <<
 <<
 PostInstScript: <<
  printf "\n\nTo download the latest virus definitions, run 'sudo freshclam'."
- dir=%p/share/clamav
+ dir=%p/var/db/clamav
  db1=viruses.db
  db2=viruses.db2
- dist1=9c26ca57acf6a3fc8b0c2fa8790f96fb
- dist2=666069df3c0e69195cb9ae216701e8e8
+ dist1=590243945c078ac750a76ae601555493
+ dist2=39d28372f475588ae31f0b378d5b7784
  olddefs="0"
  if [ -f $dir/$db1 ] && [ -f $dir/$db2 ]; then
   test1=`md5sum $dir/$db1`
@@ -45,15 +45,15 @@ PostInstScript: <<
  if [ "$olddefs" == "1" ]; then
   YN=yes;
   printf "\n\n*** Download the latest virus definitions now? [Yn] "
-  read YN 
+  read YN
   : ${YN:=yes}
-  case $YN in 
+  case $YN in
    [yY]|[yY][eE][sS]) %p/bin/freshclam ;;
-  esac 
+  esac
  fi
 <<
-ConfFiles: %p/etc/clamav.conf %p/share/clamav/viruses.db %p/share/clamav/viruses.db2
-DocFiles: TODO COPYING FAQ ChangeLog BUGS README NEWS AUTHORS
+ConfFiles: %p/etc/clamav.conf %p/var/db/clamav/viruses.db %p/var/db/clamav/viruses.db2
+DocFiles: AUTHORS BUGS COPYING ChangeLog FAQ NEWS README TODO
 Maintainer: Carsten Klapp <carstenklapp@users.sourceforge.net>
 Homepage: http://clamav.elektrapro.com/
 License: GPL
@@ -67,7 +67,7 @@ DescDetail: <<
 <<
 DescUsage: <<
  `clamscan -h` Outputs help information and exits.
- 
+
  For virus updates, run `freshclam` as superuser from a shell prompt
  or in a cron script.
 
@@ -81,14 +81,17 @@ DescPackaging: <<
  However, clamscan still requires a user named 'clamav' to run in
  superuser mode regardless of how it was built. (Important when
  running the post-build tests because fink runs as root).
- 
+
  During the test the virus database isn't actually installed yet so
  the one in the build directory is specified.
 <<
 DescPort: <<
+ Install virus databases into %p/var/db/clamav instead of default
+ %p/share/clamav; %p/share is for static data.
+
  Shared libraries disabled by '--enable-shared=no' so the program can
  be prebound. No other programs use libclam yet anyway.
- 
+
  Note that the newer clamav 0.54 does not build properly on Mac OS X,
  it cannot scan inside archives without help from external utilities.
 <<
