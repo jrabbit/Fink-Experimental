@@ -10,51 +10,6 @@ diff -x CVS -x .cvsignore -x '#*' -x '*~' -Naur ccl.orig/level-1/version.lisp cc
  					*openmcl-major-version*
  					*openmcl-minor-version*
  					(unless (zerop *openmcl-revision*)
-diff -x CVS -x .cvsignore -x '#*' -x '*~' -Naur ccl.orig/lib/macros.lisp ccl/lib/macros.lisp
---- ccl.orig/lib/macros.lisp	2004-05-04 01:23:45.000000000 -0700
-+++ ccl/lib/macros.lisp	2004-10-26 19:07:34.000000000 -0700
-@@ -1587,7 +1587,12 @@
-                     (unless (and (cadr option)
-                                  (typep (cadr option) 'symbol))
-                       (illegal-option option))
--                    `(:metaclass (find-class ',(cadr option))))
-+                    `(:metaclass  ',(cadr option)))
-+                   (:documentation
-+                    (let* ((doc (cadr option)))
-+                      (if (and doc (not (typep doc 'string)))
-+                        (illegal-option option))
-+                    `(:documentation ',doc)))
-                    (t
-                     (list `',option-name `',(cdr option))))))
-              (canonicalize-slot-spec (slot)
-@@ -1656,7 +1661,7 @@
-                       (if documentation-p
- 			(duplicate-options slot)
- 			(setq documentation-p t))
--                      (setq documentation (require-type (cadr options) 'string)))
-+                      (setq documentation (cadr options)))
-                      (t
-                       (let* ((pair (or (assq (car options) other-options)
-                                        (car (push (list (car options)) other-options)))))
-@@ -1669,7 +1674,7 @@
- 		   ,@(when readers `(:readers ',readers))
- 		   ,@(when writers `(:writers ',writers))
- 		   ,@(when type-p `(:type ',type))
--		   ,@(when documentation `(:documentation ,documentation))
-+		   ,@(when documentation-p `(:documentation ,documentation))
-                    ,@(mapcan #'(lambda (opt)
-                                  `(',(car opt) ',(cdr opt))) other-options)))))
- 	(let* ((direct-superclasses (or superclasses '(standard-object)))
-@@ -1727,9 +1732,6 @@
-             (cond ((and (not (eq keyword 'declare))
- 			(memq keyword (prog1 option-keywords (push keyword option-keywords))))		   
-                    (signal-program-error "Duplicate option: ~s to ~s" keyword 'defgeneric))
--                  ((eq keyword :method-name)    ; used by generic-flet
--                   (if function-name (bad-option o))
--                   (setq function-name (cadr o)))
-                   ((eq keyword :method-combination)
-                    (unless (symbolp (cadr o))
-                      (bad-option o))
 diff -x CVS -x .cvsignore -x '#*' -x '*~' -Naur ccl.orig/tools/asdf.lisp ccl/tools/asdf.lisp
 --- ccl.orig/tools/asdf.lisp	2004-10-09 22:20:29.000000000 -0700
 +++ ccl/tools/asdf.lisp	2004-10-09 23:36:32.000000000 -0700
