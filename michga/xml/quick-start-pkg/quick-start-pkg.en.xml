@@ -641,6 +641,7 @@ We are looking forward to your contributions to Fink!
 <codeblock>
 finkdev% cd Desktop
 </codeblock>
+<p>And presumably, <filename>nedit</filename> to make a patch file.</p>
 <p>Finally, we'll create an info file for Fink. As we are lazy (a fundamental quality for a porter), we'll just use the info file we've created for Maxwell as a template for the conglomerate Fink info file:</p>
 <ol>
 <li>Drag and drop the maxwell.info file located in your fink local tree (<filename>/sw/fink/10.3/local/main/finkinfo/maxwell.info</filename>) to your Desktop.</li>
@@ -688,7 +689,7 @@ http://prdownloads.sourceforge.net/ ... ?/download
 <codeblock>
 HomePage: http://www.conglomerate.org
 </codeblock>
-<p>While you're at this page, look at the footer, you'll see the license's name under which conglomerate is licensed. This GNUGPL. So open the <filename>Packaging Manual</filename>, and go to the <link url="http://fink.sourceforge.net/doc/packaging/policy.php?phpLang=en#licenses">Package licenses</link> section to check if this is an authorized license. Yes, it is, though it is denoted as GPL in Fink nomenclature, so we'll put GPL in the <code>License</code> field:</p>
+<p>While you're at this page, look at the footer, you'll see the license's name under which conglomerate is licensed. This GNUGPL. So open the <filename>Packaging Manual</filename>, and go to the <link url="http://fink.sourceforge.net/doc/packaging/policy.php?#licenses">Package licenses</link> section to check if this is an authorized license. Yes, it is, though it is denoted as GPL in Fink nomenclature, so we'll put GPL in the <code>License</code> field:</p>
 <codeblock>
 License: GPL
 </codeblock>
@@ -696,14 +697,14 @@ License: GPL
 <codeblock>
 Description: Graphical editor for XML documents
 </codeblock>
-<p>Now, we'll add a detailed description, explained in the <filename>Packaging Manual</filename> just above the <link url="http://fink.sourceforge.net/doc/packaging/policy.php?phpLang=en#splitoffs">SplitOffs</link> section. We browse again the conglomerate pages to find something useful, namely the <link url="http://www.conglomerate.org/intro.html">intro</link> page. From the screenshots, it appears, conglomerate is kind of wysiwyg editor for DocBook documents with source view and export features, so we'll put that in the <code>DescDetail</code> field:</p>
+<p>Now, we'll add a detailed description, explained in the <filename>Packaging Manual</filename> just above the <link url="http://fink.sourceforge.net/doc/packaging/policy.php?#splitoffs">SplitOffs</link> section. We browse again the conglomerate pages to find something useful, namely the <link url="http://www.conglomerate.org/intro.html">intro</link> page. From the screenshots, it appears, conglomerate is kind of wysiwyg editor for DocBook documents with source view and export features, so we'll put that in the <code>DescDetail</code> field:</p>
 <codeblock>
 DescDetail: &lt;&lt;
  Conglomerate aims to be a wyziwyg editor for XML/DocBook
  documents with source view and export capabilities.
 &lt;&lt;
 </codeblock>
-<p><em>Note:</em> the special structure of this field (here-document syntax-based) is explained in the <link url="http://fink.sourceforge.net/doc/packaging/policy.php?phpLang=en#format">File Format</link> section of the <code>Packaging Manual</code>.</p>
+<p><em>Note:</em> the special structure of this field (here-document syntax-based) is explained in the <link url="http://fink.sourceforge.net/doc/packaging/policy.php?#format">File Format</link> section of the <code>Packaging Manual</code>.</p>
 <p>Now, it's time to compute the MD5-sum, just issue <code>md5sum conglomerate-0.7.14.tar.gz</code> in Terminal.app and copy the numeric part of the result in the <code>Source-MD5</code> field:</p>
 <codeblock>
 Source-MD5: 1a04815a1059987aea45816aa1401bc3
@@ -720,12 +721,68 @@ Source-MD5: 1a04815a1059987aea45816aa1401bc3
 <section name="source-tree">
 <title>A glance at the source tree</title>
 <p>In the previous example, we've experienced that there can be some directives in the original build process not conforming the Fink packaging policy. Therefore, instead of doing numerous tries, we will inspect systematically the files which concurs to this process.</p>
-<p>First, we'll observe some files with uppercase names, such as <filename>AUTHORS</filename>, <filename>COPYING</filename>, and so on. What to do with them? The <link url="http://fink.sourceforge.net/doc/packaging/fslayout.php?phpLang=en#dirs">Directories</link> section of the <filename>Packaging manual</filename> teach us their install location. Then, in the  Install Phase of the <link url="http://fink.sourceforge.net/doc/packaging/reference.php?phpLang=en#fields">Reference</link> section, we'll find a <filename>DocFiles</filename> field, which seems appropriate. So, we populate this field with all files with uppercase names found in the source tree:</p>
+<p>First, we'll observe some files with uppercase names, such as <filename>AUTHORS</filename>, <filename>COPYING</filename>, and so on. What to do with them? The <link url="http://fink.sourceforge.net/doc/packaging/fslayout.php?#dirs">Directories</link> section of the <filename>Packaging manual</filename> teach us their install location. Then, in the  Install Phase of the <link url="http://fink.sourceforge.net/doc/packaging/reference.php?#fields">Reference</link> section, we'll find a <filename>DocFiles</filename> field, which seems appropriate. So, we populate this field with all files with uppercase names found in the source tree:</p>
 <codeblock>
 DocFiles: AUTHORS BUGS COPYING INSTALL NEWS TODO
 </codeblock>
 <p>Incidentally we'll see a <filename>debian</filename> folder. It may be worth have a look at it, especially the <filename>patches</filename> folder. There's a <filename>no_scrollkeeper-update.dpatch</filename> in it. We are not using it, but we will follow the instructions in <filename>scrollkeeper.info</filename> in Fink's 10.3 unstable tree, to know what to do.</p>
+<p>First we are told to remove <code>-scrollkeeper-update -a $(scrollkeeper-localstate-dir)</code> line from an <filename>omf-install/Makefile.in</filename>. There is no such file, but there is an omf.make file. We open it and see the offending line in it, but in two places:</p>
+<codeblock>
+install-data-hook-omf:
+...
+	-scrollkeeper-update -p $(scrollkeeper_localstate_dir) -o $(DESTDIR)$(omf_dest_dir)
 
+uninstall-local-omf:
+...
+	-scrollkeeper-update -p $(scrollkeeper_localstate_dir)
+</codeblock>
+<p>So we'll make a patch (here with nedit) to remove both lines:</p>
+<ol>
+<li>Open omf.make (TextEdit is just fine for it).</li>
+<li>Remove both lines, so that they look like this:
+<codeblock>
+install-data-hook-omf:
+...
+	done
+
+uninstall-local-omf:
+...
+	-rmdir $(omf_dest_dir)
+</codeblock>
+</li>
+<li>Save the file under <filename>omf-patched.make</filename>.</li>
+<li>Open <filename>nedit</filename>, click <code>Shell-&gt;Execute commands submenu</code>, and type in it:
+<codeblock>
+cd ~/Desktop; diff -Naur conglomerate-0.7.14/omf.make conglomerate-0.7.14/omf-patched.make
+</codeblock>
+<em>Tips:</em> to get the <code>~</code>, just type a space after it. And use the up arrow to retrieve the last shell command executed.
+It will output something like that:
+<codeblock>
+--- conglomerate-0.7.14/omf.make	Thu Jan 22 11:45:14 2004
++++ conglomerate-0.7.14/omf-patched.make	Mon Jul 19 15:41:07 2004
+@@ -42,7 +42,6 @@
+ 	for file in $(omfincfile); do \
+ 		$(INSTALL_DATA) $(srcdir)/$$file $(DESTDIR)$(docdir)/$$file; \
+ 	done
+-	-scrollkeeper-update -p $(scrollkeeper_localstate_dir) -o $(DESTDIR)$(omf_dest_dir)
+ 
+ uninstall-local-omf:
+ 	-for file in $(srcdir)/*.omf; do \
+@@ -50,4 +49,3 @@
+ 		rm -f $(omf_dest_dir)/$$basefile; \
+ 	done
+ 	-rmdir $(omf_dest_dir)
+-	-scrollkeeper-update -p $(scrollkeeper_localstate_dir)
+
+</codeblock>
+</li>
+<li>Save the result under <filename>conglomerate.patch</filename>.</li>
+</ol>
+<p>Now, we have to tell fink to take this patch into account, so we'll go to the <link url="http://fink.sourceforge.net/doc/packaging/reference.php?#patches">Patches</link> section of the <filename>Packaging Manual</filename>, observe that our patch follows the established rules, and insert the following line in the <filename>conglomerate.info</filename> file:</p>
+<codeblock>
+Patch: %n.patch
+</codeblock>
+<p>That was only the first part of scrollkeeper instructions. Now we should add a dependency on scrollkeeper.</p>
 </section>
 <section name="build">
 <title>Build</title>
