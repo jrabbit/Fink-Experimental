@@ -1,0 +1,119 @@
+diff -ru2N apt-spy-3.0/Makefile apt-spy-3.0-patched/Makefile
+--- apt-spy-3.0/Makefile	Tue May 20 13:07:55 2003
++++ apt-spy-3.0-patched/Makefile	Fri Jun 13 18:33:15 2003
+@@ -1,5 +1,5 @@
+ CC = cc
+ CFILES = benchmark.c  file.c  protocol.c  main.c  parse.c  update.c
+-CFLAGS = -lcurl -g -Wall -pedantic-errors
++CFLAGS = -lcurl -g -O3 -Wall -I/sw/include -L/sw/lib
+ TARGET = apt-spy
+ 
+diff -ru2N apt-spy-3.0/README apt-spy-3.0-patched/README
+--- apt-spy-3.0/README	Tue May 20 13:07:55 2003
++++ apt-spy-3.0-patched/README	Fri Jun 13 18:25:36 2003
+@@ -3,14 +3,14 @@
+ re-write of the original.
+ 
+-You need to create a directory /usr/share/apt-spy
++You need to create a directory @PREFIX@/share/apt-spy
+ 
+ Then run: 
+-./apt-spy update
++sudo apt-spy update
+ 
+ Then: 
+-cp apt-spy.conf /etc
++cp apt-spy.conf @PREFIX@/etc
+ 
+ Then:
+-./apt-spy -a <area> -d <distribution>
++sudo apt-spy -a <area> -d <distribution>
+ 
+ valid values for <area> are: 
+@@ -27,6 +27,6 @@
+ woody, sarge or sid.
+ 
+-The program will write a new /etc/apt/sources.list
+-Your old /etc/apt/sources.list will be saved to /etc/apt/sources.list.bak
++The program will write a new @PREFIX@/etc/apt/sources.list
++Your old @PREFIX@/etc/apt/sources.list will be saved to @PREFIX@/etc/apt/sources.list.bak
+ 
+ 
+Binary files apt-spy-3.0/apt-spy and apt-spy-3.0-patched/apt-spy differ
+diff -ru2N apt-spy-3.0/apt-spy.8 apt-spy-3.0-patched/apt-spy.8
+--- apt-spy-3.0/apt-spy.8	Tue May 20 13:07:55 2003
++++ apt-spy-3.0-patched/apt-spy.8	Fri Jun 13 18:27:26 2003
+@@ -17,5 +17,5 @@
+ .\" for manpage-specific macros, see man(7)
+ .SH NAME
+-apt-spy \- program to generate a /etc/apt/sources.list file
++apt-spy \- program to generate a @PREFIX@/etc/apt/sources.list file
+ .SH SYNOPSIS
+ .BR apt-spy " -d " \fIdist\fP 
+@@ -45,5 +45,5 @@
+ \fBapt-spy\fP is a program that tests a series of Debian archive mirrors for
+ bandwith.
+-It writes an \fI/etc/apt/sources.list\fP with the fastest server.
++It writes an \fI@PREFIX@/etc/apt/sources.list\fP with the fastest server.
+ .PP
+ You can select which of the many Debian sites to benchmark by geographical
+@@ -53,6 +53,5 @@
+ .TP
+ .BI -d " dist" 
+-Debian distribution to use. Sensible values would be `stable', `testing'
+-or `unstable'. 
++Fink distribution to use. Sensible values would be `stable' or `unstable'.
+ This value is directly used in the generated sources.list
+ .TP
+@@ -65,5 +64,5 @@
+ .TP
+ .BI -c " config"
+-configuration file to use instead of \fI/etc/apt-spy.conf.
++configuration file to use instead of \fI@PREFIX@/etc/apt-spy.conf.
+ .TP
+ .BI -e " number"
+@@ -85,5 +84,5 @@
+ .BI -m " mirror-list"
+ where to load the mirrors list from or where to save it to.
+-The default location is \fB/usr/share/apt-spy/README.mirrors.txt\fP.
++The default location is \fB@PREFIX@/share/apt-spy/README.mirrors.txt\fP.
+ Using this option allows you to specify a different location. 
+ When updating, this defines where the updated mirrors list will be saved.
+@@ -91,5 +90,5 @@
+ .BI -o " output-file"
+ location for the new \fBsources.list\fP.
+-By default the new file is created as \fB/etc/apt/sources.list\fP.
++By default the new file is created as \fB@PREFIX@/etc/apt/sources.list\fP.
+ .TP
+ .BI -p " proxy"
+@@ -120,5 +119,5 @@
+ .BI update
+ connect to \fBhttp.us.debian.org\fP and download the mirror list to
+-\fB/usr/share/apt-spy/README.mirrors.txt\fP.
++\fB@PREFIX@/share/apt-spy/README.mirrors.txt\fP.
+ .TP
+ .BI -v
+diff -ru2N apt-spy-3.0/apt-spy.conf.5 apt-spy-3.0-patched/apt-spy.conf.5
+--- apt-spy-3.0/apt-spy.conf.5	Tue May 20 13:12:42 2003
++++ apt-spy-3.0-patched/apt-spy.conf.5	Fri Jun 13 18:24:52 2003
+@@ -38,5 +38,5 @@
+ This is the same as the ISO3166 code.
+ You can find the country code for a specific country either by looking at
+-\fB/usr/share/apt-spy/README.mirrors.txt,\fP or by looking at the commented
++\fB@PREFIX@/share/apt-spy/README.mirrors.txt,\fP or by looking at the commented
+ examples in the default \fBapt-spy.conf\fP.
+ .PP
+diff -ru2N apt-spy-3.0/main.c apt-spy-3.0-patched/main.c
+--- apt-spy-3.0/main.c	Tue May 20 13:07:55 2003
++++ apt-spy-3.0-patched/main.c	Fri Jun 13 18:24:21 2003
+@@ -20,7 +20,7 @@
+ 
+ char d_area[] = "All";
+-char d_out[] = "/etc/apt/sources.list";		/* Default outfile */
+-char d_config[] = "/etc/apt-spy.conf";		/* Default configuration file */
+-char d_mirror[] = "/usr/share/apt-spy/README.mirrors.txt";	/* Default mirror list */
++char d_out[] = "@PREFIX@/etc/apt/sources.list";		/* Default outfile */
++char d_config[] = "@PREFIX@/etc/apt-spy.conf";		/* Default configuration file */
++char d_mirror[] = "@PREFIX@/share/apt-spy/README.mirrors.txt";	/* Default mirror list */
+ char d_file[] = "ls-lR";			/* Default file to grab when benchmarking */
+ char d_update_url[] = "http://http.us.debian.org/debian/README.mirrors.txt";
