@@ -1,0 +1,94 @@
+--- 0verkill-0.16/cfg.h	Sun Dec 16 07:48:56 2001
++++ 0verkill-0.16-patched/cfg.h	Thu Jun  6 13:30:17 2002
+@@ -21,8 +21,9 @@
+ 
+ #define DEFAULT_FONT_NAME "-misc-fixed-bold-r-normal-*-13-*-*-*-c-*-iso8859-*"
+ 
+-
++#ifndef DATA_PATH
+ #define DATA_PATH "data/"
++#endif
+ #define LEVEL_FILE "level.dat"
+ #define GAME_SPRITES_FILE "sprites.dat"
+ #define BANNER_FILE "banner.dat"
+--- 0verkill-0.16/client.c	Sun Dec 16 01:26:38 2001
++++ 0verkill-0.16-patched/client.c	Thu Jun  6 13:49:21 2002
+@@ -2007,7 +2007,7 @@
+ 	printf("Started WinSock version %X.%02X\n", wd.wVersion/0x100, wd.wVersion&0xFF);
+ #endif
+ 
+-
++	chdir(DATA_PATH);
+ #ifdef XWINDOW
+ 	x_display_name=0;
+ 	x_font_name=0;
+--- 0verkill-0.16/data.c	Sat Dec 15 09:51:54 2001
++++ 0verkill-0.16-patched/data.c	Thu Jun  6 19:40:11 2002
+@@ -249,6 +249,8 @@
+ 	ERROR(msg);
+ 	EXIT(1);
+  }
++
++ printf("load_sprites 1.\n");
+  while(fgets(line,1024,stream))
+  {
+   p=line;
+@@ -587,8 +589,9 @@
+ {
+ 	unsigned char *p,*q;
+ 	int a;
+-	
++
+ 	q=MD5File(filename,NULL);
++	if(q == NULL) return NULL;
+ 	a=strlen(q);
+ 	if (!(*result))*result=DUMMY;
+ 	p=mem_realloc((*result),(*len)+a+1);
+@@ -617,20 +620,23 @@
+ 	if (!__add_md5(DATA_PATH LEVEL_FILE,&len,&result)){mem_free(result);return NULL;}
+ 
+ 	snprintf(p,2048,"%s%s%s",DATA_PATH,q,LEVEL_SPRITES_SUFFIX);
++	printf("Passing to __add_md5 : %s\n", p);
+ 	if (!__add_md5(p,&len,&result)){mem_free(result);return NULL;}
+ 
+ 	snprintf(p,2048,"%s%s%s",DATA_PATH,q,STATIC_DATA_SUFFIX);
++	printf("Passing to __add_md5 : %s\n", p);
+ 	if (!__add_md5(p,&len,&result)){mem_free(result);return NULL;}
+ 
+ 	snprintf(p,2048,"%s%s%s",DATA_PATH,q,DYNAMIC_DATA_SUFFIX);
++	printf("Passing to __add_md5 : %s\n", p);
+ 	if (!__add_md5(p,&len,&result)){mem_free(result);return NULL;}
+ 
+ 	snprintf(p,2048,"%s%s%s",DATA_PATH,q,LEVEL_SPRITES_SUFFIX);
++	printf("Passing to __add_md5 : %s\n", p);
+ 	mem_free(q);
+ 
+ 	{
+ 		FILE *f;
+-
+ 		f=fopen(p,"r");
+ 		if (!f){mem_free(result);return NULL;}
+ 		while (fgets(p,2048,f))
+--- 0verkill-0.16/sprite.c	Sat Dec 15 09:51:53 2001
++++ 0verkill-0.16-patched/sprite.c	Thu Jun  6 14:09:23 2002
+@@ -181,15 +181,17 @@
+ 	int x,a;
+ 	static unsigned char buffer[8192];
+ 	char *p,*q;
++	unsigned char file[1024];
+ 	int step=0;  /*0=expecting 'p', 1=expecting 'l', 2=expecting 'a', 3=expecting 'p' or 's' or 'l', 4=expecting end */
+ 
+ 	s->positions=DUMMY;
+ 	s->n_positions=0;
+- 
+-	if (!(f=fopen(filename,"rb")))
++
++	sprintf(file,"%s../%s",DATA_PATH,filename);
++	if (!(f=fopen(file,"rb")))
+ 	{
+ 		unsigned char msg[256];
+-		snprintf(msg,256,"Error opening file \"%s\"!\n",filename);
++		snprintf(msg,256,"Error opening file \"%s\"!\n",file);
+ 		ERROR(msg);
+ 		EXIT(1);
+ 	}
