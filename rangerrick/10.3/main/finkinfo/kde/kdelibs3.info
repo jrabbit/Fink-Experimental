@@ -31,7 +31,7 @@ PatchScript: <<
   perl -pi -e 's,doc/HTML,doc/kde,g' admin/acinclude.m4.in
 <<
 
-SetCPPFLAGS: -fno-common -no-cpp-precomp -I%p/lib/flex/include -I/usr/X11R6/include -I%p/include
+SetCPPFLAGS: -fno-common -no-cpp-precomp -I%p/lib/flex/include -I%p/include/-I/usr/X11R6/include -I%p/include
 SetLIBS: -L%p/lib
 NoSetLDFLAGS: true
 SetLDFLAGS: -L%p/lib/flex/lib
@@ -43,12 +43,11 @@ CompileScript: <<
 
 # breaks a lot of plugins on 10.2, enable this again on 10.3
   export LD_TWOLEVEL_NAMESPACE=true
-  export PATH="%p/lib/flex/bin:/usr/X11R6/bin:$PATH"
 
   date > /tmp/kde-build/%N-%v-%r.cvs
   make -f admin/Makefile.common cvs 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.cvs || exit 1
   date > /tmp/kde-build/%N-%v-%r.configure
-  FREETYPE_CONFIG=/usr/X11R6/bin/freetype-config sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure || exit 1
+  FREETYPE_CONFIG=%p/bin/freetype-config sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure || exit 1
   date > /tmp/kde-build/%N-%v-%r.make
   make all apidox 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.make || exit 1
 <<

@@ -6,7 +6,7 @@ License: GPL/LGPL
 Maintainer: Benjamin Reed <ranger@befunk.com>
 
 Depends: amor (>= %v-%r), kmoon (>= %v-%r), kodo (>= %v-%r), kteatime (>= %v-%r), kworldclock (>= %v-%r), kde-panel-eyes (>= %v-%r), kde-panel-fifteen (>= %v-%r), kde-panel-worldwatch (>= %v-%r), ktux (>= %v-%r), kweather (>= %v-%r)
-BuildDepends: pcre, arts-dev (>= 1.2.0-1), autoconf2.5 (>= 2.58-1), automake1.8, cctools (>= 446-1) | cctools-single-module, dlcompat-dev (>= 20030629-5), fink (>= 0.14.0-1), kdelibs3-ssl-dev (>= %v-1) | kdelibs3-dev (>= %v-1), libart2, libjpeg, libpng3 (>= 1.2.5-4), libtool14, qt3 (>= 3.2.3-1), x11-dev
+BuildDepends: pcre, arts-dev (>= 1.2.0-1), autoconf2.5 (>= 2.58-1), automake1.8, cctools (>= 446-1) | cctools-single-module, dlcompat-dev (>= 20030629-5), fink (>= 0.14.0-1), freetype2 | freetype2-hinting, kdelibs3-ssl-dev (>= %v-1) | kdelibs3-dev (>= %v-1), libart2, libjpeg, libpng3 (>= 1.2.5-4), libtool14, qt3 (>= 3.2.3-1), x11-dev
 Conflicts: %N (<< %v-%r)
 Replaces: %N (<< %v-%r)
 GCC: 3.3
@@ -22,7 +22,7 @@ PatchScript: <<
   perl -pi -e 's,doc/HTML,doc/kde,g' admin/acinclude.m4.in
 <<
 
-SetCPPFLAGS: -fno-common -no-cpp-precomp -I/usr/X11R6/include/freetype2 -I/usr/X11R6/include -I%p/include
+SetCPPFLAGS: -fno-common -no-cpp-precomp -I%p/include/freetype2 -I/usr/X11R6/include -I%p/include
 SetLIBS: -L%p/lib
 NoSetLDFLAGS: true
 SetMACOSX_DEPLOYMENT_TARGET: 10.2
@@ -33,12 +33,11 @@ CompileScript: <<
 
 # breaks a lot of plugins on 10.2, enable this again on 10.3
 #  export LD_TWOLEVEL_NAMESPACE=true
-  export PATH="/usr/X11R6/bin:$PATH"
 
   date > /tmp/kde-build/%N-%v-%r.cvs
   make -f admin/Makefile.common cvs 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.cvs
   date > /tmp/kde-build/%N-%v-%r.configure
-  FREETYPE_CONFIG=/usr/X11R6/bin/freetype-config sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure
+  FREETYPE_CONFIG=%p/bin/freetype-config sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure
   date > /tmp/kde-build/%N-%v-%r.make
   make all 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.make
 <<
@@ -207,7 +206,7 @@ SplitOff10: <<
 SplitOff11: <<
   Package: %N-base
   Description: KDE - kdetoys base package
-  Depends: kdelibs3-ssl-shlibs (>= %v-1) | kdelibs3-shlibs (>= %v-1)
+  Depends: kdebase3-ssl (>= %v-1) | kdebase3 (>= %v-1)
   Replaces: %N (<< %v-%r)
   Recommends: %N (>= %v-%r), kdebase3-ssl (>= %v-1) | kdebase3 (>= %v-1)
   Files: <<

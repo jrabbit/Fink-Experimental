@@ -23,7 +23,7 @@ PatchScript: <<
   perl -pi -e 's,doc/HTML,doc/kde,g' admin/acinclude.m4.in
 <<
 
-SetCPPFLAGS: -fno-common -no-cpp-precomp -I/usr/X11R6/include/freetype2 -I/usr/X11R6/include -I%p/include
+SetCPPFLAGS: -fno-common -no-cpp-precomp -I%p/include/freetype2 -I/usr/X11R6/include -I%p/include
 SetLIBS: -L%p/lib
 NoSetLDFLAGS: true
 SetMACOSX_DEPLOYMENT_TARGET: 10.2
@@ -36,12 +36,11 @@ CompileScript: <<
 
 # breaks a lot of plugins on 10.2, enable this again on 10.3
 #  export LD_TWOLEVEL_NAMESPACE=true
-  export PATH="/usr/X11R6/bin:$PATH"
 
   date > /tmp/kde-build/%N-%v-%r.cvs
   make -f admin/Makefile.common cvs 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.cvs
   date > /tmp/kde-build/%N-%v-%r.configure
-  FREETYPE_CONFIG=/usr/X11R6/bin/freetype-config sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure
+  FREETYPE_CONFIG=%p/bin/freetype-config sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure
   date > /tmp/kde-build/%N-%v-%r.make
   make all 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.make
 <<
@@ -236,7 +235,7 @@ SplitOff10: <<
 SplitOff11: <<
   Package: %N-base
   Description: KDE - koffice base package
-  Depends: kdelibs3-ssl (>= 3.2.0-1) | kdelibs3 (>= 3.2.0-1)
+  Depends: kdebase3-ssl (>= %v-1) | kdebase3 (>= %v-1)
   Replaces: %N-common (<< %v-%r), %N (<< %v-%r), %N-dev (<< %v-%r)
   Recommends: %N (>= %v-%r), kdebase3-ssl (>= 3.2.0-1) | kdebase3 (>= 3.2.0-1)
   Files: <<
