@@ -1,0 +1,58 @@
+Adapted in part from http://ranger.befunk.com/blog/archives/000258.html  "Sharing the Fink"
+
+"master" (build) system:
+
+Install Fink--and it should be in /sw (use a symlink if necessary).
+
+Build packages as usual--they don't necessarily have to be installed, just built.
+
+Run "fink scanpackages". This will make fink generate apt indexes for all of your enabled trees.
+
+Turn on a web server:  either enable "Personal Web Sharing" in the Sharing section of System Preferences, or install another one, e.g. apache2 from Fink; then set up httpd to expose your /sw/fink directory externally. With the builtin server this can be done by making an /etc/httpd/users/fink.conf file that contains:
+
+Alias /fink /sw/fink
+<Directory /sw/fink>
+  Options Indexes FollowSymLinks
+</Directory>
+
+
+Or you can put those lines in httpd.conf, otherwise
+
+Then run "sudo /usr/sbin/apachectl graceful" to (re)start your webserver.
+
+Every time you build/update packages, you will want to run "fink scanpackages" to make them available to your remote machines.
+
+----------
+
+Client boxes:
+
+Edit /sw/etc/apt/sources.list, and add the lines representing your fink trees. For example, if the IP address of your build box at is 192.168.42.7, the client(s) would add:
+
+
+deb http://192.168.42.7/fink stable main crypto
+deb http://192.168.42.7/fink unstable main crypto
+deb http://192.168.42.7/fink local main
+
+
+
+Run "sudo apt-get update". If all goes well, you should see something like:
+
+
+Hit http://192.168.42.7 stable/main Packages
+Hit http://192.168.42.7 stable/main Release
+Hit http://192.168.42.7 stable/crypto Packages
+...and so on
+
+
+You should then be able to do "sudo apt-get install <package>" for anything that's been built on the "master" box.  
+
+Or, if you have fink >=0.23.1, you can employ the UseBinaryDist option and be able to download your own packages via fink update and fink install.   This method will also let you build packages/dependencies that aren't precompiled on your master box, but still employing as many binaries as are available.
+
+
+
+
+Notes:
+
+You can update essential packages (e.g. fink) via this method, but you must use apt-get to do so, since fink selfupdate will attempt to build such packages from source even with UseBinaryDist enabled.
+
+Your master machine needs to use the lowest version of X11 that you're using on all of the clients, i.e. if any client uses Apple's X11, the master box must use it.
