@@ -1,0 +1,51 @@
+Package: openoffice
+Version: 1.9+cws_src680_ooo20040815
+Revision: 1
+Description: Office software
+License: OSI-Approved
+Maintainer: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>
+
+GCC: 3.3
+
+BuildDepends: ant, bison, fileutils, system-java14-dev, dlcompat-dev
+Depends: system-java14, dlcompat-shlibs
+
+Source: http://fink.sodan.ecc.u-tokyo.ac.jp/sources/%n-%v.tar.bz2
+Source-MD5: 617eeae17dd02a1bdbc51e77a708e914
+SourceDirectory: OpenOffice.cws_src680_ooo20040815
+Source2: ftp://ftp.cs.man.ac.uk/pub/toby/gpc/gpc231.tar.Z
+Source2-MD5: fdb06fdb5a4670b172f9fb738b717be9
+
+PatchScript: <<
+#!/bin/sh
+/bin/cp  ../gpc231/gpc.* external/gpc
+cat > Response <<EOF
+		[ENVIRONMENT]
+		INSTALLATIONMODE=INSTALL_NETWORK
+		INSTALLATIONTYPE=STANDARD
+		DESTINATIONPATH=%i/share/%n
+		OUTERPATH=
+		LOGFILE=
+		LANGUAGELIST=
+
+		[JAVA]
+		JavaSupport=preinstalled_or_none
+EOF
+<<
+
+ConfigureParams: --with-lang=ALL --with-dict=ALL --with-x --with-gnu-cp=%p/bin/cp
+CompileScript: <<
+#!/bin/tcsh
+unsetenv LD_SEG_ADDR_TABLE
+unsetenv LD_PREBIND
+unsetenv LD_PREBIND_ALLOW_OVERLAP
+(cd config_office; ./configure  %c)
+./bootstrap
+/bin/tcsh -c "source MacosxEnv.Set; dmake"
+<<
+
+InstallScript: <<
+./setup -nogui -v -r:./Response
+<<
+
+Homepage: http://porting.openoffice.org/mac/
