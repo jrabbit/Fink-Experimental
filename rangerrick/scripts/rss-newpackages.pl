@@ -26,8 +26,8 @@ $PREFIX = '/tmp/fink-rss';
 $SCP    = 1;
 
 print "- updating cvs repository... ";
-system("mkdir -p $PREFIX");
-system("cd $PREFIX; cvs -d :pserver:anonymous\@cvs.fink.sourceforge.net:/cvsroot/fink co dists packages >$PREFIX/cvs.log 2>&1");
+`mkdir -p '$PREFIX'`;
+`cd $PREFIX; cvs -d :pserver:anonymous\@cvs.fink.sourceforge.net:/cvsroot/fink co dists packages >$PREFIX/cvs.log 2>&1`;
 print "done\n";
 
 print "- searching for new info files... ";
@@ -41,8 +41,8 @@ print "done\n";
 
 if ($SCP) {
 	print "- copying feeds to the Fink website... ";
-	system("scp @FILES rangerrick\@fink.sourceforge.net:/home/groups/f/fi/fink/htdocs/news/ >/dev/null 2>&1");
-	system("ssh rangerrick\@fink.sourceforge.net 'cd /home/groups/f/fi/fink/htdocs; ./fix_perm.sh' >/dev/null 2>&1");
+	`rsync -av -e ssh @FILES rangerrick\@fink.sourceforge.net:/home/groups/f/fi/fink/htdocs/news/ >/tmp/rss-rsync.log 2>&1`;
+	`ssh rangerrick\@fink.sourceforge.net 'cd /home/groups/f/fi/fink/htdocs; ./fix_perm.sh' >/dev/null 2>&1`;
 	print "done\n";
 }
 
@@ -72,7 +72,7 @@ sub make_rss {
 
 	$rss->channel(
 		title       => "New Fink Packages ($tree)",
-		link        => 'http://fink.sourceforge.net/',
+		link        => 'http://fink.sourceforge.net/pdb/',
 		description => "New Packages Released to the $tree Tree in the Last $DAYS Days.",
 		dc          => {
 			date      => w3c_date(time),
@@ -84,7 +84,7 @@ sub make_rss {
 		syn         => {
 			updatePeriod    => 'hourly',
 			updateFrequency => '1',
-			updateBase      => '2000-01-01T00:00:00-05:00',
+			updateBase      => '2000-01-01T00:30:00-05:00',
 		},
 	);
 
@@ -102,7 +102,7 @@ sub make_rss {
 		$description =~ s/&/&amp;/gs;
 		# $description = '(updated ' . w3c_date($package->{'date'}) . ') ' . $description;
 		$rss->add_item(
-			title       => $package->{'package'} . ' ' . $package->{'version'} . ' (' . $package->{'description'} . ')',
+			title       => $package->{'package'} . ' ' . $package->{'version'} . '-' . $package->{'revision'} . ' (' . $package->{'description'} . ')',
 			description => $description,
 			link        => 'http://fink.sourceforge.net/pdb/package.php/' . $package->{'package'},
 			dc          => {
