@@ -5,13 +5,13 @@ BuildDepends: openssl-dev
 Depends: openssl-shlibs
 Source-MD5: e18c20bb39ba5d54b2270f191843c4de
 DocFiles: README unix/%n_samplerc
-Description: COMPILES BUT DOESN'T WORK YET--POP3 gateway to yahoo mail
+Description: POP3 gateway to yahoo mail
 License: GPL
 HomePage: http://yahoopops.sourceforge.net/
 Source: mirror:sourceforge:%n/%n-%v-mac.tar.gz
 SourceDirectory: %n-%vmac
 PatchScript: sed 's|@PREFIX@|%p|g' < %a/%f.patch | patch -p1
-CompileScript: cd unix; make
+CompileScript: cd unix; make LDFLAGS=-r
 InstallScript: <<
  mkdir -p %i/sbin
  cd unix; install -m 755 %n %i/sbin/
@@ -31,39 +31,30 @@ DescDetail: <<
  (browser) interface at the other which allows it to talk to Yahoo!
 <<
 DescUsage: <<
- cp /sw/share/doc/yahoopops/yahoopops_samplerc ~/.yahoopops
+ Create config file:
+  cp /sw/share/doc/yahoopops/yahoopops_samplerc ~/.yahoopops
  then edit it to customize the configuration.
 
- Run /sw/sbin/yahoopops
- 
- (YahooPOPs! cannot be used with xinetd at this time.)
+ Start the daemon:
+  /sw/sbin/yahoopops&
 
+ Mail client account setup:
+  server: localhost
+  port: 5058
+ Enter your existing yahoo login id and password.
+
+ YahooPOPs! cannot be used with xinetd at this time.
+
+ Troubleshooting:
+  open ~/yahoopops.log
  See http://yahoopops.sourceforge.net/faq/
 <<
 DescPackaging: <<
- No compiler errors but this needs to be fixed :(
-----
-Command:    yahoopops
-PID:        4961
-
-Exception:  EXC_BAD_ACCESS (0x0001)
-Codes:      KERN_PROTECTION_FAILURE (0x0002) at 0x00000028
-
-Thread 0 Crashed:
- #0   0x90015ac0 in fseeko
- #1   0x00014424 in LogFile::LogFile[in-charge](CStdStr<char> const&)
- #2   0x00043184 in _static_initialization_and_destruction_0(int, int)
- #3   0x8fe16594 in call_module_initializers_for_objects
- #4   0x8fe160a0 in call_module_initializers
- #5   0x8fe133ac in _dyld_make_delayed_module_initializer_calls
- #6   0x000021ac in _call_mod_init_funcs
- #7   0x00002094 in _start (crt.c:221)
- #8   0x00001ff4 in start
-----
  find out about building non-ssl variant and rename this pack to
  %n-ssl
 <<
 DescPort: <<
  Patched to remove -fPIC compiler warnings; use optimization & sort
- with ranlib
+ with ranlib. Link with -r or -bind_at_load to fix crash:
+ _dyld_make_delayed_module_initializer_calls
 <<
