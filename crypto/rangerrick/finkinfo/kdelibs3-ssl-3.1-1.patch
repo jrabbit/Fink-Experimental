@@ -1,8 +1,8 @@
 
 ===================================================================
-diff -u -u -r1.1.1.7 acinclude.m4.in
+diff -u -u -r1.1.1.7 -r1.24
 --- admin/acinclude.m4.in	20 Nov 2002 00:45:10 -0000	1.1.1.7
-+++ admin/acinclude.m4.in	24 Nov 2002 06:59:54 -0000
++++ admin/acinclude.m4.in	26 Nov 2002 21:00:47 -0000	1.24
 @@ -31,6 +31,9 @@
  dnl thanks to Raja R Harinath.
  dnl ------------------------------------------------------------------------
@@ -111,7 +111,7 @@ diff -u -u -r1.1.1.7 acinclude.m4.in
     AC_SUBST(LIB_KSPELL, "-lkspell")
     AC_SUBST(LIB_KPARTS, "-lkparts")
 -   AC_SUBST(LIB_KDEPRINT, "-lkdeprint")
-+   AC_SUBST(LIB_KDED, "@PREFIX@/lib/kded.la")
++   AC_SUBST(LIB_KDED, "-lkded_main")
  # these are for backward compatibility
     AC_SUBST(LIB_KSYCOCA, "-lkio")
     AC_SUBST(LIB_KFILE, "-lkio")
@@ -385,9 +385,9 @@ diff -u -u -r1.1.1.7 acinclude.m4.in
    ac_ssl_rsaref="no"
    )
 ===================================================================
-diff -u -u -r1.1.1.7 cvs.sh
+diff -u -u -r1.1.1.7 -r1.2
 --- admin/cvs.sh	20 Nov 2002 00:45:12 -0000	1.1.1.7
-+++ admin/cvs.sh	24 Nov 2002 06:59:54 -0000
++++ admin/cvs.sh	24 Nov 2002 07:11:18 -0000	1.2
 @@ -119,7 +119,7 @@
  fi
  
@@ -398,9 +398,9 @@ diff -u -u -r1.1.1.7 cvs.sh
    echo "*** Postprocessing Makefile templates"
    perl -w admin/am_edit || exit 1
 ===================================================================
-diff -u -u -r1.1.1.4 detect-autoconf.sh
+diff -u -u -r1.1.1.4 -r1.4
 --- admin/detect-autoconf.sh	20 Nov 2002 00:45:12 -0000	1.1.1.4
-+++ admin/detect-autoconf.sh	24 Nov 2002 06:59:54 -0000
++++ admin/detect-autoconf.sh	24 Nov 2002 07:11:18 -0000	1.4
 @@ -42,12 +42,15 @@
  checkAutomakeAclocal ()
  {
@@ -421,9 +421,9 @@ diff -u -u -r1.1.1.4 detect-autoconf.sh
    else
       AUTOMAKE="$UNSERMAKE"
 ===================================================================
-diff -u -u -r1.1.1.5 libtool.m4.in
+diff -u -u -r1.1.1.5 -r1.11
 --- admin/libtool.m4.in	20 Nov 2002 00:45:13 -0000	1.1.1.5
-+++ admin/libtool.m4.in	24 Nov 2002 06:59:55 -0000
++++ admin/libtool.m4.in	24 Nov 2002 07:11:18 -0000	1.11
 @@ -65,7 +65,7 @@
  LIBTOOL_DEPS="$ac_aux_dir/ltmain.sh"
  
@@ -489,9 +489,9 @@ diff -u -u -r1.1.1.5 libtool.m4.in
        #_LT_AC_TAGVAR(archive_expsym_cmds, $1)="$_LT_AC_TAGVAR(archive_cmds, $1)"' && strip -s $export_symbols'
        _LT_AC_TAGVAR(hardcode_direct, $1)=yes
 ===================================================================
-diff -u -u -r1.1.1.4 ltmain.sh
+diff -u -u -r1.1.1.4 -r1.6
 --- admin/ltmain.sh	20 Nov 2002 00:45:14 -0000	1.1.1.4
-+++ admin/ltmain.sh	24 Nov 2002 06:59:56 -0000
++++ admin/ltmain.sh	24 Nov 2002 07:11:19 -0000	1.6
 @@ -2532,11 +2532,11 @@
  	eval libname=\"$libname_spec\"
  	;;
@@ -604,40 +604,289 @@ diff -u -u -r1.1.1.3 -r1.5
 ===================================================================
 diff -u -u -r1.1.1.3 -r1.5
 ===================================================================
-diff -u -u -r1.1.1.2 Makefile.am
---- ./arts/knotify/Makefile.am	10 Jul 2002 04:41:09 -0000	1.1.1.2
-+++ ./arts/knotify/Makefile.am	24 Nov 2002 07:05:29 -0000
-@@ -7,8 +7,8 @@
- lib_LTLIBRARIES = knotify.la
+diff -u -u -r1.1.1.1 -r1.2
+--- ./arts/kde/mcop-dcop/kmcop.cpp	25 Jun 2002 02:46:53 -0000	1.1.1.1
++++ ./arts/kde/mcop-dcop/kmcop.cpp	26 Nov 2002 21:00:48 -0000	1.2
+@@ -46,7 +46,9 @@
+ 	QPtrList<MCOPDCOPObject> list;
+ };
  
- knotify_la_SOURCES	= knotify.cpp knotify.skel
+-int main(int argc, char **argv)
++extern "C" int kdemain(int, char**);
++
++int kdemain(int argc, char **argv)
+ {
+     KAboutData aboutdata("kmcop", I18N_NOOP("KMCOP"),
+                          "0.1", I18N_NOOP("KDE MCOP-DCOP Bridge"),
+===================================================================
+diff -N ./arts/kde/mcop-dcop/kmcop_main.cpp
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ ./arts/kde/mcop-dcop/kmcop_main.cpp	26 Nov 2002 21:00:48 -0000	1.1
+@@ -0,0 +1,27 @@
++/*
++ *
++ * Copyright (c) 2001 Nick Hudson <skrll@netbsd.org>
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a copy
++ * of this software and associated documentation files (the "Software"), to deal
++ * in the Software without restriction, including without limitation the rights
++ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++ * copies of the Software, and to permit persons to whom the Software is
++ * furnished to do so, subject to the following conditions:
++ *
++ * The above copyright notice and this permission notice shall be included in
++ * all copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
++ * AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
++ * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
++ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++ */
++extern "C" int kdemain(int, char* []);
++
++int main( int argc, char* argv[] )
++{
++        return kdemain(argc, argv);
++}
+===================================================================
+diff -u -u -r1.1.1.2 -r1.2
+--- ./arts/kde/mcop-dcop/Makefile.am	10 Jul 2002 04:41:04 -0000	1.1.1.2
++++ ./arts/kde/mcop-dcop/Makefile.am	26 Nov 2002 21:00:48 -0000	1.2
+@@ -1,16 +1,23 @@
+ 
+ INCLUDES= -I$(includedir)/arts -I$(top_srcdir)/arts/kde $(all_includes)
+ 
++lib_LTLIBRARIES = libkmcop_main.la kmcop.la
+ bin_PROGRAMS = kmcop
+-lib_LTLIBRARIES = kmcop.la
+ 
+-kmcop_la_SOURCES = mcopdcopobject.cpp kmcop.cpp kmcop.skel
+-kmcop_la_LIBADD	= ../libartskde.la
++libkmcop_main_la_SOURCES = mcopdcopobject.cpp kmcop.cpp kmcop.skel
++libkmcop_main_la_LIBADD  = ../libartskde.la
++libkmcop_main_la_LDFLAGS = $(all_libraries) -version-info 1:0
++
++kmcop_la_SOURCES = kmcop_la_main.cpp
++kmcop_la_LIBADD	= ../libartskde.la libkmcop_main.la
+ kmcop_la_LDFLAGS = $(all_libraries) -module -avoid-version
+ kmcop_la_METASOURCES = AUTO
+ 
+-kmcop_SOURCES = dummy.cpp
+-kmcop_LDADD = kmcop.la
++kmcop_la_main.cpp: kmcop_main.cpp
++	cat kmcop_main.cpp > kmcop_la_main.cpp
++
++kmcop_SOURCES = kmcop_main.cpp
++kmcop_LDADD = libkmcop_main.la
+ kmcop_LDFLAGS = $(all_libraries) $(KDE_RPATH)
+ 
+ noinst_HEADERS = kmcop.h
+@@ -20,6 +27,3 @@
+ 
+ messages:
+ 	$(XGETTEXT) kmcop.cpp -o $(podir)/kmcop.pot
+-
+-dummy.cpp:
+-	echo > dummy.cpp
+===================================================================
+diff -u -u -r1.1.1.5 -r1.2
+--- ./arts/knotify/knotify.cpp	20 Nov 2002 00:53:48 -0000	1.1.1.5
++++ ./arts/knotify/knotify.cpp	26 Nov 2002 21:00:48 -0000	1.2
+@@ -81,7 +81,9 @@
+ };
+ 
+ 
+-int main(int argc, char **argv)
++extern "C" int kdemain(int, char**);
++
++int kdemain(int argc, char **argv)
+ {
+     KAboutData aboutdata("knotify", I18N_NOOP("KNotify"),
+                          "3.0", I18N_NOOP("KDE Notification Server"),
+===================================================================
+diff -u -u -r1.1.1.2 -r1.10
+--- ./arts/knotify/Makefile.am	10 Jul 2002 04:41:09 -0000	1.1.1.2
++++ ./arts/knotify/Makefile.am	26 Nov 2002 21:00:48 -0000	1.10
+@@ -3,18 +3,29 @@
+ 
+ ####### Files
+ 
++lib_LTLIBRARIES = libknotify_main.la knotify.la
+ bin_PROGRAMS	= knotify
+-lib_LTLIBRARIES = knotify.la
+ 
+-knotify_la_SOURCES	= knotify.cpp knotify.skel
 -knotify_la_LIBADD	= -lsoundserver_idl -lqtmcop $(LIB_KDEUI)
--knotify_la_LDFLAGS = $(all_libraries) -module -avoid-version
-+knotify_la_LIBADD	= -lsoundserver_idl -lqtmcop $(LIB_KDEUI) -lmcop -lkmedia2 -lartsflow_idl -lkmedia2_idl
-+knotify_la_LDFLAGS = $(all_libraries) -avoid-version -multiply_defined suppress
++libknotify_main_la_SOURCES     = knotify.cpp knotify.skel
++libknotify_main_la_LIBADD      = -lsoundserver_idl -lqtmcop $(LIB_KDEUI) $(LIB_KDECORE) -lmcop -lkmedia2_idl -lartsflow_idl
++libknotify_main_la_LDFLAGS     = $(all_libraries) -avoid-version
++libknotify_main_la_METASOURCES = AUTO
++
++knotify_la_SOURCES     = knotify_la_main.cpp
++knotify_la_LIBADD      = libknotify_main.la
+ knotify_la_LDFLAGS = $(all_libraries) -module -avoid-version
  knotify_la_METASOURCES = AUTO
  
- knotify_SOURCES = dummy.cpp
+-knotify_SOURCES = dummy.cpp
+-knotify_LDADD = knotify.la
++knotify_la_main.cpp: stub_main.cpp
++	cat stub_main.cpp > knotify_la_main.cpp
++
++knotify_SOURCES = knotify_main.cpp
++knotify_LDADD = libknotify_main.la
+ knotify_LDFLAGS  = $(all_libraries) $(KDE_RPATH)
+ 
++knotify_main.cpp: stub_main.cpp
++	cat stub_main.cpp > knotify_main.cpp
++
+ check_PROGRAMS		= knotifytest
+ knotifytest_SOURCES	= knotifytest.cpp
+ knotifytest_LDADD	= $(LIB_KDECORE)
+@@ -28,5 +39,3 @@
+ messages:
+ 	$(XGETTEXT) knotify.cpp -o $(podir)/knotify.pot
+ 
+-dummy.cpp:
+-	echo > dummy.cpp
 ===================================================================
-diff -u -u -r1.1.1.4 Makefile.am
+diff -N ./arts/knotify/stub_main.cpp
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ ./arts/knotify/stub_main.cpp	26 Nov 2002 21:00:48 -0000	1.1
+@@ -0,0 +1,27 @@
++/*
++ *
++ * Copyright (c) 2001 Nick Hudson <skrll@netbsd.org>
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a copy
++ * of this software and associated documentation files (the "Software"), to deal
++ * in the Software without restriction, including without limitation the rights
++ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++ * copies of the Software, and to permit persons to whom the Software is
++ * furnished to do so, subject to the following conditions:
++ *
++ * The above copyright notice and this permission notice shall be included in
++ * all copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
++ * AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
++ * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
++ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++ */
++extern "C" int kdemain(int, char* []);
++
++int main( int argc, char* argv[] )
++{
++	return kdemain(argc, argv);
++}
+===================================================================
+diff -u -u -r1.1.1.3 -r1.2
+--- ./dcop/dcopserver.cpp	1 Oct 2002 03:04:41 -0000	1.1.1.3
++++ ./dcop/dcopserver.cpp	26 Nov 2002 21:00:48 -0000	1.2
+@@ -1533,7 +1533,9 @@
+ "Copyright (C) 1999-2001, The KDE Developers <http://www.kde.org>\n"
+ ;
+ 
+-int main( int argc, char* argv[] )
++extern "C" int kdemain(int, char**);
++
++int kdemain( int argc, char* argv[] )
+ {
+     bool serverid = false;
+     bool nofork = false;
+===================================================================
+diff -N ./dcop/dcopserver_main.cpp
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ ./dcop/dcopserver_main.cpp	26 Nov 2002 21:00:48 -0000	1.1
+@@ -0,0 +1,27 @@
++/*
++ *
++ * Copyright (c) 2001 Nick Hudson <skrll@netbsd.org>
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a copy
++ * of this software and associated documentation files (the "Software"), to deal
++ * in the Software without restriction, including without limitation the rights
++ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++ * copies of the Software, and to permit persons to whom the Software is
++ * furnished to do so, subject to the following conditions:
++ *
++ * The above copyright notice and this permission notice shall be included in
++ * all copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
++ * AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
++ * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
++ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++ */
++extern "C" int kdemain(int, char* []);
++
++int main( int argc, char* argv[] )
++{
++	return kdemain(argc, argv);
++}
+===================================================================
+diff -u -u -r1.1.1.4 -r1.5
 --- ./dcop/Makefile.am	1 Oct 2002 03:04:42 -0000	1.1.1.4
-+++ ./dcop/Makefile.am	24 Nov 2002 07:05:29 -0000
-@@ -45,9 +45,9 @@
++++ ./dcop/Makefile.am	26 Nov 2002 21:00:48 -0000	1.5
+@@ -26,10 +26,10 @@
+ 
+ INCLUDES=  $(all_includes)
+ 
++lib_LTLIBRARIES  = libDCOP.la libdcopserver_main.la dcopserver.la
+ bin_PROGRAMS = dcopserver dcopserver_shutdown
+ check_PROGRAMS = testdcop testdcopc
+ 
+-lib_LTLIBRARIES  = libDCOP.la dcopserver.la
+ libDCOP_la_LIBADD = KDE-ICE/libkICE.la $(LIB_QT)
+ libDCOP_la_LDFLAGS = $(KDE_RPATH) -version-info 5:0:1 -no-undefined $(all_libraries)
+ 
+@@ -45,13 +45,20 @@
  # dcopstub needs to go first for --enable-final to work
  libDCOP_la_SOURCES = dcopstub.cpp dcopref.cpp dcopobject.cpp dcopclient.cpp
  
 -dcopserver_la_LDFLAGS = -module -avoid-version $(all_libraries)
-+dcopserver_la_LDFLAGS = -avoid-version $(all_libraries)
- dcopserver_la_SOURCES = dcopserver.cpp dcopsignals.cpp
+-dcopserver_la_SOURCES = dcopserver.cpp dcopsignals.cpp
 -dcopserver_la_LIBADD   = libDCOP.la
-+dcopserver_la_LIBADD  = libDCOP.la
+-
+-dcopserver_LDFLAGS = $(KDE_RPATH) $(all_libraries)
+-dcopserver_SOURCES = dummy.cpp
+-dcopserver_LDADD   = dcopserver.la
++libdcopserver_main_la_LDFLAGS = -avoid-version $(all_libraries)
++libdcopserver_main_la_SOURCES = dcopserver.cpp dcopsignals.cpp
++libdcopserver_main_la_LIBADD  = libDCOP.la
++
++dcopserver_la_LDFLAGS = -avoid-version $(all_libraries)
++dcopserver_la_SOURCES = dcopserver_la_main.cpp
++dcopserver_la_LIBADD  = libdcopserver_main.la
++
++dcopserver_la_main.cpp: dcopserver_main.cpp
++	cat dcopserver_main.cpp > dcopserver_la_main.cpp
++
++dcopserver_LDFLAGS = $(KDE_RPATH) $(all_libraries) -module
++dcopserver_SOURCES = dcopserver_main.cpp
++dcopserver_LDADD   = libdcopserver_main.la
  
- dcopserver_LDFLAGS = $(KDE_RPATH) $(all_libraries)
- dcopserver_SOURCES = dummy.cpp
+ dcopserver_shutdown_SOURCES = dcopserver_shutdown.c
+ 
+@@ -64,9 +71,6 @@
+ testdcopc_LDADD =  KDE-ICE/libkICE.la $(LIBSM)
+ 
+ EXTRA_DIST = HOWTO ICE
+-
+-dummy.cpp:
+-	echo > dummy.cpp
+ 
+ DOXYGEN_REFERENCES = kdecore
+ DOXYGEN_EXCLUDE = KDE-ICE/*
 ===================================================================
-diff -u -u -r1.1.1.1 Makefile.am
+diff -u -u -r1.1.1.1 -r1.2
 --- ./interfaces/kmediaplayer/Makefile.am	10 Jul 2002 04:41:58 -0000	1.1.1.1
-+++ ./interfaces/kmediaplayer/Makefile.am	24 Nov 2002 07:05:29 -0000
++++ ./interfaces/kmediaplayer/Makefile.am	24 Nov 2002 07:11:20 -0000	1.2
 @@ -3,7 +3,7 @@
  lib_LTLIBRARIES = libkmediaplayer.la
  
@@ -648,9 +897,9 @@ diff -u -u -r1.1.1.1 Makefile.am
  libkmediaplayer_la_METASOURCES = AUTO
  
 ===================================================================
-diff -u -u -r1.1.1.2 Makefile.am
+diff -u -u -r1.1.1.2 -r1.2
 --- ./interfaces/kscript/Makefile.am	10 Jul 2002 04:41:59 -0000	1.1.1.2
-+++ ./interfaces/kscript/Makefile.am	24 Nov 2002 07:05:29 -0000
++++ ./interfaces/kscript/Makefile.am	24 Nov 2002 07:11:20 -0000	1.2
 @@ -9,7 +9,7 @@
  #libkscriptloader_la_LIBADD = $(LIB_KPARTS)
  
@@ -661,9 +910,9 @@ diff -u -u -r1.1.1.2 Makefile.am
  
  kscriptinclude_HEADERS = scriptinterface.h scriptclientinterface.h scriptmanager.h
 ===================================================================
-diff -u -u -r1.1.1.1 Makefile.am
+diff -u -u -r1.1.1.1 -r1.2
 --- ./interfaces/kscript/sample/Makefile.am	25 Jun 2002 02:46:54 -0000	1.1.1.1
-+++ ./interfaces/kscript/sample/Makefile.am	24 Nov 2002 07:05:29 -0000
++++ ./interfaces/kscript/sample/Makefile.am	24 Nov 2002 07:11:20 -0000	1.2
 @@ -3,7 +3,7 @@
  lib_LTLIBRARIES = libshellscript.la
  
@@ -674,9 +923,9 @@ diff -u -u -r1.1.1.1 Makefile.am
  
  
 ===================================================================
-diff -u -u -r1.1.1.3 Makefile.am
+diff -u -u -r1.1.1.3 -r1.2
 --- ./interfaces/ktexteditor/Makefile.am	14 Aug 2002 14:00:12 -0000	1.1.1.3
-+++ ./interfaces/ktexteditor/Makefile.am	24 Nov 2002 07:05:29 -0000
++++ ./interfaces/ktexteditor/Makefile.am	24 Nov 2002 07:11:21 -0000	1.2
 @@ -21,7 +21,7 @@
      viewstatusmsgdcopinterface.skel selectioninterfaceext.cpp selectionextdcopinterface.skel
      
@@ -687,9 +936,9 @@ diff -u -u -r1.1.1.3 Makefile.am
  
  ktexteditorinclude_HEADERS = document.h view.h editor.h plugin.h editinterface.h undointerface.h \
 ===================================================================
-diff -u -u -r1.1.1.6 Makefile.am
+diff -u -u -r1.1.1.6 -r1.7
 --- ./kabc/Makefile.am	20 Nov 2002 00:54:01 -0000	1.1.1.6
-+++ ./kabc/Makefile.am	24 Nov 2002 07:05:30 -0000
++++ ./kabc/Makefile.am	23 Nov 2002 03:50:34 -0000	1.7
 @@ -4,8 +4,8 @@
    -I$(top_srcdir)/kabc -I$(top_srcdir)/kab $(all_includes)
  
@@ -702,14 +951,14 @@ diff -u -u -r1.1.1.6 Makefile.am
  libkabc_la_SOURCES = \
    address.cpp addressbook.cpp addressee.cpp addresseedialog.cpp agent.cpp \
 ===================================================================
-diff -u -u -r1.1.1.1 -r1.5
---- ./kabc/plugins/ldap/configure.in.in	10 Jul 2002 04:42:27 -0000	1.1.1.1
+diff -u -u -r1.1.1.2 -r1.5
+--- ./kabc/plugins/ldap/configure.in.in	26 Nov 2002 22:00:17 -0000	1.1.1.2
 +++ ./kabc/plugins/ldap/configure.in.in	20 Oct 2002 19:12:01 -0000	1.5
 @@ -1,97 +1,13 @@
 -AC_MSG_CHECKING(whether to compile LDAP support)
 +AC_MSG_CHECKING([whether to compile LDAP support])
  AC_ARG_WITH(ldap,
--[  --without-ldap=PATH     Set path for LDAP files [default=check]],
+-[  --with-ldap=PATH     Set path for LDAP files [default=check]],
 -[ case "$withval" in
 -  yes)
 -    with_ldap=CHECK
@@ -826,9 +1075,9 @@ diff -u -u -r1.1.1.2 -r1.2
  # let automoc handle all of the meta source files (moc)
  METASOURCES = AUTO
 ===================================================================
-diff -u -u -r1.1.1.2 Makefile.am
+diff -u -u -r1.1.1.2 -r1.5
 --- ./kabc/vcard/Makefile.am	10 Jul 2002 04:42:34 -0000	1.1.1.2
-+++ ./kabc/vcard/Makefile.am	24 Nov 2002 07:05:30 -0000
++++ ./kabc/vcard/Makefile.am	24 Nov 2002 07:11:21 -0000	1.5
 @@ -7,6 +7,7 @@
  
  libvcard_la_SOURCES = vCard-all.cpp
@@ -838,9 +1087,9 @@ diff -u -u -r1.1.1.2 Makefile.am
  check_PROGRAMS = testwrite testread
  
 ===================================================================
-diff -u -u -r1.1.1.2 Makefile.am
+diff -u -u -r1.1.1.2 -r1.2
 --- ./kate/interfaces/Makefile.am	10 Jul 2002 04:42:56 -0000	1.1.1.2
-+++ ./kate/interfaces/Makefile.am	24 Nov 2002 07:05:30 -0000
++++ ./kate/interfaces/Makefile.am	24 Nov 2002 07:11:21 -0000	1.2
 @@ -4,7 +4,7 @@
  
  libkatepartinterfaces_la_SOURCES = interfaces.cpp
@@ -851,17 +1100,93 @@ diff -u -u -r1.1.1.2 Makefile.am
  kateinclude_HEADERS = document.h view.h
  kateincludedir = $(includedir)/kate
 ===================================================================
-diff -u -u -r1.1.1.1 Makefile.am
---- ./kconf_update/Makefile.am	25 Jun 2002 02:46:55 -0000	1.1.1.1
-+++ ./kconf_update/Makefile.am	24 Nov 2002 07:05:30 -0000
-@@ -27,7 +27,7 @@
+diff -u -u -r1.1.1.3 -r1.2
+--- ./kconf_update/kconf_update.cpp	12 Nov 2002 03:56:45 -0000	1.1.1.3
++++ ./kconf_update/kconf_update.cpp	26 Nov 2002 21:00:48 -0000	1.2
+@@ -779,7 +779,9 @@
+ }
  
- kconf_update_la_SOURCES = kconf_update.cpp
- kconf_update_la_LIBADD = ../kdecore/libkdecore.la
+ 
+-int main(int argc, char **argv)
++extern "C" int kdemain(int, char**);
++
++int kdemain(int argc, char **argv)
+ {
+    KAboutData aboutData("kconf_update", I18N_NOOP("KConf Update"),
+                         "1.0.2",
+===================================================================
+diff -N ./kconf_update/kconf_update_main.cpp
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ ./kconf_update/kconf_update_main.cpp	26 Nov 2002 21:00:48 -0000	1.1
+@@ -0,0 +1,27 @@
++/*
++ *
++ * Copyright (c) 2001 Nick Hudson <skrll@netbsd.org>
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a copy
++ * of this software and associated documentation files (the "Software"), to deal
++ * in the Software without restriction, including without limitation the rights
++ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++ * copies of the Software, and to permit persons to whom the Software is
++ * furnished to do so, subject to the following conditions:
++ *
++ * The above copyright notice and this permission notice shall be included in
++ * all copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
++ * AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
++ * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
++ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++ */
++extern "C" int kdemain(int, char* []);
++
++int main( int argc, char* argv[] )
++{
++        return kdemain(argc, argv);
++}
+===================================================================
+diff -u -u -r1.1.1.1 -r1.4
+--- ./kconf_update/Makefile.am	25 Jun 2002 02:46:55 -0000	1.1.1.1
++++ ./kconf_update/Makefile.am	26 Nov 2002 21:00:48 -0000	1.4
+@@ -18,22 +18,26 @@
+ 
+ INCLUDES= $(all_includes)
+ 
+-lib_LTLIBRARIES = kconf_update.la
+-
++lib_LTLIBRARIES = libkconf_update_main.la kconf_update.la
+ bin_PROGRAMS = kconf_update
+-kconf_update_SOURCES = dummy.cpp
+-kconf_update_LDADD = kconf_update.la
+-kconf_update_LDFLAGS = $(KDE_RPATH) $(all_libraries)
+ 
+-kconf_update_la_SOURCES = kconf_update.cpp
+-kconf_update_la_LIBADD = ../kdecore/libkdecore.la
 -kconf_update_la_LDFLAGS = $(all_libraries) -module -avoid-version
-+kconf_update_la_LDFLAGS = $(all_libraries) -avoid-version
++libkconf_update_main_la_SOURCES = kconf_update.cpp
++libkconf_update_main_la_LIBADD = ../kdecore/libkdecore.la
++libkconf_update_main_la_LDFLAGS = $(all_libraries) -avoid-version
++
++kconf_update_la_SOURCES = kconf_update_la_main.cpp
++kconf_update_la_LIBADD = libkconf_update_main.la
++kconf_update_la_LDFLAGS = $(all_libraries) -avoid-version -module
++
++kconf_update_la_main.cpp: kconf_update_main.cpp
++	cat kconf_update_main.cpp > kconf_update_la_main.cpp
++
++kconf_update_SOURCES = kconf_update_main.cpp
++kconf_update_LDADD = libkconf_update_main.la
++kconf_update_LDFLAGS = $(KDE_RPATH) $(all_libraries)
  
  METASOURCES = AUTO
+ 
+ # Internal
+ # noinst_HEADERS = kconf_update.h
+-
+-dummy.cpp: 
+-	echo > dummy.cpp
  
 ===================================================================
 diff -u -u -r1.1.1.4 -r1.2
@@ -898,10 +1223,10 @@ diff -u -u -r1.1.1.3 -r1.4
      if ( (*s_trashPath)[0] != '/' )
        s_trashPath->prepend( QDir::homeDirPath() + "/" );
 ===================================================================
-diff -u -u -r1.1.1.8 -r1.4
---- ./kdecore/kiconloader.cpp	20 Nov 2002 00:54:18 -0000	1.1.1.8
-+++ ./kdecore/kiconloader.cpp	20 Nov 2002 01:07:12 -0000	1.4
-@@ -438,7 +438,7 @@
+diff -u -u -r1.1.1.9 -r1.5
+--- ./kdecore/kiconloader.cpp	26 Nov 2002 22:00:34 -0000	1.1.1.9
++++ ./kdecore/kiconloader.cpp	26 Nov 2002 22:12:44 -0000	1.5
+@@ -457,7 +457,7 @@
      return icon;
  }
  
@@ -911,9 +1236,9 @@ diff -u -u -r1.1.1.8 -r1.4
      static const QString &str_unknown = KGlobal::staticQString("unknown");
  
 ===================================================================
-diff -u -u -r1.1.1.2 klibloader.cpp
+diff -u -u -r1.1.1.2 -r1.5
 --- ./kdecore/klibloader.cpp	10 Jul 2002 04:43:40 -0000	1.1.1.2
-+++ ./kdecore/klibloader.cpp	24 Nov 2002 07:05:30 -0000
++++ ./kdecore/klibloader.cpp	14 Nov 2002 21:41:20 -0000	1.5
 @@ -366,13 +366,8 @@
      else
      {
@@ -944,64 +1269,308 @@ diff -u -u -r1.1.1.6 -r1.4
 ===================================================================
 diff -u -u -r1.1.1.1 -r1.3
 ===================================================================
-diff -u -u -r1.1.1.2 Makefile.am
---- ./kded/Makefile.am	10 Jul 2002 04:44:10 -0000	1.1.1.2
-+++ ./kded/Makefile.am	24 Nov 2002 07:05:30 -0000
-@@ -21,13 +21,13 @@
+diff -u -u -r1.1.1.4 -r1.2
+--- ./kded/kbuildsycoca.cpp	1 Oct 2002 03:05:26 -0000	1.1.1.4
++++ ./kded/kbuildsycoca.cpp	26 Nov 2002 21:00:49 -0000	1.2
+@@ -502,7 +502,9 @@
+ static const char *appName = "kbuildsycoca";
+ static const char *appVersion = "1.0";
  
- lib_LTLIBRARIES = kded.la kbuildsycoca.la
+-int main(int argc, char **argv)
++extern "C" int kdemain(int, char**);
++
++int kdemain(int argc, char **argv)
+ {
+    KLocale::setMainCatalogue("kdelibs");
+    KAboutData d(appName, I18N_NOOP("KBuildSycoca"), appVersion,
+===================================================================
+diff -N ./kded/kbuildsycoca_main.cpp
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ ./kded/kbuildsycoca_main.cpp	26 Nov 2002 21:00:49 -0000	1.1
+@@ -0,0 +1,27 @@
++/*
++ *
++ * Copyright (c) 2001 Nick Hudson <skrll@netbsd.org>
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a copy
++ * of this software and associated documentation files (the "Software"), to deal
++ * in the Software without restriction, including without limitation the rights
++ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++ * copies of the Software, and to permit persons to whom the Software is
++ * furnished to do so, subject to the following conditions:
++ *
++ * The above copyright notice and this permission notice shall be included in
++ * all copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
++ * AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
++ * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
++ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++ */
++extern "C" int kdemain(int, char* []);
++
++int main( int argc, char* argv[] )
++{
++        return kdemain(argc, argv);
++}
+===================================================================
+diff -u -u -r1.1.1.3 -r1.2
+--- ./kded/kded.cpp	14 Aug 2002 14:00:31 -0000	1.1.1.3
++++ ./kded/kded.cpp	26 Nov 2002 21:00:49 -0000	1.2
+@@ -653,7 +653,9 @@
+   bool startup;
+ };
+ 
+-int main(int argc, char *argv[])
++extern "C" int kdemain(int, char**);
++
++int kdemain(int argc, char **argv)
+ {
+      KAboutData aboutData( "kded", I18N_NOOP("KDE Daemon"),
+         "$Id$",
+===================================================================
+diff -N ./kded/kded_main.cpp
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ ./kded/kded_main.cpp	26 Nov 2002 21:00:49 -0000	1.1
+@@ -0,0 +1,27 @@
++/*
++ *
++ * Copyright (c) 2001 Nick Hudson <skrll@netbsd.org>
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a copy
++ * of this software and associated documentation files (the "Software"), to deal
++ * in the Software without restriction, including without limitation the rights
++ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++ * copies of the Software, and to permit persons to whom the Software is
++ * furnished to do so, subject to the following conditions:
++ *
++ * The above copyright notice and this permission notice shall be included in
++ * all copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
++ * AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
++ * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
++ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++ */
++extern "C" int kdemain(int, char* []);
++
++int main( int argc, char* argv[] )
++{
++        return kdemain(argc, argv);
++}
+===================================================================
+diff -u -u -r1.1.1.2 -r1.4
+--- ./kded/Makefile.am	10 Jul 2002 04:44:10 -0000	1.1.1.2
++++ ./kded/Makefile.am	26 Nov 2002 21:00:49 -0000	1.4
+@@ -19,32 +19,46 @@
+ 
+ INCLUDES= -I$(srcdir)/.. -I$(top_srcdir) $(all_includes)
+ 
+-lib_LTLIBRARIES = kded.la kbuildsycoca.la
++lib_LTLIBRARIES = libkded_main.la kded.la libkbuildsycoca_main.la kbuildsycoca.la
  
 -kded_la_LDFLAGS = $(all_libraries) -module -avoid-version
-+kded_la_LDFLAGS = $(all_libraries) -avoid-version
- kded_la_LIBADD = $(LIB_KIO)
- kded_la_SOURCES = kded.cpp kbuildservicetypefactory.cpp \
+-kded_la_LIBADD = $(LIB_KIO)
+-kded_la_SOURCES = kded.cpp kbuildservicetypefactory.cpp \
++libkded_main_la_LDFLAGS = $(all_libraries) -avoid-version
++libkded_main_la_LIBADD = $(LIB_KIO)
++libkded_main_la_SOURCES = kded.cpp kbuildservicetypefactory.cpp \
  			kbuildservicefactory.cpp \
  			kbuildservicegroupfactory.cpp kdedmodule.cpp
  
 -kbuildsycoca_la_LDFLAGS = $(all_libraries) -module -avoid-version
-+kbuildsycoca_la_LDFLAGS = $(all_libraries) -avoid-version
- kbuildsycoca_la_LIBADD = $(LIB_KIO)
- kbuildsycoca_la_SOURCES = kbuildsycoca.cpp kbuildservicetypefactory.cpp \
+-kbuildsycoca_la_LIBADD = $(LIB_KIO)
+-kbuildsycoca_la_SOURCES = kbuildsycoca.cpp kbuildservicetypefactory.cpp \
++kded_la_LDFLAGS = $(all_libraries) -module -avoid-version
++kded_la_LIBADD  = libkded_main.la
++kded_la_SOURCES = kded_la_main.cpp
++
++kded_la_main.cpp: kded_main.cpp
++	cat kded_main.cpp > kded_la_main.cpp
++
++libkbuildsycoca_main_la_LDFLAGS = $(all_libraries) -avoid-version
++libkbuildsycoca_main_la_LIBADD = $(LIB_KIO)
++libkbuildsycoca_main_la_SOURCES = kbuildsycoca.cpp kbuildservicetypefactory.cpp \
  				kbuildservicefactory.cpp \
+ 				kbuildservicegroupfactory.cpp \
+ 				kbuildimageiofactory.cpp \
+ 				kbuildprotocolinfofactory.cpp \
+ 				kctimefactory.cpp
+ 
++kbuildsycoca_la_LDFLAGS = $(all_libraries) -module -avoid-version
++kbuildsycoca_la_LIBADD  = libkbuildsycoca_main.la
++kbuildsycoca_la_SOURCES = kbuildsycoca_la_main.cpp
++
++kbuildsycoca_la_main.cpp: kbuildsycoca_main.cpp
++	cat kbuildsycoca_main.cpp > kbuildsycoca_la_main.cpp
++
+ bin_PROGRAMS = kded kbuildsycoca kdontchangethehostname
+ 
+ kded_LDFLAGS = $(all_libraries) $(KDE_RPATH)
+-kded_LDADD = kded.la
+-kded_SOURCES = dummy.cpp
++kded_LDADD   = libkded_main.la
++kded_SOURCES = kded_main.cpp
+ 
+ kbuildsycoca_LDFLAGS = $(all_libraries) $(KDE_RPATH)
+-kbuildsycoca_LDADD = kbuildsycoca.la
+-kbuildsycoca_SOURCES = dummy.cpp
++kbuildsycoca_LDADD = libkbuildsycoca_main.la
++kbuildsycoca_SOURCES = kbuildsycoca_main.cpp
+ 
+ kdontchangethehostname_LDFLAGS = $(all_libraries) $(KDE_RPATH)
+ kdontchangethehostname_LDADD = $(LIB_KDECORE) 
+@@ -64,6 +78,3 @@
+ 
+ update_DATA = kded.upd
+ updatedir = $(kde_datadir)/kconf_update
+-
+-dummy.cpp:
+-	echo > dummy.cpp
 ===================================================================
-diff -u -u -r1.1.1.4 Makefile.am
+diff -u -u -r1.1.1.4 -r1.9
 --- ./kdeprint/Makefile.am	1 Oct 2002 03:05:31 -0000	1.1.1.4
-+++ ./kdeprint/Makefile.am	24 Nov 2002 07:05:30 -0000
-@@ -10,7 +10,7 @@
++++ ./kdeprint/Makefile.am	26 Nov 2002 21:00:49 -0000	1.9
+@@ -10,9 +10,8 @@
  kde_module_LTLIBRARIES = kded_kdeprintd.la
  
  kded_kdeprintd_la_SOURCES = kdeprintd.skel kdeprintd.cpp kprintprocess.cpp
 -kded_kdeprintd_la_LIBADD = $(LIB_KIO)
-+kded_kdeprintd_la_LIBADD = $(LIB_KIO) $(top_builddir)/kded/kded.la
++kded_kdeprintd_la_LIBADD = $(LIB_KIO) $(top_builddir)/kded/libkded_main.la
  kded_kdeprintd_la_LDFLAGS = $(all_libraries) -module -avoid-version
- #kded_kdeprintd_la_METASOURCES = AUTO
+-#kded_kdeprintd_la_METASOURCES = AUTO
+ 
+ lib_LTLIBRARIES = libkdeprint.la
  
 ===================================================================
-diff -u -u -r1.1.1.3 Makefile.am
+diff -u -u -r1.1.1.1 -r1.2
+--- ./kdeprint/cups/cupsdconf2/main.cpp	25 Jun 2002 02:46:57 -0000	1.1.1.1
++++ ./kdeprint/cups/cupsdconf2/main.cpp	26 Nov 2002 21:00:49 -0000	1.2
+@@ -30,7 +30,9 @@
+ 	{ 0, 0, 0}
+ };
+ 
+-int main(int argc, char *argv[])
++extern "C" int kdemain(int, char**);
++
++int kdemain(int argc, char **argv)
+ {
+ 	KCmdLineArgs::init(argc,argv,"cupsdconf",I18N_NOOP("A CUPS configuration tool"),"0.0.1");
+ 	KCmdLineArgs::addCmdLineOptions(options);
+===================================================================
+diff -u -u -r1.1.1.3 -r1.4
 --- ./kdeprint/cups/cupsdconf2/Makefile.am	1 Oct 2002 03:05:37 -0000	1.1.1.3
-+++ ./kdeprint/cups/cupsdconf2/Makefile.am	24 Nov 2002 07:05:30 -0000
-@@ -17,7 +17,7 @@
++++ ./kdeprint/cups/cupsdconf2/Makefile.am	26 Nov 2002 21:00:49 -0000	1.4
+@@ -3,22 +3,32 @@
+ INCLUDES= -I$(top_srcdir) -I$(top_srcdir)/kio -I$(top_srcdir)/kfile $(all_includes)
+ 
+ bin_PROGRAMS = cupsdconf
+-cupsdconf_SOURCES = main.cpp
+ 
+-cupsdconf_LDADD   =  libcupsdconf.la
++cupsdconf_SOURCES = cupsdconf_main.cpp
++cupsdconf_LDADD   = libcupsdconf_main.la
+ cupsdconf_LDFLAGS = $(all_libraries) $(KDE_RPATH)
+ 
++cupsdconf_main.cpp: stub_main.cpp
++	cat stub_main.cpp > cupsdconf_main.cpp
++
+ # library creation
+-lib_LTLIBRARIES = libcupsdconf.la
+-libcupsdconf_la_SOURCES = cupsdconf.cpp cupsddialog.cpp cupsdpage.cpp cupsdcomment.cpp cupsdsplash.cpp \
++lib_LTLIBRARIES = libcupsdconf_main.la cupsdconf.la
++libcupsdconf_main_la_SOURCES = cupsdconf.cpp cupsddialog.cpp cupsdpage.cpp cupsdcomment.cpp cupsdsplash.cpp \
+ 			  cupsdserverpage.cpp cupsdlogpage.cpp cupsdjobspage.cpp cupsdfilterpage.cpp \
+ 			  qdirlineedit.cpp cupsddirpage.cpp portdialog.cpp cupsdnetworkpage.cpp \
+ 			  editlist.cpp cupsdbrowsingpage.cpp browsedialog.cpp cupsdsecuritypage.cpp \
  			  locationdialog.cpp addressdialog.cpp cups-util.c \
- 			  qdirmultilineedit.cpp sizewidget.cpp
- libcupsdconf_la_METASOURCES = AUTO
+-			  qdirmultilineedit.cpp sizewidget.cpp
+-libcupsdconf_la_METASOURCES = AUTO
 -libcupsdconf_la_LDFLAGS = $(all_libraries) -module -avoid-version -no-undefined
-+libcupsdconf_la_LDFLAGS = $(all_libraries) -avoid-version -no-undefined
- libcupsdconf_la_LIBADD = $(LIB_KIO) $(LIB_CUPS)
+-libcupsdconf_la_LIBADD = $(LIB_KIO) $(LIB_CUPS)
++			  qdirmultilineedit.cpp sizewidget.cpp main.cpp
++libcupsdconf_main_la_METASOURCES = AUTO
++libcupsdconf_main_la_LDFLAGS = $(all_libraries) -avoid-version
++libcupsdconf_main_la_LIBADD = $(LIB_KIO) $(LIB_CUPS)
++
++cupsdconf_la_SOURCES = cupsdconf_la_main.cpp
++cupsdconf_la_LDFLAGS = $(all_libraries) -avoid-version -module $(KDE_RPATH)
++cupsdconf_la_LIBADD  = libcupsdconf_main.la
++
++cupsdconf_la_main.cpp: stub_main.cpp
++	cat stub_main.cpp > cupsdconf_la_main.cpp
  
  noinst_HEADERS = cupsdconf.h cupsdpage.h cupsddialog.h cupsdcomment.h cupsdsplash.h \
+ 		 cupsdserverpage.h cupsdlogpage.h cupsdjobspage.h cupsdfilterpage.h \
 ===================================================================
-diff -u -u -r1.1.1.3 Makefile.am
+diff -N ./kdeprint/cups/cupsdconf2/stub_main.cpp
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ ./kdeprint/cups/cupsdconf2/stub_main.cpp	26 Nov 2002 21:00:49 -0000	1.1
+@@ -0,0 +1,28 @@
++/*
++ *
++ * Copyright (c) 2001 Nick Hudson <skrll@netbsd.org>
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a copy
++ * of this software and associated documentation files (the "Software"), to deal
++ * in the Software without restriction, including without limitation the rights
++ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++ * copies of the Software, and to permit persons to whom the Software is
++ * furnished to do so, subject to the following conditions:
++ *
++ * The above copyright notice and this permission notice shall be included in
++ * all copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
++ * AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
++ * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
++ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++ */
++extern "C" int kdemain(int, char* []);
++
++int main( int argc, char* argv[] )
++{
++        return kdemain(argc, argv);
++}
++
+===================================================================
+diff -u -u -r1.1.1.3 -r1.4
 --- ./kdeprint/management/Makefile.am	14 Aug 2002 14:04:14 -0000	1.1.1.3
-+++ ./kdeprint/management/Makefile.am	24 Nov 2002 07:05:30 -0000
-@@ -9,7 +9,7 @@
++++ ./kdeprint/management/Makefile.am	26 Nov 2002 21:00:49 -0000	1.4
+@@ -3,13 +3,16 @@
+ lib_LTLIBRARIES = libkdeprint_management.la kaddprinterwizard.la
+ bin_PROGRAMS = kaddprinterwizard
  
+-kaddprinterwizard_SOURCES = dummy.cpp
+-kaddprinterwizard_LDADD = kaddprinterwizard.la
++kaddprinterwizard_SOURCES = kaddprinterwizard_main.cpp
++kaddprinterwizard_LDADD = libkdeprint_management.la
+ kaddprinterwizard_LDFLAGS = $(all_libraries) $(KDE_RPATH)
+ 
++kaddprinterwizard_main.cpp: kaddprinterwizard.cpp
++	cat kaddprinterwizard.cpp > kaddprinterwizard_main.cpp
++
  kaddprinterwizard_la_SOURCES = kaddprinterwizard.cpp
  kaddprinterwizard_la_LIBADD = libkdeprint_management.la
 -kaddprinterwizard_la_LDFLAGS = -module -avoid-version $(all_libraries) $(KDE_RPATH)
-+kaddprinterwizard_la_LDFLAGS = -avoid-version $(all_libraries) $(KDE_RPATH)
++kaddprinterwizard_la_LDFLAGS = -avoid-version $(all_libraries) $(KDE_RPATH) -module
  
  libkdeprint_management_la_SOURCES = \
  	kmdbcreator.cpp kmdriverdb.cpp kmdriverdbwidget.cpp \
+@@ -45,7 +48,4 @@
+ 
+ dataicon_DATA = tileup.png tiledown.png side.png
+ dataicondir = $(kde_datadir)/kdeprint
+-
+-dummy.cpp:
+-	echo > dummy.cpp
+ 
 ===================================================================
 diff -u -u -r1.1.1.5 -r1.6
 --- ./kdeui/kedittoolbar.cpp	29 Oct 2002 02:37:31 -0000	1.1.1.5
@@ -1046,9 +1615,20 @@ diff -u -u -r1.1.1.3 -r1.5
      ~KXMLGUIFactoryPrivate()
      {
 ===================================================================
-diff -u -u -r1.1.1.4 -r1.2
+diff -u -u -r1.1.1.4 -r1.3
 --- ./khtml/Makefile.am	1 Oct 2002 03:06:19 -0000	1.1.1.4
-+++ ./khtml/Makefile.am	23 Nov 2002 03:50:36 -0000	1.2
++++ ./khtml/Makefile.am	26 Nov 2002 21:00:49 -0000	1.3
+@@ -26,8 +26,8 @@
+ 
+ SUBDIRS = misc dom css xml html rendering pics $(JAVA_SUBDIR) . ecma kmultipart
+ 
+-lib_LTLIBRARIES = libkhtml.la
+-kde_module_LTLIBRARIES = khtmlimagepart.la
++lib_LTLIBRARIES = libkhtml.la khtml.la
++kde_module_LTLIBRARIES = libkhtmlimagepart_main.la khtmlimagepart.la
+ 
+ libkhtml_la_SOURCES = khtmlview.cpp khtml_part.cpp khtml_run.cpp khtml_factory.cpp khtml_settings.cc \
+ 		      khtml_events.cpp khtml_ext.cpp khtml_pagecache.cpp khtml_iface.skel khtml_iface.cc \
 @@ -40,7 +40,7 @@
  noinst_HEADERS = design.h testkhtml.h testrender.h test_regression.h khtml_ext.h \
  		 khtml_pagecache.h khtmlimage.h khtmlpart_p.h khtml_printsettings.h
@@ -1058,17 +1638,34 @@ diff -u -u -r1.1.1.4 -r1.2
  libkhtml_la_LIBADD = ./xml/libkhtmlxml.la ./html/libkhtmlhtml.la \
  	./rendering/libkhtmlrender.la ./css/libkhtmlcss.la \
  	./misc/libkhtmlmisc.la ./dom/libkhtmldom.la $(LIBKJAVA) \
-@@ -51,7 +51,7 @@
+@@ -49,9 +49,23 @@
+ 	$(top_builddir)/kdeprint/libkdeprint.la  \
+ 	$(top_builddir)/kutils/libkutils.la 
  
- khtmlimagepart_la_SOURCES = khtmlimage.cpp
+-khtmlimagepart_la_SOURCES = khtmlimage.cpp
++khtml_la_LDFLAGS = -avoid-version -no-undefined $(all_libraries) -module
++khtml_la_LIBADD  = libkhtml.la
++khtml_la_SOURCES = dummy.cpp
++
++dummy.cpp:
++	echo > dummy.cpp
++
++libkhtmlimagepart_main_la_SOURCES = khtmlimage.cpp
++libkhtmlimagepart_main_la_LDFLAGS = $(KDE_RPATH) $(all_libraries) -avoid-version
++libkhtmlimagepart_main_la_LIBADD  = $(LIB_QT) $(LIB_KDEUI) $(LIB_KDECORE) $(LIB_KPARTS) libkhtml.la
++
++khtmlimagepart_la_SOURCES = khtmlimagepart_dummy.cpp
  khtmlimagepart_la_LDFLAGS = -module $(KDE_PLUGIN) $(all_libraries)
 -khtmlimagepart_la_LIBADD = libkhtml.la
-+khtmlimagepart_la_LIBADD = $(LIB_QT) $(LIB_KDEUI) $(LIB_KDECORE) $(LIB_KPARTS) libkhtml.la
++khtmlimagepart_la_LIBADD  = $(LIB_QT) $(LIB_KDEUI) $(LIB_KDECORE) $(LIB_KPARTS) libkhtml.la
++
++khtmlimagepart_dummy.cpp:
++	echo > khtmlimagepart_dummy.cpp
  
  INCLUDES = -I$(top_srcdir)/kjs -I$(top_srcdir)/kimgio \
  	-I$(srcdir)/java -I$(top_srcdir)/dcop -I$(srcdir)/misc \
 ===================================================================
-diff -u -u -r1.1.1.8 -r1.10
+diff -u -u -r1.1.1.9 -r1.11
 ===================================================================
 diff -u -u -r1.1.1.7 -r1.8
 ===================================================================
@@ -1101,18 +1698,51 @@ diff -u -u -r1.1.1.4 -r1.5
  
     d.maxname = strlen(argv[0]);
 ===================================================================
-diff -u -u -r1.1.1.2 Makefile.am
+diff -u -u -r1.1.1.2 -r1.4
 --- ./kinit/Makefile.am	10 Jul 2002 04:49:13 -0000	1.1.1.2
-+++ ./kinit/Makefile.am	24 Nov 2002 07:06:02 -0000
-@@ -49,7 +49,7 @@
++++ ./kinit/Makefile.am	26 Nov 2002 21:00:49 -0000	1.4
+@@ -20,7 +20,7 @@
+ SUBDIRS = . tests
+ 
+ bin_PROGRAMS = kdeinit kdeinit_wrapper kshell kdeinit_shutdown lnusertemp kwrapper klauncher kioslave
+-lib_LTLIBRARIES = klauncher.la
++lib_LTLIBRARIES = klauncher.la libklauncher_main.la
+ 
+ kdeinit_SOURCES = kinit.cpp setproctitle.cpp
+ 
+@@ -49,13 +49,20 @@
  kwrapper_SOURCES = kwrapper.c
  kwrapper_LDADD = $(LIBSOCKET)
  
 -klauncher_la_LDFLAGS = $(all_libraries) -module -avoid-version
-+klauncher_la_LDFLAGS = $(all_libraries) -avoid-version
- klauncher_la_LIBADD = $(LIB_KIO)
- klauncher_la_SOURCES = klauncher.cpp klauncher_main.cpp autostart.cpp
+-klauncher_la_LIBADD = $(LIB_KIO)
+-klauncher_la_SOURCES = klauncher.cpp klauncher_main.cpp autostart.cpp
++libklauncher_main_la_LDFLAGS = $(all_libraries) -avoid-version
++libklauncher_main_la_LIBADD = $(LIB_KIO)
++libklauncher_main_la_SOURCES = klauncher.cpp autostart.cpp
++
++klauncher_la_LDFLAGS = $(all_libraries) -avoid-version -module
++klauncher_la_LIBADD = $(LIB_KIO) libklauncher_main.la
++klauncher_la_SOURCES = klauncher_la_main.cpp
++
++klauncher_la_main.cpp: klauncher_main.cpp
++	cat klauncher_main.cpp > klauncher_la_main.cpp
  
+ klauncher_LDFLAGS =  $(all_libraries) $(KDE_RPATH)
+-klauncher_LDADD = klauncher.la
+-klauncher_SOURCES = dummy.cpp
++klauncher_LDADD = libklauncher_main.la
++klauncher_SOURCES = klauncher_main.cpp
+ 
+ METASOURCES = AUTO
+ 
+@@ -64,6 +71,3 @@
+ kwrapper.o: wrapper.c
+ 
+ shell.o: wrapper.c
+-
+-dummy.cpp:
+-	echo > dummy.cpp
 ===================================================================
 diff -u -u -r1.1.1.2 -r1.3
 --- ./kinit/setproctitle.cpp	10 Jul 2002 04:49:13 -0000	1.1.1.2
@@ -1190,15 +1820,15 @@ diff -u -u -r1.1.1.2 -r1.3
  #include <kio/jobclasses.h>
  #include <qstring.h>
 ===================================================================
-diff -u -u -r1.1.1.2 Makefile.am
+diff -u -u -r1.1.1.2 -r1.7
 --- ./kio/kpasswdserver/Makefile.am	1 Oct 2002 03:07:02 -0000	1.1.1.2
-+++ ./kio/kpasswdserver/Makefile.am	24 Nov 2002 07:06:02 -0000
++++ ./kio/kpasswdserver/Makefile.am	26 Nov 2002 21:00:49 -0000	1.7
 @@ -10,4 +10,4 @@
  kded_kpasswdserver_la_SOURCES = kpasswdserver.cpp kpasswdserver.skel 
  kded_kpasswdserver_la_METASOURCES = AUTO
  kded_kpasswdserver_la_LDFLAGS = $(all_libraries) -module -avoid-version
 -kded_kpasswdserver_la_LIBADD = $(LIB_KIO)
-+kded_kpasswdserver_la_LIBADD = $(LIB_KIO) $(top_builddir)/kded/kded.la
++kded_kpasswdserver_la_LIBADD = $(LIB_KIO) $(top_builddir)/kded/libkded_main.la
 ===================================================================
 diff -u -u -r1.1.1.4 -r1.5
 --- ./kio/kssl/kopenssl.cc	29 Oct 2002 02:38:36 -0000	1.1.1.4
@@ -1230,18 +1860,96 @@ diff -u -u -r1.1.1.4 -r1.5
               << "libcrypto.so"
  	     << "libcrypto.so.0"
 ===================================================================
-diff -u -u -r1.1.1.3 Makefile.am
+diff -N ./kio/misc/kio_uiserver_main.cpp
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ ./kio/misc/kio_uiserver_main.cpp	26 Nov 2002 21:00:50 -0000	1.1
+@@ -0,0 +1,27 @@
++/*
++ *
++ * Copyright (c) 2001 Nick Hudson <skrll@netbsd.org>
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a copy
++ * of this software and associated documentation files (the "Software"), to deal
++ * in the Software without restriction, including without limitation the rights
++ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++ * copies of the Software, and to permit persons to whom the Software is
++ * furnished to do so, subject to the following conditions:
++ *
++ * The above copyright notice and this permission notice shall be included in
++ * all copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
++ * AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
++ * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
++ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++ */
++extern "C" int kdemain(int, char* []);
++
++int main( int argc, char* argv[] )
++{
++        return kdemain(argc, argv);
++}
+===================================================================
+diff -u -u -r1.1.1.3 -r1.4
 --- ./kio/misc/Makefile.am	1 Oct 2002 03:07:07 -0000	1.1.1.3
-+++ ./kio/misc/Makefile.am	24 Nov 2002 07:06:02 -0000
-@@ -31,7 +31,7 @@
++++ ./kio/misc/Makefile.am	26 Nov 2002 21:00:50 -0000	1.4
+@@ -22,25 +22,29 @@
  
- kio_uiserver_la_SOURCES = uiserver.cpp uiserver.skel observer.stub
- kio_uiserver_la_LIBADD = $(LIB_KIO)
+ SUBDIRS = . ksendbugmail kpac kdesasl kssld kfile
+ 
+-lib_LTLIBRARIES = kio_uiserver.la
++lib_LTLIBRARIES = kio_uiserver.la libkio_uiserver_main.la
+ bin_PROGRAMS = kio_uiserver kmailservice ktelnetservice
+ 
+-kio_uiserver_SOURCES = dummy.cpp
+-kio_uiserver_LDADD = kio_uiserver.la
+-kio_uiserver_LDFLAGS = $(KDE_RPATH) $(all_libraries)
++libkio_uiserver_main_la_SOURCES = uiserver.cpp uiserver.skel observer.stub
++libkio_uiserver_main_la_LIBADD = $(LIB_KIO)
++libkio_uiserver_main_la_LDFLAGS = $(all_libraries) -avoid-version
++
++kio_uiserver_la_SOURCES = kio_uiserver_la_main.cpp
++kio_uiserver_la_LIBADD = libkio_uiserver_main.la
++kio_uiserver_la_LDFLAGS = $(all_libraries) -avoid-version -module
++
++kio_uiserver_la_main.cpp: kio_uiserver_main.cpp
++	cat kio_uiserver_main.cpp > kio_uiserver_la_main.cpp
+ 
+-kio_uiserver_la_SOURCES = uiserver.cpp uiserver.skel observer.stub
+-kio_uiserver_la_LIBADD = $(LIB_KIO)
 -kio_uiserver_la_LDFLAGS = $(all_libraries) -module -avoid-version
-+kio_uiserver_la_LDFLAGS = $(all_libraries) -avoid-version
++kio_uiserver_SOURCES = kio_uiserver_main.cpp
++kio_uiserver_LDADD = libkio_uiserver_main.la
++kio_uiserver_LDFLAGS = $(KDE_RPATH) $(all_libraries)
  
  observer_DIR = $(top_srcdir)/kio/kio
  
+ METASOURCES = AUTO
+ 
+ kde_services_DATA = kio_uiserver.desktop
+-
+-dummy.cpp: uiserver.kidl
+-	echo > dummy.cpp
+ 
+ kmailservice_SOURCES = kmailservice.cpp
+ kmailservice_LDADD = $(LIB_KDECORE)
+===================================================================
+diff -u -u -r1.1.1.3 -r1.2
+--- ./kio/misc/uiserver.cpp	29 Oct 2002 02:38:40 -0000	1.1.1.3
++++ ./kio/misc/uiserver.cpp	26 Nov 2002 21:00:50 -0000	1.2
+@@ -1001,7 +1001,9 @@
+ 
+ //------------------------------------------------------------
+ 
+-int main(int argc, char **argv)
++extern "C" int kdemain(int, char**);
++
++int kdemain(int argc, char **argv)
+ {
+     KLocale::setMainCatalogue("kdelibs");
+     //  GS 5/2001 - I changed the name to "KDE" to make it look better
 ===================================================================
 diff -u -u -r1.1.1.2 -r1.3
 --- ./kio/misc/kpac/dhcp.h	10 Jul 2002 04:50:03 -0000	1.1.1.2
@@ -1270,15 +1978,15 @@ diff -u -u -r1.1.1.2 -r1.2
  
  #include <unistd.h>
 ===================================================================
-diff -u -u -r1.1.1.2 Makefile.am
+diff -u -u -r1.1.1.2 -r1.7
 --- ./kio/misc/kssld/Makefile.am	10 Jul 2002 04:50:08 -0000	1.1.1.2
-+++ ./kio/misc/kssld/Makefile.am	24 Nov 2002 07:06:02 -0000
++++ ./kio/misc/kssld/Makefile.am	26 Nov 2002 21:00:50 -0000	1.7
 @@ -21,7 +21,7 @@
  kde_module_LTLIBRARIES = kded_kssld.la
  
  kded_kssld_la_LDFLAGS = $(all_libraries) -module -avoid-version
 -kded_kssld_la_LIBADD = $(LIB_KIO)
-+kded_kssld_la_LIBADD = $(LIB_KIO) $(top_builddir)/kded/kded.la
++kded_kssld_la_LIBADD = $(LIB_KIO) $(top_builddir)/kded/libkded_main.la
  kded_kssld_la_SOURCES = kssld.cpp kssld.skel
  
  METASOURCES = AUTO
@@ -1305,9 +2013,9 @@ diff -u -u -r1.1.1.7 -r1.2
  
    FD_ZERO(&mask);
 ===================================================================
-diff -u -u -r1.1.1.7 -r1.6
---- ./kioslave/http/http.cc	20 Nov 2002 00:56:01 -0000	1.1.1.7
-+++ ./kioslave/http/http.cc	20 Nov 2002 01:07:12 -0000	1.6
+diff -u -u -r1.1.1.8 -r1.7
+--- ./kioslave/http/http.cc	26 Nov 2002 22:02:21 -0000	1.1.1.8
++++ ./kioslave/http/http.cc	26 Nov 2002 22:12:44 -0000	1.7
 @@ -33,9 +33,9 @@
  #include <sys/socket.h>
  #include <netinet/tcp.h>
@@ -1320,44 +2028,138 @@ diff -u -u -r1.1.1.7 -r1.6
  #include <sys/wait.h>
  #include <netinet/in.h>
 ===================================================================
-diff -u -u -r1.1.1.4 Makefile.am
+diff -u -u -r1.1.1.1 -r1.2
+--- ./kioslave/http/http_cache_cleaner.cpp	25 Jun 2002 02:47:04 -0000	1.1.1.1
++++ ./kioslave/http/http_cache_cleaner.cpp	26 Nov 2002 21:00:50 -0000	1.2
+@@ -187,7 +187,9 @@
+    }
+ }
+ 
+-int main(int argc, char **argv)
++extern "C" int kdemain(int, char**);
++
++int kdemain(int argc, char **argv)
+ {
+    KLocale::setMainCatalogue("kdelibs");
+    KCmdLineArgs::init( argc, argv, appName, description, version, true);
+===================================================================
+diff -u -u -r1.1.1.4 -r1.4
 --- ./kioslave/http/Makefile.am	29 Oct 2002 02:38:44 -0000	1.1.1.4
-+++ ./kioslave/http/Makefile.am	24 Nov 2002 07:06:02 -0000
-@@ -18,12 +18,12 @@
++++ ./kioslave/http/Makefile.am	26 Nov 2002 21:00:50 -0000	1.4
+@@ -9,7 +9,7 @@
+ ####### Files
+ 
+ bin_PROGRAMS = kio_http_cache_cleaner
+-lib_LTLIBRARIES = kio_http_cache_cleaner.la
++lib_LTLIBRARIES = kio_http_cache_cleaner.la libkio_http_cache_cleaner_main.la
+ kde_module_LTLIBRARIES = kio_http.la
+ 
+ kio_http_la_SOURCES = http.cc httpfilter.cc
+@@ -17,19 +17,26 @@
+ kio_http_la_LIBADD = $(LIB_KIO) $(LIBZ)
  kio_http_la_LDFLAGS = $(all_libraries) -module $(KDE_PLUGIN)
  
- kio_http_cache_cleaner_SOURCES = dummy.cpp
+-kio_http_cache_cleaner_SOURCES = dummy.cpp
 -kio_http_cache_cleaner_LDADD   = kio_http_cache_cleaner.la
-+kio_http_cache_cleaner_LDADD = kio_http_cache_cleaner.la
++kio_http_cache_cleaner_SOURCES = http_cache_cleaner_main.cpp
++kio_http_cache_cleaner_LDADD = libkio_http_cache_cleaner_main.la
  kio_http_cache_cleaner_LDFLAGS = $(KDE_RPATH)
  
- kio_http_cache_cleaner_la_SOURCES = http_cache_cleaner.cpp
- kio_http_cache_cleaner_la_LIBADD  = $(LIB_KIO)
+-kio_http_cache_cleaner_la_SOURCES = http_cache_cleaner.cpp
+-kio_http_cache_cleaner_la_LIBADD  = $(LIB_KIO)
 -kio_http_cache_cleaner_la_LDFLAGS = -module -avoid-version
-+kio_http_cache_cleaner_la_LDFLAGS = -avoid-version
++http_cache_cleaner_main.cpp: stub_main.cpp
++	cat stub_main.cpp > http_cache_cleaner_main.cpp
++
++kio_http_cache_cleaner_la_SOURCES = http_cache_cleaner_la_main.cpp
++kio_http_cache_cleaner_la_LIBADD  = libkio_http_cache_cleaner_main.la
++kio_http_cache_cleaner_la_LDFLAGS = -avoid-version -module
++
++http_cache_cleaner_la_main.cpp: stub_main.cpp
++	cat stub_main.cpp > http_cache_cleaner_la_main.cpp
++
++libkio_http_cache_cleaner_main_la_SOURCES = http_cache_cleaner.cpp
++libkio_http_cache_cleaner_main_la_LIBADD  = $(LIB_KIO)
++libkio_http_cache_cleaner_main_la_LDFLAGS = -avoid-version
  
  noinst_HEADERS = http.h
  
+ kdelnkdir = $(kde_servicesdir)
+ kdelnk_DATA = http_cache_cleaner.desktop http.protocol https.protocol \
+               webdav.protocol webdavs.protocol
+-
+-dummy.cpp:
+-	echo > dummy.cpp
 ===================================================================
-diff -u -u -r1.1.1.3 Makefile.am
+diff -N ./kioslave/http/stub_main.cpp
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ ./kioslave/http/stub_main.cpp	26 Nov 2002 21:00:50 -0000	1.1
+@@ -0,0 +1,28 @@
++/*
++ *
++ * Copyright (c) 2001 Nick Hudson <skrll@netbsd.org>
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a copy
++ * of this software and associated documentation files (the "Software"), to deal
++ * in the Software without restriction, including without limitation the rights
++ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++ * copies of the Software, and to permit persons to whom the Software is
++ * furnished to do so, subject to the following conditions:
++ *
++ * The above copyright notice and this permission notice shall be included in
++ * all copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
++ * AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
++ * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
++ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++ */
++extern "C" int kdemain(int, char* []);
++
++int main( int argc, char* argv[] )
++{
++        return kdemain(argc, argv);
++}
++
+===================================================================
+diff -u -u -r1.1.1.3 -r1.7
 --- ./kioslave/http/kcookiejar/Makefile.am	1 Oct 2002 03:07:20 -0000	1.1.1.3
-+++ ./kioslave/http/kcookiejar/Makefile.am	24 Nov 2002 07:06:02 -0000
-@@ -11,13 +11,13 @@
++++ ./kioslave/http/kcookiejar/Makefile.am	26 Nov 2002 21:00:50 -0000	1.7
+@@ -9,25 +9,25 @@
+ lib_LTLIBRARIES = kcookiejar.la
+ kde_module_LTLIBRARIES = kded_kcookiejar.la
  
- kcookiejar_la_SOURCES = main.cpp
+-kcookiejar_la_SOURCES = main.cpp
  METASOURCES = AUTO
--kcookiejar_la_LDFLAGS = $(all_libraries) -module -avoid-version
-+kcookiejar_la_LDFLAGS = $(all_libraries) -avoid-version
++kcookiejar_la_SOURCES = main.cpp
+ kcookiejar_la_LDFLAGS = $(all_libraries) -module -avoid-version
  kcookiejar_la_LIBADD = $(LIB_KDECORE)
  
  kded_kcookiejar_la_SOURCES = kcookiejar.cpp kcookieserver.cpp \
  			kcookieserver.skel kcookiewin.cpp 
  kded_kcookiejar_la_LDFLAGS = $(all_libraries) -module -avoid-version
 -kded_kcookiejar_la_LIBADD = $(LIB_KIO)
-+kded_kcookiejar_la_LIBADD = $(LIB_KIO) $(top_builddir)/kded/kded.la
++kded_kcookiejar_la_LIBADD = $(LIB_KIO) $(top_builddir)/kded/libkded_main.la
  
- kcookiejar_SOURCES = dummy.cpp
- kcookiejar_LDADD = kcookiejar.la
+-kcookiejar_SOURCES = dummy.cpp
+-kcookiejar_LDADD = kcookiejar.la
++kcookiejar_SOURCES = kcookiejar_main.cpp
++kcookiejar_LDADD = $(LIB_KDECORE)
+ kcookiejar_LDFLAGS = $(all_libraries) $(KDE_RPATH)
+ 
++kcookiejar_main.cpp: main.cpp
++	cat main.cpp > kcookiejar_main.cpp
++
+ kded_DATA = kcookiejar.desktop
+ kdeddir = $(kde_servicesdir)/kded
+ 
+ update_DATA = kcookiescfg.upd
+ updatedir = $(kde_datadir)/kconf_update
+-
+-dummy.cpp:
+-	echo > dummy.cpp
 ===================================================================
 diff -u -u -r1.1.1.7 -r1.4
 ===================================================================
@@ -1415,9 +2217,9 @@ diff -u -u -r1.1.1.3 -r1.6
  include_HEADERS = kscreensaver.h kscreensaver_vroot.h
  
 ===================================================================
-diff -u -u -r1.1.1.2 -r1.6
+diff -u -u -r1.1.1.2 -r1.7
 --- ./libltdl/ltdl.c	10 Jul 2002 04:51:21 -0000	1.1.1.2
-+++ ./libltdl/ltdl.c	13 Nov 2002 04:11:54 -0000	1.6
++++ ./libltdl/ltdl.c	26 Nov 2002 21:00:50 -0000	1.7
 @@ -1544,11 +1544,14 @@
    /* try to open the old library first; if it was dlpreopened,
       we want the preopened version of it, even if a dlopenable
@@ -1434,35 +2236,6 @@ diff -u -u -r1.1.1.2 -r1.6
    /* try to open the dynamic library */
    if (dlname)
      {
-@@ -1567,6 +1570,28 @@
- 	    }
- 
- 	  sprintf (filename, "%s/%s", libdir, dlname);
-+	  error = (tryall_dlopen (handle, filename) != 0);
-+	  LT_DLFREE (filename);
-+
-+	  if (!error)
-+	    {
-+	      return 0;
-+	    }
-+	}
-+
-+      /* then look for the same module, but with "lib" prepended */
-+      if (installed && libdir)
-+	{
-+	  len	    = strlen (libdir) + 4 + strlen (dlname);
-+	  filename  = LT_DLMALLOC (char, 1+ len);
-+
-+	  if (!filename)
-+	    {
-+	      MUTEX_SETERROR (LT_DLSTRERROR (NO_MEMORY));
-+	      return 1;
-+	    }
-+
-+	  sprintf (filename, "%s/%s%s", libdir, "lib", dlname);
- 	  error = (tryall_dlopen (handle, filename) != 0);
- 	  LT_DLFREE (filename);
- 
 ===================================================================
 diff -u -u -r1.1.1.2 -r1.3
 --- ./libltdl/ltdl.m4	10 Jul 2002 04:51:21 -0000	1.1.1.2
@@ -1478,12 +2251,4 @@ diff -u -u -r1.1.1.2 -r1.3
  ])
  if test "$libltdl_cv_sys_dlopen_deplibs" != yes; then
 ===================================================================
-diff -u -u -r1.1.1.6 Makefile.am
---- ./pics/Makefile.am	20 Nov 2002 00:56:33 -0000	1.1.1.6
-+++ ./pics/Makefile.am	24 Nov 2002 07:06:03 -0000
-@@ -17,4 +17,5 @@
- 
- install-data-local:
- 	-rm -f $(DESTDIR)$(kde_icondir)/default.kde
-+	$(INSTALL) -d $(DESTDIR)$(kde_icondir)
- 	$(LN_S) crystalsvg $(DESTDIR)$(kde_icondir)/default.kde
+diff -u -u -r1.1.1.7 -r1.3
