@@ -1,0 +1,61 @@
+diff -ru freetype-2.1.9-orig/builds/unix/detect.mk freetype-2.1.9/builds/unix/detect.mk
+--- freetype-2.1.9-orig/builds/unix/detect.mk	2004-12-28 01:18:57.000000000 -0800
++++ freetype-2.1.9/builds/unix/detect.mk	2004-12-28 01:23:10.000000000 -0800
+@@ -20,7 +20,8 @@
+   #
+   is_unix := $(strip $(wildcard /sbin/init) \
+                      $(wildcard /usr/sbin/init) \
+-                     $(wildcard /hurd/auth))
++                     $(wildcard /hurd/auth) \
++                     $(wildcard /sbin/launchd))
+   ifneq ($(is_unix),)
+ 
+     PLATFORM := unix
+diff -ru freetype-2.1.9-orig/builds/unix/freetype-config.in freetype-2.1.9/builds/unix/freetype-config.in
+--- freetype-2.1.9-orig/builds/unix/freetype-config.in	2004-12-28 01:18:57.000000000 -0800
++++ freetype-2.1.9/builds/unix/freetype-config.in	2004-12-28 01:19:19.000000000 -0800
+@@ -1,6 +1,6 @@
+ #! /bin/sh
+ 
+-prefix=@prefix@
++prefix=@prefix@/lib/freetype2
+ exec_prefix=@exec_prefix@
+ exec_prefix_set=no
+ includedir=@includedir@
+diff -ru freetype-2.1.9-orig/builds/unix/ltmain.sh freetype-2.1.9/builds/unix/ltmain.sh
+--- freetype-2.1.9-orig/builds/unix/ltmain.sh	2004-12-28 01:18:57.000000000 -0800
++++ freetype-2.1.9/builds/unix/ltmain.sh	2004-12-28 01:21:15.000000000 -0800
+@@ -3760,6 +3760,11 @@
+ 	  eval test_cmds=\"$archive_expsym_cmds\"
+ 	  cmds=$archive_expsym_cmds
+ 	else
++          if test "x$verstring" = "x0.0"; then
++            tmp_verstring=
++          else
++            tmp_verstring="$verstring"
++          fi
+ 	  eval test_cmds=\"$archive_cmds\"
+ 	  cmds=$archive_cmds
+ 	  fi
+diff -ru freetype-2.1.9-orig/src/base/ftobjs.c freetype-2.1.9/src/base/ftobjs.c
+--- freetype-2.1.9-orig/src/base/ftobjs.c	2004-12-28 01:18:56.000000000 -0800
++++ freetype-2.1.9/src/base/ftobjs.c	2004-12-28 01:19:19.000000000 -0800
+@@ -947,7 +947,7 @@
+   /* there's a Mac-specific extended implementation of FT_New_Face() */
+   /* in src/base/ftmac.c                                             */
+ 
+-#ifndef FT_MACINTOSH
++/*#ifndef FT_MACINTOSH*/
+ 
+   /* documentation is in freetype.h */
+ 
+@@ -970,7 +970,7 @@
+     return FT_Open_Face( library, &args, face_index, aface );
+   }
+ 
+-#endif  /* !FT_MACINTOSH */
++/*#endif  !FT_MACINTOSH */
+ 
+ 
+   /* documentation is in freetype.h */
+Only in freetype-2.1.9/src/base: ftobjs.c.orig
