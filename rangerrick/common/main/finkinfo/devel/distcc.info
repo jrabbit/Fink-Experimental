@@ -1,6 +1,6 @@
 Package: distcc
 Version: 2.13
-Revision: 1
+Revision: 3
 Depends: daemonic, popt-shlibs, passwd (>= 20031013-1)
 Suggests: ccache
 BuildDepends: gettext-dev, libiconv-dev, libxml2, passwd (>= 20031013-1), popt
@@ -37,6 +37,9 @@ DISTCC_VERBOSE=0
 # disable tcp corks (see manual for details)
 DISTCC_TCP_CORK=1
 
+# the directory to put work files
+DISTCC_DIR=%p/var/cache/distcc
+
 # Enable building with multiple concurrent make
 # sessions by default -- this can cause problems
 # with building some packages.  If you have issues
@@ -44,6 +47,10 @@ DISTCC_TCP_CORK=1
 # try again.
 #MAKEFLAGS=-j4
 END
+
+  install -d -m 1775 %i/var/cache/distcc
+  touch %i/var/cache/distcc/.turd
+  chown -R nobody:staff %i/var/cache/distcc
 
   cat <<END > %i/etc/distccd.conf
 # how nice should distccd be?
@@ -108,6 +115,8 @@ grep -q -E '^ *DISTCC_HOSTS' %p/etc/distcc.conf    && export DISTCC_HOSTS=\`grep
 grep -q -E '^ *DISTCC_VERBOSE' %p/etc/distcc.conf  && export DISTCC_VERBOSE=\`grep DISTCC_VERBOSE %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\`
 grep -q -E '^ *DISTCC_LOG' %p/etc/distcc.conf      && export DISTCC_LOG=\`grep DISTCC_LOG %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\`
 grep -q -E '^ *DISTCC_TCP_CORK' %p/etc/distcc.conf && export DISTCC_TCP_CORK=\`grep DISTCC_TCP_CORK %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\`
+grep -q -E '^ *CCACHE_DIR' %p/etc/distcc.conf      && export CCACHE_DIR=\`grep CCACHE_DIR %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\`
+grep -q -E '^ *CCACHE_UMASK' %p/etc/distcc.conf    && export CCACHE_UMASK=\`grep CCACHE_UMASK %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\`
 grep -q -E '^ *MAKEFLAGS' %p/etc/distcc.conf       && export MAKEFLAGS=\`grep MAKEFLAGS %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\`
 END
   cat <<END > %i/etc/profile.d/distcc.csh
@@ -116,6 +125,8 @@ grep -q -E '^ *DISTCC_HOSTS' %p/etc/distcc.conf    && setenv DISTCC_HOSTS \`grep
 grep -q -E '^ *DISTCC_VERBOSE' %p/etc/distcc.conf  && setenv DISTCC_VERBOSE \`grep DISTCC_VERBOSE %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\`
 grep -q -E '^ *DISTCC_LOG' %p/etc/distcc.conf      && setenv DISTCC_LOG \`grep DISTCC_LOG %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\`
 grep -q -E '^ *DISTCC_TCP_CORK' %p/etc/distcc.conf && setenv DISTCC_TCP_CORK \`grep DISTCC_TCP_CORK %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\`
+grep -q -E '^ *CCACHE_DIR' %p/etc/distcc.conf      && setenv CCACHE_DIR \`grep CCACHE_DIR %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\`
+grep -q -E '^ *CCACHE_UMASK' %p/etc/distcc.conf    && setenv CCACHE_UMASK \`grep CCACHE_UMASK %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\`
 grep -q -E '^ *MAKEFLAGS' %p/etc/distcc.conf       && setenv MAKEFLAGS \`grep MAKEFLAGS %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\`
 END
 

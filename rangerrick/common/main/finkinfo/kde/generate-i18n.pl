@@ -1,14 +1,14 @@
 #!/usr/bin/perl
 
-my $KOI18NRELNUM  = 2;
-my $KDEVERSION    = '3.2.1';
+my $KOI18NRELNUM  = 1;
+my $KDEVERSION    = '3.2.2';
 my $KDEDIRECTORY  = 'stable/%v/src/';
 my $KDERELNUM     = 1;
-my $KDEARTSVER    = '1.2.0-1';
+my $KDEARTSVER    = '1.2.2-1';
 my $KDEI18NRELNUM = 1;
 my $KOVERSION     = '1.3';
 my $KODIRECTORY   = 'stable/koffice-%v/src/';
-my $KORELNUM      = '1';
+my $KORELNUM      = '2';
 my $VERBOSE       = 0;
 my $DRYRUN        = 0;
 
@@ -44,6 +44,7 @@ for my $i18n (@KDEI18N) {
 		$md5 =~ s/^.*\s*=\s*//;
 		my $normalized = lc($MAPPINGS{$shortname});
 		$normalized =~ s#[^a-zA-Z]+#-#g;
+		$normalized =~ s#-*$##;
 		my $filename = $i18n;
 		$filename =~ s#${KDEVERSION}#\%v#g;
 		push(@kdepackages, "kde-i18n-${normalized}");
@@ -88,6 +89,7 @@ for my $i18n (@KOI18N) {
 		$md5 =~ s/^.*\s*=\s*//;
 		my $normalized = lc($MAPPINGS{$shortname});
 		$normalized =~ s#[^a-zA-Z]+#-#g;
+		$normalized =~ s#-*$##;
 		my $filename = $i18n;
 		$filename =~ s#${KOVERSION}#\%v#g;
 		push(@kopackages, "koffice-i18n-${normalized}");
