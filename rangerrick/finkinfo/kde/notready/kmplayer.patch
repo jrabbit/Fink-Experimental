@@ -1,0 +1,121 @@
+diff -uNr kmplayer/src/Makefile.am kmplayer-new/src/Makefile.am
+--- kmplayer/src/Makefile.am	Sun Aug  3 16:00:48 2003
++++ kmplayer-new/src/Makefile.am	Wed Aug 13 22:57:01 2003
+@@ -1,46 +1,40 @@
+ INCLUDES= -I$(kde_includes)/kio $(all_includes)
+ 
+-KDE_ICON=AUTO
++KDE_ICON = AUTO
++METASOURCES = AUTO
+ 
+-METASOURCES= AUTO
+-
+-lib_LTLIBRARIES= libkmplayercommon.la
++lib_LTLIBRARIES= libkmplayercommon.la libkdeinit_kmplayer.la
++kde_module_LTLIBRARIES = libkmplayerpart.la libkmplayerkofficepart.la kmplayer.la
++bin_PROGRAMS = kmplayer
+ 
+ libkmplayercommon_la_SOURCES = kmplayerview.cpp kmplayerconfig.cpp pref.cpp kmplayerprocess.cpp kmplayer_callback.skel kmplayer_backend.stub kmplayerpartbase.cpp
+ libkmplayercommon_la_LDFLAGS = -avoid-version $(all_libraries)
+ libkmplayercommon_la_LIBADD = -lkmediaplayer $(LIB_KPARTS) $(LIB_ARTS) -lm
+ 
+-if include_koffice_support
+-kofficeplugin_lib= libkmplayerkofficepart.la
+-SERVICES_KOFFICE = kmplayer_koffice.desktop
+-endif
+-
+-kde_module_LTLIBRARIES= libkmplayerpart.la $(kofficeplugin_lib)
+-
+-libkmplayerpart_la_SOURCES= kmplayer_part.cpp
+-libkmplayerpart_la_LDFLAGS= -avoid-version $(all_libraries) $(KDE_RPATH)
+-libkmplayerpart_la_LIBADD= libkmplayercommon.la
+-
+-libkmplayerkofficepart_la_SOURCES=kmplayer_koffice_part.cpp
+-libkmplayerkofficepart_la_LDFLAGS= -avoid-version $(all_libraries) $(KDE_RPATH)
+-libkmplayerkofficepart_la_LIBADD= libkmplayercommon.la $(LIB_KOFFICE)
+-
+-kdeinit_LTLIBRARIES=kmplayer.la
+-kmplayer_la_SOURCES= main.cpp kmplayerapp.cpp
+-kmplayer_la_LIBADD= libkmplayercommon.la
+-kmplayer_la_LDFLAGS= -module $(KDE_PLUGIN)
+-
+-EXTRA_PROGRAMS = kxineplayer
+-if include_kxineplayer
+-kxineplayer_app = kxineplayer
+-endif
+-
+-bin_PROGRAMS= $(kxineplayer_app)
+-
+-kxineplayer_LDADD= $(LIB_XINE)
+-kxineplayer_CFLAGS= $(CFLAGS_XINE)
+-kxineplayer_LDFLAGS= $(all_libraries) $(KDE_RPATH) -lDCOP
+-kxineplayer_SOURCES= xineplayer.cpp kmplayer_backend.skel kmplayer_callback.stub
++SERVICES_KOFFICE  = kmplayer_koffice.desktop
++
++libkmplayerpart_la_SOURCES = kmplayer_part.cpp
++libkmplayerpart_la_LDFLAGS = -avoid-version $(all_libraries) $(KDE_RPATH)
++libkmplayerpart_la_LIBADD  = libkmplayercommon.la
++
++libkmplayerkofficepart_la_SOURCES = kmplayer_koffice_part.cpp
++libkmplayerkofficepart_la_LDFLAGS = -avoid-version $(all_libraries) $(KDE_RPATH)
++libkmplayerkofficepart_la_LIBADD  = libkmplayercommon.la $(LIB_KOFFICE)
++
++libkdeinit_kmplayer_la_SOURCES = main.cpp kmplayerapp.cpp
++libkdeinit_kmplayer_la_LIBADD  = libkmplayercommon.la
++libkdeinit_kmplayer_la_LDFLAGS = $(KDE_RPATH) $(all_libraries)
++
++kmplayer_la_SOURCES = stub_main_la.cpp
++kmplayer_la_LIBADD  = libkdeinit_kmplayer.la
++kmplayer_la_LDFLAGS = -module $(KDE_RPATH) $(all_libraries)
++
++kmplayer_SOURCES = stub_main.cpp
++kmplayer_LDADD   = libkdeinit_kmplayer.la
++kmplayer_LDFLAGS = $(all_libraries)
++
++stub_main_la.cpp: stub_main.cpp
++	cat stub_main.cpp > stub_main_la.cpp
+ 
+ applnk_DATA = kmplayer.desktop
+ applnkdir = $(kde_appsdir)/Multimedia
+@@ -52,9 +46,6 @@
+ 
+ conf_DATA = kmplayerrc
+ confdir = $(kde_confdir)
+-
+-dummy.cpp:
+-	echo > dummy.cpp
+ 
+ messages: rc.cpp
+ 	$(XGETTEXT) *.cpp -o $(podir)/kmplayer.pot
+diff -uNr kmplayer/src/stub_main.cpp kmplayer-new/src/stub_main.cpp
+--- kmplayer/src/stub_main.cpp	Wed Dec 31 19:00:00 1969
++++ kmplayer-new/src/stub_main.cpp	Wed Aug 13 22:39:30 2003
+@@ -0,0 +1,28 @@
++/*
++ *
++ * Copyright (c) 2001 Nick Hudson <skrll@netbsd.org>
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a copy
++ * of this software and associated documentation files (the "Software"), to deal
++ * in the Software without restriction, including without limitation the rights
++ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++ * copies of the Software, and to permit persons to whom the Software is
++ * furnished to do so, subject to the following conditions:
++ *
++ * The above copyright notice and this permission notice shall be included in
++ * all copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
++ * AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
++ * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
++ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++ */
++extern "C" int kdemain(int, char* []);
++
++int main( int argc, char* argv[] )
++{
++        return kdemain(argc, argv);
++}
++
