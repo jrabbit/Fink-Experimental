@@ -37,11 +37,11 @@ diff -u -b -u -r1.1.1.1 -r1.3
 Index: admin/acinclude.m4.in
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdevelop/admin/acinclude.m4.in,v
-retrieving revision 1.1.1.1
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.1 -r1.3
---- admin/acinclude.m4.in	26 Jun 2002 02:38:51 -0000	1.1.1.1
-+++ admin/acinclude.m4.in	10 Jul 2002 21:08:37 -0000	1.3
+retrieving revision 1.1.1.2
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.2 -r1.4
+--- admin/acinclude.m4.in	21 Aug 2002 15:17:16 -0000	1.1.1.2
++++ admin/acinclude.m4.in	21 Aug 2002 15:24:55 -0000	1.4
 @@ -699,13 +699,10 @@
       AC_CHECK_LIB(ipc, shmat, X_EXTRA_LIBS="$X_EXTRA_LIBS -lipc"))
     
@@ -67,6 +67,27 @@ diff -u -b -u -r1.1.1.1 -r1.3
     AC_SUBST(LIBRESOLV)
     AC_SUBST(X_EXTRA_LIBS)
     AC_CHECK_LIB(ucb, killpg, [LIBUCB="-lucb"]) dnl for Solaris2.4
+@@ -905,7 +904,7 @@
+ kde_ldflags_safe="$LDFLAGS"
+ kde_libs_safe="$LIBS"
+ 
+-LDFLAGS="$LDFLAGS $X_LDFLAGS $USER_LDFLAGS"
++LDFLAGS="$LDFLAGS $USER_LDFLAGS $X_LDFLAGS"
+ LIBS="-lXext -lX11 $LIBSOCKET"
+ 
+ AC_TRY_LINK([
+@@ -947,9 +946,9 @@
+ kde_save_LDFLAGS="$LDFLAGS"
+ kde_save_CFLAGS="$CFLAGS"
+ kde_save_LIBS="$LIBS"
+-LDFLAGS="$LDFLAGS $X_LDFLAGS $USER_LDFLAGS"
++LDFLAGS="$LDFLAGS $USER_LDFLAGS $X_LDFLAGS"
+ CFLAGS="$CFLAGS -I$x_includes"
+-LIBS="-lXinerama -lXext"
++LIBS="-lXinerama -lXext -lX11"
+ 
+ if test "x$no_xinerama" = "xno"; then
+ 
 @@ -1846,15 +1845,29 @@
     AC_REQUIRE([K_PATH_X])
  
@@ -102,7 +123,50 @@ diff -u -b -u -r1.1.1.1 -r1.3
  # these are for backward compatibility
     AC_SUBST(LIB_KSYCOCA, "-lkio")
     AC_SUBST(LIB_KFILE, "-lkio")
-@@ -4117,7 +4130,7 @@
+@@ -2544,10 +2557,10 @@
+       if test $kde_use_debug_code = "full"; then
+         CFLAGS="-g3 $CFLAGS"
+       else
+-        CFLAGS="-g -O2 $CFLAGS"
++        CFLAGS="-g -Os $CFLAGS"
+       fi
+     else
+-      CFLAGS="-O2 $CFLAGS"
++      CFLAGS="-Os $CFLAGS"
+     fi
+   fi
+ 
+@@ -2577,7 +2590,7 @@
+         if test "$kde_use_debug_code" = "full"; then
+           CXXFLAGS="-g3 $CXXFLAGS"
+         else
+-          CXXFLAGS="-g -O2 $CXXFLAGS"
++          CXXFLAGS="-g -Os $CXXFLAGS"
+         fi
+       fi
+       KDE_CHECK_COMPILER_FLAG(fno-builtin,[CXXFLAGS="-fno-builtin $CXXFLAGS"])
+@@ -2589,7 +2602,7 @@
+       if test "$CXX" = "KCC"; then
+         CXXFLAGS="+K3 $CXXFLAGS"
+       else
+-        CXXFLAGS="-O2 $CXXFLAGS"
++        CXXFLAGS="-Os $CXXFLAGS"
+       fi  
+     fi
+   fi
+@@ -3059,9 +3072,9 @@
+     ac_save_ldflags="$LDFLAGS"
+     ac_save_cflags="$CFLAGS"
+     if test "x$kde_use_qt_emb" != "xyes"; then
+-      LDFLAGS="$LDFLAGS $X_LDFLAGS $USER_LDFLAGS $LDFLAGS $XPM_LDFLAGS $all_libraries -lXpm -lX11 -lXext $LIBZ $LIBSOCKET"
++      LDFLAGS="$LDFLAGS $USER_LDFLAGS $X_LDFLAGS $LDFLAGS $XPM_LDFLAGS $all_libraries -lXpm -lX11 -lXext $LIBZ $LIBSOCKET"
+     else
+-      LDFLAGS="$LDFLAGS $X_LDFLAGS $USER_LDFLAGS $LDFLAGS $XPM_LDFLAGS $all_libraries -lXpm $LIBZ $LIBSOCKET"
++      LDFLAGS="$LDFLAGS $USER_LDFLAGS $X_LDFLAGS $LDFLAGS $XPM_LDFLAGS $all_libraries -lXpm $LIBZ $LIBSOCKET"
+     fi
+     CFLAGS="$CFLAGS $X_INCLUDES $USER_INCLUDES"
+     test -n "$XPM_INCLUDE" && CFLAGS="-I$XPM_INCLUDE $CFLAGS"
+@@ -4106,7 +4119,7 @@
  AC_DEFUN(KDE_CREATE_SUBDIRSLIST,
  [
  
@@ -111,32 +175,7 @@ diff -u -b -u -r1.1.1.1 -r1.3
  
  if test ! -s $srcdir/subdirs; then
    dnl Note: Makefile.common creates subdirs, so this is just a fallback
-@@ -4347,6 +4360,15 @@
-     prefix=$ac_default_prefix
-     ac_configure_args="$ac_configure_args --prefix=$prefix"
-   fi
-+  # And delete superflous '/' to make compares easier
-+  prefix=`echo "$prefix" | sed 's,//*,/,g' | sed -e 's,/$,,'`
-+  exec_prefix=`echo "$exec_prefix" | sed 's,//*,/,g' | sed -e 's,/$,,'`
-+  # For unsermake we let top_builddir be absolute, instead of a
-+  # ../.. cascade to make dependencies for better from subdirectories
-+  # This doesn't change the behaviour of automake, as there the
-+  # top_builddir line is hardcoded into the Makefile.in's.
-+  top_builddir=`pwd`
-+  AC_SUBST(top_builddir)
-   KDE_FAST_CONFIGURE
-   KDE_CONF_FILES
- ])
-@@ -4510,7 +4532,7 @@
- [
- 	dir=`dirname "$1"`
- 	base=`basename "$1"`
--	list=`ls -1 $dir`
-+	list=`ls -1 $dir 2> /dev/null`
- 	for entry in $list; do 
- 		if test -d $dir/$entry/bin; then
- 			case $entry in
-@@ -4561,6 +4583,7 @@
+@@ -4553,6 +4566,7 @@
        KDE_JAVA_PREFIX(/usr/lib/IBMJava2*)
        KDE_JAVA_PREFIX(/usr/lib/IBMJava*)
        KDE_JAVA_PREFIX(/opt/java*)
@@ -144,7 +183,7 @@ diff -u -b -u -r1.1.1.1 -r1.3
      
        kde_cv_path="NONE"
        kde_save_IFS=$IFS
-@@ -4612,10 +4635,20 @@
+@@ -4604,10 +4618,20 @@
  dnl At this point kde_java_bindir and kde_java_includedir are either set or "no"
  if test "x$kde_java_bindir" != "xno"; then
  
@@ -165,7 +204,7 @@ diff -u -b -u -r1.1.1.1 -r1.3
  
    dnl Now check everything's fine under there
    dnl the include dir is our flag for having the JDK
-@@ -4643,17 +4676,29 @@
+@@ -4635,17 +4659,29 @@
      JAVAC=
      jni_includes=
    fi
@@ -203,9 +242,46 @@ diff -u -b -u -r1.1.1.1 -r1.3
 Index: admin/am_edit
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdevelop/admin/am_edit,v
-retrieving revision 1.1.1.1
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.1 -r1.3
+retrieving revision 1.1.1.2
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.2 -r1.4
+--- admin/am_edit	21 Aug 2002 15:17:00 -0000	1.1.1.2
++++ admin/am_edit	21 Aug 2002 15:24:55 -0000	1.4
+@@ -694,7 +694,7 @@
+             my ($dir, $hFile, $cppFile) = split ("\035", $globalmocs{$mocFile}, 3);
+             if (defined ($cppFile)) {
+                 $mocs .= " $mocFile.moc" if exists $shash{$cppFile};
+-            } elsif (grep(/^$mocFile\.$cppExt$/, @progsources))  {
++            } else {
+ 		$sourcelist{$cxxsuffix} .= "$mocFile.moc.$cxxsuffix ";
+ 		$moc_cpp_added = 1;
+ 	    }
+@@ -742,7 +742,7 @@
+                 }
+             }
+ 
+-            $handling = "$program.all_$suffix.$suffix: \$(srcdir)/Makefile.in $source_deps $mocs\n";
++            $handling = "$program.all_$suffix.$suffix: \$(srcdir)/Makefile.in" . $source_deps . " " . join(' ', $mocs)  . "\n";
+             $handling .= "\t\@echo 'creating $program.all_$suffix.$suffix ...'; \\\n";
+             $handling .= "\trm -f $program.all_$suffix.files $program.all_$suffix.final; \\\n";
+             $handling .= "\techo \"#define KDE_USE_FINAL 1\" >> $program.all_$suffix.final; \\\n";
+@@ -1881,7 +1881,6 @@
+ 	foreach my $mocFile (keys (%globalmocs))
+ 	{
+ 	    my ($dir, $hFile, $cppFile) = split ("\035", $globalmocs{$mocFile}, 3);
+-
+ 	    if (defined ($cppFile))
+ 	    {
+ 		$mocs .= " $mocFile.moc" if exists $shash{$cppFile};
+@@ -1923,7 +1922,7 @@
+     $MakefileData =~ s/\034/\\\n\t/g;    # Restore continuation lines
+     # Append our $progId line, _below_ the "generated by automake" line
+     # because automake-1.6 relies on the first line to be his own.
+-    my $progIdLine = "\# $progId - " . '$Revision$ '."\n";
++    my $progIdLine = "\# $progId - " . '$Revision$ '."\n";
+     if ( !( $MakefileData =~ s/^(.*generated .*by automake.*\n)/$1$progIdLine/ ) ) {
+         warn "automake line not found in $makefile\n";
+ 	# Fallback: first line
 Index: admin/config.pl
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdevelop/admin/config.pl,v
@@ -215,37 +291,53 @@ diff -u -b -u -r1.1.1.1 -r1.3
 Index: admin/cvs.sh
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdevelop/admin/cvs.sh,v
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- admin/cvs.sh	21 Aug 2002 15:17:01 -0000	1.1.1.2
++++ admin/cvs.sh	21 Aug 2002 15:24:55 -0000	1.3
+@@ -255,7 +255,7 @@
+    fi
+ fi
+ if test -z "$VERSION" || test "$VERSION" = "@VERSION@"; then
+-     VERSION="\"3.0.7\""
++     VERSION="\"3.0.6\""
+ fi
+ if test -z "$modulename" || test "$modulename" = "@MODULENAME@"; then
+    modulename=`pwd`; 
+Index: admin/detect-autoconf.sh
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdevelop/admin/detect-autoconf.sh,v
 retrieving revision 1.1.1.1
 retrieving revision 1.2
 diff -u -b -u -r1.1.1.1 -r1.2
---- admin/cvs.sh	26 Jun 2002 02:38:53 -0000	1.1.1.1
-+++ admin/cvs.sh	10 Jul 2002 21:08:37 -0000	1.2
-@@ -250,7 +250,7 @@
-    modulename=`pwd`; modulename=`basename $modulename`
- fi
- if test -z "$VERSION" || test "$VERSION" = "@VERSION@"; then
--     VERSION="\"3.0\""
-+     VERSION="\"3.0.6\""
- fi
- if test -n "$kde_use_qt_param"; then
-       sed -e "s#^dnl KDE_USE_QT#KDE_USE_QT($kde_use_qt_param)#" \
-@@ -398,7 +398,7 @@
- 	echo -e 'i18n("_: NAME OF TRANSLATORS\\n"\n"Your names")\ni18n("_: EMAIL OF TRANSLATORS\\n"\n"Your emails")' > _translatorinfo.cpp
-    else echo " " > _translatorinfo.cpp
-    fi
--   perl -e '$mes=0; while (<STDIN>) { if (/^messages:/) { $mes=1; print $_; next; } if ($mes) { if (/$\\(XGETTEXT\)/ && / -o/) { s/ -o \$\(podir\)/ _translatorinfo.cpp -o \$\(podir\)/ } print $_; } else { print $_; } }' < Makefile.am > _transMakefile
-+   perl -e '$mes=0; while (<STDIN>) { next if (/^(if|else|endif)\s/); if (/^messages:/) { $mes=1; print $_; next; } if ($mes) { if (/$\\(XGETTEXT\)/ && / -o/) { s/ -o \$\(podir\)/ _translatorinfo.cpp -o \$\(podir\)/ } print $_; } else { print $_; } }' < Makefile.am > _transMakefile
- 
-    $MAKE -s -f _transMakefile podir=$podir EXTRACTRC="$EXTRACTRC" PREPARETIPS="$PREPARETIPS" \
- 	XGETTEXT="${XGETTEXT:-xgettext} -C -ki18n -ktr2i18n -kI18N_NOOP -ktranslate -kaliasLocale -x ${includedir:-$KDEDIR/include}/kde.pot" \
+--- admin/detect-autoconf.sh	26 Jun 2002 02:38:53 -0000	1.1.1.1
++++ admin/detect-autoconf.sh	21 Aug 2002 15:24:55 -0000	1.2
+@@ -42,12 +42,12 @@
+ checkAutomakeAclocal ()
+ {
+   if test -z "$UNSERMAKE"; then
+-    if test -x "`$WHICH automake-1.5`" ; then
+-      AUTOMAKE="`$WHICH automake-1.5`"
+-      ACLOCAL="`$WHICH aclocal-1.5`"
+-    elif test -x "`$WHICH automake-1.6`" ; then
++    if test -x "`$WHICH automake-1.6`" ; then
+       AUTOMAKE="`$WHICH automake-1.6`"
+       ACLOCAL="`$WHICH aclocal-1.6`"
++    elif test -x "`$WHICH automake-1.5`" ; then
++      AUTOMAKE="`$WHICH automake-1.5`"
++      ACLOCAL="`$WHICH aclocal-1.5`"
+     fi
+   else
+      AUTOMAKE="$UNSERMAKE"
 Index: admin/libtool.m4.in
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdevelop/admin/libtool.m4.in,v
-retrieving revision 1.1.1.1
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.1 -r1.3
---- admin/libtool.m4.in	26 Jun 2002 02:38:54 -0000	1.1.1.1
-+++ admin/libtool.m4.in	10 Jul 2002 21:08:37 -0000	1.3
+retrieving revision 1.1.1.2
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.2 -r1.4
+--- admin/libtool.m4.in	21 Aug 2002 15:17:03 -0000	1.1.1.2
++++ admin/libtool.m4.in	21 Aug 2002 15:24:55 -0000	1.4
 @@ -609,6 +609,12 @@
      lt_cv_sys_max_cmd_len=-1;
      ;;
@@ -305,7 +397,7 @@ diff -u -b -u -r1.1.1.1 -r1.3
        #        yet detect zsh echo's removal of \ escapes.  Also zsh mangles
        #	       `"' quotes if we put them in here... so don't!
 -      _LT_AC_TAGVAR(archive_cmds, $1)='$CC $(test .$module = .yes && echo -bundle || echo -dynamiclib) $allow_undefined_flag -o $lib $libobjs $deplibs$linker_flags -install_name $rpath/$soname $verstring'
-+      _LT_AC_TAGVAR(archive_cmds, $1)='$CC -r -keep_private_externs -nostdlib -o ${lib}-master.o $libobjs && $CC $(test .$module = .yes && echo -bundle || echo -dynamiclib) -install_name $rpath/$soname $allow_undefined_flag -o $lib ${lib}-master.o $deplibs $linker_flags $verstring'
++      _LT_AC_TAGVAR(archive_cmds, $1)='$CC -r -keep_private_externs -nostdlib -o ${lib}-master.o $libobjs && $CC $(test .$module = .yes && echo -bundle || echo -dynamiclib) $allow_undefined_flag -o $lib ${lib}-master.o $deplibs $linker_flags $(test x$module != xyes && echo -install_name $rpath/$soname $verstring)'
        # We need to add '_' to the symbols in $export_symbols first
        #_LT_AC_TAGVAR(archive_expsym_cmds, $1)="$_LT_AC_TAGVAR(archive_cmds, $1)"' && strip -s $export_symbols'
        _LT_AC_TAGVAR(hardcode_direct, $1)=yes
@@ -313,14 +405,19 @@ Index: admin/ltmain.sh
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdevelop/admin/ltmain.sh,v
 retrieving revision 1.1.1.1
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.1 -r1.3
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.1 -r1.4
 --- admin/ltmain.sh	26 Jun 2002 02:38:55 -0000	1.1.1.1
-+++ admin/ltmain.sh	10 Jul 2002 21:08:37 -0000	1.3
-@@ -3321,7 +3321,18 @@
++++ admin/ltmain.sh	21 Aug 2002 15:24:55 -0000	1.4
+@@ -3321,7 +3321,23 @@
  	if test -n "$export_symbols" && test -n "$archive_expsym_cmds"; then
  	  eval cmds=\"$archive_expsym_cmds\"
  	else
++          if test "x$verstring" = "x0.0"; then
++                tmp_verstring=
++          else
++                tmp_verstring="$verstring"
++          fi
 + 	  save_deplibs="$deplibs"
 + 	  for conv in $convenience; do
 +            tmp_deplibs=
@@ -336,7 +433,20 @@ diff -u -b -u -r1.1.1.1 -r1.3
  	fi
  
  	if len=`expr "X$cmds" : ".*"` &&
-@@ -3632,6 +3643,14 @@
+@@ -3419,7 +3435,12 @@
+ 	  if test -n "$export_symbols" && test -n "$archive_expsym_cmds"; then
+ 	    eval cmds=\"$archive_expsym_cmds\"
+ 	  else
++            save_deplibs="$deplibs"
++            for conv in $convenience; do
++              deplibs="${deplibs%$conv*} ${deplibs#*$conv}"
++            done
+ 	    eval cmds=\"$archive_cmds\"
++            deplibs="$save_deplibs"
+ 	  fi
+ 
+ 	  # Append the command to remove the reloadable object files
+@@ -3632,6 +3653,14 @@
  	compile_deplibs=`$echo "X $compile_deplibs" | $Xsed -e 's/ -lc / -framework System /'`
  	finalize_deplibs=`$echo "X $finalize_deplibs" | $Xsed -e 's/ -lc / -framework System /'`
  	;;
@@ -425,6 +535,25 @@ diff -u -b -u -r1.1.1.2 -r1.2
          aMethod -> setName( workbuf );
          aMethod->setDeclaredInScope( currentClass -> path() );
          aMethod->setExport( PIE_PUBLIC );
+Index: kdevelop/classparser/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdevelop/kdevelop/classparser/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kdevelop/classparser/Makefile.am	25 Jun 2002 03:29:08 -0000	1.1.1.1
++++ kdevelop/classparser/Makefile.am	21 Aug 2002 16:13:10 -0000	1.2
+@@ -14,8 +14,8 @@
+ ####### kdevelop will overwrite this part!!! (end)############
+ 
+ tokenizer.cc: tokenizer.l
+-	$(LEX) -+ -otokenizer.cc $(srcdir)/tokenizer.l && cat tokenizer.cc | \
+-	sed -e "s,class istream;,#include <iostream\.h>," > tokenizer.cc.tmp && \
++	$(LEX) -+ -otokenizer.cc $(srcdir)/tokenizer.l && echo "using namespace std;" > tokenizer.cc.tmp \
++	&& cat tokenizer.cc | sed -e "s,class istream;,#include <iostream>," >> tokenizer.cc.tmp && \
+ 	mv tokenizer.cc.tmp tokenizer.cc
+ 
+ KDE_OPTIONS = nofinal
 Index: kdevelop/dbg/Makefile.am
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdevelop/kdevelop/dbg/Makefile.am,v
