@@ -30,16 +30,9 @@ sub write_keepers {
 		or die "$0: cannot rename '$temp_keepers' to 'keepers': $!\n";
 }
 
-
-ensure_root();
-
-system('/sw/bin/fink', @ARGV) == 0
-	or exit($? >> 8);
-
-my %keepers;
-my $cmd = shift @ARGV;
-
-if ( grep { $cmd eq $_ } qw/install remove purge/ ) {
+sub read_keepers {
+	my %keepers;
+	
 	open KEEP, "<", $keepers
 		or die "$0: cannot open '$keepers' for reading: $!";
 	while (<KEEP>) {
@@ -51,14 +44,27 @@ if ( grep { $cmd eq $_ } qw/install remove purge/ ) {
 	}
 	close KEEP
 		or die "$0: error in closing '$keepers' for reading: $!";
+	
+	return %keepers;
+}
 
-  if ( $cmd eq "install" ) {
-    @keepers{@ARGV} = ("") x @ARGV;
-  } else {
-    delete @keepers{@ARGV};
-  }
-  
-  write_keepers(%keepers);
+
+ensure_root();
+
+system('/sw/bin/fink', @ARGV) == 0
+	or exit($? >> 8);
+
+my $cmd = shift @ARGV;
+my %keepers = read_keepers();
+
+if ( grep { $cmd eq $_ } qw/install remove purge/ ) {
+	if ( $cmd eq "install" ) {
+	  @keepers{@ARGV} = ("") x @ARGV;
+	} else {
+	  delete @keepers{@ARGV};
+	}
+	
+	write_keepers(%keepers);
 }
 
 print "\nRemoved the following orphan packages:\n";
