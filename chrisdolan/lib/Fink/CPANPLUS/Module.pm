@@ -103,6 +103,8 @@ sub doc_files
                            Makefile(\.PL|) |
                            MANIFEST\.SKIP |
                            test\.pl |
+                           [Ii]nstall.* |
+                           INSTALL.* |
                            .*\.(bat|xs|pm|pl)
                            )$/x, $self->root_files();
    return @docfiles;
@@ -161,20 +163,22 @@ sub libs
    if (!$self->{libs})
    {
       $self->{libs} = {};
+      my @check = (
+                   $self->prereqs(),
+                   $self->makefile(),
+                   $self->yml(),
+                   );
       foreach my $type (qw(depends recommends conflicts builddepends buildconflicts))
       {
          $self->{libs}->{$type} = {};
 
-         my $p = $self->prereqs->{$type};
-         if ($p)
+         foreach my $o (@check)
          {
-            $self->{libs}->{$type} = {%{$self->{libs}->{$type}}, %$p};
-         }
-
-         my $y = $self->yml->{$type};
-         if ($y)
-         {
-            $self->{libs}->{$type} = {%{$self->{libs}->{$type}}, %$y};
+            my $p = $o->{$type};
+            if ($p)
+            {
+               $self->{libs}->{$type} = {%{$self->{libs}->{$type}}, %$p};
+            }
          }
       }
    }
@@ -220,6 +224,32 @@ sub makefile
          if ($makefile =~ /([\'\"]?)EXE_FILES\1\s*(?:=>|,)/s)
          {
             $self->{makefile}->{bin} = 1;
+         }
+         # Check for prereqs
+         if ($makefile =~ /([\'\"]?)PREREQ_PM\1\s*(?:=>|,)\s*(\{.*?\})/s)
+         {
+            my $hash = $2;
+            $hash =~ s/\s+/ /g;
+            my $libs = eval $hash;
+            if (!$@)
+            {
+               foreach my $type ("depends")
+               {
+                  $self->{makefile}->{$type} = {};
+                  foreach my $key (keys %$libs)
+                  {
+                     my $pkg = $self->get_dep_pkg($key, $libs->{$key}, $type);
+                     if ($pkg)
+                     {
+                        $self->{makefile}->{$type}->{$pkg} = $libs->{$key};
+                     }
+                  }
+               }
+            }
+            else
+            {
+               print "Eval error for PREREQ_PM: $@\n" if ($self->verbose);
+            }
          }
       }
    }
@@ -315,7 +345,9 @@ sub prereqs
          $self->extract();
          my $dist = $self->{mod}->dist(format => $self->{mod}->get_installer_type(),
                                        target => TARGET_PREPARE);
-         my $prereqs = $dist->_find_prereqs();
+         # The file arg is happily ignored for Build.PL packages
+         my $prereqs = $dist->_find_prereqs(file => $self->extract_dir()."/Makefile.PL",
+                                            verbose => $self->verbose);
          foreach my $type (qw(depends))
          {
             foreach my $key (sort keys %$prereqs)

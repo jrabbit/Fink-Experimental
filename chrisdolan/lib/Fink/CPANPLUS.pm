@@ -26,7 +26,12 @@ sub set_host
    my $self = shift;
    my $host = shift;
 
-   if ($host && $host =~ m,^(\w+)://([\w\.\-]+)(/.*),)
+   if ($host && $host eq "default")
+   {
+      # noop
+      return 1;
+   }
+   elsif ($host && $host =~ m,^(\w+)://([\w\.\-]+)(/.*),)
    {
       $self->{cb}->configure_object->set_conf("hosts", [{
          scheme => $1,

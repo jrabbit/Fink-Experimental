@@ -2,10 +2,10 @@ package Fink::BuildPerlMod;
 
 use warnings;
 use strict;
-use Fink::CPANPLUS;
+#use Fink::CPANPLUS;  # now loads on demand
 use File::Slurp;
 
-our $VERSION = "1.10";
+our $VERSION = "1.20";
 
 # Translation from Module::Build license tags to Fink words
 #   From: http://search.cpan.org/dist/Module-Build/lib/Module/Build.pm#license
@@ -46,6 +46,7 @@ sub new
       }
    }
 
+   require Fink::CPANPLUS;
    $self->{cp} = Fink::CPANPLUS->new(
                                      verbose => $self->{verbose},
                                      prereqs => $self->{prereqs},
@@ -67,17 +68,143 @@ sub verbose
    return $self->{verbose};
 }
 
-sub pkgdir
+sub pkg_dir
 {
    my $self = shift;
    return $self->{prefix}."/fink/dists/".$self->{tree}."/finkinfo/libs/perlmods";
 }
 
-sub buildpkg
+sub build_pkg
 {
    my $self = shift;
    my $modname = shift;
    my $overwrite = shift;
+
+   my $mod = $self->get_module($modname);
+   return undef if (!$mod);
+
+   my $pkg = lc($mod->package_name)."-pm";
+   my $file = $self->pkg_dir."/$pkg.info";
+   if (-f $file && !$overwrite)
+   {
+      print "package already exists\n" if ($self->verbose);
+      print "  $file\n" if ($self->verbose);
+      return undef;
+   }
+
+   my $data = $self->get_pkg_details($mod);
+   return undef if (!$data);
+
+   write_file($file, $self->to_string($data));
+   print "Wrote file $file\n" if ($self->{verbose});
+
+   return 1;
+}
+
+sub diff_pkg
+{
+   my $self = shift;
+   my $modname = shift;
+
+   my $mod = $self->get_module($modname);
+   return undef if (!$mod);
+
+   my $pkg = lc($mod->package_name)."-pm";
+   my $file = $self->pkg_dir."/$pkg.info";
+   if (!-f $file)
+   {
+      print "package does not exists\n" if ($self->verbose);
+      print "  $file\n" if ($self->verbose);
+      return undef;
+   }
+
+   my $old = $self->from_string(scalar read_file($file));
+   return undef if (!$old);
+
+   my $new = $self->get_pkg_details($mod);
+   return undef if (!$new);
+
+   #use Data::Dumper;
+   #print Dumper($old);
+   #print Dumper($new);
+
+   # simplify:
+   if ($old->{Info2})
+   {
+      $old = $old->{Info2};
+   }
+   if ($new->[0] eq "Info2")
+   {
+      $new = $new->[1];
+   }
+
+   my @diffs = $self->_diff_pkg($old, $new);
+   return join("\n", @diffs)."\n";
+}
+
+sub _diff_pkg
+{
+   my $self = shift;
+   my $old = shift;
+   my $new = shift;
+
+   my @diffs;
+   for (my $i=0; $i<@$new; $i+=2)
+   {
+      my $key = $new->[$i];
+      my $val = $new->[$i+1];
+      if (!exists $old->{$key})
+      {
+         unless ($val eq "")
+         {
+            push @diffs, "old - ";
+            if (ref $val)
+            {
+               push @diffs, "new - ".$self->to_string([$key => $val]);
+            }
+            else
+            {
+               push @diffs, "new - $key: $val";
+            }
+         }
+      }
+      else
+      {
+         my $oldval = delete $old->{$key};
+         if (ref $val)
+         {
+            my @d = $self->_diff_pkg($oldval, $val);
+            s/ - / - $key./ for (@d);
+            push @diffs, @d;
+         }
+         elsif ($val ne $oldval)
+         {
+            push @diffs, "old - $key: $oldval";
+            push @diffs, "new - $key: $val";
+         }
+      }
+   }
+   foreach my $key (sort keys %$old)
+   {
+      my $val = $old->{$key};
+      if (ref $val)
+      {
+         push @diffs, "old - ".$self->to_string([$key => $val]);
+      }
+      else
+      {
+         push @diffs, "old - $key: $val";
+      }
+      push @diffs, "new - ";
+   }
+
+   return @diffs;
+}
+
+sub get_module
+{
+   my $self = shift;
+   my $modname = shift;
 
    print "Search for $modname\n" if ($self->verbose);
    my $mod = $self->{cp}->get_module($modname);
@@ -86,15 +213,15 @@ sub buildpkg
       print "Not found\n" if ($self->verbose);
       return undef;
    }
+   return $mod;
+}
+
+sub get_pkg_details
+{
+   my $self = shift;
+   my $mod = shift;
 
    my $pkg = lc($mod->package_name)."-pm";
-   my $file = $self->pkgdir."/$pkg.info";
-   if (-f $file && !$overwrite)
-   {
-      print "package already exists\n";
-      print "  $file\n" if ($self->verbose);
-      return undef;
-   }
 
    if ($self->verbose)
    {
@@ -195,9 +322,7 @@ sub buildpkg
                                      "<<"),
                );
    
-   # Write the .info file
-   my $splitoffs = 0;
-   my $output = "";
+   # Clean up, build hash
    my %data;
    for (my $i=0; $i<@data; $i+=2)
    {
@@ -205,13 +330,14 @@ sub buildpkg
       my $value = $data[$i+1];
       if (!defined $value)
       {
-         print "Undef field '$label'\n";
-         $value = "";
+         print "Undef field '$label'\n" if ($self->{verbose});
+         $value = $data[$i+1] = "";
       }
       $data{$label} = $value;
-      $label =~ s/_/-/g;
-      $output .= "$label: $value\n";
    }
+
+   # Workm on splitoffs
+   my $splitoffs = 0;
    my $manconflict = join(", ", map("%{Ni}$_-man", @perlversions));
    (my $binconflict = $manconflict) =~ s/-man/-bin/g;
    if ($bin)
@@ -219,48 +345,121 @@ sub buildpkg
       my $splitnum = ++$splitoffs == 1 ? "" : $splitoffs;
       if ($typepkg)
       {
-         $output .= <<"EOF";
-Splitoff$splitnum: <<
- Package: %N-bin
- Depends: %N (= %v-%r)
- Files: bin
- Conflicts: $binconflict
- Replaces: $binconflict
- DocFiles: $data{DocFiles}
-<<
-EOF
-          }
+         push @data, "Splitoff$splitnum" => [
+                                             Package => "%N-bin",
+                                             Depends => "%N (= %v-%r)",
+                                             Files => "bin",
+                                             Conflicts => $binconflict,
+                                             Replaces => $binconflict,
+                                             DocFiles => $data{DocFiles},
+                                             ];
+      }
       else
       {
-         $output .= <<"EOF";
-Splitoff$splitnum: <<
- Package: %N-bin
- Depends: %N (= %v-%r)
- Files: bin share/man/man1
- DocFiles: $data{DocFiles}
-<<
-EOF
+         push @data, "Splitoff$splitnum" => [
+                                             Package => "%N-bin",
+                                             Depends => "%N (= %v-%r)",
+                                             Files => "bin share/man/man1",
+                                             DocFiles => $data{DocFiles},
+                                             ];
       }
    }
    if ($typepkg)
    {
       my $splitnum = ++$splitoffs == 1 ? "" : $splitoffs;
-      $output .= <<"EOF";
-Splitoff$splitnum: <<
- Package: %N-man
- Depends: %N (= %v-%r)
- Files: share/man
- Conflicts: $manconflict
- Replaces: $manconflict
- DocFiles: $data{DocFiles}
-<<
-EOF
-      $output = "Info2: <<\n$output<<\n";
+      push @data, "Splitoff$splitnum" => [
+                                          Package => "%N-man",
+                                          Depends => "%N (= %v-%r)",
+                                          Files => "share/man",
+                                          Conflicts => $manconflict,
+                                          Replaces => $manconflict,
+                                          DocFiles => $data{DocFiles},
+                                          ];
+      @data = ("Info2" => [@data]);
    }
-   write_file($file, $output);
-   print "Wrote file $file\n";
+   return \@data;
+}
 
-   return 1;
+sub to_string
+{
+   my $pkg_or_self = shift;
+   my $data = shift;
+
+   my @out;
+   for (my $i=0; $i<@$data; $i+=2)
+   {
+      my $key = $data->[$i];
+      my $val = $data->[$i+1];
+      $val = "" if (!defined $val);
+      $key =~ s/_/-/g;
+      if (ref $val)
+      {
+         $val = $pkg_or_self->to_string($val);
+      }
+      if ($val =~ /\n/)
+      {
+         $val = join("\n ", "<<", split(/\n/, $val))."\n<<";
+      }
+      push @out, "$key: $val";
+   }
+   return join("\n", @out);
+}
+
+sub from_string
+{
+   my $pkg_or_self = shift;
+   my $in = shift || "";
+
+   $in =~ s/^[ \t]*#.*$//mg;
+   $in =~ s/\n+/\n/gs;
+   return $pkg_or_self->_from_string(\$in);
+}
+
+sub _from_string
+{
+   my $pkg_or_self = shift;
+   my $in = shift;
+
+   my %data;
+   while ($$in =~ /\G([\w\-]+):\s*/scg)
+   {
+      my $label = $1;
+      $label =~ s/-/_/g;
+      if ($$in =~ /\G<<\s*/scg)
+      {
+         if ($$in =~ /\G[\w\-]+:/s)
+         {
+            $data{$label} = $pkg_or_self->_from_string($in);
+            unless ($$in =~ /\G<<\s*/scg)
+            {
+               last;
+            }
+         }
+         else
+         {
+            if ($$in =~ /\G(.*?)<<\s*/scg)
+            {
+               my $val = $1;
+               $val =~ s/\s+$//;
+               $data{$label} = $val;
+            }
+         }
+      }
+      else
+      {
+         if ($$in =~ /\G([^\n]*)\s*/scg)
+         {
+            my $val = $1;
+            $val =~ s/\s+$//;
+            $data{$label} = $val;
+         }
+         else
+         {
+            last;
+         }
+      }
+   }
+   return \%data;
 }
 
 sub finkify_dep_pkg
@@ -277,15 +476,15 @@ sub finkify_dep_pkg
    my $out_typepkg = 0;
    my @out_perlvers;
 
-   my $filename = $self->pkgdir."/$pkg.info";
+   my $filename = $self->pkg_dir."/$pkg.info";
    if (-f $filename)
    {
       my $content = read_file($filename);
-      if ($content =~ /^Package:.*\%type_pkg[perl]/m)
+      if ($content =~ /^Package:.*\%type_pkg\[perl\]/m)
       {
          $out_typepkg = 1;
 
-         if ($content =~ /Type:\s+perl\s+\(?[\d\.\s]*\)?/)
+         if ($content =~ /Type:\s+perl\s*\(?([\d\.\s]*)\)?/)
          {
             my @vers = split /\s+/, $1;
             my %perlvers = map {$_, 1} @perlvers;
@@ -308,7 +507,7 @@ sub finkify_dep_pkg
       foreach my $v (@perlvers)
       {
          (my $verabbr = $v) =~ s/\.//g;  # 5.8.1 -> 581
-         my $filename = $self->pkgdir."/$pkg$verabbr.info";
+         my $filename = $self->pkg_dir."/$pkg$verabbr.info";
          if (-f $filename)
          {
             push @out_perlvers, $v;

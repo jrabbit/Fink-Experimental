@@ -11,10 +11,11 @@ mkpkg.pl [options] Some::Module ...
   Options:
     -m --maintainer=s   specify the maintainer.  This is a required parameter
                           (e.g. -m "Joe Maintainer <joe@foo.com>")
+    -d --diff           use difference mode instead of create mode
     -P --prereqs        show prereq info (not yet finished)
     -t --typepkg        force %type_pkg[perl] variants
     -b --bin            force a %N-bin splitoff
-    -f --force          force overwrite of .info file
+    -f --force          force overwrite of .info file (not used in difference mode)
     -p --prefix=s       specify Fink prefix (defaults to /sw)
     -T --tree=s         specify where in Fink to write .info file
                           (defaults to unstable/main)
@@ -29,6 +30,24 @@ mkpkg.pl [options] Some::Module ...
 If you specify more than one module, they will be processed sequentially.
 
 =head1 DESCRIPTION
+
+This program attempts to create a Fink .info file for the specified
+Perl packages.  It uses many data sources to collect the needed info
+for the Fink package: CPAN descriptions, the CPAN module list, the
+package itself, various files in the package, and prerequisite Fink
+packages (if any).  To collect the CPAN data easily, this program
+relies heavily on the CPANPLUS infrastructure.
+
+There are two main modes to this program: create mode and difference
+mode.  In create mode (the default), the program attempts to create a
+brand new .info file.  If one already exists, it refuses to overwrite
+it without the C<--force> option.
+
+In difference mode, the program creates the new .info file in memory
+and compares it to the existing .info file.  Any changes are
+displayed, highlighting before and after.  This differencing works
+pretty well if the original version was made with this program's
+create mode.  I have not really tested it against other .info files.
 
 =head1 REQUIREMENTS
 
@@ -47,7 +66,7 @@ Does not indicate crypto vs. main dependencies
 
 =head1 LICENSE
 
-This program can be distributed under the same terms as Fink.
+This program can be distributed under the same terms as Fink itself.
 
 =head1 AUTHOR
 
@@ -70,6 +89,7 @@ my %opts = (
             help       => 0,
             version    => 0,
 
+            diff       => 0,
             force      => 0,
             prereqs    => 0,
             typepkg    => 0,
@@ -88,6 +108,7 @@ GetOptions("v|verbose"  => \$opts{verbose},
            "h|help"     => \$opts{help},
            "V|version"  => \$opts{version},
 
+           "d|diff"     => \$opts{diff},
            "f|force"    => \$opts{force},
            "P|prereqs"  => \$opts{prereqs},
            "t|typepkg"  => \$opts{typepkg},
@@ -136,5 +157,13 @@ if (!$fink)
 
 foreach my $module (@ARGV)
 {
-   $fink->buildpkg($module, $opts{force});
+   if ($opts{diff})
+   {
+      my $diff = $fink->diff_pkg($module);
+      print $diff if ($diff);
+   }
+   else
+   {
+      $fink->build_pkg($module, $opts{force});
+   }
 }
