@@ -1,0 +1,64 @@
+Package: openldap-ssl
+Version: 2.1.3
+Revision: 1
+Source: ftp://ftp.OpenLDAP.org/pub/OpenLDAP/openldap-release/openldap-%v.tgz
+Patch: %f.patch
+Depends: readline, openssl, sasl, %N-shlibs (= %v-%r)
+BuildDepends: openssl-dev
+Provides: openldap
+Conflicts: openldap
+Replaces: openldap
+SetCFLAGS: -I%p/include -fno-common
+SetCPPFLAGS: -no-cpp-precomp
+SetLDFLAGS: -L%i/lib -L%p/lib
+UpdateConfigGuessInDirs: build
+ConfigureParams: --prefix=%p --libexecdir=%p/libexec --mandir=%p/share/man --infodir=%p/share/info/%n --enable-modules --with-pic --includedir=%p/include --disable-bdb --enable-crypt --enable-kpasswd --enable-spasswd --enable-rewrite --enable-dnssrv --enable-ldap --with-ldap-module=dynamic --enable-ldbm --with-ldbm-module=dynamic --enable-meta --with-meta-module=dynamic --enable-monitor --with-monitor-module=dynamic --enable-null --with-null-module=dynamic --enable-perl --with-perl-module=dynamic --enable-shell --with-shell-module=dynamic --enable-slurpd
+CompileScript: <<
+  (unset DYLD_LIBRARY_PATH; ./configure %c)
+  (unset DYLD_LIBRARY_PATH; make)
+  (unset DYLD_LIBRARY_PATH; cd libraries; find . -name \*.la -exec rm -rf {} \;; make)
+<<
+DocFiles: ANNOUNCEMENT CHANGES COPYRIGHT INSTALL LICENSE README doc/drafts/draft*
+InstallScript: <<
+  (unset DYLD_LIBRARY_PATH; make install DESTDIR=%d)
+<<
+ConfFiles: <<
+  %p/etc/openldap/ldap.conf
+  %p/etc/openldap/ldapfilter.conf
+  %p/etc/openldap/schema/corba.schema
+  %p/etc/openldap/schema/core.schema
+  %p/etc/openldap/schema/cosine.schema
+  %p/etc/openldap/schema/inetorgperson.schema
+  %p/etc/openldap/schema/java.schema
+  %p/etc/openldap/schema/misc.schema
+  %p/etc/openldap/schema/nis.schema
+  %p/etc/openldap/schema/openldap.schema
+  %p/etc/openldap/slapd.conf
+<<
+SplitOff: <<
+  Package: %N-shlibs
+  Replaces: openldap
+  Description: shared libraries for LDAP
+  Files: lib/liblber.2*.dylib lib/libldap.2*.dylib lib/libldap_r.2*.dylib
+<<
+SplitOff2: <<
+  Package: %N-dev
+  Depends: %N-shlibs (= %v-%r)
+  Description: libraries and headers for LDAP development
+  Files: include/ lib/*.a lib/*.la lib/liblber.dylib lib/libldap.dylib lib/libldap_r.dylib share/man/man3/
+<<
+Description: An LDAP directory services implementation
+DescDetail: <<
+OpenLDAP is an open source implementation of the Lightweight Directory
+Access Protocol. The suite includes:
+*  slapd - stand-alone LDAP server
+*  slurpd - stand-alone LDAP replication server
+*  libraries implementing the LDAP protocol, and
+*  utilities, tools, and sample clients.
+<<
+DescPort: <<
+OpenLDAP built with Cyrus SASL and OpenSSL support.
+<<
+License: Restrictive
+Maintainer: Michael McKibben <mmckibben@users.sourceforge.net>
+Homepage: http://www.openldap.org/
