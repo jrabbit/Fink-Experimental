@@ -1,0 +1,26 @@
+#!/usr/bin/perl -w
+use strict;
+
+use Fink::Package;
+use Fink::Services qw(read_config latest_version);
+use Data::Dumper;
+
+(my $basepath = `which fink`) =~ s/bin.*//s;
+read_config("$basepath/etc/fink.conf");
+
+# Be quiet about indexing output.
+open OLDERR, ">&STDERR";
+close STDERR; # stop indexing output
+Fink::Package->require_packages; 
+open STDERR, ">&OLDERR";
+close OLDERR;
+
+map { print "$_\n" }
+	sort
+	map { $_->[0]->find_debfile() }
+	grep { scalar(@$_) }
+	map { [ grep { $_->is_present() &&
+				$_->param("maintainer") =~ /vasilevsky/i }
+		$_->get_all_versions() ] }
+	map	{ Fink::Package->package_by_name($_) }
+	Fink::Package->list_packages();
