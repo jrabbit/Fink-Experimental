@@ -1,9 +1,125 @@
 #!/usr/bin/perl -w
 use strict;
 
+
+=head1 NAME
+
+flocate - Quickly search the files inside .deb archives
+
+
+=head1 SYNOPSIS
+
+flocate --help
+
+flocate --manpage
+
+flocate --flocate-dir=DIR pattern ...
+
+flocate --index [--deb-dir=DIR, [--deb-dir=DIR ...]]
+[--no-installed-index] [--no-deb-index] [--no-deb-cache]
+
+=head1 DESCRIPTION
+
+B<flocate> maintains an index of files contained in .deb archives, both those
+currently installed with dpkg, and those on disk in specified directories. You
+can quickly search through those files and see which package a file belongs to.
+
+
+The first form performs a search. I<pattern> is a shell-style wildcard pattern,
+just as locate uses. If special characters are used, the pattern must match an
+entire item. Otherwise, the pattern matches any item containing the literal
+pattern. The following characters are special:
+
+=over 4
+
+* - matches any number of characters, including none
+
+? - matches exactly one character
+
+[, ] - matches any of the characters between [ and ]
+
+=back
+
+Each item to be searched looks like this:
+
+=over 4
+
+x <package> <version>: <file>
+
+=back
+
+If the package is installed, the line will begin with an I<i>, otherwise it will
+begin with a space.
+
+
+The second form refreshes the current index, by scanning the current dpkg
+database and certain directories where .deb archives are to be found.
+
+
+=head1 OPTIONS
+
+=head2 General options
+
+=over 8
+
+=item B<-h>, B<--help>
+
+Display a short usage reminder.
+
+=item B<--manpage>
+
+Display this help.
+
+=item B<-c> DIR, B<--flocate-dir>=DIR
+
+The directory in which to store index and cache files. You'll need a few
+megabytes of space. Default is /sw/var/lib/flocate.
+
+=back
+
+
+=head2 Indexing options
+
+=over 8
+
+=item B<-i>, B<--index>
+
+Update the index, using the currently installed dpkg packages and .deb archives
+on disk. The other options in this section do nothing if this option is not
+provided.
+
+=item B<-d> DIR, B<--deb-dir>=DIR
+
+When indexing, look for .deb archives in this directory. This flag can be used
+multiple times, in which case all directories given are searched. If this flag
+is omitted, the directory /sw/fink/debs will be used.
+
+=item B<-ni>, B<--no-installed-index>
+
+When indexing, don't include installed packages in the index. Only .debs found
+on disk will be used. This option cannot be used together with --no-deb-index.
+
+=item B<-nd>, B<--no-deb-index>
+
+When indexing, don't include .deb archives on disk in the index. Only packages
+currently installed with dpkg will be used. This option cannot be used together
+with --no-installed-index.
+
+=item B<-nc>, B<--no-deb-cache>
+
+Usually, the contents of .deb files will be cached between indexing, so that
+indexing can finish more quickly. This flag disables the caching, saving a few
+megabytes of disk space but taking much longer to index.
+
+=back
+
+=cut
+
+
 use File::Find;
 use Fink::Services qw(&version_cmp);
 use Getopt::Long;
+use Pod::Usage;
 
 
 my $prefix = "/sw";
@@ -15,21 +131,32 @@ my $flocate_dir = "$prefix/var/lib/flocate";
 my $idx = 0;
 my $no_installed_index = 0;
 my $no_deb_index = 0;
-
+my $no_deb_cache = 0;
+my $help = 0;
+my $man = 0;
 
 GetOptions(
-    "flocate_dir=s" => \$flocate_dir,
-    "index" => \$idx,
-    "deb-dir=s" => \@deb_dirs,
-    "no-installed-index" => \$no_installed_index,
-    "no-deb-index" => \$no_deb_index,
-);
+    "c|flocate_dir=s" => \$flocate_dir,
+    "i|index" => \$idx,
+    "d|deb-dir=s" => \@deb_dirs,
+    "ni|no-installed-index" => \$no_installed_index,
+    "nd|no-deb-index" => \$no_deb_index,
+    "nc|no-deb-cache" => \$no_deb_cache,
+    "h|help" => \$help,
+    "manpage" => \$man,
+) or pod2usage(2);
+pod2usage({ -verbose => 3 }) if $man;
+pod2usage(2) if $help or (@ARGV and $idx) or (not @ARGV and not $idx) or
+    ($no_installed_index and $no_deb_index);
+
 
 
 @deb_dirs = ( "$prefix/fink/debs" ) unless @deb_dirs; 
 @deb_dirs = split(/,/ , join(",", @deb_dirs));
 
 my $flocate_db = "$flocate_dir/flocatedb";
+my $debsigs_db = "$flocate_dir/debsigs";
+my $deblist_dir = "$flocate_dir/deblists";
 
 
 if ($idx) { # Indexing:
@@ -39,9 +166,25 @@ if ($idx) { # Indexing:
             die "Couldn't make flocate directory at `$flocate_dir': $!";
     }
     
-    my %pkgversions; # Just one per pkg:vers
+    my %pkgversions;    # Just one per pkg:vers
     
+    my %debsigs;
+    my %new_debsigs;
     unless ( $no_deb_index ) {
+        # Read deb cache
+        if ( -f $debsigs_db ) {
+            unless ( open DEBSIGS, "<", $debsigs_db ) {
+                print "WARNING: Couldn't read .deb sigs `$debsigs_db': $!";
+            } else {
+                while ( my $debsig = <DEBSIGS> ) {
+                    chomp $debsig;
+                    my ($pkgvers, $sig) = split(/:/, $debsig);
+                    $debsigs{$pkgvers} = $sig;
+                }
+            }
+            close DEBSIGS;
+        }
+        
         # Queue .deb's
         find({ follow => 1, follow_skip => 2, no_chdir => 1,
             wanted => sub {
@@ -99,39 +242,87 @@ if ($idx) { # Indexing:
 #        die "Couldn't open flocate DB `$flocate_db' for writing: $!";
     
     # Index the queued packages
-    for my $pv ( @pkgversions ) {
+    foreach my $pv ( @pkgversions ) {
         if ( $pv->{file} =~ /.list$/ ) {
             open LIST, "<", $pv->{file} or
                 die "Couldn't open file `$pv->{file}': $!";
             while ( my $content_file_newline = <LIST> ) {
                 print FLOCATE_DB
-                        "i $pv->{pkg} $pv->{vers} : $content_file_newline";
+                        "i $pv->{pkg} $pv->{vers}: $content_file_newline";
             }
             close LIST;
+            
         } elsif ( $pv->{file} =~ /.deb$/ ) {
-            unless ( open DEB_CONTENTS, "-|", 
-                    "dpkg-deb --fsys-tarfile \Q$pv->{file}\E | tar -t" ) {
-                print "WARNING: Couldn't read deb `$pv->{file}': $!.\n";
-            } else {
-                while ( my $file = <DEB_CONTENTS> ) {
-                    # Make the format the same as dpkg's .lists
-                    chomp $file;
-                    $file =~ s/^\.//;
-                    $file =~ s,/$,,;
-                    if ( $file eq "" ) {
-                        $file = "/.";
-                    }
-                    print FLOCATE_DB "  $pv->{pkg} $pv->{vers} : $file\n";
-                }
-                close DEB_CONTENTS;
+            # Do the cache mambo
+            my $cache_hit = 0;
+            my $pkgvers = $pv->{pkg} . "_" . $pv->{vers};
+            my $deblist = "$deblist_dir/$pkgvers.list";
+            my $sig = join( "_", ( stat($pv->{file}) )[7, 9] );
+            if ( exists $debsigs{$pkgvers} and $debsigs{$pkgvers} eq $sig
+                    and -f $deblist and open DEBLIST, "<", $deblist ) {
+                # We have a cache hit!
+                $cache_hit = 1;
+                print FLOCATE_DB while ( <DEBLIST> );
+                close DEBLIST;
+                $new_debsigs{$pkgvers} = $sig;
+                delete $debsigs{$pkgvers};
             }
-        }
-    }
+            unless ( $cache_hit ) {
+                unless ( open DEB_CONTENTS, "-|", 
+                        "dpkg-deb --fsys-tarfile \Q$pv->{file}\E | tar -t" ) {
+                    print "WARNING: Couldn't read deb `$pv->{file}': $!.\n";
+                } else {
+                    my $cache_update = 0;
+                    if ( not $no_deb_cache and
+                            (-d $deblist_dir or mkdir $deblist_dir) and
+                            open DEBLIST, ">", $deblist ) {
+                        $cache_update = 1;
+                    }
+                    while ( my $file = <DEB_CONTENTS> ) {
+                        # Make the format the same as dpkg's .lists
+                        chomp $file;
+                        $file =~ s/^\.//;
+                        $file =~ s,/$,,;
+                        if ( $file eq "" ) {
+                            $file = "/.";
+                        }
+                        print FLOCATE_DB "  $pv->{pkg} $pv->{vers}: $file\n";
+                        print DEBLIST "  $pv->{pkg} $pv->{vers}: $file\n"
+                            if $cache_update;
+                    }
+                    close DEB_CONTENTS;
+                    if ( $cache_update ) {
+                        close DEBLIST;
+                        $new_debsigs{$pkgvers} = $sig;
+                        delete $debsigs{$pkgvers};
+                    }
+               } # unless open DEB_CONTENTS
+            } # unless $cache_hit
+        } # deb file
+    } # foreach
     
     close FLOCATE_DB;
     
+    # Remove old deb lists, write new sigs
+    unlink ( map { "$deblist_dir/$_.list" } keys %debsigs );
+    unless ( open DEBSIGS, ">", $debsigs_db ) {
+        print "WARNING: Couldn't write .deb sigs to `$debsigs_db': $!";
+    } else {
+        while ( my ($k, $v) = each %new_debsigs ) {
+            print DEBSIGS "$k:$v\n";
+        }
+        close DEBSIGS;
+    }
+    
+    
 } else { # Searching:
-
+    
+    unless ( -f $flocate_db ) {
+        print "ERROR: You have no flocate DB! Run flocate with the --index ".
+            "flag to create one.\n";
+        exit(2);
+    }
+    
     system("/sw/bin/locate -d $flocate_db '$_'") for @ARGV;
     exit;
     
@@ -171,3 +362,4 @@ sub glob2re {
     }
     return qr/$globstr/;
 }
+
