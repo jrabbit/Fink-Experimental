@@ -1,7 +1,7 @@
 <?
 $title = "i18n";
 $cvs_author = 'Author: alexkhansen';
-$cvs_date = 'Date: 2004/03/05 14:41:43';
+$cvs_date = 'Date: 2004/03/05 15:41:34';
 
 $metatags = '<link rel="contents" href="index.php" title="i18n Contents"><link rel="next" href="intro.php" title="Introduction">';
 
@@ -9,9 +9,7 @@ include "header.inc";
 ?>
 
 <h1>Fink Internationalization (i18n) Howto Guide</h1>
-    <p>
-      <b>This document is under construction.</b>
-    </p>
+    <p><b>This document is under construction.</b>    </p>
     <p>Welcome to the Fink Website Internationalization Howto.  
 This document is intended to offer guidelines for people who want
 to contribute to the i18n effort for the Fink website.</p>
@@ -25,12 +23,14 @@ to contribute to the i18n effort for the Fink website.</p>
 </ul>
 <li><a href="files.php"><b>2 The Documentation Files</b></a></li>
 <ul>
-<li><a href="files.php#file-standards">2.1 File Standards</a></li>
-<li><a href="files.php#acquiring">2.2 Acquiring Files to Work on.</a></li>
-<li><a href="files.php#updating">2.3 Update to latest revision</a></li>
-<li><a href="files.php#initial-translation">2.4 Initial Translation</a></li>
-<li><a href="files.php#committing">2.5 Committing the Changes</a></li>
-<li><a href="files.php#website">2.6 Update our website</a></li>
+<li><a href="files.php#requirements">2.1 Requirements</a></li>
+<li><a href="files.php#setting-up">2.2 Environment Settings</a></li>
+<li><a href="files.php#acquiring">2.3 Acquiring Files to Work on.</a></li>
+<li><a href="files.php#file-standards">2.4 File Standards</a></li>
+<li><a href="files.php#updating">2.5 Update to latest revision</a></li>
+<li><a href="files.php#initial-translation">2.6 Initial Translation</a></li>
+<li><a href="files.php#committing">2.7 Committing the Changes (Team Leaders)</a></li>
+<li><a href="files.php#website">2.8 Update our website</a></li>
 </ul>
 <li><a href="procedure.php"><b>3 Procedure for Updating Documents</b></a></li>
 <ul>
@@ -45,7 +45,7 @@ to contribute to the i18n effort for the Fink website.</p>
 <li><a href="resources.php#editors">4.2 Editors</a></li>
 <li><a href="resources.php#moretools">4.3 Useful Tools</a></li>
 </ul>
-</ul><p>Generated from <i>$Fink: multilingual.xml,v 1.6 2004/03/05 14:41:43 alexkhansen Exp $</i></p>
+</ul><p>Generated from <i>$Fink: multilingual.xml,v 1.7 2004/03/05 15:41:34 alexkhansen Exp $</i></p>
 
 
 <?
