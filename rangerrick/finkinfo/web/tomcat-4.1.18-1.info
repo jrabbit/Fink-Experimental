@@ -1,10 +1,11 @@
 Package: tomcat
-Version: 4.1.9
-Revision: 0.beta.1
+Version: 4.1.18
+Revision: 1
 Source: http://jakarta.apache.org/builds/jakarta-tomcat-4.0/release/v%v/src/jakarta-%n-%v-src.tar.gz
 SourceDirectory: jakarta-%n-%v-src
-BuildDepends: ant (>= 1.5), xalan-j (>= 2.2), xerces-j (>= 2.0), jaf, jakarta-servletapi, javamail, jdbc-optional, jmx, jndi, jndi-ldap, jta-spec, tyrex, passwd (>= 20020106), daemonic
-Depends: xalan-j (>= 2.2), xerces-j (>= 2.0), jaf, jakarta-servletapi, javamail, jdbc-optional, jmx, jndi, jndi-ldap, jta-spec, tyrex, passwd (>= 20020106), daemonic
+Source2: http://jakarta.apache.org/builds/jakarta-tomcat-4.0/release/v%v/src/jakarta-%n-connectors-%v-src.tar.gz
+BuildDepends: ant (>= 1.5), xalan-j (>= 2.2), xerces-j (>= 2.0), jaf, jakarta-servletapi, javamail, jdbc-optional, jmx, jndi, jndi-ldap, jta-spec, tyrex, passwd (>= 20020106), daemonic, commons-beanutils, commons-collections, commons-daemon, commons-dbcp, commons-digester, commons-logging, commons-modeler, commons-pool
+Depends: xalan-j (>= 2.2), xerces-j (>= 2.0), jaf, jakarta-servletapi, javamail, jdbc-optional, jmx, jndi, jndi-ldap, jta-spec, tyrex, passwd (>= 20020106), daemonic, commons-beanutils, commons-collections, commons-daemon, commons-dbcp, commons-digester, commons-logging, commons-modeler, commons-pool
 ConfFiles: <<
   %p/var/tomcat4/conf/catalina.policy
   %p/var/tomcat4/conf/server.xml
@@ -12,7 +13,13 @@ ConfFiles: <<
   %p/var/tomcat4/conf/tomcat-users.xml
 <<
 PatchScript: sed 's:@PREFIX@:%p:g' <%a/%f.patch | patch -p1
-CompileScript: sh build.sh deploy detect
+CompileScript: <<
+#!/bin/sh
+  pushd ..
+  ln -s jakarta-tomcat-connectors-%v-src jakarta-tomcat-connectors
+  popd
+  sh build.sh detect dist
+<<
 InstallScript: mkdir -p %i/var/tomcat4
  cp -R dist/* %i/var/tomcat4/
  find %i/var/tomcat4 -type d -exec chmod 755 {} \;
