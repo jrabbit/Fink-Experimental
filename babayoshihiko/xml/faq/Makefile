@@ -12,7 +12,7 @@ LANGUAGES = en ja
 BASE_SOURCE = faq.xml
 BASE_TARGET = index.php general.php relations.php \
 	 usage-fink.php comp-general.php comp-packages.php \
-	 usage-general.php usage-packages.php upgrade-fink.php mirros.php
+	 usage-general.php usage-packages.php upgrade-fink.php mirrors.php
 
 #SOURCE = $(patsubst %.xml,%.xml, $(BASE_SOURCE))
 #SOURCE += $(patsubst %.xml,%.ja.xml, $(BASE_SOURCE))
