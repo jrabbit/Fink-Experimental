@@ -1,18 +1,20 @@
 Package: debconf
 Version: 1.0.32
 Revision: 1
+BuildDepends: openjade
 Depends: dialog
+Type: perl
 #BuildDepends: 
 Source: mirror:debian:/pool/main/d/debconf/%n_%v.tar.gz
 Source-MD5: d76845952ee4ea4789d555a587fb1cd7
 #SourceRename: %n-%v.tar.gz
 SourceDirectory: %n
 PatchScript: sed 's|@FINKPREFIX@|%p|' < %a/%f.patch | patch -p1
+UpdatePOD: true
 CompileScript: <<
 #!/bin/sh
 cd doc
-make manpages
-./graph.pl `find .. -name \*.pm` > hierarchy.txt
+make all
 cd ..
 make -C po
 <<
@@ -22,11 +24,24 @@ InstallScript: <<
   make install prefix=%i
   make install-utils prefix=%i
   make install-rest prefix=%i
-  mkdir -p %i/share/doc/%n
+  mkdir -p %i/share/doc/%n  
   rm -rf samples/CVS
   mv samples %i/share/doc/%n/
+
+  mkdir -p %i/share/man/man3
+  mv %b/doc/man/*.3 %i/share/man/man3
+
+  mkdir -p %i/share/man/man5
+  mv %b/doc/man/*.5 %i/share/man/man5
+
+  mkdir -p %i/share/man/man8
+  mv %b/doc/man/*.8 %i/share/man/man8
+
+  mkdir -p %i/share/podfiles
+  mv %b/doc/man/*.pod %i/share/podfiles
+
   mkdir -p %d/DEBIAN
-  cp debian/config debian/templates* %d/DEBIAN
+  cp debian/config debian/templates %d/DEBIAN
 <<
 # Fix up broken db's before debconf starts up.
 PostInstScript: <<
@@ -35,7 +50,6 @@ if [ -z "$DEBIAN_HAS_FRONTEND" -a "$1" = configure ] && \
         %p/share/debconf/fix_db.pl
 fi
 
-export TERM=xterm-color
 . %p/share/debconf/confmodule
 <<
 
