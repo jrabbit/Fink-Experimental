@@ -1,6 +1,6 @@
 Package: mono
 Version: 1.0.2
-Revision: 1
+Revision: 11
 Source: http://www.go-%n.com/archive/%v/%n-%v.tar.gz
 Source-MD5: 4490424a30ce40d1d7534cc681f6c14c
 PatchScript: sed -e 's,@PREFIX@,%p,g' %a/%n.patch | patch -p1
@@ -24,14 +24,18 @@ ConfFiles: <<
   %p/etc/mono/machine.config
 <<
 CompileScript: <<
-#!/bin/sh
+#!/bin/sh -ex
 
   perl -pi.bak -e 's/hardcode_direct=yes/hardcode_direct=no/g' configure
   ./configure %c --with-jdk=$JAVA_HOME
+  export DYLD_LIBRARY_PATH="%i/lib:$DYLD_LIBRARY_PATH"
   make
 <<
 InstallScript: <<
-  MAKEFLAGS=-j1 make install DESTDIR=%d
+#!/bin/sh -ex
+
+  export DYLD_LIBRARY_PATH="%i/lib:$DYLD_LIBRARY_PATH"
+  MAKEFLAGS=-j1 make install DESTDIR="%d"
 <<
 SplitOff: <<
  Package: %N-dev
