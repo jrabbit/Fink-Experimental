@@ -2,7 +2,8 @@
 
 dpkg --get-selections | \
 	grep -E '[[:space:]]install$' | \
-	grep -v '^apt([[:space:]]|-shlibs)' | \
+	grep -v '^apt[[:space:]]' | \
+	grep -v '^apt-shlibs[[:space:]]' | \
 	grep -v '^base-files[[:space:]]' | \
 	grep -v '^bzip2[[:space:]]' | \
 	grep -v '^debianutils[[:space:]]' | \
