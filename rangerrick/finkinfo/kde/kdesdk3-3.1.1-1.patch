@@ -1,43 +1,24 @@
 
---- kdesdk.lsm	15 Jan 2003 05:46:16 -0000	1.1.1.8
-+++ kdesdk.lsm	3 Mar 2003 04:03:45 -0000	1.3
-@@ -1,7 +1,7 @@
- Begin4
- Title:          kdesdk
--Version:        3.1.0
--Entered-date:   2003-01-13
-+Version:        3.1.1
-+Entered-date:   2003-03-07
- Description:    K Desktop Environment (KDE) SDK
- Keywords:       KDE X11 desktop Qt 
- Author:         submit@bugs.kde.org (KDE Bugtracking System)
---- cervisia/ChangeLog	4 Jan 2003 20:23:53 -0000	1.1.1.5
-+++ cervisia/ChangeLog	3 Mar 2003 03:53:42 -0000	1.1.1.6
-@@ -1,3 +1,24 @@
-+2003-02-28  Christian Loose <christian.loose@hamburg.de>
+RCS file: Makefile.cvs
+diff -N Makefile.cvs
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ Makefile.cvs	25 Jun 2002 03:20:49 -0000	1.1.1.1
+@@ -0,0 +1,15 @@
 +
-+	* Fix BR #54382: Display warning message in remove dialog
-+	  to make clear that the action will also remove the local
-+	  copy of the selected files.
++all:
++	@echo "This Makefile is only for the CVS repository"
++	@echo "This will be deleted before making the distribution"
++	@echo ""
++	@if test ! -d admin; then \
++	   echo "Please recheckout this module!" ;\
++	   echo "for cvs: use checkout once and after that update again" ;\
++	   echo "for cvsup: checkout kde-common from cvsup and" ;\
++	   echo "   link kde-common/admin to ./admin" ;\
++	   exit 1 ;\
++	fi
++	$(MAKE) -f admin/Makefile.common cvs
 +
-+2003-02-24  Christian Loose <christian.loose@hamburg.de>
-+
-+	* Display error message when user tries to access a
-+	  remote repository. (#54106)
-+	* Don't display the timestamp for files that are not
-+	  in cvs. (#55053)
-+
-+2003-01-25  Christian Loose <christian.loose@hamburg.de>
-+
-+	* Detect "U" as remote changed file in ProtocolView.
-+	* Remove trailing line-break in ProtocolView since
-+	  QTextEdit::append() already adds a new paragraph.
-+	* Set url member in CervisiaPart for tabbed window
-+	  title in Konqueror.
-+
- 2002-12-17  Christian Loose <christian.loose@hamburg.de>
- 
- 	* Fixed "fetch of branch list hangs in update dialog" (#50824)
++.SILENT:
 --- cervisia/Makefile.am	5 Nov 2002 03:00:09 -0000	1.1.1.3
 +++ cervisia/Makefile.am	1 Dec 2002 17:02:08 -0000	1.3
 @@ -4,9 +4,9 @@
@@ -82,346 +63,6 @@
 +cervisia_LDADD = libcervisiapart_shared.la
  
  man_MANS = cervisia.1
- 
---- cervisia/cervisiapart.cpp	4 Jan 2003 20:23:51 -0000	1.1.1.7
-+++ cervisia/cervisiapart.cpp	14 Mar 2003 00:15:15 -0000	1.1.1.9
-@@ -82,7 +82,7 @@
-     KConfig *conf = config();
-     conf->setGroup("LookAndFeel");
-     bool splitHorz = conf->readBoolEntry("SplitHorizontally",true);
--
-+    
-     splitter = new QSplitter(splitHorz? QSplitter::Vertical : QSplitter::Horizontal,
-                              parentWidget, widgetName);
- 
-@@ -102,11 +102,15 @@
-     connect( update, SIGNAL( selectionChanged() ), this, SLOT( updateActions() ) );
-     updateActions();
-     setXMLFile( "cervisiaui.rc" );
-+    
-+    // read configuration
-+    readProperties(0);
- }
- 
- CervisiaPart::~CervisiaPart()
- {
--
-+    // save configuration
-+    saveProperties(0);
- }
- 
- KConfig *CervisiaPart::config()
-@@ -116,6 +120,15 @@
- 
- bool CervisiaPart::openURL( const KURL &u )
- {
-+    // right now, we are unfortunately not network-aware
-+    if( !u.isLocalFile() )
-+    {
-+        KMessageBox::sorry(widget(),
-+                           i18n("Cervisia does not support remote repositories."),
-+                           "Cervisia");
-+        return false;
-+    }
-+    
-     slotOpenSandbox( u );
-     return true;
- }
-@@ -1500,6 +1513,9 @@
-     update->openDirectory(sandbox);
-     setFilter();
- 
-+    // set m_url member for tabbed window modus of Konqueror
-+    m_url = KURL::fromPathOrURL(sandbox);
-+
-     KConfig *conf = config();
-     conf->setGroup("General");
-     bool dostatus = conf->readBoolEntry(repository.contains(":")?
-@@ -1648,51 +1664,56 @@
- 
- void CervisiaPart::readProperties(KConfig *config)
- {
--    recent->loadEntries( config );
-+    // explicitly read configuration data from CervisiaPart's configuration
-+    // file. (Fix for BR #55665)
-+    KConfig* partConfig = CervisiaPart::config();
-+    KConfigGroupSaver cs(partConfig, "Session");
-+    
-+    recent->loadEntries( partConfig );
- 
-     // Unfortunately, the KConfig systems sucks and we have to live
-     // with all entries in one group for session management.
- 
--    opt_createDirs = config->readBoolEntry("Create Dirs", true);
-+    opt_createDirs = partConfig->readBoolEntry("Create Dirs", true);
-     (static_cast<KToggleAction *> (actionCollection()->action( "settings_create_dirs" )))
-     ->setChecked( opt_createDirs );
- 
--    opt_pruneDirs = config->readBoolEntry("Prune Dirs", true);
-+    opt_pruneDirs = partConfig->readBoolEntry("Prune Dirs", true);
-     (static_cast<KToggleAction *> (actionCollection()->action( "settings_prune_dirs" )))
-     ->setChecked( opt_pruneDirs );
- 
--    opt_updateRecursive = config->readBoolEntry("Update Recursive", false);
-+    opt_updateRecursive = partConfig->readBoolEntry("Update Recursive", false);
-     (static_cast<KToggleAction *> (actionCollection()->action( "settings_update_recursively" )))
-     ->setChecked( opt_updateRecursive );
- 
--    opt_commitRecursive = config->readBoolEntry("Commit Recursive", false);
-+    opt_commitRecursive = partConfig->readBoolEntry("Commit Recursive", false);
-     (static_cast<KToggleAction *> (actionCollection()->action( "settings_commit_recursively" )))
-     ->setChecked( opt_commitRecursive );
- 
--    opt_doCVSEdit = config->readBoolEntry("Do cvs edit", false);
-+    opt_doCVSEdit = partConfig->readBoolEntry("Do cvs edit", false);
-     (static_cast<KToggleAction *> (actionCollection()->action( "settings_do_cvs_edit" )))
-     ->setChecked( opt_doCVSEdit );
- 
--    opt_hideFiles = config->readBoolEntry("Hide Files", false);
-+    opt_hideFiles = partConfig->readBoolEntry("Hide Files", false);
-     (static_cast<KToggleAction *> (actionCollection()->action( "settings_hide_files" )))
-     ->setChecked( opt_hideFiles );
- 
--    opt_hideUpToDate = config->readBoolEntry("Hide UpToDate Files", false);
-+    opt_hideUpToDate = partConfig->readBoolEntry("Hide UpToDate Files", false);
-     (static_cast<KToggleAction *> (actionCollection()->action( "settings_hide_uptodate" )))
-     ->setChecked( opt_hideUpToDate );
- 
--    opt_hideRemoved = config->readBoolEntry("Hide Removed Files", false);
-+    opt_hideRemoved = partConfig->readBoolEntry("Hide Removed Files", false);
-     (static_cast<KToggleAction *> (actionCollection()->action( "settings_hide_removed" )))
-     ->setChecked( opt_hideRemoved );
- 
--    opt_hideNotInCVS = config->readBoolEntry("Hide Non CVS Files", false);
-+    opt_hideNotInCVS = partConfig->readBoolEntry("Hide Non CVS Files", false);
-     (static_cast<KToggleAction *> (actionCollection()->action( "settings_hide_notincvs" )))
-     ->setChecked( opt_hideNotInCVS );
- 
-     setFilter();
- 
--    int splitterpos1 = config->readNumEntry("Splitter Pos 1", 0);
--    int splitterpos2 = config->readNumEntry("Splitter Pos 2", 0);
-+    int splitterpos1 = partConfig->readNumEntry("Splitter Pos 1", 0);
-+    int splitterpos2 = partConfig->readNumEntry("Splitter Pos 2", 0);
-     if (splitterpos1)
-     {
-         QValueList<int> sizes;
-@@ -1705,20 +1726,28 @@
- 
- void CervisiaPart::saveProperties( KConfig *config )
- {
--    recent->saveEntries( config );
--
--    config->writeEntry("Create Dirs", opt_createDirs);
--    config->writeEntry("Prune Dirs", opt_pruneDirs);
--    config->writeEntry("Update Recursive", opt_updateRecursive);
--    config->writeEntry("Commit Recursive", opt_commitRecursive);
--    config->writeEntry("Do cvs edit", opt_doCVSEdit);
--    config->writeEntry("Hide Files", opt_hideFiles);
--    config->writeEntry("Hide UpToDate Files", opt_hideUpToDate);
--    config->writeEntry("Hide Removed Files", opt_hideRemoved);
--    config->writeEntry("Hide Non CVS Files", opt_hideNotInCVS);
-+    // explicitly save configuration data to CervisiaPart's configuration
-+    // file. (Fix for BR #55665)
-+    KConfig* partConfig = CervisiaPart::config();
-+    KConfigGroupSaver cs(partConfig, "Session");
-+    
-+    recent->saveEntries( partConfig );
-+
-+    partConfig->writeEntry("Create Dirs", opt_createDirs);
-+    partConfig->writeEntry("Prune Dirs", opt_pruneDirs);
-+    partConfig->writeEntry("Update Recursive", opt_updateRecursive);
-+    partConfig->writeEntry("Commit Recursive", opt_commitRecursive);
-+    partConfig->writeEntry("Do cvs edit", opt_doCVSEdit);
-+    partConfig->writeEntry("Hide Files", opt_hideFiles);
-+    partConfig->writeEntry("Hide UpToDate Files", opt_hideUpToDate);
-+    partConfig->writeEntry("Hide Removed Files", opt_hideRemoved);
-+    partConfig->writeEntry("Hide Non CVS Files", opt_hideNotInCVS);
-     QValueList<int> sizes = splitter->sizes();
--    config->writeEntry("Splitter Pos 1", sizes[0]);
--    config->writeEntry("Splitter Pos 2", sizes[1]);
-+    partConfig->writeEntry("Splitter Pos 1", sizes[0]);
-+    partConfig->writeEntry("Splitter Pos 2", sizes[1]);
-+    
-+    // write to disk
-+    partConfig->sync();
- }
- 
- 
---- cervisia/cervisiashell.cpp	29 Oct 2002 18:24:47 -0000	1.1.1.4
-+++ cervisia/cervisiashell.cpp	14 Mar 2003 00:15:15 -0000	1.1.1.5
-@@ -164,6 +164,11 @@
-     saveProperties(config);
- 
-     config->sync();
-+    
-+    // *HACK* (better fix in HEAD)
-+    // make sure part gets deleted
-+    deleteLater();
-+
-     return true;
- }
- 
-@@ -187,8 +192,6 @@
- 
- void CervisiaShell::readProperties(KConfig *config)
- {
--    part->readProperties( config );
--
-     QString currentDir = config->readEntry("Current Directory");
-     if (!currentDir.isEmpty())
-         part->openSandbox(currentDir);
-@@ -196,7 +199,6 @@
- 
- void CervisiaShell::saveProperties(KConfig *config)
- {
--    part->saveProperties(config);
-     config->writeEntry("Current Directory", part->sandBox());
- }
- 
---- cervisia/changelogdlg.cpp	11 Dec 2002 01:10:42 -0000	1.1.1.4
-+++ cervisia/changelogdlg.cpp	3 Mar 2003 03:53:42 -0000	1.1.1.5
-@@ -17,7 +17,7 @@
- #include <qfile.h>
- #include <qfileinfo.h>
- #include <qlayout.h>
--#include <qmultilinedit.h>
-+#include <qmultilineedit.h>
- #include <qpushbutton.h>
- #include <qtextstream.h>
- #include <kapplication.h>
---- cervisia/checkoutdlg.cpp	27 Nov 2002 02:45:08 -0000	1.1.1.4
-+++ cervisia/checkoutdlg.cpp	3 Mar 2003 03:53:42 -0000	1.1.1.5
-@@ -19,7 +19,7 @@
- #include <qlayout.h>
- #include <qlabel.h>
- #include <qlineedit.h>
--#include <qmultilinedit.h>
-+#include <qmultilineedit.h>
- #include <qpushbutton.h>
- #include <kapplication.h>
- #include <kprocess.h>
---- cervisia/commitdlg.cpp	11 Dec 2002 01:10:42 -0000	1.1.1.3
-+++ cervisia/commitdlg.cpp	14 Mar 2003 00:15:16 -0000	1.1.1.5
-@@ -19,6 +19,7 @@
- #include <qcombobox.h>
- #include <kapplication.h>
- #include <kbuttonbox.h>
-+#include <kiconloader.h>
- #include <klocale.h>
- #include <kconfig.h>
- #include <kdebug.h>
-@@ -74,7 +75,27 @@
-         }
-     else
-         listbox->setEnabled(false);
-+
-+    if (action == Remove)    
-+        {
-+            QBoxLayout *warningLayout = new QHBoxLayout;
-+
-+            QLabel *warningIcon = new QLabel(this);
-+            KIconLoader *loader = kapp->iconLoader();
-+            warningIcon->setPixmap(loader->loadIcon("messagebox_warning", KIcon::NoGroup,
-+                                                    KIcon::SizeMedium, KIcon::DefaultState,
-+                                                    0, true));
-+            warningLayout->addWidget(warningIcon);
-+
-+            QLabel *warningText = new QLabel(i18n("This will also remove the files from "
-+                                                  "your local working copy!"), this);
-+            warningLayout->addWidget(warningText);
-     
-+            layout->addSpacing(5);
-+            layout->addLayout(warningLayout);
-+            layout->addSpacing(5);
-+        }
-+        
-     QFrame *frame = new QFrame(this);
-     frame->setFrameStyle(QFrame::HLine | QFrame::Sunken);
-     layout->addWidget(frame, 0);
---- cervisia/commitdlg.h	10 Jul 2002 05:26:15 -0000	1.1.1.2
-+++ cervisia/commitdlg.h	3 Mar 2003 03:53:42 -0000	1.1.1.3
-@@ -17,7 +17,7 @@
- 
- #include <qdialog.h>
- #include <qlistbox.h>
--#include <qmultilinedit.h>
-+#include <qmultilineedit.h>
- #include <qstringlist.h>
- 
- class QComboBox;
---- cervisia/historydlg.h	10 Jul 2002 05:26:24 -0000	1.1.1.2
-+++ cervisia/historydlg.h	3 Mar 2003 03:53:42 -0000	1.1.1.3
-@@ -16,7 +16,7 @@
- #define HISTORYDLG_H
- 
- #include <qdialog.h>
--#include <qlist.h>
-+#include <qptrlist.h>
- 
- class QCheckBox;
- class KConfig;
---- cervisia/listview.h	10 Jul 2002 05:26:27 -0000	1.1.1.2
-+++ cervisia/listview.h	3 Mar 2003 03:53:42 -0000	1.1.1.3
-@@ -16,7 +16,7 @@
- #define _LISTVIEW_H_
- 
- #include <qlistview.h>
--#include <qarray.h>
-+#include <qmemarray.h>
- 
- class ListView;
- class QTimer;
---- cervisia/loglist.h	10 Jul 2002 05:26:30 -0000	1.1.1.2
-+++ cervisia/loglist.h	3 Mar 2003 03:53:42 -0000	1.1.1.3
-@@ -15,7 +15,7 @@
- #ifndef LOGLIST_H
- #define LOGLIST_H
- 
--#include <qarray.h>
-+#include <qmemarray.h>
- #include <qlistview.h>
- #include <qheader.h>
- 
---- cervisia/logtree.h	10 Jul 2002 05:26:31 -0000	1.1.1.2
-+++ cervisia/logtree.h	3 Mar 2003 03:53:42 -0000	1.1.1.3
-@@ -16,7 +16,7 @@
- #define LOGTREE_H
- 
- #include <qobject.h>
--#include <qarray.h>
-+#include <qmemarray.h>
- #include <qptrlist.h>
- 
- #include "qttableview.h"
---- cervisia/protocolview.cpp	4 Jan 2003 20:23:50 -0000	1.1.1.4
-+++ cervisia/protocolview.cpp	3 Mar 2003 03:53:43 -0000	1.1.1.5
-@@ -160,13 +160,13 @@
-     else if (line.startsWith("M ")
-              || line.startsWith("A ") || line.startsWith("R "))
-         color = localChangeColor;
--    else if (line.startsWith("P "))
-+    else if (line.startsWith("P ") || line.startsWith("U "))
-         color = remoteChangeColor;
- 
-     append(color.isValid()?
-         QString("<FONT COLOR=\"#%1\">%2</FONT><BR>")
-            .arg(colorAsString(color)).arg(line) :
--        QString("%1<BR>").arg(line));
-+        QString("%1").arg(line));
- }
- 
- 
---- cervisia/resolvedlg.h	10 Jul 2002 05:26:41 -0000	1.1.1.2
-+++ cervisia/resolvedlg.h	3 Mar 2003 03:53:43 -0000	1.1.1.3
-@@ -18,7 +18,7 @@
- #include <qcheckbox.h>
- #include <qdialog.h>
- #include <qlabel.h>
--#include <qmultilinedit.h>
-+#include <qmultilineedit.h>
- #include <qptrlist.h>
- #include "diffview.h"
  
 RCS file: cervisia/strptime.c
 diff -N cervisia/strptime.c
@@ -793,17 +434,8 @@ diff -N cervisia/strptime.c
 +}
 +
 +#endif /* !HAVE_STRPTIME */
---- cervisia/updateview.cpp	3 Oct 2002 01:05:39 -0000	1.1.1.4
+--- cervisia/updateview.cpp	3 Mar 2003 03:53:43 -0000	1.1.1.5
 +++ cervisia/updateview.cpp	3 Mar 2003 04:03:45 -0000	1.8
-@@ -22,7 +22,7 @@
- #include <qdir.h>
- #include <qfileinfo.h>
- #include <qheader.h>
--#include <qstack.h>
-+#include <qptrstack.h>
- #include <kapplication.h>
- #include <kdebug.h>
- #include <kfileview.h>
 @@ -34,6 +34,11 @@
  #include "misc.h"
  #include "cvsdir.h"
@@ -825,133 +457,16 @@ diff -N cervisia/strptime.c
  	    setlocale(LC_TIME, oldLocale);
  	    time = mktime(&tmp);
  	    updateEntriesItem(name, status, isdir, isbin, rev, tagdate, time);
-@@ -619,9 +624,14 @@
- 		return m_tag;
- 	case 4:
- 		{
--			QDateTime timestamp;
--			timestamp.setTime_t(m_timestamp);
--			return KGlobal::locale()->formatDateTime(timestamp);
-+			if (m_status != UpdateView::NotInCVS)            
-+				{
-+					QDateTime timestamp;
-+					timestamp.setTime_t(m_timestamp);
-+					return KGlobal::locale()->formatDateTime(timestamp);
-+				} else {
-+					return "";
-+				}
- 	    }
- 	default:
- 	    return "";
---- cervisia/updateview.h	10 Jul 2002 05:26:50 -0000	1.1.1.2
-+++ cervisia/updateview.h	3 Mar 2003 03:53:44 -0000	1.1.1.3
-@@ -15,7 +15,7 @@
- #ifndef UPDATEVIEW_H
- #define UPDATEVIEW_H
- 
--#include <qlist.h>
-+#include <qptrlist.h>
- #include "listview.h"
- 
- 
---- debian/changelog	27 Nov 2002 02:45:09 -0000	1.1.1.8
-+++ debian/changelog	14 Mar 2003 00:15:18 -0000	1.1.1.10
-@@ -1,3 +1,30 @@
-+kdesdk (4:3.1.1-1) unstable; urgency=low
-+
-+  * New upstream release.
-+  * Renamed symbolmatch to kmmatch and kdefixincludes to fixkdeincludes;
-+    these will be the upstream names in KDE 3.2.
-+
-+ -- Ben Burton <bab@debian.org>  Thu,  6 Mar 2003 08:36:42 +1100
-+
-+kdesdk (4:3.1.0-3) unstable; urgency=low
-+
-+  * Changed /usr/bin/match to /usr/bin/symbolmatch to avoid filename
-+    conflicts (closes: #181840).
-+  * Build-depends on libqt3-compat-headers for now until obsolete
-+    #includes are removed from both kdesdk and kdelibs.
-+  * Added patch to work around flex's namespace problems until the
-+    flex package is fixed.
-+
-+ -- Ben Burton <bab@debian.org>  Tue, 25 Feb 2003 11:50:26 +1100
-+
-+kdesdk (4:3.1.0-2) unstable; urgency=low
-+
-+  * First KDE3 upload to debian (closes: #167062).
-+  * Rolled the epoch to aid upgrades from the unofficial repository on
-+    ftp.kde.org.. *sigh*
-+
-+ -- Ben Burton <bab@debian.org>  Sun,  2 Feb 2003 19:40:16 +1100
-+
- kdesdk (3.1.0-1) unstable; urgency=low
- 
-   * New upstream release.
---- debian/control	15 Jan 2003 05:46:45 -0000	1.1.1.9
-+++ debian/control	3 Mar 2003 04:03:45 -0000	1.3
-@@ -2,7 +2,7 @@
- Section: devel
- Priority: optional
- Maintainer: Ben Burton <bab@debian.org>
--Build-Depends: automake1.7, binutils-dev, bison, debhelper (>> 4.0.0), flex, g++-3.2, libdb2-dev, kdelibs4-dev
-+Build-Depends: automake1.7, binutils-dev, bison, debhelper (>> 4.0.0), flex, libdb2-dev, libqt3-compat-headers, kdelibs4-dev
- Standards-Version: 3.5.8.0
- 
- Package: kdesdk
-@@ -64,7 +64,7 @@
- Architecture: any
- Section: devel
- Depends: kbabel (= ${Source-Version}), kdelibs4-dev
--Conflicts: kbabel (<< 3.0.8-0)
-+Conflicts: kbabel (<< 4:3.0.8-0)
- Description: PO-file editing suite for KDE (development files)
-  This is a suite of programs for editing gettext message files (PO-files).
-  It is designed to help you translate fast and consistently.
-@@ -106,10 +106,10 @@
- Architecture: any
- Section: devel
- Depends: ${shlibs:Depends}
--Recommends: libqt3-dev
-+Recommends: libqt3-mt-dev | libqt3-dev
- Suggests: gimp | xpaint
--Conflicts: kdepalettes (<= 3.1.0-1)
--Replaces: kdepalettes (<= 3.1.0-1)
-+Conflicts: kdepalettes (<= 4:3.1.0-1)
-+Replaces: kdepalettes (<= 4:3.1.0-1)
- Description: various goodies from the KDE Software Development Kit
-  This package contains miscellaneous goodies provided with the official
-  KDE release to assist with KDE software development.
---- debian/demangle.1	27 Nov 2002 02:45:10 -0000	1.1.1.1
-+++ debian/demangle.1	3 Mar 2003 03:53:44 -0000	1.1.1.2
-@@ -2,7 +2,7 @@
- .\" First parameter, NAME, should be all caps
- .\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
- .\" other parameters are allowed: see man(7), man(1)
--.TH DEMANGLE 1 "November 19, 2002"
-+.TH DEMANGLE 1 "February 25, 2003"
- .\" Please adjust this date whenever revising the manpage.
- .\"
- .\" Some roff macros, for reference:
-@@ -56,8 +56,8 @@
- .RE
- .SH SEE ALSO
- .BR kminspector (1),
-+.BR kmmatch (1).
- .BR kmtrace (1),
--.BR match (1).
- .SH AUTHOR
- This manual page was prepared by Ben Burton <bab@debian.org>
- for the Debian GNU/Linux system (but may be used by others).
-RCS file: debian/fixkdeincludes.1
-diff -N debian/fixkdeincludes.1
+RCS file: debian/fixincludes.1
+diff -N debian/fixincludes.1
 --- /dev/null	1 Jan 1970 00:00:00 -0000
-+++ debian/fixkdeincludes.1	3 Mar 2003 03:53:44 -0000	1.1.1.1
-@@ -0,0 +1,81 @@
++++ debian/fixincludes.1	27 Nov 2002 02:45:10 -0000	1.1.1.2
+@@ -0,0 +1,77 @@
 +.\"                                      Hey, EMACS: -*- nroff -*-
 +.\" First parameter, NAME, should be all caps
 +.\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
 +.\" other parameters are allowed: see man(7), man(1)
-+.TH FIXKDEINCLUDES 1 "February 26, 2003"
++.TH FIXINCLUDES 1 "September 27, 2002"
 +.\" Please adjust this date whenever revising the manpage.
 +.\"
 +.\" Some roff macros, for reference:
@@ -965,27 +480,27 @@ diff -N debian/fixkdeincludes.1
 +.\" .sp <n>    insert n+1 empty lines
 +.\" for manpage-specific macros, see man(7)
 +.SH NAME
-+fixkdeincludes \- reduce the number of #includes in KDE source files
++fixincludes \- reduce the number of #includes in KDE source files
 +.SH SYNOPSIS
-+.B fixkdeincludes
++.B fixincludes
 +[ \fB\-v, \-\-verbose\fP ]
 +[ \fB\-e, \-\-experimental\fP ]
 +[ \fB\-m, \-\-modify\fP ]
 +[ \fIfile\fP ... ]
 +.br
-+.B fixkdeincludes \-\-help
++.B fixincludes \-\-help
 +.SH DESCRIPTION
 +This manual page documents briefly the
-+.B fixkdeincludes
++.B fixincludes
 +command.
 +This manual page was written for the Debian GNU/Linux distribution
 +because the original program does not have a manual page.
 +.PP
-+\fBfixkdeincludes\fP tries to reduce the number of #includes in C++ source
++\fBfixincludes\fP tries to reduce the number of #includes in C++ source
 +files.  Much of its processing is specific to KDE sources and so it
 +might not work so well with sources for non-KDE applications.
 +.PP
-+The following problems are identified by fixkdeincludes:
++The following problems are identified by fixincludes:
 +.PP
 +.RS
 +Including headers that are no longer supported but which exist for
@@ -1006,10 +521,6 @@ diff -N debian/fixkdeincludes.1
 +directory will be examined (with the exception of directories whose
 +\fIMakefile.am\fP contains \-UQT_NO_COMPAT or \-UKDE_NO_COMPAT).
 +.PP
-+This utility is named \fBfixincludes\fP in KDE upstream but has been
-+renamed to \fBfixkdeincludes\fP in Debian so as to not conflict with the
-+fixincludes script provided with gcc.
-+.PP
 +This utility is part of the KDE Software Development Kit.
 +.SH OPTIONS
 +.TP
@@ -1024,97 +535,28 @@ diff -N debian/fixkdeincludes.1
 +As well as writing messages to standard output, actually modify the
 +original sources to fix any problems that were found.
 +.SH AUTHOR
-+fixkdeincludes was written by Dirk Mueller <mueller@kde.org>.
++fixincludes was written by Dirk Mueller <mueller@kde.org>.
 +.br
 +This manual page was prepared by Ben Burton <bab@debian.org>
 +for the Debian GNU/Linux system (but may be used by others).
-RCS file: debian/kapptemplate.linda
-diff -N debian/kapptemplate.linda
+--- debian/kompare.install	15 Jan 2003 05:46:46 -0000	1.1.1.4
++++ debian/kompare.install	16 Jan 2003 21:08:49 -0000	1.2
+@@ -1,4 +1,5 @@
+ usr/bin/kompare
++usr/lib/kde3/libdiff2.*
+ usr/lib/kde3/libkompare*
+ usr/share/applnk/Development/kompare.desktop
+ usr/share/apps/kompare
+RCS file: debian/match.1
+diff -N debian/match.1
 --- /dev/null	1 Jan 1970 00:00:00 -0000
-+++ debian/kapptemplate.linda	3 Mar 2003 03:53:44 -0000	1.1.1.1
-@@ -0,0 +1,5 @@
-+Tag: script-not-executable
-+Data: /usr/share/apps/kapptemplate/.*
-+
-+Tag: extra-license-file
-+Data: /usr/share/apps/kapptemplate/.*
---- debian/kdesdk-scripts.README.Debian	27 Nov 2002 02:45:10 -0000	1.1.1.3
-+++ debian/kdesdk-scripts.README.Debian	3 Mar 2003 03:53:44 -0000	1.1.1.4
-@@ -48,4 +48,10 @@
- 
-     . /usr/share/kdesdk-scripts/completions/bash/dcop
- 
-- -- Ben Burton <bab@debian.org>, Thu, 21 Nov 2002 09:50:05 +1100
-+Renamed scripts:
-+
-+  The utility /usr/bin/fixincludes that is shipped with the KDE SDK has
-+  been renamed to /usr/bin/fixkdeincludes in Debian to avoid conflicts
-+  with unrelated packages.
-+
-+ -- Ben Burton <bab@debian.org>, Wed, 26 Feb 2003 18:52:09 +1100
---- debian/kdesdk-scripts.install	27 Nov 2002 02:45:10 -0000	1.1.1.3
-+++ debian/kdesdk-scripts.install	3 Mar 2003 03:53:44 -0000	1.1.1.4
-@@ -13,7 +13,7 @@
- usr/bin/cxxmetric
- usr/bin/extend_dmalloc
- usr/bin/extractrc
--usr/bin/fixincludes
-+usr/bin/fixkdeincludes
- usr/bin/includemocs
- usr/bin/kde-build
- usr/bin/kdedoc
-RCS file: debian/kdesdk-scripts.linda
-diff -N debian/kdesdk-scripts.linda
---- /dev/null	1 Jan 1970 00:00:00 -0000
-+++ debian/kdesdk-scripts.linda	3 Mar 2003 03:53:44 -0000	1.1.1.1
-@@ -0,0 +1,5 @@
-+Tag: extra-license-file
-+Data: licensecheck
-+
-+Tag: interp-minus-n-fails
-+Data: /usr/bin/(create_cvsignore|cvsversion|kde-build)
---- debian/kdesdk-scripts.manpages	20 Nov 2002 03:20:18 -0000	1.1.1.4
-+++ debian/kdesdk-scripts.manpages	3 Mar 2003 03:53:44 -0000	1.1.1.5
-@@ -10,7 +10,7 @@
- debian/cxxmetric.1
- debian/extend_dmalloc.1
- debian/extractrc.1
--debian/fixincludes.1
-+debian/fixkdeincludes.1
- debian/kdedoc.1
- debian/kdekillall.1
- debian/kdelnk2desktop.py.1
---- debian/kminspector.1	27 Nov 2002 02:45:10 -0000	1.1.1.3
-+++ debian/kminspector.1	3 Mar 2003 03:53:44 -0000	1.1.1.4
-@@ -2,7 +2,7 @@
- .\" First parameter, NAME, should be all caps
- .\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
- .\" other parameters are allowed: see man(7), man(1)
--.TH KMINSPECTOR 1 "November 19, 2002"
-+.TH KMINSPECTOR 1 "February 25, 2003"
- .\" Please adjust this date whenever revising the manpage.
- .\"
- .\" Some roff macros, for reference:
-@@ -43,8 +43,8 @@
- This utility is part of the KDE Software Development Kit.
- .SH SEE ALSO
- .BR demangle (1),
-+.BR kmmatch (1).
- .BR kmtrace (1),
--.BR match (1).
- .PP
- Much more extensive documentation for KMtrace can be found in
- \fI/usr/share/doc/kmtrace/README\fP.
-RCS file: debian/kmmatch.1
-diff -N debian/kmmatch.1
---- /dev/null	1 Jan 1970 00:00:00 -0000
-+++ debian/kmmatch.1	3 Mar 2003 03:53:44 -0000	1.1.1.1
-@@ -0,0 +1,58 @@
++++ debian/match.1	27 Nov 2002 02:45:10 -0000	1.1.1.1
+@@ -0,0 +1,54 @@
 +.\"                                      Hey, EMACS: -*- nroff -*-
 +.\" First parameter, NAME, should be all caps
 +.\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
 +.\" other parameters are allowed: see man(7), man(1)
-+.TH KMMATCH 1 "February 26, 2003"
++.TH MATCH 1 "November 19, 2002"
 +.\" Please adjust this date whenever revising the manpage.
 +.\"
 +.\" Some roff macros, for reference:
@@ -1128,18 +570,18 @@ diff -N debian/kmmatch.1
 +.\" .sp <n>    insert n+1 empty lines
 +.\" for manpage-specific macros, see man(7)
 +.SH NAME
-+kmmatch \- search for symbols in a map file
++match \- search for symbols in a map file
 +.SH SYNOPSIS
-+.B kmmatch
++.B match
 +.I map-file call-file
 +.SH DESCRIPTION
 +This manual page documents briefly the
-+.B kmmatch
++.B match
 +command.
 +This manual page was written for the Debian GNU/Linux distribution
 +because the original program does not have a manual page.
 +.PP
-+\fBKMMatch\fP determines which symbols from a given set (\fIcall-file\fP) are
++\fBMatch\fP determines which symbols from a given set (\fIcall-file\fP) are
 +present in a given map file.
 +.PP
 +The \fImap-file\fP should contain output from \fInm\fP (which extracts
@@ -1155,10 +597,6 @@ diff -N debian/kmmatch.1
 +present in \fImap-file\fP and write them to standard error, one per
 +line, in the order in which they appear in \fIcall-file\fP.
 +.PP
-+Note that this utility is called \fBmatch\fP in the original KDE
-+distribution; it has been renamed to \fBkmmatch\fP in Debian to
-+avoid conflicts with unrelated packages.
-+.PP
 +This utility is part of the KDE Software Development Kit.
 +.SH SEE ALSO
 +.BR demangle (1),
@@ -1168,183 +606,6 @@ diff -N debian/kmmatch.1
 +.SH AUTHOR
 +This manual page was prepared by Ben Burton <bab@debian.org>
 +for the Debian GNU/Linux system (but may be used by others).
---- debian/kmtrace.1	27 Nov 2002 02:45:10 -0000	1.1.1.4
-+++ debian/kmtrace.1	3 Mar 2003 03:53:44 -0000	1.1.1.5
-@@ -2,7 +2,7 @@
- .\" First parameter, NAME, should be all caps
- .\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
- .\" other parameters are allowed: see man(7), man(1)
--.TH KMTRACE 1 "November 19, 2002"
-+.TH KMTRACE 1 "February 25, 2003"
- .\" Please adjust this date whenever revising the manpage.
- .\"
- .\" Some roff macros, for reference:
-@@ -66,7 +66,7 @@
- .SH SEE ALSO
- .BR demangle (1),
- .BR kminspector (1),
--.BR match (1).
-+.BR kmmatch (1).
- .PP
- Much more extensive documentation can be found in
- \fI/usr/share/doc/kmtrace/README\fP.
-RCS file: debian/kmtrace.README.Debian
-diff -N debian/kmtrace.README.Debian
---- /dev/null	1 Jan 1970 00:00:00 -0000
-+++ debian/kmtrace.README.Debian	3 Mar 2003 03:53:44 -0000	1.1.1.1
-@@ -0,0 +1,7 @@
-+KMtrace for Debian
-+------------------
-+
-+The utility /usr/bin/match that is shipped with KMtrace has been renamed
-+to /usr/bin/kmmatch in Debian to avoid conflicts with unrelated packages.
-+
-+ -- Ben Burton <bab@debian.org>, Wed, 26 Feb 2003 18:52:09 +1100
---- debian/kmtrace.install	20 Nov 2002 03:20:18 -0000	1.1.1.2
-+++ debian/kmtrace.install	3 Mar 2003 03:53:44 -0000	1.1.1.3
-@@ -1,7 +1,7 @@
- usr/bin/demangle
- usr/bin/kminspector
-+usr/bin/kmmatch
- usr/bin/kmtrace
--usr/bin/match
- usr/include/kde/ktrace.h
- usr/lib/libktrace*
- usr/share/apps/kmtrace
---- debian/kmtrace.manpages	27 Nov 2002 02:45:10 -0000	1.1.1.3
-+++ debian/kmtrace.manpages	3 Mar 2003 03:53:44 -0000	1.1.1.4
-@@ -1,4 +1,4 @@
- debian/demangle.1
- debian/kmtrace.1
- debian/kminspector.1
--debian/match.1
-+debian/kmmatch.1
---- debian/kompare.install	15 Jan 2003 05:46:46 -0000	1.1.1.4
-+++ debian/kompare.install	16 Jan 2003 21:08:49 -0000	1.2
-@@ -1,4 +1,5 @@
- usr/bin/kompare
-+usr/lib/kde3/libdiff2.*
- usr/lib/kde3/libkompare*
- usr/share/applnk/Development/kompare.desktop
- usr/share/apps/kompare
-RCS file: debian/kompare.linda
-diff -N debian/kompare.linda
---- /dev/null	1 Jan 1970 00:00:00 -0000
-+++ debian/kompare.linda	3 Mar 2003 03:53:44 -0000	1.1.1.1
-@@ -0,0 +1,2 @@
-+Tag: binary-rpath
-+Desc: /usr/bin/.*
---- debian/qtdoc.1	27 Nov 2002 02:45:10 -0000	1.1.1.3
-+++ debian/qtdoc.1	3 Mar 2003 03:53:44 -0000	1.1.1.4
-@@ -2,7 +2,7 @@
- .\" First parameter, NAME, should be all caps
- .\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
- .\" other parameters are allowed: see man(7), man(1)
--.TH QTDOC 1 "April 28, 2001"
-+.TH QTDOC 1 "February 2, 2003"
- .\" Please adjust this date whenever revising the manpage.
- .\"
- .\" Some roff macros, for reference:
-@@ -38,7 +38,7 @@
- QTDIR
- The directory beneath which the Qt documentation is installed.
- Thus the main Qt help page should be in \fI$QTDIR/doc/html/\fP.
--If $QTDIR is not set, \fI/usr/share/doc/qt-doc\fP will be assumed.
-+If $QTDIR is not set, \fI/usr/share/qt3\fP will be assumed.
- .SH EXAMPLES
- To bring up help on class QString:
- .PP
-@@ -46,7 +46,7 @@
- qtdoc QString
- .RE
- .SH DEBIAN USERS
--The Qt documentation is in Debian package \fIqt-doc\fP; this will need
-+The Qt documentation is in Debian package \fIqt3-doc\fP; this will need
- to be installed.
- .SH SEE ALSO
- .BR kdedoc (1).
---- debian/rules	15 Jan 2003 05:46:46 -0000	1.1.1.9
-+++ debian/rules	3 Mar 2003 04:03:45 -0000	1.3
-@@ -29,11 +29,6 @@
- 	INSTALL_PROGRAM += -s
- endif
- 
--# GCC 3.2 defines
--#export CC=gcc-3.2
--#export CXX=g++-3.2
--#export CPP=cpp-3.2
--
- ifeq ($(DEB_BUILD_GNU_TYPE),alpha-linux)
-   export CFLAGS +=-O0 -mieee
-   export CXXFLAGS +=-O0 -mieee
-@@ -134,6 +129,9 @@
- 	cd $(objdir) && \
- 	$(MAKE) install DESTDIR=$(CURDIR)/debian/tmp
- 
-+	# Rename fixincludes to fixkdeincludes.
-+	mv debian/tmp/usr/bin/fixincludes debian/tmp/usr/bin/fixkdeincludes
-+
- 	# Install testkspy.
- 	$(INSTALL_BIN) $(objdir)/kspy/.libs/testkspy debian/tmp/usr/bin
- 
-@@ -162,6 +160,9 @@
- 	# Remove spurious CVS directories.
- 	rm -rf `find debian/kdesdk-scripts -type d -name CVS`
- 
-+	# Rename /usr/bin/match to /usr/bin/kmmatch.
-+	mv debian/kmtrace/usr/bin/match debian/kmtrace/usr/bin/kmmatch
-+
- 	# Install standard documentation links.
- 	for pkg in `dh_listpackages`; do \
- 	  if test -d debian/$$pkg/usr/share/doc/kde/HTML/en/$$pkg; then \
-@@ -170,12 +171,17 @@
- 	  fi; \
- 	done
- 
--	# Install lintian overrides.
-+	# Install lintian and linda overrides.
- 	for pkg in `dh_listpackages`; do \
- 	  if test -e debian/$$pkg.override; then \
- 	    $(INSTALL_DIR) debian/$$pkg/usr/share/lintian/overrides; \
- 	    $(INSTALL_FILE) debian/$$pkg.override \
- 	      debian/$$pkg/usr/share/lintian/overrides/$$pkg; \
-+	  fi; \
-+	  if test -e debian/$$pkg.linda; then \
-+	    $(INSTALL_DIR) debian/$$pkg/usr/share/linda/overrides; \
-+	    $(INSTALL_FILE) debian/$$pkg.linda \
-+	      debian/$$pkg/usr/share/linda/overrides/$$pkg; \
- 	  fi; \
- 	done
- 
-RCS file: debian/patches/flex.diff
-diff -N debian/patches/flex.diff
---- /dev/null	1 Jan 1970 00:00:00 -0000
-+++ debian/patches/flex.diff	3 Mar 2003 03:53:44 -0000	1.1.1.1
-@@ -0,0 +1,24 @@
-+--- kdesdk/kbabel/common/catalog.cpp	7 Nov 2002 16:35:12 -0000	1.83
-++++ kdesdk/kbabel/common/catalog.cpp	25 Feb 2003 06:41:14 -0000
-+@@ -57,6 +57,8 @@ extern "C"
-+ }
-+ 
-+ #include "libgettext/pofiles.h"
-++
-++using namespace std;
-+ #include <FlexLexer.h>
-+ 
-+ #include <fstream>
-+--- kdesdk/kbabel/common/catalogitem.cpp	17 Nov 2002 10:53:30 -0000	1.40
-++++ kdesdk/kbabel/common/catalogitem.cpp	25 Feb 2003 06:41:15 -0000
-+@@ -32,7 +32,10 @@
-+ 
-+ #include <qtextstream.h>
-+ #include <qtextcodec.h>
-++
-++using namespace std;
-+ #include <FlexLexer.h>
-++
-+ #include <qdom.h>
-+ 
-+ CatalogItem::CatalogItem()
 RCS file: debian/patches/modules.diff
 diff -N debian/patches/modules.diff
 --- /dev/null	1 Jan 1970 00:00:00 -0000
@@ -1361,56 +622,6 @@ diff -N debian/patches/modules.diff
 + 
 + # the Part's source, library search path, and link libraries
 + libdiff2_la_SOURCES = \
---- debian/patches/paths.diff	27 Nov 2002 02:45:10 -0000	1.1.1.4
-+++ debian/patches/paths.diff	14 Mar 2003 00:15:18 -0000	1.1.1.6
-@@ -35,43 +35,19 @@
- 
-  # You need to edit this line, I can't guess where your KDE docs are installed
- -KDEDOCS="$KDEDIR/share/kdedoc"
--+KDEDOCS=/usr/share/doc/kdelibs4-doc/html
-++KDEDOCS=/usr/share/doc/kde/HTML/en/kdelibs-3.1.1-apidocs
- 
-  if [ $# = 1 ]; then
-    if [ -e "$KDEDOCS/doxygen.css" ]; then
- --- kdesdk/scripts/qtdoc	2002/09/26 21:28:12	1.4
- +++ kdesdk/scripts/qtdoc	2002/11/14 03:47:20
--@@ -1,19 +1,27 @@
-+@@ -1,4 +1,9 @@
-  #!/bin/sh
- +
- +if [ -z "$QTDIR" ]; then
--+  QTDIR=/usr/share/doc/qt3-doc
--+  QTDOC="$QTDIR/html"
--+else
--+  QTDOC="$QTDIR/doc"
-++  QTDIR=/usr/share/qt3
- +fi
- +
-  # Run from command line, to open a qt help page in kfm/konqueror
-  # No argument => main page
-  # Classname (case insensitive) => page for this class
-- 
-- if [ $# = 1 ]; then
---  fname=`echo $1 | tr '[A-Z]' '[a-z]'`
---  if [ -f $QTDIR/doc/html/$fname.html ]; then
---    kdeinit_wrapper kfmclient openProfile webbrowsing file:$QTDIR/doc/html/$fname.html
--+  fname=`echo "$1" | tr '[A-Z]' '[a-z]'`
--+  if [ -f "$QTDOC/html/$fname.html" ]; then
--+    kdeinit_wrapper kfmclient openProfile webbrowsing "file:$QTDOC/html/$fname.html"
--   else
---    if [ -f /usr/doc/qt2/html/$fname.html ]; then
---      kdeinit_wrapper kfmclient openProfile webbrowsing file:/usr/doc/qt2/html/$fname.html
--+    if [ -f "/usr/doc/qt2/html/$fname.html" ]; then
--+      kdeinit_wrapper kfmclient openProfile webbrowsing "file:/usr/doc/qt2/html/$fname.html"
--     else
--       echo "No such file $fname.html"
--     fi
--   fi
-- else
---  kfmclient openURL file:$QTDIR/doc/html/index.html
--+  kfmclient openURL "file:$QTDOC/html/index.html"
-- fi
-Binary files /tmp/cvs0Z1EJQ and /tmp/cvspU9rec differ
 --- doc/cervisia/index.docbook	5 Nov 2002 03:00:15 -0000	1.1.1.5
 +++ doc/cervisia/index.docbook	3 Oct 2002 01:12:03 -0000	1.4
 @@ -555,7 +555,7 @@
@@ -1422,34 +633,20 @@ Binary files /tmp/cvs0Z1EJQ and /tmp/cvspU9rec differ
  files, such replacements may corrupt the file and make it completely
  unusable. In order to switch this behavior off, you should commit binary files
  (or other files, like Postscript) with a command line
-Binary files /tmp/cvssMVdZ3 and /tmp/cvsibo7YR differ
---- kapptemplate/kapp/main.cpp	25 Jun 2002 03:20:50 -0000	1.1.1.1
-+++ kapptemplate/kapp/main.cpp	3 Mar 2003 03:53:56 -0000	1.1.1.2
-@@ -15,7 +15,7 @@
- static KCmdLineOptions options[] =
- {
-     { "+[URL]", I18N_NOOP( "Document to open." ), 0 },
--    { 0, 0, 0 }
-+    KCmdLineLastOption
- };
+--- kbabel/Makefile.am	14 Aug 2002 19:48:46 -0000	1.1.1.2
++++ kbabel/Makefile.am	23 Mar 2003 15:56:35 -0000
+@@ -9,9 +9,9 @@
  
- int main(int argc, char **argv)
---- kapptemplate/kpartapp/main.cpp	25 Jun 2002 03:20:50 -0000	1.1.1.1
-+++ kapptemplate/kpartapp/main.cpp	3 Mar 2003 03:53:56 -0000	1.1.1.2
-@@ -14,7 +14,7 @@
- static KCmdLineOptions options[] =
- {
-     { "+[URL]", I18N_NOOP( "Document to open." ), 0 },
--    { 0, 0, 0 }
-+    KCmdLineLastOption
- };
+ VERSION:=`cat ${PWD}/VERSION`
  
- int main(int argc, char **argv)
---- kbabel/VERSION	29 Oct 2002 18:25:00 -0000	1.1.1.3
-+++ kbabel/VERSION	3 Mar 2003 03:53:57 -0000	1.1.1.4
-@@ -1 +1 @@
--1.0
-+1.0.1
+-epmsnapshot: VERSION:=`date +%d%m%Y`
++epmsnapshot ... : VERSION:=`date +%d%m%Y`
+ 
+-snapshot: VERSION:=`date +%d%m%Y`
++snapshot ... : VERSION:=`date +%d%m%Y`
+ 
+ 
+ epm: epm-command
 --- kbabel/catalogmanager/Makefile.am	5 Nov 2002 03:00:24 -0000	1.1.1.3
 +++ kbabel/catalogmanager/Makefile.am	1 Dec 2002 17:02:09 -0000	1.3
 @@ -6,7 +6,7 @@
@@ -1497,133 +694,6 @@ Binary files /tmp/cvssMVdZ3 and /tmp/cvsibo7YR differ
  
  # these are the headers for your project
  noinst_HEADERS   = catalogmanageriface.h prefwidgets.h catalogmanager.h cmdedit.h\
---- kbabel/catalogmanager/catalogmanager.cpp	11 Dec 2002 01:10:59 -0000	1.1.1.6
-+++ kbabel/catalogmanager/catalogmanager.cpp	3 Mar 2003 03:53:57 -0000	1.1.1.7
-@@ -3,7 +3,7 @@
- 
-   Copyright (C) 1999-2000 by Matthias Kiefer
-                             <matthias.kiefer@gmx.de>
--		2001-2002 by Stanislav Visnovsky <visnovsky@kde.org>
-+		2001-2003 by Stanislav Visnovsky <visnovsky@kde.org>
- 
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-@@ -315,13 +315,10 @@
-     KStdAction::preferences(this, SLOT( optionsPreferences()), actionCollection());
-     KStdAction::keyBindings(this, SLOT( optionsKeys() ), actionCollection());
-     KStdAction::configureToolbars(this,SLOT(optionsEditToolbars()), actionCollection() );
--    KToggleAction * toggle = KStdAction::showToolbar( this,SLOT( dummySlot() ), actionCollection() );
--    connect( toggle, SIGNAL( toggled(bool) ), this, SLOT( optionsShowToolbar(bool) ) );
--    toggle = new KToggleAction(i18n("Show &Navigationbar"), 0, actionCollection(),"settings_show_navbar");
--    toggle->setChecked(true);
--    connect(toggle,SIGNAL(toggled(bool)), this, SLOT(optionsShowNavigationbar(bool)));
--    toggle = KStdAction::showStatusbar( this,SLOT( dummySlot() ), actionCollection() );
-+    KToggleAction * toggle = KStdAction::showStatusbar( this,SLOT( dummySlot() ), actionCollection() );
-     connect( toggle, SIGNAL( toggled(bool) ), this, SLOT( optionsShowStatusbar(bool) ) );
-+    
-+    setStandardToolBarMenuEnabled ( true );
- 
-     // commands menus
-     KActionMenu* actionMenu=new KActionMenu(i18n("Commands"), 0,
-@@ -977,22 +974,6 @@
-         statusBar()->hide();
- }
- 
--void CatalogManager::optionsShowToolbar(bool on)
--{
--    if( on )
--        toolBar()->show();
--    else
--        toolBar()->hide();
--}
--
--void CatalogManager::optionsShowNavigationbar(bool on)
--{
--    if( on )
--        toolBar("navigationbar")->show();
--    else
--        toolBar("navigationbar")->hide();
--}
--
- bool CatalogManager::queryClose()
- {
-     _catalogManager->stop();
-@@ -1014,9 +995,6 @@
-     KToggleAction * toggle = (KToggleAction*)actionCollection()->
- 	action(KStdAction::stdName(KStdAction::ShowStatusbar));
-     toggle->setChecked(!statusBar()->isHidden() );
--    toggle = (KToggleAction*)actionCollection()->
--	action(KStdAction::stdName(KStdAction::ShowToolbar));
--    toggle->setChecked(!toolBar()->isHidden() );
- }
- 
- #include "catalogmanager.moc"
---- kbabel/catalogmanager/catalogmanager.h	29 Oct 2002 18:25:01 -0000	1.1.1.4
-+++ kbabel/catalogmanager/catalogmanager.h	3 Mar 2003 03:53:57 -0000	1.1.1.5
-@@ -91,8 +91,6 @@
-    virtual void optionsPreferences();
-    virtual void optionsKeys();
-    virtual void optionsEditToolbars();
--   virtual void optionsShowToolbar(bool on);
--   virtual void optionsShowNavigationbar(bool on);
-    virtual void optionsShowStatusbar(bool on);
-    virtual void dummySlot() {}
-    
---- kbabel/catalogmanager/catmanlistitem.cpp	29 Oct 2002 18:25:01 -0000	1.1.1.2
-+++ kbabel/catalogmanager/catmanlistitem.cpp	3 Mar 2003 03:53:57 -0000	1.1.1.3
-@@ -88,6 +88,8 @@
-     _wordListUpdated = false;
- 
-     update(parent()->isOpen(),false,true);
-+    
-+    if( !isDir() )  setPixmap(COL_MARKER,ICON_NOFLAG);
- }
- 
- void CatManListItem::setMarked(bool on)
-@@ -98,7 +100,7 @@
-    }
-    else
-    {
--      setPixmap(COL_MARKER,QPixmap());
-+      setPixmap(COL_MARKER,ICON_NOFLAG);
-    }
- 
-    _marked=on;
---- kbabel/catalogmanager/catmanresource.h	10 Jul 2002 05:27:59 -0000	1.1.1.1
-+++ kbabel/catalogmanager/catmanresource.h	3 Mar 2003 03:53:58 -0000	1.1.1.2
-@@ -3,7 +3,7 @@
- 
-   Copyright (C) 1999-2000 by Matthias Kiefer
-                             <matthias.kiefer@gmx.de>
--                2001-2002 by Stanislav Visnovsky
-+                2001-2003 by Stanislav Visnovsky
-                             <visnovsky@kde.org>
- 
-   This program is free software; you can redistribute it and/or modify
-@@ -25,6 +25,8 @@
- #ifndef CATMANRESOURCE_H
- #define CATMANRESOURCE_H
- 
-+#include <kiconloader.h>
-+
- #define COL_NAME 0
- #define COL_MARKER 1
- #define COL_FUZZY 2
-@@ -33,6 +35,7 @@
- #define COL_REVISION 5
- #define COL_TRANSLATOR 6
- 
-+
- #define ICON_OK UserIcon("ok",KIcon::DefaultState)
- #define ICON_MISSING UserIcon("missing",KIcon::DefaultState)
- #define ICON_NEEDWORK UserIcon("needwork",KIcon::DefaultState)
-@@ -42,5 +45,6 @@
- #define ICON_FOLDER_CLOSED_OK SmallIcon("folder_green")
- #define ICON_FOLDER_CLOSED_WORK SmallIcon("folder_red")
- #define ICON_FOLDER_OPEN SmallIcon("folder_open")
-+#define ICON_NOFLAG UserIcon("noflag",KIcon::DefaultState)
- 
- #endif
 --- kbabel/catalogmanager/main.cpp	29 Oct 2002 18:25:01 -0000	1.1.1.4
 +++ kbabel/catalogmanager/main.cpp	1 Dec 2002 17:02:09 -0000	1.2
 @@ -152,8 +152,8 @@
@@ -1637,278 +707,6 @@ Binary files /tmp/cvssMVdZ3 and /tmp/cvsibo7YR differ
  {
      KLocale::setMainCatalogue("kbabel");
      KAboutData about("catalogmanager",I18N_NOOP("KBabel - Catalog Manager"),VERSION,
---- kbabel/catalogmanager/roughtransdlg.cpp	29 Oct 2002 18:25:01 -0000	1.1.1.3
-+++ kbabel/catalogmanager/roughtransdlg.cpp	3 Mar 2003 03:53:58 -0000	1.1.1.4
-@@ -3,7 +3,7 @@
- 
-   Copyright (C) 1999-2001 by Matthias Kiefer
-                             <matthias.kiefer@gmx.de>
--		2002	  by Stanislav Visnovsky <visnovsky@kde.org>
-+		2002-2003 by Stanislav Visnovsky <visnovsky@kde.org>
- 
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-@@ -269,20 +269,88 @@
- 
- 	for(int i = 0; i < total; i++)
- 	{
--		messagesProgressbar->setProgress(i+1);
--		kapp->processEvents(100);
-+	    messagesProgressbar->setProgress(i+1);
-+	    kapp->processEvents(100);
- 
--		if(stop || cancel) break;
-+	    if(stop || cancel) break;
- 
--		QString msg=catalog->msgid(i,true);
--		QString translation;
-+	    QString msg=catalog->msgid(i,true);
-+	    QString translation;
- 
-+ 	    if( kdeSpecific )
-+ 	    {
-+		    QString origTrans = catalog->msgstr(i);
-+		    if(msg.find("_: NAME OF TRANSLATORS\\n")==0)
-+    		    {
-+			QString authorName;
-+			if( !catalog->identitySettings().authorLocalizedName.isEmpty() )
-+				authorName = catalog->identitySettings().authorLocalizedName;
-+			else // fallback to non-localized name
-+			if( !catalog->identitySettings().authorName.isEmpty() )
-+				    authorName = catalog->identitySettings().authorName;
-+			else continue; // there is no name to be inserted
-+ 		
-+			if( !QStringList::split(',', origTrans).contains(authorName) )
-+		    	{
-+        			if(origTrans.isEmpty() ) translation=authorName;
-+				else translation+=origTrans+","+authorName;
-+		    	}
-+    		    }
-+    		    else if(msg.find("_: EMAIL OF TRANSLATORS\\n")==0)
-+    		    {
-+			// skip, if email is not specified in settings
-+			if( catalog->identitySettings().authorEmail.isEmpty() ) continue;
-+ 		
-+			if( !QStringList::split(',', origTrans).contains(catalog->identitySettings().authorEmail) )
-+			{
-+				if(origTrans.isEmpty() ) translation=catalog->identitySettings().authorEmail;
-+				else translation=origTrans+","+catalog->identitySettings().authorEmail;
-+			}
-+    		    }
-+            	    else if (msg.find("ROLES_OF_TRANSLATORS") == 0)
-+            	    {
-+                	QString temp = "<othercredit role=\\\"translator\\\">\n<firstname></firstname>"
-+                		"<surname></surname>\n<affiliation><address><email>" + 
-+                	catalog->identitySettings( ).authorEmail+"</email></address>\n"
-+                		"</affiliation><contrib></contrib></othercredit>";
-+                	if (origTrans.isEmpty( ))
-+                		translation = temp;
-+                	else if (origTrans.find(catalog->identitySettings( ).authorEmail) < 0)
-+                		translation = origTrans + "\n" + temp;
-+            	    }
-+            	    else if (msg.find("CREDIT_FOR_TRANSLATORS") == 0)
-+            	    {
-+                	QString authorName;
-+                	if (!catalog->identitySettings( ).authorLocalizedName.isEmpty( ))
-+                		authorName = catalog->identitySettings( ).authorLocalizedName;
-+                	else if (!catalog->identitySettings( ).authorName.isEmpty( ))
-+                		authorName = catalog->identitySettings( ).authorName;
-+                	QString temp = "<para>" + authorName + "\n" + "<email>" + 
-+                	catalog->identitySettings( ).authorEmail + "</email></para>";
-+                	if (origTrans.isEmpty( ))
-+                		translation = temp;
-+                	else if (origTrans.find(authorName) < 0 && 
-+                        	origTrans.find(catalog->identitySettings( ).authorEmail) < 0)
-+                	translation = origTrans + "\n" + temp;
-+            	    }
-+	    } 
-+	    else  // not kdeSpecific 
-+	    {
-+		    // skip KDE specific texts
-+		    if( msg.find("_: EMAIL OF TRANSLATORS\\n")==0 || msg.find("_: NAME OF TRANSLATORS\\n")==0 || 
-+            	    msg.find("ROLES_OF_TRANSLATORS")==0 || msg.find("CREDIT_FOR_TRANSLATORS")==0)
-+		    continue;
-+	    }
-+ 
-+ 	    if( translation.isEmpty() ) // KDE-specific translation didn't work
-+ 	    {
-+ 		if( !untranslated && catalog->isUntranslated(i) ) continue;
- 		// this is KDE specific:
- 		if( kdeSpecific )
- 		{
--		QString origTrans = catalog->msgstr(i);
--		if(msg.find("_: NAME OF TRANSLATORS\\n")==0)
--		{
-+		    QString origTrans = catalog->msgstr(i);
-+		    if(msg.find("_: NAME OF TRANSLATORS\\n")==0)
-+		    {
- 			QString authorName;
-             		if( !catalog->identitySettings().authorLocalizedName.isEmpty() )
-                 	    authorName = catalog->identitySettings().authorLocalizedName;
-@@ -293,13 +361,13 @@
- 
- 			if( !QStringList::split(',', origTrans).contains(catalog->identitySettings().authorLocalizedName) )
- 			{
--			if(origTrans.isEmpty() ) translation=authorName;
--			else translation+=origTrans+","+authorName;
--			exactTransCounter++;
--			}
--		}
--		else if(msg.find("_: EMAIL OF TRANSLATORS\\n")==0)
--		{
-+			    if(origTrans.isEmpty() ) translation=authorName;
-+			    else translation+=origTrans+","+authorName;
-+			    exactTransCounter++;
-+			}
-+		    }
-+		    else if(msg.find("_: EMAIL OF TRANSLATORS\\n")==0)
-+		    {
- 			// skip, if email is not specified in settings
- 			if( catalog->identitySettings().authorEmail.isEmpty() ) continue;
- 			
-@@ -309,40 +377,40 @@
- 			else translation=origTrans+","+catalog->identitySettings().authorEmail;
- 			exactTransCounter++;
- 			}
-+		    }
- 		}
--		}
-+	    }
- 
--		if( translation.isEmpty() ) // KDE-specific translation didn't work
--		{
--			if( !untranslated && catalog->isUntranslated(i) ) continue;
--			if( !translated && !catalog->isUntranslated(i) && !catalog->isFuzzy(i) ) continue;
--			if( !fuzzies && catalog->isFuzzy(i) ) continue;
--		}
-+	    if( translation.isEmpty() ) // KDE-specific translation didn't work
-+	    {
-+		if( !untranslated && catalog->isUntranslated(i) ) continue;
-+		if( !translated && !catalog->isUntranslated(i) && !catalog->isFuzzy(i) ) continue;
-+		if( !fuzzies && catalog->isFuzzy(i) ) continue;
-+	    }
- 
--		totalTried++;
-+	    totalTried++;
- 
--		if(msg.contains(contextReg))
--		{
-+	    if(msg.contains(contextReg))
-+	    {
- 		msg.replace(contextReg,"");
--		}
-+	    }
- 
--		// try exact translation
--		QStringList::Iterator dit = dictList.begin();
--		while(translation.isEmpty() && dit != dictList.end())
--		{
-+	    // try exact translation
-+	    QStringList::Iterator dit = dictList.begin();
-+	    while(translation.isEmpty() && dit != dictList.end())
-+	    {
- 		dictBox->setActiveModule(*dit);
- 		translation = dictBox->translate(msg);
- 
- 		++dit;
--		}
-+	    }
- 
--		if(!translation.isEmpty())
--		{
-+	    if(!translation.isEmpty())
-+	    {
- 		exactTransCounter++;
--		}
--
--		// try fuzzy translation
--		else if (fuzzyMatch) {
-+	    }
-+	    // try fuzzy translation
-+	    else if (fuzzyMatch) {
- 		QString tr;
- 		int score, best_score = 0;
- 		dit = dictList.begin();
-@@ -363,11 +431,11 @@
- 		{
- 		partTransCounter++;
- 		}
--		}
-+	    }
- 
--		// try single word translation
--		if(translation.isEmpty() && singleWords)
--		{
-+	    // try single word translation
-+	    if(translation.isEmpty() && singleWords)
-+	    {
- 		QStringList wordList;
- 		QChar accel;
- 		QString endingPunctuation;
-@@ -514,11 +582,11 @@
- 
- 			translation+=endingPunctuation;
- 		}
--		}
-+	    }
- 
--		// this is KDE specific:
--		if(translation.isEmpty() && kdeSpecific)
--		{
-+	    // this is KDE specific:
-+	    if(translation.isEmpty() && kdeSpecific)
-+	    {
- 		if( msg.startsWith("Name=") ) {
- 			translation="Name=";
- 			partTransCounter++;
-@@ -527,10 +595,10 @@
- 			translation="Comment=";
- 			partTransCounter++;
- 		}
--		}
-+	    }
- 
--		if(!translation.isEmpty())
--		{
-+	    if(!translation.isEmpty())
-+	    {
- 		if(!catalog->isUntranslated(i))
- 		{
- 			DelTextCmd* delCmd = new DelTextCmd(0
-@@ -549,7 +617,7 @@
- 		{
- 			catalog->setFuzzy(i,true);
- 		}
--		}
-+	    }
- 	}
- 
- 	tmp = new EndCommand();
-@@ -570,6 +638,9 @@
-     filesProgressbar->setValue(_fileList.count());
- 
-     int nothing=totalTried-partTransCounter-exactTransCounter;
-+    
-+    int divTotalTried = QMAX(totalTried,1);
-+    
-     KLocale *locale = KGlobal::locale();
-     QString statMsg = i18n("Result of the translation:\n"
-             "Edited entries: %1\n"
-@@ -578,11 +649,11 @@
-             "Nothing found: %6 (%7%)")
-             .arg( locale->formatNumber(totalTried,0) )
-             .arg( locale->formatNumber(exactTransCounter,0) )
--            .arg( locale->formatNumber( ((double)(10000*exactTransCounter/totalTried))/100) )
-+            .arg( locale->formatNumber( ((double)(10000*exactTransCounter/divTotalTried))/100) )
-             .arg( locale->formatNumber(partTransCounter,0) )
--            .arg( locale->formatNumber(((double)(10000*partTransCounter/totalTried))/100) )
-+            .arg( locale->formatNumber(((double)(10000*partTransCounter/divTotalTried))/100) )
-             .arg( locale->formatNumber(nothing,0) )
--            .arg( locale->formatNumber(((double)(10000*nothing/totalTried))/100) );
-+            .arg( locale->formatNumber(((double)(10000*nothing/divTotalTried))/100) );
- 
-     if(stop || cancel)
-     {
 RCS file: kbabel/catalogmanager/stub_main.cpp
 diff -N kbabel/catalogmanager/stub_main.cpp
 --- /dev/null	1 Jan 1970 00:00:00 -0000
@@ -1942,17 +740,6 @@ diff -N kbabel/catalogmanager/stub_main.cpp
 +        return kdemain(argc, argv);
 +}
 +
---- kbabel/catalogmanager/pics/Makefile.am	10 Jul 2002 05:28:21 -0000	1.1.1.2
-+++ kbabel/catalogmanager/pics/Makefile.am	3 Mar 2003 03:53:59 -0000	1.1.1.3
-@@ -1,5 +1,5 @@
- # Add all of your pixmaps here
--data_DATA = broken.png missing.png needwork.png ok.png
-+data_DATA = broken.png missing.png needwork.png ok.png noflag.png
- 
- # This is where it will all be installed
- datadir = $(kde_datadir)/kbabel/pics
-RCS file: kbabel/catalogmanager/pics/noflag.png
-diff -N kbabel/catalogmanager/pics/noflag.png
 --- kbabel/common/Makefile.am	29 Oct 2002 18:25:03 -0000	1.1.1.5
 +++ kbabel/common/Makefile.am	29 Oct 2002 18:31:05 -0000	1.4
 @@ -11,7 +11,7 @@
@@ -1964,26 +751,6 @@ diff -N kbabel/catalogmanager/pics/noflag.png
  
  # which sources should be compiled 
  libkbabelcommon_la_SOURCES = catalog.cpp catalogitem.cpp editcmd.cpp\
---- kbabel/common/klisteditor.ui.h	10 Jul 2002 05:28:40 -0000	1.1.1.1
-+++ kbabel/common/klisteditor.ui.h	3 Mar 2003 03:54:02 -0000	1.1.1.2
-@@ -36,7 +36,7 @@
- void KListEditor::downInList()
- {
-     int i=_list->currentItem();
--    if( i< _list->count()-1 ) {
-+    if( i< (int)_list->count()-1 ) {
- 	QString ci = _list->currentText();
- 	_list->removeItem(i);
- 	_list->insertItem(ci,i+1);
-@@ -65,7 +65,7 @@
- void KListEditor::updateButtons( int newIndex )
- {
-     _upButton->setEnabled(newIndex>0);
--    _downButton->setEnabled(newIndex+1 != _list->count());
-+    _downButton->setEnabled(newIndex+1 != (int)_list->count());
-     _removeButton->setEnabled(true);
- }
- 
 --- kbabel/common/msgfmt.cpp	15 Jan 2003 05:46:53 -0000	1.1.1.5
 +++ kbabel/common/msgfmt.cpp	16 Jan 2003 21:08:49 -0000	1.2
 @@ -79,8 +79,7 @@
@@ -2008,7 +775,7 @@ diff -N kbabel/catalogmanager/pics/noflag.png
     if(!proc.start(KProcess::Block,KProcess::Stderr))
     {
 --- kbabel/kbabel/Makefile.am	10 Jul 2002 05:29:11 -0000	1.1.1.2
-+++ kbabel/kbabel/Makefile.am	29 Nov 2002 19:01:23 -0000	1.2
++++ kbabel/kbabel/Makefile.am	23 Mar 2003 15:56:35 -0000
 @@ -6,7 +6,7 @@
  
  # this is the program that gets installed.  it's name is used for all
@@ -2034,7 +801,7 @@ diff -N kbabel/catalogmanager/pics/noflag.png
 -libkbabel_la_LIBADD =  ../common/libkbabelcommon.la ../kbabeldict/libkbabeldict.la $(LIB_KIO) $(LIB_KSPELL)
 -libkbabel_la_LDFLAGS = $(all_libraries) -module -version-info 1:0:0 -no-undefined
 +libkbabel_main_la_LIBADD =  ../common/libkbabelcommon.la ../kbabeldict/libkbabeldict_main.la $(LIB_KIO) $(LIB_KSPELL)
-+libkbabel_main_la_LDFLAGS = $(all_libraries) -version-info 1:0:0
++libkbabel_main_la_LDFLAGS = $(all_libraries) -version-info 1:0:0 -no-undefined
  
 +kbabel_la_SOURCES = kbabel_la_main.cpp
 +kbabel_la_LIBADD  = libkbabel_main.la
@@ -2056,215 +823,9 @@ diff -N kbabel/catalogmanager/pics/noflag.png
  
  # these are the headers for your project
  noinst_HEADERS   = kbabel.h kbabelview.h kbabeliface.h kbabelpref.h\
---- kbabel/kbabel/kbabel.cpp	4 Jan 2003 20:24:33 -0000	1.1.1.6
-+++ kbabel/kbabel/kbabel.cpp	3 Mar 2003 03:54:03 -0000	1.1.1.7
-@@ -649,16 +649,11 @@
- 
-     // next, the settings menu
- 
--    toggleAction = KStdAction::showToolbar(this,SLOT(dummySlot()), actionCollection());
--    connect(toggleAction,SIGNAL(toggled(bool)), this, SLOT(optionsShowToolbar(bool)));
-     toggleAction=KStdAction::showStatusbar(this,SLOT(dummySlot()), actionCollection());
-     connect(toggleAction,SIGNAL(toggled(bool)), this, SLOT(optionsShowStatusbar(bool)));
- 
-     KStdAction::configureToolbars(this,SLOT(optionsEditToolbars()),actionCollection());
- 
--    toggleAction = new KToggleAction(i18n("Show &Navigation Bar"), 0,
--                  actionCollection(),"settings_show_navbar");
--    connect(toggleAction,SIGNAL(toggled(bool)), this, SLOT(optionsShowNavBar(bool)));
-     toggleAction = new KToggleAction(i18n("Show Co&mments"), 0,
-                   actionCollection(),"settings_show_comments");
-     connect(toggleAction,SIGNAL(toggled(bool)), m_view, SLOT(showComments(bool)));
-@@ -669,7 +664,7 @@
-     KStdAction::keyBindings(this,SLOT(optionsConfigure()),actionCollection());
-     KStdAction::preferences(this,SLOT(optionsPreferences()),actionCollection());
- 
--
-+    setStandardToolBarMenuEnabled ( true );
- 
-    action = new KAction(i18n("&Stop Searching"), "stop",Key_Escape, m_view,
-          SLOT(stopSearch()),actionCollection(), "stop_search");
-@@ -789,13 +784,7 @@
-     {
-        applyMainWindowSettings(config, "View");
- 
--       KToggleAction* toggleAction=(KToggleAction*)actionCollection()->action(KStdAction::stdName(KStdAction::ShowToolbar));
--       toggleAction->setChecked(!toolBar()->isHidden());
--
--       toggleAction=(KToggleAction*)actionCollection()->action("settings_show_navbar");
--       toggleAction->setChecked(!NAVIGATIONBAR->isHidden());
--
--       toggleAction=(KToggleAction*)actionCollection()->action(KStdAction::stdName(KStdAction::ShowStatusbar));
-+       KToggleAction* toggleAction=(KToggleAction*)actionCollection()->action(KStdAction::stdName(KStdAction::ShowStatusbar));
-        toggleAction->setChecked(!statusBar()->isHidden());
- 
-        KConfigGroupSaver saver(config,"View");
-@@ -1136,30 +1125,6 @@
- 
- }
- 
--void KBabel::optionsShowToolbar(bool on)
--{
--   if(on)
--   {
--      toolBar()->show();
--   }
--   else
--   {
--      toolBar()->hide();
--   }
--}
--
--void KBabel::optionsShowNavBar(bool on)
--{
--   if(on)
--   {
--      NAVIGATIONBAR->show();
--   }
--   else
--   {
--      NAVIGATIONBAR->hide();
--   }
--}
--
- void KBabel::optionsShowStatusbar(bool on)
- {
-    if(on)
-@@ -1280,7 +1245,7 @@
- }
- 
- 
--void KBabel::setCatManSettings(CatManSettings settings)
-+void KBabel::setCatManSettings(CatManSettings /*settings*/)
- {
- #if 0
-    if(_catalogManager)
---- kbabel/kbabel/kbabel.h	3 Oct 2002 01:05:55 -0000	1.1.1.3
-+++ kbabel/kbabel/kbabel.h	3 Mar 2003 03:54:03 -0000	1.1.1.4
-@@ -133,8 +133,6 @@
-     void addToRecentFiles(KURL url);
-     
-     void toggleEditMode();
--    void optionsShowToolbar(bool on);
--    void optionsShowNavBar(bool on);
-     void optionsShowStatusbar(bool on);
-     void optionsEditToolbars();
-     void checkMenuItemTools();
---- kbabel/kbabel/kbabelpref.cpp	10 Jul 2002 05:28:59 -0000	1.1.1.2
-+++ kbabel/kbabel/kbabelpref.cpp	3 Mar 2003 03:54:03 -0000	1.1.1.3
-@@ -128,7 +128,7 @@
-     _saveSettings=settings;
- }
- 
--void KBabelPreferences::updateCatManSettings(CatManSettings settings)
-+void KBabelPreferences::updateCatManSettings(CatManSettings /*settings*/)
- {
- //    _catManPage->setSettings(settings);
- //    _catManSettings=settings;
---- kbabel/kbabel/kbabelview.cpp	4 Jan 2003 20:24:31 -0000	1.1.1.8
-+++ kbabel/kbabel/kbabelview.cpp	3 Mar 2003 03:54:04 -0000	1.1.1.9
-@@ -163,7 +163,7 @@
- "and the behavior of KBabel and to Stephan Kulow, who always\n"
- "lends me a helping hand.\n\n"
- "Many good ideas, especially for the Catalog Manager are taken\n"
--"from KTranslator by Andrea Rizzi.").arg(VERSION).arg(2002));
-+"from KTranslator by Andrea Rizzi.").arg(VERSION).arg(2003));
- 
-     QLabel *label=new QLabel(msgidLabel,i18n("O&riginal string (msgid):"),tempWidget);
- 
---- kbabel/kbabel/kbabelview2.cpp	5 Nov 2002 03:00:29 -0000	1.1.1.5
-+++ kbabel/kbabel/kbabelview2.cpp	3 Mar 2003 03:54:04 -0000	1.1.1.6
-@@ -3,6 +3,8 @@
- 
-   Copyright (C) 1999-2000 by Matthias Kiefer
-                             <matthias.kiefer@gmx.de>
-+		2002-2003  by Stanislav Visnovsky
-+			    <visnovsky@kde.org>
- 
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-@@ -243,6 +245,18 @@
-     } 
-     else
-     {
-+	if( _catalog->msgid( _currentIndex ).startsWith("_n:") )
-+	{
-+	    int pos = msgstrEdit->currentIndex();
-+    	    int currentFormBegin=s.findRev("\\n",pos);
-+	    if( currentFormBegin == -1 ) currentFormBegin=0;
-+	    else currentFormBegin+=3; // skip the newline
-+	    int currentFormEnd=s.find("\\n",pos);
-+	    if( currentFormEnd == -1 ) currentFormEnd=s.length();
-+	
-+	    s=s.mid(currentFormBegin,currentFormEnd-currentFormBegin);
-+	}
-+		
- 	TagExtractor te(s);
- 	uint num=te.countTags();
- 	if(num >= _tags.count())
-@@ -373,6 +387,18 @@
- 	int offset = msgstrEdit->pos2Offset(line,col);
- 
-     QString s = _catalog->msgstr(_currentIndex).left(offset);
-+    
-+    if( _catalog->msgid( _currentIndex ).startsWith("_n:" ) )
-+    {
-+	int pos = msgstrEdit->currentIndex();
-+    	int currentFormBegin=s.findRev("\\n",pos);
-+	if( currentFormBegin == -1 ) currentFormBegin=0;
-+	else currentFormBegin+=3; // skip the newline
-+	int currentFormEnd=s.find("\\n",pos);
-+	if( currentFormEnd == -1 ) currentFormEnd=s.length();
-+	
-+	s=s.mid(currentFormBegin,currentFormEnd-currentFormBegin);
-+    }
-     
-     ArgExtractor te(s);
-     uint num=te.countArgs();
---- kbabel/kbabel/main.cpp	12 Nov 2002 18:58:04 -0000	1.1.1.5
+--- kbabel/kbabel/main.cpp	3 Mar 2003 03:54:04 -0000	1.1.1.6
 +++ kbabel/kbabel/main.cpp	3 Mar 2003 04:03:46 -0000	1.3
-@@ -3,7 +3,7 @@
- 
-   Copyright (C) 1999-2001 by Matthias Kiefer
-                             <matthias.kiefer@gmx.de>
--		2002	  by Stanislav Visnovsky
-+		2002-2003  by Stanislav Visnovsky
- 			    <visnovsky@kde.org>
- 
-   This program is free software; you can redistribute it and/or modify
-@@ -92,10 +92,14 @@
- 
- int KBabelApp::newInstance()
- {
--    // see if we are starting with session management
--    if (isRestored())
--        RESTORE(KBabel)
--    else
-+    bool first=true;
-+    if(KBabel::memberList && !KBabel::memberList->isEmpty())
-+    {
-+        first=false;
-+    }
-+        
-+    // see if we are starting with session management => isRestored and first
-+    if (!isRestored() || !first)
-     {
-         KCmdLineArgs *args = KCmdLineArgs::parsedArgs();
-         
-@@ -103,12 +107,6 @@
-         QWidget *splash=0;
-         bool showSplash=args->isSet("splash");
- 
--        bool first=true;
--        if(KBabel::memberList && !KBabel::memberList->isEmpty())
--        {
--            first=false;
--        }
--        
-         if( showSplash && first )
-         {
-             setOverrideCursor(KCursor::waitCursor());
-@@ -410,7 +408,8 @@
+@@ -408,7 +408,8 @@
  };
  
  
@@ -2274,458 +835,6 @@ diff -N kbabel/catalogmanager/pics/noflag.png
  {
      KAboutData about("kbabel",I18N_NOOP("KBabel"),VERSION,
         I18N_NOOP("An advanced PO file editor"),KAboutData::License_GPL,
-@@ -464,6 +463,11 @@
-     }
-     
-     KBabelApp app;
-+    
-+    if( app.isRestored() )
-+    {
-+	RESTORE(KBabel)
-+    }
- 
-     return app.exec();
- }
---- kbabel/kbabel/mymultilineedit.cpp	29 Oct 2002 18:25:06 -0000	1.1.1.4
-+++ kbabel/kbabel/mymultilineedit.cpp	3 Mar 2003 03:54:04 -0000	1.1.1.5
-@@ -3,6 +3,8 @@
- 
-   Copyright (C) 1999-2000 by Matthias Kiefer
-                             <matthias.kiefer@gmx.de>
-+		2001-2003 by Stanislav Visnovsky
-+			    <visnovsky@kde.org>
- 			    
-   Alt+123 feature idea taken from KOffice by David Faure <david@mandrakesoft.com>.
- 
-@@ -83,7 +85,7 @@
-   else _invisibleHighlight.setInactive( newcg );
-   setPalette( _invisibleHighlight );   
-    
--  if(delcmd->offset <= _lastParagraphOffset)
-+  if(delcmd->offset <= (int)_lastParagraphOffset)
-   {
-     _lastParagraph=0;
-     _lastParagraphOffset=0;
-@@ -211,7 +213,7 @@
- 	    int x,y;
- 	    getCursorPosition( &x, &y );
- 	    QString s = text(x);
--	    if( y < s.length()-1  ) // not the end of paragraph
-+	    if( y < (int)s.length()-1  ) // not the end of paragraph
- 	    {
- 		QString delText = s.mid( y, s.length()-y-1);
- 	        emit signalUndoCmd( new DelTextCmd(currentIndex(), delText ) );
-@@ -220,6 +222,7 @@
- 		    emit signalUndoCmd( new DelTextCmd(currentIndex(), "\n" ) );
- 	}
-         break;
-+      default: break;
-   }
- 
-   QTextEdit::doKeyboardAction( action );
-@@ -266,7 +269,7 @@
- 	int endRow,endCol;
- 	getSelection(&row,&col,&endRow,&endCol);
- 
--	if( row<_lastParagraph )
-+	if( row<(int)_lastParagraph )
- 	{
- 	    _lastParagraph=0;
- 	    _lastParagraphOffset=0;
-@@ -400,7 +403,7 @@
-             QString delTxt(s[cursorX]);
-             emit signalUndoCmd(new DelTextCmd(offset,delTxt));
-          }
--         else if( cursorY < paragraphs()-1 || ( (cursorY == paragraphs()-1) && (cursorX < text( paragraphs()-1 ).length()-1 ) ) )// !atEnd() )
-+         else if( cursorY < (int)paragraphs()-1 || ( (cursorY == (int)paragraphs()-1) && (cursorX < (int)text( paragraphs()-1 ).length()-1 ) ) )// !atEnd() )
-          {
-             emit signalUndoCmd(new DelTextCmd(offset,"\n"));
-          }
-@@ -422,7 +425,7 @@
- 	  int paraFrom, idxFrom, paraTo, idxTo;
- 	  QTextEdit::getSelection( &paraFrom, &idxFrom, &paraTo, &idxTo );
- 	  
--	  if( paraFrom < _lastParagraph )
-+	  if( paraFrom < (int)_lastParagraph )
- 	  {
- 	    _lastParagraph=0;
- 	    _lastParagraphOffset=0;
-@@ -485,15 +488,15 @@
-     }
- }
- 
--int MyMultiLineEdit::pos2Offset(int paragraph, int index)
-+int MyMultiLineEdit::pos2Offset(uint paragraph, uint index)
- {
--    paragraph = QMAX( QMIN( paragraph, paragraphs() - 1), 0 ); // Sanity check
--	index  = QMAX( QMIN( index,  paragraphLength( paragraph )), 0 ); // Sanity check
-+    paragraph = QMAX( QMIN( (int)paragraph, paragraphs() - 1), 0 ); // Sanity check
-+	index  = QMAX( QMIN( (int)index,  paragraphLength( paragraph )), 0 ); // Sanity check
-     {
--        int lastI;
-+        uint lastI;
- 	lastI  = paragraphLength( paragraph );
--	int i = 0; 
--	int tmp = 0;
-+	uint i = 0; 
-+	uint tmp = 0;
- 
- 	if( paragraph>=_lastParagraph )
- 	{
-@@ -554,6 +557,24 @@
-                 _diffDelColor(Qt::darkRed),
- 		_currentUnicodeNumber(0)
- {
-+   _whitespace = new QPixmap(2,2,-1,QPixmap::BestOptim);
-+   _whitespace->fill(_textColor);
-+   _errorWhitespace = new QPixmap(2,2,-1,QPixmap::BestOptim);
-+   _errorWhitespace->fill(_errorColor);
-+
-+   _whitespaceNB = new QPixmap(3,3,-1,QPixmap::BestOptim);
-+   _whitespaceNB->fill();
-+   _errorWhitespaceNB = new QPixmap(3,3,-1,QPixmap::BestOptim);
-+   _errorWhitespaceNB->fill();
-+
-+   QPainter p(_whitespaceNB);
-+   p.setPen( _textColor );
-+   p.drawEllipse(_whitespaceNB->rect());
-+
-+   QPainter q(_errorWhitespaceNB);
-+   q.setPen( _errorColor );
-+   q.drawEllipse(_errorWhitespaceNB->rect());
-+					  
-    diffPos.setAutoDelete(true);
-    diffPos.clear();
-    connect( this, SIGNAL( selectionChanged() ), this, SLOT( paintSpacePoints() ) );   
-@@ -778,6 +799,10 @@
- {
-    QTextEdit::setFont(font);
- 
-+   QFontMetrics fm(font);
-+   _wsOffsetX = QMAX(fm.width(' ')/2-2,1);
-+   _wsOffsetY = QMAX(fm.height()/2-1,0);
-+
-    repaint();
- }
- 
-@@ -867,15 +892,31 @@
- 	int myrow = row;
- 	int myrowY = rowY;
- 	
-+        QPixmap* ws, *wsnb;
-+	
-+	if( _currentColor== _errorColor )
-+	{
-+	    ws = _errorWhitespace;
-+	    wsnb = _errorWhitespaceNB;
-+	}
-+	else
-+	{
-+	    ws = _whitespace;
-+	    wsnb = _whitespaceNB;
-+	}
-+													
-         while( mypar )
- 	{
- 	    QString s = text(myrow);
- 	    int i = s.find( " " );
--	    while( (i >= 0) && (i < s.length()-1) ) // -1 because text will end by EOLN
-+	    while( (i >= 0) && (i < (int)s.length()-1) ) // -1 because text will end by EOLN
- 	    {
- 		QTextStringChar* ch=mypar->at(i);
- 		p = contentsToViewport( QPoint(ch->x,myrowY));
--		painter.drawEllipse( p.x()+mypar->string()->width(i)/2-1, p.y()+mypar->lineHeight(0)/2,2,2 );
-+		if( ch->c.unicode() == 0x00A0U )
-+		    bitBlt(viewport(), QPoint(p.x()+_wsOffsetX, p.y()+_wsOffsetY), wsnb, wsnb->rect(), Qt::CopyROP);
-+		else
-+		    bitBlt(viewport(), QPoint(p.x()+_wsOffsetX, p.y()+_wsOffsetY), ws, wsnb->rect(), Qt::CopyROP);
- 		i = s.find( " ", i+1 );
-     	    }
- 	    myrowY+=mypar->lineHeight(0);
-@@ -907,7 +948,7 @@
-     
-     if( _showDiff && (!_diffUnderlineAdd || !_diffStrikeOutDel) )
-     {
--	if( paragraphs() == diffPos.size() ) // sanity check
-+	if( paragraphs() == (int)diffPos.size() ) // sanity check
- 	{
- 	painter.setRasterOp( Qt::AndROP );
- 	for( int myrow = row; myrow < paragraphs() ; myrow++ ) {
-@@ -943,7 +984,7 @@
- 
-     if( _showDiff && (_diffUnderlineAdd || _diffStrikeOutDel) )
-     {
--	if( paragraphs() == diffPos.size() ) // sanity check
-+	if( paragraphs() == (int)diffPos.size() ) // sanity check
- 	{
- 	for( int myrow = row ; myrow < paragraphs() ; myrow++ ) {
- 	    r = paragraphRect(myrow);
-@@ -1023,12 +1064,12 @@
- 
- 	// setup new colors
- 	
--	int i;
-+	uint i;
- 	
- 	QRegExp markup("(\\\\)|(\")|(\\\\[abfnrtv'\"\?\\\\])|(\\\\\\d+)|(\\\\x[\\dabcdef]+)"
- 	    "|(%[\\ddioxXucsfeEgGphln]+)|(&[^\\s])|(&[\\w-]+;)");
- 
--	for( i = QMAX(_firstChangedLine,0) ; i < QMIN(_lastChangedLine+1,paragraphs()) ; i++ ) {
-+	for( i = QMAX(_firstChangedLine,0) ; i < QMIN(_lastChangedLine+1,(uint)paragraphs()) ; i++ ) {
- 	
- 	QString line=text(i);
- 
-@@ -1072,7 +1113,7 @@
- 	int tagindex=0;
- 	int taglength=0;
- 	int lineindex=0;
--	int index=0;
-+	uint index=0;
- 	int startPara, endPara, startIndex, endIndex;
- 	QString t= text();
- 	
-@@ -1109,7 +1150,7 @@
- 	    taglength=re.matchedLength();
- 	}
- 	
--	while( tagindex >= 0 && index<paragraphs())
-+	while( tagindex >= 0 && (int)index<paragraphs())
- 	{
- 	    while( tagindex>=lineindex  && index<_lastChangedLine+2) 
- 		lineindex+=paragraphLength(index++)+1;
-@@ -1123,7 +1164,7 @@
- 	    
- 	    tagindex+=taglength;
- 
--	    while( tagindex>=lineindex && index<paragraphs()) 
-+	    while( tagindex>=lineindex && (int)index<paragraphs()) 
- 		lineindex+=paragraphLength(index++)+1;
- 	    lineindex-=paragraphLength(index-1);
- 	    lineindex--;
---- kbabel/kbabel/mymultilineedit.h	29 Oct 2002 18:25:06 -0000	1.1.1.3
-+++ kbabel/kbabel/mymultilineedit.h	3 Mar 2003 03:54:04 -0000	1.1.1.4
-@@ -52,7 +52,7 @@
-    virtual void insertAt ( const QString & s, int line, int col, bool mark = false );
-    virtual void removeLine ( int line );
- 
--   int pos2Offset(int paragraph, int index);
-+   int pos2Offset(uint paragraph, uint index);
-    void offset2Pos(int offset, int &row, int &col) const;
-    /** 
- 	* @returns the current position in text, where the cursor is
-@@ -221,6 +221,14 @@
-    QColor _textColor;
-    QColor _errorColor;
-    QColor _currentColor;
-+
-+   QPixmap* _whitespace;
-+   QPixmap* _whitespaceNB;
-+   QPixmap* _errorWhitespace;
-+   QPixmap* _errorWhitespaceNB;
-+
-+   int _wsOffsetX;
-+   int _wsOffsetY;
- 
-    bool _hlSyntax;
-    QColor _quoteColor;
---- kbabel/kbabel/prefwidgets.cpp	29 Oct 2002 18:25:06 -0000	1.1.1.5
-+++ kbabel/kbabel/prefwidgets.cpp	3 Mar 2003 03:54:05 -0000	1.1.1.6
-@@ -325,6 +325,8 @@
-       case NoChange:
-          _nochangeFSFButton->setChecked(true);
-          break;
-+      case RemoveLine:
-+         break;
-    }
-    
-    _autoCheckButton->setChecked(settings.autoSyntaxCheck);
-@@ -428,6 +430,8 @@
-          break;
-       case NoChange:
-          _nochangeFSFButton->setChecked(true);
-+         break;
-+      case RemoveLine:
-          break;
-    }
-    
---- kbabel/kbabel/roughtransdlg.cpp	29 Oct 2002 18:25:06 -0000	1.1.1.4
-+++ kbabel/kbabel/roughtransdlg.cpp	3 Mar 2003 03:54:05 -0000	1.1.1.5
-@@ -3,6 +3,8 @@
- 
-   Copyright (C) 1999-2001 by Matthias Kiefer
-                             <matthias.kiefer@gmx.de>
-+		2002-2003 by Stanislav Visnovsky
-+			    <visnovsky@kde.org>
- 
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-@@ -196,6 +198,10 @@
-     active=true;
-     stop=false;
-     cancel=false;
-+    
-+    exactTransCounter=0;
-+    partTransCounter=0;
-+    totalTried=0;
- 
-     bool markFuzzy = markFuzzyButton->isChecked();
-     bool translated = transButton->isChecked();
-@@ -204,6 +210,7 @@
-     bool kdeSpecific=kdeButton->isChecked();
- 
-     int total=catalog->numberOfEntries();
-+    progressbar->setTotalSteps(total);
- 
-     QStringList dictList = dictChooser->selectedDicts();
- 
-@@ -212,15 +219,12 @@
-     tmp->setIndex(0);
-     catalog->applyEditCommand(tmp,0);
- 
--    exactTransCounter=0;
--    partTransCounter=0;
-     bool singleWords=singleWordButton->isChecked();
-     bool fuzzyMatch=fuzzyMatchButton->isChecked();
-     QRegExp contextReg=catalog->miscSettings().contextInfo;
-     QChar accelMarker=catalog->miscSettings().accelMarker;
-     QRegExp endPunctReg("[\\.?!: ]+$");
-     
--    totalTried=0;
- 
-     for(int i = 0; i < total; i++)
-     {
-@@ -229,42 +233,77 @@
- 
-         if(stop || cancel) break;
- 
--        QString msg=catalog->msgid(i,true);
-+        // FIXME: should care about plural forms
-+	QString msg=catalog->msgid(i,true);
-         QString translation;
- 
-         // this is KDE specific:
- 	if( kdeSpecific )
- 	{
--	    QString origTrans = catalog->msgstr(i);
--    	    if(msg.find("_: NAME OF TRANSLATORS\\n")==0)
--    	    {
--		QString authorName;
--		if( !catalog->identitySettings().authorLocalizedName.isEmpty() )
--		    authorName = catalog->identitySettings().authorLocalizedName;
--		else // fallback to non-localized name
--		if( !catalog->identitySettings().authorName.isEmpty() )
--		    authorName = catalog->identitySettings().authorName;
--		else continue; // there is no name to be inserted
-+//	    if( catalog->pluralForm(i) == NoPluralForm )
-+	    {
-+		QString origTrans = catalog->msgstr(i);
-+    		if(msg.find("_: NAME OF TRANSLATORS\\n")==0)
-+    		{
-+		    QString authorName;
-+		    if( !catalog->identitySettings().authorLocalizedName.isEmpty() )
-+			authorName = catalog->identitySettings().authorLocalizedName;
-+		    else // fallback to non-localized name
-+			if( !catalog->identitySettings().authorName.isEmpty() )
-+			    authorName = catalog->identitySettings().authorName;
-+			else continue; // there is no name to be inserted
- 		
--		if( !QStringList::split(',', origTrans).contains(catalog->identitySettings().authorLocalizedName) )
--		{
--        	    if(origTrans.isEmpty() ) translation=authorName;
--		    else translation+=origTrans+","+authorName;
--		    exactTransCounter++;
--		}
--    	    }
--    	    else if(msg.find("_: EMAIL OF TRANSLATORS\\n")==0)
--    	    {
--		// skip, if email is not specified in settings
--		if( catalog->identitySettings().authorEmail.isEmpty() ) continue;
-+		    if( !QStringList::split(',', origTrans).contains(authorName) )
-+		    {
-+        		if(origTrans.isEmpty() ) translation=authorName;
-+			else translation+=origTrans+","+authorName;
-+		    }
-+    		}
-+    		else if(msg.find("_: EMAIL OF TRANSLATORS\\n")==0)
-+    		{
-+		    // skip, if email is not specified in settings
-+		    if( catalog->identitySettings().authorEmail.isEmpty() ) continue;
- 		
--		if( !QStringList::split(',', origTrans).contains(catalog->identitySettings().authorEmail) )
--		{
--		   if(origTrans.isEmpty() ) translation=catalog->identitySettings().authorEmail;
--		   else translation=origTrans+","+catalog->identitySettings().authorEmail;
--		   exactTransCounter++;
--		}
--    	    }
-+		    if( !QStringList::split(',', origTrans).contains(catalog->identitySettings().authorEmail) )
-+		    {
-+			if(origTrans.isEmpty() ) translation=catalog->identitySettings().authorEmail;
-+			else translation=origTrans+","+catalog->identitySettings().authorEmail;
-+		    }
-+    		}
-+                else if (msg.find("ROLES_OF_TRANSLATORS") == 0)
-+                {
-+                  QString temp = "<othercredit role=\\\"translator\\\">\n<firstname></firstname>"
-+                    "<surname></surname>\n<affiliation><address><email>" + 
-+                    catalog->identitySettings( ).authorEmail+"</email></address>\n"
-+                    "</affiliation><contrib></contrib></othercredit>";
-+                  if (origTrans.isEmpty( ))
-+                    translation = temp;
-+                  else if (origTrans.find(catalog->identitySettings( ).authorEmail) < 0)
-+                    translation = origTrans + "\n" + temp;
-+                }
-+                else if (msg.find("CREDIT_FOR_TRANSLATORS") == 0)
-+                {
-+                  QString authorName;
-+                  if (!catalog->identitySettings( ).authorLocalizedName.isEmpty( ))
-+                    authorName = catalog->identitySettings( ).authorLocalizedName;
-+                  else if (!catalog->identitySettings( ).authorName.isEmpty( ))
-+                    authorName = catalog->identitySettings( ).authorName;
-+                  QString temp = "<para>" + authorName + "\n" + "<email>" + 
-+                    catalog->identitySettings( ).authorEmail + "</email></para>";
-+                  if (origTrans.isEmpty( ))
-+                    translation = temp;
-+                  else if (origTrans.find(authorName) < 0 && 
-+                           origTrans.find(catalog->identitySettings( ).authorEmail) < 0)
-+                    translation = origTrans + "\n" + temp;
-+                }
-+	    }
-+	} 
-+	else  // not kdeSpecific 
-+	{
-+	    // skip KDE specific texts
-+	    if( msg.find("_: EMAIL OF TRANSLATORS\\n")==0 || msg.find("_: NAME OF TRANSLATORS\\n")==0 || 
-+                msg.find("ROLES_OF_TRANSLATORS")==0 || msg.find("CREDIT_FOR_TRANSLATORS")==0)
-+		continue;
- 	}
- 
- 	if( translation.isEmpty() ) // KDE-specific translation didn't work
-@@ -513,6 +552,9 @@
-     catalog->applyEditCommand(tmp,0);
- 
-     int nothing=totalTried-partTransCounter-exactTransCounter;
-+    
-+    int divTotalTried = QMAX(1,totalTried);
-+    
-     KLocale *locale = KGlobal::locale();
-     QString statMsg = i18n("Result of the translation:\n"
-             "Edited entries: %1\n"
-@@ -521,11 +563,11 @@
-             "Nothing found: %6 (%7%)")
-             .arg( locale->formatNumber(totalTried,0) )
-             .arg( locale->formatNumber(exactTransCounter,0) )
--            .arg( locale->formatNumber( ((double)(10000*exactTransCounter/totalTried))/100) )
-+            .arg( locale->formatNumber( ((double)(10000*exactTransCounter/divTotalTried))/100) )
-             .arg( locale->formatNumber(partTransCounter,0) )
--            .arg( locale->formatNumber(((double)(10000*partTransCounter/totalTried))/100) )
-+            .arg( locale->formatNumber(((double)(10000*partTransCounter/divTotalTried))/100) )
-             .arg( locale->formatNumber(nothing,0) )
--            .arg( locale->formatNumber(((double)(10000*nothing/totalTried))/100) );
-+            .arg( locale->formatNumber(((double)(10000*nothing/divTotalTried))/100) );
- 
-     if(stop || cancel)
-     {
 RCS file: kbabel/kbabel/stub_main.cpp
 diff -N kbabel/kbabel/stub_main.cpp
 --- /dev/null	1 Jan 1970 00:00:00 -0000
@@ -2831,110 +940,43 @@ diff -N kbabel/kbabel/version.h
  #rcdir = $(kde_datadir)/kbabel
  #rc_DATA = kbabelui.rc
  
---- kbabel/kbabeldict/searchengine.cpp	25 Jun 2002 03:20:50 -0000	1.1.1.1
-+++ kbabel/kbabeldict/searchengine.cpp	3 Mar 2003 03:54:08 -0000	1.1.1.2
-@@ -107,7 +107,7 @@
- {
- 	SearchResult *r=0;
- 	
--	if(n >= 0 && n < results.count())
-+	if(n >= 0 && n < (int)results.count())
- 		r = results.at(n);
- 		
- 	return r;
---- kbabel/kbabeldict/modules/dbsearchengine/KDBSearchEngine.cpp	3 Oct 2002 01:06:01 -0000	1.1.1.4
-+++ kbabel/kbabeldict/modules/dbsearchengine/KDBSearchEngine.cpp	3 Mar 2003 03:54:08 -0000	1.1.1.5
-@@ -634,7 +634,7 @@
- 	{
- 
- 	  id=&((*it1).string);
--	  int nn=0;
-+	  uint nn=0;
- 	  do {
- 	    if(intra) {
- 	       msgId=item.translations[nn].translation;
-@@ -849,7 +849,7 @@
- 
- }
- 
--void KDBSearchEngine::setLanguage(QString languageCode, QString languageName)
-+void KDBSearchEngine::setLanguage(QString languageCode, QString /*languageName*/)
- {
- setLanguageCode(languageCode);
- }
-@@ -1486,7 +1486,7 @@
- }
- 
- void KDBSearchEngine::stringChanged( QString orig, QString translated
--		                      , QString description)
-+		                      , QString /*description*/)
- {
- //author is KBABEL ????
- //#warning uncomment and FIXME
---- kmtrace/configure.in.in	14 Aug 2002 19:48:33 -0000	1.1.1.2
-+++ kmtrace/configure.in.in	14 Mar 2003 00:15:47 -0000	1.1.1.3
-@@ -6,6 +6,19 @@
-       if test ! -f /usr/lib/libiberty.a; then
-          kde_compile_kmtrace=no
-       fi
-+      AC_TRY_COMPILE([
-+#include <stdlib.h>
-+], [
-+#if __GLIBC__ > 2
-+no idea if this ever works
-+#else
-+#if __GLIBC__ == 2 && __GLIBC_MINOR__ >= 3
-+kmtrace does no longer compile with glibc 2.3.x or newer
-+#endif
-+#endif
-+], , [
-+kde_compile_kmtrace=no
-+])
-       ;;
-    *)
-       kde_compile_kmtrace=no
---- kompare/Makefile.am	29 Oct 2002 18:25:22 -0000	1.1.1.3
-+++ kompare/Makefile.am	29 Nov 2002 19:01:23 -0000	1.2
-@@ -27,7 +27,7 @@
- # the application source, library search path, and link libraries
- kompare_SOURCES = main.cpp kompare_shell.cpp kcomparedialog.cpp
- kompare_LDFLAGS = $(KDE_RPATH) $(all_libraries)
--kompare_LDADD   = $(LIB_KPARTS) $(top_builddir)/kompare/komparepart/libkomparepart.la
-+kompare_LDADD   = $(LIB_KPARTS) $(top_builddir)/kompare/komparepart/libkomparepart_shared.la
- 
- # this is where the desktop file will go
- shelldesktopdir   = $(kde_appsdir)/Development
 --- kompare/komparepart/Makefile.am	10 Jul 2002 05:30:35 -0000	1.1.1.2
-+++ kompare/komparepart/Makefile.am	29 Nov 2002 19:01:23 -0000	1.2
-@@ -25,10 +25,10 @@
++++ kompare/komparepart/Makefile.am	23 Mar 2003 14:52:22 -0000	1.3
+@@ -25,7 +25,8 @@
  # let automoc handle all of the meta source files (moc)
  METASOURCES = AUTO
  
 -kde_module_LTLIBRARIES = libkomparepart.la
-+kde_module_LTLIBRARIES = libkomparepart.la libkomparepart_shared.la
++lib_LTLIBRARIES = libkomparepart.la
++kde_module_LTLIBRARIES = komparepart.la
  
  # the Part's source, library search path, and link libraries
--libkomparepart_la_SOURCES = \
-+libkomparepart_shared_la_SOURCES = \
- 	kompare_part.cpp \
- 	kompare_actions.cpp \
- 	kompareconnectwidget.cpp \
-@@ -46,9 +46,16 @@
+ libkomparepart_la_SOURCES = \
+@@ -46,9 +47,16 @@
  	komparesaveoptionsbase.ui \
  	komparesaveoptionswidget.cpp
  
 -libkomparepart_la_LDFLAGS = -module $(KDE_PLUGIN) $(all_libraries)
--libkomparepart_la_LIBADD  = $(LIB_KPARTS) $(LIB_KFILE) \
-+libkomparepart_shared_la_LDFLAGS = $(KDE_RPATH) $(all_libraries) -avoid-version
-+libkomparepart_shared_la_LIBADD  = $(LIB_KPARTS) $(LIB_KFILE) \
++libkomparepart_la_LDFLAGS = $(KDE_RPATH) $(all_libraries)
+ libkomparepart_la_LIBADD  = $(LIB_KPARTS) $(LIB_KFILE) \
  	$(top_builddir)/kompare/libdiff2/libdiff2.la
 +
-+libkomparepart_la_SOURCES = libkomparepart_la_dummy.cpp
-+libkomparepart_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -module -avoid-version
-+libkomparepart_la_LIBADD  = libkomparepart_shared.la
++komparepart_la_SOURCES = dummy.cpp
++komparepart_la_LDFLAGS = $(all_libraries) $(KDE_PLUGIN) -module
++komparepart_la_LIBADD  = libkomparepart.la
 +
-+libkomparepart_la_dummy.cpp:
-+	echo > libkomparepart_la_dummy.cpp
++dummy.cpp:
++	echo > dummy.cpp
  
  # this is where the desktop file will go
  partdesktopdir   = $(kde_servicesdir)
+--- kompare/komparepart/komparepart.desktop	29 Oct 2002 18:25:23 -0000	1.1.1.3
++++ kompare/komparepart/komparepart.desktop	23 Mar 2003 14:52:22 -0000	1.2
+@@ -16,6 +16,6 @@
+ Name[zu]=Ingxenye yeKompare
+ MimeType=text/x-diff
+ ServiceTypes=KParts/ReadOnlyPart,KParts/ReadWritePart,Kompare/ViewPart
+-X-KDE-Library=libkomparepart
++X-KDE-Library=komparepart
+ Type=Service
+ Icon=kompare

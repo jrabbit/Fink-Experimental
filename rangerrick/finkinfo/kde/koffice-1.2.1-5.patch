@@ -131,6 +131,17 @@ diff -N doc/kword/view.png
  
  libkarbonepsimport_la_SOURCES = epsimport.cc
  libkarbonepsimport_la_LDFLAGS = $(KDE_PLUGIN)
+--- filters/karbon/eps/epsimport.cc	4 Dec 2002 02:59:11 -0000	1.1.1.4
++++ filters/karbon/eps/epsimport.cc	23 Mar 2003 17:23:40 -0000
+@@ -73,7 +73,7 @@
+ 	QString input = m_chain->inputFile();
+ 
+  	QString command(
+- 		"gs -q -dNOPAUSE -dSAFER -dNODISPLAY ps2ai.ps ");
++ 		"gs -q -dBATCH -dNOPAUSE -dSAFER -dNODISPLAY ps2ai.ps ");
+  	command += KShellProcess::quote(input);
+  	command += " > ";
+  	command += KShellProcess::quote(m_chain->outputFile());
 --- filters/karbon/png/Makefile.am	20 Jun 2002 04:48:49 -0000	1.1.1.1
 +++ filters/karbon/png/Makefile.am	1 Dec 2002 19:28:48 -0000	1.2
 @@ -3,7 +3,7 @@
@@ -153,6 +164,108 @@ diff -N doc/kword/view.png
  
  INCLUDES = \
  	$(KOFFICE_INCLUDES) \
+--- filters/kpresenter/kword/kprkword.cc	20 Jun 2002 04:49:05 -0000	1.1.1.2
++++ filters/kpresenter/kword/kprkword.cc	23 Mar 2003 17:23:41 -0000
+@@ -123,8 +123,7 @@
+     style.appendChild( format );
+     QDomElement font = outdoc.createElement( "FONT" );
+     format.appendChild( font );
+-    // by picking up a font from the kpr doc we ensure that it's installed, at least
+-    font.setAttribute( "name", aFont );
++    font.setAttribute( "name", titleFont ); // found when reading the first title
+     QDomElement size = outdoc.createElement( "SIZE" );
+     format.appendChild( size );
+     size.setAttribute( "value", 24 );
+@@ -132,6 +131,15 @@
+     format.appendChild( bold );
+     bold.setAttribute( "value", 75 );
+ 
++    // Create the standard style
++    style = outdoc.createElement( "STYLE" );
++    styles.appendChild( style );
++    elem = outdoc.createElement( "NAME" );
++    style.appendChild( elem );
++    elem.setAttribute( "value", "Standard" ); // no i18n here!
++    format = outdoc.createElement( "FORMAT" );
++    style.appendChild( format ); // empty format == use defaults
++
+     // Write output file
+ 
+     KoStoreDevice* out = m_chain->storageFile( "root", KoStore::Write );
+@@ -147,7 +155,7 @@
+ // This class is used to sort the objects by y position
+ class KprObject {
+  public:
+-    int y;
++    double y;
+     QDomElement elem;
+     bool operator < ( const KprObject & c ) const
+     {
+@@ -180,14 +188,18 @@
+         if ( object.attribute( "type" ).toInt() == 4 ) // we only care about text objs
+         {
+             QDomElement orig = object.namedItem( "ORIG" ).toElement();
++            if ( !orig.isNull() )
++            {
+             KprObject * obj = new KprObject;
+-            obj->y = orig.attribute( "y" ).toInt();
++                obj->y = orig.attribute( "y" ).toDouble();
+             obj->elem = object;
+             objList.inSort( obj );
+         }
+     }
++    }
+ 
+     int curPage = -1;
++    //kdDebug() << "found " << objList.count() << " objects" << endl;
+ 
+     for ( QPtrListIterator<KprObject> it(objList); it.current(); ++it )
+     {
+@@ -304,10 +316,10 @@
+                     e.setAttribute( "value", 75 );
+                     outFormatElem.appendChild( e );
+                 }*/ // doesn't look good
+-                if ( aFont.isEmpty() )
+-                    aFont = textElem.attribute( "family" );
++                if ( titleFont.isEmpty() && isTitle )
++                    titleFont = textElem.attribute( "family" );
+ 
+-                // Family, colour and point size are voluntarily NOT passed over.
++                // Family and point size are voluntarily NOT passed over.
+                 if ( !textElem.attribute( "color" ).isEmpty())
+                 {
+                     QColor col;
+@@ -344,7 +356,8 @@
+                     outFormatsElem.appendChild( outFormatElem );
+                 }
+ 
+-            }
++            } // end "for each text element"
++
+             // KPresenter seems to save a trailing space (bug!)
+             int len = text.length();
+             if ( len > 0 && text[ len - 1 ] == ' ' )
+--- filters/kpresenter/kword/kprkword.h	20 Jun 2002 04:43:08 -0000	1.1.1.1
++++ filters/kpresenter/kword/kprkword.h	23 Mar 2003 17:23:41 -0000
+@@ -40,6 +40,6 @@
+     QDomDocument outdoc;
+     QDomElement frameset;
+     QString titleStyleName;
+-    QString aFont;
++    QString titleFont;
+ };
+ #endif // KPRKWORD_H
+--- filters/kspread/applixspread/applixspreadimport.cc	20 Jun 2002 04:43:08 -0000	1.1.1.1
++++ filters/kspread/applixspread/applixspreadimport.cc	23 Mar 2003 17:23:41 -0000
+@@ -228,7 +228,7 @@
+           irow   = rowstr.toInt(&ok);
+ 
+ 	  printf (" findpos: %s %d\n",rowstr.latin1(), irow );
+-          sscanf (cellnostr.latin1(), "%s%d",tmp, &bla);
++          sscanf (cellnostr.latin1(), "%299s%d",tmp, &bla);
+           sprintf (tmp1, "%d", irow);
+           leni = strlen (tmp1);
+ 	  QString cellcolstr;
 --- filters/kspread/csv/Makefile.am	20 Jun 2002 04:43:09 -0000	1.1.1.1
 +++ filters/kspread/csv/Makefile.am	1 Dec 2002 17:02:16 -0000	1.2
 @@ -9,11 +9,11 @@
@@ -207,6 +320,205 @@ diff -N doc/kword/view.png
  	libqpro/src/libqpro.la
  
  METASOURCES = AUTO
+--- filters/kspread/qpro/qproimport.cc	20 Jun 2002 04:43:09 -0000	1.1.1.1
++++ filters/kspread/qpro/qproimport.cc	23 Mar 2003 17:23:41 -0000
+@@ -18,7 +18,7 @@
+    Boston, MA 02111-1307, USA.
+ */
+ 
+-#include <strstream.h>
++#include <strstream>
+ 
+ #include <kdebug.h>
+ #include <kmessagebox.h>
+--- filters/kspread/qpro/libqpro/src/formula.cc	20 Jun 2002 04:43:10 -0000	1.1.1.1
++++ filters/kspread/qpro/libqpro/src/formula.cc	23 Mar 2003 17:23:42 -0000
+@@ -1,7 +1,7 @@
+ #include <qpro/common.h>
+ 
+-#include <iostream.h>
+-#include <strstream.h>
++#include <iostream>
++#include <strstream>
+ 
+ #include <string.h>
+ 
+@@ -474,7 +474,7 @@
+ QpFormula::floatFuncReal(const char*)
+ {
+    QP_INT64   lFloat;
+-   ostrstream lNum;
++   std::ostrstream lNum;
+ 
+    cFormula >> lFloat;
+ 
+@@ -489,7 +489,7 @@
+ QpFormula::intFuncReal(const char*)
+ {
+    QP_INT16 lInt;
+-   ostrstream lNum;
++   std::ostrstream lNum;
+ 
+    cFormula >> lInt;
+ 
+--- filters/kspread/qpro/libqpro/src/record.cc	20 Jun 2002 04:43:10 -0000	1.1.1.1
++++ filters/kspread/qpro/libqpro/src/record.cc	23 Mar 2003 17:23:42 -0000
+@@ -2,7 +2,7 @@
+ 
+ #include <string.h>
+ 
+-#include <iostream.h>
++#include <iostream>
+ 
+ #include <qpro/record.h>
+ #include <qpro/formula.h>
+@@ -10,7 +10,7 @@
+ // -----------------------------------------------------------------------
+ 
+ #include <iomanip.h>
+-#include <strstream.h>
++#include <strstream>
+ 
+ void
+ Charout(ostream& pOut, unsigned char pChar)
+@@ -32,7 +32,7 @@
+ int
+ Hexout(char* pChar, int pLen)
+ {
+-   ostrstream*   lOStr = new ostrstream;
++   std::ostrstream*   lOStr = new std::ostrstream;
+ 
+    while( pLen )
+    {
+@@ -57,7 +57,7 @@
+       cerr << lOStr->rdbuf() << endl;
+ 
+       delete lOStr;
+-      lOStr = new ostrstream;
++      lOStr = new std::ostrstream;
+    }
+ 
+    delete lOStr;
+@@ -200,7 +200,7 @@
+ {
+ //??? cope with relative/absolute references
+ 
+-   strstream lOut(pText, 20, ios::out); // ??? ard coded len
++   std::strstream lOut(pText, 20, ios::out); // ??? ard coded len
+    int       lPageRelative = pRow & 0x8000;
+    int       lColRelative  = pRow & 0x4000;
+    int       lRowRelative  = pRow & 0x2000;
+--- filters/kspread/qpro/libqpro/src/stream.cc	20 Jun 2002 04:43:10 -0000	1.1.1.1
++++ filters/kspread/qpro/libqpro/src/stream.cc	23 Mar 2003 17:23:42 -0000
+@@ -31,7 +31,7 @@
+ #else
+ #include <string.h>
+ #include <fstream.h>
+-#include <strstream.h>
++#include <strstream>
+ 
+ // For IRIX
+ namespace std {}
+@@ -60,7 +60,7 @@
+    , cOffset(0L)
+    , cStreamBuf(0)
+ {
+-   cStreamBuf = new strstreambuf (pBuffer, pLen);
++   cStreamBuf = new std::strstreambuf (pBuffer, pLen);
+ 
+    cIn = new istream(cStreamBuf);
+ }
+--- filters/kword/applixword/applixwordimport.cc	20 Jun 2002 04:43:10 -0000	1.1.1.1
++++ filters/kword/applixword/applixwordimport.cc	23 Mar 2003 17:23:42 -0000
+@@ -230,7 +230,7 @@
+          **********************************************************************/
+         else if (mystr.startsWith ("<P "))
+ 	{
+-	   sscanf ( (const char *) mystr.latin1(), "<P \"%s\"", stylename);
++	   sscanf ( (const char *) mystr.latin1(), "<P \"%99s\"", stylename);
+            mystr.remove (0, 5+strlen(stylename));
+            kdDebug()<<" Para  Name: "<< stylename<<endl;
+            kdDebug()<<"       Rest: "<<mystr<<endl;
+--- filters/kword/ascii/asciiexport.cc	12 Sep 2002 12:44:09 -0000	1.1.1.3
++++ filters/kword/ascii/asciiexport.cc	23 Mar 2003 17:23:42 -0000
+@@ -1,4 +1,4 @@
+-// $Header$
++// $Header$
+ 
+ /* This file is part of the KDE project
+    Copyright (C) 1998, 1999 Reginald Stadlbauer <reggie@kde.org>
+@@ -276,6 +276,7 @@
+                 break;
+             }
+         }
++        ProcessParagraphData ( paraText, paraFormatDataList);
+         m_counterList++; // Increment the list counter
+     }
+     else
+--- filters/kword/latex/import/kword_latex_import.desktop	12 Sep 2002 12:44:12 -0000	1.1.1.3
++++ filters/kword/latex/import/kword_latex_import.desktop	23 Mar 2003 17:23:42 -0000
+@@ -2,59 +2,10 @@
+ Encoding=UTF-8
+ X-KDE-Export=application/x-kword
+ ExportDescription=KWord
+-Icon=
+ X-KDE-Import=text/x-tex
+ X-KDE-Weight=1
+ ImportDescription=LATEX
+-Name=KWord HTML Import Filter
+-Name[af]=kword html in voer filter
+-Name[ar]=استيراد من HTML الى KWord
+-Name[az]=KWord HTML Alma Filter
+-Name[bg]=Филтър за импорт на HTML в KWord
+-Name[br]=Sil Enporzh HTML KWord
+-Name[ca]=Filtre d'importació HTML de KWord
+-Name[cs]=KWord HTML importní filtr
+-Name[da]=KWord HTML-importfilter
+-Name[de]=HTML-Import für KWord
+-Name[el]=Φίλτρο εισαγωγής HTML του KWord
+-Name[eo]=HTML-importfiltrilo por Verkilo
+-Name[es]=Filtro de importación HTML de KWord
+-Name[et]=KWordi HTML importfilter
+-Name[fi]=KWord HTML-tuontisuodin
+-Name[fr]=Filtre d'importation HTML de KWord
+-Name[he]=מסנן ייבוא מ-HTML ל-KWord
+-Name[hr]=KWord HTML uvozni filter
+-Name[hu]=KWord HTML importszűrő
+-Name[id]=Filter Impor HTML KWord
+-Name[is]=HTML-innflutningssía fyrir KWord ritvinnsluna
+-Name[it]=Filtro di importazione HTML per KWord
+-Name[ja]=KWord HTML インポートフィルター
+-Name[lt]=KWord HTML importo filtras
+-Name[lv]=KWord HTML Importa Filtrs
+-Name[mk]=KWord HTML увозен филтер
+-Name[mt]=Filtru għall-importazzjoni ta' HTML ġo KWord
+-Name[nb]=KWord HTML-importfilter
+-Name[nl]=KWord's HTML-Importfilter
+-Name[nn]=HTML-importfilter for KWord
+-Name[pl]=Filtr importu formatu HTML do KWord
+-Name[pt]=Ficheiro de importação de HTML para o KWord
+-Name[pt_BR]=Filtro de importação HTML para o KWord
+-Name[ro]=Filtru importare KWord pentru HTML
+-Name[ru]=Фильтр импорта HTML в KWord
+-Name[sk]=HTML filter pre import do KWord-u
+-Name[sl]=Uvozni filter HTML za KWord
+-Name[sr]=KWord filter za uvoz HTML-a
+-Name[sv]=Kword HTML-importfilter
+-Name[ta]=KWord HTML ­ÈìÌÁ¾¢ ÅÊ¸ðÊ
+-Name[th]=ตัวกรองการนำเข้า HTML ของเอกสารข้อความ K
+-Name[uk]=Фільтр імпорту ASCII для KWord
+-Name[ven]=Filithara yau u dzhenisa ya fhungo la K ya HTML
+-Name[wa]=Passete HTML d' intrêye po KWord
+-Name[xh]=KWord HTML Icebo lokucoca ulwelo olurhwetyiweyo ngaphakathi
+-Name[xx]=xx
+-Name[zh_CN]=KWord HTML 导入过滤程序
+-Name[zh_TW]=KWord HTML 匯入過濾程式
+-Name[zu]=KWord HTML Icebo lokuhlaziya ifayela yemininingwane yezohwebo lazangaphakathi
++Name=KWord Latex Import Filter
+ ServiceTypes=KOfficeFilter
+ Type=Service
+-X-KDE-Library=libhtmlimport
++X-KDE-Library=liblateximport
 --- filters/kword/latex/import/parser/Makefile.am	4 Dec 2002 21:34:09 -0000	1.1.1.4
 +++ filters/kword/latex/import/parser/Makefile.am	4 Dec 2002 21:41:38 -0000	1.5
 @@ -1,7 +1,7 @@
@@ -218,8 +530,52 @@ diff -N doc/kword/view.png
  liblatexparser_la_LIBADD  = -lm $(KOFFICE_LIBS)
  
  ####### Files
+--- filters/kword/rtf/export/rtfexport.cc	12 Sep 2002 12:44:26 -0000	1.1.1.4
++++ filters/kword/rtf/export/rtfexport.cc	23 Mar 2003 17:23:43 -0000
+@@ -799,7 +799,7 @@
+       }  // end switch
+    fontHeader += "\\fcharset0\\fprq2 "; // font definition
+    fontHeader += fontName;
+-   fontHeader += " ;}"; // end font table entry
++   fontHeader += ";}"; // end font table entry
+    return font;  // this is the font selection markup
+ 
+    }  // end fontTableMarkup()
+@@ -810,9 +810,9 @@
+ {
+    QString text1(text);
+ 
+-   text1 = text1.replace( QRegExp( "\\"), "\\\\");
+-   text1 = text1.replace( QRegExp( "{"), "\\{");
+-   text1 = text1.replace( QRegExp( "}"), "\\}");
++   text1.replace( QRegExp( "\\\\"), "\\\\");
++   text1.replace( QRegExp( "\\{"), "\\{");
++   text1.replace( QRegExp( "\\}"), "\\}");
+    return text1;
+ }  // end escapeRTFsymbols()
+ 
+@@ -843,7 +843,7 @@
+       else if ( ch == 0x200c ) escapedText += "\\zwnj ";
+       else if ( ch == 0x200d ) escapedText += "\\zwj ";
+       else if ( ch == 0x200e ) escapedText += "\\ltrmark ";
+-      else if ( ch == 0x200f ) escapedText += "\\rtrmark ";
++      else if ( ch == 0x200f ) escapedText += "\\rtlmark ";
+       else if ( ch == 0x2013 ) escapedText += "\\endash ";
+       else if ( ch == 0x2014 ) escapedText += "\\emdash ";
+       else if ( ch == 0x2018 ) escapedText += "\\lquote ";
+--- filters/kword/rtf/import/rtfimport_dom.cpp	10 Aug 2002 13:48:41 -0000	1.1.1.2
++++ filters/kword/rtf/import/rtfimport_dom.cpp	23 Mar 2003 17:23:43 -0000
+@@ -47,7 +47,7 @@
+     close();
+     array.truncate( 0 );
+     setBuffer( array );
+-    open( IO_WriteOnly | IO_Truncate );
++    open( IO_WriteOnly );
+     documentLevel	= level;
+     hasChildren		= true;
+     hasAttributes	= false;
 --- karbon/Makefile.am	12 Sep 2002 12:44:23 -0000	1.1.1.4
-+++ karbon/Makefile.am	22 Mar 2003 13:32:34 -0000
++++ karbon/Makefile.am	23 Mar 2003 17:23:44 -0000
 @@ -14,10 +14,10 @@
  
  bin_PROGRAMS = karbon
@@ -290,6 +646,19 @@ diff -N doc/kword/view.png
 +#endif
 +
  #endif
+--- kchart/CHANGES	4 Dec 2002 02:59:37 -0000	1.1.1.2
++++ kchart/CHANGES	23 Mar 2003 17:23:44 -0000
+@@ -1,3 +1,10 @@
++Changes since KChart 1.2.1
++--------------------------
++
++Added 2 missing chart icons to the wizard
++Disabled non functional axis labels in wizard
++Fixed scaling of y axis
++
+ Changes since KChart 1.2
+ ------------------------
+ 
 --- kchart/Makefile.am	10 Aug 2002 13:49:03 -0000	1.1.1.2
 +++ kchart/Makefile.am	1 Dec 2002 17:02:17 -0000	1.2
 @@ -46,12 +46,12 @@
@@ -309,6 +678,162 @@ diff -N doc/kword/view.png
  
  noinst_HEADERS =  kchart_part.h \
  		kchart_view.h kchart_factory.h \
+--- kchart/kchartWizardLabelsLegendPage.cc	20 Jun 2002 04:49:47 -0000	1.1.1.2
++++ kchart/kchartWizardLabelsLegendPage.cc	23 Mar 2003 17:23:44 -0000
+@@ -53,28 +53,34 @@
+ 
+ 
+     QLabel* xlabelLA = new QLabel( i18n( "X-title:" ), tmpQGroupBox );
++    xlabelLA->setEnabled(false); //Not supported by kdChart yet
+     grid2->addWidget(xlabelLA,1,0);
+ 
+     _xlabelED = new QLineEdit( tmpQGroupBox );
++    _xlabelED->setEnabled(false); //Not supported by kdChart yet
+     // PENDING(kalle) Put back in
+     //   _xlabelED->setText(_chart->params()->xtitle);
+     grid2->addWidget(_xlabelED,1,1);
+ 
+     xtitlefont = new QPushButton( tmpQGroupBox );
+     xtitlefont->setText(i18n("Font"));
++    xtitlefont->setEnabled(false); //Not supported by kdChart yet
+     grid2->addWidget(xtitlefont,1,2);
+ 
+     xtitlecolor=new KColorButton(tmpQGroupBox);
+     // PENDING(kalle) Put back in
+     //  x_color=_chart->params()->XTitleColor;
+     xtitlecolor->setColor( x_color );
++    xtitlecolor->setEnabled(false); //Not supported by kdChart yet
+     grid2->addWidget(xtitlecolor,1,3);
+ 
+ 
+     QLabel* ylabelLA = new QLabel( i18n( "Y-title:" ), tmpQGroupBox );
++    ylabelLA->setEnabled(false); //Not supported by kdChart yet
+     grid2->addWidget(ylabelLA,2,0);
+ 
+     _ylabelED = new QLineEdit( tmpQGroupBox );
++    _ylabelED->setEnabled(false); //Not supported by kdChart yet
+     // PENDING(kalle) Put back in
+     //   _ylabelED->setText(_chart->params()->ytitle);
+     grid2->addWidget(_ylabelED,2,1);
+@@ -82,9 +88,11 @@
+ 
+     ytitlefont = new QPushButton( tmpQGroupBox);
+     ytitlefont->setText(i18n("Font"));
++    ytitlefont->setEnabled(false); //Not supported by kdChart yet
+     grid2->addWidget(ytitlefont,2,2);
+ 
+     ytitlecolor=new KColorButton(tmpQGroupBox);
++    ytitlecolor->setEnabled(false); //Not supported by kdChart yet
+     // PENDING(kalle) Put back in
+     //   y_color=_chart->params()->YTitleColor;
+     ytitlecolor->setColor( y_color );
+@@ -92,18 +100,26 @@
+ 
+     //ytitle2 doesn't work
+     QLabel* ylabelLA2 = new QLabel( i18n( "Y-title 2:" ), tmpQGroupBox );
++    ylabelLA2->setEnabled(false); //Not supported by kdChart yet
+     grid2->addWidget(ylabelLA2,3,0);
+ 
+     _ylabel2ED = new QLineEdit( tmpQGroupBox );
++    _ylabel2ED->setEnabled(false); //Not supported by kdChart yet
+     // PENDING(kalle) Put back in
+     //   _ylabel2ED->setText(_chart->params()->ytitle2);
+     grid2->addWidget(_ylabel2ED,3,1);
+ 
++    ytitle2font = new QPushButton( tmpQGroupBox);
++    ytitle2font->setText(i18n("Font"));
++    ytitle2font->setEnabled(false); //Not supported by kdChart yet
++    grid2->addWidget(ytitle2font,3,2);
++
+     ytitle2color=new KColorButton(tmpQGroupBox);
++    ytitle2color->setEnabled(false); //Not supported by kdChart yet
+     // PENDING(kalle) Put back in
+     //   y_color2=_chart->params()->YTitle2Color;
+     ytitle2color->setColor( y_color2 );
+-    grid2->addWidget(ytitle2color,3,2);
++    grid2->addWidget(ytitle2color,3,3);
+ 
+     // PENDING(kalle) Put back in
+     //   xlabel=_chart->params()->xTitleFont();
+@@ -147,6 +163,7 @@
+ 
+     connect(xtitlefont,SIGNAL(clicked()),this,SLOT(changeXLabelFont()));
+     connect(ytitlefont,SIGNAL(clicked()),this,SLOT(changeYLabelFont()));
++    connect(ytitle2font,SIGNAL(clicked()),this,SLOT(changeY2LabelFont()));
+     connect(titlefont,SIGNAL(clicked()),this,SLOT(changeTitleFont()));
+     connect(legendTitleFont,SIGNAL(clicked()),this,SLOT(changeLegendTitleFont()));
+ 
+@@ -199,6 +216,14 @@
+         return;
+ 
+ }
++
++void KChartWizardLabelsLegendPage::changeYLabel2Font()
++{
++    if (KFontDialog::getFont( ylabel2, false, this ) == QDialog::Rejected )
++        return;
++
++}
++
+ void KChartWizardLabelsLegendPage::changeTitleFont()
+ {
+     if (KFontDialog::getFont( title ,false,this ) == QDialog::Rejected )
+--- kchart/kchartWizardLabelsLegendPage.h	20 Jun 2002 04:43:17 -0000	1.1.1.1
++++ kchart/kchartWizardLabelsLegendPage.h	23 Mar 2003 17:23:44 -0000
+@@ -23,6 +23,7 @@
+   void apply();
+   void changeXLabelFont();
+   void changeYLabelFont();
++  void changeYLabel2Font();
+   void changeTitleFont();
+   void changeLegendTitleFont();
+   void changeLegendTextFont();
+@@ -62,6 +63,7 @@
+ 
+   QFont xlabel;
+   QFont ylabel;
++  QFont ylabel2;
+   QFont title;
+   QColor x_color;
+   QColor y_color;
+--- kchart/kdchart/KDChartAxesPainter.cpp	20 Jun 2002 04:49:48 -0000	1.1.1.2
++++ kchart/kdchart/KDChartAxesPainter.cpp	23 Mar 2003 17:23:45 -0000
+@@ -1,5 +1,5 @@
+ /* -*- Mode: C++ -*-
+-   $Id$
++   $Id$
+    KDChart - a multi-platform charting engine
+ */
+ 
+@@ -1821,22 +1821,19 @@
+     */
+     if ( KDChartAxisParams::AXIS_LABELS_AUTO_LIMIT == para.axisValueStart() ) {
+         double orgLow( nLow );
+-        modf( nLow / nDivisor, &nLow );
+-        //double nMod = modf( nLow / nRound, &nLow );
+-        nLow *= nRound * nDivisor;
++        modf( nLow / nDelta, &nLow );
++        nLow *= nDelta;
+         if ( nLow > orgLow )
+-            nLow -= nRound * nDivisor;
++            nLow -= nDelta;
+         if ( 0.0 < nLow && 0.0 >= orgLow )
+             nLow = 0.0;
+     }
+     if ( KDChartAxisParams::AXIS_LABELS_AUTO_LIMIT == para.axisValueEnd() ) {
+         double orgHigh( nHigh );
+-        //nHigh += 1.1 * nDelta;
+-        modf( nHigh / nDivisor, &nHigh );
+-        //double nMod = modf( nHigh / nRound, &nHigh );
+-        nHigh *= nRound * nDivisor;
++        modf( nHigh / nDelta, &nHigh );
++        nHigh *= nDelta;
+         if ( nHigh < orgHigh )
+-            nHigh += nRound * nDivisor;
++            nHigh += nDelta;
+         if ( 0.0 > nHigh && 0.0 <= orgHigh )
+             nHigh = 0.0;
+     }
 --- kchart/kdchart/Makefile.am	20 Jun 2002 04:49:58 -0000	1.1.1.2
 +++ kchart/kdchart/Makefile.am	1 Dec 2002 17:02:18 -0000	1.4
 @@ -1,5 +1,7 @@
@@ -550,7 +1075,16 @@ diff -N doc/kword/view.png
  noinst_HEADERS = koPointArray.h kprcanvas.h kprpage.h kpresenter_doc.h kpresenter_view.h \
  		backdia.h styledia.h \
 --- kpresenter/kpresenter_view.cc	4 Dec 2002 03:00:06 -0000	1.1.1.5
-+++ kpresenter/kpresenter_view.cc	5 Dec 2002 00:59:54 -0000	1.7
++++ kpresenter/kpresenter_view.cc	23 Mar 2003 17:23:47 -0000
+@@ -1307,7 +1307,7 @@
+ 
+     if ( KoPageLayoutDia::pageLayout( pgLayout, hf, FORMAT_AND_BORDERS, unit ) ) {
+ 	PgLayoutCmd *pgLayoutCmd = new PgLayoutCmd( i18n( "Set Page Layout" ),
+-						    pgLayout, oldLayout, unit, oldUnit,kPresenterDoc() );
++						    pgLayout, oldLayout, oldUnit, unit,kPresenterDoc() );
+ 	pgLayoutCmd->execute();
+ 	kPresenterDoc()->addCommand( pgLayoutCmd );
+         updateRuler();
 @@ -3224,7 +3224,7 @@
                                             actionCollection(), "format_style" );
      connect( actionFormatStyle, SIGNAL( activated( int ) ),
@@ -650,6 +1184,19 @@ diff -N doc/kword/view.png
          showFormat( format );
          const KoParagLayout * paragLayout=m_canvas->applicableTextInterfaces().first()->currentParagLayoutFormat();
          KoParagCounter counter;
+--- kspread/CHANGES	4 Dec 2002 03:00:18 -0000	1.1.1.5
++++ kspread/CHANGES	23 Mar 2003 17:23:48 -0000
+@@ -1,3 +1,10 @@
++Changes since 1.2.1
++===================
++Bugfixes:
++- Fix display of unhided rows/columns for loaded files
++- Fix enabled status for buttons insert column/row when row/column is selected
++- Fix for display of print range with repeated rows
++
+ Changes since 1.2
+ =================
+ Bugfixes:
 --- kspread/Makefile.am	10 Aug 2002 13:50:22 -0000	1.1.1.3
 +++ kspread/Makefile.am	1 Dec 2002 17:02:21 -0000	1.2
 @@ -3,8 +3,8 @@
@@ -701,6 +1248,81 @@ diff -N doc/kword/view.png
  
  noinst_HEADERS = kspread_doc.h kspread_functions.h \
  	kspread_undo.h kspread_view.h kspread_tabbar.h \
+--- kspread/kspread_layout.cc	4 Dec 2002 03:00:23 -0000	1.1.1.5
++++ kspread/kspread_layout.cc	23 Mar 2003 17:23:48 -0000
+@@ -2017,6 +2017,7 @@
+ 	    // Rise maximum size by height of row
+ 	    m_bHide=_hide; //unhide must be set before we request the height
+ 	    m_pTable->adjustSizeMaxY ( height() );
++            m_pTable->emit_updateRow( this, m_iRow );
+ 	}
+     }
+ }
+@@ -2254,9 +2255,12 @@
+ 	    m_bHide=_hide; //hide must be set after we requested the width
+ 	}
+ 	else
++        {
+ 	    // Rise maximum size by width of column
+ 	    m_bHide=_hide; //unhide must be set before we request the width
+ 	    m_pTable->adjustSizeMaxX ( width() );
++            m_pTable->emit_updateColumn( this, m_iColumn );
++        }
+     }
+ }
+ 
+--- kspread/kspread_selection.cc	12 Sep 2002 12:45:27 -0000	1.1.1.3
++++ kspread/kspread_selection.cc	23 Mar 2003 17:23:48 -0000
+@@ -152,6 +152,8 @@
+     setCursorPosition(newMarker);
+   }
+ 
++  m_pView->enableInsertColumn( !util_isRowSelected( newSelection ) );
++  m_pView->enableInsertRow( !util_isColumnSelected( newSelection ) );
+   m_pView->slotChangeSelection( table, oldSelection, oldMarker );
+ }
+ 
+--- kspread/kspread_table.cc	4 Dec 2002 03:00:25 -0000	1.1.1.5
++++ kspread/kspread_table.cc	23 Mar 2003 17:23:50 -0000
+@@ -7723,7 +7723,7 @@
+ 
+ void KSpreadTable::updatePrintRepeatRowsHeight()
+ {
+-    m_dPrintRepeatRowsHeight += 0.0;
++    m_dPrintRepeatRowsHeight = 0.0;
+     if ( m_printRepeatRows.first != 0 )
+     {
+         for ( int i = m_printRepeatRows.first; i <= m_printRepeatRows.second; i++)
+--- kspread/kspread_view.cc	4 Dec 2002 03:00:26 -0000	1.1.1.5
++++ kspread/kspread_view.cc	23 Mar 2003 17:23:51 -0000
+@@ -2110,6 +2110,16 @@
+     m_redo->setText(i18n("Redo: %1").arg(m_pDoc->undoBuffer()->getRedoName()));
+ }
+ 
++void KSpreadView::enableInsertColumn( bool _b )
++{
++    m_insertColumn->setEnabled( _b );
++}
++
++void KSpreadView::enableInsertRow( bool _b )
++{
++    m_insertRow->setEnabled( _b );
++}
++
+ void KSpreadView::undo()
+ {
+     m_pDoc->undo();
+--- kspread/kspread_view.h	4 Dec 2002 03:00:26 -0000	1.1.1.5
++++ kspread/kspread_view.h	23 Mar 2003 17:23:51 -0000
+@@ -117,6 +117,8 @@
+ 
+     void enableUndo( bool _b );
+     void enableRedo( bool _b );
++    void enableInsertColumn( bool _b );
++    void enableInsertRow( bool _b );
+ 
+     /**
+      * Called by @ref KSpreadInsertHandler
 --- kspread/plugins/calculator/Makefile.am	20 Jun 2002 04:43:37 -0000	1.1.1.1
 +++ kspread/plugins/calculator/Makefile.am	1 Dec 2002 17:02:21 -0000	1.2
 @@ -9,7 +9,7 @@
@@ -819,6 +1441,28 @@ diff -N doc/kword/view.png
      // ### TODO propagate parag ID changes.
      return posOfTable;
  }
+--- kword/kwtableframeset.cc	10 Aug 2002 13:50:43 -0000	1.1.1.3
++++ kword/kwtableframeset.cc	23 Mar 2003 17:23:52 -0000
+@@ -86,6 +86,11 @@
+         //Do this in KWTableFrameSet::invalidate
+         //m_cells.at(i)->invalidate();
+     }
++    if ( isFloating() )  {
++        KWAnchor * anchor = findAnchor( 0 );
++        if ( anchor )
++            anchor->resize();
++    }
+     KWFrameSet::updateFrames( flags );
+ }
+ 
+@@ -605,6 +610,7 @@
+     }
+     redrawFromCol=getCols();
+     kdDebug(32004) << "KWTableFrameSet::recalcRows done" << endl;
++    updateFrames();
+ }
+ 
+ void KWTableFrameSet::resizeWidth( double width ) {
 --- kword/kwview.cc	4 Dec 2002 03:00:40 -0000	1.1.1.5
 +++ kword/kwview.cc	28 Jan 2003 15:29:04 -0000	1.2
 @@ -251,12 +251,6 @@
@@ -856,3 +1500,46 @@ diff -N doc/kword/view.png
          m_specialCharDlg = 0L;
      }
  }
+--- lib/kofficecore/koDocument.cc	4 Dec 2002 03:00:52 -0000	1.1.1.5
++++ lib/kofficecore/koDocument.cc	23 Mar 2003 17:23:53 -0000
+@@ -26,6 +26,8 @@
+ #include <assert.h>
+ #include <unistd.h>
+ 
++#include <qbuffer.h>
++
+ #include <koDocument.h>
+ #include <koDocument_p.h>
+ #include <KoDocumentIface.h>
+@@ -786,11 +788,18 @@
+ {
+     QPixmap pix = generatePreview(QSize(256, 256));
+     // Reducing to 8bpp reduces file sizes quite a lot.
+-    QImage image = pix.convertToImage().convertDepth(8, Qt::AvoidDither | Qt::DiffuseDither);
++    QImageIO imageIO;
++    imageIO.setImage( pix.convertToImage().convertDepth(8, Qt::AvoidDither | Qt::DiffuseDither) );
+ 
++    // NOTE: we cannot use QDataStream, as it is not 1:1
+     QByteArray imageData;
+-    QDataStream imageStream(imageData, IO_WriteOnly);
+-    imageStream << image;
++    QBuffer buffer(imageData);
++    buffer.open(IO_WriteOnly);
++    imageIO.setIODevice(&buffer);
++    imageIO.setFormat("PNG");
++    imageIO.write();
++    buffer.close();
++    
+     store->write( imageData );
+ }
+ 
+--- tools/thumbnail/otherofficethumbnail.desktop	12 Sep 2002 12:46:24 -0000	1.1.1.4
++++ tools/thumbnail/otherofficethumbnail.desktop	23 Mar 2003 17:23:53 -0000
+@@ -41,6 +41,6 @@
+ Name[zh_TW]=其他 Office 檔案
+ Name[zu]=Amanye Amafayela Ehhovisi
+ ServiceTypes=ThumbCreator
+-MimeTypes=application/illustrator,application/msexcel,application/mspowerpoint,application/msword,application/vnd.palm,application/wordperfect,application/x-abiword,application/x-amipro,application/x-applixgraphics,application/x-applixspread,application/x-applixword,application/x-gnumeric,application/x-quattropro,image/x-msod,text/rtf,text/vnd.wap.wml,text/x-csv
++MimeTypes=application/illustrator,application/msexcel,application/mspowerpoint,application/msword,application/vnd.palm,application/wordperfect,application/x-abiword,application/x-amipro,application/x-applixgraphics,application/x-applixspread,application/x-applixword,application/x-gnumeric,application/x-quattropro,image/x-msod,text/rtf,text/vnd.wap.wml
+ X-KDE-Library=kofficethumbnail
+ CacheThumbnail=true

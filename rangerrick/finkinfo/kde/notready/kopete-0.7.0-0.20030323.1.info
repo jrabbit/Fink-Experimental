@@ -1,6 +1,6 @@
 Package: kopete
-Version: 0.6.1a
-Revision: 1
+Version: 0.7.0
+Revision: 0.20030323.1
 Depends: 
 BuildDepends: 
 Maintainer: Benjamin Reed <ranger@befunk.com>
@@ -10,25 +10,28 @@ CustomMirror: <<
   nam-US: http://astrange.ithinksw.net/ranger-fink
   nam-CA: http://www.southofheaven.net/befunk
 <<
-Source: mirror:sourceforge:%n/%n-%v.tar.gz
-Source-MD5: 8e6d73b96890730ee3be56eb57930b73
-Source2: mirror:custom:kde-admindir-20030209.tar.bz2
-Source2-MD5: 180fee362e27703bd9a062912c8a54cd
-Source2ExtractDir: %n-%v
+Source: kopete-20030323.tar.bz2
+#Source-MD5: 8e6d73b96890730ee3be56eb57930b73
+Source2: mirror:custom:kde-admindir-20030323.tar.bz2
+Source2-MD5: 9d3594124d937d2212db82e6d638ec57
 
-PatchScript: sed 's|@PREFIX@|%p|g' <%a/%f.patch | patch -p1
-DocFiles: AUTHORS COPYING ChangeLog INSTALL README VERSION
+SourceDirectory: %n
+Source2ExtractDir: %n
+
+PatchScript: sed 's|@PREFIX@|%p|g' <%a/%f.patch | patch -p0
+DocFiles: kopete/AUTHORS kopete/COPYING kopete/ChangeLog kopete/INSTALL kopete/NEWS kopete/README* kopete/ROADMAP kopete/VERSION
 SetLIBS: -L%p/lib
 SetCPPFLAGS: -no-cpp-precomp
 SetCFLAGS: -I%p/include
-ConfigureParams: --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --enable-final --disable-dependency-tracking
+ConfigureParams: --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --enable-debug=full
 CompileScript: <<
 #!/bin/sh
  export KDEDIR=%p
  export QTDIR=%p
+ perl -pi -e 's,need_relink=yes,need_relink=no,g' admin/ltmain.sh
  make -f admin/Makefile.common cvs
  ./configure %c
- make -j2 LIB_DCOP=-lDCOP
+ make -j2
 <<
 InstallScript: <<
  make install DESTDIR=%d
