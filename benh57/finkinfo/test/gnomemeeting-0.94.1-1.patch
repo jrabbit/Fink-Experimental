@@ -1,0 +1,221 @@
+--- gnomemeeting-0.94.1/aclocal.m4	2002-10-20 11:18:05.000000000 -0700
++++ gnomemeeting-0.94.1-patched/aclocal.m4	2002-12-05 11:59:08.000000000 -0800
+@@ -2762,6 +2762,19 @@
+         ;;
+     esac
+     ;;
++  
++	darwin* | rhapsody*)
++	  _LT_AC_TAGVAR(allow_undefined_flag, $1)='-undefined suppress'
++	  # FIXME: Relying on posixy $() will cause problems for
++	  #        cross-compilation, but unfortunately the echo tests do not
++	  #        yet detect zsh echo's removal of \ escapes.
++	  _LT_AC_TAGVAR(archive_cmds, $1)='$CC $(test .$module = .yes && echo -bundle || echo -dynamiclib) $allow_undefined_flag -o $lib $libobjs $deplibs$linkopts -install_name $rpath/$soname $(test -n "$verstring" -a x$verstring != x0.0 && echo $verstring)'
++	  # We need to add '_' to the symbols in $export_symbols first
++	  #_LT_AC_TAGVAR(archive_expsym_cmds, $1)="$_LT_AC_TAGVAR(archive_cmds, $1)"' && strip -s $export_symbols'
++	  _LT_AC_TAGVAR(hardcode_direct, $1)=yes
++	  _LT_AC_TAGVAR(hardcode_shlibpath_var, $1)=no
++	  _LT_AC_TAGVAR(whole_archive_flag_spec, $1)='-all_load $convenience'
++	  ;;
+   dgux*)
+     case $cc_basename in
+       ec++)
+--- gnomemeeting-0.94.1/src/connection.cpp	2002-10-14 04:09:36.000000000 -0700
++++ gnomemeeting-0.94.1-patched/src/connection.cpp	2002-12-05 12:32:22.000000000 -0800
+@@ -56,11 +56,22 @@
+ 				    unsigned callReference)
+   :H323Connection(ep, callReference)
+ {
++  int min_jitter = 20;
++  int max_jitter = 1000;
++  
+   gw = gnomemeeting_get_main_window (gm);
+ 
+   opened_channels = 0;
+ 
+-  SetMaxAudioDelayJitter (gconf_client_get_int (gconf_client_get_default (), "/apps/gnomemeeting/audio_settings/jitter_buffer", NULL));
++  min_jitter = 
++    gconf_client_get_int (gconf_client_get_default (), 
++			  "/apps/gnomemeeting/audio_settings/" "min_jitter_buffer", NULL);
++
++  max_jitter = 
++    gconf_client_get_int (gconf_client_get_default (), 
++			  "/apps/gnomemeeting/audio_settings/" "max_jitter_buffer", NULL);
++
++  SetAudioJitterDelay (min_jitter, max_jitter);
+ }
+ 
+ 
+--- gnomemeeting-0.94.1/src/sound_handling.cpp	2002-10-20 11:14:21.000000000 -0700
++++ gnomemeeting-0.94.1-patched/src/sound_handling.cpp	2002-12-05 12:50:15.000000000 -0800
+@@ -39,7 +39,7 @@
+ 
+ #include <ptlib.h>
+ 
+-#ifdef __FreeBSD__
++#if defined(__FreeBSD__) || defined(__APPLE__)
+ #include <sys/types.h>
+ #include <signal.h>
+ #endif
+@@ -56,6 +56,10 @@
+ int 
+ gnomemeeting_volume_set (char *mixer, int source, int *volume)
+ {
++
++#if defined(__APPLE__)
++ printf("gnomemeeting_volume_set called\n");
++#else  
+   int res, mixerfd;
+ 
+ #ifdef HAS_IXJ
+@@ -97,7 +101,7 @@
+ #ifdef HAS_IXJ
+   }
+ #endif
+-
++#endif
+   return 0;
+ }
+ 
+@@ -105,6 +109,9 @@
+ int 
+ gnomemeeting_volume_get (char *mixer, int source, int *volume)
+ {
++#if defined(__APPLE__)
++ printf("gnomemeeting_volume_get called\n");
++#else  
+   int mixerfd = -1, res = -1;
+ 
+ #ifdef HAS_IXJ
+@@ -147,6 +154,8 @@
+   }
+ #endif  
+ 
++#endif // Apple
++
+   return TRUE;
+ }
+ 
+@@ -154,9 +163,11 @@
+ int 
+ gnomemeeting_set_recording_source (char *mixer, int source)
+ {
++#if defined(__APPLE__)
++ printf("gnomemeeting_set_recording_source called\n");
++#else  
+   int mixerfd = -1;
+   int rcsrc;
+-  
+   if (mixer)
+     mixerfd = open (mixer, O_RDWR);
+       
+@@ -172,19 +183,19 @@
+   }
+ 
+   close (mixerfd);
+-
++#endif
+   return 0;
+ }
+ 
+-
+ int 
+ gnomemeeting_get_mixer_name (char *mixer, char **name)
+ {
+ 
+ #ifdef __FreeBSD__
+   strcpy (*name,"/dev/mixer");
++#elif defined(__APPLE__)
++ printf("gnomemeeting_get_mixer_name called\n");
+ #else
+-
+   int mixerfd, res;
+   mixer_info info;
+ 
+@@ -202,7 +213,6 @@
+   return 0;
+ }
+ 
+-
+ void 
+ gnomemeeting_sound_daemons_suspend (void)
+ {
+--- gnomemeeting-0.94.1/src/main_window.cpp	2002-10-14 14:45:45.000000000 -0700
++++ gnomemeeting-0.94.1-patched/src/main_window.cpp	2002-12-05 14:38:13.000000000 -0800
+@@ -73,6 +73,12 @@
+ #include <libintl.h>
+ #endif
+ 
++#if defined(__APPLE__) && HAS_SDL
++/* On Apple (and Windows) you get main redefined if you include SDL.h - this must be here */
++#include <SDL.h>
++extern char* environ[];
++#endif
++
+ #define ACT_IID "OAFIID:GNOME_gnomemeeting_Factory"
+ 
+ #define GENERAL_KEY         "/apps/gnomemeeting/general/"
+@@ -1650,9 +1656,14 @@
+ 
+ 
+ /* The main () */
+-
++#if defined(__APPLE__) && HAS_SDL
++int main (int argc, char ** argv)
++{
++char ** envp = environ;
++#else
+ int main (int argc, char ** argv, char ** envp)
+ {
++#endif
+   int x, y;
+   PProcess::PreInitialise (argc, argv, envp);
+ 
+--- gnomemeeting-0.94.1/Makefile.in	2002-10-20 12:29:49.000000000 -0700
++++ gnomemeeting-0.94.1-patched/Makefile.in	2002-12-05 15:21:50.000000000 -0800
+@@ -467,8 +467,6 @@
+ @INTLTOOL_SCHEMAS_RULE@
+ 
+ install-schemas: gnomemeeting.schemas
+-	GCONF_CONFIG_SOURCE=$(GCONF_SCHEMA_CONFIG_SOURCE) gconftool-2 --makefile-install-rule $(SCHEMAS_FILE)
+-	gconftool-2 --shutdown
+ 
+ @INSTALL_SCHEMAS_TRUE@install-data-local: install-schemas
+ 
+--- gnomemeeting-0.94.1/configure.in	2002-10-20 11:17:56.000000000 -0700
++++ gnomemeeting-0.94.1-patched/configure.in	2002-12-05 14:14:27.000000000 -0800
+@@ -86,6 +86,16 @@
+ 
+ case $target_os in
+ 
++  darwin* )
++    H323_CFLAGS="-Wno-long-double -DP_SSL -DP_PTHREADS  $ARCH_H323_CFLAGS -O2 -Wall -DPHAS_TEMPLATES"
++    H323_LIBS="-lh323_Darwin_ppc_r_s -lpt_Darwin_ppc_r_s -lX11 -lssl -lcrypto"
++    LIBPT_FILE="libpt_Darwin_ppc_r_s.a"
++    LIBOPENH323_FILE="libh323_Darwin_ppc_r_s.a"
++    echo "$as_me:$LINENO: result: yes" >&5
++echo "${ECHO_T}yes" >&6
++    gm_platform="darwin"
++    ;;
++
+   linux-gnu | linux | Linux)
+     H323_CFLAGS="-DP_LINUX -D_REENTRANT -DP_HAS_SEMAPHORES -DP_PTHREADS $ARCH_H323_CFLAGS -DHAS_OSS -O3 -DNDEBUG -fPIC -g -DPHAS_TEMPLATES -Wall"
+     H323_LIBS="-lopenh323 -ldl -lpt -lpthread -lssl -lcrypto"
+@@ -280,7 +290,7 @@
+ msg_openssl="no"
+ 
+ if test "x${with_openssl_libs}" != "xno" -a "x${have_openssl_includes}" != "xno"; then
+-        AC_CHECK_FILE(${with_openssl_libs}/libssl.so, openssl_libs="yes", openssl_libs="no")
++        AC_CHECK_LIB(ssl, openssl_libs="yes", openssl_libs="no")
+         if test "x${openssl_libs}" != "xno"; then
+                 msg_openssl="yes"
+                 OPENSSL_LDFLAGS="-L${with_openssl_libs} ${SSL_LIBS}"
+@@ -327,7 +337,7 @@
+ msg_openldap="no"                                                              
+                                                                                
+ if test "x${with_openldap_libs}" != "xno" -a "x${have_openldap_includes}" != "xno"; then
+-        AC_CHECK_FILE(${with_openldap_libs}/libldap.so, openldap_libs="yes", openldap_libs="no")
++        AC_CHECK_LIB(ldap, openldap_libs="yes", openldap_libs="no")
+ 
+         if test "x${openldap_libs}" != "xno"; then                             
+                 msg_openldap="yes"                                             
