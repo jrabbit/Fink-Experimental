@@ -1,3 +1,7 @@
+# TODOs:
+# 
+# - Check about the warning during the javahl build
+#
 Package: svn-ssl
 Version: 1.1.0-rc4
 Revision: 11
@@ -321,8 +325,10 @@ SplitOff4: <<
     echo "Enabling mod_$MODULENAME module..."
     $APXS -e -a -n $MODULENAME $MODULE
 
-    echo "Restarting apache2..."
-    %p/sbin/apachectl graceful
+    if test `ps -U www | grep -c %p/sbin/httpd` -ge 1; then
+      echo "Restarting apache2..."
+      %p/sbin/apachectl graceful
+    fi
   <<
   PreRmScript: <<
     if [ "$1" != "remove" -a "$1" != "purge" ]; then
@@ -343,13 +349,22 @@ SplitOff4: <<
     echo "Disabling mod_$MODULENAME module..."
     $APXS -e -A -n $MODULENAME $MODULE
 
-    echo "#####################################################################"
-    echo "The subversion apache modules are now disabled in the"
-    echo "%p/etc/apache2/httpd.conf file and will be removed. Please make sure"
-    echo "that you haven't any svn repositories still enabled in your"
-    echo "%p/etc/apache2/httpd.conf file. You then should restart apache by"
-    echo "typing '%p/sbin/apachectl graceful'."
-    echo "#####################################################################"
+    if %p/sbin/apachectl configtest > /dev/null 2>&1; then
+      # httpd.conf is correct, e.g. doesn't contain any DAV provider
+      if test `ps -U www | grep -c %p/sbin/httpd` -ge 1; then
+        echo "Restarting apache2..."
+        %p/sbin/apachectl graceful
+      fi
+    else
+      # httpd.conf has syntax errors, e.g. remaining DAV providers
+      echo "#####################################################################"
+      echo "The subversion apache modules are now disabled in the"
+      echo "%p/etc/apache2/httpd.conf file and will be removed. Please make sure"
+      echo "that you haven't any svn repositories still enabled in your"
+      echo "%p/etc/apache2/httpd.conf file. You then should restart apache by"
+      echo "typing '%p/sbin/apachectl graceful'."
+      echo "#####################################################################"
+    fi
   <<
 <<
 SplitOff5: <<
@@ -551,7 +566,7 @@ DescPackaging: <<
  </Location>
  
  where %v and %r are replaced with the correct versions. Then do
- 'sudo apachectl -k graceful' to enable the mod_svn support.
+ 'sudo apachectl graceful' to enable the mod_svn support.
 <<
 DescPort: <<
 Patch needed to stop relinking a .dylib in the install path, 
