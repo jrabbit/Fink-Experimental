@@ -10,23 +10,22 @@ Source4Rename: f2c-readme.gz
 NoSourceDirectory: true
 CompileScript: <<
  gunzip -f src/*.gz
- sed 's/CC = cc/CC = \/usr\/bin\/c++ /; s/CFLAGS = -O/CFLAGS = -O2/; s/ld -r -x/ld -r/' libf2c/makefile.u > libf2c/makefile
+ sed 's/CFLAGS = -O/CFLAGS = -O2 -fno-common/; s/ld -r -x/ld -r/' libf2c/makefile.u > libf2c/makefile
  mv src/makefile src/makefile.orig
- sed 's/CC = cc/CC = \/usr\/bin\/c++/; s/CFLAGS = -O/CFLAGS = -O2/; s/ld -r -x/ld -r/' src/makefile.orig > src/makefile
+ sed 's/CFLAGS = -O/CFLAGS = -O2 -fno-common/; s/ld -r -x/ld -r/' src/makefile.orig > src/makefile
  (cd libf2c; make hadd; make; cd ../src; make)
  gunzip fc.gz f2c-readme.gz
  mv fc fc.orig
  sed 's/CFLAGS="$CFLAGS $O"/CFLAGS="$CFLAGS $O""3"/; s/ -lm//g; s/ -u MAIN__//g; s|/usr/local|%p|g; s/lib\/cpp/usr\/bin\/cpp/g' fc.orig > fc
  chmod +x fc
 <<
-#-fno-eh-cleanup-section
 InstallScript: <<
  mkdir -p %i/include
  cp libf2c/f2c.h %i/include
  mkdir -p %i/lib
  cp libf2c/libf2c.a %i/lib
  ranlib %i/lib/libf2c.a
- (mkdir libtmp; cd libtmp; ar -x ../libf2c/libf2c.a; objfiles=`ls -1 *.o`; echo $objfiles; cc -dynamiclib -flat_namespace -undefined suppress -o libf2c_dynamic.dylib $objfiles; cc -dynamiclib -flat_namespace -undefined suppress -o libf2c_dynamic.dylib $objfiles -install_name %p/lib/libf2c_dynamic.dylib)
+ (mkdir libtmp; cd libtmp; ar -x ../libf2c/libf2c.a; objfiles=`ls -1 *.o`; echo $objfiles; gcc -dynamiclib -flat_namespace -undefined suppress -o libf2c_dynamic.dylib $objfiles; gcc -dynamiclib -flat_namespace -undefined suppress -o libf2c_dynamic.dylib $objfiles -install_name %p/lib/libf2c_dynamic.dylib)
  cp libtmp/libf2c_dynamic.dylib %i/lib
  mkdir -p %i/bin
  cp src/f2c %i/bin
