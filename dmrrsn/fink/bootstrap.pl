@@ -326,6 +326,8 @@ $script = "cp packages/*.info packages/*.patch $installto/fink/dists/local/boots
 
 $script .= "sed -e 's/\@VERSION\@/$packageversion/' -e 's/\@REVISION\@/$packagerevision/' -e 's|\@PREFIX\@|$installto|' <fink.info.in >$installto/fink/dists/local/bootstrap/finkinfo/fink-$packageversion.info\n";
 
+$script .= "chmod 644 $installto/fink/dists/local/bootstrap/finkinfo/*.*\n";
+
 foreach $cmd (split(/\n/,$script)) {
   next unless $cmd;   # skip empty lines
 
