@@ -1,0 +1,2055 @@
+--- ./admin/acinclude.m4.in	13 Oct 2002 00:40:45 -0000	1.1.1.3
++++ ./admin/acinclude.m4.in	6 Nov 2002 15:57:07 -0000	1.10
+@@ -272,7 +272,7 @@
+         cat >conftest.ui <<EOT
+         <!DOCTYPE UI><UI version="3" stdsetdef="1"></UI>
+ EOT
+-        ac_uic_testrun="$UIC -$1 $2 conftest.ui >/dev/null"
++        ac_uic_testrun="$UIC_PATH -$1 $2 conftest.ui >/dev/null"
+         if AC_TRY_EVAL(ac_uic_testrun); then
+             eval "kde_cv_prog_uic_$kde_cache=yes"
+         else
+@@ -311,14 +311,15 @@
+ 
+    KDE_FIND_PATH(moc, MOC, [$qt_bindirs], [KDE_MOC_ERROR_MESSAGE])
+    if test -z "$UIC_NOT_NEEDED"; then
+-     KDE_FIND_PATH(uic, UIC, [$qt_bindirs], [UIC=""])
+-     if test -z "$UIC" ; then
++     KDE_FIND_PATH(uic, UIC_PATH, [$qt_bindirs], [UIC_PATH=""])
++     if test -z "$UIC_PATH" ; then
+        KDE_UIC_ERROR_MESSAGE
+        exit 1
+      elif test $kde_qtver = 3; then
+        KDE_CHECK_UIC_FLAG(L,[/nonexistant],ac_uic_supports_libpath=yes,ac_uic_supports_libpath=no)
+        KDE_CHECK_UIC_FLAG(nounload,,ac_uic_supports_nounload=yes,ac_uic_supports_nounload=no)
+ 
++       UIC=$UIC_PATH
+        if test x$ac_uic_supports_libpath = xyes; then
+            UIC="$UIC -L \$(kde_widgetdir)"
+        fi
+@@ -523,6 +524,7 @@
+ [
+ 
+         kde_default_bindirs="/usr/bin /usr/local/bin /opt/local/bin /usr/X11R6/bin /opt/kde/bin /opt/kde3/bin /usr/kde/bin /usr/local/kde/bin"
++        test -n "$KDEDIR" && kde_default_bindirs="$KDEDIR/bin $kde_default_bindirs"
+         if test -n "$KDEDIRS"; then
+            kde_save_IFS=$IFS
+            IFS=:
+@@ -702,13 +704,10 @@
+      AC_CHECK_LIB(ipc, shmat, X_EXTRA_LIBS="$X_EXTRA_LIBS -lipc"))
+    
+    # darwin needs this to initialize the environment
+-   AC_CHECK_HEADERS(crt_externs.h)
++   AC_CHECK_HEADERS([crt_externs.h sys/types.h])
+    AC_CHECK_FUNC(_NSGetEnviron, [AC_DEFINE(HAVE_NSGETENVIRON, 1, [Define if your system needs _NSGetEnviron to set up the environment])])
+  
+-   # more headers that need to be explicitly included on darwin
+-   AC_CHECK_HEADERS(sys/types.h stdint.h)
+-
+-   # darwin requires a poll emulation library
++   # darwin requires a poll.h emulation library
+    AC_CHECK_LIB(poll, poll, LIB_POLL="-lpoll")
+ 
+    # CoreAudio framework
+@@ -717,11 +716,36 @@
+      FRAMEWORK_COREAUDIO="-framework CoreAudio"
+    ])
+ 
++   # CoreServices framework
++   AC_CHECK_HEADER(CoreServices/CoreServices.h, [
++     AC_DEFINE(HAVE_CORESERVICES, 1, [Define if you have the CoreServices API])
++     FRAMEWORK_CORESERVICES="-framework CoreServices"
++   ])
++
++   # Solaris 2.6 and others need -lresolv for res_init
++   AC_CHECK_FUNCS(res_init, , [
++     kde_libs_safe="$LIBS"
++     LIBS="$LIBS $X_EXTRA_LIBS -lresolv"
++     AC_TRY_LINK(
++[
++#include <resolv.h>
++],
++[ 
++res_init(); 
++],
++        LIBRESOLV="-lresolv"
++        X_EXTRA_LIBS="$X_EXTRA_LIBS $LIBRESOLV"
++        AC_DEFINE(HAVE_RES_INIT, 1, [Define if you have the res_init function])
++     )
++     LIBS=$kde_libs_safe
++   ])
++
+    AC_CHECK_RES_INIT
+-   AC_SUBST(LIB_POLL)
+    AC_SUBST(FRAMEWORK_COREAUDIO)
+    LIBSOCKET="$X_EXTRA_LIBS"
+    AC_SUBST(LIBSOCKET)
++   AC_SUBST(FRAMEWORK_CORESERVICES)
++   AC_SUBST(LIB_POLL)
+    AC_SUBST(LIBRESOLV)
+    AC_SUBST(X_EXTRA_LIBS)
+    AC_CHECK_LIB(ucb, killpg, [LIBUCB="-lucb"]) dnl for Solaris2.4
+@@ -930,7 +954,7 @@
+ kde_ldflags_safe="$LDFLAGS"
+ kde_libs_safe="$LIBS"
+ 
+-LDFLAGS="$LDFLAGS $X_LDFLAGS $USER_LDFLAGS"
++LDFLAGS="$LDFLAGS $USER_LDFLAGS $X_LDFLAGS"
+ LIBS="-lXext -lX11 $LIBSOCKET"
+ 
+ AC_TRY_LINK([
+@@ -972,9 +996,9 @@
+ kde_save_LDFLAGS="$LDFLAGS"
+ kde_save_CFLAGS="$CFLAGS"
+ kde_save_LIBS="$LIBS"
+-LDFLAGS="$LDFLAGS $X_LDFLAGS $USER_LDFLAGS"
++LDFLAGS="$LDFLAGS $USER_LDFLAGS $X_LDFLAGS"
+ CFLAGS="$CFLAGS -I$x_includes"
+-LIBS="-lXinerama -lXext"
++LIBS="-lXinerama -lXext -lX11"
+ 
+ if test "x$no_xinerama" = "xno"; then
+ 
+@@ -1103,6 +1127,7 @@
+ AC_DEFUN(KDE_USE_QT,
+ [
+ if test -z "$1"; then
++  # Current default Qt version: 3.1
+   kde_qtver=3
+   kde_qtsubver=1
+ else
+@@ -1126,7 +1151,11 @@
+     fi
+   fi
+   if test "$kde_qtver" = "3"; then
+-    kde_qt_minversion=">= Qt 3.0.3"
++    if test $kde_qtsubver -gt 0; then
++      kde_qt_minversion=">= Qt 3.1 (20021021)"
++    else
++      kde_qt_minversion=">= Qt 3.0"
++    fi
+   fi
+   if test "$kde_qtver" = "1"; then
+     kde_qt_minversion=">= 1.42 and < 2.0"
+@@ -1137,7 +1166,11 @@
+ 
+ if test -z "$3"; then
+    if test $kde_qtver = 3; then
+-     kde_qt_verstring="QT_VERSION >= 303"
++     if test $kde_qtsubver -gt 0; then
++       kde_qt_verstring="QT_VERSION >= 0x030100"
++     else
++       kde_qt_verstring="QT_VERSION >= 300"
++     fi
+    fi
+    if test $kde_qtver = 2; then
+      if test $kde_qtsubver -gt 0; then
+@@ -1896,15 +1929,29 @@
+    AC_REQUIRE([K_PATH_X])
+ 
+ if test $kde_qtver = 3; then
++   AC_SUBST(LIB_ARTSKDE, "-lartskde")
++   AC_SUBST(LIB_DCOP, "-lDCOP")
++   AC_SUBST(LIB_KAB, "-lkab")
++   AC_SUBST(LIB_KABC, "-lkabc")
+    AC_SUBST(LIB_KDECORE, "-lkdecore")
++   AC_SUBST(LIB_KDED, "@PREFIX@/lib/kded.la")
++   AC_SUBST(LIB_KDEFX, "-lkdefx")
++   AC_SUBST(LIB_KDEPRINT, "-lkdeprint")
++   AC_SUBST(LIB_KDESASL, "-lkdesasl")
++   AC_SUBST(LIB_KDESU, "-lkdesu")
+    AC_SUBST(LIB_KDEUI, "-lkdeui")
+-   AC_SUBST(LIB_KIO, "-lkio")
+-   AC_SUBST(LIB_SMB, "-lsmb")
+-   AC_SUBST(LIB_KAB, "-lkab")
+    AC_SUBST(LIB_KHTML, "-lkhtml")
+-   AC_SUBST(LIB_KSPELL, "-lkspell")
++   AC_SUBST(LIB_KIO, "-lkio")
+    AC_SUBST(LIB_KPARTS, "-lkparts")
+-   AC_SUBST(LIB_KDEPRINT, "-lkdeprint")
++   AC_SUBST(LIB_KJAVA, "-lkjava")
++   AC_SUBST(LIB_KJS, "-lkjs")
++   AC_SUBST(LIB_KMID, "-lkmid")
++   AC_SUBST(LIB_KSCRIPT, "-lkscript")
++   AC_SUBST(LIB_KSPELL, "-lkspell")
++   AC_SUBST(LIB_KTEXTEDITOR, "-lktexteditor")
++   AC_SUBST(LIB_SHELLSCRIPT, "-lshellscript")
++   AC_SUBST(LIB_SMB, "-lsmb")
++   AC_SUBST(LIB_VCARD, "-lvcard")
+ # these are for backward compatibility
+    AC_SUBST(LIB_KSYCOCA, "-lkio")
+    AC_SUBST(LIB_KFILE, "-lkio")
+@@ -2635,10 +2682,10 @@
+       if test $kde_use_debug_code = "full"; then
+         CFLAGS="-g3 $CFLAGS"
+       else
+-        CFLAGS="-g -O2 $CFLAGS"
++        CFLAGS="-g -O $CFLAGS"
+       fi
+     else
+-      CFLAGS="-O2 $CFLAGS"
++      CFLAGS="-Os -frename-registers -mmultiple -mcpu=750 -mtune=750 $CFLAGS"
+     fi
+   fi
+ 
+@@ -2668,7 +2715,7 @@
+         if test "$kde_use_debug_code" = "full"; then
+           CXXFLAGS="-g3 $CXXFLAGS"
+         else
+-          CXXFLAGS="-g -O2 $CXXFLAGS"
++          CXXFLAGS="-g -O $CXXFLAGS"
+         fi
+       fi
+       KDE_CHECK_COMPILER_FLAG(fno-builtin,[CXXFLAGS="-fno-builtin $CXXFLAGS"])
+@@ -2680,7 +2727,7 @@
+       if test "$CXX" = "KCC"; then
+         CXXFLAGS="+K3 $CXXFLAGS"
+       else
+-        CXXFLAGS="-O2 $CXXFLAGS"
++        CXXFLAGS="-Os -frename-registers -mmultiple -mcpu=750 -mtune=750 $CXXFLAGS"
+       fi  
+     fi
+   fi
+@@ -3177,9 +3224,9 @@
+     ac_save_ldflags="$LDFLAGS"
+     ac_save_cflags="$CFLAGS"
+     if test "x$kde_use_qt_emb" != "xyes"; then
+-      LDFLAGS="$LDFLAGS $X_LDFLAGS $USER_LDFLAGS $LDFLAGS $XPM_LDFLAGS $all_libraries -lXpm -lX11 -lXext $LIBZ $LIBSOCKET"
++      LDFLAGS="$LDFLAGS $USER_LDFLAGS $X_LDFLAGS $LDFLAGS $XPM_LDFLAGS $all_libraries -lXpm -lX11 -lXext $LIBZ $LIBSOCKET"
+     else
+-      LDFLAGS="$LDFLAGS $X_LDFLAGS $USER_LDFLAGS $LDFLAGS $XPM_LDFLAGS $all_libraries -lXpm $LIBZ $LIBSOCKET"
++      LDFLAGS="$LDFLAGS $USER_LDFLAGS $X_LDFLAGS $LDFLAGS $XPM_LDFLAGS $all_libraries -lXpm $LIBZ $LIBSOCKET"
+     fi
+     CFLAGS="$CFLAGS $X_INCLUDES $USER_INCLUDES"
+     test -n "$XPM_INCLUDE" && CFLAGS="-I$XPM_INCLUDE $CFLAGS"
+@@ -4427,12 +4474,14 @@
+ 
+ AC_DEFUN(KDE_CHECK_HEADERS,
+ [
++   AH_CHECK_HEADERS([$1])
+    AC_LANG_SAVE
+    kde_safe_cppflags=$CPPFLAGS
+    CPPFLAGS="$CPPFLAGS $all_includes"
+    AC_LANG_CPLUSPLUS
+-   for k_header in $1; do
+-      AC_CHECK_HEADER($k_header, $2, $3)
++   for k_header in $1
++   do
++      AC_CHECK_HEADER($k_header, [AC_DEFINE_UNQUOTED(AS_TR_CPP(HAVE_$k_header)) $2], [$3])
+    done
+    CPPFLAGS=$kde_safe_cppflags
+    AC_LANG_RESTORE
+@@ -4612,6 +4661,83 @@
+ 	done
+ ])
+ 
++AC_DEFUN(KDE_CHECK_LDAP,
++[
++  AC_MSG_CHECKING([for LDAP])
++
++  if test -n "$1"; then
++    ldap_extra_dirs="$1"
++  fi
++
++  ldap_incdirs="$ldap_extra_dirs/include /usr/include /usr/local/include/ $kde_extra_includes"
++  AC_FIND_FILE(ldap.h, $ldap_incdirs, ldap_incdir)
++  if test ! -r $ldap_incdir/ldap.h; then
++    ldap_incdir=no
++  fi
++
++  ldap_libdirs="$ldap_extra_dirs/lib /usr/lib /usr/local /usr/lib $kde_extra_libs"
++  for ext in la so sl dylib a; do
++    AC_FIND_FILE(libldap.$ext, $ldap_libdirs, ldap_libdir_test)
++    if test -r $ldap_libdir_test/libldap.$ext; then
++      ldap_libdir=$ldap_libdir_test
++      break
++    fi
++  done
++  if test -z "$ldap_libdir"; then
++    ldap_libdir=no
++  fi
++  if test x$ldap_libdir != xno && test x$ldap_incdir != xno; then
++    LDAP_INCS=-I$ldap_incdir
++    LDAP_LIBS=-L$ldap_libdir
++    # on MacOSX, we link against the framework instead of
++    # directly to the libraries, for forward-compatibility
++    if test -d "/System/Library/Frameworks/LDAP.framework"; then
++      LIBLDAP="-framework LDAP"
++    else
++      LIBLDAP="-lldap -llber -lresolv"
++    fi
++    if test "$USE_RPATH" = "yes"; then
++      LDAP_RPATH="-R $LDAPLIBDIR/lib"
++    fi
++
++    kde_safe_LIBS="$LIBS"
++    kde_safe_CFLAGS="$CFLAGS"
++    LIBS="$LIBS $all_libraries $LDAP_LIBS $LIBLDAP $KERBEROS_LIBS $X_EXTRA_LIBS"
++    CFLAGS="$CFLAGS $all_includes $LDAP_INCS $KERBEROS_INCS"
++    AC_LANG_SAVE
++    AC_LANG_C
++    AC_TRY_LINK(
++      [#include <lber.h>
++#include <ldap.h>
++#if LDAP_VENDOR_VERSION < 20000
++#error OpenLDAP version too old, please upgrade to version 2 or higher
++#endif
++],
++      [ LDAP *ldap; ],
++      [ ldap_old=no ],
++      [ ldap_old=yes ]
++    )
++    LIBS="$kde_safe_LIBS"
++    CFLAGS="$kde_safe_CFLAGS"
++
++    if test x$ldap_old = xno; then
++      AC_SUBST(LDAP_INCS)
++      AC_SUBST(LDAP_LIBS)
++      AC_SUBST(LDAP_RPATH)
++      AC_SUBST(LIBLDAP)
++      AC_DEFINE_UNQUOTED(HAVE_LIBLDAP,1,[Define if you have LDAP libraries])
++    else
++      LDAP_INCS=
++      LDAP_LIBS=
++      LDAP_RPATH=
++      LIBLDAP=
++    fi
++    AC_MSG_RESULT([libraries $ldap_libdir, headers $ldap_incdir])
++  else
++    AC_MSG_RESULT([not found])
++  fi
++])
++
+ dnl KDE_CHEC_JAVA_DIR(onlyjre)
+ AC_DEFUN(KDE_CHECK_JAVA_DIR,
+ [
+@@ -4646,6 +4772,7 @@
+       KDE_JAVA_PREFIX(/usr/lib/IBMJava2*)
+       KDE_JAVA_PREFIX(/usr/lib/IBMJava*)
+       KDE_JAVA_PREFIX(/opt/java*)
++      KDE_JAVA_PREFIX(/Library/Java/Home)
+     
+       kde_cv_path="NONE"
+       kde_save_IFS=$IFS
+@@ -4697,10 +4824,20 @@
+ dnl At this point kde_java_bindir and kde_java_includedir are either set or "no"
+ if test "x$kde_java_bindir" != "xno"; then
+ 
++  case $host_os in
++    darwin*)
++      dnl Look for libjvm.dylib
++      kde_java_libjvmdir=`find $kde_java_bindir/.. -name libjvm.dylib | sed 's,libjvm.dylib,,'|head -n 1`
++      kd_java_libhpidir=''
++      dnl Darwin doesn't have libhpi
++      ;;
++    *)
+   dnl Look for libjvm.so
+   kde_java_libjvmdir=`find $kde_java_bindir/.. -name libjvm.so | sed 's,libjvm.so,,'|head -n 1`
+   dnl Look for libhpi.so and avoid green threads
+-  kde_java_libhpidir=`find $kde_java_bindir/.. -name libhpi.so | grep -v green | sed 's,libhpi.so,,' | head -n 1`
++  kde_java_libhpidir=`find $kde_java_bindir/.. -name libhpi.so | grep -v green | sed 's,libhpi.so,,' | tail -n 1`
++      ;;
++  esac
+ 
+   dnl Now check everything's fine under there
+   dnl the include dir is our flag for having the JDK
+@@ -4729,19 +4866,31 @@
+     JAVAC=
+     jni_includes=
+   fi
+-
++  case $host_os in
++    darwin*)
++      if test ! -r "$kde_java_libjvmdir/libjvm.dylib"; then
++        AC_MSG_ERROR([libjvm.dylib not found under $kde_java_libjvmdir. Use --without-java.])
++      fi
++      dnl Darwin doesn't have libhpi, but it's not fatal
++      LIB_JVM="-framework JavaVM"
++      LIB_HPI=""
++      ;;
++    *)
+   if test ! -r "$kde_java_libjvmdir/libjvm.so"; then
+      AC_MSG_ERROR([libjvm.so not found under $kde_java_libjvmdir. Use --without-java.])
+   fi 
++      LIB_JVM="-L$kde_java_libjvmdir -ljvm"
++      if test ! -r "$kde_java_libhpidir/libhpi.so"; then
++        AC_MSG_ERROR([libhpi.so not found under $kde_java_libhpidir. Use --without-java.])
++      fi
++      LIB_HPI="-L$kde_java_libhpidir -lhpi"
++      ;;
++  esac
+ 
+   if test ! -x "$kde_java_bindir/java"; then
+       AC_MSG_ERROR([java not found under $kde_java_bindir. javac was found though! Use --with-java or --without-java.])
+   fi
+ 
+-  if test ! -r "$kde_java_libhpidir/libhpi.so"; then
+-    AC_MSG_ERROR([libhpi.so not found under $kde_java_libhpidir. Use --without-java.])
+-  fi
+-
+   if test -n "$jni_includes"; then
+     dnl Check for JNI version
+     AC_LANG_SAVE
+@@ -5042,4 +5191,194 @@
+ 
+ fi
+ AM_CONDITIONAL(include_BZIP2, test -n "$BZIP2DIR")
++])
++
++dnl ------------------------------------------------------------------------
++dnl Try to find the SSL headers and libraries.
++dnl $(SSL_LDFLAGS) will be -Lsslliblocation (if needed)
++dnl and $(SSL_INCLUDES) will be -Isslhdrlocation (if needed)
++dnl ------------------------------------------------------------------------
++dnl
++AC_DEFUN(KDE_CHECK_SSL,
++[
++LIBSSL="-lssl -lcrypto"
++
++ac_ssl_includes=NO ac_ssl_libraries=NO
++ssl_libraries=""
++ssl_includes=""
++AC_ARG_WITH(ssl-dir,
++    [  --with-ssl-dir=DIR      where the root of OpenSSL is installed],
++    [  ac_ssl_includes="$withval"/include
++       ac_ssl_libraries="$withval"/lib
++    ])
++
++want_ssl=yes
++AC_ARG_WITH(ssl,
++    [  --without-ssl           disable SSL checks],
++    [want_ssl=$withval])
++
++if test $want_ssl = yes; then
++
++AC_MSG_CHECKING(for OpenSSL)
++
++AC_CACHE_VAL(ac_cv_have_ssl,
++[#try to guess OpenSSL locations
++  
++  ssl_incdirs="/usr/include /usr/local/include /usr/ssl/include /usr/local/ssl/include $prefix/include $kde_extra_includes"
++  ssl_incdirs="$ac_ssl_includes $ssl_incdirs"
++  AC_FIND_FILE(openssl/ssl.h, $ssl_incdirs, ssl_incdir)
++  ac_ssl_includes="$ssl_incdir"
++
++  ssl_libdirs="/usr/lib /usr/local/lib /usr/ssl/lib /usr/local/ssl/lib $prefix/lib $exec_prefix/lib $kde_extra_libs"
++  if test ! "$ac_ssl_libraries" = "NO"; then
++    ssl_libdirs="$ac_ssl_libraries $ssl_libdirs"
++  fi
++
++  test=NONE
++  ssl_libdir=NONE
++  for dir in $ssl_libdirs; do
++    try="ls -1 $dir/libssl*"
++    if test=`eval $try 2> /dev/null`; then ssl_libdir=$dir; break; else echo "tried $dir" >&AC_FD_CC ; fi
++  done
++
++  ac_ssl_libraries="$ssl_libdir"
++
++  AC_LANG_SAVE
++  AC_LANG_C
++
++  ac_cflags_safe="$CFLAGS"
++  ac_ldflags_safe="$LDFLAGS"
++  ac_libs_safe="$LIBS"
++
++  CFLAGS="$CFLAGS -I$ssl_incdir $all_includes"
++  LDFLAGS="$LDFLAGS -L$ssl_libdir $all_libraries"
++  LIBS="$LIBS $LIBSSL -lRSAglue -lrsaref"
++
++  AC_TRY_LINK(,void RSAPrivateEncrypt(void);RSAPrivateEncrypt();,
++  ac_ssl_rsaref="yes"
++  ,
++  ac_ssl_rsaref="no"
++  )
++
++  CFLAGS="$ac_cflags_safe"
++  LDFLAGS="$ac_ldflags_safe"
++  LIBS="$ac_libs_safe"
++
++  AC_LANG_RESTORE
++
++  if test "$ac_ssl_includes" = NO || test "$ac_ssl_libraries" = NO; then
++    have_ssl=no
++  else
++    have_ssl=yes;
++  fi
++
++  ])
++
++  eval "$ac_cv_have_ssl"
++
++  AC_MSG_RESULT([libraries $ac_ssl_libraries, headers $ac_ssl_includes])
++
++  AC_MSG_CHECKING([whether OpenSSL uses rsaref])
++  AC_MSG_RESULT($ac_ssl_rsaref)
++
++  AC_MSG_CHECKING([for easter eggs])
++  AC_MSG_RESULT([none found])
++
++else
++  have_ssl=no
++fi
++
++if test "$have_ssl" = yes; then
++  AC_MSG_CHECKING(for OpenSSL version)
++  dnl Check for SSL version
++  AC_CACHE_VAL(ac_cv_ssl_version,
++  [
++    AC_LANG_SAVE
++    AC_LANG_C 
++
++    cat >conftest.$ac_ext <<EOF
++#include <openssl/opensslv.h>
++#include <stdio.h>
++    int main() {
++ 
++#ifndef OPENSSL_VERSION_NUMBER
++      printf("ssl_version=\\"error\\"\n");
++#else
++      if (OPENSSL_VERSION_NUMBER < 0x00906000)
++        printf("ssl_version=\\"old\\"\n");
++      else
++        printf("ssl_version=\\"ok\\"\n");
++#endif
++     return (0);
++    }
++EOF
++
++    ac_compile='${CC-gcc} $CFLAGS -I$ac_ssl_includes conftest.$ac_ext -o conftest'
++    if AC_TRY_EVAL(ac_compile); then 
++
++      if eval `./conftest 2>&5`; then
++        if test $ssl_version = error; then
++          AC_MSG_ERROR([$ssl_incdir/openssl/opensslv.h doesn't define OPENSSL_VERSION_NUMBER !])
++        else
++          if test $ssl_version = old; then
++            AC_MSG_WARN([OpenSSL version too old. Upgrade to 0.9.6 at least, see http://www.openssl.org. SSL support disabled.])
++            have_ssl=no
++          fi
++        fi
++        ac_cv_ssl_version="ssl_version=$ssl_version"
++      else
++        AC_MSG_ERROR([Your system couldn't run a small SSL test program.
++        Check config.log, and if you can't figure it out, send a mail to 
++        David Faure <faure@kde.org>, attaching your config.log])
++      fi
++
++    else
++      AC_MSG_ERROR([Your system couldn't link a small SSL test program.
++      Check config.log, and if you can't figure it out, send a mail to 
++      David Faure <faure@kde.org>, attaching your config.log])
++    fi 
++
++    AC_LANG_RESTORE
++
++  ])
++
++  eval "$ac_cv_ssl_version"
++  AC_MSG_RESULT($ssl_version)
++fi
++
++if test "$have_ssl" != yes; then
++  LIBSSL="";
++else
++  AC_DEFINE(HAVE_SSL, 1, [If we are going to use OpenSSL])
++  ac_cv_have_ssl="have_ssl=yes \
++    ac_ssl_includes=$ac_ssl_includes ac_ssl_libraries=$ac_ssl_libraries ac_ssl_rsaref=$ac_ssl_rsaref"
++  
++  
++  ssl_libraries="$ac_ssl_libraries"
++  ssl_includes="$ac_ssl_includes"
++
++  if test "$ac_ssl_rsaref" = yes; then
++    LIBSSL="-lssl -lcrypto -lRSAglue -lrsaref" 
++  fi
++
++  if test $ssl_version = "old"; then
++    AC_DEFINE(HAVE_OLD_SSL_API, 1, [Define if you have OpenSSL < 0.9.6])
++  fi
++fi
++
++if test "$ssl_includes" = "/usr/include" || test  "$ssl_includes" = "/usr/local/include" || test -z "$ssl_includes"; then
++ SSL_INCLUDES="";
++else
++ SSL_INCLUDES="-I$ssl_includes"
++fi
++
++if test "$ssl_libraries" = "/usr/lib" || test "$ssl_libraries" = "/usr/local/lib" || test -z "$ssl_libraries"; then
++ SSL_LDFLAGS=""
++else
++ SSL_LDFLAGS="-L$ssl_libraries -R$ssl_libraries"
++fi
++
++AC_SUBST(SSL_INCLUDES)
++AC_SUBST(SSL_LDFLAGS)
++AC_SUBST(LIBSSL)
+ ])
+--- ./admin/am_edit	13 Oct 2002 00:40:46 -0000	1.1.1.3
++++ ./admin/am_edit	6 Nov 2002 15:57:07 -0000	1.9
+@@ -18,7 +18,7 @@
+ #    KDE_ICON = AUTO
+ #
+ # For documentation :
+-#    ...
++#    http://developer.kde.org/documentation/other/developer-faq.html
+ #
+ # and more new tags TBD!
+ #
+@@ -1133,11 +1133,13 @@
+                     $dep_lines .= "\techo '#include <klocale.h>' > $source.$cxxsuffix\n";
+                     my ($mangled_source) = $source;
+                     $mangled_source =~ s/[^A-Za-z0-9]/_/g;  # get rid of garbage
+-                    $dep_lines .= "\t\$(UIC) -tr \${UIC_TR} -i $source.h $sourcedir$source.ui | sed -e \"s,\${UIC_TR}( \\\"\\\" ),QString::null,g\" | sed -e \"s,\${UIC_TR}( \\\"\\\"\\, \\\"\\\" ),QString::null,g\" | sed -e \"s,image\\([0-9][0-9]*\\)_data,img\\1_" . $mangled_source . ",g\" >> $source.$cxxsuffix || rm -f $source.$cxxsuffix\n";
++                    $dep_lines .= "\t\$(UIC) -tr \${UIC_TR} -i $source.h $sourcedir$source.ui > $source.$cxxsuffix.temp ; ret=\$\$?; \\\n";
++                    $dep_lines .= "\tsed -e \"s,\${UIC_TR}( \\\"\\\" ),QString::null,g\" $source.$cxxsuffix.temp | sed -e \"s,\${UIC_TR}( \\\"\\\"\\, \\\"\\\" ),QString::null,g\" | sed -e \"s,image\\([0-9][0-9]*\\)_data,img\\1_" . $mangled_source . ",g\" >> $source.$cxxsuffix ;\\\n";
++		    $dep_lines .= "\trm -f $source.$cxxsuffix.temp ;\\\n";
+                 } else {
+-                    $dep_lines .= "\t\$(UIC) -i $source.h $sourcedir$source.ui > $source.$cxxsuffix || rm -f $source.$cxxsuffix\n";
++                    $dep_lines .= "\t\$(UIC) -i $source.h $sourcedir$source.ui > $source.$cxxsuffix; ret=\$\$?; \\\n";
+                 }
+-                $dep_lines .= "\techo '#include \"$source.moc\"' >> $source.$cxxsuffix\n\n";
++		$dep_lines .= "\tif test \"\$\$ret\" = 0; then echo '#include \"$source.moc\"' >> $source.$cxxsuffix; else rm -f $source.$cxxsuffix ; exit \$\$ret ; fi\n\n";
+                 $dep_lines .= "$source.h: $sourcedir$source.ui\n";
+                 $dep_lines .= "\t\$(UIC) -o $source.h $sourcedir$source.ui\n\n";
+                 $dep_lines .= "$source.moc: $source.h\n";
+@@ -1262,12 +1264,13 @@
+                'hi48' => 'hicolor/48x48',
+                'hi64' => 'hicolor/64x64',
+                'hisc' => 'hicolor/scalable',
+- 	       'cr16' => 'crystal/16x16',
+-               'cr22' => 'crystal/22x22',
+-               'cr32' => 'crystal/32x32',
+-               'cr48' => 'crystal/48x48',
+-               'cr64' => 'crystal/64x64',
+-               'crsc' => 'crystal/scalable'
++ 	       'cr16' => 'crystalsvg/16x16',
++               'cr22' => 'crystalsvg/22x22',
++               'cr32' => 'crystalsvg/32x32',
++               'cr48' => 'crystalsvg/48x48',
++               'cr64' => 'crystalsvg/64x64',
++               'cr128' => 'crystalsvg/128x128',
++               'crsc' => 'crystalsvg/scalable'
+               );
+             
+             $newfile =~ s@.*-($appname\.(png|xpm|mng|svgz|svg?))@$1@;
+@@ -1948,7 +1951,7 @@
+     $MakefileData =~ s/\034/\\\n/g;    # Restore continuation lines
+     # Append our $progId line, _below_ the "generated by automake" line
+     # because automake-1.6 relies on the first line to be his own.
+-    my $progIdLine = "\# $progId - " . '$Revision$ '."\n";
++    my $progIdLine = "\# $progId - " . '$Revision$ '."\n";
+     if ( !( $MakefileData =~ s/^(.*generated .*by automake.*\n)/$1$progIdLine/ ) ) {
+         warn "automake line not found in $makefile\n";
+ 	# Fallback: first line
+--- ./admin/config.guess	26 Jun 2002 02:38:52 -0000	1.1.1.1
++++ ./admin/config.guess	6 Nov 2002 15:57:07 -0000	1.5
+@@ -3,7 +3,7 @@
+ #   Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
+ #   2000, 2001, 2002 Free Software Foundation, Inc.
+ 
+-timestamp='2002-01-23'
++timestamp='2002-10-21'
+ 
+ # This file is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU General Public License as published by
+@@ -88,30 +88,40 @@
+   exit 1
+ fi
+ 
++trap 'exit 1' 1 2 15
+ 
+-dummy=dummy-$$
+-trap 'rm -f $dummy.c $dummy.o $dummy.rel $dummy; exit 1' 1 2 15
++# CC_FOR_BUILD -- compiler used by this script. Note that the use of a
++# compiler to aid in system detection is discouraged as it requires
++# temporary files to be created and, as you can see below, it is a
++# headache to deal with in a portable fashion.
+ 
+-# CC_FOR_BUILD -- compiler used by this script.
+ # Historically, `CC_FOR_BUILD' used to be named `HOST_CC'. We still
+ # use `HOST_CC' if defined, but it is deprecated.
+ 
+-set_cc_for_build='case $CC_FOR_BUILD,$HOST_CC,$CC in
+- ,,)    echo "int dummy(){}" > $dummy.c ;
+-	for c in cc gcc c89 ; do
+-	  ($c $dummy.c -c -o $dummy.o) >/dev/null 2>&1 ;
+-	  if test $? = 0 ; then
++# This shell variable is my proudest work .. or something. --bje
++
++set_cc_for_build='tmpdir=${TMPDIR-/tmp}/config-guess-$$ ;
++(old=`umask` && umask 077 && mkdir $tmpdir && umask $old && unset old)
++   || (echo "$me: cannot create $tmpdir" >&2 && exit 1) ;
++dummy=$tmpdir/dummy ;
++files="$dummy.c $dummy.o $dummy.rel $dummy" ;
++trap '"'"'rm -f $files; rmdir $tmpdir; exit 1'"'"' 1 2 15 ;
++case $CC_FOR_BUILD,$HOST_CC,$CC in
++ ,,)    echo "int x;" > $dummy.c ;
++	for c in cc gcc c89 c99 ; do
++	  if ($c -c -o $dummy.o $dummy.c) >/dev/null 2>&1 ; then
+ 	     CC_FOR_BUILD="$c"; break ;
+ 	  fi ;
+ 	done ;
+-	rm -f $dummy.c $dummy.o $dummy.rel ;
++	rm -f $files ;
+ 	if test x"$CC_FOR_BUILD" = x ; then
+ 	  CC_FOR_BUILD=no_compiler_found ;
+ 	fi
+ 	;;
+  ,,*)   CC_FOR_BUILD=$CC ;;
+  ,*,*)  CC_FOR_BUILD=$HOST_CC ;;
+-esac'
++esac ;
++unset files'
+ 
+ # This is needed to find uname on a Pyramid OSx when run in the BSD universe.
+ # (ghazi@noc.rutgers.edu 1994-08-24)
+@@ -138,9 +148,11 @@
+ 	#
+ 	# Note: NetBSD doesn't particularly care about the vendor
+ 	# portion of the name.  We always set it to "unknown".
+-	UNAME_MACHINE_ARCH=`(uname -p) 2>/dev/null` || \
+-	    UNAME_MACHINE_ARCH=unknown
++	sysctl="sysctl -n hw.machine_arch"
++	UNAME_MACHINE_ARCH=`(/sbin/$sysctl 2>/dev/null || \
++	    /usr/sbin/$sysctl 2>/dev/null || echo unknown)`
+ 	case "${UNAME_MACHINE_ARCH}" in
++	    armeb) machine=armeb-unknown ;;
+ 	    arm*) machine=arm-unknown ;;
+ 	    sh3el) machine=shl-unknown ;;
+ 	    sh3eb) machine=sh-unknown ;;
+@@ -219,6 +231,7 @@
+ 	# A Tn.n version is a released field test version.
+ 	# A Xn.n version is an unreleased experimental baselevel.
+ 	# 1.2 uses "1.2" for uname -r.
++	eval $set_cc_for_build
+ 	cat <<EOF >$dummy.s
+ 	.data
+ \$Lformat:
+@@ -244,10 +257,9 @@
+ 	jsr \$26,exit
+ 	.end main
+ EOF
+-	eval $set_cc_for_build
+-	$CC_FOR_BUILD $dummy.s -o $dummy 2>/dev/null
++	$CC_FOR_BUILD -o $dummy $dummy.s 2>/dev/null
+ 	if test "$?" = 0 ; then
+-		case `./$dummy` in
++		case `$dummy` in
+ 			0-0)
+ 				UNAME_MACHINE="alpha"
+ 				;;
+@@ -269,9 +281,12 @@
+ 			2-1307)
+ 				UNAME_MACHINE="alphaev68"
+ 				;;
++			3-1307)
++				UNAME_MACHINE="alphaev7"
++				;;
+ 		esac
+ 	fi
+-	rm -f $dummy.s $dummy
++	rm -f $dummy.s $dummy && rmdir $tmpdir
+ 	echo ${UNAME_MACHINE}-dec-osf`echo ${UNAME_RELEASE} | sed -e 's/^[VTX]//' | tr 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' 'abcdefghijklmnopqrstuvwxyz'`
+ 	exit 0 ;;
+     Alpha\ *:Windows_NT*:*)
+@@ -312,6 +327,10 @@
+     NILE*:*:*:dcosx)
+ 	echo pyramid-pyramid-svr4
+ 	exit 0 ;;
++    DRS?6000:UNIX_SV:4.2*:7*)
++	case `/usr/bin/uname -p` in
++	    sparc) echo sparc-icl-nx7 && exit 0 ;;
++	esac ;;
+     sun4H:SunOS:5.*:*)
+ 	echo sparc-hal-solaris2`echo ${UNAME_RELEASE}|sed -e 's/[^.]*//'`
+ 	exit 0 ;;
+@@ -340,7 +359,7 @@
+ 	echo m68k-sun-sunos${UNAME_RELEASE}
+ 	exit 0 ;;
+     sun*:*:4.2BSD:*)
+-	UNAME_RELEASE=`(head -1 /etc/motd | awk '{print substr($5,1,3)}') 2>/dev/null`
++	UNAME_RELEASE=`(sed 1q /etc/motd | awk '{print substr($5,1,3)}') 2>/dev/null`
+ 	test "x${UNAME_RELEASE}" = "x" && UNAME_RELEASE=3
+ 	case "`/bin/arch`" in
+ 	    sun3)
+@@ -418,15 +437,21 @@
+ 	  exit (-1);
+ 	}
+ EOF
+-	$CC_FOR_BUILD $dummy.c -o $dummy \
+-	  && ./$dummy `echo "${UNAME_RELEASE}" | sed -n 's/\([0-9]*\).*/\1/p'` \
+-	  && rm -f $dummy.c $dummy && exit 0
+-	rm -f $dummy.c $dummy
++	$CC_FOR_BUILD -o $dummy $dummy.c \
++	  && $dummy `echo "${UNAME_RELEASE}" | sed -n 's/\([0-9]*\).*/\1/p'` \
++	  && rm -f $dummy.c $dummy && rmdir $tmpdir && exit 0
++	rm -f $dummy.c $dummy && rmdir $tmpdir
+ 	echo mips-mips-riscos${UNAME_RELEASE}
+ 	exit 0 ;;
+     Motorola:PowerMAX_OS:*:*)
+ 	echo powerpc-motorola-powermax
+ 	exit 0 ;;
++    Motorola:*:4.3:PL8-*)
++	echo powerpc-harris-powermax
++	exit 0 ;;
++    Night_Hawk:*:*:PowerMAX_OS)
++	echo powerpc-harris-powermax
++	exit 0 ;;
+     Night_Hawk:Power_UNIX:*:*)
+ 	echo powerpc-harris-powerunix
+ 	exit 0 ;;
+@@ -499,8 +524,8 @@
+ 			exit(0);
+ 			}
+ EOF
+-		$CC_FOR_BUILD $dummy.c -o $dummy && ./$dummy && rm -f $dummy.c $dummy && exit 0
+-		rm -f $dummy.c $dummy
++		$CC_FOR_BUILD -o $dummy $dummy.c && $dummy && rm -f $dummy.c $dummy && rmdir $tmpdir && exit 0
++		rm -f $dummy.c $dummy && rmdir $tmpdir
+ 		echo rs6000-ibm-aix3.2.5
+ 	elif grep bos324 /usr/include/stdio.h >/dev/null 2>&1; then
+ 		echo rs6000-ibm-aix3.2.4
+@@ -509,7 +534,7 @@
+ 	fi
+ 	exit 0 ;;
+     *:AIX:*:[45])
+-	IBM_CPU_ID=`/usr/sbin/lsdev -C -c processor -S available | head -1 | awk '{ print $1 }'`
++	IBM_CPU_ID=`/usr/sbin/lsdev -C -c processor -S available | sed 1q | awk '{ print $1 }'`
+ 	if /usr/sbin/lsattr -El ${IBM_CPU_ID} | grep ' POWER' >/dev/null 2>&1; then
+ 		IBM_ARCH=rs6000
+ 	else
+@@ -598,9 +623,9 @@
+                   exit (0);
+               }
+ EOF
+-		    (CCOPTS= $CC_FOR_BUILD $dummy.c -o $dummy 2>/dev/null) && HP_ARCH=`./$dummy`
++		    (CCOPTS= $CC_FOR_BUILD -o $dummy $dummy.c 2>/dev/null) && HP_ARCH=`$dummy`
+ 		    if test -z "$HP_ARCH"; then HP_ARCH=hppa; fi
+-		    rm -f $dummy.c $dummy
++		    rm -f $dummy.c $dummy && rmdir $tmpdir
+ 		fi ;;
+ 	esac
+ 	echo ${HP_ARCH}-hp-hpux${HPUX_REV}
+@@ -636,8 +661,8 @@
+ 	  exit (0);
+ 	}
+ EOF
+-	$CC_FOR_BUILD $dummy.c -o $dummy && ./$dummy && rm -f $dummy.c $dummy && exit 0
+-	rm -f $dummy.c $dummy
++	$CC_FOR_BUILD -o $dummy $dummy.c && $dummy && rm -f $dummy.c $dummy && rmdir $tmpdir && exit 0
++	rm -f $dummy.c $dummy && rmdir $tmpdir
+ 	echo unknown-hitachi-hiuxwe2
+ 	exit 0 ;;
+     9000/7??:4.3bsd:*:* | 9000/8?[79]:4.3bsd:*:* )
+@@ -683,9 +708,6 @@
+     C4*:ConvexOS:*:* | convex:ConvexOS:C4*:*)
+ 	echo c4-convex-bsd
+         exit 0 ;;
+-    CRAY*X-MP:*:*:*)
+-	echo xmp-cray-unicos
+-        exit 0 ;;
+     CRAY*Y-MP:*:*:*)
+ 	echo ymp-cray-unicos${UNAME_RELEASE} | sed -e 's/\.[^.]*$/.X/'
+ 	exit 0 ;;
+@@ -707,9 +729,6 @@
+     CRAY*SV1:*:*:*)
+ 	echo sv1-cray-unicos${UNAME_RELEASE} | sed -e 's/\.[^.]*$/.X/'
+ 	exit 0 ;;
+-    CRAY-2:*:*:*)
+-	echo cray2-cray-unicos
+-        exit 0 ;;
+     F30[01]:UNIX_System_V:*:* | F700:UNIX_System_V:*:*)
+ 	FUJITSU_PROC=`uname -m | tr 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' 'abcdefghijklmnopqrstuvwxyz'`
+         FUJITSU_SYS=`uname -p | tr 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' 'abcdefghijklmnopqrstuvwxyz' | sed -e 's/\///'`
+@@ -726,7 +745,19 @@
+ 	echo ${UNAME_MACHINE}-unknown-bsdi${UNAME_RELEASE}
+ 	exit 0 ;;
+     *:FreeBSD:*:*)
+-	echo ${UNAME_MACHINE}-unknown-freebsd`echo ${UNAME_RELEASE}|sed -e 's/[-(].*//'`
++	# Determine whether the default compiler uses glibc.
++	eval $set_cc_for_build
++	sed 's/^	//' << EOF >$dummy.c
++	#include <features.h>
++	#if __GLIBC__ >= 2
++	LIBC=gnu
++	#else
++	LIBC=
++	#endif
++EOF
++	eval `$CC_FOR_BUILD -E $dummy.c 2>/dev/null | grep ^LIBC=`
++	rm -f $dummy.c && rmdir $tmpdir
++	echo ${UNAME_MACHINE}-unknown-freebsd`echo ${UNAME_RELEASE}|sed -e 's/[-(].*//'`${LIBC:+-$LIBC}
+ 	exit 0 ;;
+     i*:CYGWIN*:*)
+ 	echo ${UNAME_MACHINE}-pc-cygwin
+@@ -765,7 +796,7 @@
+ 	echo ${UNAME_MACHINE}-unknown-linux-gnu
+ 	exit 0 ;;
+     ia64:Linux:*:*)
+-	echo ${UNAME_MACHINE}-unknown-linux
++	echo ${UNAME_MACHINE}-unknown-linux-gnu
+ 	exit 0 ;;
+     m68*:Linux:*:*)
+ 	echo ${UNAME_MACHINE}-unknown-linux-gnu
+@@ -776,18 +807,18 @@
+ 	#undef CPU
+ 	#undef mips
+ 	#undef mipsel
+-	#if defined(__MIPSEL__) || defined(__MIPSEL) || defined(_MIPSEL) || defined(MIPSEL) 
+-	CPU=mipsel 
++	#if defined(__MIPSEL__) || defined(__MIPSEL) || defined(_MIPSEL) || defined(MIPSEL)
++	CPU=mipsel
+ 	#else
+-	#if defined(__MIPSEB__) || defined(__MIPSEB) || defined(_MIPSEB) || defined(MIPSEB) 
++	#if defined(__MIPSEB__) || defined(__MIPSEB) || defined(_MIPSEB) || defined(MIPSEB)
+ 	CPU=mips
+ 	#else
+ 	CPU=
+ 	#endif
+-	#endif 
++	#endif
+ EOF
+ 	eval `$CC_FOR_BUILD -E $dummy.c 2>/dev/null | grep ^CPU=`
+-	rm -f $dummy.c
++	rm -f $dummy.c && rmdir $tmpdir
+ 	test x"${CPU}" != x && echo "${CPU}-pc-linux-gnu" && exit 0
+ 	;;
+     ppc:Linux:*:*)
+@@ -837,9 +868,8 @@
+ 	# The BFD linker knows what the default object file format is, so
+ 	# first see if it will tell us. cd to the root directory to prevent
+ 	# problems with other programs or directories called `ld' in the path.
+-	# Export LANG=C to prevent ld from outputting information in other
+-	# languages.
+-	ld_supported_targets=`LANG=C; export LANG; cd /; ld --help 2>&1 \
++	# Set LC_ALL=C to ensure ld outputs messages in English.
++	ld_supported_targets=`cd /; LC_ALL=C ld --help 2>&1 \
+ 			 | sed -ne '/supported targets:/!d
+ 				    s/[ 	][ 	]*/ /g
+ 				    s/.*supported targets: *//
+@@ -851,7 +881,7 @@
+ 		;;
+ 	  a.out-i386-linux)
+ 		echo "${UNAME_MACHINE}-pc-linux-gnuaout"
+-		exit 0 ;;		
++		exit 0 ;;
+ 	  coff-i386)
+ 		echo "${UNAME_MACHINE}-pc-linux-gnucoff"
+ 		exit 0 ;;
+@@ -884,7 +914,7 @@
+ 	#endif
+ EOF
+ 	eval `$CC_FOR_BUILD -E $dummy.c 2>/dev/null | grep ^LIBC=`
+-	rm -f $dummy.c
++	rm -f $dummy.c && rmdir $tmpdir
+ 	test x"${LIBC}" != x && echo "${UNAME_MACHINE}-pc-linux-${LIBC}" && exit 0
+ 	test x"${TENTATIVE}" != x && echo "${TENTATIVE}" && exit 0
+ 	;;
+@@ -923,13 +953,13 @@
+ 		UNAME_REL=`sed -n 's/.*Version //p' </usr/options/cb.name`
+ 		echo ${UNAME_MACHINE}-pc-isc$UNAME_REL
+ 	elif /bin/uname -X 2>/dev/null >/dev/null ; then
+-		UNAME_REL=`(/bin/uname -X|egrep Release|sed -e 's/.*= //')`
+-		(/bin/uname -X|egrep i80486 >/dev/null) && UNAME_MACHINE=i486
+-		(/bin/uname -X|egrep '^Machine.*Pentium' >/dev/null) \
++		UNAME_REL=`(/bin/uname -X|grep Release|sed -e 's/.*= //')`
++		(/bin/uname -X|grep i80486 >/dev/null) && UNAME_MACHINE=i486
++		(/bin/uname -X|grep '^Machine.*Pentium' >/dev/null) \
+ 			&& UNAME_MACHINE=i586
+-		(/bin/uname -X|egrep '^Machine.*Pent ?II' >/dev/null) \
++		(/bin/uname -X|grep '^Machine.*Pent *II' >/dev/null) \
+ 			&& UNAME_MACHINE=i686
+-		(/bin/uname -X|egrep '^Machine.*Pentium Pro' >/dev/null) \
++		(/bin/uname -X|grep '^Machine.*Pentium Pro' >/dev/null) \
+ 			&& UNAME_MACHINE=i686
+ 		echo ${UNAME_MACHINE}-pc-sco$UNAME_REL
+ 	else
+@@ -962,9 +992,12 @@
+ 	# "miniframe"
+ 	echo m68010-convergent-sysv
+ 	exit 0 ;;
++    mc68k:UNIX:SYSTEM5:3.51m)
++	echo m68k-convergent-sysv
++	exit 0 ;;
+     M68*:*:R3V[567]*:*)
+ 	test -r /sysV68 && echo 'm68k-motorola-sysv' && exit 0 ;;
+-    3[34]??:*:4.0:3.0 | 3[34]??A:*:4.0:3.0 | 3[34]??,*:*:4.0:3.0 | 3[34]??/*:*:4.0:3.0 | 4850:*:4.0:3.0 | SKA40:*:4.0:3.0)
++    3[34]??:*:4.0:3.0 | 3[34]??A:*:4.0:3.0 | 3[34]??,*:*:4.0:3.0 | 3[34]??/*:*:4.0:3.0 | 4400:*:4.0:3.0 | 4850:*:4.0:3.0 | SKA40:*:4.0:3.0)
+ 	OS_REL=''
+ 	test -r /etc/.relid \
+ 	&& OS_REL=.`sed -n 's/[^ ]* [^ ]* \([0-9][0-9]\).*/\1/p' < /etc/.relid`
+@@ -1055,6 +1088,9 @@
+     SX-5:SUPER-UX:*:*)
+ 	echo sx5-nec-superux${UNAME_RELEASE}
+ 	exit 0 ;;
++    SX-6:SUPER-UX:*:*)
++	echo sx6-nec-superux${UNAME_RELEASE}
++	exit 0 ;;
+     Power*:Rhapsody:*:*)
+ 	echo powerpc-apple-rhapsody${UNAME_RELEASE}
+ 	exit 0 ;;
+@@ -1065,15 +1101,17 @@
+ 	echo `uname -p`-apple-darwin${UNAME_RELEASE}
+ 	exit 0 ;;
+     *:procnto*:*:* | *:QNX:[0123456789]*:*)
+-	if test "${UNAME_MACHINE}" = "x86pc"; then
++	UNAME_PROCESSOR=`uname -p`
++	if test "$UNAME_PROCESSOR" = "x86"; then
++		UNAME_PROCESSOR=i386
+ 		UNAME_MACHINE=pc
+ 	fi
+-	echo `uname -p`-${UNAME_MACHINE}-nto-qnx
++	echo ${UNAME_PROCESSOR}-${UNAME_MACHINE}-nto-qnx${UNAME_RELEASE}
+ 	exit 0 ;;
+     *:QNX:*:4*)
+ 	echo i386-pc-qnx
+ 	exit 0 ;;
+-    NSR-[GKLNPTVW]:NONSTOP_KERNEL:*:*)
++    NSR-[DGKLNPTVW]:NONSTOP_KERNEL:*:*)
+ 	echo nsr-tandem-nsk${UNAME_RELEASE}
+ 	exit 0 ;;
+     *:NonStop-UX:*:*)
+@@ -1245,8 +1283,8 @@
+ }
+ EOF
+ 
+-$CC_FOR_BUILD $dummy.c -o $dummy 2>/dev/null && ./$dummy && rm -f $dummy.c $dummy && exit 0
+-rm -f $dummy.c $dummy
++$CC_FOR_BUILD -o $dummy $dummy.c 2>/dev/null && $dummy && rm -f $dummy.c $dummy && rmdir $tmpdir && exit 0
++rm -f $dummy.c $dummy && rmdir $tmpdir
+ 
+ # Apollos put the system type in the environment.
+ 
+--- ./admin/config.sub	26 Jun 2002 02:38:52 -0000	1.1.1.1
++++ ./admin/config.sub	6 Nov 2002 15:57:07 -0000	1.5
+@@ -3,7 +3,7 @@
+ #   Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
+ #   2000, 2001, 2002 Free Software Foundation, Inc.
+ 
+-timestamp='2002-01-02'
++timestamp='2002-09-05'
+ 
+ # This file is (in principle) common to ALL GNU software.
+ # The presence of a machine in this file suggests that SOME GNU software
+@@ -118,7 +118,7 @@
+ # Here we must recognize all the valid KERNEL-OS combinations.
+ maybe_os=`echo $1 | sed 's/^\(.*\)-\([^-]*-[^-]*\)$/\2/'`
+ case $maybe_os in
+-  nto-qnx* | linux-gnu* | storm-chaos* | os2-emx* | windows32-*)
++  nto-qnx* | linux-gnu* | freebsd*-gnu* | storm-chaos* | os2-emx* | windows32-* | rtmk-nova*)
+     os=-$maybe_os
+     basic_machine=`echo $1 | sed 's/^\(.*\)-\([^-]*-[^-]*\)$/\1/'`
+     ;;
+@@ -229,25 +229,35 @@
+ 	| alpha | alphaev[4-8] | alphaev56 | alphaev6[78] | alphapca5[67] \
+ 	| alpha64 | alpha64ev[4-8] | alpha64ev56 | alpha64ev6[78] | alpha64pca5[67] \
+ 	| arc | arm | arm[bl]e | arme[lb] | armv[2345] | armv[345][lb] | avr \
+-	| c4x | clipper \
+-	| d10v | d30v | dsp16xx \
+-	| fr30 \
++	| clipper \
++	| d10v | d30v | dlx | dsp16xx \
++	| fr30 | frv \
+ 	| h8300 | h8500 | hppa | hppa1.[01] | hppa2.0 | hppa2.0[nw] | hppa64 \
+ 	| i370 | i860 | i960 | ia64 \
++	| ip2k \
+ 	| m32r | m68000 | m68k | m88k | mcore \
+-	| mips16 | mips64 | mips64el | mips64orion | mips64orionel \
+-	| mips64vr4100 | mips64vr4100el | mips64vr4300 \
+-	| mips64vr4300el | mips64vr5000 | mips64vr5000el \
+-	| mipsbe | mipseb | mipsel | mipsle | mipstx39 | mipstx39el \
+-	| mipsisa32 \
++	| mips | mipsbe | mipseb | mipsel | mipsle \
++	| mips16 \
++	| mips64 | mips64el \
++	| mips64vr | mips64vrel \
++	| mips64orion | mips64orionel \
++	| mips64vr4100 | mips64vr4100el \
++	| mips64vr4300 | mips64vr4300el \
++	| mips64vr5000 | mips64vr5000el \
++	| mipsisa32 | mipsisa32el \
++	| mipsisa64 | mipsisa64el \
++	| mipsisa64sb1 | mipsisa64sb1el \
++	| mipsisa64sr71k | mipsisa64sr71kel \
++	| mipstx39 | mipstx39el \
+ 	| mn10200 | mn10300 \
+ 	| ns16k | ns32k \
+-	| openrisc \
++	| openrisc | or32 \
+ 	| pdp10 | pdp11 | pj | pjl \
+ 	| powerpc | powerpc64 | powerpc64le | powerpcle | ppcbe \
+ 	| pyramid \
+-	| sh | sh[34] | sh[34]eb | shbe | shle \
+-	| sparc | sparc64 | sparclet | sparclite | sparcv9 | sparcv9b \
++	| sh | sh[1234] | sh3e | sh[34]eb | shbe | shle | sh[1234]le | sh3ele \
++	| sh64 | sh64le \
++	| sparc | sparc64 | sparc86x | sparclet | sparclite | sparcv9 | sparcv9b \
+ 	| strongarm \
+ 	| tahoe | thumb | tic80 | tron \
+ 	| v850 | v850e \
+@@ -281,37 +291,48 @@
+ 	| alpha-* | alphaev[4-8]-* | alphaev56-* | alphaev6[78]-* \
+ 	| alpha64-* | alpha64ev[4-8]-* | alpha64ev56-* | alpha64ev6[78]-* \
+ 	| alphapca5[67]-* | alpha64pca5[67]-* | arc-* \
+-	| arm-*  | armbe-* | armle-* | armv*-* \
++	| arm-*  | armbe-* | armle-* | armeb-* | armv*-* \
+ 	| avr-* \
+ 	| bs2000-* \
+-	| c[123]* | c30-* | [cjt]90-* | c54x-* \
+-	| clipper-* | cray2-* | cydra-* \
+-	| d10v-* | d30v-* \
++	| c[123]* | c30-* | [cjt]90-* | c4x-* | c54x-* \
++	| clipper-* | cydra-* \
++	| d10v-* | d30v-* | dlx-* \
+ 	| elxsi-* \
+-	| f30[01]-* | f700-* | fr30-* | fx80-* \
++	| f30[01]-* | f700-* | fr30-* | frv-* | fx80-* \
+ 	| h8300-* | h8500-* \
+ 	| hppa-* | hppa1.[01]-* | hppa2.0-* | hppa2.0[nw]-* | hppa64-* \
+ 	| i*86-* | i860-* | i960-* | ia64-* \
++	| ip2k-* \
+ 	| m32r-* \
+-	| m68000-* | m680[01234]0-* | m68360-* | m683?2-* | m68k-* \
++	| m68000-* | m680[012346]0-* | m68360-* | m683?2-* | m68k-* \
+ 	| m88110-* | m88k-* | mcore-* \
+-	| mips-* | mips16-* | mips64-* | mips64el-* | mips64orion-* \
+-	| mips64orionel-* | mips64vr4100-* | mips64vr4100el-* \
+-	| mips64vr4300-* | mips64vr4300el-* | mipsbe-* | mipseb-* \
+-	| mipsle-* | mipsel-* | mipstx39-* | mipstx39el-* \
++	| mips-* | mipsbe-* | mipseb-* | mipsel-* | mipsle-* \
++	| mips16-* \
++	| mips64-* | mips64el-* \
++	| mips64vr-* | mips64vrel-* \
++	| mips64orion-* | mips64orionel-* \
++	| mips64vr4100-* | mips64vr4100el-* \
++	| mips64vr4300-* | mips64vr4300el-* \
++	| mips64vr5000-* | mips64vr5000el-* \
++	| mipsisa32-* | mipsisa32el-* \
++	| mipsisa64-* | mipsisa64el-* \
++	| mipsisa64sb1-* | mipsisa64sb1el-* \
++	| mipsisa64sr71k-* | mipsisa64sr71kel-* \
++	| mipstx39 | mipstx39el \
+ 	| none-* | np1-* | ns16k-* | ns32k-* \
+ 	| orion-* \
+ 	| pdp10-* | pdp11-* | pj-* | pjl-* | pn-* | power-* \
+ 	| powerpc-* | powerpc64-* | powerpc64le-* | powerpcle-* | ppcbe-* \
+ 	| pyramid-* \
+ 	| romp-* | rs6000-* \
+-	| sh-* | sh[34]-* | sh[34]eb-* | shbe-* | shle-* \
+-	| sparc-* | sparc64-* | sparc86x-* | sparclite-* \
+-	| sparcv9-* | sparcv9b-* | strongarm-* | sv1-* \
+-	| t3e-* | tahoe-* | thumb-* | tic30-* | tic54x-* | tic80-* | tron-* \
++	| sh-* | sh[1234]-* | sh3e-* | sh[34]eb-* | shbe-* \
++	| shle-* | sh[1234]le-* | sh3ele-* | sh64-* | sh64le-* \
++	| sparc-* | sparc64-* | sparc86x-* | sparclet-* | sparclite-* \
++	| sparcv9-* | sparcv9b-* | strongarm-* | sv1-* | sx?-* \
++	| tahoe-* | thumb-* | tic30-* | tic4x-* | tic54x-* | tic80-* | tron-* \
+ 	| v850-* | v850e-* | vax-* \
+ 	| we32k-* \
+-	| x86-* | x86_64-* | xmp-* | xps100-* | xscale-* | xstormy16-* \
++	| x86-* | x86_64-* | xps100-* | xscale-* | xstormy16-* \
+ 	| xtensa-* \
+ 	| ymp-* \
+ 	| z8k-*)
+@@ -377,6 +398,10 @@
+ 		basic_machine=ns32k-sequent
+ 		os=-dynix
+ 		;;
++	c90)
++		basic_machine=c90-cray
++		os=-unicos
++		;;
+ 	convex-c1)
+ 		basic_machine=c1-convex
+ 		os=-bsd
+@@ -397,16 +422,8 @@
+ 		basic_machine=c38-convex
+ 		os=-bsd
+ 		;;
+-	cray | ymp)
+-		basic_machine=ymp-cray
+-		os=-unicos
+-		;;
+-	cray2)
+-		basic_machine=cray2-cray
+-		os=-unicos
+-		;;
+-	[cjt]90)
+-		basic_machine=${basic_machine}-cray
++	cray | j90)
++		basic_machine=j90-cray
+ 		os=-unicos
+ 		;;
+ 	crds | unos)
+@@ -609,14 +626,6 @@
+ 		basic_machine=m68k-atari
+ 		os=-mint
+ 		;;
+-	mipsel*-linux*)
+-		basic_machine=mipsel-unknown
+-		os=-linux-gnu
+-		;;
+-	mips*-linux*)
+-		basic_machine=mips-unknown
+-		os=-linux-gnu
+-		;;
+ 	mips3*-*)
+ 		basic_machine=`echo $basic_machine | sed -e 's/mips3/mips64/'`
+ 		;;
+@@ -714,6 +723,10 @@
+ 		basic_machine=hppa1.1-oki
+ 		os=-proelf
+ 		;;
++	or32 | or32-*)
++		basic_machine=or32-unknown
++		os=-coff
++		;;
+ 	OSE68000 | ose68000)
+ 		basic_machine=m68000-ericsson
+ 		os=-ose
+@@ -736,13 +749,13 @@
+ 	pbb)
+ 		basic_machine=m68k-tti
+ 		;;
+-        pc532 | pc532-*)
++	pc532 | pc532-*)
+ 		basic_machine=ns32k-pc532
+ 		;;
+ 	pentium | p5 | k5 | k6 | nexgen | viac3)
+ 		basic_machine=i586-pc
+ 		;;
+-	pentiumpro | p6 | 6x86 | athlon)
++	pentiumpro | p6 | 6x86 | athlon | athlon_*)
+ 		basic_machine=i686-pc
+ 		;;
+ 	pentiumii | pentium2)
+@@ -763,22 +776,22 @@
+ 	power)	basic_machine=power-ibm
+ 		;;
+ 	ppc)	basic_machine=powerpc-unknown
+-	        ;;
++		;;
+ 	ppc-*)	basic_machine=powerpc-`echo $basic_machine | sed 's/^[^-]*-//'`
+ 		;;
+ 	ppcle | powerpclittle | ppc-le | powerpc-little)
+ 		basic_machine=powerpcle-unknown
+-	        ;;
++		;;
+ 	ppcle-* | powerpclittle-*)
+ 		basic_machine=powerpcle-`echo $basic_machine | sed 's/^[^-]*-//'`
+ 		;;
+ 	ppc64)	basic_machine=powerpc64-unknown
+-	        ;;
++		;;
+ 	ppc64-*) basic_machine=powerpc64-`echo $basic_machine | sed 's/^[^-]*-//'`
+ 		;;
+ 	ppc64le | powerpc64little | ppc64-le | powerpc64-little)
+ 		basic_machine=powerpc64le-unknown
+-	        ;;
++		;;
+ 	ppc64le-* | powerpc64little-*)
+ 		basic_machine=powerpc64le-`echo $basic_machine | sed 's/^[^-]*-//'`
+ 		;;
+@@ -809,6 +822,12 @@
+ 		basic_machine=a29k-amd
+ 		os=-udi
+ 		;;
++	sb1)
++		basic_machine=mipsisa64sb1-unknown
++		;;
++	sb1el)
++		basic_machine=mipsisa64sb1el-unknown
++		;;
+ 	sequent)
+ 		basic_machine=i386-sequent
+ 		;;
+@@ -882,10 +901,22 @@
+ 		basic_machine=i386-sequent
+ 		os=-dynix
+ 		;;
++	t3d)
++		basic_machine=alpha-cray
++		os=-unicos
++		;;
+ 	t3e)
+-		basic_machine=t3e-cray
++		basic_machine=alphaev5-cray
+ 		os=-unicos
+ 		;;
++	t90)
++		basic_machine=t90-cray
++		os=-unicos
++		;;
++        tic4x | c4x*)
++		basic_machine=tic4x-unknown
++		os=-coff
++		;;
+ 	tic54x | c54x*)
+ 		basic_machine=tic54x-unknown
+ 		os=-coff
+@@ -924,8 +955,8 @@
+ 		os=-vms
+ 		;;
+ 	vpp*|vx|vx-*)
+-               basic_machine=f301-fujitsu
+-               ;;
++		basic_machine=f301-fujitsu
++		;;
+ 	vxworks960)
+ 		basic_machine=i960-wrs
+ 		os=-vxworks
+@@ -950,13 +981,13 @@
+ 		basic_machine=i386-pc
+ 		os=-windows32-msvcrt
+ 		;;
+-	xmp)
+-		basic_machine=xmp-cray
+-		os=-unicos
+-		;;
+-        xps | xps100)
++	xps | xps100)
+ 		basic_machine=xps100-honeywell
+ 		;;
++	ymp)
++		basic_machine=ymp-cray
++		os=-unicos
++		;;
+ 	z8k-*-coff)
+ 		basic_machine=z8k-unknown
+ 		os=-sim
+@@ -977,13 +1008,6 @@
+ 	op60c)
+ 		basic_machine=hppa1.1-oki
+ 		;;
+-	mips)
+-		if [ x$os = x-linux-gnu ]; then
+-			basic_machine=mips-unknown
+-		else
+-			basic_machine=mips-mips
+-		fi
+-		;;
+ 	romp)
+ 		basic_machine=romp-ibm
+ 		;;
+@@ -1003,13 +1027,16 @@
+ 	we32k)
+ 		basic_machine=we32k-att
+ 		;;
+-	sh3 | sh4 | sh3eb | sh4eb)
++	sh3 | sh4 | sh3eb | sh4eb | sh[1234]le | sh3ele)
+ 		basic_machine=sh-unknown
+ 		;;
++	sh64)
++		basic_machine=sh64-unknown
++		;;
+ 	sparc | sparcv9 | sparcv9b)
+ 		basic_machine=sparc-sun
+ 		;;
+-        cydra)
++	cydra)
+ 		basic_machine=cydra-cydrome
+ 		;;
+ 	orion)
+@@ -1024,10 +1051,6 @@
+ 	pmac | pmac-mpw)
+ 		basic_machine=powerpc-apple
+ 		;;
+-	c4x*)
+-		basic_machine=c4x-none
+-		os=-coff
+-		;;
+ 	*-unknown)
+ 		# Make sure to match an already-canonicalized machine name.
+ 		;;
+@@ -1093,7 +1116,8 @@
+ 	      | -interix* | -uwin* | -rhapsody* | -darwin* | -opened* \
+ 	      | -openstep* | -oskit* | -conix* | -pw32* | -nonstopux* \
+ 	      | -storm-chaos* | -tops10* | -tenex* | -tops20* | -its* \
+-	      | -os2* | -vos* | -palmos* | -uclinux* | -nucleus* | -morphos*)
++	      | -os2* | -vos* | -palmos* | -uclinux* | -nucleus* \
++	      | -morphos* | -superux* | -rtmk* | -rtmk-nova* | -windiss* | -powermax*)
+ 	# Remember, each alternative MUST END IN *, to match a version number.
+ 		;;
+ 	-qnx*)
+@@ -1154,8 +1178,11 @@
+ 	-ctix* | -uts*)
+ 		os=-sysv
+ 		;;
++	-nova*)
++		os=-rtmk-nova
++		;;
+ 	-ns2 )
+-	        os=-nextstep2
++		os=-nextstep2
+ 		;;
+ 	-nsk*)
+ 		os=-nsk
+@@ -1194,8 +1221,8 @@
+ 	-xenix)
+ 		os=-xenix
+ 		;;
+-        -*mint | -mint[0-9]* | -*MiNT | -MiNT[0-9]*)
+-	        os=-mint
++	-*mint | -mint[0-9]* | -*MiNT | -MiNT[0-9]*)
++		os=-mint
+ 		;;
+ 	-none)
+ 		;;
+@@ -1232,7 +1259,7 @@
+ 	pdp10-*)
+ 		os=-tops20
+ 		;;
+-        pdp11-*)
++	pdp11-*)
+ 		os=-none
+ 		;;
+ 	*-dec | vax-*)
+@@ -1259,6 +1286,9 @@
+ 	mips*-*)
+ 		os=-elf
+ 		;;
++	or32-*)
++		os=-coff
++		;;
+ 	*-tti)	# must be before sparc entry or we get the wrong os.
+ 		os=-sysv3
+ 		;;
+@@ -1322,19 +1352,19 @@
+ 	*-next)
+ 		os=-nextstep3
+ 		;;
+-        *-gould)
++	*-gould)
+ 		os=-sysv
+ 		;;
+-        *-highlevel)
++	*-highlevel)
+ 		os=-bsd
+ 		;;
+ 	*-encore)
+ 		os=-bsd
+ 		;;
+-        *-sgi)
++	*-sgi)
+ 		os=-irix
+ 		;;
+-        *-siemens)
++	*-siemens)
+ 		os=-sysv4
+ 		;;
+ 	*-masscomp)
+@@ -1406,7 +1436,7 @@
+ 			-ptx*)
+ 				vendor=sequent
+ 				;;
+-			-vxsim* | -vxworks*)
++			-vxsim* | -vxworks* | -windiss*)
+ 				vendor=wrs
+ 				;;
+ 			-aux*)
+--- ./admin/cvs.sh	13 Oct 2002 00:40:47 -0000	1.1.1.3
++++ ./admin/cvs.sh	6 Nov 2002 15:57:07 -0000	1.8
+@@ -255,7 +255,7 @@
+    fi
+ fi
+ if test -z "$VERSION" || test "$VERSION" = "@VERSION@"; then
+-     VERSION="\"3.0.8\""
++     VERSION="\"3.0.98\""
+ fi
+ if test -z "$modulename" || test "$modulename" = "@MODULENAME@"; then
+    modulename=`pwd`; 
+@@ -418,7 +418,7 @@
+ 	echo -e 'i18n("_: NAME OF TRANSLATORS\\n"\n"Your names")\ni18n("_: EMAIL OF TRANSLATORS\\n"\n"Your emails")' > _translatorinfo.cpp
+    else echo " " > _translatorinfo.cpp
+    fi
+-   perl -e '$mes=0; while (<STDIN>) { next if (/^(if|else|endif)\s/); if (/^messages:/) { $mes=1; print $_; next; } if ($mes) { if (/$\\(XGETTEXT\)/ && / -o/) { s/ -o \$\(podir\)/ _translatorinfo.cpp -o \$\(podir\)/ } print $_; } else { print $_; } }' < Makefile.am > _transMakefile
++   perl -e '$mes=0; while (<STDIN>) { next if (/^(if|else|endif)\s/); if (/^messages:/) { $mes=1; print $_; next; } if ($mes) { if (/$\\(XGETTEXT\)/ && / -o/) { s/ -o \$\(podir\)/ _translatorinfo.cpp -o \$\(podir\)/ } print $_; } else { print $_; } }' < Makefile.am | egrep -v '^include ' > _transMakefile
+ 
+    $MAKE -s -f _transMakefile podir=$podir EXTRACTRC="$EXTRACTRC" PREPARETIPS="$PREPARETIPS" \
+ 	XGETTEXT="${XGETTEXT:-xgettext} -C -ki18n -ktr2i18n -kI18N_NOOP -ktranslate -kaliasLocale -x ${includedir:-$KDEDIR/include}/kde.pot" \
+--- ./admin/detect-autoconf.sh	26 Jun 2002 02:38:53 -0000	1.1.1.1
++++ ./admin/detect-autoconf.sh	6 Nov 2002 15:57:07 -0000	1.6
+@@ -42,12 +42,12 @@
+ checkAutomakeAclocal ()
+ {
+   if test -z "$UNSERMAKE"; then
+-    if test -x "`$WHICH automake-1.5`" ; then
+-      AUTOMAKE="`$WHICH automake-1.5`"
+-      ACLOCAL="`$WHICH aclocal-1.5`"
+-    elif test -x "`$WHICH automake-1.6`" ; then
++    if test -x "`$WHICH automake-1.6`" ; then
+       AUTOMAKE="`$WHICH automake-1.6`"
+       ACLOCAL="`$WHICH aclocal-1.6`"
++    elif test -x "`$WHICH automake-1.5`" ; then
++      AUTOMAKE="`$WHICH automake-1.5`"
++      ACLOCAL="`$WHICH aclocal-1.5`"
+     fi
+   else
+      AUTOMAKE="$UNSERMAKE"
+@@ -58,7 +58,7 @@
+ {
+   WHICH=""
+   for i in "type -p" "which" "type" ; do
+-    T=`$i sh`
++    T=`$i sh 2> /dev/null`
+     test -x "$T" && WHICH="$i" && break
+   done
+ }
+--- ./admin/install-sh	26 Jun 2002 02:38:53 -0000	1.1.1.1
++++ ./admin/install-sh	6 Nov 2002 15:57:07 -0000	1.5
+@@ -109,7 +109,7 @@
+ 	echo "install:	no input file specified"
+ 	exit 1
+ else
+-	true
++	:
+ fi
+ 
+ if [ x"$dir_arg" != x ]; then
+@@ -120,7 +120,7 @@
+ 		instcmd=:
+ 		chmodcmd=""
+ 	else
+-		instcmd=mkdir
++		instcmd=$mkdirprog
+ 	fi
+ else
+ 
+@@ -128,9 +128,9 @@
+ # might cause directories to be created, which would be especially bad 
+ # if $src (and thus $dsttmp) contains '*'.
+ 
+-	if [ -f $src -o -d $src ]
++	if [ -f "$src" ] || [ -d "$src" ]
+ 	then
+-		true
++		:
+ 	else
+ 		echo "install:  $src does not exist"
+ 		exit 1
+@@ -141,7 +141,7 @@
+ 		echo "install:	no destination specified"
+ 		exit 1
+ 	else
+-		true
++		:
+ 	fi
+ 
+ # If destination is a directory, append the input filename; if your system
+@@ -151,7 +151,7 @@
+ 	then
+ 		dst="$dst"/`basename $src`
+ 	else
+-		true
++		:
+ 	fi
+ fi
+ 
+@@ -163,8 +163,8 @@
+ 
+ # Skip lots of stat calls in the usual case.
+ if [ ! -d "$dstdir" ]; then
+-defaultIFS='	
+-'
++defaultIFS='
++	'
+ IFS="${IFS-${defaultIFS}}"
+ 
+ oIFS="${IFS}"
+@@ -183,7 +183,7 @@
+         then
+ 		$mkdirprog "${pathcomp}"
+ 	else
+-		true
++		:
+ 	fi
+ 
+ 	pathcomp="${pathcomp}/"
+@@ -194,10 +194,10 @@
+ then
+ 	$doit $instcmd $dst &&
+ 
+-	if [ x"$chowncmd" != x ]; then $doit $chowncmd $dst; else true ; fi &&
+-	if [ x"$chgrpcmd" != x ]; then $doit $chgrpcmd $dst; else true ; fi &&
+-	if [ x"$stripcmd" != x ]; then $doit $stripcmd $dst; else true ; fi &&
+-	if [ x"$chmodcmd" != x ]; then $doit $chmodcmd $dst; else true ; fi
++	if [ x"$chowncmd" != x ]; then $doit $chowncmd $dst; else : ; fi &&
++	if [ x"$chgrpcmd" != x ]; then $doit $chgrpcmd $dst; else : ; fi &&
++	if [ x"$stripcmd" != x ]; then $doit $stripcmd $dst; else : ; fi &&
++	if [ x"$chmodcmd" != x ]; then $doit $chmodcmd $dst; else : ; fi
+ else
+ 
+ # If we're going to rename the final executable, determine the name now.
+@@ -216,7 +216,7 @@
+ 	then
+ 		dstfile=`basename $dst`
+ 	else
+-		true
++		:
+ 	fi
+ 
+ # Make a temp file name in the proper directory.
+@@ -235,10 +235,10 @@
+ # ignore errors from any of these, just make sure not to ignore
+ # errors from the above "$doit $instcmd $src $dsttmp" command.
+ 
+-	if [ x"$chowncmd" != x ]; then $doit $chowncmd $dsttmp; else true;fi &&
+-	if [ x"$chgrpcmd" != x ]; then $doit $chgrpcmd $dsttmp; else true;fi &&
+-	if [ x"$stripcmd" != x ]; then $doit $stripcmd $dsttmp; else true;fi &&
+-	if [ x"$chmodcmd" != x ]; then $doit $chmodcmd $dsttmp; else true;fi &&
++	if [ x"$chowncmd" != x ]; then $doit $chowncmd $dsttmp; else :;fi &&
++	if [ x"$chgrpcmd" != x ]; then $doit $chgrpcmd $dsttmp; else :;fi &&
++	if [ x"$stripcmd" != x ]; then $doit $stripcmd $dsttmp; else :;fi &&
++	if [ x"$chmodcmd" != x ]; then $doit $chmodcmd $dsttmp; else :;fi &&
+ 
+ # Now rename the file to the real destination.
+ 
+--- ./admin/libtool.m4.in	21 Aug 2002 15:17:03 -0000	1.1.1.2
++++ ./admin/libtool.m4.in	6 Nov 2002 15:57:07 -0000	1.8
+@@ -609,6 +609,12 @@
+     lt_cv_sys_max_cmd_len=-1;
+     ;;
+ 
++  darwin*)
++    # this should be enough... the length test freaks out some versions
++    # of OSX's `expr`
++    lt_cv_sys_max_cmd_len=16384;
++    ;;
++
+   *)
+     # If test is not a shell built-in, we'll probably end up computing a
+     # maximum length that is only half of the actual maximum length, but
+@@ -1132,7 +1138,7 @@
+ darwin* | rhapsody*)
+   dynamic_linker="$host_os dyld"
+   version_type=darwin
+-  need_lib_prefix=no
++  need_lib_prefix=yes
+   need_version=no
+   # FIXME: Relying on posixy $() will cause problems for
+   #        cross-compilation, but unfortunately the echo tests do not
+@@ -1901,16 +1907,7 @@
+   ;;
+ 
+ darwin* | rhapsody*)
+-  lt_cv_deplibs_check_method='file_magic Mach-O dynamically linked shared library'
+-  lt_cv_file_magic_cmd='/usr/bin/file -L'
+-  case "$host_os" in
+-  rhapsody* | darwin1.[[012]])
+-    lt_cv_file_magic_test_file=`/System/Library/Frameworks/System.framework/System`
+-    ;;
+-  *) # Darwin 1.3 on
+-    lt_cv_file_magic_test_file='/usr/lib/libSystem.dylib'
+-    ;;
+-  esac
++  lt_cv_deplibs_check_method='pass_all'
+   ;;
+ 
+ freebsd*)
+@@ -2560,6 +2557,11 @@
+ 	;;
+     esac
+     ;;
++  darwin*)
++    shared_flag='-dynamiclib'
++    _LT_AC_TAGVAR(archive_cmds, $1)='$CC -r -keep_private_externs -nostdlib -o ${lib}-master.o $libobjs && $CC -dynamiclib -install_name $rpath/$soname $predep_objects ${lib}-master.o $deplibs $postdep_objects $compiler_flags -o $lib'
++    output_verbose_link_cmd='$CC -dynamiclib $CFLAGS -v conftest.$objext 2>&1 | egrep "\-L"'
++    ;;
+   dgux*)
+     case $cc_basename in
+       ec++)
+@@ -4750,7 +4752,9 @@
+ 	_LT_AC_TAGVAR(allow_undefined_flag, $1)='-undefined suppress'
+ 	;;
+       *) # Darwin 1.3 on
+-	_LT_AC_TAGVAR(allow_undefined_flag, $1)='-flat_namespace -undefined suppress'
++	#_LT_AC_TAGVAR(allow_undefined_flag, $1)='-flat_namespace -undefined suppress'
++        # testing with twolevel namespaces
++	_LT_AC_TAGVAR(allow_undefined_flag, $1)=unsupported
+ 	;;
+       esac
+ 
+@@ -4758,7 +4762,7 @@
+       #        cross-compilation, but unfortunately the echo tests do not
+       #        yet detect zsh echo's removal of \ escapes.  Also zsh mangles
+       #	       `"' quotes if we put them in here... so don't!
+-      _LT_AC_TAGVAR(archive_cmds, $1)='$CC $(test .$module = .yes && echo -bundle || echo -dynamiclib) $allow_undefined_flag -o $lib $libobjs $deplibs$linker_flags -install_name $rpath/$soname $verstring'
++      _LT_AC_TAGVAR(archive_cmds, $1)='$CC -r -keep_private_externs -nostdlib -o ${lib}-master.o $libobjs && $CC $(test .$module = .yes && echo -bundle || echo -dynamiclib) $allow_undefined_flag -o $lib ${lib}-master.o $deplibs $linker_flags $(test x$module != xyes && echo -install_name $rpath/$soname $verstring)'
+       # We need to add '_' to the symbols in $export_symbols first
+       #_LT_AC_TAGVAR(archive_expsym_cmds, $1)="$_LT_AC_TAGVAR(archive_cmds, $1)"' && strip -s $export_symbols'
+       _LT_AC_TAGVAR(hardcode_direct, $1)=yes
+--- ./admin/ltmain.sh	26 Jun 2002 02:38:55 -0000	1.1.1.1
++++ ./admin/ltmain.sh	6 Nov 2002 15:57:07 -0000	1.7
+@@ -3321,7 +3321,23 @@
+ 	if test -n "$export_symbols" && test -n "$archive_expsym_cmds"; then
+ 	  eval cmds=\"$archive_expsym_cmds\"
+ 	else
++          if test "x$verstring" = "x0.0"; then
++                tmp_verstring=
++          else
++                tmp_verstring="$verstring"
++          fi
++ 	  save_deplibs="$deplibs"
++ 	  for conv in $convenience; do
++            tmp_deplibs=
++            for test_deplib in $deplibs; do
++              if test "$test_deplib" != "$conv"; then
++                tmp_deplibs="$tmp_deplibs $test_deplib"
++              fi
++            done
++            deplibs="$tmp_deplibs"
++ 	  done
+ 	  eval cmds=\"$archive_cmds\"
++ 	  deplibs="$save_deplibs"
+ 	fi
+ 
+ 	if len=`expr "X$cmds" : ".*"` &&
+@@ -3419,7 +3435,12 @@
+ 	  if test -n "$export_symbols" && test -n "$archive_expsym_cmds"; then
+ 	    eval cmds=\"$archive_expsym_cmds\"
+ 	  else
+-	    eval cmds=\"$archive_cmds\"
++            save_deplibs="$deplibs"
++            for conv in $convenience; do
++              deplibs="${deplibs%$conv*} ${deplibs#*$conv}"
++            done
++            eval cmds=\"$archive_cmds\"
++            deplibs="$save_deplibs"
+ 	  fi
+ 
+ 	  # Append the command to remove the reloadable object files
+@@ -3632,6 +3653,14 @@
+ 	compile_deplibs=`$echo "X $compile_deplibs" | $Xsed -e 's/ -lc / -framework System /'`
+ 	finalize_deplibs=`$echo "X $finalize_deplibs" | $Xsed -e 's/ -lc / -framework System /'`
+ 	;;
++      esac
++
++      case $host in
++      *darwin*)
++        # Don't allow lazy linking, it breaks C++ global constructors
++        compile_command="$compile_command ${wl}-bind_at_load"
++        finalize_command="$finalize_command ${wl}-bind_at_load"
++        ;;
+       esac
+ 
+       compile_command="$compile_command $compile_deplibs"
+--- ./admin/missing	26 Jun 2002 02:38:55 -0000	1.1.1.1
++++ ./admin/missing	6 Nov 2002 15:57:07 -0000	1.7
+@@ -1,6 +1,6 @@
+ #! /bin/sh
+ # Common stub for a few missing GNU programs while installing.
+-# Copyright 1996, 1997, 1999, 2000 Free Software Foundation, Inc.
++# Copyright (C) 1996, 1997, 1999, 2000, 2002 Free Software Foundation, Inc.
+ # Originally by Fran,cois Pinard <pinard@iro.umontreal.ca>, 1996.
+ 
+ # This program is free software; you can redistribute it and/or modify
+@@ -28,6 +28,8 @@
+   exit 1
+ fi
+ 
++run=:
++
+ # In the cases where this matters, `missing' is being run in the
+ # srcdir already.
+ if test -f configure.ac; then
+@@ -41,28 +43,7 @@
+   # Try to run requested program, and just exit if it succeeds.
+   run=
+   shift
+-  exec="$@"
+-
+-  # Suck in the AUTOCONF detection code.
+-  admindir=`echo "$0" | sed 's%[\\/][^\\/][^\\/]*$%%'`
+-  test "x$admindir" = "x$0" && admindir=.  
+-  . $admindir/detect-autoconf.sh
+-
+-  case "$1" in
+-  aclocal)
+-    exec="`echo $exec|sed -e \"s^aclocal^$ACLOCAL^\"`"
+-    ;;
+-  autoheader)
+-    exec="`echo $exec|sed -e \"s^autoheader^$AUTOHEADER^\"`"
+-    ;; 
+-  autoconf)
+-    exec="`echo $exec|sed -e \"s^autoconf^$AUTOCONF^\"`"
+-    ;;
+-  automake)
+-    exec="`echo $exec|sed -e \"s^automake^$AUTOMAKE^\"`"
+-    ;;
+-  esac
+-  $exec && exit 0
++  "$@" && exit 0
+   ;;
+ esac
+ 
+@@ -97,7 +78,7 @@
+     ;;
+ 
+   -v|--v|--ve|--ver|--vers|--versi|--versio|--version)
+-    echo "missing 0.3 - GNU automake"
++    echo "missing 0.4 - GNU automake"
+     ;;
+ 
+   -*)
+@@ -106,7 +87,12 @@
+     exit 1
+     ;;
+ 
+-  aclocal)
++  aclocal*)
++    if test -z "$run" && ($1 --version) > /dev/null 2>&1; then
++       # We have it, but it failed.
++       exit 1
++    fi
++
+     echo 1>&2 "\
+ WARNING: \`$1' is missing on your system.  You should only need it if
+          you modified \`acinclude.m4' or \`${configure_ac}'.  You might want
+@@ -116,6 +102,11 @@
+     ;;
+ 
+   autoconf)
++    if test -z "$run" && ($1 --version) > /dev/null 2>&1; then
++       # We have it, but it failed.
++       exit 1
++    fi
++
+     echo 1>&2 "\
+ WARNING: \`$1' is missing on your system.  You should only need it if
+          you modified \`${configure_ac}'.  You might want to install the
+@@ -125,6 +116,11 @@
+     ;;
+ 
+   autoheader)
++    if test -z "$run" && ($1 --version) > /dev/null 2>&1; then
++       # We have it, but it failed.
++       exit 1
++    fi
++
+     echo 1>&2 "\
+ WARNING: \`$1' is missing on your system.  You should only need it if
+          you modified \`acconfig.h' or \`${configure_ac}'.  You might want
+@@ -143,7 +139,12 @@
+     touch $touch_files
+     ;;
+ 
+-  automake)
++  automake*)
++    if test -z "$run" && ($1 --version) > /dev/null 2>&1; then
++       # We have it, but it failed.
++       exit 1
++    fi
++
+     echo 1>&2 "\
+ WARNING: \`$1' is missing on your system.  You should only need it if
+          you modified \`Makefile.am', \`acinclude.m4' or \`${configure_ac}'.
+@@ -154,6 +155,34 @@
+ 	   while read f; do touch "$f"; done
+     ;;
+ 
++  autom4te)
++    if test -z "$run" && ($1 --version) > /dev/null 2>&1; then
++       # We have it, but it failed.
++       exit 1
++    fi
++
++    echo 1>&2 "\
++WARNING: \`$1' is needed, and you do not seem to have it handy on your
++         system.  You might have modified some files without having the
++         proper tools for further handling them.
++         You can get \`$1Help2man' as part of \`Autoconf' from any GNU
++         archive site."
++
++    file=`echo "$*" | sed -n 's/.*--output[ =]*\([^ ]*\).*/\1/p'`
++    test -z "$file" && file=`echo "$*" | sed -n 's/.*-o[ ]*\([^ ]*\).*/\1/p'`
++    if test -f "$file"; then
++	touch $file
++    else
++	test -z "$file" || exec >$file
++	echo "#! /bin/sh"
++	echo "# Created by GNU Automake missing as a replacement of"
++	echo "#  $ $@"
++	echo "exit 0"
++	chmod +x $file
++	exit 1
++    fi
++    ;;
++
+   bison|yacc)
+     echo 1>&2 "\
+ WARNING: \`$1' is missing on your system.  You should only need it if
+@@ -208,6 +237,11 @@
+     ;;
+ 
+   help2man)
++    if test -z "$run" && ($1 --version) > /dev/null 2>&1; then
++       # We have it, but it failed.
++       exit 1
++    fi
++
+     echo 1>&2 "\
+ WARNING: \`$1' is missing on your system.  You should only need it if
+ 	 you modified a dependency of a manual page.  You may need the
+@@ -259,23 +293,23 @@
+     # Look for gnutar/gtar before invocation to avoid ugly error
+     # messages.
+     if (gnutar --version > /dev/null 2>&1); then
+-       gnutar ${1+"$@"} && exit 0
++       gnutar "$@" && exit 0
+     fi
+     if (gtar --version > /dev/null 2>&1); then
+-       gtar ${1+"$@"} && exit 0
++       gtar "$@" && exit 0
+     fi
+     firstarg="$1"
+     if shift; then
+ 	case "$firstarg" in
+ 	*o*)
+ 	    firstarg=`echo "$firstarg" | sed s/o//`
+-	    tar "$firstarg" ${1+"$@"} && exit 0
++	    tar "$firstarg" "$@" && exit 0
+ 	    ;;
+ 	esac
+ 	case "$firstarg" in
+ 	*h*)
+ 	    firstarg=`echo "$firstarg" | sed s/h//`
+-	    tar "$firstarg" ${1+"$@"} && exit 0
++	    tar "$firstarg" "$@" && exit 0
+ 	    ;;
+ 	esac
+     fi
+--- ./admin/mkinstalldirs	26 Jun 2002 02:38:55 -0000	1.1.1.1
++++ ./admin/mkinstalldirs	6 Nov 2002 15:57:07 -0000	1.5
+@@ -4,37 +4,108 @@
+ # Created: 1993-05-16
+ # Public domain
+ 
+-# $Id$
+-
+ errstatus=0
++dirmode=""
++
++usage="\
++Usage: mkinstalldirs [-h] [--help] [-m mode] dir ..."
++
++# process command line arguments
++while test $# -gt 0 ; do
++  case $1 in
++    -h | --help | --h*)         # -h for help
++      echo "$usage" 1>&2
++      exit 0
++      ;;
++    -m)                         # -m PERM arg
++      shift
++      test $# -eq 0 && { echo "$usage" 1>&2; exit 1; }
++      dirmode=$1
++      shift
++      ;;
++    --)                         # stop option processing
++      shift
++      break
++      ;;
++    -*)                         # unknown option
++      echo "$usage" 1>&2
++      exit 1
++      ;;
++    *)                          # first non-opt arg
++      break
++      ;;
++  esac
++done
++
++for file
++do
++  if test -d "$file"; then
++    shift
++  else
++    break
++  fi
++done
++
++case $# in
++  0) exit 0 ;;
++esac
++
++case $dirmode in
++  '')
++    if mkdir -p -- . 2>/dev/null; then
++      echo "mkdir -p -- $*"
++      exec mkdir -p -- "$@"
++    fi
++    ;;
++  *)
++    if mkdir -m "$dirmode" -p -- . 2>/dev/null; then
++      echo "mkdir -m $dirmode -p -- $*"
++      exec mkdir -m "$dirmode" -p -- "$@"
++    fi
++    ;;
++esac
+ 
+ for file
+ do
+-   set fnord `echo ":$file" | sed -ne 's/^:\//#/;s/^://;s/\// /g;s/^#/\//;p'`
+-   shift
++  set fnord `echo ":$file" | sed -ne 's/^:\//#/;s/^://;s/\// /g;s/^#/\//;p'`
++  shift
+ 
+-   pathcomp=
+-   for d
+-   do
+-     pathcomp="$pathcomp$d"
+-     case "$pathcomp" in
+-       -* ) pathcomp=./$pathcomp ;;
+-     esac
+-
+-     if test ! -d "$pathcomp"; then
+-        echo "mkdir $pathcomp"
+-
+-        mkdir "$pathcomp" || lasterr=$?
+-
+-        if test ! -d "$pathcomp"; then
+-  	  errstatus=$lasterr
+-        fi
+-     fi
++  pathcomp=
++  for d
++  do
++    pathcomp="$pathcomp$d"
++    case $pathcomp in
++      -*) pathcomp=./$pathcomp ;;
++    esac
++
++    if test ! -d "$pathcomp"; then
++      echo "mkdir $pathcomp"
++
++      mkdir "$pathcomp" || lasterr=$?
++
++      if test ! -d "$pathcomp"; then
++  	errstatus=$lasterr
++      else
++  	if test ! -z "$dirmode"; then
++	  echo "chmod $dirmode $pathcomp"
++    	  lasterr=""
++  	  chmod "$dirmode" "$pathcomp" || lasterr=$?
++
++  	  if test ! -z "$lasterr"; then
++  	    errstatus=$lasterr
++  	  fi
++  	fi
++      fi
++    fi
+ 
+-     pathcomp="$pathcomp/"
+-   done
++    pathcomp="$pathcomp/"
++  done
+ done
+ 
+ exit $errstatus
+ 
++# Local Variables:
++# mode: shell-script
++# sh-indentation: 2
++# End:
+ # mkinstalldirs ends here
