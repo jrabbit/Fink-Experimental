@@ -627,6 +627,8 @@ We are looking forward to your contributions to Fink!
 <shorttitle>Example 3</shorttitle>
 <section name="Basics"><title>Basics</title>
 <p>We will create the necessary <filename>info</filename> and <filename>patch</filename> files to port conglomerate to Fink. Here, we assume that you are on Panther, 10.3 Fink unstable tree.</p>
+<ul>
+<li>Making us comfortable
 <p>We need to do some preliminaries for easy browse of all needed documents.</p>
 <p>First, we need the <filename>tarball</filename>. How to retrieve its location? A quick search with google leads to this <link url="http://www.conglomerate.org/">place</link>. At the top of the page, there is a link to download. We click on it, and then we'll find a link to the tarball page on SourceForge:</p>
 <ol>
@@ -648,7 +650,9 @@ finkdev% cd Desktop
 <li>Open it with any text editor (TextEdit is perfect for that purpose) and save it under a new name, namely <filename>conglomerate.info</filename>.</li>
 </ol>
 <p>Now we have all in place, it's time to begin.</p>
-<p>First, we change the info file for use with conglomerate. Remember we have in it:</p>
+</li>
+<li>What to change in the <filename>info</filename> file?
+<p>Obviously we need to change the info file for use with conglomerate. Remember we have in it:</p>
 <codeblock>
 Package: maxwell
 Version: 0.5.1
@@ -666,11 +670,15 @@ make install prefix=%i mandir=%i/share/man datadir=%i/share/doc/%n
 &lt;&lt;
 </codeblock>
 <p>At first glance, we need to change all fields but the <code>Revision</code> one, since it's the first time we make a Fink package for conglomerate.</p>
+</li>
+<li>The <code>Package</code> and <code>Version</code> fields
 <p>We already know the package's name and version from the tarball's name. So we change them to:</p>
 <codeblock>
 Package: conglomerate
 Version: 0.7.14
 </codeblock>
+</li>
+<li>The <code>Source</code> field
 <p>To check the download location, return to the <link url="http://sourceforge.net/project/showfiles.php?group_id=82766">tarball's location</link> within your browser and pause the mouse onto the tarball's name. You'll see in your browser's status bar at the time of this writing:</p>
 <codeblock>
 http://prdownloads.sourceforge.net/conglomerate/conglomerate-0.7.14.tar.gz?/download
@@ -684,19 +692,29 @@ http://prdownloads.sourceforge.net/ ... ?/download
 <codeblock>conglomerate/conglomerate-0.7.14.tar.gz</codeblock>
 <p>matches exactly the <code>%n/%n-%v.tar.gz</code> part of the <code>Source</code> field.</p>
 <p>Hence, no need to change the <code>Source</code> field.</p>
-<p>For the <code>Maintainer</code> field, put what you want in it.</p>
+</li>
+<li>The <code>Maintainer</code> field
+<p>For the <code>Maintainer</code> field, put what you want in it. In a real package, you will put here your name and your email address.</p>
+</li>
+<li>The <code>HomePage</code> field
 <p>To change the <code>HomePage</code> field, return to the <link url="http://www.conglomerate.org/">conglomerate home page</link>, copy what is in your browser's url field and paste it into the <filename>info</filename> file. It becomes:</p>
 <codeblock>
 HomePage: http://www.conglomerate.org
 </codeblock>
+</li>
+<li>The <code>License</code> field
 <p>While you're at this page, look at the footer, you'll see the license's name under which conglomerate is licensed. This GNUGPL. So open the <filename>Packaging Manual</filename>, and go to the <link url="http://fink.sourceforge.net/doc/packaging/policy.php?#licenses">Package licenses</link> section to check if this is an authorized license. Yes, it is, though it is denoted as GPL in Fink nomenclature, so we'll put GPL in the <code>License</code> field:</p>
 <codeblock>
 License: GPL
 </codeblock>
+</li>
+<li>The <code>Description</code> field
 <p>For the <code>Description</code> field, we return to the <link url="http://www.conglomerate.org/">conglomerate home page</link> and pick something meaningful, for example:</p>
 <codeblock>
 Description: Graphical editor for XML documents
 </codeblock>
+</li>
+<li>The <code>DescDetail</code> field
 <p>Now, we'll add a detailed description, explained in the <filename>Packaging Manual</filename> just above the <link url="http://fink.sourceforge.net/doc/packaging/policy.php?#splitoffs">SplitOffs</link> section. We browse again the conglomerate pages to find something useful, namely the <link url="http://www.conglomerate.org/intro.html">intro</link> page. From the screenshots, it appears, conglomerate is kind of wysiwyg editor for DocBook documents with source view and export features, so we'll put that in the <code>DescDetail</code> field:</p>
 <codeblock>
 DescDetail: &lt;&lt;
@@ -705,10 +723,14 @@ DescDetail: &lt;&lt;
 &lt;&lt;
 </codeblock>
 <p><em>Note:</em> the special structure of this field (here-document syntax-based) is explained in the <link url="http://fink.sourceforge.net/doc/packaging/policy.php?#format">File Format</link> section of the <code>Packaging Manual</code>.</p>
+</li>
+<li>The <code>Source-MD5</code> field
 <p>Now, it's time to compute the MD5-sum, just issue <code>md5sum conglomerate-0.7.14.tar.gz</code> in Terminal.app and copy the numeric part of the result in the <code>Source-MD5</code> field:</p>
 <codeblock>
 Source-MD5: 1a04815a1059987aea45816aa1401bc3
 </codeblock>
+</li>
+<li>Final cleaning
 <p>Now, we are done with the most obvious part, we just need to comment out the <code>CompileScript</code> and <code>InstallScript</code> fields (we don't remove them since it may happen we will need them later):</p>
 <codeblock>
 #CompileScript: make
@@ -717,14 +739,19 @@ Source-MD5: 1a04815a1059987aea45816aa1401bc3
 #make install prefix=%i
 #&lt;&lt;
 </codeblock>
+</li>
+</ul>
 </section>
 <section name="source-tree">
 <title>A glance at the source tree</title>
 <p>In the previous example, we've experienced that there can be some directives in the original build process not conforming the Fink packaging policy. Therefore, instead of doing numerous tries, we will inspect systematically the files which concurs to this process.</p>
-<p>First, we'll observe some files with uppercase names, such as <filename>AUTHORS</filename>, <filename>COPYING</filename>, and so on. What to do with them? The <link url="http://fink.sourceforge.net/doc/packaging/fslayout.php?#dirs">Directories</link> section of the <filename>Packaging manual</filename> teach us their install location. Then, in the  Install Phase of the <link url="http://fink.sourceforge.net/doc/packaging/reference.php?#fields">Reference</link> section, we'll find a <filename>DocFiles</filename> field, which seems appropriate. So, we populate this field with all files with uppercase names found in the source tree:</p>
+<ul>
+<li>The Doc files<p>First, we'll observe some files with uppercase names, such as <filename>AUTHORS</filename>, <filename>COPYING</filename>, and so on. What to do with them? The <link url="http://fink.sourceforge.net/doc/packaging/fslayout.php?#dirs">Directories</link> section of the <filename>Packaging manual</filename> teach us their install location. Then, in the  Install Phase of the <link url="http://fink.sourceforge.net/doc/packaging/reference.php?#fields">Reference</link> section, we'll find a <filename>DocFiles</filename> field, which seems appropriate. So, we populate this field with all files with uppercase names found in the source tree:</p>
 <codeblock>
 DocFiles: AUTHORS BUGS COPYING INSTALL NEWS TODO
 </codeblock>
+</li>
+<li>Dealing with scrollkeeper
 <p>Incidentally we'll see a <filename>debian</filename> folder. It may be worth have a look at it, especially the <filename>patches</filename> folder. There's a <filename>no_scrollkeeper-update.dpatch</filename> in it. We are not using it, but we will follow the instructions in <filename>scrollkeeper.info</filename> in Fink's 10.3 unstable tree, to know what to do.</p>
 <p>First we are told to remove <code>-scrollkeeper-update -a $(scrollkeeper-localstate-dir)</code> line from an <filename>omf-install/Makefile.in</filename>. There is no such file, but there is an omf.make file. We open it and see the offending line in it, but in two places:</p>
 <codeblock>
@@ -782,8 +809,44 @@ It will output something like that:
 <codeblock>
 Patch: %n.patch
 </codeblock>
-<p>That was only the first part of scrollkeeper instructions. Now we should add a dependency on scrollkeeper.</p>
+<p>That was only the first part of scrollkeeper instructions. Now we should add a scrollkeeper <link url="http://fink.sourceforge.net/doc/packaging/reference.php?#fields">dependency</link> to our <filename>info</filename> file:</p>
+<codeblock>
+Depends: scrollkeeper
+</codeblock>
+<p>And last, we need to add <link url="http://fink.sourceforge.net/doc/packaging/reference.php?#fields">PostInstScript and PostRmScript</link>:</p>
+<codeblock>
+PostInstScript: &lt;&lt;
+ if [ configure = "$1" ]; then
+  scrollkeeper-update -q
+ fi
+&lt;&lt;
+PostRmScript: &lt;&lt;  
+ if [ remove != "$1" ]; then
+  scrollkeeper-update -q
+ fi
+&lt;&lt;
+</codeblock>
+</li>
+<li>Playing with configure and Co
+<p>In the source tree, we have two files: <filename>configure</filename> and <filename>configure.in</filename>. The first one will give us hints about which variables could be defined so that our package compiles on <code>Fink</code>. The second one deserves a look at it, since it enumerates the required packages among other useful things.</p>
+<p>To know which variables can be defined, just issue in a Terminal.app window, the following command:</p>
+<codeblock>
+finkdev% cd conglomerate-0.7.14
+finkdev% ./configure --help
+</codeblock>
+<p>The output is impressive. We first have a look at the Installation directories part. We are told that <code>make install</code> install all files in <filename>/usr/local/...</filename>, but as stated in the <link url="http://fink.sourceforge.net/doc/packaging/fslayout.php?#fhs">Filesystem Hierarchy Standard</link> section of the <filename>Packaging Manual</filename>, this is not the right path for <code>Fink</code>. As <code>Fink</code> will automatically replace <filename>/usr/local/</filename> with <filename>/sw</filename>, all we have to do is compare the hierarchy in the <filename>configure</filename> file with the one in the <link url="http://fink.sourceforge.net/doc/packaging/fslayout.php?#dirs">Directories</link> section of the <filename>Packaging Manual</filename>.</p>
+<p>We have in the source tree a <filename>data</filename> folder, which means there will be data to install. The <filename>configure</filename> installs them in <filename>/sw/share</filename> (after translation), but according to the <filename>Packaging Manual</filename>, it should be <filename>/sw/share/conglomerate</filename>, as explained for <filename>/sw/lib</filename>. So we have to indicate a special prefix for data. We'll find a way to do it in the <link url="http://fink.sourceforge.net/doc/packaging/reference.php?#fields">Compile Phase</link> section of the <filename>Packaging Manual</filename>, namely with the <code>ConfigureParams</code> field. Hence we add this field to our info file:</p>
+<codeblock>
+ConfigureParams: --datadir=%p/share/%n
+</codeblock>
+<p>Then we go further with the Optional features suggested in the <filename>configure</filename>. We will try enable-printing, we could drop it later if it does not work. So the field becomes:</p>
+<codeblock>
+ConfigureParams: --datadir=%p/share/%n --enable-printing
+</codeblock>
+</li>
+</ul>
 </section>
+
 <section name="build">
 <title>Build</title>
 <p>Now we can build the package, let's just try it:</p>
