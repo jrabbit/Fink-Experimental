@@ -68,10 +68,10 @@ for my $file (sort keys %files) {
 									$line = $newline;
 								}
 								if ($tree eq '10.3') {
-									$line =~ s,\'?-I/usr/X11R6/include/freetype2\s*\'?\s*,,g;
+									#$line =~ s,\'?-I/usr/X11R6/include/freetype2\s*\'?\s*,,g;
 									$line =~ s/^\#(\s*export\s+LD_TWOLEVEL_NAMESPACE.*)$/$1/;
-									$line =~ s/freetype2(\S*)(\s+\([^\)]+\))?\s*\|\s*freetype2(\S*)(\s+\([^\)]+\))?\s*[\,\s]*//g;
-									$line =~ s/(dlcompat|freetype2|libpoll)(\S*)(\s+\([^\)]+\))?[\,\s]*//g;
+									$line =~ s/freetype2(\S*)(\s+\([^\)]+\))?\s*\|\s*freetype2(\S*)(\s+\([^\)]+\))?\s*[\,\s]*//g unless ($line =~ m#-I/usr/X11R6/include#);
+									$line =~ s/(dlcompat|freetype2|libpoll)(\S*)(\s+\([^\)]+\))?[\,\s]*//g unless ($line =~ m#-I/usr/X11R6/include#);
 									$line =~ s/, libgnugetopt(-shlibs)?$//;
 									$line =~ s/libgnugetopt(-shlibs)?, //;
 									$line =~ s/-I.*?\/include\/gnugetopt //;
