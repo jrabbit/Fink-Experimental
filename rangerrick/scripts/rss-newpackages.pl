@@ -440,7 +440,9 @@ sub find_infofiles {
 
 	my @stat = stat($File::Find::name) or die "can't stat $_: $!\n";
 	return unless ($stat[9] >= $CUTOFF);
-	return unless ($stat[9] <= int ($NOW - 60 * 60 * 2)); # skip the newest 2 hours, to account for mirroring
+	if ($File::Find::name !~ m#/experimental/#) {
+		return unless ($stat[9] <= int ($NOW - 60 * 60 * 2)); # skip the newest 2 hours, to account for mirroring
+	}
 
 	if ($is_info) {
 		$properties = Fink::Package::read_properties($File::Find::name);
