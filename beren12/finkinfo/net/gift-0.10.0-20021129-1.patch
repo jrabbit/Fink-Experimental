@@ -1,3 +1,57 @@
+diff -ruN giFT/OpenFT/ft_search_exec.c giFT.new/OpenFT/ft_search_exec.c
+--- giFT/OpenFT/ft_search_exec.c	2002-11-29 00:03:46.000000000 -0500
++++ giFT.new/OpenFT/ft_search_exec.c	2002-11-29 00:54:18.000000000 -0500
+@@ -237,36 +237,30 @@
+ 	return 0;
+ }
+ 
+-static ft_uint32 *remove_dups (ft_uint32 *tokens, int num)
++static int remove_dups (ft_uint32 *tokens, int num)
+ {
+-	ft_uint32 *ntokens;
+ 	ft_uint32  lt = 0;
+ 	int        nt;
+ 	int        t;
+ 
+ 	if (num <= 0)
+-		return tokens;
++		return num;
+ 
+ 	/* sort first */
+ 	qsort (tokens, num, sizeof (ft_uint32), cmp_token);
+ 
+-	/* allocate new token list */
+-	if (!(ntokens = malloc (sizeof (ft_uint32) * (num + 1))))
+-		return tokens;
+-
+ 	for (t = 0, nt = 0; t < num && nt < num; t++)
+ 	{
+ 		if (lt && tokens[t] == lt)
+ 			continue;
+ 
+ 		lt = tokens[t];
+-		ntokens[nt++] = tokens[t];
++		tokens[nt++] = tokens[t];
+ 	}
+ 
+-	ntokens[nt++] = 0;
++	tokens[nt] = 0;
+ 
+-	free (tokens);
+-	return ntokens;
++	return nt;
+ }
+ 
+ static int tokens_resize (ft_uint32 **tokens, int *alloc, int newsize)
+@@ -321,7 +315,7 @@
+ 	free (s0);
+ 
+ 	(*tokens)[*tok] = 0;
+-	*tokens = remove_dups (*tokens, *tok);
++	*tok = remove_dups (*tokens, *tok);
+ }
+ 
+ ft_uint32 *ft_search_tokenize (char *string)
 diff -ruN giFT/autogen.sh giFT.new/autogen.sh
 --- giFT/autogen.sh	2002-11-02 17:06:45.000000000 -0500
 +++ giFT.new/autogen.sh	2002-11-29 00:09:21.000000000 -0500
