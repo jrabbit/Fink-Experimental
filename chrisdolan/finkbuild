@@ -1,0 +1,38 @@
+#!/bin/csh
+
+if ($#argv < 1) then
+  echo "Syntax: $0 [opts] <info file> [<perlversion>]"
+  echo "  opt '-n' means no reindexing"
+  echo "  <perlversion> is like '581'"
+  exit
+endif
+
+set index = "true"
+if ("q$1" == "q-n") then
+  shift
+  set index = "false"
+endif
+
+set info = $1
+set perlver = $2
+set pkg = `echo $info | sed "s,.*/,," | sed "s,.info,,"`$perlver
+
+if (! -f $info) then
+  echo "info file not found"
+  exit
+endif
+
+/sw/bin/fink validate $1
+if ($index == "true") then
+  /sw/bin/fink index
+endif
+nice +10 /sw/bin/fink -k -K rebuild $pkg
+if ($status == 0) then
+  foreach deb (/sw/fink/debs/$pkg*)
+    echo " ****** $deb ******"
+    /sw/bin/fink validate $deb
+    if ($status == 0) then
+      dpkg-deb -c $deb
+    endif
+  end
+endif
