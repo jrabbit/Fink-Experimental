@@ -30,7 +30,7 @@ ConfigureParams: --libexecdir='${prefix}/lib/svn' --mandir='${prefix}/share/man'
 SetCPPFLAGS: -I%p/include/db4 -no-cpp-precomp
 GCC: 3.3
 CompileScript: <<
-
+#! /bin/sh -ev
  ### Remove packages that are installed by fink
  rm -rf neon
  rm -rf apr
@@ -39,11 +39,11 @@ CompileScript: <<
  # recreate configure with libtool 1.5. The javahl bindings fail to build
  # correctly with libtool 1.4
  ./autogen.sh
- perl -pi.bak -e "s/need_relink=yes/need_relink=no/" ac-helpers/ltmain.sh
+ # perl -pi.bak -e "s/need_relink=yes/need_relink=no/" ac-helpers/ltmain.sh
  ### Configure shared
- perl -pi.bak -e "s/hardcode_direct=yes/hardcode_direct=no/" configure
+ # perl -pi.bak -e "s/hardcode_direct=yes/hardcode_direct=no/" configure
  ./configure %c
- perl -pi.bak -e 's/^fast_install=yes/fast_install=needless/g' libtool
+ # perl -pi.bak -e 's/^fast_install=yes/fast_install=needless/g' libtool
  
  ### make everything shared
  make
@@ -73,7 +73,21 @@ CompileScript: <<
  
  ### Build swig perl bindings
  make swig-pl-lib
- (cd subversion/bindings/swig/perl/native && perl5.8.1 Makefile.PL PERL=perl5.8.1 FULLPERL=perl5.8.1 INSTALLDIRS=vendor PREFIX=%p LIB=%p/lib/perl5/5.8.1 INSTALLBIN=%i/bin INSTALLSCRIPT=%i/bin INSTALLPRIVLIB=%p/lib/perl5/5.8.1 INSTALLARCHLIB=%p/lib/perl5/5.8.1/darwin-thread-multi-2level INSTALLSITELIB=%p/lib/perl5/5.8.1 INSTALLSITEARCH=%p/lib/perl5/5.8.1/darwin-thread-multi-2level INSTALLMAN1DIR=%p/share/man/man1 INSTALLMAN3DIR=%p/share/man/man3 INSTALLSITEMAN1DIR=%p/share/man/man1 INSTALLSITEMAN3DIR=%p/share/man/man3 INSTALLVENDORMAN1DIR=%p/share/man/man1 INSTALLVENDORMAN3DIR=%p/share/man/man3 && make)
+ (cd subversion/bindings/swig/perl/native && perl5.8.1 Makefile.PL PERL=perl5.8.1 FULLPERL=perl5.8.1 INSTALLDIRS=vendor PREFIX=%p LIB=%p/lib/perl5/5.8.1 INSTALLBIN=%i/bin INSTALLSCRIPT=%i/bin INSTALLPRIVLIB=%p/lib/perl5/5.8.1 INSTALLARCHLIB=%p/lib/perl5/5.8.1/darwin-thread-multi-2level INSTALLSITELIB=%p/lib/perl5/5.8.1 INSTALLSITEARCH=%p/lib/perl5/5.8.1/darwin-thread-multi-2level INSTALLMAN1DIR=%p/share/man/man1 INSTALLMAN3DIR=%p/share/man/man3 INSTALLSITEMAN1DIR=%p/share/man/man1 INSTALLSITEMAN3DIR=%p/share/man/man3 INSTALLVENDORMAN1DIR=%p/share/man/man1 INSTALLVENDORMAN3DIR=%p/share/man/man3  )
+ curdir=`pwd`
+ dylibs=`find $curdir -name "*.dylib"`
+ for dylib in $dylibs
+ do
+ localdylib=`basename $dylib`
+ install_name=`otool -XD $dylib`
+ case "$dylibfile" in
+  *"$install_name:"*) ;;
+  *) dylibfile="$dylibfile -dylib_file $install_name:$dylib" ;;
+ esac
+ done
+ PERL_DYLIB_FLAGS=$dylibfile
+ export PERL_DYLIB_FLAGS
+ (cd subversion/bindings/swig/perl/native &&PERL=perl5.8.1 FULLPERL=perl5.8.1 INSTALLDIRS=vendor PREFIX=%p LIB=%p/lib/perl5/5.8.1 INSTALLBIN=%i/bin INSTALLSCRIPT=%i/bin INSTALLPRIVLIB=%p/lib/perl5/5.8.1 INSTALLARCHLIB=%p/lib/perl5/5.8.1/darwin-thread-multi-2level INSTALLSITELIB=%p/lib/perl5/5.8.1 INSTALLSITEARCH=%p/lib/perl5/5.8.1/darwin-thread-multi-2level INSTALLMAN1DIR=%p/share/man/man1 INSTALLMAN3DIR=%p/share/man/man3 INSTALLSITEMAN1DIR=%p/share/man/man1 INSTALLSITEMAN3DIR=%p/share/man/man3 INSTALLVENDORMAN1DIR=%p/share/man/man1 INSTALLVENDORMAN3DIR=%p/share/man/man3 make 'OTHERLDFLAGS=$(PERL_DYLIB_FLAGS)')
  (cd subversion/bindings/swig/perl/native && make test)
  
  ### Build swig java bindings (they don't build yet!)
@@ -159,8 +173,9 @@ InstallScript: <<
  
  ### Check the javahl bindings (needs to be done after installation)
  # see svn issue #2040 for more info
- javac -d subversion/bindings/java/javahl/classes -classpath %i/share/java/svn-ssl-javahl/svn-javahl.jar:%p/share/java/junit/junit.jar subversion/bindings/java/javahl/src/org/tigris/subversion/javahl/tests/*.java 
- java -Djava.library.path=%i/lib -classpath %i/share/java/svn-ssl-javahl/svn-javahl.jar:%p/share/java/junit/junit.jar:subversion/bindings/java/javahl/classes org.tigris.subversion.javahl.tests.BasicTests
+ # This does not work, because we install into a staging dir.
+ # javac -d subversion/bindings/java/javahl/classes -classpath %i/share/java/svn-ssl-javahl/svn-javahl.jar:%p/share/java/junit/junit.jar subversion/bindings/java/javahl/src/org/tigris/subversion/javahl/tests/*.java 
+ # java -Djava.library.path=%i/lib -classpath %i/share/java/svn-ssl-javahl/svn-javahl.jar:%p/share/java/junit/junit.jar:subversion/bindings/java/javahl/classes org.tigris.subversion.javahl.tests.BasicTests
 <<
 
 DaemonicName: svnserve
