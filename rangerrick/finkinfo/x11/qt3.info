@@ -36,6 +36,7 @@ CompileScript: <<
 	'-I/usr/X11R6/include' '-I%p/include' \
 	'-L/usr/X11R6/lib' '-L$(QTDIR)/lib' $LIBRESOLV \
 	-buildkey qt3-jaguar -platform darwin-g++ -xplatform darwin-g++ \
+	-translationdir '%p/share/qt3/translations' \
 	-prefix '%p' -bindir '%p/bin' -libdir '%p/lib' -docdir '%p/share/doc/%n' \
 	-datadir '%p/share/qt3' -headerdir '%p/include/qt' -plugindir '%p/lib/qt3-plugins' \
 	-release -shared -fast -no-exceptions -thread -cups -stl \
@@ -52,6 +53,36 @@ InstallScript: <<
  export DYLD_LIBRARY_PATH="$QTDIR/lib:/usr/X11R6/lib:$DYLD_LIBRARY_PATH"
  export PATH="$QTDIR/bin:$PATH"
 
+ # it appears that make install is a tad broken
+ install -d -m 0755 %i/bin
+ install -c -m 0755 bin/* %i/bin/
+
+ install -d -m 0755 %i/lib
+ install -c -m 0755 lib/* %i/lib/
+
+ install -d -m 0755 %i/lib/qt3-plugins
+ cp -R plugins/* %i/lib/qt3-plugins/
+
+ ln -sf libeditor.1.0.0.dylib %i/lib/libeditor.1.0.dylib
+ ln -sf libeditor.1.0.0.dylib %i/lib/libeditor.1.dylib
+ ln -sf libeditor.1.0.0.dylib %i/lib/libeditor.dylib
+
+ ln -sf libqt-mt.%v.dylib %i/lib/libqt-mt.3.2.dylib
+ ln -sf libqt-mt.%v.dylib %i/lib/libqt-mt.3.dylib
+ ln -sf libqt-mt.%v.dylib %i/lib/libqt-mt.dylib
+
+ ln -sf libqui.1.0.0.dylib %i/lib/libqui.1.0.dylib
+ ln -sf libqui.1.0.0.dylib %i/lib/libqui.1.dylib
+ ln -sf libqui.1.0.0.dylib %i/lib/libqui.dylib
+
+ mkdir -p %i/lib/pkgconfig
+ mv %i/lib/qt-mt.pc %i/lib/pkgconfig/
+
+ install -d -m 0755 %i/share/man/man1
+ install -d -m 0755 %i/share/man/man3
+ install -c -m 644  doc/man/man1/* %i/share/man/man1/
+ install -c -m 644  doc/man/man3/* %i/share/man/man3/
+
  # clean up the makefiles
  make -C tutorial clean
  make -C examples clean
@@ -60,16 +91,31 @@ InstallScript: <<
   perl -pi -e 's,^SYSCONF_MOC.*,SYSCONF_MOC             = %p/bin/moc,' $a
  done
 
+ # install the includes
+ for i in include/* include/*/*; do [ -e $i ] || rm -f $i; done
+ install -d -m 0755 %i/include/qt
+ cp -fRL include/* %i/include/qt/
+
+ # and now the docs
+ install -d -m 0755 %i/share/doc/%N/html
  install -d -m 0755 %i/share/doc/%N/tutorial
  install -d -m 0755 %i/share/doc/%N/examples
+ cp -fRL doc/html/* %i/share/doc/%N/html/
  cp -fRL tutorial/* %i/share/doc/%N/tutorial/
  cp -fRL examples/* %i/share/doc/%N/examples/
+
+ # the mkspecs
+ install -d -m 0755 %i/share/%N/mkspecs
+ cp -fRL mkspecs/* %i/share/%N/mkspecs/
 
  # qt designer and linguist templates and phrasebooks
  install -d -m 0755 %i/share/%N/templates
  install -d -m 0755 %i/share/%N/phrasebooks
  cp -fRL tools/designer/templates/* %i/share/%N/templates/
  cp -fRL tools/linguist/phrasebooks/* %i/share/%N/phrasebooks/
+
+ install -d -m 0755 %i/share/qt3/translations
+ install -c -m 644 `find . -name \*.qm` %i/share/qt3/translations/
 
  # kde icon for qt designer
  mkdir -p %i/share/applnk/Development
@@ -101,7 +147,12 @@ Encoding=UTF-8
 Type=Application
 EOF
 
- make install INSTALL_ROOT='%d'
+ # remove extra junk
+ rm -rf \
+        %i/lib/README \
+        %i/lib/qt3-plugins/src \
+        %i/lib/libqmotif.prl \
+        %i/lib/qt3-plugins/accessibleqtwidgets.prl
 
  find %i/share/doc/%n -name .moc -exec rm -rf {} \; >/dev/null 2>&1
  find %i/share/doc/%n -name .obj -exec rm -rf {} \; >/dev/null 2>&1
@@ -111,6 +162,7 @@ EOF
  mkdir -p %i/share/doc/kde-installed-packages
  touch %i/share/doc/kde-installed-packages/qt3
  touch %i/share/doc/kde-installed-packages/qt3-dev
+
 <<
 SplitOff: <<
   Package: %N-shlibs

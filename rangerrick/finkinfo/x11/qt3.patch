@@ -1,6 +1,6 @@
 diff -uNr qt-x11-free-3.2.1/include/qglobal.h qt-x11-free-3.2.1-new/include/qglobal.h
 --- qt-x11-free-3.2.1/include/qglobal.h	Wed Aug 20 09:07:16 2003
-+++ qt-x11-free-3.2.1-new/include/qglobal.h	Sun Sep 14 21:58:13 2003
++++ qt-x11-free-3.2.1-new/include/qglobal.h	Wed Sep 17 19:41:28 2003
 @@ -79,6 +79,8 @@
       UNIX	- Any UNIX BSD/SYSV system
  */
@@ -21,7 +21,7 @@ diff -uNr qt-x11-free-3.2.1/include/qglobal.h qt-x11-free-3.2.1-new/include/qglo
  #  error "Qt requires Win32 and does not work with Windows 3.x"
 diff -uNr qt-x11-free-3.2.1/mkspecs/darwin-g++/qmake.conf qt-x11-free-3.2.1-new/mkspecs/darwin-g++/qmake.conf
 --- qt-x11-free-3.2.1/mkspecs/darwin-g++/qmake.conf	Wed Aug 20 09:09:02 2003
-+++ qt-x11-free-3.2.1-new/mkspecs/darwin-g++/qmake.conf	Sun Sep 14 19:24:35 2003
++++ qt-x11-free-3.2.1-new/mkspecs/darwin-g++/qmake.conf	Wed Sep 17 19:41:28 2003
 @@ -8,8 +8,7 @@
  
  MAKEFILE_GENERATOR	= UNIX
@@ -91,7 +91,7 @@ diff -uNr qt-x11-free-3.2.1/mkspecs/darwin-g++/qmake.conf qt-x11-free-3.2.1-new/
  QMAKE_UIC		= $(QTDIR)/bin/uic
 diff -uNr qt-x11-free-3.2.1/qmake/Makefile.unix qt-x11-free-3.2.1-new/qmake/Makefile.unix
 --- qt-x11-free-3.2.1/qmake/Makefile.unix	Tue May 13 12:17:58 2003
-+++ qt-x11-free-3.2.1-new/qmake/Makefile.unix	Sun Sep 14 19:24:35 2003
++++ qt-x11-free-3.2.1-new/qmake/Makefile.unix	Wed Sep 17 19:41:28 2003
 @@ -37,7 +37,7 @@
  	-I@BUILD_PATH@/include/qmake -I@BUILD_PATH@/include -I@SOURCE_PATH@/include \
  	-DQT_NO_TEXTCODEC -DQT_NO_UNICODETABLES -DQT_NO_COMPONENT -DQT_NO_STL \
@@ -103,7 +103,7 @@ diff -uNr qt-x11-free-3.2.1/qmake/Makefile.unix qt-x11-free-3.2.1-new/qmake/Make
  	$(CXX) -o $@ $(OBJS) $(QOBJS) $(LFLAGS)
 diff -uNr qt-x11-free-3.2.1/qmake/generators/unix/unixmake2.cpp qt-x11-free-3.2.1-new/qmake/generators/unix/unixmake2.cpp
 --- qt-x11-free-3.2.1/qmake/generators/unix/unixmake2.cpp	Wed Aug 20 09:08:14 2003
-+++ qt-x11-free-3.2.1-new/qmake/generators/unix/unixmake2.cpp	Sun Sep 14 19:24:35 2003
++++ qt-x11-free-3.2.1-new/qmake/generators/unix/unixmake2.cpp	Wed Sep 17 19:41:28 2003
 @@ -1162,14 +1162,14 @@
  	    project->variables()["TARGET"] = project->variables()["TARGET_la"];
  	} else if( project->isActiveConfig("plugin") ) {
@@ -141,9 +141,69 @@ diff -uNr qt-x11-free-3.2.1/qmake/generators/unix/unixmake2.cpp qt-x11-free-3.2.
  		project->variables()["TARGET_x"].append("lib" + project->first("TARGET") + "." +
  							project->first("VER_MAJ") + "." +
  							project->first("QMAKE_EXTENSION_SHLIB"));
+diff -uNr qt-x11-free-3.2.1/qmake/main.cpp qt-x11-free-3.2.1-new/qmake/main.cpp
+--- qt-x11-free-3.2.1/qmake/main.cpp	Wed Aug 20 09:08:14 2003
++++ qt-x11-free-3.2.1-new/qmake/main.cpp	Wed Sep 17 22:39:18 2003
+@@ -49,7 +49,7 @@
+ 
+ // for Borland, main is defined to qMain which breaks qmake
+ #undef main
+-#ifdef Q_OS_MAC
++#if defined( Q_OS_MAC ) || defined( Q_OS_DARWIN )
+ // for qurl
+ bool qt_resolve_symlinks = FALSE;
+ #endif
+diff -uNr qt-x11-free-3.2.1/src/kernel/qprocess_unix.cpp qt-x11-free-3.2.1-new/src/kernel/qprocess_unix.cpp
+--- qt-x11-free-3.2.1/src/kernel/qprocess_unix.cpp	Wed Aug 20 09:07:33 2003
++++ qt-x11-free-3.2.1-new/src/kernel/qprocess_unix.cpp	Wed Sep 17 22:43:23 2003
+@@ -779,7 +779,7 @@
+ 
+ 	if ( env == 0 ) { // inherit environment and start process
+ 	    QString command = _arguments[0];
+-#if defined(Q_OS_MACX) //look in a bundle
++#if defined(Q_OS_MACX) || defined(Q_OS_DARWIN) //look in a bundle
+ 	    const QString mac_bundle_suffix = ".app/Contents/MacOS/";
+ 	    if(!QFile::exists(command) && QFile::exists(command + mac_bundle_suffix)) {
+ 		QString exec = command;
+@@ -799,7 +799,7 @@
+ 	} else { // start process with environment settins as specified in env
+ 	    // construct the environment for exec
+ 	    int numEntries = env->count();
+-#if defined(Q_OS_MACX)
++#if defined(Q_OS_MACX) || defined(Q_OS_DARWIN)
+ 	    QString ld_library_path("DYLD_LIBRARY_PATH");
+ #else
+ 	    QString ld_library_path("LD_LIBRARY_PATH");
+@@ -831,7 +831,7 @@
+ 		    QStringList pathList = QStringList::split( ':', getenv( "PATH" ) );
+ 		    for (QStringList::Iterator it = pathList.begin(); it != pathList.end(); ++it ) {
+ 			QString dir = *it;
+-#if defined(Q_OS_MACX) //look in a bundle
++#if defined(Q_OS_MACX) || defined(Q_OS_DARWIN) //look in a bundle
+ 			if(!QFile::exists(dir + "/" + command) && QFile::exists(dir + "/" + command + ".app"))
+ 			    dir += "/" + command + ".app/Contents/MacOS";
+ #endif
+@@ -841,7 +841,7 @@
+ 			QFileInfo fileInfo( dir + "/" + command );
+ #endif
+ 			if ( fileInfo.isExecutable() ) {
+-#if defined(Q_OS_MACX)
++#if defined(Q_OS_MACX) || defined(Q_OS_DARWIN)
+ 			    arglistQ[0] = fileInfo.absFilePath().local8Bit();
+ #else
+ 			    arglistQ[0] = fileInfo.filePath().local8Bit();
+@@ -852,7 +852,7 @@
+ 		    }
+ 		}
+ 	    }
+-#if defined(Q_OS_MACX)
++#if defined(Q_OS_MACX) || defined(Q_OS_DARWIN)
+ 	    if(!QFile::exists(arglist[0])) {
+ 		QString command = arglist[0];
+ 		const QString mac_bundle_suffix = ".app/Contents/MacOS/";
 diff -uNr qt-x11-free-3.2.1/src/qt.pro qt-x11-free-3.2.1-new/src/qt.pro
 --- qt-x11-free-3.2.1/src/qt.pro	Tue Aug 12 11:00:33 2003
-+++ qt-x11-free-3.2.1-new/src/qt.pro	Sun Sep 14 19:24:35 2003
++++ qt-x11-free-3.2.1-new/src/qt.pro	Wed Sep 17 19:41:28 2003
 @@ -3,6 +3,7 @@
  TARGET		= qt
  embedded:TARGET	= qte
@@ -154,7 +214,7 @@ diff -uNr qt-x11-free-3.2.1/src/qt.pro qt-x11-free-3.2.1-new/src/qt.pro
  
 diff -uNr qt-x11-free-3.2.1/src/qtmain.pro qt-x11-free-3.2.1-new/src/qtmain.pro
 --- qt-x11-free-3.2.1/src/qtmain.pro	Tue May 13 03:08:35 2003
-+++ qt-x11-free-3.2.1-new/src/qtmain.pro	Sun Sep 14 19:24:35 2003
++++ qt-x11-free-3.2.1-new/src/qtmain.pro	Wed Sep 17 19:41:28 2003
 @@ -3,6 +3,7 @@
  TEMPLATE	= lib
  TARGET		= qtmain
@@ -163,9 +223,21 @@ diff -uNr qt-x11-free-3.2.1/src/qtmain.pro qt-x11-free-3.2.1-new/src/qtmain.pro
  DESTDIR		= $$QMAKE_LIBDIR_QT
  
  CONFIG		+= qt staticlib warn_on release
+diff -uNr qt-x11-free-3.2.1/src/tools/qdir_unix.cpp qt-x11-free-3.2.1-new/src/tools/qdir_unix.cpp
+--- qt-x11-free-3.2.1/src/tools/qdir_unix.cpp	Wed Aug 20 09:07:17 2003
++++ qt-x11-free-3.2.1-new/src/tools/qdir_unix.cpp	Wed Sep 17 22:46:11 2003
+@@ -88,7 +88,7 @@
+ 
+ bool QDir::mkdir( const QString &dirName, bool acceptAbsPath ) const
+ {
+-#if defined(Q_OS_MACX)  // Mac X doesn't support trailing /'s
++#if defined(Q_OS_MACX) || defined(Q_OS_DARWIN) // Mac X doesn't support trailing /'s
+     QString name = dirName;
+     if (dirName[dirName.length() - 1] == "/")
+ 	name = dirName.left( dirName.length() - 1 );
 diff -uNr qt-x11-free-3.2.1/src/tools/qglobal.h qt-x11-free-3.2.1-new/src/tools/qglobal.h
 --- qt-x11-free-3.2.1/src/tools/qglobal.h	Wed Aug 20 09:07:16 2003
-+++ qt-x11-free-3.2.1-new/src/tools/qglobal.h	Sun Sep 14 21:58:13 2003
++++ qt-x11-free-3.2.1-new/src/tools/qglobal.h	Wed Sep 17 19:41:28 2003
 @@ -79,6 +79,8 @@
       UNIX	- Any UNIX BSD/SYSV system
  */
@@ -184,9 +256,74 @@ diff -uNr qt-x11-free-3.2.1/src/tools/qglobal.h qt-x11-free-3.2.1-new/src/tools/
  #elif defined(Q_OS_MSDOS)
  #  define Q_WS_WIN16
  #  error "Qt requires Win32 and does not work with Windows 3.x"
+diff -uNr qt-x11-free-3.2.1/src/tools/qgpluginmanager.cpp qt-x11-free-3.2.1-new/src/tools/qgpluginmanager.cpp
+--- qt-x11-free-3.2.1/src/tools/qgpluginmanager.cpp	Wed Aug 20 09:07:16 2003
++++ qt-x11-free-3.2.1-new/src/tools/qgpluginmanager.cpp	Wed Sep 17 22:49:35 2003
+@@ -316,8 +316,8 @@
+ 
+ #if defined(Q_OS_WIN32)
+     QString filter = "*.dll";
+-#elif defined(Q_OS_MACX)
+-    QString filter = "*.dylib; *.so";
++#elif defined(Q_OS_MACX) || defined(Q_OS_DARWIN)
++    QString filter = "*.dylib; *.so; *.bundle";
+ #elif defined(Q_OS_HPUX)
+     QString filter = "*.sl";
+ #elif defined(Q_OS_UNIX)
+diff -uNr qt-x11-free-3.2.1/src/tools/qmutex_unix.cpp qt-x11-free-3.2.1-new/src/tools/qmutex_unix.cpp
+--- qt-x11-free-3.2.1/src/tools/qmutex_unix.cpp	Wed Aug 20 09:07:16 2003
++++ qt-x11-free-3.2.1-new/src/tools/qmutex_unix.cpp	Wed Sep 17 22:51:35 2003
+@@ -44,7 +44,7 @@
+ // POSIX threads mutex types
+ #if ((defined(PTHREAD_MUTEX_RECURSIVE) && defined(PTHREAD_MUTEX_DEFAULT)) || \
+      defined(Q_OS_FREEBSD)) && !defined(Q_OS_UNIXWARE) && !defined(Q_OS_SOLARIS) && \
+-    !defined(Q_OS_MAC)
++    !defined(Q_OS_MAC) && !defined(Q_OS_DARWIN)
+ // POSIX 1003.1c-1995 - We love this OS
+ #  define Q_MUTEX_SET_TYPE(a, b) pthread_mutexattr_settype((a), (b))
+ #  if defined(QT_CHECK_RANGE)
+diff -uNr qt-x11-free-3.2.1/src/tools/qstring.cpp qt-x11-free-3.2.1-new/src/tools/qstring.cpp
+--- qt-x11-free-3.2.1/src/tools/qstring.cpp	Wed Aug 20 09:07:18 2003
++++ qt-x11-free-3.2.1-new/src/tools/qstring.cpp	Wed Sep 17 22:53:37 2003
+@@ -1337,7 +1337,7 @@
+ QStringData* QString::makeSharedNull()
+ {
+     QString::shared_null = new QStringData;
+-#if defined( Q_OS_MAC )
++#if defined( Q_OS_MAC ) || defined ( Q_OS_DARWIN )
+     QString *that = const_cast<QString *>(&QString::null);
+     that->d = QString::shared_null;
+ #endif
+@@ -2523,7 +2523,7 @@
+     if ( !sl )
+ 	return index;
+ 
+-#if defined(Q_OS_MACX) && defined(QT_MACOSX_VERSION) && QT_MACOSX_VERSION >= 0x1020
++#if defined(Q_OS_MACX) && ((defined(QT_MACOSX_VERSION) && QT_MACOSX_VERSION >= 0x1020) || defined(Q_OS_DARWIN))
+     if ( sl == 1 )
+ 	return find( *str.unicode(), index, cs );
+ #endif
+@@ -2622,7 +2622,7 @@
+ 
+ int QString::findRev( QChar c, int index, bool cs ) const
+ {
+-#if defined(Q_OS_MACX) && defined(QT_MACOSX_VERSION) && QT_MACOSX_VERSION < 0x1020
++#if defined(Q_OS_MACX) && ((defined(QT_MACOSX_VERSION) && QT_MACOSX_VERSION < 0x1020) || defined(Q_OS_DARWIN))
+     return findRev( QString( c ), index, cs );
+ #else
+     const uint l = length();
+@@ -2678,7 +2678,7 @@
+     if ( index > delta )
+ 	index = delta;
+ 
+-#if defined(Q_OS_MACX) && defined(QT_MACOSX_VERSION) && QT_MACOSX_VERSION >= 0x1020
++#if defined(Q_OS_MACX) && ((defined(QT_MACOSX_VERSION) && QT_MACOSX_VERSION >= 0x1020) || defined(Q_OS_DARWIN))
+     if ( sl == 1 )
+ 	return findRev( *str.unicode(), index, cs );
+ #endif
 diff -uNr qt-x11-free-3.2.1/tools/designer/designer/designer.pro qt-x11-free-3.2.1-new/tools/designer/designer/designer.pro
 --- qt-x11-free-3.2.1/tools/designer/designer/designer.pro	Mon Aug 18 05:43:30 2003
-+++ qt-x11-free-3.2.1-new/tools/designer/designer/designer.pro	Sun Sep 14 19:24:35 2003
++++ qt-x11-free-3.2.1-new/tools/designer/designer/designer.pro	Wed Sep 17 19:41:28 2003
 @@ -1,5 +1,5 @@
  TEMPLATE	= lib
 -CONFIG		+= qt warn_on staticlib qmake_cache
@@ -196,7 +333,7 @@ diff -uNr qt-x11-free-3.2.1/tools/designer/designer/designer.pro qt-x11-free-3.2
     CONFIG          -= staticlib
 diff -uNr qt-x11-free-3.2.1/tools/designer/editor/editor.pro qt-x11-free-3.2.1-new/tools/designer/editor/editor.pro
 --- qt-x11-free-3.2.1/tools/designer/editor/editor.pro	Tue May 13 03:08:53 2003
-+++ qt-x11-free-3.2.1-new/tools/designer/editor/editor.pro	Sun Sep 14 19:24:35 2003
++++ qt-x11-free-3.2.1-new/tools/designer/editor/editor.pro	Wed Sep 17 19:41:28 2003
 @@ -1,5 +1,5 @@
  TEMPLATE	= lib
 -CONFIG		+= qt warn_on staticlib
