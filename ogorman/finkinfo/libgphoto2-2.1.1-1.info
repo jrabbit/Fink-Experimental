@@ -1,0 +1,56 @@
+Package: libgphoto2
+Version: 2.1.1
+Revision: 1
+Maintainer: Peter O'Gorman <peter@pogma.com> 
+Depends: %N-shlibs (= %v-%r)
+BuildDepends: libjpeg, libusb, aalib, libexif, dlcompat-dev, readline (>= 4.3-5), libcdk
+Source: mirror:sourceforge:/gphoto/%n-%v.tar.bz2
+Source-MD5: ec69ffba3dc3d6a6a604fd63b3e1159e
+Patch: %f.patch 
+NoSetLDFlags: true
+SetLDFLAGS: -Wl,-stack_size -Wl,4048000
+NoSetCPPFlags: true
+SetCPPFlags: -no-cpp-precomp
+Configureparams: --enable-debugging --with-jpeg-prefix=%p --mandir=%p/share/man --disable-dependency-tracking --with-libiconv-prefix=%p --disable-static --without-xmlto
+CompileScript: <<
+#!/bin/sh
+# Just bacuase this is the way I have been building it
+DYLD_LIBRARY_PATH=%p/lib
+LIBRARY_PATH=%p/lib
+CPATH=%p/include
+CPPFLAGS="-I%p/include/cdk -no-cpp-precomp"
+export DYLD_LIBRARY_PATH
+export LIBRARY_PATH
+export CPATH
+export CPPFLAGS
+./configure %c
+perl -pi.bak -e 's!#include <malloc.h>!!g' camlibs/sierra/*
+# remove all traces of -lm -lpthread -lc and -L%p/lib and -I%p/include from the Makefiles
+find . -name Makefile -exec perl -pi.bak -e 's#-[Ll](%p/lib|%p/include|m|pthread|c)\s# #g' {} \;
+make
+<<
+Installscript: <<
+    make install DESTDIR=%d
+<<
+Splitoff: <<
+	Package: %N-shlibs
+	Description: Shared libraries for gphoto2
+	Depends: libusb-shlibs, libexif-shlibs, dlcompat-shlibs
+	Files: <<
+		lib/gphoto2/%v/libgphoto2_*.so
+		lib/gphoto2_port/0.5.1/libgphoto2_port_*.so
+		lib/libgphoto2.2.0.3.dylib
+		lib/libgphoto2_port.0.5.1.dylib
+		lib/libgphoto2.2.dylib
+		lib/libgphoto2_port.0.dylib
+	<<
+	Shlibs: <<
+	 %p/lib/libgphoto2.2.dylib 3.0.0 %n (>= 2.1.1-1)
+	 %p/lib/libgphoto2_port.0.dylib 6.0.0 %n (>= 2.1.1-1)
+	<<
+<<
+DocFiles: README HACKING COPYING
+Description: Library for digital camera access
+Descport: Usual fixes
+Homepage: http://gphoto2.sf.net
+License: GPL
