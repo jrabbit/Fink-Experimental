@@ -43,7 +43,7 @@ CompileScript: <<
 
  for file in `ls -1 /lib/ 2>/dev/null | grep -E '(qt-mt|qt3)' | grep -v '.bad$'`; do
    echo "WARNING: found suspicious file or directory \"$file\" -- moving to \"${file}.bad\""
-   /bin/mv "$file" "${file}.bad"
+   /bin/mv "/lib/${file}" "/lib/${file}.bad"
  done
 
  if [ "$DOREMOVE" = "1" ]; then
@@ -91,7 +91,7 @@ CompileScript: <<
 	-sm -xinerama -xrender -xft -xkb \
 	-plugin-sql-sqlite -no-sql-ibase -no-sql-mysql -no-sql-odbc -no-sql-psql 
 
- /usr/bin/find . -name Makefile -print | xargs perl -pi.bak -e 's,-I%p/include/qt,,g'
+ /usr/bin/find . -name Makefile -print0 | xargs -0 perl -pi.bak -e 's,-I%p/include/qt,,g'
  make symlinks src-qmake src-moc sub-src sub-tools
 <<
 InstallScript: <<
@@ -104,7 +104,29 @@ InstallScript: <<
 
  perl -pi.bak -e 's,\$\(QTDIR\),%p,g' lib/*.la
 
- make install INSTALL_ROOT="%d"
+ install -d -m 0755 %i/bin
+ install -c -m 0755 bin/* %i/bin/
+
+ install -d -m 0755 %i/lib
+ install -c -m 0755 lib/* %i/lib/
+
+ install -d -m 0755 %i/lib/qt3-plugins
+ cp -fRL plugins/* %i/lib/qt3-plugins/
+
+ ln -sf libeditor.1.0.0.dylib %i/lib/libeditor.1.0.dylib
+ ln -sf libeditor.1.0.0.dylib %i/lib/libeditor.1.dylib
+ ln -sf libeditor.1.0.0.dylib %i/lib/libeditor.dylib
+
+ ln -sf libqt-mt.%v.dylib %i/lib/libqt-mt.3.3.dylib
+ ln -sf libqt-mt.%v.dylib %i/lib/libqt-mt.3.dylib
+ ln -sf libqt-mt.%v.dylib %i/lib/libqt-mt.dylib
+
+ ln -sf libqui.1.0.0.dylib %i/lib/libqui.1.0.dylib
+ ln -sf libqui.1.0.0.dylib %i/lib/libqui.1.dylib
+ ln -sf libqui.1.0.0.dylib %i/lib/libqui.dylib
+
+ install -d -m 0755 %i/lib/pkgconfig
+ install -c -m 644  %i/lib/qt-mt.pc %i/lib/pkgconfig/
 
  install -d -m 0755 %i/share/man/man1
  install -d -m 0755 %i/share/man/man3
@@ -119,6 +141,11 @@ InstallScript: <<
   perl -pi.bak -e 's,^SYSCONF_MOC.*,SYSCONF_MOC             = %p/bin/moc,' $a
  done
 
+ # install the includes
+ for i in include/* include/*/*; do [ -e $i ] || rm -f $i; done
+ install -d -m 0755 %i/include/qt
+ cp -fRL include/* %i/include/qt/
+
  # and now the docs
  install -d -m 0755 %i/share/doc/%N/html
  install -d -m 0755 %i/share/doc/%N/tutorial
@@ -128,8 +155,17 @@ InstallScript: <<
  /bin/cp -fRL examples/* %i/share/doc/%N/examples/
 
  # the mkspecs
- /bin/rm -rf %i/share/%N/mkspecs/default
- /bin/ln -sf darwin-g++ %i/share/%N/mkspecs/default
+ install -d -m 0755 %i/share/%N/mkspecs
+ cp -fRL mkspecs/* %i/share/%N/mkspecs/
+
+ # qt designer and linguist templates and phrasebooks
+ install -d -m 0755 %i/share/%N/templates
+ install -d -m 0755 %i/share/%N/phrasebooks
+ cp -fRL tools/designer/templates/* %i/share/%N/templates/
+ cp -fRL tools/linguist/phrasebooks/* %i/share/%N/phrasebooks/
+
+ install -d -m 0755 %i/share/qt3/translations
+ install -c -m 644 `find . -name \*.qm` %i/share/qt3/translations/
 
  # kde icon for qt designer
  /bin/mkdir -p %i/share/applnk/Development
@@ -167,10 +203,11 @@ EOF
         %i/lib/qt3-plugins/src \
         %i/lib/*f.prl
 
- /usr/bin/find %i/share/doc/%n -name .moc -exec rm -rf {} \; >/dev/null 2>&1
- /usr/bin/find %i/share/doc/%n -name .obj -exec rm -rf {} \; >/dev/null 2>&1
- /usr/bin/find %i/share/doc/%n/examples %i/share/doc/%n/tutorial -name Makefile -exec rm -rf {} \; >/dev/null 2>&1
- /usr/bin/find %i/share/doc/%n -name \*.pro -exec perl -pi.bak -e 's,^(CONFIG\s*.*)$,$1 thread,' {} \; >/dev/null 2>&1
+ /usr/bin/find %i/share/doc/%n -name \*.moc -print0 | xargs -0 rm -rf {} >/dev/null 2>&1 || :
+ /usr/bin/find %i/share/doc/%n -name \*.obj -print0 | xargs -0 rm -rf {} >/dev/null 2>&1 || :
+ /usr/bin/find %i/share/doc/%n/examples %i/share/doc/%n/tutorial -name Makefile -print0 | xargs -0 rm -rf >/dev/null 2>&1 || :
+ /usr/bin/find %i/share/doc/%n -name \*.pro -print0 | xargs -0 perl -pi.bak -e 's,^(CONFIG\s*.*)$,$1 thread,' >/dev/null 2>&1 || :
+ /usr/bin/find %i -name \*.bak -print0 | xargs -0 rm -rf >/dev/null 2>&1 || :
 
  perl -pi.bak -e 's,\$\(QTDIR\),%p,g' %i/lib/libqt-mt.la
 
