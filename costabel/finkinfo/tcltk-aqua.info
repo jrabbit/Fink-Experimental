@@ -12,6 +12,7 @@ Source3-MD5: c017191619ac2284f7934d5ebe1c1868
 PatchScript: <<
  perl -pi -e 's|(TCL_LIB_SPEC\=\")(\-framework Tcl\")|$1\-F%p/Library/Frameworks $2|g' tcl%v/unix/configure
  perl -pi -e 's|(TK_LIB_SPEC\=\")(\-framework Tk\")|$1\-F%p/Library/Frameworks $2|g' tk%v/unix/configure
+ perl -pi -e 's|(chmod *\-RH)|/bin/$1|g' tk8.5a1/macosx/Makefile tk8.5a1/macosx/Wish.pbproj/project.pbxproj
 <<
 CompileScript: <<
  make -C tcl%v/macosx PREFIX=%p INSTALL_PATH=%p/Library/Frameworks
@@ -58,6 +59,9 @@ DescPort: <<
 
  The tclConfig.sh and tkConfig.sh scripts have to be patched so as to contain
  the "-F/%p/Library/Frameworks" flag.
+
+ Gnu chmod doesn't understand the -H flag, so we use explicitly /bin/chmod
+ in these cases.
 
  The bin/wish and bin/tclsh symlinks are renamed to *-aqua so that 
  coexistence with the tcltk package is possible. If the latter is upgraded
