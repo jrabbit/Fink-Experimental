@@ -1,227 +1,5 @@
 
 ===================================================================
-diff -u -u -r1.1.1.6 -r1.1.1.7
---- ./cervisia/cervisiapart.cpp	12 Nov 2002 18:57:42 -0000	1.1.1.6
-+++ ./cervisia/cervisiapart.cpp	4 Jan 2003 20:23:51 -0000	1.1.1.7
-@@ -674,7 +674,11 @@
-         QDir dir(sandbox);
-         for ( QStringList::ConstIterator it = filenames.begin();
-               it != filenames.end(); ++it )
--            (void) new KRun(KURL(dir.absFilePath(*it)), 0, true, false);
-+        {
-+            KURL u;
-+            u.setPath(dir.absFilePath(*it));
-+            (void) new KRun(u, 0, true, false);
-+        }
-     }
- }
- 
-===================================================================
-diff -u -u -r1.1.1.4 -r1.1.1.5
---- ./cervisia/ChangeLog	11 Dec 2002 01:10:42 -0000	1.1.1.4
-+++ ./cervisia/ChangeLog	4 Jan 2003 20:23:53 -0000	1.1.1.5
-@@ -1,3 +1,12 @@
-+2002-12-17  Christian Loose <christian.loose@hamburg.de>
-+
-+	* Fixed "fetch of branch list hangs in update dialog" (#50824)
-+
-+2002-12-12  Christian Loose <christian.loose@hamburg.de>
-+
-+	* Fix the too small scroll area of diff view when
-+	  tabs in source code
-+
- 2002-12-05  Christian Loose <christian.loose@hamburg.de>
- 
- 	* Don't add a new line to the end of changelog
-===================================================================
-diff -u -u -r1.1.1.2 -r1.1.1.3
---- ./cervisia/cvsprogressdlg.cpp	10 Jul 2002 05:26:18 -0000	1.1.1.2
-+++ ./cervisia/cvsprogressdlg.cpp	4 Jan 2003 20:23:54 -0000	1.1.1.3
-@@ -73,6 +73,7 @@
- 
-     shown = false;
-     cancelled = false;
-+    hasError = false;
- }
- 
- 
-@@ -100,7 +101,7 @@
-     if (!sandbox.isEmpty())
-         QDir::setCurrent(sandbox);
-     if (!rsh.isEmpty())
--	*childproc << QString("CVS_RSH='" + rsh + "'");
-+	*childproc << QString("CVS_RSH=" + KShellProcess::quote(rsh) );
-     *childproc << cmdline;
- 
-     connect( childproc, SIGNAL(processExited(KProcess *)),
-@@ -188,6 +189,7 @@
-                 item.left(21) == "cvs [server aborted]:")
-                 {
-                     err = true;
-+                    hasError = true;
-                     resultbox->insertItem(item);
-                 }
-             else if (item.left(11) == "cvs server:")
-@@ -234,7 +236,7 @@
-     // Close the dialog automatically if there are no
-     // error messages or the process has been aborted
-     // 'by hand' (e.g.  by clicking the cancel button)
--    if (resultbox->count() < 2 || !childproc->normalExit())
-+    if (!hasError || !childproc->normalExit())
-         kapp->exit_loop();
- }
- 
-===================================================================
-diff -u -u -r1.1.1.2 -r1.1.1.3
---- ./cervisia/cvsprogressdlg.h	10 Jul 2002 05:26:18 -0000	1.1.1.2
-+++ ./cervisia/cvsprogressdlg.h	4 Jan 2003 20:23:49 -0000	1.1.1.3
-@@ -56,6 +56,7 @@
- 
-     bool shown;
-     bool cancelled;
-+    bool hasError;
-     QString indic1, indic2;
-     KProcess *childproc;
-     QListBox *resultbox;
-===================================================================
-diff -u -u -r1.1.1.2 -r1.1.1.3
---- ./cervisia/diffdlg.cpp	10 Jul 2002 05:26:20 -0000	1.1.1.2
-+++ ./cervisia/diffdlg.cpp	4 Jan 2003 20:23:53 -0000	1.1.1.3
-@@ -296,36 +296,36 @@
-                     QString revAFilename = tempFileName(QString("-")+revA);
-                     QString revBFilename = tempFileName(QString("-")+revB);
-                     cmdline += " -r ";
--                    cmdline += revA;
-+                    cmdline += KShellProcess::quote(revA);
-                     cmdline += " ";
-                     cmdline += KShellProcess::quote(filename);
-                     cmdline += " > ";
--                    cmdline += revAFilename;
-+                    cmdline += KShellProcess::quote(revAFilename);
-                     cmdline += " ; cvs update -p ";
-                     cmdline += " -r ";
--                    cmdline += revB;
-+                    cmdline += KShellProcess::quote(revB);
-                     cmdline += " ";
-                     cmdline += KShellProcess::quote(filename);
-                     cmdline += " > ";
--                    cmdline += revBFilename;
-+                    cmdline += KShellProcess::quote(revBFilename);
-                     
--                    extcmdline += revAFilename;
-+                    extcmdline += KShellProcess::quote(revAFilename);
-                     extcmdline += " ";
--                    extcmdline += revBFilename;
-+                    extcmdline += KShellProcess::quote(revBFilename);
-                 } else {
-                     // We're comparing to a file, and perhaps one revision
-                     QString revAFilename = tempFileName(revA);
-                     if (!revA.isEmpty())
-                         {
-                             cmdline += " -r ";
--                            cmdline += revA;
-+                            cmdline += KShellProcess::quote(revA);
-                         }
-                     cmdline += " ";
-                     cmdline += KShellProcess::quote(filename);
-                     cmdline += " > ";
--                    cmdline += revAFilename;
-+                    cmdline += KShellProcess::quote(revAFilename);
-                     
--                    extcmdline += revAFilename;
-+                    extcmdline += KShellProcess::quote(revAFilename);
-                     extcmdline += " ";
-                     extcmdline += KShellProcess::quote(QFileInfo(filename).absFilePath());
-                 }
-@@ -346,12 +346,12 @@
-     if (!revA.isEmpty())
- 	{
- 	    cmdline += " -r ";
--	    cmdline += revA;
-+	    cmdline += KShellProcess::quote(revA);
- 	}
-     if (!revB.isEmpty())
- 	{
- 	    cmdline += " -r ";
--	    cmdline += revB;
-+	    cmdline += KShellProcess::quote(revB);
- 	}
-     cmdline += " ";
-     cmdline += KShellProcess::quote(filename);
-===================================================================
-diff -u -u -r1.1.1.4 -r1.1.1.5
---- ./cervisia/diffview.cpp	29 Oct 2002 18:24:48 -0000	1.1.1.4
-+++ ./cervisia/diffview.cpp	4 Jan 2003 20:23:54 -0000	1.1.1.5
-@@ -17,6 +17,7 @@
- #include <qpainter.h>
- #include <qscrollbar.h>
- #include <qpixmap.h>
-+#include <qregexp.h>
- #include <qstyle.h>
- 
- #include <kapplication.h>
-@@ -69,6 +70,9 @@
-     setCellWidth(0);
-     textwidth = 0;
- 
-+    config->setGroup("General");
-+    m_tabWidth = config->readUnsignedNumEntry("TabWidth", 8);
-+
-     items.setAutoDelete(true);
-     linenos = withlinenos;
-     marker = withmarker;
-@@ -156,8 +160,22 @@
- {
-     QFont f(font());
-     f.setBold(true);
--    QFontMetrics fm(f);
--    textwidth = QMAX(textwidth, fm.width(line));
-+    QFontMetrics fmbold(f);
-+    QFontMetrics fm(font());
-+
-+
-+    // calculate textwidth based on 'line' where tabs are expanded
-+    //
-+    // *Please note*
-+    // For some fonts, e.g. "Clean", is fm.maxWidth() greater than
-+    // fmbold.maxWidth().
-+    QString copy(line);
-+    int numTabs = copy.contains('\t', false);
-+    copy.replace( QRegExp("\t"), "");
-+
-+    uint tabSize   = m_tabWidth * QMAX(fm.maxWidth(), fmbold.maxWidth());
-+    uint copyWidth = QMAX(fm.width(copy), fmbold.width(copy));
-+    textwidth = QMAX(textwidth, copyWidth + numTabs * tabSize);
- 
-     DiffViewItem *item = new DiffViewItem;
-     item->line = line;
-@@ -281,11 +299,8 @@
- 
- void DiffView::paintCell(QPainter *p, int row, int col)
- {
--    KConfig *config = CervisiaPart::config();
--    config->setGroup("General");
--    uint tabWidth = config->readUnsignedNumEntry("TabWidth", 8);
-     QFontMetrics fm(font());
--    p->setTabStops(tabWidth * fm.maxWidth());
-+    p->setTabStops(m_tabWidth * fm.maxWidth());
- 
-     DiffViewItem *item = items.at(row);
- 
-===================================================================
-diff -u -u -r1.1.1.3 -r1.1.1.4
---- ./cervisia/diffview.h	14 Aug 2002 19:48:30 -0000	1.1.1.3
-+++ ./cervisia/diffview.h	4 Jan 2003 20:23:52 -0000	1.1.1.4
-@@ -85,6 +85,8 @@
-     QColor diffChangeColor;
-     QColor diffInsertColor;
-     QColor diffDeleteColor;
-+
-+    unsigned int    m_tabWidth;
- };
- 
- 
-===================================================================
 diff -u -u -r1.1.1.3 -r1.3
 --- ./cervisia/Makefile.am	5 Nov 2002 03:00:09 -0000	1.1.1.3
 +++ ./cervisia/Makefile.am	1 Dec 2002 17:02:08 -0000	1.3
@@ -268,19 +46,6 @@ diff -u -u -r1.1.1.3 -r1.3
  
  man_MANS = cervisia.1
  
-===================================================================
-diff -u -u -r1.1.1.3 -r1.1.1.4
---- ./cervisia/protocolview.cpp	14 Aug 2002 19:48:28 -0000	1.1.1.3
-+++ ./cervisia/protocolview.cpp	4 Jan 2003 20:23:50 -0000	1.1.1.4
-@@ -79,7 +79,7 @@
-     if (!sandbox.isEmpty())
-         QDir::setCurrent(sandbox);
-     if (!rsh.isEmpty())
--	*childproc << QString("CVS_RSH='" + rsh + "'");
-+	*childproc << QString("CVS_RSH=" + KShellProcess::quote(rsh));
-     *childproc << cmdline;
-     
-     connect( childproc, SIGNAL(processExited(KProcess *)),
 ===================================================================
 diff -N ./cervisia/strptime.c
 --- /dev/null	1 Jan 1970 00:00:00 -0000
@@ -677,7 +442,31 @@ diff -u -u -r1.1.1.4 -r1.7
  	    time = mktime(&tmp);
  	    updateEntriesItem(name, status, isdir, isbin, rev, tagdate, time);
 ===================================================================
-diff -u -u -r1.1.1.10 -r1.1.1.11
+diff -N ./debian/kdepalettes.install
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ ./debian/kdepalettes.install	20 Nov 2002 03:20:18 -0000	1.1.1.2
+@@ -0,0 +1,3 @@
++../../kdepalettes/kde_xpaintrc usr/share/kdepalettes
++../../kdepalettes/KDE_Gimp usr/share/kdepalettes
++../../kdepalettes/README usr/share/kdepalettes
+===================================================================
+diff -N ./debian/kdepalettes.links
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ ./debian/kdepalettes.links	29 Oct 2002 18:24:50 -0000	1.1.1.2
+@@ -0,0 +1 @@
++usr/share/kdepalettes/README usr/share/doc/kdepalettes/README
+===================================================================
+diff -N ./debian/kdepalettes.README.Debian
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ ./debian/kdepalettes.README.Debian	25 Jun 2002 03:20:49 -0000	1.1.1.1
+@@ -0,0 +1,7 @@
++KDEPalettes for Debian
++----------------------
++
++The palettes have been placed in /usr/share/kdepalettes/.
++Instructions for installation are included in /usr/share/kdepalettes/README.
++
++ -- Ben Burton <benb@acm.org>, Mon, 26 Mar 2001 09:10:56 -0600
 ===================================================================
 diff -u -u -r1.1.1.5 -r1.4
 --- ./doc/cervisia/index.docbook	5 Nov 2002 03:00:15 -0000	1.1.1.5
@@ -691,118 +480,6 @@ diff -u -u -r1.1.1.5 -r1.4
  files, such replacements may corrupt the file and make it completely
  unusable. In order to switch this behavior off, you should commit binary files
  (or other files, like Postscript) with a command line
-===================================================================
-diff -u -u -r1.1.1.10 -r1.1.1.11
-===================================================================
-diff -u -u -r1.1.1.2 -r1.1.1.3
---- ./kapptemplate/kapp/app.cpp	3 Oct 2002 01:05:49 -0000	1.1.1.2
-+++ ./kapptemplate/kapp/app.cpp	4 Jan 2003 20:24:19 -0000	1.1.1.3
-@@ -50,6 +50,11 @@
-     // and a status bar
-     statusBar()->show();
- 
-+    // apply the saved mainwindow settings, if any, and ask the mainwindow
-+    // to automatically save settings if changed: window size, toolbar
-+    // position, icon size, etc.
-+    setAutoSaveSettings();
-+
-     // allow the view to change the statusbar and caption
-     connect(m_view, SIGNAL(signalChangeStatusbar(const QString&)),
-             this,   SLOT(changeStatusbar(const QString&)));
-@@ -251,12 +256,18 @@
- void ${APP_NAME}::optionsConfigureToolbars()
- {
-     // use the standard toolbar editor
-+    saveMainWindowSettings( KGlobal::config(), autoSaveGroup() );
-     KEditToolbar dlg(actionCollection());
--    if (dlg.exec())
--    {
--        // recreate our GUI
--        createGUI();
--    }
-+    connect(&dlg, SIGNAL(newToolbarConfig()), this, SLOT(newToolbarConfig()));
-+    dlg.exec();
-+}
-+
-+void ${APP_NAME}::newToolbarConfig()
-+{
-+    // this slot is called when user clicks "Ok" or "Apply" in the toolbar editor.
-+    // recreate our GUI, and re-apply the settings (e.g. "text under icons", etc.)
-+    createGUI();
-+    applyMainWindowSettings( KGlobal::config(), autoSaveGroup() );
- }
- 
- void ${APP_NAME}::optionsPreferences()
-@@ -280,4 +291,5 @@
-     // display the text on the caption
-     setCaption(text);
- }
-+
- #include "${APP_NAME_LC}.moc"
-===================================================================
-diff -u -u -r1.1.1.2 -r1.1.1.3
---- ./kapptemplate/kapp/app.h	10 Jul 2002 05:27:42 -0000	1.1.1.2
-+++ ./kapptemplate/kapp/app.h	4 Jan 2003 20:24:19 -0000	1.1.1.3
-@@ -5,7 +5,7 @@
- 
- #ifdef HAVE_CONFIG_H
- #include <config.h>
--#endif 
-+#endif
- 
- #include <kapplication.h>
- #include <kmainwindow.h>
-@@ -76,13 +76,14 @@
-     void optionsConfigureKeys();
-     void optionsConfigureToolbars();
-     void optionsPreferences();
-+    void newToolbarConfig();
- 
-     void changeStatusbar(const QString& text);
-     void changeCaption(const QString& text);
- 
- private:
--	void setupAccel();
--	void setupActions();
-+    void setupAccel();
-+    void setupActions();
- 
- private:
-     ${APP_NAME}View *m_view;
-===================================================================
-diff -u -u -r1.1.1.3 -r1.1.1.4
---- ./kapptemplate/kpartapp/app.cpp	29 Oct 2002 18:24:59 -0000	1.1.1.3
-+++ ./kapptemplate/kpartapp/app.cpp	4 Jan 2003 20:24:20 -0000	1.1.1.4
-@@ -64,6 +64,11 @@
-         // next time we enter the event loop...
-         return;
-     }
-+
-+    // apply the saved mainwindow settings, if any, and ask the mainwindow
-+    // to automatically save settings if changed: window size, toolbar
-+    // position, icon size, etc.
-+    setAutoSaveSettings();
- }
- 
- ${APP_NAME}::~${APP_NAME}()
-@@ -148,7 +153,7 @@
- 
- void ${APP_NAME}::optionsConfigureToolbars()
- {
--    saveMainWindowSettings(KGlobal::config(), "MainWindow");
-+    saveMainWindowSettings(KGlobal::config(), autoSaveGroup());
- 
-     // use the standard toolbar editor
-     KEditToolbar dlg(factory());
-@@ -159,7 +164,7 @@
- 
- void ${APP_NAME}::applyNewToolbarConfig()
- {
--    applyMainWindowSettings(KGlobal::config(), "MainWindow");
-+    applyMainWindowSettings(KGlobal::config(), autoSaveGroup());
- }
- 
- void ${APP_NAME}::fileOpen()
 ===================================================================
 diff -u -u -r1.1.1.4 -r1.2
 --- ./kbabel/catalogmanager/main.cpp	29 Oct 2002 18:25:01 -0000	1.1.1.4
@@ -914,54 +591,6 @@ diff -u -u -r1.1.1.5 -r1.4
  # which sources should be compiled 
  libkbabelcommon_la_SOURCES = catalog.cpp catalogitem.cpp editcmd.cpp\
 ===================================================================
-diff -u -u -r1.1.1.3 -r1.1.1.4
---- ./kbabel/common/msgfmt.cpp	29 Oct 2002 18:25:03 -0000	1.1.1.3
-+++ ./kbabel/common/msgfmt.cpp	4 Jan 2003 20:24:25 -0000	1.1.1.4
-@@ -89,8 +89,8 @@
-    // remove last output
-    _output="";
- 
--
--   proc << "cd" << dir << ";" << "msgfmt" << "--statistics" << "-o" << "/dev/null" << regexp;
-+   proc << "cd" << KShellProcess::quote(dir) << ";";
-+   proc << "msgfmt" << "--statistics" << "-o" << "/dev/null" << KShellProcess::quote(regexp);
- 
-    if(!proc.start(KProcess::Block,KProcess::Stderr))
-    {
-===================================================================
-diff -u -u -r1.1.1.5 -r1.1.1.6
---- ./kbabel/kbabel/kbabel.cpp	29 Oct 2002 18:25:04 -0000	1.1.1.5
-+++ ./kbabel/kbabel/kbabel.cpp	4 Jan 2003 20:24:33 -0000	1.1.1.6
-@@ -1872,7 +1872,7 @@
- {
-     if( _toSpellcheck.isEmpty() || result == KS_STOP)
-     {
--	disconnect( this, SLOT(spellcheckDone( int)));
-+	disconnect( m_view, SIGNAL( signalSpellcheckDone(int)), this, SLOT(spellcheckDone( int)));
- 	KMessageBox::information( this, i18n("MessageBox text", "Spellchecking of multiple files is finished."),
- 	    i18n("MessageBox caption", "Spellcheck Done"));
-     }
-===================================================================
-diff -u -u -r1.1.1.7 -r1.1.1.8
---- ./kbabel/kbabel/kbabelview.cpp	12 Nov 2002 18:58:04 -0000	1.1.1.7
-+++ ./kbabel/kbabel/kbabelview.cpp	4 Jan 2003 20:24:31 -0000	1.1.1.8
-@@ -4719,14 +4719,7 @@
- 
- 	if(flag)
- 	{
--		QString msg;
--		if(spell.replaced==1)
--			msg=i18n("Spellcheck: %1 word replaced");
--		else
--			msg=i18n("Spellcheck: %1 words replaced");
--
--		msg=msg.arg(spell.replaced);
--		emit signalChangeStatusbar(msg);
-+		emit signalChangeStatusbar(i18n("Spellcheck: %n word replaced","Spellcheck: %n words replaced",spell.replaced));
- 
- 		if(spell.misspelled==0)
- 		{
-===================================================================
 diff -u -u -r1.1.1.5 -r1.2
 --- ./kbabel/kbabel/main.cpp	12 Nov 2002 18:58:04 -0000	1.1.1.5
 +++ ./kbabel/kbabel/main.cpp	1 Dec 2002 17:02:09 -0000	1.2
@@ -1068,18 +697,6 @@ diff -N ./kbabel/kbabel/version.h
 +#define VERSION "0.5.5"
 +
 ===================================================================
-diff -u -u -r1.1.1.4 -r1.1.1.5
---- ./kbabel/kbabeldict/kbabeldictbox.cpp	20 Nov 2002 03:20:42 -0000	1.1.1.4
-+++ ./kbabel/kbabeldict/kbabeldictbox.cpp	4 Jan 2003 20:24:36 -0000	1.1.1.5
-@@ -208,6 +208,7 @@
-    label = new QLabel(i18n("Translator:"), this);
-    hbox->addWidget(label);
-    translatorLabel = new QLabel(this);
-+   translatorLabel->setMinimumSize(50,0);
-    hbox->addWidget(translatorLabel);
-    hbox->setStretchFactor(translatorLabel,2);
-    grid->addLayout(hbox,1,1);
-===================================================================
 diff -u -u -r1.1.1.4 -r1.2
 --- ./kbabel/kbabeldict/Makefile.am	29 Oct 2002 18:25:10 -0000	1.1.1.4
 +++ ./kbabel/kbabeldict/Makefile.am	29 Nov 2002 19:01:23 -0000	1.2
@@ -1146,162 +763,6 @@ diff -u -u -r1.1.1.4 -r1.2
  #rc_DATA = kbabelui.rc
  
 ===================================================================
-diff -u -u -r1.1.1.4 -r1.1.1.5
---- ./kbugbuster/gui/kbugbusterui.rc	29 Oct 2002 18:25:14 -0000	1.1.1.4
-+++ ./kbugbuster/gui/kbugbusterui.rc	4 Jan 2003 20:24:10 -0000	1.1.1.5
-@@ -1,5 +1,5 @@
- <!DOCTYPE kpartgui SYSTEM "kpartgui.dtd">
--<kpartgui name="kbugbuster" version="5">
-+<kpartgui name="kbugbuster" version="6">
- 
- <MenuBar>
-   <Menu name="file" noMerge="1"><text>&amp;File</text>
-@@ -25,9 +25,9 @@
-   </Menu>
-   <Action name="bookmarks"/>
-   <Menu name="commands"><text>&amp;Commands</text>
--    <Action name="cmd_merge" />
-+  <!--  <Action name="cmd_merge" />
-     <Action name="cmd_unmerge" />
--    <Separator/>
-+    <Separator/> -->
-     <Action name="cmd_close" />
-     <Action name="cmd_close_silently" />
-     <Action name="cmd_reopen" />
-===================================================================
-diff -u -u -r1.1.1.3 -r1.1.1.4
---- ./kbugbuster/gui/preferencesdialog.cpp	29 Oct 2002 18:25:16 -0000	1.1.1.3
-+++ ./kbugbuster/gui/preferencesdialog.cpp	4 Jan 2003 20:24:10 -0000	1.1.1.4
-@@ -54,10 +54,10 @@
- 
-   QPushButton *addButton = new QPushButton( i18n("Add Server..."), buttonBox );
-   connect( addButton, SIGNAL( clicked() ), SLOT( addServer() ) );
--  
-+
-   QPushButton *editButton = new QPushButton( i18n("Edit Server..."), buttonBox );
-   connect( editButton, SIGNAL( clicked() ), SLOT( editServer() ) );
--  
-+
-   QPushButton *removeButton = new QPushButton( i18n("Remove Server"), buttonBox );
-   connect( removeButton, SIGNAL( clicked() ), SLOT( removeServer() ) );
- 
-@@ -76,7 +76,7 @@
- 
-   QBoxLayout *layout = new QVBoxLayout( topFrame );
- 
--  QButtonGroup *mailGroup = new QButtonGroup( 1, Horizontal, 
-+  QButtonGroup *mailGroup = new QButtonGroup( 1, Horizontal,
-                                               i18n( "Mail Client" ), topFrame );
-   layout->addWidget( mailGroup );
- 
-@@ -105,7 +105,7 @@
-     readConfig();
- }
- 
--void PreferencesDialog::ok()
-+void PreferencesDialog::slotOk()
- {
-     KURL data( mBugzillaURLLineEdit->text() );
-     if ( data.isMalformed() )
-@@ -119,7 +119,7 @@
-     main->updatePackage();
- }
- 
--void PreferencesDialog::cancel()
-+void PreferencesDialog::slotCancel()
- {
-     hide();
- }
-@@ -137,7 +137,7 @@
- {
-   QListViewItem *item = mServerList->currentItem();
-   if ( !item ) return;
--    
-+
-   ServerConfigDialog *dlg = new ServerConfigDialog( this );
-   dlg->setServer( item->text( 0 ), item->text( 1 ) );
- 
-@@ -153,7 +153,7 @@
-   QListViewItem *item = mServerList->currentItem();
-   if ( !item ) return;
- 
--  delete item;    
-+  delete item;
- }
- 
- void PreferencesDialog::readConfig()
-@@ -190,6 +190,7 @@
-     KBBPrefs::instance()->mShowWishes = mShowWishesCheckBox->isChecked();
-     KBBPrefs::instance()->mSendBCC = mSendBccCheckBox->isChecked();
-     KBBPrefs::instance()->mBugzillaURL = mBugzillaURLLineEdit->text();
-+    KBBPrefs::instance()->writeConfig();
- }
- 
- #include "preferencesdialog.moc"
-===================================================================
-diff -u -u -r1.1.1.2 -r1.1.1.3
---- ./kbugbuster/gui/preferencesdialog.h	29 Oct 2002 18:25:16 -0000	1.1.1.2
-+++ ./kbugbuster/gui/preferencesdialog.h	4 Jan 2003 20:24:10 -0000	1.1.1.3
-@@ -21,8 +21,8 @@
- 
-   protected slots:
-     void setDefaults();
--    void ok();
--    void cancel();
-+    void slotOk();
-+    void slotCancel();
-     void slotBugzillaURLChanged( const QString &);
- 
-     void addServer();
-@@ -40,7 +40,7 @@
-     QRadioButton *mKMailButton;
-     QRadioButton *mDirectButton;
-     QRadioButton *mSendmailButton;
--    QLineEdit *mBugzillaURLLineEdit;    
-+    QLineEdit *mBugzillaURLLineEdit;
-     QListView *mServerList;
- };
- 
-===================================================================
-diff -u -u -r1.1.1.1 -r1.1.1.2
---- ./kbugbuster/gui/serverconfigdialog.cpp	29 Oct 2002 18:25:16 -0000	1.1.1.1
-+++ ./kbugbuster/gui/serverconfigdialog.cpp	4 Jan 2003 20:24:11 -0000	1.1.1.2
-@@ -15,15 +15,16 @@
- 
-   QGridLayout *topLayout = new QGridLayout( topFrame );
- 
--  mServerName = new QLineEdit( topFrame );  
-+  mServerName = new QLineEdit( topFrame );
-   QLabel *nameLabel = new QLabel( mServerName, i18n("Name:"), topFrame );
-   topLayout->addWidget( nameLabel, 0, 0 );
-   topLayout->addWidget( mServerName, 0, 1 );
--  
--  mServerUrl = new QLineEdit( topFrame );  
-+  mServerName->setFocus();
-+
-+  mServerUrl = new QLineEdit( topFrame );
-   QLabel *urlLabel = new QLabel( mServerUrl, i18n("URL:"), topFrame );
-   topLayout->addWidget( urlLabel, 1, 0 );
--  topLayout->addWidget( mServerUrl, 1, 1 );  
-+  topLayout->addWidget( mServerUrl, 1, 1 );
- }
- 
- void ServerConfigDialog::setServer( const QString &name, const QString &url )
-===================================================================
-diff -u -u -r1.1.1.2 -r1.1.1.3
---- ./kdeaccounts-plugin/kdeaccountsformat.cpp	29 Oct 2002 18:25:16 -0000	1.1.1.2
-+++ ./kdeaccounts-plugin/kdeaccountsformat.cpp	4 Jan 2003 20:24:38 -0000	1.1.1.3
-@@ -48,8 +48,7 @@
-         { } // find eol
- 
-         uint length = it - startLine;
--        // this should be utf8 IMHO, but what can I do?
--        line = QString::fromLatin1( startLine, length ).simplifyWhiteSpace();
-+        line = QString::fromUtf8( startLine, length ).simplifyWhiteSpace();
- 
-         QString nickName;
-         QString name;
-===================================================================
 diff -u -u -r1.1.1.2 -r1.2
 --- ./kompare/komparepart/Makefile.am	10 Jul 2002 05:30:35 -0000	1.1.1.2
 +++ ./kompare/komparepart/Makefile.am	29 Nov 2002 19:01:23 -0000	1.2
@@ -1338,27 +799,17 @@ diff -u -u -r1.1.1.2 -r1.2
  # this is where the desktop file will go
  partdesktopdir   = $(kde_servicesdir)
 ===================================================================
-diff -u -u -r1.1.1.1 -r1.3
---- ./kompare/libdiff2/Makefile.am	10 Jul 2002 05:30:39 -0000	1.1.1.1
+diff -u -u -r1.1.1.2 -r1.3
+--- ./kompare/libdiff2/Makefile.am	4 Jan 2003 20:24:03 -0000	1.1.1.2
 +++ ./kompare/libdiff2/Makefile.am	4 Jan 2003 20:29:50 -0000	1.3
-@@ -11,7 +11,7 @@
- # let automoc handle all of the meta source files (moc)
- METASOURCES = AUTO
- 
--lib_LTLIBRARIES = libdiff2.la
-+noinst_LTLIBRARIES = libdiff2.la
- 
- # the Part's source, library search path, and link libraries
- libdiff2_la_SOURCES = \
-@@ -21,8 +21,8 @@
+@@ -21,6 +21,8 @@
  	difference.cpp \
  	diffhunk.cpp
  
--libdiff2_la_LDFLAGS = -module -avoid-version -no-undefined \
--	$(KDE_PLUGIN) \
+-libdiff2_la_LDFLAGS = $(all_libraries)
 +libdiff2_la_LDFLAGS = -avoid-version -no-undefined \
 +	$(KDE_RPATH) \
- 	$(all_libraries)
++	$(all_libraries)
  libdiff2_la_LIBADD  = $(LIB_KPARTS) $(LIB_KFILE)
  
 ===================================================================
