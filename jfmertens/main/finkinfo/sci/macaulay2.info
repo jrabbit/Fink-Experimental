@@ -5,22 +5,32 @@ GCC: 3.3
 Source: http://www.math.uiuc.edu/Macaulay2/ftp-site/Macaulay2-%v-src.tar.gz
 Source-MD5: f2181baccdb9bbe75c4f6ee61f782533
 Depends: gdbm3-shlibs, gmp-shlibs (>= 4.1.2-11)
-BuildDepends: sed | ssed , gdbm3, gmp (>= 4.1.2-11), autoconf2.5, gc-static (>= 6.2-2), singular-factory (>= 2.05-1), singular-libfac (>= 2.05-1), ntl (>= 5.3.1-12) | singular-sntl | singular-sntl-sta
+BuildDepends: gdbm3, gmp (>= 4.1.2-11), autoconf2.5, gc-static (>= 6.2-2), singular-factory (>= 2.05-1), singular-libfac (>= 2.05-1), ntl (>= 5.3.1-12) | singular-sntl | singular-sntl-sta
 Suggests: emacs | xemacs
 SourceDirectory: Macaulay2-%v
+## Diffs with previous %v _ besides dependencies (note also gdbm -> gdbm3) :
+## 1) the previous trouble with linking tmpl_inst.o [presumably ld didn't want to see in a -lxyz.a an object
+##    with the same name as one of the objects to be linked (flat_namespace spirit ?)] has disappeared _ don't
+##    know with what %v of the dev-tools. So ref's to that trouble have been deleted, and line 3 in the patchscript
+##    is related too.
+## 2) make check added for the moment _ and the last line of the patchscript is to let the build complete normally
+##    despite the failure of make check at some point. [A diff with the log of the prev %r (with the same ine added
+##    in patchscript) shows the results of make check are identical in both cases _ but for the timings of course !]
+## 3) line 5 in the patchscript is to link with the additional deps (note: not only ntl, but also cfmem)
+## 4) line 6 is to zap all -I/sw/include flags that preceded some flag referring to the build-dir
+## 5) Finally line 4 : this was the only way I found to link correctly here. It seems rather fragile (that's part of
+##    the reason of the make check..) : eg, just adding NoSetLDFLAGS: true and SetLIBRARY_PATH: %p/lib would
+##    give there an executable that crashes ('Bus Error') at the first use ... Apple's mysteries !
 PatchScript: <<
  sed "s|@PREFIX@|/sw|g" < %a/%n.patch | patch -p1
- mv Macaulay2/README.MacOSX Macaulay2/README.MacOSX.orig
- sed 's|/sw|%p|g' < Macaulay2/README.MacOSX.orig > Macaulay2/README.MacOSX
- sed -ri.bak '/libfac_tmpl_inst.o/d' Macaulay2/d/Makefile.in
- sed -ri 's,\(PURIFYCMD\) \$\(CC\),\(PURIFYCMD\) g++ -dynamic -m,' Macaulay2/d/Makefile.in
- sed -ri 's,LIBRARYOPTIONS \+\= \-lgmp,LIBRARYOPTIONS \+\= \-lcfmem\nLIBRARYOPTIONS \+\= \-lntl\n&,' Macaulay2/d/Makefile.in
- sed -ri.bak '/\$\(prefix\)\//d' include/config.Makefile.in
- sed -ri.bak 's,^clean check,check \:\:\n\t\$\(MAKE\) \-C ComputationsBook changes\nclean,' Macaulay2/packages/Makefile.in
+ perl -pi -e 's|/sw|%p|g' Macaulay2/README.MacOSX
+ perl -pi.bak -e 's/^.*libfac_tmpl_inst\.o.*$//g' Macaulay2/d/Makefile.in
+ perl -pi -e 's,\(PURIFYCMD\) \$\(CC\),\(PURIFYCMD\) g++ -dynamic -m,' Macaulay2/d/Makefile.in
+ perl -pi -e 's,LIBRARYOPTIONS \+\= \-lgmp,LIBRARYOPTIONS \+\= \-lcfmem\nLIBRARYOPTIONS \+\= \-lntl\nLIBRARYOPTIONS \+\= \-lgmp,' Macaulay2/d/Makefile.in
+ perl -pi.bak -e 's,^.*\$\(prefix\)\/.*$,,g' include/config.Makefile.in
+ perl -pi.bak -e 's,^clean check,check \:\:\n\t\$\(MAKE\) \-C ComputationsBook changes\nclean,' Macaulay2/packages/Makefile.in
 <<
-#NoSetLDFLAGS: true
 NoSetCPPFLAGS: true
-#SetLIBRARY_PATH: %p/lib
 ConfigureParams: --disable-strip --disable-dumpdata
 CompileScript: <<
  #!/bin/bash

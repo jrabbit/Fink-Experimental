@@ -3,15 +3,19 @@ Version: 2.05
 Revision: 1
 GCC: 3.3
 Depends: gmp-shlibs (>= 4.1.2-11), ntl (>= 5.3.1-12) | singular-sntl | singular-sntl-sta
-BuildDepends: sed | ssed , gmp (>= 4.1.2-11), autoconf
+BuildDepends: gmp (>= 4.1.2-11), autoconf
 Replaces: singular, singular-sta, singular-sntl
 Source: ftp://www.mathematik.uni-kl.de/pub/Math/Singular/src/Singular-factory-2-0-5.tar.gz
 Source-MD5: ccb98926a93b0fc90711730790c56ac5
 SourceDirectory: factory
+## Lines 2 and 3 in the PatchScript are to have exactly the same flags as in singular.info
+## _ for maintainability, and for comparison.
+## Line 1, and the other changes here except for dependency changes, is to make sure
+## all -I flags referring to the builddir come before any other (foolproofing).
 PatchScript: <<
- sed -ri.bak -e 's/\-I\$\(includedir\) //g' GNUmakefile.in
- sed -ri -e "s/\t\-w/\t -Wall -Wcast-align -W -Wno-unused/g" GNUmakefile.in
- sed -ri.bak -e "s/\-O2/-mdynamic-no-pic -O3 -fschedule-insns -fschedule-insns2 -fsched-interblock -fstrict-aliasing -fregmove -freorder-blocks -floop-transpose --param max-gcse-passes=3 -malign-natural -ffast-math -faltivec -mcpu=`machine|sed 's,ppc,,'` -mtune=`machine|sed 's,ppc,,'`/g" configure.in
+ perl -pi.bak -e 's/\-I\$\(includedir\) //g' GNUmakefile.in
+ perl -pi -e "s/\t\-w/\t -Wall -Wcast-align -W -Wno-unused/g" GNUmakefile.in
+ perl -pi.bak -e "s/\-O2/-mdynamic-no-pic -O3 -fschedule-insns -fschedule-insns2 -fsched-interblock -fstrict-aliasing -fregmove -freorder-blocks -floop-transpose --param max-gcse-passes=3 -malign-natural -ffast-math -faltivec -mcpu=`machine|sed 's,ppc,,'` -mtune=`machine|sed 's,ppc,,'`/g" configure.in
  autoconf
 <<
 NoSetLDFLAGS: true
