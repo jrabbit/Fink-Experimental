@@ -1,6 +1,5 @@
 #!/bin/sh
 
-
 if [[ "$1" = "-v" ]]; then
 	VERBOSE=true
 	shift
