@@ -1,0 +1,70 @@
+diff -ruN xc/config/cf/darwin.cf xc-patched/config/cf/darwin.cf
+--- xc/config/cf/darwin.cf	Tue Jan 15 16:22:31 2002
++++ xc-patched/config/cf/darwin.cf	Mon Jul 29 18:26:47 2002
+@@ -62,10 +62,10 @@
+ #define MathLibrary             /**/
+ 
+ /* we don't have a termcap library */
+-#define TermcapLibrary          /**/
++#define TermcapLibrary          -lncurses
+ 
+ /* we don't have a dbm library */
+-#define DBMLibrary              /**/
++#define DBMLibrary              -lgdbm
+ 
+ #define MkdirHierCmd            mkdir -p
+ 
+@@ -83,9 +83,9 @@
+ # define DefaultCCOptions       -Wall -Wpointer-arith -Wstrict-prototypes \
+                                 -Wmissing-prototypes -Wmissing-declarations \
+                                 -Wredundant-decls -Wnested-externs \
+-                                -no-cpp-precomp
++                                -no-cpp-precomp -I@prefix@/include -L@prefix@/lib
+ #else
+-# define DefaultCCOptions       -Wall -Wpointer-arith -no-cpp-precomp
++# define DefaultCCOptions       -Wall -Wpointer-arith -no-cpp-precomp -I@prefix@/include -L@prefix@/lib
+ #endif
+ #endif
+ 
+@@ -96,7 +96,7 @@
+ 
+ #ifdef PpcDarwinArchitecture
+ # define DarwinMachineDefines   -D__powerpc__
+-# define OptimizedCDebugFlags   -O2
++# define OptimizedCDebugFlags   -Os
+ # define ByteOrder              X_BIG_ENDIAN
+ #endif /* PpcDarwinArchitecture */
+ 
+diff -ruN xc/include/Xos_r.h xc-patched/include/Xos_r.h
+--- xc/include/Xos_r.h	Fri Dec 14 14:53:26 2001
++++ xc-patched/include/Xos_r.h	Mon Jul 29 18:25:10 2002
+@@ -254,7 +254,7 @@
+  * fields.
+  */
+    
+-#if defined(__NetBSD__) || defined(__FreeBSD__) || defined(__OpenBSD__)
++#if defined(__NetBSD__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__APPLE__)
+ static __inline__ void _Xpw_copyPasswd(_Xgetpwparams p)
+ {
+    memcpy(&(p).pws, (p).pwp, sizeof(struct passwd));
+diff -ruN xc/programs/Xserver/hw/darwin/bundle/XDarwin.pbproj/project.pbxproj xc-patched/programs/Xserver/hw/darwin/bundle/XDarwin.pbproj/project.pbxproj
+--- xc/programs/Xserver/hw/darwin/bundle/XDarwin.pbproj/project.pbxproj	Mon Jan 14 02:12:22 2002
++++ xc-patched/programs/Xserver/hw/darwin/bundle/XDarwin.pbproj/project.pbxproj	Mon Jul 29 18:25:10 2002
+@@ -324,7 +324,7 @@
+ 				0A79E1A4004499A1CE6F79C2,
+ 			);
+ 			buildSettings = {
+-				INSTALL_PATH = "";
++				INSTALL_PATH = /;
+ 				OPTIMIZATION_CFLAGS = "";
+ 				OTHER_CFLAGS = "";
+ 				OTHER_LDFLAGS = "";
+@@ -338,7 +338,7 @@
+ 			);
+ 			isa = PBXApplicationTarget;
+ 			name = XDarwin;
+-			productInstallPath = "";
++			productInstallPath = /;
+ 			productName = XDarwin;
+ 			productReference = 0A79E19E004499A1CE6F79C2;
+ 			productSettingsXML = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>

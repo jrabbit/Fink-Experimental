@@ -1,0 +1,82 @@
+diff -Nu xc/config/cf/darwin.cf xc-patched/config/cf/darwin.cf
+--- xc/config/cf/darwin.cf	Tue Jan 15 16:22:31 2002
++++ xc-patched/config/cf/darwin.cf	Mon Jul 29 01:49:39 2002
+@@ -27,12 +27,12 @@
+ #define HasUsableFileMmap       YES
+ #define HasZlib                 YES
+ #ifndef HasShm
+-# define HasShm                 YES
++#define HasShm                 YES
+ #endif
+ #define HasNdbm                 YES
+ 
+ #ifndef HasGroff
+-# define HasGroff               YES
++#define HasGroff               YES
+ #endif
+ 
+ /* Libtool on Darwin always uses minor numbers */
+@@ -62,10 +62,10 @@
+ #define MathLibrary             /**/
+ 
+ /* we don't have a termcap library */
+-#define TermcapLibrary          /**/
++#define TermcapLibrary -lncurses
+ 
+ /* we don't have a dbm library */
+-#define DBMLibrary              /**/
++#define DBMLibrary              -lgdbm
+ 
+ #define MkdirHierCmd            mkdir -p
+ 
+@@ -83,9 +83,9 @@
+ # define DefaultCCOptions       -Wall -Wpointer-arith -Wstrict-prototypes \
+                                 -Wmissing-prototypes -Wmissing-declarations \
+                                 -Wredundant-decls -Wnested-externs \
+-                                -no-cpp-precomp
++                                -no-cpp-precomp -I@prefix@/include
+ #else
+-# define DefaultCCOptions       -Wall -Wpointer-arith -no-cpp-precomp
++# define DefaultCCOptions       -Wall -Wpointer-arith -no-cpp-precomp -I@prefix@/include
+ #endif
+ #endif
+ 
+@@ -96,7 +96,7 @@
+ 
+ #ifdef PpcDarwinArchitecture
+ # define DarwinMachineDefines   -D__powerpc__
+-# define OptimizedCDebugFlags   -O2
++# define OptimizedCDebugFlags   -Os
+ # define ByteOrder              X_BIG_ENDIAN
+ #endif /* PpcDarwinArchitecture */
+ 
+@@ -125,7 +125,7 @@
+ #define BuildServer             YES
+ 
+ /* our custom X server */
+-#define XDarwinServer           YES
++#define XDarwinServer           NO
+ 
+ /* Thanks to the IOKit, the X server does not have to be SetUID. */
+ #ifndef InstallXserverSetUID
+@@ -142,7 +142,7 @@
+ /* no Display Power Management extension */
+ #define BuildDPMSExt            NO
+ 
+-#define BuildLibPathVar         DYLD_LIBRARY_PATH
++#define BuildLibPathVar         DYLD_LIBRARY_PATH -L@prefix@/lib
+ 
+ /* include rules to build shared libraries */
+ #include <darwinLib.rules>
+diff -Nu xc/include/Xos_r.h xc-patched/include/Xos_r.h
+--- xc/include/Xos_r.h	Fri Dec 14 14:53:26 2001
++++ xc-patched/include/Xos_r.h	Mon Jul 29 01:46:57 2002
+@@ -254,7 +254,7 @@
+  * fields.
+  */
+    
+-#if defined(__NetBSD__) || defined(__FreeBSD__) || defined(__OpenBSD__)
++#if defined(__NetBSD__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__APPLE__)
+ static __inline__ void _Xpw_copyPasswd(_Xgetpwparams p)
+ {
+    memcpy(&(p).pws, (p).pwp, sizeof(struct passwd));
