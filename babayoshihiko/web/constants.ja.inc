@@ -51,5 +51,5 @@ define (HEADER_HOSTED_BY, '{img} によってホストされています');
 define (FOOTER_AVAILABLE_LANGUAGES, '他の言語');
 define (FOOTER_GENERATED_DYNAMICALLY, '自動作成');
 define (FOOTER_DATABASE_LAST_UPDATED, 'データベースの最終更新日: %X %x');
-define (FOOTER_LAST_CHANGED, '%x <br>{author} によって%Y年%b月%d日に変更されました');
+define (FOOTER_LAST_CHANGED, '{author} によって%Y年%b月%d日に変更されました');
 ?>

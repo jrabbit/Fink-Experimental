@@ -33,7 +33,6 @@
 		<?
 		if ($dyndate == 1) {
 		 	print FOOTER_GENERATED_DYNAMICALLY;
-		 	$date = 0;
 		} elseif ($dyndate) {
 			print gmstrftime(FOOTER_DATABASE_LAST_UPDATED, $dyndate);
 		} else {
