@@ -1305,7 +1305,7 @@ diff -N kicker/proxy/stub_main.cpp
          DEVICESDIR=
          ;;
 --- kioslave/devices/kdedmodule/Makefile.am	29 Oct 2002 03:05:23 -0000	1.1.1.2
-+++ kioslave/devices/kdedmodule/Makefile.am	21 Mar 2003 21:49:13 -0000
++++ kioslave/devices/kdedmodule/Makefile.am	24 Mar 2003 16:20:46 -0000
 @@ -3,7 +3,7 @@
  INCLUDES = $(all_includes)
  kded_mountwatcher_la_SOURCES = mountwatcher.cpp mountwatcher.skel disklist.cpp disks.cpp
@@ -1872,21 +1872,38 @@ diff -N konqueror/keditbookmarks/stub_main.cpp
  # setting up x-application/konsole as a special mimetype
  mimedir = $(kde_mimedir)/application
 --- konsole/konsole/konsole_grantpty.c	1 Oct 2002 02:36:59 -0000	1.1.1.3
-+++ konsole/konsole/konsole_grantpty.c	22 Oct 2002 03:05:32 -0000	1.3
-@@ -45,6 +45,13 @@
++++ konsole/konsole/konsole_grantpty.c	24 Mar 2003 16:20:46 -0000
+@@ -33,6 +33,10 @@
+ #include <sys/stat.h>
+ #include <unistd.h>
+ 
++#if defined(__APPLE__)
++#  define UNSUPPORTED 1
++#endif
++
+ #include <sys/param.h>
+ #if defined(__FreeBSD__)
+ #  define BSD_PTY_HACK
+@@ -45,6 +49,7 @@
  
  int main (int argc, char *argv[])
  {
 +
-+  if (strcmp(getenv("DEBUG_ME"), "sleepinmain") == 0)
-+  {
-+    fprintf(stderr, "My PID is %d\n", (int) getpid());
-+    kill(getpid(), SIGSTOP);
-+  }
-+
    char*         pty;
    struct stat   st;
    struct group* p;
+@@ -89,7 +94,10 @@
+ 
+   /* get slave pty name from master pty file handle in PTY_FILENO *********/
+ 
+-#if defined(BSD_PTY_HACK)
++#if defined(UNSUPPORTED)
++  return 0;
++
++#elif defined(BSD_PTY_HACK)
+   /*
+     Hack to make konsole_grantpty work on FreeBSD (and possibly other systems).
+     ttyname(3) does not work on FreeBSD with a file descriptor opened on a
 --- konsole/konsole/kwrited.cpp	29 Oct 2002 03:06:19 -0000	1.1.1.4
 +++ konsole/konsole/kwrited.cpp	26 Nov 2002 21:00:53 -0000	1.2
 @@ -88,7 +88,9 @@
@@ -2378,6 +2395,17 @@ diff -N kxkb/stub_main.cpp
 +        return kdemain(argc, argv);
 +}
 +
+--- libkonq/Makefile.am	1 Oct 2002 02:37:43 -0000	1.1.1.4
++++ libkonq/Makefile.am	24 Mar 2003 16:20:50 -0000
+@@ -21,7 +21,7 @@
+ 
+ lib_LTLIBRARIES = libkonq.la
+ libkonq_la_LDFLAGS = $(all_libraries) -version-info 5:0:1 -no-undefined
+-libkonq_la_LIBADD = $(LIB_KPARTS)
++libkonq_la_LIBADD = $(LIB_KPARTS) $(LIBZ)
+ 
+ libkonq_la_SOURCES = konq_popupmenu.cc knewmenu.cc \
+    konq_xmlguiclient.cc\
 --- libkonq/favicons/Makefile.am	25 Jun 2002 02:03:55 -0000	1.1.1.1
 +++ libkonq/favicons/Makefile.am	9 Feb 2003 17:00:15 -0000	1.5
 @@ -2,8 +2,8 @@
