@@ -1,94 +1,79 @@
-diff -uNbr xc/config/cf/cygwin.cf xc-new/config/cf/cygwin.cf
---- xc/config/cf/cygwin.cf	Mon Dec 10 11:22:37 2001
-+++ xc-new/config/cf/cygwin.cf	Tue Aug  6 19:43:31 2002
-@@ -138,7 +138,7 @@
- #  define OptimizedCDebugFlags	DefaultGcc2i386Opt
- # endif
- 
--#define StandardDefines         -D__i386__ -DWIN32_LEAN_AND_MEAN -DX_LOCALE -D_X86_ -D__STDC__ -DNO_TCP_H -D__CYGWIN__ -D_XOPEN_SOURCE -D_POSIX_C_SOURCE=199309L -D_BSD_SOURCE -D_SVID_SOURCE -D_GNU_SOURCE
-+#define StandardDefines         -D__i386__ -DWIN32_LEAN_AND_MEAN -DX_LOCALE -D_X86_ -D__STDC__ -DNO_TCP_H -D__CYGWIN__ -D_XOPEN_SOURCE -D_POSIX_C_SOURCE=199309L -D_BSD_SOURCE -D_SVID_SOURCE -D_GNU_SOURCE -DNO_ALLOCA
- 
- #define XawI18nDefines          -DUSE_XWCHAR_STRING -DUSE_XMBTOWC
- #define HasWChar32              YES
-@@ -308,10 +308,19 @@
- #endif
- 
- /* Server build rules */
-+#ifndef XnestServer
- #define XnestServer			YES
-+#endif
-+#ifndef BuildXprint
- #define BuildXprint			YES
-+#endif
-+#ifndef XprtServer
- #define XprtServer			YES
-+#endif
-+#ifndef XVirtualFramebufferServer
- #define XVirtualFramebufferServer	YES
-+#endif
-+
- #define XWinServer			YES
- 
- /*
 diff -uNbr xc/config/cf/darwin.cf xc-new/config/cf/darwin.cf
 --- xc/config/cf/darwin.cf	Tue Jan 15 16:22:31 2002
-+++ xc-new/config/cf/darwin.cf	Wed Aug  7 01:02:42 2002
-@@ -35,6 +35,15 @@
- # define HasGroff               YES
- #endif
++++ xc-new/config/cf/darwin.cf	Fri Aug  9 19:05:14 2002
+@@ -1,4 +1,4 @@
+-XCOMM platform:  $XFree86: xc/config/cf/darwin.cf,v 1.21 2002/01/15 21:22:31 keithp Exp $
++XCOMM platform:  $XFree86: xc/config/cf/darwin.cf,v 1.21.2.1 2002/05/03 00:36:17 torrey Exp $
  
-+#define	StripInstalledPrograms	YES
-+#define	HasCplusplus		YES
-+#define	HasVarRun		YES
-+#define	HasVarDb		YES
-+#ifndef	HasLibCrypt
-+# define HasLibCrypt		NO
-+#endif
-+#define	HasZlib			YES
+ /* Darwin / Mac OS X configuration by John Carmack <johnc@idsoftware.com> */
+ 
+@@ -21,15 +21,40 @@
+ /*
+  * Define the operating system's capabilities
+  */
+-#define HasSnprintf             YES
+-#define HasPutenv               YES
++#define BuildGLXLibrary		YES
++#define BuildGLULibrary		YES
+ #define HasBSD44Sockets         YES
++#define HasCplusplus		YES
++#define HasPosixThreads		YES
++#define HasNdbm                 YES
++#define HasPutenv               YES
++#define HasSnprintf             YES
++#define HasThreadSafeAPI	YES
+ #define HasUsableFileMmap       YES
+ #define HasZlib                 YES
+-#ifndef HasShm
++#define ThreadedX		YES
 +
- /* Libtool on Darwin always uses minor numbers */
- #define LibtoolMinorVersions	YES
++/* Pre Jaguar-Only stuff */
++#if OSMajorVersion < 6
++# define HasShm                  NO
++#endif
++
++/* Jaguar-only stuff */
++#if OSMajorVersion >= 6
++# ifndef HasNCurses
++#  define HasNCurses		YES
++# endif
++# ifndef HasLibCrypt
++#  define HasLibCrypt		YES
++# endif
+ # define HasShm                 YES
++# define HasTermcap		YES
++# define TermcapLibrary		-L@FINKPREFIX@/lib -lncurses
++#else
++# define HasTermcap		NO
++# define TermcapLibrary		/**/
++# define DBMLibrary		/**/
+ #endif
+-#define HasNdbm                 YES
  
-@@ -59,13 +68,13 @@
+ #ifndef HasGroff
+ # define HasGroff               YES
+@@ -58,14 +83,8 @@
+ # define DarwinQuartzSupport    YES
  #endif
  
- /* we don't need -lm */
+-/* we don't need -lm */
 -#define MathLibrary             /**/
-+#define MathLibrary             -lm
- 
+-
 -/* we don't have a termcap library */
 -#define TermcapLibrary          /**/
-+#define	HasTermcap		YES
-+#define	TermcapLibrary		-L@prefix@/lib -lncurses
++#define MathLibrary             -lm
  
 -/* we don't have a dbm library */
 -#define DBMLibrary              /**/
-+#define	HasDBM			YES
-+#define	DBMLibrary		-L@prefix@/lib -lgdbm
  
  #define MkdirHierCmd            mkdir -p
  
-@@ -83,20 +92,24 @@
- # define DefaultCCOptions       -Wall -Wpointer-arith -Wstrict-prototypes \
-                                 -Wmissing-prototypes -Wmissing-declarations \
-                                 -Wredundant-decls -Wnested-externs \
--                                -no-cpp-precomp
-+                                -no-cpp-precomp -I@prefix@/include -L@prefix@/lib
- #else
--# define DefaultCCOptions       -Wall -Wpointer-arith -no-cpp-precomp
-+# define DefaultCCOptions       -Wall -Wpointer-arith -no-cpp-precomp -I@prefix@/include -L@prefix@/lib
- #endif
- #endif
- 
-+#ifndef PositionIndependentCFlags
-+# define PositionIndependentCFlags
-+#endif
-+
- /* flags to pass to cc when building libraries */
+@@ -93,10 +112,12 @@
  #ifndef LibraryCCOptions
--# define LibraryCCOptions       DefaultCCOptions -fno-common
-+# define LibraryCCOptions       DefaultCCOptions -fno-common PositionIndependentCFlags
+ # define LibraryCCOptions       DefaultCCOptions -fno-common
  #endif
++#define SystemMTDefines		-D_REENTRANT
++#define MTSafeAPIDefines	-DXUSE_MTSAFE_API -DXNO_MTSAFE_PWDAPI
  
  #ifdef PpcDarwinArchitecture
  # define DarwinMachineDefines   -D__powerpc__
@@ -97,9 +82,24 @@ diff -uNbr xc/config/cf/darwin.cf xc-new/config/cf/darwin.cf
  # define ByteOrder              X_BIG_ENDIAN
  #endif /* PpcDarwinArchitecture */
  
+@@ -116,7 +137,7 @@
+  * Darwin's setlocale() doesn't work properly, so use X11's instead.
+  */
+ #define StandardDefines         DarwinMachineDefines -D__DARWIN__ \
+-                                -DNO_ALLOCA -DX_LOCALE
++                                -DNO_ALLOCA -DX_LOCALE -I@FINKPREFIX@/include
+ 
+ /*
+  * Set this to NO to just build the client libs, which should work without
 diff -uNbr xc/config/cf/darwinLib.rules xc-new/config/cf/darwinLib.rules
 --- xc/config/cf/darwinLib.rules	Tue Jan 15 19:39:59 2002
-+++ xc-new/config/cf/darwinLib.rules	Tue Aug  6 19:43:31 2002
++++ xc-new/config/cf/darwinLib.rules	Fri Aug  9 19:04:38 2002
+@@ -1,4 +1,4 @@
+-XCOMM $XFree86: xc/config/cf/darwinLib.rules,v 1.4 2002/01/16 00:39:59 keithp Exp $
++XCOMM $XFree86: xc/config/cf/darwinLib.rules,v 1.4.2.1 2002/07/16 22:03:05 torrey Exp $
+ /*
+  * Darwin/Mac OS X shared library rules
+  */
 @@ -57,14 +57,14 @@
   * the library gone for long periods.
   */
@@ -198,8 +198,14 @@ diff -uNbr xc/config/cf/darwinLib.rules xc-new/config/cf/darwinLib.rules
  #ifndef SharedDepModuleTarget
  #define SharedDepModuleTarget(name,deps,solist)				@@\
 diff -uNbr xc/config/cf/darwinLib.tmpl xc-new/config/cf/darwinLib.tmpl
---- xc/config/cf/darwinLib.tmpl	Wed Sep 12 20:28:57 2001
-+++ xc-new/config/cf/darwinLib.tmpl	Tue Aug  6 19:43:31 2002
+--- xc/config/cf/darwinLib.tmpl	Wed Sep 12 21:28:57 2001
++++ xc-new/config/cf/darwinLib.tmpl	Fri Aug  9 19:04:38 2002
+@@ -1,4 +1,4 @@
+-XCOMM $XFree86: xc/config/cf/darwinLib.tmpl,v 1.2 2001/09/13 01:28:57 torrey Exp $
++XCOMM $XFree86: xc/config/cf/darwinLib.tmpl,v 1.2.4.1 2002/06/01 00:11:17 torrey Exp $
+ /*
+  * Darwin/Mac OS X shared library template
+  */
 @@ -33,7 +33,7 @@
  #define SharedXrandrReqs    $(LDPRELIB) $(XLIB)
  #define SharedXrenderReqs   $(LDPRELIB) $(EXTENSIONLIB) $(XLIB)
@@ -209,24 +215,9 @@ diff -uNbr xc/config/cf/darwinLib.tmpl xc-new/config/cf/darwinLib.tmpl
  #define SharedXtstReqs      $(LDPRELIB) $(XLIB)
  #define SharedXvReqs        $(LDPRELIB) $(XLIB)
  #define SharedDPSReqs       $(LDPRELIB) $(SMLIB) $(ICELIB) $(XTOOLLIB) $(XLIB)
-diff -uNbr xc/doc/specs/Xaw/TextSource xc-new/doc/specs/Xaw/TextSource
---- xc/doc/specs/Xaw/TextSource	Tue Jan 16 17:02:55 2001
-+++ xc-new/doc/specs/Xaw/TextSource	Tue Aug  6 19:43:31 2002
-@@ -122,8 +122,9 @@
- Specifies the maximum number of characters the TextSrc should
- return to the application in \fItext_return\fP.
- .LP
--This function returns the actual number of characters read from the
--text buffer.  The function is not required to return \fIlength\fP
-+This function returns the text position immediately after the
-+characters read from the
-+text buffer.  The function is not required to read \fIlength\fP
- characters if that many characters are in the file, it may break at
- any point that is convenient to the internal structure of the
- source.  It may take several calls to \fBRead\fP before the desired
 diff -uNbr xc/extras/ogl-sample/main/gfx/lib/glu/libnurbs/nurbtess/quicksort.cc xc-new/extras/ogl-sample/main/gfx/lib/glu/libnurbs/nurbtess/quicksort.cc
 --- xc/extras/ogl-sample/main/gfx/lib/glu/libnurbs/nurbtess/quicksort.cc	Mon Jan 15 16:48:59 2001
-+++ xc-new/extras/ogl-sample/main/gfx/lib/glu/libnurbs/nurbtess/quicksort.cc	Tue Aug  6 19:43:31 2002
++++ xc-new/extras/ogl-sample/main/gfx/lib/glu/libnurbs/nurbtess/quicksort.cc	Fri Aug  9 19:04:38 2002
 @@ -31,12 +31,15 @@
  ** published by SGI, but has not been independently verified as being
  ** compliant with the OpenGL(R) version 1.2.1 Specification.
@@ -264,7 +255,7 @@ diff -uNbr xc/extras/ogl-sample/main/gfx/lib/glu/libnurbs/nurbtess/quicksort.cc 
    temp = v[i];
 diff -uNbr xc/include/Xos_r.h xc-new/include/Xos_r.h
 --- xc/include/Xos_r.h	Fri Dec 14 14:53:26 2001
-+++ xc-new/include/Xos_r.h	Tue Aug  6 19:43:31 2002
++++ xc-new/include/Xos_r.h	Fri Aug  9 19:04:38 2002
 @@ -254,7 +254,7 @@
   * fields.
   */
@@ -274,21 +265,15 @@ diff -uNbr xc/include/Xos_r.h xc-new/include/Xos_r.h
  static __inline__ void _Xpw_copyPasswd(_Xgetpwparams p)
  {
     memcpy(&(p).pws, (p).pwp, sizeof(struct passwd));
-diff -uNbr xc/lib/GL/mesa/src/drv/r128/r128_xmesa.c xc-new/lib/GL/mesa/src/drv/r128/r128_xmesa.c
---- xc/lib/GL/mesa/src/drv/r128/r128_xmesa.c	Mon Nov 26 16:46:35 2001
-+++ xc-new/lib/GL/mesa/src/drv/r128/r128_xmesa.c	Tue Aug  6 19:43:31 2002
-@@ -83,7 +83,7 @@
-    if ( sPriv->drmMajor != 2 ||
- 	sPriv->drmMinor < 2 ) {
-       char msg[1000];
--      sprintf( msg, "R128 DRI driver expected DRM driver version 3.0 or greater but got version %d.%d.%d", sPriv->drmMajor, sPriv->drmMinor, sPriv->drmPatch );
-+      sprintf( msg, "R128 DRI driver expected DRM driver version 2.2 or greater but got version %d.%d.%d", sPriv->drmMajor, sPriv->drmMinor, sPriv->drmPatch );
-       __driMesaMessage( msg );
-       return GL_FALSE;
-    }
 diff -uNbr xc/lib/GLU/libnurbs/internals/Imakefile xc-new/lib/GLU/libnurbs/internals/Imakefile
---- xc/lib/GLU/libnurbs/internals/Imakefile	Mon Jun 11 02:23:11 2001
-+++ xc-new/lib/GLU/libnurbs/internals/Imakefile	Tue Aug  6 19:43:31 2002
+--- xc/lib/GLU/libnurbs/internals/Imakefile	Mon Jun 11 03:23:11 2001
++++ xc-new/lib/GLU/libnurbs/internals/Imakefile	Fri Aug  9 19:04:38 2002
+@@ -1,4 +1,4 @@
+-XCOMM $XFree86: xc/lib/GLU/libnurbs/internals/Imakefile,v 1.6 2001/06/11 07:23:11 torrey Exp $
++XCOMM $XFree86: xc/lib/GLU/libnurbs/internals/Imakefile,v 1.6.4.1 2002/07/16 22:03:06 torrey Exp $
+ 
+ XCOMM License Applicability. Except to the extent portions of this file are
+ XCOMM made subject to an alternative license as permitted in the SGI Free
 @@ -143,8 +143,12 @@
  	-I$(TOP)/include \
  	-I$(TOP)/include/GL
@@ -305,7 +290,16 @@ diff -uNbr xc/lib/GLU/libnurbs/internals/Imakefile xc-new/lib/GLU/libnurbs/inter
  #endif
 diff -uNbr xc/lib/X11/XlcDL.c xc-new/lib/X11/XlcDL.c
 --- xc/lib/X11/XlcDL.c	Mon Nov 19 10:33:38 2001
-+++ xc-new/lib/X11/XlcDL.c	Tue Aug  6 19:43:31 2002
++++ xc-new/lib/X11/XlcDL.c	Fri Aug  9 19:04:38 2002
+@@ -41,7 +41,7 @@
+ Sun Microsystems, Inc. or its licensors is granted.
+ 
+ */
+-/* $XFree86: xc/lib/X11/XlcDL.c,v 1.3 2001/11/19 15:33:38 tsi Exp $ */
++/* $XFree86: xc/lib/X11/XlcDL.c,v 1.3.4.1 2002/01/23 19:17:00 dawes Exp $ */
+ 
+ #include <stdio.h>
+ #if defined(hpux)
 @@ -125,28 +125,37 @@
  }
  
@@ -422,7 +416,16 @@ diff -uNbr xc/lib/X11/XlcDL.c xc-new/lib/X11/XlcDL.c
  #endif
 diff -uNbr xc/lib/Xaw/AsciiSrc.c xc-new/lib/Xaw/AsciiSrc.c
 --- xc/lib/Xaw/AsciiSrc.c	Fri Dec 14 14:54:38 2001
-+++ xc-new/lib/Xaw/AsciiSrc.c	Tue Aug  6 19:43:31 2002
++++ xc-new/lib/Xaw/AsciiSrc.c	Fri Aug  9 19:04:38 2002
+@@ -26,7 +26,7 @@
+ 
+ */
+ 
+-/* $XFree86: xc/lib/Xaw/AsciiSrc.c,v 1.30 2001/12/14 19:54:38 dawes Exp $ */
++/* $XFree86: xc/lib/Xaw/AsciiSrc.c,v 1.30.2.1 2002/07/04 17:07:09 paulo Exp $ */
+ 
+ /*
+  * AsciiSrc.c - AsciiSrc object. (For use with the text widget).
 @@ -350,7 +350,7 @@
   *	This function reads the source.
   *
@@ -464,7 +467,16 @@ diff -uNbr xc/lib/Xaw/AsciiSrc.c xc-new/lib/Xaw/AsciiSrc.c
  #if (defined(ASCII_STRING) || defined(ASCII_DISK))
 diff -uNbr xc/lib/Xaw/MultiSrc.c xc-new/lib/Xaw/MultiSrc.c
 --- xc/lib/Xaw/MultiSrc.c	Fri Dec 14 14:54:41 2001
-+++ xc-new/lib/Xaw/MultiSrc.c	Tue Aug  6 19:43:31 2002
++++ xc-new/lib/Xaw/MultiSrc.c	Fri Aug  9 19:04:38 2002
+@@ -27,7 +27,7 @@
+  *
+  * Much code taken from X11R3 String and Disk Sources.
+  */
+-/* $XFree86: xc/lib/Xaw/MultiSrc.c,v 1.24 2001/12/14 19:54:41 dawes Exp $ */
++/* $XFree86: xc/lib/Xaw/MultiSrc.c,v 1.24.2.1 2002/07/04 17:07:09 paulo Exp $ */
+ 
+ /*
+ 
 @@ -320,7 +320,7 @@
   *	This function reads the source.
   *
@@ -504,7 +516,16 @@ diff -uNbr xc/lib/Xaw/MultiSrc.c xc-new/lib/Xaw/MultiSrc.c
  }
 diff -uNbr xc/lib/Xaw/Pixmap.c xc-new/lib/Xaw/Pixmap.c
 --- xc/lib/Xaw/Pixmap.c	Tue Jan 30 10:03:34 2001
-+++ xc-new/lib/Xaw/Pixmap.c	Tue Aug  6 19:43:31 2002
++++ xc-new/lib/Xaw/Pixmap.c	Fri Aug  9 19:04:38 2002
+@@ -25,7 +25,7 @@
+  * XFree86 Project.
+  */
+ 
+-/* $XFree86: xc/lib/Xaw/Pixmap.c,v 3.16 2001/01/30 15:03:34 paulo Exp $ */
++/* $XFree86: xc/lib/Xaw/Pixmap.c,v 3.16.6.1 2002/07/04 17:07:10 paulo Exp $ */
+ 
+ #include <string.h>
+ #include <stdio.h>
 @@ -70,6 +70,7 @@
  static int bcmp_long(register _Xconst void*, register _Xconst void *);
  static int qcmp_string(register _Xconst void*, register _Xconst void *);
@@ -586,7 +607,16 @@ diff -uNbr xc/lib/Xaw/Pixmap.c xc-new/lib/Xaw/Pixmap.c
  	return (False);
 diff -uNbr xc/lib/Xaw/TextSink.c xc-new/lib/Xaw/TextSink.c
 --- xc/lib/Xaw/TextSink.c	Fri Dec 14 14:54:45 2001
-+++ xc-new/lib/Xaw/TextSink.c	Tue Aug  6 19:43:31 2002
++++ xc-new/lib/Xaw/TextSink.c	Fri Aug  9 19:04:38 2002
+@@ -24,7 +24,7 @@
+ in this Software without prior written authorization from The Open Group.
+ 
+ */
+-/* $XFree86: xc/lib/Xaw/TextSink.c,v 1.20 2001/12/14 19:54:45 dawes Exp $ */
++/* $XFree86: xc/lib/Xaw/TextSink.c,v 1.20.2.1 2002/07/04 17:07:10 paulo Exp $ */
+ 
+ /*
+  * Author:  Chris Peterson, MIT X Consortium.
 @@ -1497,6 +1497,7 @@
      XawTextPropertyList *propl, *prev = NULL;
      XawTextProperty *def_prop = NULL;
@@ -641,7 +671,16 @@ diff -uNbr xc/lib/Xaw/TextSink.c xc-new/lib/Xaw/TextSink.c
  		    prev->next = NULL;
 diff -uNbr xc/lib/Xaw/TextSrc.c xc-new/lib/Xaw/TextSrc.c
 --- xc/lib/Xaw/TextSrc.c	Fri Dec 14 14:54:45 2001
-+++ xc-new/lib/Xaw/TextSrc.c	Tue Aug  6 19:43:31 2002
++++ xc-new/lib/Xaw/TextSrc.c	Fri Aug  9 19:04:38 2002
+@@ -25,7 +25,7 @@
+ 
+ */
+ 
+-/* $XFree86: xc/lib/Xaw/TextSrc.c,v 1.30 2001/12/14 19:54:45 dawes Exp $ */
++/* $XFree86: xc/lib/Xaw/TextSrc.c,v 1.30.2.1 2002/07/04 17:07:10 paulo Exp $ */
+ 
+ /*
+  * Author:  Chris Peterson, MIT X Consortium.
 @@ -405,6 +405,9 @@
   *
   * Description:
@@ -662,7 +701,7 @@ diff -uNbr xc/lib/Xaw/TextSrc.c xc-new/lib/Xaw/TextSrc.c
  
 diff -uNbr xc/lib/zlib/infblock.c xc-new/lib/zlib/infblock.c
 --- xc/lib/zlib/infblock.c	Wed Jan 17 14:43:53 2001
-+++ xc-new/lib/zlib/infblock.c	Tue Aug  6 19:43:31 2002
++++ xc-new/lib/zlib/infblock.c	Fri Aug  9 19:04:38 2002
 @@ -249,10 +249,11 @@
                               &s->sub.trees.tb, z);
        if (t != Z_OK)
@@ -698,7 +737,13 @@ diff -uNbr xc/lib/zlib/infblock.c xc-new/lib/zlib/infblock.c
          if ((c = inflate_codes_new(bl, bd, tl, td, z)) == Z_NULL)
 diff -uNbr xc/programs/Xserver/Xext/shm.c xc-new/programs/Xserver/Xext/shm.c
 --- xc/programs/Xserver/Xext/shm.c	Fri Dec 14 14:58:51 2001
-+++ xc-new/programs/Xserver/Xext/shm.c	Tue Aug  6 19:43:31 2002
++++ xc-new/programs/Xserver/Xext/shm.c	Fri Aug  9 19:04:38 2002
+@@ -1,4 +1,4 @@
+-/* $XFree86: xc/programs/Xserver/Xext/shm.c,v 3.33 2001/12/14 19:58:51 dawes Exp $ */
++/* $XFree86: xc/programs/Xserver/Xext/shm.c,v 3.33.2.2 2002/05/29 23:03:19 torrey Exp $ */
+ /************************************************************
+ 
+ Copyright 1989, 1998  The Open Group
 @@ -64,6 +64,12 @@
  #include "panoramiXsrv.h"
  #endif
@@ -818,72 +863,85 @@ diff -uNbr xc/programs/Xserver/Xext/shm.c xc-new/programs/Xserver/Xext/shm.c
  	shmdesc->writable = !stuff->readOnly;
 diff -uNbr xc/programs/Xserver/hw/darwin/bundle/Dutch.lproj/InfoPlist.strings.cpp xc-new/programs/Xserver/hw/darwin/bundle/Dutch.lproj/InfoPlist.strings.cpp
 --- xc/programs/Xserver/hw/darwin/bundle/Dutch.lproj/InfoPlist.strings.cpp	Thu Nov 15 02:36:23 2001
-+++ xc-new/programs/Xserver/hw/darwin/bundle/Dutch.lproj/InfoPlist.strings.cpp	Tue Aug  6 19:43:31 2002
-@@ -2,4 +2,4 @@
++++ xc-new/programs/Xserver/hw/darwin/bundle/Dutch.lproj/InfoPlist.strings.cpp	Fri Aug  9 19:04:38 2002
+@@ -1,5 +1,5 @@
+ /* Dutch localized versions of Info.plist keys. */
  /* Most of these are set in the target application settings. */
- /* $XFree86: xc/programs/Xserver/hw/darwin/bundle/Dutch.lproj/InfoPlist.strings.cpp,v 1.1 2001/11/15 07:36:23 torrey Exp $ */
+-/* $XFree86: xc/programs/Xserver/hw/darwin/bundle/Dutch.lproj/InfoPlist.strings.cpp,v 1.1 2001/11/15 07:36:23 torrey Exp $ */
++/* $XFree86: xc/programs/Xserver/hw/darwin/bundle/Dutch.lproj/InfoPlist.strings.cpp,v 1.1.4.1 2002/07/16 22:18:24 torrey Exp $ */
  
 -NSHumanReadableCopyright = __quote__XFree86 XF86_VERSION\nCopyright 2001 XFree86 Project, Inc.__quote__
 +NSHumanReadableCopyright = __quote__XFree86 XF86_VERSION\nCopyright 2001 XFree86 Project, Inc.__quote__;
 diff -uNbr xc/programs/Xserver/hw/darwin/bundle/English.lproj/InfoPlist.strings.cpp xc-new/programs/Xserver/hw/darwin/bundle/English.lproj/InfoPlist.strings.cpp
 --- xc/programs/Xserver/hw/darwin/bundle/English.lproj/InfoPlist.strings.cpp	Sun Nov  4 02:09:47 2001
-+++ xc-new/programs/Xserver/hw/darwin/bundle/English.lproj/InfoPlist.strings.cpp	Tue Aug  6 19:43:31 2002
-@@ -2,4 +2,4 @@
++++ xc-new/programs/Xserver/hw/darwin/bundle/English.lproj/InfoPlist.strings.cpp	Fri Aug  9 19:04:38 2002
+@@ -1,5 +1,5 @@
+ /* English localized versions of Info.plist keys. */
  /* Most of these are set in the target application settings. */
- /* $XFree86: xc/programs/Xserver/hw/darwin/bundle/English.lproj/InfoPlist.strings.cpp,v 1.2 2001/11/04 07:09:47 torrey Exp $ */
+-/* $XFree86: xc/programs/Xserver/hw/darwin/bundle/English.lproj/InfoPlist.strings.cpp,v 1.2 2001/11/04 07:09:47 torrey Exp $ */
++/* $XFree86: xc/programs/Xserver/hw/darwin/bundle/English.lproj/InfoPlist.strings.cpp,v 1.2.4.1 2002/07/16 22:18:24 torrey Exp $ */
  
 -NSHumanReadableCopyright = __quote__XFree86 XF86_VERSION\nCopyright 2001 XFree86 Project, Inc.__quote__
 +NSHumanReadableCopyright = __quote__XFree86 XF86_VERSION\nCopyright 2001 XFree86 Project, Inc.__quote__;
 diff -uNbr xc/programs/Xserver/hw/darwin/bundle/French.lproj/InfoPlist.strings.cpp xc-new/programs/Xserver/hw/darwin/bundle/French.lproj/InfoPlist.strings.cpp
 --- xc/programs/Xserver/hw/darwin/bundle/French.lproj/InfoPlist.strings.cpp	Sun Nov  4 02:09:48 2001
-+++ xc-new/programs/Xserver/hw/darwin/bundle/French.lproj/InfoPlist.strings.cpp	Tue Aug  6 19:43:31 2002
-@@ -2,4 +2,4 @@
++++ xc-new/programs/Xserver/hw/darwin/bundle/French.lproj/InfoPlist.strings.cpp	Fri Aug  9 19:04:38 2002
+@@ -1,5 +1,5 @@
+ /* French localized versions of Info.plist keys. */
  /* Most of these are set in the target application settings. */
- /* $XFree86: xc/programs/Xserver/hw/darwin/bundle/French.lproj/InfoPlist.strings.cpp,v 1.2 2001/11/04 07:09:48 torrey Exp $ */
+-/* $XFree86: xc/programs/Xserver/hw/darwin/bundle/French.lproj/InfoPlist.strings.cpp,v 1.2 2001/11/04 07:09:48 torrey Exp $ */
++/* $XFree86: xc/programs/Xserver/hw/darwin/bundle/French.lproj/InfoPlist.strings.cpp,v 1.2.4.1 2002/07/16 22:18:24 torrey Exp $ */
  
 -NSHumanReadableCopyright = __quote__XFree86 XF86_VERSION\nCopyright 2001 XFree86 Project, Inc.__quote__
 +NSHumanReadableCopyright = __quote__XFree86 XF86_VERSION\nCopyright 2001 XFree86 Project, Inc.__quote__;
 diff -uNbr xc/programs/Xserver/hw/darwin/bundle/German.lproj/InfoPlist.strings.cpp xc-new/programs/Xserver/hw/darwin/bundle/German.lproj/InfoPlist.strings.cpp
 --- xc/programs/Xserver/hw/darwin/bundle/German.lproj/InfoPlist.strings.cpp	Sun Nov  4 02:09:48 2001
-+++ xc-new/programs/Xserver/hw/darwin/bundle/German.lproj/InfoPlist.strings.cpp	Tue Aug  6 19:43:31 2002
-@@ -2,4 +2,4 @@
++++ xc-new/programs/Xserver/hw/darwin/bundle/German.lproj/InfoPlist.strings.cpp	Fri Aug  9 19:04:38 2002
+@@ -1,5 +1,5 @@
+ /* German localized versions of Info.plist keys. */
  /* Most of these are set in the target application settings. */
- /* $XFree86: xc/programs/Xserver/hw/darwin/bundle/German.lproj/InfoPlist.strings.cpp,v 1.2 2001/11/04 07:09:48 torrey Exp $ */
+-/* $XFree86: xc/programs/Xserver/hw/darwin/bundle/German.lproj/InfoPlist.strings.cpp,v 1.2 2001/11/04 07:09:48 torrey Exp $ */
++/* $XFree86: xc/programs/Xserver/hw/darwin/bundle/German.lproj/InfoPlist.strings.cpp,v 1.2.4.1 2002/07/16 22:18:24 torrey Exp $ */
  
 -NSHumanReadableCopyright = __quote__XFree86 XF86_VERSION\nCopyright 2001 XFree86 Project, Inc.__quote__
 +NSHumanReadableCopyright = __quote__XFree86 XF86_VERSION\nCopyright 2001 XFree86 Project, Inc.__quote__;
 diff -uNbr xc/programs/Xserver/hw/darwin/bundle/Japanese.lproj/InfoPlist.strings.cpp xc-new/programs/Xserver/hw/darwin/bundle/Japanese.lproj/InfoPlist.strings.cpp
 --- xc/programs/Xserver/hw/darwin/bundle/Japanese.lproj/InfoPlist.strings.cpp	Sun Nov  4 02:09:48 2001
-+++ xc-new/programs/Xserver/hw/darwin/bundle/Japanese.lproj/InfoPlist.strings.cpp	Tue Aug  6 19:43:31 2002
-@@ -2,4 +2,4 @@
++++ xc-new/programs/Xserver/hw/darwin/bundle/Japanese.lproj/InfoPlist.strings.cpp	Fri Aug  9 19:04:38 2002
+@@ -1,5 +1,5 @@
+ /* Japanese localized versions of Info.plist keys. */
  /* Most of these are set in the target application settings. */
- /* $XFree86: xc/programs/Xserver/hw/darwin/bundle/Japanese.lproj/InfoPlist.strings.cpp,v 1.2 2001/11/04 07:09:48 torrey Exp $ */
+-/* $XFree86: xc/programs/Xserver/hw/darwin/bundle/Japanese.lproj/InfoPlist.strings.cpp,v 1.2 2001/11/04 07:09:48 torrey Exp $ */
++/* $XFree86: xc/programs/Xserver/hw/darwin/bundle/Japanese.lproj/InfoPlist.strings.cpp,v 1.2.4.1 2002/07/16 22:18:25 torrey Exp $ */
  
 -NSHumanReadableCopyright = __quote__XFree86 XF86_VERSION\nCopyright 2001 XFree86 Project, Inc.__quote__
 +NSHumanReadableCopyright = __quote__XFree86 XF86_VERSION\nCopyright 2001 XFree86 Project, Inc.__quote__;
 diff -uNbr xc/programs/Xserver/hw/darwin/bundle/Spanish.lproj/InfoPlist.strings.cpp xc-new/programs/Xserver/hw/darwin/bundle/Spanish.lproj/InfoPlist.strings.cpp
 --- xc/programs/Xserver/hw/darwin/bundle/Spanish.lproj/InfoPlist.strings.cpp	Tue Nov 27 16:11:50 2001
-+++ xc-new/programs/Xserver/hw/darwin/bundle/Spanish.lproj/InfoPlist.strings.cpp	Tue Aug  6 19:43:31 2002
++++ xc-new/programs/Xserver/hw/darwin/bundle/Spanish.lproj/InfoPlist.strings.cpp	Fri Aug  9 19:04:38 2002
 @@ -1,5 +1,5 @@
 -/* English localized versions of Info.plist keys. */
 +/* Spanish localized versions of Info.plist keys. */
  /* Most of these are set in the target application settings. */
- /* $XFree86: xc/programs/Xserver/hw/darwin/bundle/Spanish.lproj/InfoPlist.strings.cpp,v 1.1 2001/11/27 21:11:50 torrey Exp $ */
+-/* $XFree86: xc/programs/Xserver/hw/darwin/bundle/Spanish.lproj/InfoPlist.strings.cpp,v 1.1 2001/11/27 21:11:50 torrey Exp $ */
++/* $XFree86: xc/programs/Xserver/hw/darwin/bundle/Spanish.lproj/InfoPlist.strings.cpp,v 1.1.4.1 2002/07/16 22:18:25 torrey Exp $ */
  
 -NSHumanReadableCopyright = __quote__XFree86 XF86_VERSION\nCopyright 2001 XFree86 Project, Inc.__quote__
 +NSHumanReadableCopyright = __quote__XFree86 XF86_VERSION\nCopyright 2001 XFree86 Project, Inc.__quote__;
 diff -uNbr xc/programs/Xserver/hw/darwin/bundle/Swedish.lproj/InfoPlist.strings.cpp xc-new/programs/Xserver/hw/darwin/bundle/Swedish.lproj/InfoPlist.strings.cpp
 --- xc/programs/Xserver/hw/darwin/bundle/Swedish.lproj/InfoPlist.strings.cpp	Sun Nov  4 02:09:49 2001
-+++ xc-new/programs/Xserver/hw/darwin/bundle/Swedish.lproj/InfoPlist.strings.cpp	Tue Aug  6 19:43:31 2002
-@@ -2,4 +2,4 @@
++++ xc-new/programs/Xserver/hw/darwin/bundle/Swedish.lproj/InfoPlist.strings.cpp	Fri Aug  9 19:04:38 2002
+@@ -1,5 +1,5 @@
+ /* Swedish localized versions of Info.plist keys. */
  /* Most of these are set in the target application settings. */
- /* $XFree86: xc/programs/Xserver/hw/darwin/bundle/Swedish.lproj/InfoPlist.strings.cpp,v 1.2 2001/11/04 07:09:49 torrey Exp $ */
+-/* $XFree86: xc/programs/Xserver/hw/darwin/bundle/Swedish.lproj/InfoPlist.strings.cpp,v 1.2 2001/11/04 07:09:49 torrey Exp $ */
++/* $XFree86: xc/programs/Xserver/hw/darwin/bundle/Swedish.lproj/InfoPlist.strings.cpp,v 1.2.4.1 2002/07/16 22:18:25 torrey Exp $ */
  
 -NSHumanReadableCopyright = __quote__XFree86 XF86_VERSION\nCopyright 2001 XFree86 Project, Inc.__quote__
 +NSHumanReadableCopyright = __quote__XFree86 XF86_VERSION\nCopyright 2001 XFree86 Project, Inc.__quote__;
 diff -uNbr xc/programs/Xserver/hw/darwin/bundle/XDarwin.pbproj/project.pbxproj xc-new/programs/Xserver/hw/darwin/bundle/XDarwin.pbproj/project.pbxproj
 --- xc/programs/Xserver/hw/darwin/bundle/XDarwin.pbproj/project.pbxproj	Mon Jan 14 02:12:22 2002
-+++ xc-new/programs/Xserver/hw/darwin/bundle/XDarwin.pbproj/project.pbxproj	Tue Aug  6 19:43:31 2002
++++ xc-new/programs/Xserver/hw/darwin/bundle/XDarwin.pbproj/project.pbxproj	Fri Aug  9 19:04:38 2002
 @@ -324,7 +324,7 @@
  				0A79E1A4004499A1CE6F79C2,
  			);
@@ -904,7 +962,16 @@ diff -uNbr xc/programs/Xserver/hw/darwin/bundle/XDarwin.pbproj/project.pbxproj x
  			productSettingsXML = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 diff -uNbr xc/programs/Xserver/hw/darwin/bundle/XWindow.m xc-new/programs/Xserver/hw/darwin/bundle/XWindow.m
 --- xc/programs/Xserver/hw/darwin/bundle/XWindow.m	Tue Nov  6 18:18:14 2001
-+++ xc-new/programs/Xserver/hw/darwin/bundle/XWindow.m	Tue Aug  6 19:43:31 2002
++++ xc-new/programs/Xserver/hw/darwin/bundle/XWindow.m	Fri Aug  9 19:04:38 2002
+@@ -1,7 +1,7 @@
+ /*
+  * NSWindow subclass for Mac OS X rootless X server
+  */
+-/* $XFree86: xc/programs/Xserver/hw/darwin/bundle/XWindow.m,v 1.5 2001/11/06 23:18:14 torrey Exp $ */
++/* $XFree86: xc/programs/Xserver/hw/darwin/bundle/XWindow.m,v 1.5.4.1 2002/06/03 18:09:24 torrey Exp $ */
+ 
+ #import "XWindow.h"
+ 
 @@ -37,6 +37,7 @@
      [self setAutodisplay:NO];       // MUST NOT autodisplay! See comment above
      [self disableFlushWindow];      // We do all the flushing manually
@@ -915,16 +982,27 @@ diff -uNbr xc/programs/Xserver/hw/darwin/bundle/XWindow.m xc-new/programs/Xserve
  
 diff -uNbr xc/programs/Xserver/hw/darwin/bundle/ko.lproj/InfoPlist.strings.cpp xc-new/programs/Xserver/hw/darwin/bundle/ko.lproj/InfoPlist.strings.cpp
 --- xc/programs/Xserver/hw/darwin/bundle/ko.lproj/InfoPlist.strings.cpp	Mon Dec  3 22:36:39 2001
-+++ xc-new/programs/Xserver/hw/darwin/bundle/ko.lproj/InfoPlist.strings.cpp	Tue Aug  6 19:43:31 2002
-@@ -2,4 +2,4 @@
++++ xc-new/programs/Xserver/hw/darwin/bundle/ko.lproj/InfoPlist.strings.cpp	Fri Aug  9 19:04:38 2002
+@@ -1,5 +1,5 @@
+ /* Korean localized versions of Info.plist keys. */
  /* Most of these are set in the target application settings. */
- /* $XFree86: xc/programs/Xserver/hw/darwin/bundle/ko.lproj/InfoPlist.strings.cpp,v 1.1 2001/12/04 03:36:39 torrey Exp $ */
+-/* $XFree86: xc/programs/Xserver/hw/darwin/bundle/ko.lproj/InfoPlist.strings.cpp,v 1.1 2001/12/04 03:36:39 torrey Exp $ */
++/* $XFree86: xc/programs/Xserver/hw/darwin/bundle/ko.lproj/InfoPlist.strings.cpp,v 1.1.4.1 2002/07/16 22:18:26 torrey Exp $ */
  
 -NSHumanReadableCopyright = __quote__XFree86 XF86_VERSION\nCopyright 2001 XFree86 Project, Inc.__quote__
 +NSHumanReadableCopyright = __quote__XFree86 XF86_VERSION\nCopyright 2001 XFree86 Project, Inc.__quote__;
 diff -uNbr xc/programs/Xserver/hw/darwin/bundle/rootlessAquaImp.m xc-new/programs/Xserver/hw/darwin/bundle/rootlessAquaImp.m
 --- xc/programs/Xserver/hw/darwin/bundle/rootlessAquaImp.m	Wed Jan 16 21:44:27 2002
-+++ xc-new/programs/Xserver/hw/darwin/bundle/rootlessAquaImp.m	Tue Aug  6 19:43:31 2002
++++ xc-new/programs/Xserver/hw/darwin/bundle/rootlessAquaImp.m	Fri Aug  9 19:04:38 2002
+@@ -1,7 +1,7 @@
+ /*
+  * Rootless implementation for Mac OS X Aqua environment
+  */
+-/* $XFree86: xc/programs/Xserver/hw/darwin/bundle/rootlessAquaImp.m,v 1.11 2002/01/17 02:44:27 torrey Exp $ */
++/* $XFree86: xc/programs/Xserver/hw/darwin/bundle/rootlessAquaImp.m,v 1.11.2.1 2002/06/03 18:09:24 torrey Exp $ */
+ 
+ #include "rootlessAquaImp.h"
+ #include "XWindow.h"
 @@ -154,7 +154,8 @@
  {
      AquaWindowRec *winRec = WINREC(rw);
@@ -937,7 +1015,16 @@ diff -uNbr xc/programs/Xserver/hw/darwin/bundle/rootlessAquaImp.m xc-new/program
  void AquaMoveWindow(void *rw, int x, int y)
 diff -uNbr xc/programs/Xserver/hw/darwin/darwinKeyboard.c xc-new/programs/Xserver/hw/darwin/darwinKeyboard.c
 --- xc/programs/Xserver/hw/darwin/darwinKeyboard.c	Wed Dec  5 01:27:43 2001
-+++ xc-new/programs/Xserver/hw/darwin/darwinKeyboard.c	Tue Aug  6 19:43:31 2002
++++ xc-new/programs/Xserver/hw/darwin/darwinKeyboard.c	Fri Aug  9 19:04:38 2002
+@@ -36,7 +36,7 @@
+ //
+ //=============================================================================
+ 
+-/* $XFree86: xc/programs/Xserver/hw/darwin/darwinKeyboard.c,v 1.14 2001/12/05 06:27:43 torrey Exp $ */
++/* $XFree86: xc/programs/Xserver/hw/darwin/darwinKeyboard.c,v 1.14.2.1 2002/02/07 02:53:11 torrey Exp $ */
+ 
+ /*
+ ===========================================================================
 @@ -416,9 +416,9 @@
                  km.charP = inBuffer;
                  km.intP++;
@@ -951,56 +1038,15 @@ diff -uNbr xc/programs/Xserver/hw/darwin/darwinKeyboard.c xc-new/programs/Xserve
                      if (map_interface == interface) {
                          if (map_handler_id == handler_id || hasInterface) {
                              hasMatch = TRUE;
-diff -uNbr xc/programs/Xserver/hw/xfree86/CHANGELOG xc-new/programs/Xserver/hw/xfree86/CHANGELOG
---- xc/programs/Xserver/hw/xfree86/CHANGELOG	Fri Jan 18 15:09:22 2002
-+++ xc-new/programs/Xserver/hw/xfree86/CHANGELOG	Tue Aug  6 19:43:31 2002
-@@ -1,3 +1,43 @@
-+XFree86 4.2.0.1 (xx February 2002)
-+ 712. Fix Finder warnings about XDarwin plist format on Jaguar
-+      (Torrey T. Lyons).
-+ 711. Fix XDarwin build issues on Jaguar (Sean Fagan).
-+ 710. When using the vesa driver and the DisplaySize option the server
-+      would crash with a floating point exception due to a divide by zero
-+      in miscreeninit() (#5298, Mike A. Harris).
-+ 709. Updated patch from head to fix problem described in #5244
-+      (freed memory being deref'd in xaw) (jik@kamens.brookline.ma.us)
-+ 708. The function MoveLine in lib/Xaw/TextAction.c sometimes attempts to
-+      read uninitialized memory when hit ctrl-N in a Text widget to move to
-+      the next line (#5245, Johnathan Kamens).
-+ 707. Close XDarwin rootless windows properly for Jaguar compatibility
-+      (Greg Parker).
-+ 706. Build libXt as a flat namespace image on Darwin (Torrey T. Lyons).
-+ 705. Install the bitmap file xc/programs/bitmap/Stipple as Stippler on file
-+      systems that are not case sensitive (Torrey T. Lyons).
-+ 704. Build with libcurses on Darwin for forward compatibility
-+      (Jordan Hubbard).
-+ 703. MIT-SHM updates (Roberto Zunino, Matthieu Herrb).
-+ 702. Fix a problem related to reserving the overlay key in the default
-+      colormap in 24+8 mode.  This caused some clients using the 8-bit
-+      visuals to fail (David Dawes).
-+ 701. [SECURITY] Zlib error handling fix (Mark Adler).
-+ 700. Put back XDarwin's byte-ordering fix for reading keymappings on
-+      Darwin x86 that was inadvertently dropped (Rob Braun).
-+ 699. Fix for `hostname` issue on Linux (Marc La France).
-+ 698. Fix startx script for ksh (Philip B. Bruce).
-+ 697. Fix Emulate3Buttons for wsmouse protocol on NetBSD and OpenBSD
-+      (Matthieu Herrb).
-+ 696. Temporary workaround for IA-64 (Marc La France).
-+ 695. Fix SIGSEGV when printing modes that have no flags (Marc La France).
-+ 694. Fix an unresolved symbol in libGLU.so that shows up when building it
-+      with gcc-3 (David Dawes).
-+ 693. Fix incorrect symbol prefixing with Xlib's i18n modules on Solaris,
-+      and fix invalid code caused by a memcpy() macro being split by a
-+      directive (Keith Packard, David Dawes, #5150, Sami Farin).
-+ 692. Don't try to print mode names when NULL (David Dawes).
-+ 691. Revert the ATI driver's composite sync default to off (Marc La France).
-+
- XFree86 4.2.0 (18 January 2002)
-  690. Workaround for hardware bug that prevents older ATI 3D Rage adapters from
-       being assigned to XF86Config device sections (Marc La France).
 diff -uNbr xc/programs/Xserver/hw/xfree86/common/xf86Mode.c xc-new/programs/Xserver/hw/xfree86/common/xf86Mode.c
 --- xc/programs/Xserver/hw/xfree86/common/xf86Mode.c	Thu Dec  6 10:40:27 2001
-+++ xc-new/programs/Xserver/hw/xfree86/common/xf86Mode.c	Tue Aug  6 19:43:31 2002
++++ xc-new/programs/Xserver/hw/xfree86/common/xf86Mode.c	Fri Aug  9 19:04:38 2002
+@@ -1,4 +1,4 @@
+-/* $XFree86: xc/programs/Xserver/hw/xfree86/common/xf86Mode.c,v 1.48 2001/12/06 15:40:27 tsi Exp $ */
++/* $XFree86: xc/programs/Xserver/hw/xfree86/common/xf86Mode.c,v 1.48.2.3 2002/01/25 15:58:00 tsi Exp $ */
+ 
+ /*
+  * Copyright (c) 1997,1998 by The XFree86 Project, Inc.
 @@ -1805,46 +1805,41 @@
  static void
  add(char **p, char *new)
@@ -1088,7 +1134,13 @@ diff -uNbr xc/programs/Xserver/hw/xfree86/common/xf86Mode.c xc-new/programs/Xser
  			"%s \"%s\": %.1f MHz, %.1f kHz, %.1f Hz%s%s\n",
 diff -uNbr xc/programs/Xserver/hw/xfree86/common/xf86pciBus.c xc-new/programs/Xserver/hw/xfree86/common/xf86pciBus.c
 --- xc/programs/Xserver/hw/xfree86/common/xf86pciBus.c	Fri Nov 30 07:11:55 2001
-+++ xc-new/programs/Xserver/hw/xfree86/common/xf86pciBus.c	Tue Aug  6 19:43:31 2002
++++ xc-new/programs/Xserver/hw/xfree86/common/xf86pciBus.c	Fri Aug  9 19:04:38 2002
+@@ -1,4 +1,4 @@
+-/* $XFree86: xc/programs/Xserver/hw/xfree86/common/xf86pciBus.c,v 3.48 2001/11/30 12:11:55 eich Exp $ */
++/* $XFree86: xc/programs/Xserver/hw/xfree86/common/xf86pciBus.c,v 3.48.2.1 2002/01/25 20:51:33 tsi Exp $ */
+ /*
+  * Copyright (c) 1997-1999 by The XFree86 Project, Inc.
+  */
 @@ -1916,9 +1916,11 @@
  		pnPciBus = &PciBus->next;
  		PciBus->primary = -1;
@@ -1101,165 +1153,18 @@ diff -uNbr xc/programs/Xserver/hw/xfree86/common/xf86pciBus.c xc-new/programs/Xs
  		PciBus->subclass = sub_class;
  		PciBus->brcontrol = PCI_PCI_BRIDGE_VGA_EN;
  		PciBus->preferred_io = xf86ExtractTypeFromList(
-diff -uNbr xc/programs/Xserver/hw/xfree86/doc/sgml/RELNOTES.sgml xc-new/programs/Xserver/hw/xfree86/doc/sgml/RELNOTES.sgml
---- xc/programs/Xserver/hw/xfree86/doc/sgml/RELNOTES.sgml	Thu Jan 17 13:14:59 2002
-+++ xc-new/programs/Xserver/hw/xfree86/doc/sgml/RELNOTES.sgml	Tue Aug  6 19:43:31 2002
-@@ -955,7 +955,7 @@
- <sect2>FreeType support in Xft
- <p>
- 
--XFree86 &relvers; includes sources for FreeType version 2.0.1, and, by
-+XFree86 &relvers; includes sources for FreeType version 2.0.6, and, by
- default, they are built and installed automatically.
- 
- <p>
-@@ -988,13 +988,11 @@
- 
- <p>
- By default, xterm uses core fonts through the standard core API.  It has
--two command line options and associated resources to direct it to use
-+a command line option and associated resource to direct it to use
- Xft instead:
- <itemize>
-   <item><tt>-fa</tt> family / <tt>.VT100.faceName:</tt> family.  Selects the 
- 	font family to use.
--  <item><tt>-fs</tt> pointsize / <tt>.VT100.faceSize:</tt> pointsize.  
--	Selects the pointsize.
- </itemize>
- 
- <p>
-diff -uNbr xc/programs/Xserver/hw/xfree86/drivers/ati/aticonfig.c xc-new/programs/Xserver/hw/xfree86/drivers/ati/aticonfig.c
---- xc/programs/Xserver/hw/xfree86/drivers/ati/aticonfig.c	Wed Jan 16 11:22:26 2002
-+++ xc-new/programs/Xserver/hw/xfree86/drivers/ati/aticonfig.c	Tue Aug  6 19:43:31 2002
-@@ -143,7 +143,7 @@
-         ShadowFB = TRUE;
-     }
- 
--    Blend = CSync = /* Sync = */ TRUE;
-+    Blend = /* CSync = Sync = */ TRUE;
- 
-     xf86ProcessOptions(pScreenInfo->scrnIndex, pScreenInfo->options,
-         PublicOption);
-diff -uNbr xc/programs/Xserver/hw/xfree86/drivers/trident/trident_dac.c xc-new/programs/Xserver/hw/xfree86/drivers/trident/trident_dac.c
---- xc/programs/Xserver/hw/xfree86/drivers/trident/trident_dac.c	Fri Jan 11 08:06:30 2002
-+++ xc-new/programs/Xserver/hw/xfree86/drivers/trident/trident_dac.c	Tue Aug  6 19:43:31 2002
-@@ -191,7 +191,6 @@
-     vgaHWPtr hwp = VGAHWPTR(pScrn);
-     vgaRegPtr regp = &hwp->ModeReg;
-     vgaRegPtr vgaReg = &hwp->ModeReg;
--    vgaHWGetIOBase(VGAHWPTR(pScrn));
-     vgaIOBase = VGAHWPTR(pScrn)->IOBase;
-     
-     /* Unprotect */
-@@ -640,7 +639,6 @@
-     TRIDENTPtr pTrident = TRIDENTPTR(pScrn);
-     CARD8 temp;
-     int vgaIOBase;
--    vgaHWGetIOBase(VGAHWPTR(pScrn));
-     vgaIOBase = VGAHWPTR(pScrn)->IOBase;
- 
-     if (pTrident->Chipset > PROVIDIA9685) {
-@@ -773,7 +771,6 @@
-     TRIDENTPtr pTrident = TRIDENTPTR(pScrn);
-     CARD8 temp;
-     int vgaIOBase;
--    vgaHWGetIOBase(VGAHWPTR(pScrn));
-     vgaIOBase = VGAHWPTR(pScrn)->IOBase;
- 
-     /* Goto New Mode */
-@@ -886,7 +883,6 @@
- {
-     TRIDENTPtr pTrident = TRIDENTPTR(pScrn);
-     int vgaIOBase;
--    vgaHWGetIOBase(VGAHWPTR(pScrn));
-     vgaIOBase = VGAHWPTR(pScrn)->IOBase;
- 
-     /* 64x64 */
-@@ -897,7 +893,6 @@
- TridentHideCursor(ScrnInfoPtr pScrn) {
-     int vgaIOBase;
-     TRIDENTPtr pTrident = TRIDENTPTR(pScrn);
--    vgaHWGetIOBase(VGAHWPTR(pScrn));
-     vgaIOBase = VGAHWPTR(pScrn)->IOBase;
- 
-     OUTW(vgaIOBase + 4, 0x4150);
-@@ -908,7 +903,6 @@
- {
-     int vgaIOBase;
-     TRIDENTPtr pTrident = TRIDENTPTR(pScrn);
--    vgaHWGetIOBase(VGAHWPTR(pScrn));
-     vgaIOBase = VGAHWPTR(pScrn)->IOBase;
-     
-     if (x < 0) {
-@@ -934,7 +928,6 @@
- {
-     int vgaIOBase;
-     TRIDENTPtr pTrident = TRIDENTPTR(pScrn);
--    vgaHWGetIOBase(VGAHWPTR(pScrn));
-     vgaIOBase = VGAHWPTR(pScrn)->IOBase;
-     OUTW(vgaIOBase + 4, (fg & 0x000000FF)<<8  | 0x48);
-     OUTW(vgaIOBase + 4, (fg & 0x0000FF00)     | 0x49);
-@@ -954,7 +947,6 @@
- {
-     TRIDENTPtr pTrident = TRIDENTPTR(pScrn);
-     int vgaIOBase;
--    vgaHWGetIOBase(VGAHWPTR(pScrn));
-     vgaIOBase = VGAHWPTR(pScrn)->IOBase;
- 
-     memcpy((CARD8 *)pTrident->FbBase + (pScrn->videoRam * 1024) - 4096,
-diff -uNbr xc/programs/Xserver/hw/xfree86/drivers/trident/trident_driver.c xc-new/programs/Xserver/hw/xfree86/drivers/trident/trident_driver.c
---- xc/programs/Xserver/hw/xfree86/drivers/trident/trident_driver.c	Tue Jan 15 13:31:19 2002
-+++ xc-new/programs/Xserver/hw/xfree86/drivers/trident/trident_driver.c	Tue Aug  6 19:43:31 2002
-@@ -2598,7 +2598,6 @@
-     	vgaHWSetMmioFuncs(hwp, pTrident->IOBase, 0);
-     }
- 
--    vgaHWGetIOBase(hwp);
-     vgaIOBase = VGAHWPTR(pScrn)->IOBase;
- 
-     /* Save the current state */
-diff -uNbr xc/programs/Xserver/hw/xfree86/drivers/trident/trident_video.c xc-new/programs/Xserver/hw/xfree86/drivers/trident/trident_video.c
---- xc/programs/Xserver/hw/xfree86/drivers/trident/trident_video.c	Sat Jan 12 19:15:52 2002
-+++ xc-new/programs/Xserver/hw/xfree86/drivers/trident/trident_video.c	Tue Aug  6 19:43:31 2002
-@@ -1356,6 +1356,8 @@
- 
-   pTrident->hsync = (HTotal - HSyncStart) + 23 + h_off;
-   pTrident->vsync = (VTotal - VSyncStart) - 2 + v_off;
-+  pTrident->hsync_rskew = 0;
-+  pTrident->vsync_bskew = 0;
-   
-   /* 
-    * HACK !! As awful as this is, it appears to be the only way....Sigh!
-diff -uNbr xc/programs/Xserver/hw/xfree86/drivers/trident/tvga_dac.c xc-new/programs/Xserver/hw/xfree86/drivers/trident/tvga_dac.c
---- xc/programs/Xserver/hw/xfree86/drivers/trident/tvga_dac.c	Wed Sep 12 08:50:12 2001
-+++ xc-new/programs/Xserver/hw/xfree86/drivers/trident/tvga_dac.c	Tue Aug  6 19:43:31 2002
-@@ -43,7 +43,6 @@
-     int vgaIOBase;
-     int offset = 0;
-     int clock = mode->Clock;
--    vgaHWGetIOBase(VGAHWPTR(pScrn));
-     vgaIOBase = VGAHWPTR(pScrn)->IOBase;
- 
-     OUTB(0x3C4, 0x0B); INB(0x3C5); /* Ensure we are in New Mode */
-@@ -140,7 +139,6 @@
-     TRIDENTPtr pTrident = TRIDENTPTR(pScrn);
-     CARD8 temp;
-     int vgaIOBase;
--    vgaHWGetIOBase(VGAHWPTR(pScrn));
-     vgaIOBase = VGAHWPTR(pScrn)->IOBase;
- 
-     /* Goto Old Mode */
-@@ -188,7 +186,6 @@
-     TRIDENTPtr pTrident = TRIDENTPTR(pScrn);
-     CARD8 temp;
-     int vgaIOBase;
--    vgaHWGetIOBase(VGAHWPTR(pScrn));
-     vgaIOBase = VGAHWPTR(pScrn)->IOBase;
- 
-     temp = INB(0x3C8);
 diff -uNbr xc/programs/Xserver/hw/xfree86/drivers/vesa/vesa.c xc-new/programs/Xserver/hw/xfree86/drivers/vesa/vesa.c
---- xc/programs/Xserver/hw/xfree86/drivers/vesa/vesa.c	Mon Oct  1 08:44:12 2001
-+++ xc-new/programs/Xserver/hw/xfree86/drivers/vesa/vesa.c	Tue Aug  6 19:43:31 2002
+--- xc/programs/Xserver/hw/xfree86/drivers/vesa/vesa.c	Mon Oct  1 09:44:12 2001
++++ xc-new/programs/Xserver/hw/xfree86/drivers/vesa/vesa.c	Fri Aug  9 19:04:38 2002
+@@ -27,7 +27,7 @@
+  *
+  * Authors: Paulo César Pereira de Andrade <pcpa@conectiva.com.br>
+  *
+- * $XFree86: xc/programs/Xserver/hw/xfree86/drivers/vesa/vesa.c,v 1.24 2001/10/01 13:44:12 eich Exp $
++ * $XFree86: xc/programs/Xserver/hw/xfree86/drivers/vesa/vesa.c,v 1.24.4.1 2002/07/04 17:07:08 paulo Exp $
+  */
+ 
+ #include "vesa.h"
 @@ -524,9 +524,6 @@
  	xf86UnloadSubModule(pDDCModule);
      }
@@ -1282,7 +1187,16 @@ diff -uNbr xc/programs/Xserver/hw/xfree86/drivers/vesa/vesa.c xc-new/programs/Xs
  	xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "No modes\n");
 diff -uNbr xc/programs/Xserver/hw/xfree86/etc/Xinstall.sh xc-new/programs/Xserver/hw/xfree86/etc/Xinstall.sh
 --- xc/programs/Xserver/hw/xfree86/etc/Xinstall.sh	Thu Jan 17 15:54:23 2002
-+++ xc-new/programs/Xserver/hw/xfree86/etc/Xinstall.sh	Tue Aug  6 19:43:31 2002
++++ xc-new/programs/Xserver/hw/xfree86/etc/Xinstall.sh	Fri Aug  9 19:04:38 2002
+@@ -1,7 +1,7 @@
+ #!/bin/sh
+ 
+ #
+-# $XFree86: xc/programs/Xserver/hw/xfree86/etc/Xinstall.sh,v 1.37 2002/01/17 20:54:23 dawes Exp $
++# $XFree86: xc/programs/Xserver/hw/xfree86/etc/Xinstall.sh,v 1.37.2.1 2002/02/05 22:51:04 torrey Exp $
+ #
+ # Copyright © 2000 by Precision Insight, Inc.
+ # Copyright © 2000, 2001 by VA Linux Systems, Inc.
 @@ -435,7 +435,7 @@
  			1.[2-3]*)
  				DistName="Darwin-ppc-1.x"
@@ -1303,7 +1217,16 @@ diff -uNbr xc/programs/Xserver/hw/xfree86/etc/Xinstall.sh xc-new/programs/Xserve
  			[6-9].*)
 diff -uNbr xc/programs/Xserver/hw/xfree86/input/hyperpen/xf86HyperPen.c xc-new/programs/Xserver/hw/xfree86/input/hyperpen/xf86HyperPen.c
 --- xc/programs/Xserver/hw/xfree86/input/hyperpen/xf86HyperPen.c	Wed Dec 26 16:51:58 2001
-+++ xc-new/programs/Xserver/hw/xfree86/input/hyperpen/xf86HyperPen.c	Tue Aug  6 19:43:31 2002
++++ xc-new/programs/Xserver/hw/xfree86/input/hyperpen/xf86HyperPen.c	Fri Aug  9 19:04:38 2002
+@@ -35,7 +35,7 @@
+  * TORTIOUS ACTIONS, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+  * PERFORMANCE OF THIS SOFTWARE.
+  */
+-/* $XFree86: xc/programs/Xserver/hw/xfree86/input/hyperpen/xf86HyperPen.c,v 1.5 2001/12/26 21:51:58 dawes Exp $ */
++/* $XFree86: xc/programs/Xserver/hw/xfree86/input/hyperpen/xf86HyperPen.c,v 1.5.2.1 2002/02/25 20:17:51 dawes Exp $ */
+ 
+ #include <xf86Version.h>
+ 
 @@ -1779,7 +1779,7 @@
  				/* a tool */
  };
@@ -1315,7 +1238,13 @@ diff -uNbr xc/programs/Xserver/hw/xfree86/input/hyperpen/xf86HyperPen.c xc-new/p
  
 diff -uNbr xc/programs/Xserver/hw/xfree86/os-support/bsd/bsd_mouse.c xc-new/programs/Xserver/hw/xfree86/os-support/bsd/bsd_mouse.c
 --- xc/programs/Xserver/hw/xfree86/os-support/bsd/bsd_mouse.c	Mon Jan 14 10:34:23 2002
-+++ xc-new/programs/Xserver/hw/xfree86/os-support/bsd/bsd_mouse.c	Tue Aug  6 19:43:31 2002
++++ xc-new/programs/Xserver/hw/xfree86/os-support/bsd/bsd_mouse.c	Fri Aug  9 19:04:38 2002
+@@ -1,4 +1,4 @@
+-/* $XFree86: xc/programs/Xserver/hw/xfree86/os-support/bsd/bsd_mouse.c,v 1.20 2002/01/14 15:34:23 dawes Exp $ */
++/* $XFree86: xc/programs/Xserver/hw/xfree86/os-support/bsd/bsd_mouse.c,v 1.20.2.1 2002/01/27 19:05:19 herrb Exp $ */
+ 
+ /*
+  * Copyright 1999 by The XFree86 Project, Inc.
 @@ -36,9 +36,6 @@
  #define UMS_BUT(i) ((i) == 0 ? 2 : (i) == 1 ? 0 : (i) == 2 ? 1 : (i))
  #endif /* USBMOUSE_SUPPORT */
@@ -1434,7 +1363,13 @@ diff -uNbr xc/programs/Xserver/hw/xfree86/os-support/bsd/bsd_mouse.c xc-new/prog
      pInfo->flags |= XI86_CONFIGURED;
 diff -uNbr xc/programs/Xserver/hw/xfree86/xf86Version.h xc-new/programs/Xserver/hw/xfree86/xf86Version.h
 --- xc/programs/Xserver/hw/xfree86/xf86Version.h	Fri Jan 18 15:09:24 2002
-+++ xc-new/programs/Xserver/hw/xfree86/xf86Version.h	Tue Aug  6 19:43:31 2002
++++ xc-new/programs/Xserver/hw/xfree86/xf86Version.h	Fri Aug  9 19:04:38 2002
+@@ -1,4 +1,4 @@
+-/* $XFree86: xc/programs/Xserver/hw/xfree86/xf86Version.h,v 3.487 2002/01/18 20:09:24 dawes Exp $ */
++/* $XFree86: xc/programs/Xserver/hw/xfree86/xf86Version.h,v 3.487.2.3 2002/03/12 19:39:25 dawes Exp $ */
+ 
+ #ifndef XF86_VERSION_CURRENT
+ 
 @@ -24,7 +24,7 @@
  			0)
  
@@ -1446,7 +1381,13 @@ diff -uNbr xc/programs/Xserver/hw/xfree86/xf86Version.h xc-new/programs/Xserver/
  
 diff -uNbr xc/programs/Xserver/hw/xfree86/xf8_32bpp/xf86overlay.c xc-new/programs/Xserver/hw/xfree86/xf8_32bpp/xf86overlay.c
 --- xc/programs/Xserver/hw/xfree86/xf8_32bpp/xf86overlay.c	Sat Mar 25 15:14:43 2000
-+++ xc-new/programs/Xserver/hw/xfree86/xf8_32bpp/xf86overlay.c	Tue Aug  6 19:43:31 2002
++++ xc-new/programs/Xserver/hw/xfree86/xf8_32bpp/xf86overlay.c	Fri Aug  9 19:04:38 2002
+@@ -1,4 +1,4 @@
+-/* $XFree86: xc/programs/Xserver/hw/xfree86/xf8_32bpp/xf86overlay.c,v 1.8 2000/03/25 20:14:43 mvojkovi Exp $ */
++/* $XFree86: xc/programs/Xserver/hw/xfree86/xf8_32bpp/xf86overlay.c,v 1.8.8.1 2002/02/11 00:07:42 dawes Exp $ */
+ 
+ /*
+    Copyright (C) 1998.  The XFree86 Project Inc.
 @@ -311,6 +311,7 @@
  
  	pmap->red[pScrn->colorKey].refcnt = AllocPrivate;
@@ -1457,7 +1398,16 @@ diff -uNbr xc/programs/Xserver/hw/xfree86/xf8_32bpp/xf86overlay.c xc-new/program
  	color.pixel = pScrn->colorKey;
 diff -uNbr xc/programs/Xserver/os/xdmcp.c xc-new/programs/Xserver/os/xdmcp.c
 --- xc/programs/Xserver/os/xdmcp.c	Mon Nov 19 15:44:18 2001
-+++ xc-new/programs/Xserver/os/xdmcp.c	Tue Aug  6 19:43:31 2002
++++ xc-new/programs/Xserver/os/xdmcp.c	Fri Aug  9 19:04:38 2002
+@@ -13,7 +13,7 @@
+  * without express or implied warranty.
+  *
+  */
+-/* $XFree86: xc/programs/Xserver/os/xdmcp.c,v 3.20 2001/11/19 20:44:18 tsi Exp $ */
++/* $XFree86: xc/programs/Xserver/os/xdmcp.c,v 3.20.4.1 2002/03/11 18:59:51 keithp Exp $ */
+ 
+ #ifdef WIN32
+ /* avoid conflicting definitions */
 @@ -660,34 +660,17 @@
      pointer	    pReadmask)
  {
@@ -1506,12 +1456,252 @@ diff -uNbr xc/programs/Xserver/os/xdmcp.c xc-new/programs/Xserver/os/xdmcp.c
      {
      	if (state == XDM_RUN_SESSION)
      	{
+diff -uNbr xc/programs/bitmap/Bitmap-nocase.ad xc-new/programs/bitmap/Bitmap-nocase.ad
+--- xc/programs/bitmap/Bitmap-nocase.ad	Wed Dec 31 19:00:00 1969
++++ xc-new/programs/bitmap/Bitmap-nocase.ad	Fri Aug  9 19:04:38 2002
+@@ -0,0 +1,233 @@
++! $Xorg: Bitmap.ad,v 1.3 2000/08/17 19:53:49 cpqbld Exp $
++!
++! $XFree86: xc/programs/bitmap/Bitmap-nocase.ad,v 1.1.2.1 2002/06/01 00:04:37 torrey Exp $
++!
++! The App-defaults file for Bitmap for use on file systems
++! that are not case sensitive.
++
++*TransientShell.allowShellResize:	True
++*shapeStyle:				oval
++*cursor:				left_ptr
++*pane.orientation:			horizontal
++
++*Form*top:				ChainTop
++*Form*bottom:				ChainTop
++*Form*left:				ChainLeft
++*Form*right:				ChainLeft
++
++*MenuButton.leftBitmap:			menu12
++*form*width:              		120
++*form*height:             		15
++
++*baseTranslations:#override\
++			Ctrl<Key>c:	do-quit()\n\
++			<Key>q:		do-quit()\n\
++			Ctrl<Key>n:	do-new()\n\
++			Ctrl<Key>f:	do-load()\n\
++			Ctrl<Key>i:	do-insert()\n\
++			Ctrl<Key>s:	do-save()\n\
++			Ctrl<Key>w:	do-save-as()\n\
++			Ctrl<Key>r:	do-resize()\n\
++			Ctrl<Key>x:	do-rescale()\n\
++			Ctrl<Key>e:	do-filename()\n\
++			Ctrl<Key>b:	do-basename()\n\
++			Meta<Key>i:	switch-image()\n\
++			Meta<Key>g:	switch-grid()\n\
++			Meta<Key>d:	switch-dashed()\n\
++			Meta<Key>a:	switch-axes()\n\
++			Meta<Key>s:	switch-stippled()\n\
++			Meta<Key>p:	switch-proportional()\n\
++			Meta<Key>z:	switch-zoom()\n\
++			Meta<Key>c:	do-cut()\n\
++			Meta<Key>w:	do-copy()\n\
++			Meta<Key>y:	do-paste()
++
++
++*Toggle.translations:	<EnterWindow>:		highlight(WhenUnset)\n\
++			<LeaveWindow>:		unhighlight()\n\
++			<Btn1Down>,<Btn1Up>: 	set() notify()
++
++*MenuButton.translations:<EnterWindow>:		highlight()\n\
++			<LeaveWindow>:  	reset()\n\
++			Any<BtnDown>:  		reset() fix-menu() PopupMenu()
++
++*Dialog*baseTranslations:#override\
++			<Key>Return:	set-dialog-button(okay, yes, retry)\n\
++			Ctrl<Key>g:	set-dialog-button(cancel, abort)
++*image*baseTranslations:#override\
++			<Btn1Down>,<Btn1Up>:	switch-image()
++*image*width: 0
++*image*height: 0
++*image*Label.internalWidth: 0
++*image*Label.internalHeight: 0
++*image*normalImage.foreground: white
++*image*normalImage.background: black
++*image*invertedImage.foreground: black
++*image*invertedImage.background: white
++
++*bitmap.cursor:           		tcross
++*bitmap.dashes:				Dashes
++*bitmap.stipple:			Stippler
++*bitmap.stippled:			on
++
++*TransientShell.width:			300
++
++*input*icon:				Term
++*qsave*icon:				Term
++*error*icon:				Excl
++*Dialog.yes.label:			Yes
++*Dialog.no.label:			No
++*Dialog.okay.label:			OK
++*Dialog.abort.label:			Abort
++*Dialog.cancel.label:			Cancel
++*Dialog.retry.label:			Retry
++
++*MenuButton.width:			58
++
++*SimpleMenu.width:			0
++*SimpleMenu.height:			0
++*SimpleMenu.cursor:			hand2
++*SimpleMenu.line.height:		0
++
++*fileButton.label:			File
++*fileButton.menuName:			fileMenu
++
++*editButton.label:			Edit
++*editButton.fromHoriz: 			fileButton
++*editButton.menuName:			editMenu
++
++*formy.status*top:			ChainTop
++*formy.status*bottom:			ChainTop
++*formy.status*left:			ChainLeft
++*formy.status*right:			ChainRight
++*status.fromHoriz:			editButton
++*status.borderWidth:			0
++
++*SmeBSB.HorizontalMargins:		32
++
++*fileMenu.new.label:			New (Ctrl-N)...
++*fileMenu.load.label:			Load (Ctrl-F)...   
++*fileMenu.insert.label:			Insert (Ctrl-I)... 
++*fileMenu.save.label:			Save (Ctrl-S)
++*fileMenu.saveAs.label:			Save As (Ctrl-W)...
++*fileMenu.resize.label:			Resize (Ctrl-R)... 
++*fileMenu.rescale.label:		Rescale (Ctrl-X)...
++*fileMenu.filename.label:		Filename (Ctrl-E)...
++*fileMenu.basename.label:		Basename (Ctrl-B)...
++*fileMenu.quit.label:			Quit (Ctrl-C, Q)
++
++*editMenu.image.label:			Image (Meta-I)
++*editMenu.grid.label:			Grid (Meta-G)
++*editMenu.dashed.label:			Dashed (Meta-D)
++*editMenu.axes.label:			Axes (Meta-A)
++*editMenu.stippled.label:		Stippled (Meta-S)
++*editMenu.proportional.label:		Proportional (Meta-P)
++*editMenu.zoom.label:			Zoom (Meta-Z)
++*editMenu.cut.label:			Cut (Meta-C)
++*editMenu.copy.label:			Copy (Meta-W)
++*editMenu.paste.label:			Paste (Meta-Y, Ctrl-mb)
++
++*form.clear.label:			Clear
++*form.set.fromVert: 			clear
++*form.set.label:			Set
++*form.invert.fromVert: 			set
++*form.invert.label:			Invert
++
++*form.mark.vertDistance:		10
++*form.mark.fromVert:			invert
++*form.mark.label:			Mark
++*form.unmark.fromVert:              	mark
++*form.unmark.label:			Unmark
++
++*form.copy.vertDistance:		10
++*form.copy.fromVert: 			unmark
++*form.copy.radioGroup:			mark
++*form.copy.label:			Copy
++*form.move.fromVert: 			copy
++*form.move.radioGroup:			copy
++*form.move.label:			Move
++
++*form.flipHoriz.vertDistance:		10
++*form.flipHoriz.width:			36
++*form.flipHoriz.height:			36
++*form.flipHoriz.fromVert: 		move
++*form.flipHoriz.bitmap:			FlipHoriz
++*form.up.vertDistance:			10
++*form.up.width:				36
++*form.up.height:			36
++*form.up.fromVert: 			move
++*form.up.fromHoriz:			flipHoriz
++*form.up.bitmap:			Up
++*form.flipVert.vertDistance:		10
++*form.flipVert.width:			36
++*form.flipVert.height:			36
++*form.flipVert.fromVert: 		move
++*form.flipVert.fromHoriz:		up
++*form.flipVert.bitmap:			FlipVert
++*form.left.width:			36
++*form.left.height:			36
++*form.left.fromVert: 			flipHoriz
++*form.left.bitmap:			Left
++*form.fold.width:			36
++*form.fold.height:			36
++*form.fold.fromVert: 			up
++*form.fold.fromHoriz: 			left
++*form.fold.bitmap:			Fold
++*form.right.width:			36
++*form.right.height:			36
++*form.right.fromVert: 			flipVert
++*form.right.fromHoriz: 			fold
++*form.right.bitmap:			Right
++*form.rotateLeft.width:			36
++*form.rotateLeft.height:		36
++*form.rotateLeft.fromVert:		left
++*form.rotateLeft.bitmap:		RotateLeft
++*form.down.width:			36
++*form.down.height:			36
++*form.down.fromVert: 			fold
++*form.down.fromHoriz: 			rotateLeft
++*form.down.bitmap:			Down
++*form.rotateRight.width:		36
++*form.rotateRight.height:		36
++*form.rotateRight.fromVert:		right
++*form.rotateRight.fromHoriz:		down
++*form.rotateRight.bitmap:		RotateRight
++
++*form.point.vertDistance:		10
++*form.point.fromVert: 			rotateLeft
++*form.point.radioGroup:  		move
++*form.point.label:			Point
++*form.curve.fromVert: 			point
++*form.curve.radioGroup:  		point
++*form.curve.label:			Curve
++*form.line.fromVert: 			curve
++*form.line.radioGroup: 			curve
++*form.line.label:			Line
++*form.rectangle.fromVert: 		line
++*form.rectangle.radioGroup:  		line
++*form.rectangle.label:			Rectangle
++*form.filledRectangle.fromVert: 	rectangle
++*form.filledRectangle.radioGroup:  	rectangle
++*form.filledRectangle.label:		Filled Rectangle
++*form.circle.fromVert: 			filledRectangle
++*form.circle.radioGroup:  		filledRectangle
++*form.circle.label:			Circle
++*form.filledCircle.fromVert: 		circle
++*form.filledCircle.radioGroup:  	circle
++*form.filledCircle.label:		Filled Circle
++*form.floodFill.fromVert:		filledCircle
++*form.floodFill.radioGroup:  		filledCircle
++*form.floodFill.label:			Flood Fill
++
++*form.setHotSpot.vertDistance:		10
++*form.setHotSpot.fromVert: 		floodFill
++*form.setHotSpot.radioGroup:  		floodFill
++*form.setHotSpot.label:			Set Hot Spot
++*form.clearHotSpot.fromVert: 		setHotSpot
++*form.clearHotSpot.label:		Clear Hot Spot
++
++*form.undo.vertDistance:		10
++*form.undo.fromVert:			clearHotSpot
++*form.undo.label:			Undo
++
++
 diff -uNbr xc/programs/bitmap/Imakefile xc-new/programs/bitmap/Imakefile
 --- xc/programs/bitmap/Imakefile	Wed Jan 17 18:44:51 2001
-+++ xc-new/programs/bitmap/Imakefile	Wed Aug  7 07:39:15 2002
-@@ -5,6 +5,7 @@
++++ xc-new/programs/bitmap/Imakefile	Fri Aug  9 19:04:38 2002
+@@ -3,8 +3,9 @@
  
- XCOMM $XFree86: xc/programs/bitmap/Imakefile,v 3.5 2001/01/17 23:44:51 dawes Exp $
+ 
+ 
+-XCOMM $XFree86: xc/programs/bitmap/Imakefile,v 3.5 2001/01/17 23:44:51 dawes Exp $
++XCOMM $XFree86: xc/programs/bitmap/Imakefile,v 3.5.6.1 2002/06/01 00:04:37 torrey Exp $
  
 +#if CaseSensitiveFileSystem
  BUTTONPICTURES = \
@@ -1542,9 +1732,21 @@ diff -uNbr xc/programs/bitmap/Imakefile xc-new/programs/bitmap/Imakefile
  
  #if HasMkstemp
    MKTMP_DEFINES = -DHAS_MKSTEMP
+@@ -42,7 +61,11 @@
+ 
+ BuildIncludes($(BUTTONPICTURES),X11/bitmaps,../..)
+ 
++#if CaseSensitiveFileSystem
+ InstallAppDefaults(Bitmap)
++#else
++InstallAppDefaultsLong(Bitmap-nocase,Bitmap)
++#endif
+ InstallAppDefaultsLong(Bitmap-co,Bitmap-color)
+ InstallMultipleDestFlags(install,$(BUTTONPICTURES),$(INCDIR)/X11/bitmaps,$(INSTINCFLAGS))
+ 
 diff -uNbr xc/programs/scripts/xon.sh xc-new/programs/scripts/xon.sh
 --- xc/programs/scripts/xon.sh	Mon Jan  7 17:00:32 2002
-+++ xc-new/programs/scripts/xon.sh	Tue Aug  6 19:43:31 2002
++++ xc-new/programs/scripts/xon.sh	Fri Aug  9 19:04:38 2002
 @@ -1,5 +1,6 @@
  #!/bin/sh
  # $Xorg: xon.sh,v 1.4 2000/12/20 16:50:07 pookie Exp $
@@ -1565,8 +1767,14 @@ diff -uNbr xc/programs/scripts/xon.sh xc-new/programs/scripts/xon.sh
  	*)
  	fullname=`uname -n`
 diff -uNbr xc/programs/xedit/Xedit-color.ad xc-new/programs/xedit/Xedit-color.ad
---- xc/programs/xedit/Xedit-color.ad	Sat Aug 28 04:01:20 1999
-+++ xc-new/programs/xedit/Xedit-color.ad	Tue Aug  6 19:43:31 2002
+--- xc/programs/xedit/Xedit-color.ad	Sat Aug 28 05:01:20 1999
++++ xc-new/programs/xedit/Xedit-color.ad	Fri Aug  9 19:04:39 2002
+@@ -1,4 +1,4 @@
+-! $XFree86: xc/programs/xedit/Xedit-color.ad,v 1.6 1999/08/28 09:01:20 dawes Exp $
++! $XFree86: xc/programs/xedit/Xedit-color.ad,v 1.6.8.1 2002/07/04 17:07:11 paulo Exp $
+ 
+ #include "Xedit"
+ 
 @@ -168,4 +168,4 @@
  integer?foreground=OrangeRed3&font=*courier-bold-r*12*,\
  float?foreground=OrangeRed3&font=*courier-bold-r*12*&overstrike&underline,\
@@ -1575,7 +1783,16 @@ diff -uNbr xc/programs/xedit/Xedit-color.ad xc-new/programs/xedit/Xedit-color.ad
 +error?foreground=yellow&background=red&font=*new century schoolbook-bold*24*
 diff -uNbr xc/programs/xinit/startx.cpp xc-new/programs/xinit/startx.cpp
 --- xc/programs/xinit/startx.cpp	Fri Nov 30 15:57:48 2001
-+++ xc-new/programs/xinit/startx.cpp	Tue Aug  6 19:43:31 2002
++++ xc-new/programs/xinit/startx.cpp	Fri Aug  9 19:04:39 2002
+@@ -11,7 +11,7 @@
+ XCOMM
+ XCOMM Site administrators are STRONGLY urged to write nicer versions.
+ XCOMM
+-XCOMM $XFree86: xc/programs/xinit/startx.cpp,v 3.12 2001/11/30 20:57:48 dawes Exp $
++XCOMM $XFree86: xc/programs/xinit/startx.cpp,v 3.12.2.2 2002/01/28 18:27:34 tsi Exp $
+ 
+ #ifdef SCO
+ 
 @@ -139,24 +139,30 @@
  fi
  
@@ -1618,7 +1835,7 @@ diff -uNbr xc/programs/xinit/startx.cpp xc-new/programs/xinit/startx.cpp
  	removelist="$displayname $removelist"
 diff -uNbr xc/programs/xterm/Tekproc.c xc-new/programs/xterm/Tekproc.c
 --- xc/programs/xterm/Tekproc.c	Sat Jan  5 17:05:02 2002
-+++ xc-new/programs/xterm/Tekproc.c	Wed Aug  7 00:27:50 2002
++++ xc-new/programs/xterm/Tekproc.c	Fri Aug  9 19:04:39 2002
 @@ -104,7 +104,7 @@
  #include <Tekparse.h>
  #include <data.h>
@@ -1630,7 +1847,7 @@ diff -uNbr xc/programs/xterm/Tekproc.c xc-new/programs/xterm/Tekproc.c
  #include <sys/nbio.h>
 diff -uNbr xc/programs/xterm/button.c xc-new/programs/xterm/button.c
 --- xc/programs/xterm/button.c	Sat Jan  5 20:34:23 2002
-+++ xc-new/programs/xterm/button.c	Wed Aug  7 00:28:12 2002
++++ xc-new/programs/xterm/button.c	Fri Aug  9 19:04:39 2002
 @@ -71,7 +71,7 @@
  
  #include <data.h>
@@ -1642,7 +1859,7 @@ diff -uNbr xc/programs/xterm/button.c xc-new/programs/xterm/button.c
  #if OPT_WIDE_CHARS
 diff -uNbr xc/programs/xterm/charproc.c xc-new/programs/xterm/charproc.c
 --- xc/programs/xterm/charproc.c	Mon Jan  7 16:02:44 2002
-+++ xc-new/programs/xterm/charproc.c	Wed Aug  7 00:28:24 2002
++++ xc-new/programs/xterm/charproc.c	Fri Aug  9 19:04:39 2002
 @@ -122,7 +122,7 @@
  #include <VTparse.h>
  #include <data.h>
@@ -1653,8 +1870,8 @@ diff -uNbr xc/programs/xterm/charproc.c xc-new/programs/xterm/charproc.c
  #include <fontutils.h>
  #include <xcharmouse.h>
 diff -uNbr xc/programs/xterm/fontutils.c xc-new/programs/xterm/fontutils.c
---- xc/programs/xterm/fontutils.c	Mon Jun 18 14:09:26 2001
-+++ xc-new/programs/xterm/fontutils.c	Wed Aug  7 00:28:44 2002
+--- xc/programs/xterm/fontutils.c	Mon Jun 18 15:09:26 2001
++++ xc-new/programs/xterm/fontutils.c	Fri Aug  9 19:04:39 2002
 @@ -43,7 +43,7 @@
  #include <fontutils.h>
  
@@ -1666,7 +1883,7 @@ diff -uNbr xc/programs/xterm/fontutils.c xc-new/programs/xterm/fontutils.c
  
 diff -uNbr xc/programs/xterm/main.c xc-new/programs/xterm/main.c
 --- xc/programs/xterm/main.c	Mon Jan  7 13:35:41 2002
-+++ xc-new/programs/xterm/main.c	Wed Aug  7 00:28:54 2002
++++ xc-new/programs/xterm/main.c	Fri Aug  9 19:04:39 2002
 @@ -113,7 +113,7 @@
  
  #include <data.h>
@@ -1678,7 +1895,7 @@ diff -uNbr xc/programs/xterm/main.c xc-new/programs/xterm/main.c
  #include <xterm_io.h>
 diff -uNbr xc/programs/xterm/menu.c xc-new/programs/xterm/menu.c
 --- xc/programs/xterm/menu.c	Sat Jan  5 17:05:03 2002
-+++ xc-new/programs/xterm/menu.c	Wed Aug  7 00:29:02 2002
++++ xc-new/programs/xterm/menu.c	Fri Aug  9 19:04:39 2002
 @@ -50,7 +50,7 @@
  
  #include <xterm.h>
@@ -1689,8 +1906,8 @@ diff -uNbr xc/programs/xterm/menu.c xc-new/programs/xterm/menu.c
  
  #include <X11/StringDefs.h>
 diff -uNbr xc/programs/xterm/misc.c xc-new/programs/xterm/misc.c
---- xc/programs/xterm/misc.c	Tue Oct 23 20:21:24 2001
-+++ xc-new/programs/xterm/misc.c	Wed Aug  7 00:29:09 2002
+--- xc/programs/xterm/misc.c	Tue Oct 23 21:21:24 2001
++++ xc-new/programs/xterm/misc.c	Fri Aug  9 19:04:39 2002
 @@ -79,7 +79,7 @@
  
  #include <data.h>
@@ -1702,7 +1919,7 @@ diff -uNbr xc/programs/xterm/misc.c xc-new/programs/xterm/misc.c
  #include <xstrings.h>
 diff -uNbr xc/programs/xterm/os2main.c xc-new/programs/xterm/os2main.c
 --- xc/programs/xterm/os2main.c	Sat Jan  5 17:05:03 2002
-+++ xc-new/programs/xterm/os2main.c	Wed Aug  7 00:29:17 2002
++++ xc-new/programs/xterm/os2main.c	Fri Aug  9 19:04:39 2002
 @@ -85,7 +85,7 @@
  
  #include <data.h>
@@ -1713,8 +1930,8 @@ diff -uNbr xc/programs/xterm/os2main.c xc-new/programs/xterm/os2main.c
  #include <xstrings.h>
  #include <xterm_io.h>
 diff -uNbr xc/programs/xterm/scrollbar.c xc-new/programs/xterm/scrollbar.c
---- xc/programs/xterm/scrollbar.c	Sat Sep  8 20:07:26 2001
-+++ xc-new/programs/xterm/scrollbar.c	Wed Aug  7 00:29:26 2002
+--- xc/programs/xterm/scrollbar.c	Sat Sep  8 21:07:26 2001
++++ xc-new/programs/xterm/scrollbar.c	Fri Aug  9 19:04:39 2002
 @@ -66,7 +66,7 @@
  
  #include <data.h>
@@ -1726,7 +1943,7 @@ diff -uNbr xc/programs/xterm/scrollbar.c xc-new/programs/xterm/scrollbar.c
  /* Event handlers */
 diff -uNbr xc/programs/xterm/util.c xc-new/programs/xterm/util.c
 --- xc/programs/xterm/util.c	Sat Jan  5 17:05:03 2002
-+++ xc-new/programs/xterm/util.c	Wed Aug  7 00:29:33 2002
++++ xc-new/programs/xterm/util.c	Fri Aug  9 19:04:39 2002
 @@ -62,7 +62,7 @@
  
  #include <data.h>
