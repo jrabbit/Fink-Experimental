@@ -1,0 +1,1186 @@
+diff -Naur mozilla/.mozconfig mozilla-new/.mozconfig
+--- mozilla/.mozconfig	Wed Dec 31 19:00:00 1969
++++ mozilla-new/.mozconfig	Sat Oct  2 14:52:52 2004
+@@ -0,0 +1,23 @@
++ac_add_options --enable-macos-target=10.3
++ac_add_options --enable-prebinding
++ac_add_options --enable-default-toolkit=gtk2
++ac_add_options --enable-xft
++ac_add_options --with-pthreads
++ac_add_options --mandir=@PREFIX@/share/man
++ac_add_options --with-system-jpeg=@PREFIX@
++ac_add_options --with-system-zlib=@PREFIX@
++ac_add_options --with-system-png=@PREFIX@
++ac_add_options --with-system-mng=@PREFIX@
++ac_add_options --with-gccadpi=/usr
++ac_add_options --disable-tests
++ac_add_options --disable-debug
++ac_add_options --disable-short-wchar
++ac_add_options --enable-optimize
++ac_add_options --enable-strip
++ac_add_options --enable-crypto
++ac_add_options --enable-mathml
++ac_add_options --enable-extensions=all
++ac_add_options --enable-xinerama
++ac_add_options --with-default-mozilla-five-home=@PREFIX@/lib/mozilla
++mk_add_options MOZ_MAKE_FLAGS=-j4
++
+diff -Naur mozilla/config/add-chrome.pl mozilla-new/config/add-chrome.pl
+--- mozilla/config/add-chrome.pl	Fri Feb 20 17:14:12 2004
++++ mozilla-new/config/add-chrome.pl	Sat Oct  2 14:52:52 2004
+@@ -14,7 +14,7 @@
+ my $jarFileName = $ARGV[4];
+ 
+ my $win32 = ($^O =~ /((MS)?win32)|cygwin|os2/i) ? 1 : 0;
+-my $macos = ($^O =~ /MacOS|darwin/i) ? 1 : 0;
++my $macos = 0;
+ my $unix  = !($win32 || $macos) ? 1 : 0;
+ 
+ sub foreignPlatformFile
+diff -Naur mozilla/config/autoconf.mk.in mozilla-new/config/autoconf.mk.in
+--- mozilla/config/autoconf.mk.in	Sat Mar 20 21:31:17 2004
++++ mozilla-new/config/autoconf.mk.in	Sat Oct  2 14:52:52 2004
+@@ -31,14 +31,14 @@
+ prefix		= @prefix@
+ exec_prefix	= @exec_prefix@
+ bindir		= @bindir@
+-includedir	= @includedir@/$(MOZ_APP_NAME)-$(MOZ_APP_VERSION)
++includedir	= @includedir@/$(MOZ_APP_NAME)
+ libdir		= @libdir@
+ datadir		= @datadir@
+ mandir		= @mandir@
+-idldir		= @datadir@/idl/$(MOZ_APP_NAME)-$(MOZ_APP_VERSION)
++idldir		= @datadir@/idl/$(MOZ_APP_NAME)
+ 
+-mozappdir	= $(libdir)/$(MOZ_APP_NAME)-$(MOZ_APP_VERSION)
+-mredir		= $(libdir)/mre/mre-$(MOZ_APP_VERSION)
++mozappdir	= $(libdir)/$(MOZ_APP_NAME)
++mredir		= $(libdir)/mre/mre
+ mrelibdir	= $(mredir)/lib
+ 
+ DIST		= $(DEPTH)/dist
+diff -Naur mozilla/config/config.mk mozilla-new/config/config.mk
+--- mozilla/config/config.mk	Sat Apr 10 18:51:37 2004
++++ mozilla-new/config/config.mk	Sat Oct  2 14:52:52 2004
+@@ -702,7 +702,7 @@
+ ifeq ($(OS_ARCH),Darwin)
+ ifdef USE_PREBINDING
+ export LD_PREBIND=1
+-export LD_SEG_ADDR_TABLE=$(shell cd $(topsrcdir); pwd)/config/prebind-address-table
++export LD_PREBIND_ALLOW_OVERLAP=1
+ endif
+ ifdef MACOS_SDK_DIR
+ export NEXT_ROOT=$(MACOS_SDK_DIR)
+@@ -747,7 +747,7 @@
+ # Tell the linker where NSS is, if we're building crypto
+ ifeq ($(OS_ARCH),Darwin)
+ ifeq (,$(findstring crypto,$(MOZ_META_COMPONENTS)))
+-MOZ_COMPONENTLIB_EXTRA_LIBS = $(foreach library, $(patsubst -l%, $(LIB_PREFIX)%$(DLL_SUFFIX), $(filter -l%, $(NSS_LIBS))), -dylib_file @executable_path/$(library):$(DIST)/bin/$(library))
++MOZ_COMPONENTLIB_EXTRA_LIBS = $(foreach library, $(patsubst -l%, $(LIB_PREFIX)%$(DLL_SUFFIX), $(filter -l%, $(NSS_LIBS))), -dylib_file @PREFIX@/lib/mozilla/$(library):$(DIST)/bin/$(library))
+ endif
+ endif
+ endif
+diff -Naur mozilla/config/rules.mk mozilla-new/config/rules.mk
+--- mozilla/config/rules.mk	Wed May  5 09:44:22 2004
++++ mozilla-new/config/rules.mk	Sat Oct  2 14:52:52 2004
+@@ -420,7 +420,7 @@
+ ifdef IS_COMPONENT
+ EXTRA_DSO_LDOPTS	+= -bundle
+ else
+-EXTRA_DSO_LDOPTS	+= -dynamiclib -install_name @executable_path/$(SHARED_LIBRARY) -compatibility_version 1 -current_version 1
++EXTRA_DSO_LDOPTS	+= -dynamiclib -install_name \$(mozappdir)/$(SHARED_LIBRARY) -compatibility_version 1 -current_version 1
+ endif
+ endif
+ endif
+diff -Naur mozilla/configure mozilla-new/configure
+--- mozilla/configure	Sat Jun  5 14:44:52 2004
++++ mozilla-new/configure	Sat Oct  2 14:52:52 2004
+@@ -4976,7 +4976,7 @@
+     ;;
+ 
+ *-darwin*)
+-    HOST_CFLAGS="$HOST_CFLAGS -DXP_UNIX -DXP_MACOSX -DNO_X11"
++    HOST_CFLAGS="$HOST_CFLAGS -DXP_UNIX"
+     HOST_NSPR_MDCPUCFG='\"md/_darwin.cfg\"'
+     HOST_OPTIMIZE_FLAGS="${HOST_OPTIMIZE_FLAGS=-O3}"
+     ;;
+@@ -5207,8 +5207,8 @@
+ 
+ *-darwin*) 
+     _PEDANTIC=
+-    CFLAGS="$CFLAGS -fpascal-strings -no-cpp-precomp -fno-common"
+-    CXXFLAGS="$CXXFLAGS -fpascal-strings -no-cpp-precomp -fno-common"
++    CFLAGS="$CFLAGS -no-cpp-precomp -fno-common"
++    CXXFLAGS="$CXXFLAGS -no-cpp-precomp -fno-common"
+     DLL_SUFFIX=".dylib"
+     DSO_LDOPTS=''
+     STRIP="$STRIP -x -S"
+diff -Naur mozilla/directory/c-sdk/config/config.mk mozilla-new/directory/c-sdk/config/config.mk
+--- mozilla/directory/c-sdk/config/config.mk	Sun Feb 23 10:54:18 2003
++++ mozilla-new/directory/c-sdk/config/config.mk	Sat Oct  2 14:52:52 2004
+@@ -60,10 +60,10 @@
+ 
+ NFSPWD		= $(MOD_DEPTH)/config/nfspwd
+ 
+-CFLAGS		= $(CC_ONLY_FLAGS) $(OPTIMIZER) $(OS_CFLAGS)\
+-		  $(XP_DEFINE) $(DEFINES) $(INCLUDES) $(XCFLAGS)
+-CCCFLAGS	= $(CCC_ONLY_FLAGS) $(OPTIMIZER) $(OS_CFLAGS)\
+-		  $(XP_DEFINE) $(DEFINES) $(INCLUDES) $(XCFLAGS)
++CFLAGS		= $(CC_ONLY_FLAGS) $(OPTIMIZER) $(XP_DEFINE)\
++		  $(DEFINES) $(INCLUDES) $(XCFLAGS) $(OS_CFLAGS)
++CCCFLAGS	= $(CCC_ONLY_FLAGS) $(OPTIMIZER) $(XP_DEFINE)\
++		  $(DEFINES) $(INCLUDES) $(XCFLAGS) $(OS_CFLAGS)
+ # For purify
+ NOMD_CFLAGS	= $(CC_ONLY_FLAGS) $(OPTIMIZER) $(NOMD_OS_CFLAGS)\
+ 		  $(XP_DEFINE) $(DEFINES) $(INCLUDES) $(XCFLAGS)
+diff -Naur mozilla/directory/c-sdk/configure mozilla-new/directory/c-sdk/configure
+--- mozilla/directory/c-sdk/configure	Thu Mar 25 20:23:41 2004
++++ mozilla-new/directory/c-sdk/configure	Sat Oct  2 14:52:52 2004
+@@ -3401,7 +3401,7 @@
+ 
+         CPU_ARCH=ppc
+     fi
+-    DSO_LDOPTS='-dynamiclib -compatibility_version 1 -current_version 1 -all_load -install_name @executable_path/$@'
++    DSO_LDOPTS='-dynamiclib -compatibility_version 1 -current_version 1 -all_load -install_name @PREFIX@/lib/mozilla/$@'
+     # Use the standard preprocessor (cpp)
+     CFLAGS="$CFLAGS -no-cpp-precomp"
+     MKSHLIB='$(CC) -arch $(CPU_ARCH) $(DSO_LDOPTS) -o $@'
+diff -Naur mozilla/fink/applications/Mozilla-address.desktop mozilla-new/fink/applications/Mozilla-address.desktop
+--- mozilla/fink/applications/Mozilla-address.desktop	Wed Dec 31 19:00:00 1969
++++ mozilla-new/fink/applications/Mozilla-address.desktop	Sat Oct  2 14:52:52 2004
+@@ -0,0 +1,11 @@
++[Desktop Entry]
++Encoding=UTF-8
++Name=Mozilla Addressbook
++Comment=Addressbook from Mozilla Mailnews
++Exec=mozilla -addressbook
++Icon=mozilla-addressbook.xpm
++Terminal=false
++MultipleArgs=false
++Type=Application
++Categories=Application;Network
++StartupNotify=true
+diff -Naur mozilla/fink/applications/Mozilla-chatzilla.desktop mozilla-new/fink/applications/Mozilla-chatzilla.desktop
+--- mozilla/fink/applications/Mozilla-chatzilla.desktop	Wed Dec 31 19:00:00 1969
++++ mozilla-new/fink/applications/Mozilla-chatzilla.desktop	Sat Oct  2 14:52:52 2004
+@@ -0,0 +1,11 @@
++[Desktop Entry]
++Encoding=UTF-8
++Name=Chatzilla
++Comment=Mozilla Chatzilla IRC client
++Exec=mozilla -chat
++Icon=mozilla-chatzilla.xpm
++Terminal=false
++MultipleArgs=false
++Type=Application
++Categories=Application;Network
++StartupNotify=true
+diff -Naur mozilla/fink/applications/Mozilla-editor.desktop mozilla-new/fink/applications/Mozilla-editor.desktop
+--- mozilla/fink/applications/Mozilla-editor.desktop	Wed Dec 31 19:00:00 1969
++++ mozilla-new/fink/applications/Mozilla-editor.desktop	Sat Oct  2 14:52:52 2004
+@@ -0,0 +1,10 @@
++[Desktop Entry]
++Encoding=UTF-8
++Name=Mozilla Composer
++Comment=HTML editor from Mozilla project
++Exec=mozilla -edit
++Icon=mozilla-editor.xpm
++Terminal=false
++Type=Application
++Categories=Application;Network
++StartupNotify=true
+diff -Naur mozilla/fink/applications/Mozilla-mail-composer.desktop mozilla-new/fink/applications/Mozilla-mail-composer.desktop
+--- mozilla/fink/applications/Mozilla-mail-composer.desktop	Wed Dec 31 19:00:00 1969
++++ mozilla-new/fink/applications/Mozilla-mail-composer.desktop	Sat Oct  2 14:52:53 2004
+@@ -0,0 +1,11 @@
++[Desktop Entry]
++Encoding=UTF-8
++Name=Mozilla Mail Composer
++Comment=Mozilla Mail Composer
++Exec=mozilla -compose
++Icon=mozilla-mail-composer.xpm
++Terminal=false
++MultipleArgs=false
++Type=Application
++Categories=Application;Network
++StartupNotify=true
+diff -Naur mozilla/fink/applications/Mozilla-mail.desktop mozilla-new/fink/applications/Mozilla-mail.desktop
+--- mozilla/fink/applications/Mozilla-mail.desktop	Wed Dec 31 19:00:00 1969
++++ mozilla-new/fink/applications/Mozilla-mail.desktop	Sat Oct  2 14:52:53 2004
+@@ -0,0 +1,11 @@
++[Desktop Entry]
++Encoding=UTF-8
++Name=Mozilla Mail
++Comment=Mozilla Mail
++Exec=mozilla -mail
++Icon=mozilla-mailnews.xpm
++Terminal=false
++MultipleArgs=false
++Type=Application
++Categories=Application;Network
++StartupNotify=true
+diff -Naur mozilla/fink/applications/Mozilla-news.desktop mozilla-new/fink/applications/Mozilla-news.desktop
+--- mozilla/fink/applications/Mozilla-news.desktop	Wed Dec 31 19:00:00 1969
++++ mozilla-new/fink/applications/Mozilla-news.desktop	Sat Oct  2 14:52:53 2004
+@@ -0,0 +1,11 @@
++[Desktop Entry]
++Encoding=UTF-8
++Name=Mozilla News
++Comment=Mozilla News
++Exec=mozilla -news
++Icon=mozilla-mailnews.xpm
++Terminal=false
++MultipleArgs=false
++Type=Application
++Categories=Application;Network
++StartupNotify=true
+diff -Naur mozilla/fink/applications/Mozilla.desktop mozilla-new/fink/applications/Mozilla.desktop
+--- mozilla/fink/applications/Mozilla.desktop	Wed Dec 31 19:00:00 1969
++++ mozilla-new/fink/applications/Mozilla.desktop	Sat Oct  2 14:52:53 2004
+@@ -0,0 +1,10 @@
++[Desktop Entry]
++Encoding=UTF-8
++Name=Mozilla Web Browser
++Comment=Browse the World Wide Web
++Exec=mozilla
++Icon=mozilla.xpm
++Terminal=false
++Type=Application
++Categories=Application;Network
++StartupNotify=true
+diff -Naur mozilla/fink/chrome.d/default mozilla-new/fink/chrome.d/default
+--- mozilla/fink/chrome.d/default	Wed Dec 31 19:00:00 1969
++++ mozilla-new/fink/chrome.d/default	Sat Oct  2 14:52:53 2004
+@@ -0,0 +1,2 @@
++skin,install,select,modern/1.0
++locale,install,select,en-US
+diff -Naur mozilla/fink/mozilla mozilla-new/fink/mozilla
+--- mozilla/fink/mozilla	Wed Dec 31 19:00:00 1969
++++ mozilla-new/fink/mozilla	Sat Oct  2 14:52:53 2004
+@@ -0,0 +1,99 @@
++#!/bin/sh
++#
++# The contents of this file are subject to the Netscape Public
++# License Version 1.1 (the "License"); you may not use this file
++# except in compliance with the License. You may obtain a copy of
++# the License at http://www.mozilla.org/NPL/
++#
++# Software distributed under the License is distributed on an "AS
++# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
++# implied. See the License for the specific language governing
++# rights and limitations under the License.
++#
++# The Original Code is mozilla.org code.
++#
++# The Initial Developer of the Original Code is Netscape
++# Communications Corporation.  Portions created by Netscape are
++# Copyright (C) 1998 Netscape Communications Corporation. All
++# Rights Reserved.
++#
++# Contributor(s): 
++#
++
++## 
++## Usage:
++##
++## $ mozilla
++##
++## This script is meant to run a mozilla program from the mozilla
++## rpm installation.
++##
++## The script will setup all the environment voodoo needed to make
++## mozilla work.
++
++##
++## Variables
++##
++MOZ_PROGRAM="@PREFIX@/lib/mozilla/mozilla-bin"
++
++##
++## Set MOZILLA_FIVE_HOME
++##
++MOZILLA_FIVE_HOME="@PREFIX@/lib/mozilla"
++export MOZILLA_FIVE_HOME
++
++##
++## Set DYLD_LIBRARY_PATH
++##
++DYLD_LIBRARY_PATH=@PREFIX@/lib/mozilla:$DYLD_LIBRARY_PATH
++export DYLD_LIBRARY_PATH
++
++# If there is no command line argument at all then try to open a new
++# window in an already running instance.
++
++if [ -z "$1" ]; then
++  $MOZ_PROGRAM -remote "openurl(about:blank,new-window)" >/dev/null
++  RETURN_VAL=$?
++  if [ "$RETURN_VAL" -eq "2" ]; then
++    $MOZ_PROGRAM ${1+"$@"}
++    RETURN_VAL=$?
++  fi
++  exit $RETURN_VAL
++fi
++
++# If there's a command line argument but it doesn't begin with a -
++# it's probably a url.  Try to send it to a running instance.
++
++USE_EXIST=0
++opt="$1"
++case "$opt" in
++  -*) ;;
++  *) USE_EXIST=1 ;;
++esac
++
++if [ "${USE_EXIST}" -eq "1" ]; then
++  # check to make sure that the command contains at least a :/ in it.
++  echo $opt | grep -e ':/' 2>/dev/null >/dev/null
++  RETURN_VAL=$?
++  if [ "$RETURN_VAL" -eq "1" ]; then
++    # does it begin with a / ?
++    echo $opt | grep -e '^/' >/dev/null
++    RETURN_VAL=$?
++    if [ "$RETURN_VAL" -eq "0" ]; then
++      opt="file:$opt"
++    elif [ -e `pwd`/$opt ]; then
++      opt="`pwd`/$opt"
++    else
++      opt="http://$opt"
++    fi
++  fi
++  $MOZ_PROGRAM -remote "openurl($opt,new-window)" >/dev/null
++  RETURN_VAL=$?
++  if [ "$RETURN_VAL" -eq "2" ]; then
++    $MOZ_PROGRAM ${1+"$@"}
++    RETURN_VAL=$?
++  fi
++  exit $RETURN_VAL
++fi
++
++$MOZ_PROGRAM ${1+"$@"}
+diff -Naur mozilla/fink/prefs.js mozilla-new/fink/prefs.js
+--- mozilla/fink/prefs.js	Wed Dec 31 19:00:00 1969
++++ mozilla-new/fink/prefs.js	Sat Oct  2 14:52:53 2004
+@@ -0,0 +1,23 @@
++// XIM style
++pref("xim.input_style", "over-the-spot");
++
++// TryeType
++pref("font.FreeType2.enable", true);
++pref("font.freetype2.shared-library", "@PREFIX@/lib/libfreetype.6.dylib");
++pref("font.FreeType2.autohinted", true);
++pref("font.FreeType2.unhinted", true);
++pref("font.antialias.min",        10);
++pref("font.embedded_bitmaps.max", 1000000);
++pref("font.scale.tt_bitmap.dark_text.min", 64);
++pref("font.scale.tt_bitmap.dark_text.gain", "0.0");
++pref("font.directory.truetype.1", "/Library/Fonts");
++pref("font.directory.truetype.2", "/Network/Library/Fonts");
++pref("font.directory.truetype.3", "/System/Library/Fonts");
++pref("font.directory.truetype.4", "/usr/X11R6/lib/X11/fonts/TTF");
++pref("font.directory.truetype.5", "@PREFIX@/share/fonts/truetype");
++
++// AA with Bitmap scaling.
++pref("font.scale.aa_bitmap.enable", true);
++pref("font.scale.aa_bitmap.always", false);
++pref("font.scale.aa_bitmap.min", 6);
++
+diff -Naur mozilla/fink/update-mozilla-chrome mozilla-new/fink/update-mozilla-chrome
+--- mozilla/fink/update-mozilla-chrome	Wed Dec 31 19:00:00 1969
++++ mozilla-new/fink/update-mozilla-chrome	Sat Oct  2 14:52:53 2004
+@@ -0,0 +1,24 @@
++#!/bin/sh -e
++
++ulimit -s unlimited || true
++
++MOZILLA_FIVE_HOME=@PREFIX@/lib/mozilla
++CHROME_DIR=@PREFIX@/var/lib/mozilla/chrome.d
++
++export DYLD_LIBRARY_PATH=$MOZILLA_FIVE_HOME
++
++TMPFILE=`tempfile`
++cat ${CHROME_DIR}/* >>${TMPFILE}
++mv ${TMPFILE} ${MOZILLA_FIVE_HOME}/chrome/installed-chrome.txt
++chmod 644 ${MOZILLA_FIVE_HOME}/chrome/installed-chrome.txt
++
++rm -rf ${MOZILLA_FIVE_HOME}/chrome/overlayinfo
++rm -f  ${MOZILLA_FIVE_HOME}/chrome/*.rdf
++rm -f  ${MOZILLA_FIVE_HOME}/component.reg
++rm -f  ${MOZILLA_FIVE_HOME}/components/*.dat
++
++sudo -H ${MOZILLA_FIVE_HOME}/regxpcom || true
++sudo -H ${MOZILLA_FIVE_HOME}/regchrome || true
++
++exit 0
++
+diff -Naur mozilla/gfx/idl/nsIFreeType2.idl mozilla-new/gfx/idl/nsIFreeType2.idl
+--- mozilla/gfx/idl/nsIFreeType2.idl	Thu Apr 15 21:09:33 2004
++++ mozilla-new/gfx/idl/nsIFreeType2.idl	Sat Oct  2 14:53:35 2004
+@@ -76,10 +76,11 @@
+ native FT_Sfnt_Tag(FT_Sfnt_Tag);
+ native FT_Size(FT_Size);
+ 
+-[ptr] native FTC_Image_Desc_p(FTC_Image_Desc);
++[ptr] native FTC_ImageType_p(FTC_ImageType);
+ native FTC_Face_Requester(FTC_Face_Requester);
+ native FTC_Font(FTC_Font);
+-native FTC_Image_Cache(FTC_Image_Cache);
++native FTC_FaceID(FTC_FaceID);
++native FTC_ImageCache(FTC_ImageCache);
+ native FTC_Manager(FTC_Manager);
+ 
+ // #ifdef MOZ_SVG
+@@ -99,7 +100,7 @@
+ 
+     readonly attribute FT_Library library;
+     readonly attribute FTC_Manager FTCacheManager;
+-    readonly attribute FTC_Image_Cache ImageCache;
++    readonly attribute FTC_ImageCache ImageCache;
+ 
+     void    doneFace(in FT_Face face);
+     void    doneFreeType(in FT_Library lib);
+@@ -115,16 +116,16 @@
+     void    outlineDecompose(in FT_Outline_p outline,
+                              in const_FT_Outline_Funcs_p funcs, in voidPtr p);
+     void    setCharmap(in FT_Face face, in FT_CharMap charmap);
+-    void    imageCacheLookup(in FTC_Image_Cache cache, in FTC_Image_Desc_p desc,
++    void    imageCacheLookup(in FTC_ImageCache cache, in FTC_ImageType_p desc,
+                              in FT_UInt gindex, out FT_Glyph glyph);
+-    void    managerLookupSize(in FTC_Manager manager, in FTC_Font font,
+-                              out FT_Face face, out FT_Size size);
++    void    managerLookupFace(in FTC_Manager manager, in FTC_FaceID face_id,
++                              out FT_Face face);
+     void    managerDone(in FTC_Manager manager);
+     void    managerNew(in FT_Library lib, in FT_UInt max_faces,
+                        in FT_UInt max_sizes, in FT_ULong max_bytes,
+                        in FTC_Face_Requester requester, in FT_Pointer req_data,
+                        out FTC_Manager manager);
+-    void    imageCacheNew(in FTC_Manager manager, out FTC_Image_Cache cache);
++    void    imageCacheNew(in FTC_Manager manager, out FTC_ImageCache cache);
+ /* #ifdef MOZ_SVG */
+     void glyphTransform(in FT_Glyph glyph, in FT_Matrix_p matrix,
+                         in FT_Vector_p delta);
+diff -Naur mozilla/gfx/src/freetype/nsFreeType.cpp mozilla-new/gfx/src/freetype/nsFreeType.cpp
+--- mozilla/gfx/src/freetype/nsFreeType.cpp	Sat Feb  7 10:22:30 2004
++++ mozilla-new/gfx/src/freetype/nsFreeType.cpp	Sat Oct  2 14:53:35 2004
+@@ -110,11 +110,11 @@
+   {"FT_New_Face",             NS_FT2_OFFSET(nsFT_New_Face),             PR_TRUE},
+   {"FT_Outline_Decompose",    NS_FT2_OFFSET(nsFT_Outline_Decompose),    PR_TRUE},
+   {"FT_Set_Charmap",          NS_FT2_OFFSET(nsFT_Set_Charmap),          PR_TRUE},
+-  {"FTC_Image_Cache_Lookup",  NS_FT2_OFFSET(nsFTC_Image_Cache_Lookup),  PR_TRUE},
+-  {"FTC_Manager_Lookup_Size", NS_FT2_OFFSET(nsFTC_Manager_Lookup_Size), PR_TRUE},
++  {"FTC_ImageCache_Lookup",   NS_FT2_OFFSET(nsFTC_Image_Cache_Lookup),  PR_TRUE},
++  {"FTC_Manager_LookupFace",  NS_FT2_OFFSET(nsFTC_Manager_LookupFace),  PR_TRUE},
+   {"FTC_Manager_Done",        NS_FT2_OFFSET(nsFTC_Manager_Done),        PR_TRUE},
+   {"FTC_Manager_New",         NS_FT2_OFFSET(nsFTC_Manager_New),         PR_TRUE},
+-  {"FTC_Image_Cache_New",     NS_FT2_OFFSET(nsFTC_Image_Cache_New),     PR_TRUE},
++  {"FTC_ImageCache_New",      NS_FT2_OFFSET(nsFTC_Image_Cache_New),     PR_TRUE},
+ // #ifdef MOZ_SVG
+   {"FT_Glyph_Transform",      NS_FT2_OFFSET(nsFT_Glyph_Transform),      PR_TRUE},
+   {"FT_Get_Kerning",          NS_FT2_OFFSET(nsFT_Get_Kerning),          PR_TRUE},
+@@ -282,7 +282,7 @@
+ } 
+  
+ NS_IMETHODIMP
+-nsFreeType2::ImageCacheLookup(FTC_Image_Cache cache, FTC_Image_Desc *desc,
++nsFreeType2::ImageCacheLookup(FTC_ImageCache cache, FTC_ImageType *desc,
+                               FT_UInt glyphID, FT_Glyph *glyph)
+ { 
+   // call the FreeType2 function via the function pointer
+@@ -291,11 +291,11 @@
+ } 
+  
+ NS_IMETHODIMP
+-nsFreeType2::ManagerLookupSize(FTC_Manager manager, FTC_Font font,
+-                               FT_Face *face, FT_Size *size)
++nsFreeType2::ManagerLookupFace(FTC_Manager manager, FTC_FaceID face_id,
++                               FT_Face *face)
+ { 
+   // call the FreeType2 function via the function pointer
+-  FT_Error error = nsFTC_Manager_Lookup_Size(manager, font, face, size);
++  FT_Error error = nsFTC_Manager_LookupFace(manager, face_id, face);
+   return error ? NS_ERROR_FAILURE : NS_OK;
+ } 
+  
+@@ -320,7 +320,7 @@
+ } 
+  
+ NS_IMETHODIMP
+-nsFreeType2::ImageCacheNew(FTC_Manager manager, FTC_Image_Cache *cache)
++nsFreeType2::ImageCacheNew(FTC_Manager manager, FTC_ImageCache *cache)
+ { 
+   // call the FreeType2 function via the function pointer
+   FT_Error error = nsFTC_Image_Cache_New(manager, cache);
+@@ -389,7 +389,7 @@
+ } 
+  
+ NS_IMETHODIMP
+-nsFreeType2::GetImageCache(FTC_Image_Cache *aCache)
++nsFreeType2::GetImageCache(FTC_ImageCache *aCache)
+ {
+   *aCache = mImageCache;
+   return NS_OK;
+diff -Naur mozilla/gfx/src/freetype/nsFreeType.h mozilla-new/gfx/src/freetype/nsFreeType.h
+--- mozilla/gfx/src/freetype/nsFreeType.h	Fri Apr 16 17:31:42 2004
++++ mozilla-new/gfx/src/freetype/nsFreeType.h	Sat Oct  2 14:53:35 2004
+@@ -104,13 +104,13 @@
+ typedef FT_Error (*FT_New_Face_t)(FT_Library, const char*, FT_Long, FT_Face*);
+ typedef FT_Error (*FT_Set_Charmap_t)(FT_Face face, FT_CharMap  charmap);
+ typedef FT_Error (*FTC_Image_Cache_Lookup_t)
+-                      (FTC_Image_Cache, FTC_Image_Desc*, FT_UInt, FT_Glyph*);
+-typedef FT_Error (*FTC_Manager_Lookup_Size_t)
+-                      (FTC_Manager, FTC_Font, FT_Face*, FT_Size*);
++                      (FTC_ImageCache, FTC_ImageType*, FT_UInt, FT_Glyph*);
++typedef FT_Error (*FTC_Manager_LookupFace_t)
++                      (FTC_Manager, FTC_FaceID, FT_Face*);
+ typedef FT_Error (*FTC_Manager_Done_t)(FTC_Manager);
+ typedef FT_Error (*FTC_Manager_New_t)(FT_Library, FT_UInt, FT_UInt, FT_ULong,
+                        FTC_Face_Requester, FT_Pointer, FTC_Manager*);
+-typedef FT_Error (*FTC_Image_Cache_New_t)(FTC_Manager, FTC_Image_Cache*);
++typedef FT_Error (*FTC_Image_Cache_New_t)(FTC_Manager, FTC_ImageCache*);
+ // #ifdef MOZ_SVG
+ typedef FT_Error (*FT_Glyph_Transform_t)(FT_Glyph, FT_Matrix*, FT_Vector*);
+ typedef FT_Error (*FT_Get_Kerning_t)
+@@ -165,7 +165,7 @@
+   FT_Outline_Decompose_t    nsFT_Outline_Decompose;
+   FT_Set_Charmap_t          nsFT_Set_Charmap;
+   FTC_Image_Cache_Lookup_t  nsFTC_Image_Cache_Lookup;
+-  FTC_Manager_Lookup_Size_t nsFTC_Manager_Lookup_Size;
++  FTC_Manager_LookupFace_t  nsFTC_Manager_LookupFace;
+   FTC_Manager_Done_t        nsFTC_Manager_Done;
+   FTC_Manager_New_t         nsFTC_Manager_New;
+   FTC_Image_Cache_New_t     nsFTC_Image_Cache_New;
+@@ -213,7 +213,7 @@
+   PRLibrary      *mSharedLib;
+   FT_Library      mFreeTypeLibrary;
+   FTC_Manager     mFTCacheManager;
+-  FTC_Image_Cache mImageCache;
++  FTC_ImageCache  mImageCache;
+ 
+   static nsHashtable   *sFontFamilies;
+   static nsHashtable   *sRange1CharSetNames;
+diff -Naur mozilla/gfx/src/freetype/nsFreeType.h.orig mozilla-new/gfx/src/freetype/nsFreeType.h.orig
+--- mozilla/gfx/src/freetype/nsFreeType.h.orig	Wed Dec 31 19:00:00 1969
++++ mozilla-new/gfx/src/freetype/nsFreeType.h.orig	Fri Apr 16 17:31:42 2004
+@@ -0,0 +1,307 @@
++/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
++ * ex: set tabstop=8 softtabstop=2 shiftwidth=2 expandtab:
++ *
++ * The contents of this file are subject to the Netscape Public
++ * License Version 1.1 (the "License"); you may not use this file
++ * except in compliance with the License. You may obtain a copy of
++ * the License at http://www.mozilla.org/NPL/
++ *
++ * Software distributed under the License is distributed on an "AS
++ * IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
++ * implied. See the License for the specific language governing
++ * rights and limitations under the License.
++ *
++ * The Original Code is mozilla.org code.
++ *
++ * The Initial Developer of the Original Code is Netscape
++ * Communications Corporation.  Portions created by Netscape are
++ * Copyright (C) 1998 Netscape Communications Corporation. All
++ * Rights Reserved.
++ *
++ * Contributor(s): 
++ */
++
++#ifndef nsFreeType_h__
++#define nsFreeType_h__
++
++#include "gfx-config.h"
++#if (defined(MOZ_ENABLE_FREETYPE2))
++
++#include "nspr.h"
++#include "nsHashtable.h"
++#include "nsICharsetConverterManager.h"
++#include "nsIFontCatalogService.h"
++#include <ft2build.h>
++#include FT_FREETYPE_H
++#include FT_CACHE_H
++#include FT_CACHE_IMAGE_H
++#include FT_TRUETYPE_TABLES_H
++#include "nsIFreeType2.h"
++
++typedef struct FT_FaceRec_*  FT_Face;
++
++typedef struct {
++  const char   *mFontFileName;
++  time_t        mMTime;
++  PRUint32      mFlags;
++  const char   *mFontType;
++  int           mFaceIndex;
++  int           mNumFaces;
++  const char   *mFamilyName;
++  const char   *mStyleName;
++  FT_UShort     mWeight;
++  FT_UShort     mWidth;
++  int           mNumGlyphs;
++  int           mNumUsableGlyphs;
++  FT_Long       mFaceFlags;
++  FT_Long       mStyleFlags;
++  FT_Long       mCodePageRange1;
++  FT_Long       mCodePageRange2;
++  char          mVendorID[5];
++  const char   *mFoundryName;
++  int           mNumEmbeddedBitmaps;
++  int          *mEmbeddedBitmapHeights;
++  PRUint16     *mCCMap;       // compressed char map
++} nsFontCatalogEntry;
++
++#define FCE_FLAGS_ISVALID    0x01
++#define FCE_FLAGS_UNICODE    0x02
++#define FCE_FLAGS_SYMBOL     0x04
++#define FCE_FLAGS_SURROGATE  0x08
++#define FREE_IF(x) if(x) free((void*)x)
++
++typedef struct {
++  const char             *mConverterName;
++  PRUint8                 mCmapPlatformID;
++  PRUint8                 mCmapEncoding;
++  nsIUnicodeEncoder*      mConverter;
++} nsTTFontEncoderInfo;
++
++typedef struct nsTTFontFamilyEncoderInfo {
++  const char             *mFamilyName;
++  nsTTFontEncoderInfo    *mEncodingInfo;
++} nsTTFontFamilyEncoderInfo;
++
++typedef struct {
++  unsigned long bit;
++  const char *charsetName;
++} nsulCodePageRangeCharSetName;
++
++//
++// the FreeType2 function type declarations
++//
++typedef FT_Error (*FT_Done_Face_t)(FT_Face);
++typedef FT_Error (*FT_Done_FreeType_t)(FT_Library);
++typedef FT_Error (*FT_Done_Glyph_t)(FT_Glyph);
++typedef FT_Error (*FT_Get_Char_Index_t)(FT_Face, FT_ULong);
++typedef FT_Error (*FT_Get_Glyph_t)(FT_GlyphSlot, FT_Glyph*);
++typedef void*    (*FT_Get_Sfnt_Table_t)(FT_Face, FT_Sfnt_Tag);
++typedef FT_Error (*FT_Glyph_Get_CBox_t)(FT_Glyph, FT_UInt, FT_BBox*);
++typedef FT_Error (*FT_Init_FreeType_t)(FT_Library*);
++typedef FT_Error (*FT_Load_Glyph_t)(FT_Face, FT_UInt, FT_Int);
++typedef FT_Error (*FT_Outline_Decompose_t)
++                      (FT_Outline*, const FT_Outline_Funcs*, void*);
++typedef FT_Error (*FT_New_Face_t)(FT_Library, const char*, FT_Long, FT_Face*);
++typedef FT_Error (*FT_Set_Charmap_t)(FT_Face face, FT_CharMap  charmap);
++typedef FT_Error (*FTC_Image_Cache_Lookup_t)
++                      (FTC_Image_Cache, FTC_Image_Desc*, FT_UInt, FT_Glyph*);
++typedef FT_Error (*FTC_Manager_Lookup_Size_t)
++                      (FTC_Manager, FTC_Font, FT_Face*, FT_Size*);
++typedef FT_Error (*FTC_Manager_Done_t)(FTC_Manager);
++typedef FT_Error (*FTC_Manager_New_t)(FT_Library, FT_UInt, FT_UInt, FT_ULong,
++                       FTC_Face_Requester, FT_Pointer, FTC_Manager*);
++typedef FT_Error (*FTC_Image_Cache_New_t)(FTC_Manager, FTC_Image_Cache*);
++// #ifdef MOZ_SVG
++typedef FT_Error (*FT_Glyph_Transform_t)(FT_Glyph, FT_Matrix*, FT_Vector*);
++typedef FT_Error (*FT_Get_Kerning_t)
++                      (FT_Face, FT_UInt, FT_UInt, FT_UInt, FT_Vector*);
++typedef FT_Error (*FT_Glyph_Copy_t)(FT_Glyph, FT_Glyph*);
++typedef FT_Error (*FT_Glyph_To_Bitmap_t)
++                      (FT_Glyph*, FT_Render_Mode, FT_Vector*, FT_Bool);
++// #endif
++
++typedef FT_ULong (*FT_Get_First_Char_t)(FT_Face, FT_UInt*);
++typedef FT_ULong (*FT_Get_Next_Char_t)(FT_Face, FT_ULong, FT_UInt*);
++
++class nsFreeTypeFace;
++
++nsFreeTypeFace * nsFreeTypeGetFaceID(nsFontCatalogEntry *aFce);
++
++typedef struct {
++  const char *FuncName;
++  int  FuncOffset;
++  const PRBool Required;
++} FtFuncList;
++
++// class nsFreeType class definition
++class nsFreeType2 : nsIFreeType2 {
++  NS_DECL_ISUPPORTS
++
++public:
++  void FreeGlobals();
++  nsresult Init();
++  virtual ~nsFreeType2();
++
++  NS_DECL_NSIFREETYPE2
++
++  // these belong in nsFT2FontCatalog
++  static PRUint16*   GetCCMap(nsFontCatalogEntry *aFce);
++  static const char* GetRange1CharSetName(unsigned long aBit);
++  static const char* GetRange2CharSetName(unsigned long aBit);
++  static nsTTFontFamilyEncoderInfo* GetCustomEncoderInfo(const char *);
++
++protected:
++  // run time loaded function pointers
++  FT_Done_Face_t            nsFT_Done_Face;
++  FT_Done_FreeType_t        nsFT_Done_FreeType;
++  FT_Done_Glyph_t           nsFT_Done_Glyph;
++  FT_Get_Char_Index_t       nsFT_Get_Char_Index;
++  FT_Get_Glyph_t            nsFT_Get_Glyph;
++  FT_Get_Sfnt_Table_t       nsFT_Get_Sfnt_Table;
++  FT_Glyph_Get_CBox_t       nsFT_Glyph_Get_CBox;
++  FT_Init_FreeType_t        nsFT_Init_FreeType;
++  FT_Load_Glyph_t           nsFT_Load_Glyph;
++  FT_New_Face_t             nsFT_New_Face;
++  FT_Outline_Decompose_t    nsFT_Outline_Decompose;
++  FT_Set_Charmap_t          nsFT_Set_Charmap;
++  FTC_Image_Cache_Lookup_t  nsFTC_Image_Cache_Lookup;
++  FTC_Manager_Lookup_Size_t nsFTC_Manager_Lookup_Size;
++  FTC_Manager_Done_t        nsFTC_Manager_Done;
++  FTC_Manager_New_t         nsFTC_Manager_New;
++  FTC_Image_Cache_New_t     nsFTC_Image_Cache_New;
++// #ifdef MOZ_SVG
++  FT_Glyph_Transform_t      nsFT_Glyph_Transform;
++  FT_Get_Kerning_t          nsFT_Get_Kerning;
++  FT_Glyph_Copy_t           nsFT_Glyph_Copy;
++  FT_Glyph_To_Bitmap_t      nsFT_Glyph_To_Bitmap;
++// #endif
++  FT_Get_First_Char_t       nsFT_Get_First_Char;
++  FT_Get_Next_Char_t        nsFT_Get_Next_Char;
++
++  // this array needs to be big enough to hold all the function pointers
++  // plus one extra for the null at the end
++// #ifdef MOZ_SVG
++  static FtFuncList FtFuncs[24];
++// #else
++//  static FtFuncList FtFuncs[20];
++// #endif
++  
++protected:
++  PRBool mEnableFreeType2;
++  char*  mFreeType2SharedLibraryName;
++
++public:
++  // these belong in the nsFontFreeType code
++  static PRBool  gFreeType2Autohinted;
++  static PRBool  gFreeType2Unhinted;
++  static PRUint8 gAATTDarkTextMinValue;
++  static double  gAATTDarkTextGain;
++  static PRInt32 gAntiAliasMinimum;
++  static PRInt32 gEmbeddedBitmapMaximumHeight;
++  static PRBool  gHasExtFunc;
++
++protected:
++  void ClearGlobals();
++  void ClearFunctions();
++  PRBool InitLibrary();
++  PRBool LoadSharedLib();
++  void UnloadSharedLib();
++
++  // this belongs in nsFT2FontCatalog
++  static nsICharsetConverterManager* GetCharSetManager();
++
++  PRLibrary      *mSharedLib;
++  FT_Library      mFreeTypeLibrary;
++  FTC_Manager     mFTCacheManager;
++  FTC_Image_Cache mImageCache;
++
++  static nsHashtable   *sFontFamilies;
++  static nsHashtable   *sRange1CharSetNames;
++  static nsHashtable   *sRange2CharSetNames;
++  static nsICharsetConverterManager* sCharSetManager;
++};
++
++/* this simple record is used to model a given `installed' face */
++class nsFreeTypeFace : public nsITrueTypeFontCatalogEntry {
++public:
++  NS_DECL_ISUPPORTS
++  NS_DECL_NSITRUETYPEFONTCATALOGENTRY
++  
++  nsFreeTypeFace();
++  virtual ~nsFreeTypeFace();
++  virtual nsresult Init(nsFontCatalogEntry *aFce);
++  /* additional members */
++  NS_IMETHODIMP GetFontCatalogType(PRUint16 *aFontCatalogType);
++
++  static PRBool FreeFace(nsHashKey* aKey, void* aData, void* aClosure);
++  const char *GetFilename()
++                  { return mFce->mFontFileName; }
++  int *GetEmbeddedBitmapHeights()
++                  { return mFce->mEmbeddedBitmapHeights; } ;
++  int GetFaceIndex()
++                  { return mFce->mFaceIndex; }
++  int GetNumEmbeddedBitmaps()
++                  { return mFce->mNumEmbeddedBitmaps; } ;
++  PRUint16 *GetCCMap();
++  nsFontCatalogEntry* GetFce() { return mFce; };
++
++  PRBool mHasExtendFuncs;
++
++protected:
++  nsFontCatalogEntry *mFce;
++  PRUint16           *mCCMap;
++
++};
++
++#endif /* MOZ_ENABLE_FREETYPE2 */
++
++/*
++ * Defines for the TrueType codepage bits.
++ * Used as a hint for the languages supported in a TrueType font.
++ */
++
++/*
++ * ulCodePageRange1
++ */
++#define TT_OS2_CPR1_LATIN1       (0x00000001) /* Latin 1                     */
++#define TT_OS2_CPR1_LATIN2       (0x00000002) /* Latin 2: Eastern Europe     */
++#define TT_OS2_CPR1_CYRILLIC     (0x00000004) /* Cyrillic                    */
++#define TT_OS2_CPR1_GREEK        (0x00000008) /* Greek                       */
++#define TT_OS2_CPR1_TURKISH      (0x00000010) /* Turkish                     */
++#define TT_OS2_CPR1_HEBREW       (0x00000020) /* Hebrew                      */
++#define TT_OS2_CPR1_ARABIC       (0x00000040) /* Arabic                      */
++#define TT_OS2_CPR1_BALTIC       (0x00000080) /* Windows Baltic              */
++#define TT_OS2_CPR1_VIETNAMESE   (0x00000100) /* Vietnamese                  */
++                                 /* 9-15     Reserved for Alternate ANSI     */
++#define TT_OS2_CPR1_THAI         (0x00010000) /* Thai                        */
++#define TT_OS2_CPR1_JAPANESE     (0x00020000) /* JIS/Japan                   */
++#define TT_OS2_CPR1_CHINESE_SIMP (0x00040000) /* Chinese: Simplified         */
++#define TT_OS2_CPR1_KO_WANSUNG   (0x00080000) /* Korean Wansung              */
++#define TT_OS2_CPR1_CHINESE_TRAD (0x00100000) /* Chinese: Traditional        */
++#define TT_OS2_CPR1_KO_JOHAB     (0x00200000) /* Korean Johab                */
++                                 /* 22-28    Reserved for Alternate ANSI&OEM */
++#define TT_OS2_CPR1_MAC_ROMAN    (0x20000000) /* Mac (US Roman)              */
++#define TT_OS2_CPR1_OEM          (0x40000000) /* OEM Character Set           */
++#define TT_OS2_CPR1_SYMBOL       (0x80000000) /* Symbol Character Set        */
++
++/*
++ * ulCodePageRange2
++ */                              /* 32-47    Reserved for OEM                */
++#define TT_OS2_CPR2_GREEK        (0x00010000) /* IBM Greek                   */
++#define TT_OS2_CPR2_RUSSIAN      (0x00020000) /* MS-DOS Russian              */
++#define TT_OS2_CPR2_NORDIC       (0x00040000) /* MS-DOS Nordic               */
++#define TT_OS2_CPR2_ARABIC       (0x00080000) /* Arabic                      */
++#define TT_OS2_CPR2_CA_FRENCH    (0x00100000) /* MS-DOS Canadian French      */
++#define TT_OS2_CPR2_HEBREW       (0x00200000) /* Hebrew                      */
++#define TT_OS2_CPR2_ICELANDIC    (0x00400000) /* MS-DOS Icelandic            */
++#define TT_OS2_CPR2_PORTUGESE    (0x00800000) /* MS-DOS Portuguese           */
++#define TT_OS2_CPR2_TURKISH      (0x01000000) /* IBM Turkish                 */
++#define TT_OS2_CPR2_CYRILLIC     (0x02000000)/*IBM Cyrillic; primarily Russian*/
++#define TT_OS2_CPR2_LATIN2       (0x04000000) /* Latin 2                     */
++#define TT_OS2_CPR2_BALTIC       (0x08000000) /* MS-DOS Baltic               */
++#define TT_OS2_CPR2_GREEK_437G   (0x10000000) /* Greek; former 437 G         */
++#define TT_OS2_CPR2_ARABIC_708   (0x20000000) /* Arabic; ASMO 708            */
++#define TT_OS2_CPR2_WE_LATIN1    (0x40000000) /* WE/Latin 1                  */
++#define TT_OS2_CPR2_US           (0x80000000) /* US                          */
++
++#endif
+diff -Naur mozilla/gfx/src/ps/nsFontMetricsPS.cpp mozilla-new/gfx/src/ps/nsFontMetricsPS.cpp
+--- mozilla/gfx/src/ps/nsFontMetricsPS.cpp	Wed Feb  4 20:57:05 2004
++++ mozilla-new/gfx/src/ps/nsFontMetricsPS.cpp	Sat Oct  2 14:53:35 2004
+@@ -1141,10 +1141,10 @@
+   
+   mPixelSize = NSToIntRound(app2dev * mFont->size);
+ 
+-  mImageDesc.font.face_id    = (void*)mEntry;
+-  mImageDesc.font.pix_width  = mPixelSize;
+-  mImageDesc.font.pix_height = mPixelSize;
+-  mImageDesc.image_type = 0;
++  mImageDesc->face_id = (FTC_FaceID)&mEntry;
++  mImageDesc->width   = mPixelSize;
++  mImageDesc->height  = mPixelSize;
++  mImageDesc->flags   = 0;
+ 
+   nsresult rv;
+   mFt2 = do_GetService(NS_FREETYPE2_CONTRACTID, &rv);
+@@ -1190,7 +1190,7 @@
+   if (!face)
+     return 0;
+ 
+-  FTC_Image_Cache iCache;
++  FTC_ImageCache iCache;
+   nsresult rv = mFt2->GetImageCache(&iCache);
+   if (NS_FAILED(rv)) {
+     NS_ERROR("Failed to get Image Cache");
+@@ -1228,8 +1228,8 @@
+   
+   FTC_Manager cManager;
+   mFt2->GetFTCacheManager(&cManager);
+-  nsresult rv = mFt2->ManagerLookupSize(cManager, &mImageDesc.font,
+-                                        &face, nsnull);
++  nsresult rv = mFt2->ManagerLookupFace(cManager, mImageDesc->face_id,
++                                        &face);
+   NS_ASSERTION(rv==0, "failed to get face/size");
+   if (rv)
+     return nsnull;
+@@ -1622,16 +1622,16 @@
+   mEntry->GetFamilyName(fontName);
+   mEntry->GetStyleName(styleName);
+   
+-  mImageDesc.font.face_id    = (void*)mEntry;
++  mImageDesc->face_id = (FTC_FaceID)&mEntry;
+   // TT glyph has no relation to size
+-  mImageDesc.font.pix_width  = 16;
+-  mImageDesc.font.pix_height = 16;
+-  mImageDesc.image_type = 0;
++  mImageDesc->width  = 16;
++  mImageDesc->height = 16;
++  mImageDesc->flags = 0;
+   FT_Face face = nsnull;
+   FTC_Manager cManager;
+   mFt2->GetFTCacheManager(&cManager);
+-  nsresult rv = mFt2->ManagerLookupSize(cManager, &mImageDesc.font,
+-                                        &face, nsnull);
++  nsresult rv = mFt2->ManagerLookupFace(cManager, mImageDesc->face_id,
++                                        &face);
+   if (NS_FAILED(rv))
+     return;
+  
+diff -Naur mozilla/gfx/src/ps/nsFontMetricsPS.h mozilla-new/gfx/src/ps/nsFontMetricsPS.h
+--- mozilla/gfx/src/ps/nsFontMetricsPS.h	Tue Apr 22 12:25:09 2003
++++ mozilla-new/gfx/src/ps/nsFontMetricsPS.h	Sat Oct  2 14:53:35 2004
+@@ -320,7 +320,7 @@
+   nsCOMPtr<nsITrueTypeFontCatalogEntry> mFaceID;
+   nsCOMPtr<nsIFreeType2> mFt2;
+   PRUint16        mPixelSize;
+-  FTC_Image_Desc  mImageDesc;
++  FTC_ImageType   mImageDesc;
+ 
+ 
+   static PRBool AddUserPref(nsIAtom *aLang, const nsFont& aFont,
+@@ -363,7 +363,7 @@
+ protected:
+   nsCOMPtr<nsITrueTypeFontCatalogEntry> mEntry;
+   nsCOMPtr<nsIFreeType2> mFt2;
+-  FTC_Image_Desc  mImageDesc;
++  FTC_ImageType   mImageDesc;
+ };
+ #endif
+ 
+diff -Naur mozilla/gfx/src/x11shared/nsFontFreeType.cpp mozilla-new/gfx/src/x11shared/nsFontFreeType.cpp
+--- mozilla/gfx/src/x11shared/nsFontFreeType.cpp	Thu Dec 25 03:24:52 2003
++++ mozilla-new/gfx/src/x11shared/nsFontFreeType.cpp	Sat Oct  2 14:53:35 2004
+@@ -177,7 +177,7 @@
+   FTC_Manager mgr;
+   nsresult rv;
+   mFt2->GetFTCacheManager(&mgr);
+-  rv = mFt2->ManagerLookupSize(mgr, &mImageDesc.font, &face, nsnull);
++  rv = mFt2->ManagerLookupFace(mgr, mImageDesc->face_id, &face);
+   NS_ASSERTION(NS_SUCCEEDED(rv), "failed to get face/size");
+   if (NS_FAILED(rv))
+     return nsnull;
+@@ -191,22 +191,15 @@
+   PRBool embedded_bimap = PR_FALSE;
+   mFaceID = aFaceID;
+   mPixelSize = aPixelSize;
+-  mImageDesc.font.face_id    = (void*)mFaceID;
+-  mImageDesc.font.pix_width  = aPixelSize;
+-  mImageDesc.font.pix_height = aPixelSize;
+-  mImageDesc.image_type = 0;
++  mImageDesc->face_id = (FTC_FaceID)&mFaceID;
++  mImageDesc->width  = aPixelSize;
++  mImageDesc->height = aPixelSize;
++  mImageDesc->flags = 0;
+ 
+   if (aPixelSize < nsFreeType2::gAntiAliasMinimum) {
+-    mImageDesc.image_type |= ftc_image_mono;
+     anti_alias = PR_FALSE;
+   }
+ 
+-  if (nsFreeType2::gFreeType2Autohinted)
+-    mImageDesc.image_type |= ftc_image_flag_autohinted;
+-
+-  if (nsFreeType2::gFreeType2Unhinted)
+-    mImageDesc.image_type |= ftc_image_flag_unhinted;
+-
+   PRUint32  num_embedded_bitmaps, i;
+   PRInt32*  embedded_bitmapheights;
+   mFaceID->GetEmbeddedBitmapHeights(&num_embedded_bitmaps,
+@@ -218,7 +211,6 @@
+         if (embedded_bitmapheights[i] == aPixelSize) {
+           embedded_bimap = PR_TRUE;
+           // unhinted must be set for embedded bitmaps to be used
+-          mImageDesc.image_type |= ftc_image_flag_unhinted;
+           break;
+         }
+       }
+@@ -312,7 +304,7 @@
+   if (!face)
+     return NS_ERROR_FAILURE;
+ 
+-  FTC_Image_Cache icache;
++  FTC_ImageCache icache;
+   mFt2->GetImageCache(&icache);
+   if (!icache)
+     return NS_ERROR_FAILURE;
+@@ -401,7 +393,7 @@
+   if (!face)
+     return 0;
+ 
+-  FTC_Image_Cache icache;
++  FTC_ImageCache icache;
+   mFt2->GetImageCache(&icache);
+   if (!icache)
+     return 0;
+@@ -723,7 +715,7 @@
+     if (y%4==0) (*blendPixelFunc)(sub_image, y, ascent-1, black, 255/2);
+ #endif
+ 
+-  FTC_Image_Cache icache;
++  FTC_ImageCache icache;
+   mFt2->GetImageCache(&icache);
+   if (!icache)
+     return 0;
+diff -Naur mozilla/gfx/src/x11shared/nsFontFreeType.h mozilla-new/gfx/src/x11shared/nsFontFreeType.h
+--- mozilla/gfx/src/x11shared/nsFontFreeType.h	Tue Apr 22 12:25:13 2003
++++ mozilla-new/gfx/src/x11shared/nsFontFreeType.h	Sat Oct  2 14:53:35 2004
+@@ -110,7 +110,7 @@
+   XImage *GetXImage(PRUint32 width, PRUint32 height);
+   nsITrueTypeFontCatalogEntry *mFaceID;
+   PRUint16        mPixelSize;
+-  FTC_Image_Desc  mImageDesc;
++  FTC_ImageType   mImageDesc;
+   nsCOMPtr<nsIFreeType2> mFt2;
+ };
+ 
+diff -Naur mozilla/modules/libpref/src/nsPrefService.cpp mozilla-new/modules/libpref/src/nsPrefService.cpp
+--- mozilla/modules/libpref/src/nsPrefService.cpp	Thu Feb 12 08:09:13 2004
++++ mozilla-new/modules/libpref/src/nsPrefService.cpp	Sat Oct  2 14:52:53 2004
+@@ -779,6 +779,7 @@
+ #elif defined(XP_BEOS)
+       "beos.js"
+ #endif
++      , "fink.js"
+   };
+ 
+   rv = pref_LoadPrefsInDir(defaultPrefDir, specialFiles, NS_ARRAY_LENGTH(specialFiles));
+diff -Naur mozilla/nsprpub/configure mozilla-new/nsprpub/configure
+--- mozilla/nsprpub/configure	Fri Apr 16 18:28:02 2004
++++ mozilla-new/nsprpub/configure	Sat Oct  2 14:52:53 2004
+@@ -3305,7 +3305,7 @@
+ 
+         CPU_ARCH=ppc
+     fi
+-    DSO_LDOPTS='-dynamiclib -compatibility_version 1 -current_version 1 -all_load -install_name @executable_path/$@ -headerpad_max_install_names'
++    DSO_LDOPTS='-dynamiclib -compatibility_version 1 -current_version 1 -all_load -install_name @PREFIX@/lib/mozilla/$@ -headerpad_max_install_names'
+     # Use the standard preprocessor (cpp)
+     CFLAGS="$CFLAGS -no-cpp-precomp"
+     MKSHLIB='$(CC) -arch $(CPU_ARCH) $(DSO_LDOPTS) -o $@'
+@@ -3320,9 +3320,6 @@
+ 
+     # Add Mac OS X support for loading CFM & CFBundle plugins
+     if test -f /System/Library/Frameworks/Carbon.framework/Carbon; then
+-        cat >> confdefs.h <<\EOF
+-#define XP_MACOSX 1
+-EOF
+ 
+         OS_TARGET=MacOSX
+ 
+@@ -4837,8 +4834,6 @@
+ 
+ 
+ case $target in
+-*-darwin*)
+-    ;;
+ *)
+     echo $ac_n "checking for dlopen in -ldl""... $ac_c" 1>&6
+ echo "configure:4845: checking for dlopen in -ldl" >&5
+diff -Naur mozilla/nsprpub/pr/include/md/_darwin.h mozilla-new/nsprpub/pr/include/md/_darwin.h
+--- mozilla/nsprpub/pr/include/md/_darwin.h	Wed Nov 26 20:30:44 2003
++++ mozilla-new/nsprpub/pr/include/md/_darwin.h	Sat Oct  2 14:52:53 2004
+@@ -55,7 +55,8 @@
+ 
+ #undef  HAVE_STACK_GROWING_UP
+ #define HAVE_DLL
+-#define USE_MACH_DYLD
++/* #define USE_MACH_DYLD */
++#define USE_DLFCN
+ #define _PR_HAVE_SOCKADDR_LEN  
+ #define _PR_STAT_HAS_ST_ATIMESPEC
+ #define _PR_NO_LARGE_FILES
+diff -Naur mozilla/nsprpub/pr/src/Makefile.in mozilla-new/nsprpub/pr/src/Makefile.in
+--- mozilla/nsprpub/pr/src/Makefile.in	Mon Mar 22 19:40:17 2004
++++ mozilla-new/nsprpub/pr/src/Makefile.in	Sat Oct  2 14:52:53 2004
+@@ -199,9 +199,9 @@
+ endif
+ endif
+ 
+-ifeq ($(OS_TARGET),MacOSX)
+-OS_LIBS		= -framework CoreServices -framework CoreFoundation
+-endif
++#ifeq ($(OS_TARGET),MacOSX)
++#OS_LIBS		= -framework CoreServices -framework CoreFoundation
++#endif
+ 
+ ifdef GC_LEAK_DETECTOR
+ EXTRA_LIBS	= -L$(dist_libdir) -lboehm
+diff -Naur mozilla/nsprpub/pr/src/linking/prlink.c mozilla-new/nsprpub/pr/src/linking/prlink.c
+--- mozilla/nsprpub/pr/src/linking/prlink.c	Tue Jan 20 14:46:21 2004
++++ mozilla-new/nsprpub/pr/src/linking/prlink.c	Sat Oct  2 14:52:53 2004
+@@ -164,7 +164,8 @@
+ #if defined(SUNOS4) || defined(DARWIN) || defined(NEXTSTEP) \
+     || defined(WIN16) || defined(XP_OS2) \
+     || ((defined(OPENBSD) || defined(NETBSD)) && !defined(__ELF__))
+-#define NEED_LEADING_UNDERSCORE
++/* On MacOSX 10.3, dlsym does not accept symbols with '_'.
++/* #define NEED_LEADING_UNDERSCORE */
+ #endif
+ 
+ #ifdef XP_PC
+diff -Naur mozilla/security/coreconf/Darwin.mk mozilla-new/security/coreconf/Darwin.mk
+--- mozilla/security/coreconf/Darwin.mk	Wed Nov 12 20:59:22 2003
++++ mozilla-new/security/coreconf/Darwin.mk	Sat Oct  2 14:52:53 2004
+@@ -68,7 +68,7 @@
+ ARCH		= darwin
+ 
+ # May override this with -bundle to create a loadable module.
+-DSO_LDOPTS	= -dynamiclib -compatibility_version 1 -current_version 1 -install_name @executable_path/$(notdir $@) -headerpad_max_install_names
++DSO_LDOPTS	= -dynamiclib -compatibility_version 1 -current_version 1 -install_name @PREFIX@/lib/mozilla/$(notdir $@) -headerpad_max_install_names
+ 
+ MKSHLIB		= $(CC) -arch $(CPU_ARCH) $(DSO_LDOPTS)
+ DLL_SUFFIX	= dylib
+diff -Naur mozilla/security/nss/cmd/platlibs.mk mozilla-new/security/nss/cmd/platlibs.mk
+--- mozilla/security/nss/cmd/platlibs.mk	Sun Apr 20 00:23:14 2003
++++ mozilla-new/security/nss/cmd/platlibs.mk	Sat Oct  2 14:52:53 2004
+@@ -195,7 +195,7 @@
+ endif
+ 
+ ifeq ($(OS_ARCH), Darwin)
+-EXTRA_SHARED_LIBS += -dylib_file @executable_path/libsoftokn3.dylib:$(DIST)/lib/libsoftokn3.dylib
++EXTRA_SHARED_LIBS += -dylib_file @PREFIX@/lib/mozilla/libsoftokn3.dylib:$(DIST)/lib/libsoftokn3.dylib
+ endif
+ 
+ 
+diff -Naur mozilla/security/nss/lib/smime/config.mk mozilla-new/security/nss/lib/smime/config.mk
+--- mozilla/security/nss/lib/smime/config.mk	Sun Apr 20 00:23:33 2003
++++ mozilla-new/security/nss/lib/smime/config.mk	Sat Oct  2 14:52:53 2004
+@@ -70,7 +70,7 @@
+ 	$(NULL)
+ 
+ ifeq ($(OS_ARCH), Darwin)
+-EXTRA_SHARED_LIBS += -dylib_file @executable_path/libsoftokn3.dylib:$(DIST)/lib/libsoftokn3.dylib
++EXTRA_SHARED_LIBS += -dylib_file @PREFIX@/lib/mozilla/libsoftokn3.dylib:$(DIST)/lib/libsoftokn3.dylib
+ endif
+ 
+ endif
+diff -Naur mozilla/security/nss/lib/ssl/config.mk mozilla-new/security/nss/lib/ssl/config.mk
+--- mozilla/security/nss/lib/ssl/config.mk	Sun Apr 20 00:23:37 2003
++++ mozilla-new/security/nss/lib/ssl/config.mk	Sat Oct  2 14:52:53 2004
+@@ -75,7 +75,7 @@
+ endif
+ 
+ ifeq ($(OS_ARCH), Darwin)
+-EXTRA_SHARED_LIBS += -dylib_file @executable_path/libsoftokn3.dylib:$(DIST)/lib/libsoftokn3.dylib
++EXTRA_SHARED_LIBS += -dylib_file @PREFIX@/lib/mozilla/libsoftokn3.dylib:$(DIST)/lib/libsoftokn3.dylib
+ endif
+ 
+ endif
+diff -Naur mozilla/themes/Makefile.in mozilla-new/themes/Makefile.in
+--- mozilla/themes/Makefile.in	Thu Sep 25 08:48:58 2003
++++ mozilla-new/themes/Makefile.in	Sat Oct  2 14:52:53 2004
+@@ -36,7 +36,9 @@
+ 
+ # select classic as the default skin
+ libs::
+-	echo skin,install,select,classic/1.0 >> $(DIST)/bin/chrome/installed-chrome.txt
++# fix lator
++#	echo skin,install,select,classic/1.0 >> $(DIST)/bin/chrome/installed-chrome.txt
+ 
+ install::
+-	echo skin,install,select,classic/1.0 >> $(DESTDIR)$(mozappdir)/chrome/installed-chrome.txt
++# fix lator
++#	echo skin,install,select,classic/1.0 >> $(DESTDIR)$(mozappdir)/chrome/installed-chrome.txt
