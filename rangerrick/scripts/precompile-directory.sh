@@ -1,14 +1,18 @@
 #!/bin/sh
 
-
 if [[ "$1" = "-v" ]]; then
 	VERBOSE=true
 	shift
 fi
 
-if [[ -z "$1" ]]; then
-	echo "usage: $0 [-v] [directory1..directoryN]"
+if [[ "$1" = "-h" ]]; then
+	echo "usage: $0 [-v] [-h] [directory1..directoryN]"
 	exit 1
+fi
+
+if [[ -z "$1" ]]; then
+	echo "using defaults of /sw/include /usr/X11R6/include"
+	DIRS="/sw/include /usr/X11R6/include"
 fi
 
 CACHEDIR=/tmp/pch
@@ -16,8 +20,8 @@ if [[ -f "$CACHEDIR/last-updated" ]]; then
 	NEWER="-newer $CACHEDIR/last-updated"
 fi
 
-INCLUDEDIRS=`find "$@" -type d -a ! -name \*.gch -exec echo -I{} \; | xargs echo`
-find "$@" -name \*.h -type f $NEWER | while read HEADER; do
+INCLUDEDIRS=`find "$@" $DIRS -type d -exec echo -I{} \; | grep -v 'gch$' | xargs echo`
+find "$@" $DIRS -name \*.h -type f $NEWER | while read HEADER; do
 	if [[ -f "$HEADER.gch" ]]; then
 		sudo rm -rf "$HEADER.gch"
 	fi
