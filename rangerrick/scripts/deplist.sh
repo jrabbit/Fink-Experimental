@@ -2,6 +2,8 @@
 
 KDEREL="1"
 
+FOUND=""
+
 clear
 echo "[$@]"
 echo "checking for libraries..."
@@ -15,10 +17,14 @@ echo ""
 echo "Packages:"
 PACKLIST=""
 for PACK in $PACKAGES; do
+	case "$FOUND" in
+		*" $PACK "*)
+			echo "skipping $PACK"
+			;;
+	esac
 	case $PACK in
-#		)					PACKLIST="$PACKLIST, $PACK";;
 		*-common)				PACKLIST="$PACKLIST, %N-common (>= %v-%r)";;
-		arts*)					PACKLIST="$PACKLIST, $PACK (>= 1.1.2-1)";;
+		arts*)					PACKLIST="$PACKLIST, $PACK (>= 1.1.2-2)";;
 		bzip2*)					;;
 		dlcompat*)				PACKLIST="$PACKLIST, $PACK (>= 20021117-2)";;
 		freetype2*-shlibs)			PACKLIST="$PACKLIST, freetype2-shlibs | freetype2-hinting-shlibs";;
@@ -57,6 +63,7 @@ for PACK in $PACKAGES; do
 			esac
 			;;
 	esac
+	FOUND="$FOUND $PACK "
 done
 PACKLIST=`echo $PACKLIST | sed -e 's#^, ##'`
 echo Depends: ${PACKLIST}, '%N-base (>= %v-%r)'

@@ -20,11 +20,15 @@ for my $file (@files) {
 		my $newrev = $revision + 1;
 		$contents =~ s/^(\s*)Revision:\s*\S+?\s*$/$1Revision: $newrev/m;
 
-		print "- writing $package-$version-$newrev.info... ";
-		if (-f "$package-$version-$newrev.info") {
-			print "exists\n";
+		my $newfile = "$package-$version-$newrev.info";
+		if ($file eq "$package.info") {
+			$newfile = "$package.info";
 		}
-		if (open (FILEOUT, ">$package-$version-$newrev.info")) {
+		print "- writing $newfile... ";
+		if (-f $newfile) {
+			print "(replacing) ";
+		}
+		if (open (FILEOUT, ">$newfile.tmp")) {
 			print FILEOUT $contents;
 			close(FILEOUT);
 			print "done\n";
@@ -36,6 +40,7 @@ for my $file (@files) {
 					print "failed\n";
 				}
 			}
+			system("mv $newfile.tmp $newfile");
 		} else {
 			print "failed\n";
 		}
