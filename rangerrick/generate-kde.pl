@@ -10,7 +10,7 @@ my $path = abs_path(dirname($0));
 my %files;
 
 find(sub {
-	return unless ($File::Find::name =~ /(kde|postgres|libpq|libpg|wv2|icecream|qt3|qca|kgpg)/);
+	return unless ($File::Find::name =~ /(kde|postgres|libpq|libpg|wv2|icecream|qt3|qca|kgpg|baghira)/);
 	return if ($File::Find::name =~ /notready/);
 	$files{$File::Find::name}++ if ($File::Find::name =~ /\.(info|patch)$/);
 }, $path . '/common');
@@ -68,16 +68,14 @@ for my $file (sort keys %files) {
 									$line = $newline;
 								}
 								if ($tree =~ /^10\.2/) {
-									$line =~ s/freetype2(-hinting)?-dev(\s+\([^\)]+\))?\s*\|\s*freetype2(-hinting)?-dev(\s+\([^\)]+\))?\s*[\,\s]*//g;
 									$line =~ s/^\#10.2\s+(.*)$/$1/;
 									$line =~ s/libgsf-dev/libgsf/g;
 									$line =~ s/gstreamer\S*?(\s+\([^\)]+\))?\s*[\,\s]*//g;
 									$line =~ s/((imagemagick.*?)-dev)/$2/g;
+									$line =~ s/(freetype2\S*) \((\S+)\s+2.1.3-22\)/$1 ($2 2.1.3-2)/g;
 								} else {
-									#$line =~ s,\'?-I/usr/X11R6/include/freetype2\s*\'?\s*,,g;
 									$line =~ s/^\#(\s*export\s+LD_TWOLEVEL_NAMESPACE.*)$/$1/;
-									$line =~ s/freetype2(\S*)(\s+\([^\)]+\))?\s*\|\s*freetype2(\S*)(\s+\([^\)]+\))?\s*[\,\s]*//g unless ($line =~ m#-I/usr/X11R6/include#);
-									$line =~ s/(dlcompat|freetype2|libpoll)(\S*)(\s+\([^\)]+\))?[\,\s]*//g unless ($line =~ m#-I/usr/X11R6/include#);
+									$line =~ s/(dlcompat|libpoll)(\S*)(\s+\([^\)]+\))?[\,\s]*//g unless ($line =~ m#-I/usr/X11R6/include#);
 									$line =~ s/, libgnugetopt(-shlibs)?$//;
 									$line =~ s/libgnugetopt(-shlibs)?, //;
 									$line =~ s/-I.*?\/include\/gnugetopt //;
