@@ -665,6 +665,44 @@
  {
      static const QString &str_unknown = KGlobal::staticQString("unknown");
  
+--- ./kdecore/klibloader.cpp	10 Jul 2002 04:43:40 -0000	1.1.1.2
++++ ./kdecore/klibloader.cpp	7 Nov 2002 20:51:37 -0000	1.2
+@@ -365,14 +365,29 @@
+       libfile = libname;
+     else
+     {
+-      libfile = instance->dirs()->findResource( "module", libname );
+-      if ( libfile.isEmpty() )
+-      {
+-        libfile = instance->dirs()->findResource( "lib", libname );
++      if (libname.find('lib', pos) != 0) {
++        libfile = instance->dirs()->findResource( "module", "lib" + libname );
++        if ( libfile.isEmpty() )
++        {
++          libfile = instance->dirs()->findResource( "lib", "lib" + libname );
++          if ( libfile.isEmpty() )
++          {
++            // kdDebug() << "library " << libname << " not found with lib prefix" << endl;
++          }
++        }
++      }
++      if ( libfile.isEmpty() ) {
++        libfile = instance->dirs()->findResource( "module", libname );
++        if ( libfile.isEmpty() )
++        {
++          libfile = instance->dirs()->findResource( "lib", libname );
++          if ( libfile.isEmpty() ) {
+ #ifndef NDEBUG
+-        if ( !libfile.isEmpty() && libname.left(3) == "lib" ) // don't warn for kdeinit modules
+-          kdDebug(150) << "library " << libname << " not found under 'module' but under 'lib'" << endl;
++            if ( !libfile.isEmpty() && libname.left(3) == "lib" ) // don't warn for kdeinit modules
++              kdDebug(150) << "library " << libname << " not found under 'module' but under 'lib'" << endl;
+ #endif
++          }
++        }
+       }
+       if ( libfile.isEmpty() )
+       {
 --- ./kdecore/Makefile.am	29 Oct 2002 02:37:02 -0000	1.1.1.5
 +++ ./kdecore/Makefile.am	29 Oct 2002 02:58:40 -0000	1.3
 @@ -54,7 +54,7 @@
@@ -975,8 +1013,128 @@
  include_HEADERS = kscreensaver.h kscreensaver_vroot.h
  
 --- ./libltdl/ltdl.c	10 Jul 2002 04:51:21 -0000	1.1.1.2
-+++ ./libltdl/ltdl.c	14 Sep 2002 16:28:08 -0000	1.4
-@@ -1544,11 +1544,14 @@
++++ ./libltdl/ltdl.c	7 Nov 2002 20:52:31 -0000
+@@ -63,6 +63,11 @@
+ #include <sys/ldr.h>
+ #endif /* _AIX */
+ 
++#define HAVE_SYS_PARAM_H  1 /*XXX*/
++#if HAVE_SYS_PARAM_H
++#  include <sys/param.h>
++#endif
++
+ #include "ltdl.h"
+ 
+ /* Bah.  We don't want inline.  Needs autoconf check, which we don't want.  */
+@@ -1010,6 +1015,97 @@
+ 
+ 
+ 
++/* --- NSModule INTERFACE LOADER --- */
++
++/* dynamic linking for Darwin */
++
++#if defined(__APPLE__) && defined(NeXTBSD)
++#define __Darwin__  /* XXX - better way to do this?? */
++#endif
++
++#ifdef __Darwin__
++
++#include <mach-o/dyld.h>
++
++static lt_module
++sys_darwindl_open (loader_data, filename)
++     lt_user_data loader_data;
++     const char *filename;
++{
++  lt_module         module = NULL;
++  NSObjectFileImage image;
++
++  if (NSCreateObjectFileImageFromFile(filename, &image) != NSObjectFileImageSuccess)
++    {
++      MUTEX_SETERROR (LT_DLSTRERROR (CANNOT_OPEN));
++    }
++  else
++    {
++      unsigned long options = NSLINKMODULE_OPTION_BINDNOW |
++                              NSLINKMODULE_OPTION_PRIVATE |
++                              NSLINKMODULE_OPTION_RETURN_ON_ERROR;
++
++      module = (lt_module)NSLinkModule(image, filename, options);
++      NSDestroyObjectFileImage(image);
++
++      if (!module)
++        {
++          MUTEX_SETERROR (LT_DLSTRERROR (CANNOT_OPEN));
++        }
++    }
++
++  return module;
++}
++
++static int
++sys_darwindl_close (loader_data, module)
++     lt_user_data loader_data;
++     lt_module module;
++{
++  int errors = 0;
++#ifdef __ppc__
++  unsigned long options = NSUNLINKMODULE_OPTION_RESET_LAZY_REFERENCES;
++#else
++  unsigned long options = NSUNLINKMODULE_OPTION_NONE;
++#endif
++
++  if (!NSUnLinkModule((NSModule)module, options))
++    {
++      MUTEX_SETERROR (LT_DLSTRERROR (CANNOT_CLOSE));
++      ++errors;
++    }
++
++  return errors;
++}
++
++static lt_ptr
++sys_darwindl_sym (loader_data, module, symbol_name)
++     lt_user_data loader_data;
++     lt_module module;
++     const char *symbol_name;
++{
++  lt_ptr   address = NULL;
++  NSSymbol symbol;
++  
++  symbol = NSLookupSymbolInModule((NSModule)module, symbol_name);
++
++  if (!symbol)
++    {
++      MUTEX_SETERROR (LT_DLSTRERROR (SYMBOL_NOT_FOUND));
++    }
++  else
++    {
++      address = NSAddressOfSymbol(symbol);
++    }
++
++  return address;
++}
++
++static struct lt_user_dlloader sys_darwindl =
++  { "_", sys_darwindl_open, sys_darwindl_close, sys_darwindl_sym, 0, 0 };
++
++#endif /* __Darwin__ */
++
+ 
+ /* --- DLD_LINK() INTERFACE LOADER --- */
+ 
+@@ -1315,6 +1411,9 @@
+ #ifdef __BEOS__
+       errors += lt_dlloader_add (lt_dlloader_next (0), &sys_bedl, "dlopen");
+ #endif
++#ifdef __Darwin__
++      errors += lt_dlloader_add (lt_dlloader_next (0), &sys_darwindl, "NSModule");
++#endif
+ #if HAVE_DLD
+       errors += lt_dlloader_add (lt_dlloader_next (0), &sys_dld, "dld");
+ #endif
+@@ -1544,11 +1643,14 @@
    /* try to open the old library first; if it was dlpreopened,
       we want the preopened version of it, even if a dlopenable
       module is available */
@@ -992,7 +1150,7 @@
    /* try to open the dynamic library */
    if (dlname)
      {
-@@ -1567,6 +1570,28 @@
+@@ -1567,6 +1669,28 @@
  	    }
  
  	  sprintf (filename, "%s/%s", libdir, dlname);
