@@ -10,7 +10,7 @@ my $path = abs_path(dirname($0));
 my %files;
 
 find(sub {
-	return unless ($File::Find::name =~ /kde/ or $File::Find::name =~ /qt3/ or $File::Find::name =~ /(postgres|libpq|libpg|wv2)/);
+	return unless ($File::Find::name =~ /kde/ or $File::Find::name =~ /qt3/ or $File::Find::name =~ /(postgres|libpq|libpg|wv2|icecream)/);
 	return if ($File::Find::name =~ /notready/);
 	$files{$File::Find::name}++ if ($File::Find::name =~ /\.(info|patch)$/);
 }, $path . '/common');
