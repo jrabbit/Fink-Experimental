@@ -2,6 +2,7 @@
 
 my @files = @ARGV;
 
+
 if (not @files) {
 	opendir(DIR, ".") or die "can't get file list in .: $!\n";
 	@files = grep(/\.info$/, readdir(DIR));
