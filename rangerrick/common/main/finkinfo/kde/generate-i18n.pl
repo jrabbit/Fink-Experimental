@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 
 my $KOI18NRELNUM  = 1;
-my $KDEVERSION    = '3.2.3';
-my $KDEDIRECTORY  = 'stable/%v/src/';
+my $KDEVERSION    = '3.2.90';
+my $KDEDIRECTORY  = 'unstable/%v/src/';
 my $KDERELNUM     = 1;
-my $KDEARTSVER    = '1.2.3-1';
+my $KDEARTSVER    = '1.2.90-1';
 my $KDEI18NRELNUM = 1;
 my $KOVERSION     = '1.3.1';
 my $KODIRECTORY   = 'stable/koffice-%v/src/';
