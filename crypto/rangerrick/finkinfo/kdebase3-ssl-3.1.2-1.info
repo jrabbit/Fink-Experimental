@@ -38,7 +38,7 @@ CompileScript: <<
   date > /tmp/kde-build/%N-%v-%r.configure && \
   (sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure) && \
   date > /tmp/kde-build/%N-%v-%r.make && \
-  (make -j2 all 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.make)
+  (make -j2 all apidox 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.make)
 <<
 
 InstallScript: <<
@@ -49,19 +49,12 @@ InstallScript: <<
 
   date > /tmp/kde-build/%N-%v-%r.install && \
   (make install DESTDIR=%d 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.install) && \
-  date > /tmp/kde-build/%N-%v-%r.apidox && \
-  (make -j2 apidox 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.apidox) && \
-  date > /tmp/kde-build/%N-%v-%r.install-apidox && \
-  (make install-apidox DESTDIR=%d 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.install-apidox) && \
   install -d -m 755 %i/etc/pam.d && \
   install -c -m 444 /etc/pam.d/login %i/etc/pam.d/kde && \
   install -c -m 444 /etc/pam.d/login %i/etc/pam.d/kcheckpass && \
   install -c -m 444 /etc/pam.d/login %i/etc/pam.d/kscreensaver && \
   (rm -rf %i/share/fonts || true) && \
-  (make -C konsole/fonts install fontdir=`%p/bin/xfontpath basedir`/konsole DESTDIR=%d) && \
-  pushd %i/share/doc/kde/en && \
-  ln -s kdebase-%v-apidocs kdebase-3.1-apidocs && \
-  popd
+  (make -C konsole/fonts install fontdir=`%p/bin/xfontpath basedir`/konsole DESTDIR=%d)
 <<
 PostInstScript: <<
   update-alternatives --install /etc/pam.d/kde          pam.d-kde          %p/etc/pam.d/kde          50
