@@ -225,15 +225,26 @@ else
 fi
 ln -s /usr/X11R6/etc /etc/X11
 mkdir -p /private/etc/fonts
-cp -f %p/share/x11/fonts/* /private/etc/fonts/
+for file in fonts.conf fonts.dtd; do
+	if ! [ -f /private/etc/fonts/$file.bak ]; then
+		cp -f /private/etc/fonts/$file /private/etc/fonts/$file.bak
+		cp -f %p/share/x11/fonts/$file /private/etc/fonts/
+	fi
+done
 <<
 PreRmScript: <<
 case "$1" in
-  remove|purge)
-    if [ -L /etc/X11 ]; then
-      rm -f /etc/X11
-    fi
-    ;;
+	remove|purge)
+		if [ -L /etc/X11 ]; then
+			rm -f /etc/X11
+		fi
+		for file in fonts.conf fonts.dtd; do
+			if [ -f /private/etc/fonts/$file.bak ]; then
+				mv -f /private/etc/fonts/$file /private/etc/fonts/$file.saved
+				mv -f /private/etc/fonts/$file.bak /private/etc/fonts/$file
+			fi
+		done
+		;;
 esac
 <<
 #
