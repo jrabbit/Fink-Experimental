@@ -1,0 +1,162 @@
+diff -ruN threaded_intercal/doc/Makefile threaded_intercal-patch/doc/Makefile
+--- threaded_intercal/doc/Makefile	Sat Jun 27 17:33:27 1998
++++ threaded_intercal-patch/doc/Makefile	Tue Jul  8 20:16:41 2003
+@@ -15,11 +15,11 @@
+ all: intercal.ps intercal.txt original.ps original.txt
+ 
+ intercal.ps: intercal.mm
+-	groff -dc=y -Tps    -p -t -mm intercal.mm >/dev/null
++	groff -dc=y -Tps    -p -t -mm intercal.mm >intercal.refs.tmp
+ 	sed <intercal.refs.tmp -e '/hn \([0-9]*\)\.$$/s//hn \1/' >tmp.refs;
+ 	mv tmp.refs intercal.refs.tmp
+ 	groff -dc=y -Tps    -p -t -mm intercal.mm >intercal.ps
+-	rm intercal.refs.qrf
++	rm -f intercal.refs.qrf
+ 
+ original.ps: intercal.mm
+ 	groff -dc=n -Tps    -p -t -mm intercal.mm >/dev/null
+diff -ruN threaded_intercal/src/Makefile threaded_intercal-patch/src/Makefile
+--- threaded_intercal/src/Makefile	Wed Jul  1 13:01:05 1998
++++ threaded_intercal-patch/src/Makefile	Tue Jul  8 20:17:26 2003
+@@ -10,7 +10,7 @@
+ 
+ #DVMT=~/WWW/intercal-0.17
+ #dvmt=/usr/local
+-DVMT=/home/malcolmr
++DVMT=@REAL_PREFIX@
+ 
+ BINDIR = $(DVMT)/bin
+ INCDIR = $(DVMT)/include
+@@ -21,11 +21,11 @@
+ YDEBUG = -vlt
+ DEBUG	= -g -DDEBUG
+ # DEBUG = -O
+-CFLAGS = -I. $(DEBUG) -DICKINCLUDEDIR=\"$(INCDIR)\" \
++CFLAGS = -I. -Os -mdynamic-no-pic $(DEBUG) -DICKINCLUDEDIR=\"$(INCDIR)\" \
+ 	-DICKLIBDIR=\"$(LIBDIR)\" -DYYDEBUG
+ LDFLAGS =
+ 
+-CC = gcc -Wall -W
++CC = gcc -Wall -prebind
+ 
+ # You can use lex or flex
+ #LEX = lex
+@@ -33,7 +33,7 @@
+ 
+ # You can use either yacc or bison
+ #YACC = yacc
+-YACC = bison -y
++YACC = /usr/bin/bison -y
+ 
+ CSOURCES = ick.y lexer.l feh.c lose.c fiddle.c perpetrate.c
+ ISOURCES = threads.c cesspool.c arrgghh.c ick-wrap.c
+@@ -68,13 +68,13 @@
+ fiddle.o: fiddle.h sizes.h
+ 
+ libthick.a: threads.o cesspool.o lose.o fiddle.o arrgghh.o
+-	ar cr libthick.a threads.o cesspool.o lose.o fiddle.o arrgghh.o
++	ar cru libthick.a threads.o cesspool.o lose.o fiddle.o arrgghh.o
+ 	-ranlib libthick.a
+ 
+ install: all
+-	cp thick $(BINDIR)
+-	cp lose.h abcess.h fiddle.h ick-wrap.c $(INCDIR)
+-	cp libthick.a ../pit/lib/syslib.i ../pit/lib/syslib.?i $(LIBDIR)
++	cp thick @INST_PREFIX@/bin
++	cp lose.h abcess.h fiddle.h ick-wrap.c @INST_PREFIX@/include
++	cp libthick.a ../pit/lib/syslib.i ../pit/lib/syslib.?i @INST_PREFIX@/lib
+ 
+ clean:
+ 	rm -f yacc.* y.tab.* y.output *~ *.[oa] lexer.c ick.c lextest thick
+diff -ruN threaded_intercal/src/cesspool.c threaded_intercal-patch/src/cesspool.c
+--- threaded_intercal/src/cesspool.c	Sun Jun 28 20:16:46 1998
++++ threaded_intercal-patch/src/cesspool.c	Tue Jul  8 20:26:38 2003
+@@ -24,7 +24,8 @@
+ /* LINTLIBRARY */
+ #include <stdio.h>
+ #include <stdlib.h>
+-#include <varargs.h>
++#include <string.h>
++#include <stdarg.h>
+ #include "sizes.h"
+ #include "abcess.h"
+ #include "lose.h"
+@@ -371,9 +372,9 @@
+  * The following functions implement the INTERCAL array model
+  *
+  *********************************************************************/
+-
+-char *aref(va_alist) va_dcl
+-/* return a pointer to the array location specified by args */
++/*
++char *aref(...)
++// return a pointer to the array location specified by args 
+ {
+   unsigned int type;
+   array *a;
+@@ -406,8 +407,8 @@
+     return (char*)&a->data.hybrid[address];
+ }
+ 
+-void resize(va_alist) va_dcl
+-/* resize an array to the given shape */
++void resize(...)
++// resize an array to the given shape 
+ {
+   unsigned int type;
+   array *a;
+@@ -461,7 +462,7 @@
+ 
+   va_end(ap);
+ }
+-
++*/
+ /**********************************************************************
+  *
+  * The following functions implement save/retrieve
+diff -ruN threaded_intercal/src/ick.y threaded_intercal-patch/src/ick.y
+--- threaded_intercal/src/ick.y	Wed Jul  1 14:52:02 1998
++++ threaded_intercal-patch/src/ick.y	Tue Jul  8 20:16:41 2003
+@@ -257,6 +257,7 @@
+ initem	:    scalar | subscr | array;
+ inlist	:    initem INTERSECTION inlist		{$$=cons(INTERSECTION,$1,$3);}
+ 	|    initem				{$$=cons(INTERSECTION,$1,0);}
++	;
+ 
+ /* scalars, subscript exprs & constants are permitted in READ OUT lists */
+ /* new: arrays are also permitted to allow for bitwise I/0 */
+diff -ruN threaded_intercal/src/perpetrate.c threaded_intercal-patch/src/perpetrate.c
+--- threaded_intercal/src/perpetrate.c	Wed Jul  1 13:02:39 1998
++++ threaded_intercal-patch/src/perpetrate.c	Tue Jul  8 20:17:43 2003
+@@ -38,16 +38,16 @@
+ #include "lose.h"
+ 
+ #ifndef ICKINCLUDEDIR
+-#define ICKINCLUDEDIR "/usr/local/include"
++#define ICKINCLUDEDIR "@REAL_PREFIX@/include"
+ #endif
+ #ifndef ICKLIBDIR
+-#define ICKLIBDIR "/usr/local/lib"
++#define ICKLIBDIR "@REAL_PREFIX@/lib"
+ #endif
+ #ifndef CC
+ #define CC "gcc"
+ #endif
+ #ifndef CFLAGS
+-#define CFLAGS ""
++#define CFLAGS "-Os -mdynamic-no-pic"
+ #endif
+ 
+ #ifdef USE_YYRESTART
+diff -ruN threaded_intercal/src/threads.c threaded_intercal-patch/src/threads.c
+--- threaded_intercal/src/threads.c	Wed Jul  1 14:51:13 1998
++++ threaded_intercal-patch/src/threads.c	Tue Jul  8 20:16:57 2003
+@@ -24,7 +24,7 @@
+ 
+ #include <stdio.h>
+ #include <stdlib.h>
+-#include <varargs.h>
++#include <stdarg.h>
+ #include <assert.h>
+ #include "sizes.h"
+ #include "abcess.h"
