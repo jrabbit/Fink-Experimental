@@ -1,0 +1,92 @@
+#!/usr/bin/perl -w
+
+use strict;
+use Fink::Services qw(&read_config &pkglist2lol);
+use Fink::Package;
+
+use Data::Dumper;
+
+(my $basepath = `which fink`) =~ s/bin.*//s;
+read_config("$basepath/etc/fink.conf");
+
+open OLDERR, ">&STDERR";
+close STDERR; # stop indexing output
+Fink::Package->require_packages; 
+open STDERR, ">&OLDERR";
+close OLDERR;
+
+my @fields = qw(Depends Pre-Depends BuildDepends Conflicts BuildConflicts);
+my @plist = &Fink::Engine::expand_packages(@ARGV);
+my %revs = map { $_ => { map { $_ => [] } @fields } } @plist;
+
+for my $pkgname (sort Fink::Package->list_packages()) {
+	for my $pv (Fink::Package->package_by_name($pkgname)->get_all_versions()) {
+		for my $field (@fields) {
+			for my $alt (@{ pkglist2lol($pv->pkglist_default($field, "")) }) {
+				
+				for my $spec (@$alt) {
+					my ($depname, $versionspec);
+					if ($spec =~ /^\s*([0-9a-zA-Z.\+-]+)\s*\((.+)\)\s*$/) {
+						$depname = $1;
+						$versionspec = $2;
+					} elsif ($spec =~ /^\s*([0-9a-zA-Z.\+-]+)\s*$/) {
+						$depname = $1;
+						$versionspec = "";
+					} else {
+						die "Illegal spec format: $spec\n";
+					}
+					
+					my $pkg = Fink::Package->package_by_name($depname);
+					next unless defined $pkg;
+					
+					my $alternative = scalar(@$alt);
+					my @deps;
+					if ($versionspec) {
+						@deps = $pkg->get_matching_versions($versionspec);
+					} else {
+						@deps = $pkg->get_all_providers();
+						
+						# It's a choice if more than one Package
+						my %names = map { $_->get_name() => 1 } @deps;
+						$alternative = 1 if scalar(keys %names) > 1;
+					}
+					
+					for my $dep (@deps) {
+						# Use reference lookup, should work unless persisted
+						if (exists $revs{$dep}) {
+							push @{ $revs{$dep}->{$field} }, {
+								pkg => $pv,
+								alternative => $alternative
+							};
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+my @results;
+for my $pv (sort { $a->get_fullname() cmp $b->get_fullname() } @plist) {
+	my @pvresults = ();
+	for my $fld (@fields) {
+		my @fldrevs = @{ $revs{$pv}->{$fld} };
+		my $fldtxt = "\t$fld:";
+		if (@fldrevs) {
+			my @fldresults = ();
+			for my $depinfo (@fldrevs) {
+				my $depresult = $depinfo->{pkg}->get_fullname();
+				$depresult .= " (alternative)" if $depinfo->{alternative};
+				push @fldresults, $depresult;
+			}
+			$fldtxt .= "\n" . join('', map { "\t\t$_\n" } sort @fldresults);
+		} else {
+			$fldtxt .= " [ none ]\n";
+		}
+			
+		push @pvresults, $fldtxt;
+	}
+	
+	push @results, $pv->get_fullname() . ":\n" . join("\n", @pvresults);
+}
+print join("\n", @results);
