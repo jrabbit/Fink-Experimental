@@ -106,8 +106,6 @@ else
     echo --------------------------------
     LOGINSHELL=`basename $LOGINSHELL`
     case $LOGINSHELL in
-    "")
-	;;
     *csh)
     # For csh and tcsh
         SOURCECMD="source /sw/bin/init.csh"
