@@ -1,0 +1,52 @@
+Package: xerces-c
+Version: 2.3.0
+Revision: 1
+###
+Depends: %n-shlibs
+###
+CustomMirror: <<
+  Primary: http://www.apache.org/dist/xml/xerces-c/
+  Secondary: http://www.apache.org/dist/xml/xerces-c/old/
+<<
+###
+Source: mirror:custom:%n-src_2_3_0.tar.gz
+Source-MD5: 5167dca8942dd2dd719fa5a8ebe0c18b
+SourceDirectory: %n-src_2_3_0
+###
+GCC: 3.3
+###
+CompileScript: <<
+#!/bin/sh
+
+export XERCESCROOT=`pwd`
+cd src/xercesc
+./runConfigure -pmacosx -cgcc -xg++ -minmem -nsocket -tnative -rnone -P%p
+make
+<<
+InstallScript: <<
+#!/bin/sh
+
+export XERCESCROOT=`pwd`
+cd src/xercesc
+make install DESTDIR=%d
+
+install -d %d%p/share/doc/%n
+cp -r ../../doc/html %d%p/share/doc/%n
+<<
+DocFiles: LICENSE.txt STATUS
+Description: Validating XML parser
+DescDetail: <<
+  Xerces-C++ is a validating XML parser written in a portable subset of C++. Xerces-C++ 
+  makes it easy to give your application the ability to read and write XML data. A shared 
+  library is provided for parsing, generating, manipulating, and validating XML documents.
+<<
+License: BSD
+Homepage: http://xml.apache.org
+Maintainer: Thomas Kotzian <thomas.kotzian@gmx.at>
+
+SplitOff: <<
+  Package: %N-shlibs
+  Replaces: %N (<< 2.3.0-1)
+  Files: lib/libxerces-c.23.0.dylib lib/libxerces-c.23.dylib
+  Shlibs: %p/lib/libxerces-c.23.dylib 7.0.0 %n (>= 2.3.0-1)
+<<
