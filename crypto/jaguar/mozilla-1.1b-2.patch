@@ -37,134 +37,6 @@ diff -ruN mozilla.orig/config/prebind-address-table mozilla/config/prebind-addre
 +0x07000000       @PREFIX@/lib/mozilla/libnss3.dylib
 +0x08000000       @PREFIX@/lib/mozilla/libsmime3.dylib
 +0x09000000       @PREFIX@/lib/mozilla/libsoftokn3.dylib
-diff -ruN mozilla.orig/config/rules.mk mozilla/config/rules.mk
---- mozilla.orig/config/rules.mk	Sun Jun 30 20:34:57 2002
-+++ mozilla/config/rules.mk	Sun Jul 28 09:56:29 2002
-@@ -449,7 +449,9 @@
- ifdef IS_COMPONENT
- EXTRA_DSO_LDOPTS	+= -bundle
- else
--EXTRA_DSO_LDOPTS	+= -dynamiclib -install_name @executable_path/\$@
-+ifndef PROGRAM
-+EXTRA_DSO_LDOPTS	+= -dynamiclib -install_name /sw/lib/mozilla/\$@
-+endif
- endif
- endif
- 
-diff -ruN mozilla.orig/configure mozilla/configure
---- mozilla.orig/configure	Wed Jul 17 22:25:47 2002
-+++ mozilla/configure	Sun Jul 28 21:31:57 2002
-@@ -4523,36 +4523,62 @@
-     esac
-     ;;
- 
--*-darwin*) 
-+*-darwin6*)
-     _PEDANTIC=
--    CFLAGS="$CFLAGS -fpascal-strings -traditional-cpp -fno-common"
--    CXXFLAGS="$CXXFLAGS -fpascal-strings -traditional-cpp -fno-common"
-+    CFLAGS="$CFLAGS -fpascal-strings -no-cpp-precomp -fno-common"
-+    CXXFLAGS="$CXXFLAGS -fpascal-strings -no-cpp-precomp -fno-common"
-     DLL_SUFFIX=".dylib"
-     DSO_LDOPTS='-compatibility_version 1 -current_version 1'
-     STRIP="$STRIP -x -S"
-     case "${target_cpu}" in
-     powerpc*)
-         cat >> confdefs.h <<\EOF
--#define XP_MACOSX 1
-+#define DARWIN6 1
- EOF
- 
--        cat >> confdefs.h <<\EOF
--#define TARGET_CARBON 1
--EOF
-+#        no_x=yes
-+        MACOSX=1
-+#        _PLATFORM_DEFAULT_TOOLKIT='mac'
-+        DSO_LDOPTS="$DSO_LDOPTS -arch ppc"
-+#        TK_LIBS='-framework Carbon /System/Library/Frameworks/Carbon.framework/Carbon'
-+#        TK_CFLAGS="-I/Developer/Headers/FlatCarbon -F/System/Library/Frameworks"
-+#        CFLAGS="$CFLAGS $TK_CFLAGS"
-+#        CXXFLAGS="$CXXFLAGS $TK_CFLAGS"
-+#        MOZ_ENABLE_POSTSCRIPT=
-+        ;;
-+    esac
-+    ;;
- 
--        cat >> confdefs.h <<\EOF
--#define TARGET_API_MAC_CARBON 1
--EOF
-+*-darwin*) 
-+    _PEDANTIC=
-+    CFLAGS="$CFLAGS -fpascal-strings -no-cpp-precomp -fno-common"
-+    CXXFLAGS="$CXXFLAGS -fpascal-strings -no-cpp-precomp -fno-common"
-+    DLL_SUFFIX=".dylib"
-+    DSO_LDOPTS='-compatibility_version 1 -current_version 1'
-+    STRIP="$STRIP -x -S"
-+    case "${target_cpu}" in
-+    powerpc*)
-+#        cat >> confdefs.h <<\EOF
-+##define XP_MACOSX 1
-+#EOF
-+
-+#        cat >> confdefs.h <<\EOF
-+##define TARGET_CARBON 1
-+#EOF
-+
-+#        cat >> confdefs.h <<\EOF
-+##define TARGET_API_MAC_CARBON 1
-+#EOF
- 
--        no_x=yes
-+#        no_x=yes
-         MACOSX=1
--        _PLATFORM_DEFAULT_TOOLKIT='mac'
-+#        _PLATFORM_DEFAULT_TOOLKIT='mac'
-         DSO_LDOPTS="$DSO_LDOPTS -arch ppc"
--        TK_LIBS='-framework Carbon /System/Library/Frameworks/Carbon.framework/Carbon'
--        TK_CFLAGS="-I/Developer/Headers/FlatCarbon -F/System/Library/Frameworks"
--        CFLAGS="$CFLAGS $TK_CFLAGS"
--        CXXFLAGS="$CXXFLAGS $TK_CFLAGS"
--        MOZ_ENABLE_POSTSCRIPT=
-+#        TK_LIBS='-framework Carbon /System/Library/Frameworks/Carbon.framework/Carbon'
-+#        TK_CFLAGS="-I/Developer/Headers/FlatCarbon -F/System/Library/Frameworks"
-+#        CFLAGS="$CFLAGS $TK_CFLAGS"
-+#        CXXFLAGS="$CXXFLAGS $TK_CFLAGS"
-+#        MOZ_ENABLE_POSTSCRIPT=
-         ;;
-     esac
-     ;;
-@@ -6128,7 +6154,7 @@
- 
- echo "$ac_t""$ac_cv_have_usable_wchar_option" 1>&6
- 
--    if test "$ac_cv_have_usable_wchar_option" = "yes"; then
-+    if test "$ac_cv_have_usable_wchar_option" = "yes" -a "$OS_ARCH" = "Darwin"; then
-         cat >> confdefs.h <<\EOF
- #define HAVE_CPP_2BYTE_WCHAR_T 1
- EOF
-@@ -14130,9 +14156,9 @@
- #define XP_UNIX 1
- EOF
- 
--  cat >> confdefs.h <<\EOF
--#define UNIX_EMBED 1
--EOF
-+#  cat >> confdefs.h <<\EOF
-+##define UNIX_EMBED 1
-+#EOF
- 
-   cat >> confdefs.h <<\EOF
- #define UNIX_LDAP 1
-@@ -15158,7 +15184,7 @@
- fi
- 
-     fi
--    ac_configure_args="$ac_configure_args --includedir=$MOZ_BUILD_ROOT/dist/include/expat-1.95"
-+    ac_configure_args="$ac_configure_args --includedir=$MOZ_BUILD_ROOT/dist/include/expat-1.95 --libdir=$MOZ_BUILD_ROOT/dist/lib/"
-     
- if test "$no_recursion" != yes; then
- 
 diff -ruN mozilla.orig/directory/c-sdk/config/config.mk mozilla/directory/c-sdk/config/config.mk
 --- mozilla.orig/directory/c-sdk/config/config.mk	Tue Mar 26 14:51:57 2002
 +++ mozilla/directory/c-sdk/config/config.mk	Sun Jul 28 09:56:30 2002
@@ -558,3 +430,130 @@ diff -ruN mozilla.orig/security/nss/lib/ssl/config.mk mozilla/security/nss/lib/s
  endif
  
  endif
+--- mozilla/config/rules.mk	2002-06-30 19:34:57.000000000 -0700
++++ mozilla-patched/config/rules.mk	2002-07-28 22:47:34.000000000 -0700
+@@ -449,7 +449,9 @@
+ ifdef IS_COMPONENT
+ EXTRA_DSO_LDOPTS	+= -bundle
+ else
+-EXTRA_DSO_LDOPTS	+= -dynamiclib -install_name @executable_path/\$@
++ifndef PROGRAM
++EXTRA_DSO_LDOPTS	+= -compatibility_version 1 -current_version 1 -dynamiclib -install_name /sw/lib/mozilla/\$@
++endif
+ endif
+ endif
+ 
+--- mozilla/configure	2002-07-17 21:25:47.000000000 -0700
++++ mozilla-patched/configure	2002-07-28 23:19:40.000000000 -0700
+@@ -4523,36 +4523,62 @@
+     esac
+     ;;
+ 
+-*-darwin*) 
++*-darwin6*)
+     _PEDANTIC=
+-    CFLAGS="$CFLAGS -fpascal-strings -traditional-cpp -fno-common"
+-    CXXFLAGS="$CXXFLAGS -fpascal-strings -traditional-cpp -fno-common"
++    CFLAGS="$CFLAGS -fpascal-strings -no-cpp-precomp -fno-common"
++    CXXFLAGS="$CXXFLAGS -fpascal-strings -no-cpp-precomp -fno-common"
+     DLL_SUFFIX=".dylib"
+-    DSO_LDOPTS='-compatibility_version 1 -current_version 1'
++    DSO_LDOPTS=''
+     STRIP="$STRIP -x -S"
+     case "${target_cpu}" in
+     powerpc*)
+         cat >> confdefs.h <<\EOF
+-#define XP_MACOSX 1
++#define DARWIN6 1
+ EOF
+ 
+-        cat >> confdefs.h <<\EOF
+-#define TARGET_CARBON 1
+-EOF
++#        no_x=yes
++        MACOSX=1
++#        _PLATFORM_DEFAULT_TOOLKIT='mac'
++        DSO_LDOPTS="$DSO_LDOPTS -arch ppc"
++#        TK_LIBS='-framework Carbon /System/Library/Frameworks/Carbon.framework/Carbon'
++#        TK_CFLAGS="-I/Developer/Headers/FlatCarbon -F/System/Library/Frameworks"
++#        CFLAGS="$CFLAGS $TK_CFLAGS"
++#        CXXFLAGS="$CXXFLAGS $TK_CFLAGS"
++#        MOZ_ENABLE_POSTSCRIPT=
++        ;;
++    esac
++    ;;
+ 
+-        cat >> confdefs.h <<\EOF
+-#define TARGET_API_MAC_CARBON 1
+-EOF
++*-darwin*) 
++    _PEDANTIC=
++    CFLAGS="$CFLAGS -fpascal-strings -no-cpp-precomp -fno-common"
++    CXXFLAGS="$CXXFLAGS -fpascal-strings -no-cpp-precomp -fno-common"
++    DLL_SUFFIX=".dylib"
++    DSO_LDOPTS=''
++    STRIP="$STRIP -x -S"
++    case "${target_cpu}" in
++    powerpc*)
++#        cat >> confdefs.h <<\EOF
++##define XP_MACOSX 1
++#EOF
++
++#        cat >> confdefs.h <<\EOF
++##define TARGET_CARBON 1
++#EOF
++
++#        cat >> confdefs.h <<\EOF
++##define TARGET_API_MAC_CARBON 1
++#EOF
+ 
+-        no_x=yes
++#        no_x=yes
+         MACOSX=1
+-        _PLATFORM_DEFAULT_TOOLKIT='mac'
++#        _PLATFORM_DEFAULT_TOOLKIT='mac'
+         DSO_LDOPTS="$DSO_LDOPTS -arch ppc"
+-        TK_LIBS='-framework Carbon /System/Library/Frameworks/Carbon.framework/Carbon'
+-        TK_CFLAGS="-I/Developer/Headers/FlatCarbon -F/System/Library/Frameworks"
+-        CFLAGS="$CFLAGS $TK_CFLAGS"
+-        CXXFLAGS="$CXXFLAGS $TK_CFLAGS"
+-        MOZ_ENABLE_POSTSCRIPT=
++#        TK_LIBS='-framework Carbon /System/Library/Frameworks/Carbon.framework/Carbon'
++#        TK_CFLAGS="-I/Developer/Headers/FlatCarbon -F/System/Library/Frameworks"
++#        CFLAGS="$CFLAGS $TK_CFLAGS"
++#        CXXFLAGS="$CXXFLAGS $TK_CFLAGS"
++#        MOZ_ENABLE_POSTSCRIPT=
+         ;;
+     esac
+     ;;
+@@ -6128,7 +6154,7 @@
+ 
+ echo "$ac_t""$ac_cv_have_usable_wchar_option" 1>&6
+ 
+-    if test "$ac_cv_have_usable_wchar_option" = "yes"; then
++    if test "$ac_cv_have_usable_wchar_option" = "yes" -a "$OS_ARCH" = "Darwin"; then
+         cat >> confdefs.h <<\EOF
+ #define HAVE_CPP_2BYTE_WCHAR_T 1
+ EOF
+@@ -14130,9 +14156,9 @@
+ #define XP_UNIX 1
+ EOF
+ 
+-  cat >> confdefs.h <<\EOF
+-#define UNIX_EMBED 1
+-EOF
++#  cat >> confdefs.h <<\EOF
++##define UNIX_EMBED 1
++#EOF
+ 
+   cat >> confdefs.h <<\EOF
+ #define UNIX_LDAP 1
+@@ -15158,7 +15184,7 @@
+ fi
+ 
+     fi
+-    ac_configure_args="$ac_configure_args --includedir=$MOZ_BUILD_ROOT/dist/include/expat-1.95"
++    ac_configure_args="$ac_configure_args --includedir=$MOZ_BUILD_ROOT/dist/include/expat-1.95 --libdir=$MOZ_BUILD_ROOT/dist/lib/"
+     
+ if test "$no_recursion" != yes; then
+ 
