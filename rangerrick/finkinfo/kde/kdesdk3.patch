@@ -1,422 +1,4055 @@
 
---- /dev/null	1 Jan 1970 00:00:00 -0000
-+++ Makefile.cvs	25 Jun 2002 03:20:49 -0000	1.1.1.1
-@@ -0,0 +1,15 @@
-+
-+all:
-+	@echo "This Makefile is only for the CVS repository"
-+	@echo "This will be deleted before making the distribution"
-+	@echo ""
-+	@if test ! -d admin; then \
-+	   echo "Please recheckout this module!" ;\
-+	   echo "for cvs: use checkout once and after that update again" ;\
-+	   echo "for cvsup: checkout kde-common from cvsup and" ;\
-+	   echo "   link kde-common/admin to ./admin" ;\
-+	   exit 1 ;\
-+	fi
-+	$(MAKE) -f admin/Makefile.common cvs
-+
-+.SILENT:
---- cervisia/Makefile.am	5 Nov 2002 03:00:09 -0000	1.1.1.3
-+++ cervisia/Makefile.am	1 Jun 2003 14:59:19 -0000	1.4
-@@ -4,9 +4,9 @@
- AM_CPPFLAGS = -UQT_NO_COMPAT -D_BSD_SOURCE
- 
- bin_PROGRAMS = cervisia
--lib_LTLIBRARIES = libcervisia.la
-+lib_LTLIBRARIES = libcervisiapart_shared.la cervisiapart.la cervisia.la
- 
--libcervisia_la_SOURCES = updateview.cpp protocolview.cpp watchdlg.cpp \
-+libcervisiapart_shared_la_SOURCES = cervisiashell.cpp updateview.cpp protocolview.cpp watchdlg.cpp \
- 		   settingsdlg.cpp changelogdlg.cpp historydlg.cpp repositorydlg.cpp \
- 		   commitdlg.cpp checkoutdlg.cpp updatedlg.cpp \
- 		   tagdlg.cpp mergedlg.cpp \
-@@ -14,12 +14,26 @@
- 		   annotatedlg.cpp annotateview.cpp \
- 		   cvsprogressdlg.cpp tiplabel.cpp listview.cpp \
- 		   cvsdir.cpp repositories.cpp misc.cpp cervisiapart.cpp qttableview.cpp
--libcervisia_la_LDFLAGS = $(all_libraries) -version-info 1:0:0 -module -no-undefined
--libcervisia_la_LIBADD = $(LIB_KFILE) $(LIB_KPARTS)
-+libcervisiapart_shared_la_LDFLAGS = $(all_libraries) -version-info 1:0:0 -no-undefined
-+libcervisiapart_shared_la_LIBADD = $(LIB_KFILE) $(LIB_KPARTS) $(LIB_QT) $(LIB_KDECORE) $(LIB_KDEUI)
- 
--cervisia_SOURCES = main.cpp cervisiashell.cpp
-+cervisiapart_la_SOURCES = cervisiapart_la_dummy.cpp
-+cervisiapart_la_LDFLAGS = $(all_libraries) -avoid-version -module
-+cervisiapart_la_LIBADD  = libcervisiapart_shared.la
-+
-+cervisiapart_la_dummy.cpp:
-+	echo > cervisiapart_la_dummy.cpp
-+
-+cervisia_la_SOURCES = cervisia_la_main.cpp
-+cervisia_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -module -avoid-version
-+cervisia_la_LIBADD  = libcervisiapart_shared.la
-+
-+cervisia_la_main.cpp: main.cpp
-+	cat main.cpp > cervisia_la_main.cpp
-+
-+cervisia_SOURCES = main.cpp
- cervisia_LDFLAGS = $(all_libraries) $(KDE_RPATH)
--cervisia_LDADD = libcervisia.la
-+cervisia_LDADD = libcervisiapart_shared.la
- 
- man_MANS = cervisia.1
- 
---- cervisia/updateview.cpp	3 Mar 2003 03:53:43 -0000	1.1.1.5
-+++ cervisia/updateview.cpp	14 Jun 2003 02:31:23 -0000	1.9
-@@ -313,7 +313,7 @@
- 	    time_t time;
- 
- 	    oldLocale = setlocale(LC_TIME, "C");
--	    strptime(timestamp.local8Bit(), "%c" , &tmp);
-+	    strptime(timestamp.latin1(), "%c" , &tmp);
- 	    setlocale(LC_TIME, oldLocale);
- 	    time = mktime(&tmp);
- 	    updateEntriesItem(name, status, isdir, isbin, rev, tagdate, time);
---- kbabel/catalogmanager/Makefile.am	5 Nov 2002 03:00:24 -0000	1.1.1.3
-+++ kbabel/catalogmanager/Makefile.am	1 Jun 2003 14:59:19 -0000	1.4
-@@ -6,7 +6,7 @@
- 
- # this is the program that gets installed.  it's name is used for all
- # of the other Makefile.am variables
--lib_LTLIBRARIES = libcatalogmanager.la
-+lib_LTLIBRARIES = catalogmanager.la libcatalogmanager_main.la
- bin_PROGRAMS = catalogmanager
- 
- # set the include path for X, qt and KDE
-@@ -14,21 +14,29 @@
- 
- 
- # which sources should be compiled for kbabel
--libcatalogmanager_la_SOURCES =	catalogmanageriface.skel \
-+libcatalogmanager_main_la_SOURCES =	catalogmanageriface.skel \
- 			prefwidgets.cpp catalogmanagerview.cpp \
- 			catalogmanager.cpp cmdedit.cpp finddialog.cpp settings.cpp \
--			catmanlistitem.cpp roughtransdlg.cpp
-+			catmanlistitem.cpp roughtransdlg.cpp main.cpp
- 
-+libcatalogmanager_main_la_LIBADD =  ../common/libkbabelcommon.la ../kbabeldict/libkbabeldict_main.la $(LIB_KIO)
-+libcatalogmanager_main_la_LDFLAGS = $(all_libraries) -version-info 1:0:0 -no-undefined
- 
--libcatalogmanager_la_LIBADD =  ../common/libkbabelcommon.la ../kbabeldict/libkbabeldict.la $(LIB_KIO)
--libcatalogmanager_la_LDFLAGS = $(all_libraries) -module -version-info 1:0:0 -no-undefined
-+catalogmanager_la_SOURCES = catalogmanager_la_main.cpp
-+catalogmanager_la_LDFLAGS = $(all_libraries) -avoid-version -module
-+catalogmanager_la_LIBADD  = libcatalogmanager_main.la
- 
-+catalogmanager_la_main.cpp: stub_main.cpp
-+	cat stub_main.cpp > catalogmanager_la_main.cpp
- 
--catalogmanager_SOURCES = main.cpp
-+catalogmanager_SOURCES = catalogmanager_main.cpp
- 
- # the libraries to link against.
--catalogmanager_LDADD   = libcatalogmanager.la
-+catalogmanager_LDADD   = libcatalogmanager_main.la
- catalogmanager_LDFLAGS = $(all_libraries) $(KDE_RPATH)
-+
-+catalogmanager_main.cpp: stub_main.cpp
-+	cat stub_main.cpp > catalogmanager_main.cpp
- 
- # these are the headers for your project
- noinst_HEADERS   = catalogmanageriface.h prefwidgets.h catalogmanager.h cmdedit.h\
---- kbabel/catalogmanager/main.cpp	29 Oct 2002 18:25:01 -0000	1.1.1.4
-+++ kbabel/catalogmanager/main.cpp	1 Dec 2002 17:02:09 -0000	1.2
-@@ -152,8 +152,8 @@
-    {0,0,0}
- };
- 
+--- cervisia/ChangeLog	20 Jul 2003 02:50:47 -0000	1.1.1.7
++++ cervisia/ChangeLog	3 Mar 2003 03:53:42 -0000	1.1.1.6
+@@ -1,29 +1,3 @@
+-2003-06-19  Andr� W�bbeking  <Woebbeking@web.de>
 -
--int main(int argc, char **argv)
-+extern "C" int kdemain(int, char**);
-+int kdemain(int argc, char **argv)
+-	* Fix BR 59275 (DiffZoomWidget): 
+-	  o Use QStyle::querySubControlMetrics() to get the exact 
+-	    geometry of the scroll bar groove.
+-	  o Better performance for big files.
+-
+-2003-06-11  Christian Loose <christian.loose@hamburg.de>
+-
+-	* Fix BR #45962: Save changed settings in SettingDialog
+-	  so that the following checkout can use them.
+-
+-2003-06-07  Andr� W�bbeking  <Woebbeking@web.de>
+-
+-	* Fix BR #57797: Removed the own implementation
+-	  of the QListViewItem visible property which could
+-	  lead to a crash when an invisible item was changed.
+-
+-2003-06-03  Christian Loose <christian.loose@hamburg.de>
+-
+-	* Fix BR #59267: Re-added "clear" command to the
+-	  RMB context menu of the ProtocolView
+-	* Removed non functional methods that were supposed
+-	  to handle the RMB context menu from ProtocolView
+-	  source.
+-
+ 2003-02-28  Christian Loose <christian.loose@hamburg.de>
+ 
+ 	* Fix BR #54382: Display warning message in remove dialog
+--- cervisia/cervisia.desktop	20 Jul 2003 02:50:47 -0000	1.1.1.10
++++ cervisia/cervisia.desktop	7 May 2003 00:28:25 -0000	1.1.1.9
+@@ -14,7 +14,7 @@
+ GenericName[es]=Interfaz CVS
+ GenericName[et]=CVSi kasutajaliides
+ GenericName[eu]=CVS Frontenda
+-GenericName[fi]=Käyttöliittymä CVS:lle
++GenericName[fi]=Käyttöliittymä CVS:n
+ GenericName[fr]=Interface graphique pour CVS
+ GenericName[he]=ממשק CVS
+ GenericName[hr]=CVS sučelje
+--- cervisia/diffview.cpp	20 Jul 2003 02:50:47 -0000	1.1.1.6
++++ cervisia/diffview.cpp	4 Jan 2003 20:23:54 -0000	1.1.1.5
+@@ -432,69 +432,57 @@
+ 
+ void DiffZoomWidget::paintEvent(QPaintEvent *)
  {
-     KLocale::setMainCatalogue("kbabel");
-     KAboutData about("catalogmanager",I18N_NOOP("KBabel - Catalog Manager"),VERSION,
---- /dev/null	1 Jan 1970 00:00:00 -0000
-+++ kbabel/catalogmanager/stub_main.cpp	29 Nov 2002 19:01:22 -0000	1.1
-@@ -0,0 +1,28 @@
-+/*
-+ *
-+ * Copyright (c) 2001 Nick Hudson <skrll@netbsd.org>
-+ *
-+ * Permission is hereby granted, free of charge, to any person obtaining a copy
-+ * of this software and associated documentation files (the "Software"), to deal
-+ * in the Software without restriction, including without limitation the rights
-+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-+ * copies of the Software, and to permit persons to whom the Software is
-+ * furnished to do so, subject to the following conditions:
-+ *
-+ * The above copyright notice and this permission notice shall be included in
-+ * all copies or substantial portions of the Software.
-+ *
-+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
-+ * AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
-+ * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-+ */
-+extern "C" int kdemain(int, char* []);
+-    const QScrollBar* scrollBar = diffview->scrollBar();
+-    if (!scrollBar)
++    const QScrollBar *bar = diffview->scrollBar();
++    if (!bar)
+         return;
+ 
+-    // only y and height are important
+-    const QRect scrollBarGroove(scrollBar->isVisible()
+-                                ? style().querySubControlMetrics(QStyle::CC_ScrollBar,
+-                                                                 scrollBar,
+-                                                                 QStyle::SC_ScrollBarGroove)
+-                                : rect());
+-
+-    // draw rectangles at the positions of the differences
+-
+-    const QByteArray& lineTypes(diffview->compressedContent());
++    int sliderMin, sliderMax, sliderLength;
++    if (bar->isVisible())
++        {
++            sliderMin = style().pixelMetric(QStyle::PM_ScrollBarSliderMin, bar);
++            sliderLength = style().pixelMetric(QStyle::PM_SliderLength, bar);
++            sliderMax = style().pixelMetric(QStyle::PM_SliderSpaceAvailable, bar);
++        }
++    else
++        {
++            sliderMin = 0;
++            sliderMax = height();
++            sliderLength = 0;
++        }
+ 
+-    QPixmap pixbuf(width(), scrollBarGroove.height());
+-    pixbuf.fill(KGlobalSettings::baseColor());
++    QByteArray str = diffview->compressedContent();
+ 
++    QPixmap pixbuf(size());
+     QPainter p(&pixbuf, this);
+-    if (const unsigned int numberOfLines = lineTypes.size())
+-    {
+-        const double scale(((double) scrollBarGroove.height()) / numberOfLines);
+-        for (unsigned int index(0); index < numberOfLines;)
++    p.fillRect(0, 0, pixbuf.width(), pixbuf.height(), colorGroup().background());
++    if (str.size())
+         {
+-            const char lineType(lineTypes[index]);
+-
+-            // don't use qRound() to avoid painting outside of the pixmap
+-            // (yPos1 must be lesser than scrollBarGroove.height())
+-            const int yPos1(static_cast<int>(index * scale));
+-
+-            // search next line with different lineType
+-            for (++index; index < numberOfLines && lineType == lineTypes[index]; ++index)
+-                ;
+-
+-            QColor color;
+-            switch (lineType)
+-            {
+-            case 'C':
+-                color = diffChangeColor;
+-                break;
+-            case 'I':
+-                color = diffInsertColor;
+-                break;
+-            case 'D':
+-                color = diffDeleteColor;
+-                break;
+-            case ' ':
+-            case 'N':
+-                color = KGlobalSettings::alternateBackgroundColor();
+-                break;
+-            }
+-
+-            if (color.isValid())
+-            {
+-                const int yPos2(qRound(index * scale));
+-                const int areaHeight((yPos2 != yPos1) ? yPos2 - yPos1 : 1);
+-
+-                p.fillRect(0, yPos1, pixbuf.width(), areaHeight, QBrush(color));
+-            }
++            double scale = ((double)(sliderMax-sliderMin+sliderLength)) / str.size();
++            int y0, y1;
++            y0 = y1 = 0;
++            for (int i=0; i < (int)str.size(); ++i)
++                {
++                    char c = str[i];
++                    int y1 = (int)(i*scale);
++                    int y2 = (int)((i+1)*scale);
++                    if (y1 != y0 || c != 'U')
++                        {
++                            QColor color =
++                              (c==' ')? KGlobalSettings::alternateBackgroundColor()
++                              : (c=='C')? diffChangeColor
++                              : (c=='I')? diffInsertColor
++                              : (c=='D')? diffDeleteColor
++                              : (c=='N')? KGlobalSettings::alternateBackgroundColor() : KGlobalSettings::baseColor();
 +
-+int main( int argc, char* argv[] )
-+{
-+        return kdemain(argc, argv);
++                            if (y2 == y1)
++                                y2++;
++                            p.fillRect(0, sliderMin+y1, pixbuf.width(), y2-y1, QBrush(color));
++                            y0 = y1;
++                        }
++                }
+         }
+-    }
+     p.flush();
+-    bitBlt(this, 0, scrollBarGroove.y(), &pixbuf);
++    bitBlt(this, 0, 0, &pixbuf);
+ }
+ 
+ #include "diffview.moc"
+--- cervisia/listview.cpp	20 Jul 2003 02:50:45 -0000	1.1.1.3
++++ cervisia/listview.cpp	10 Jul 2002 05:26:26 -0000	1.1.1.2
+@@ -24,17 +24,29 @@
+ ListViewItem::ListViewItem(ListView *parent)
+     : QListViewItem(parent)
+ {
++    hiddenChild = 0;
++    hiddenSibling = 0;
++    formerParent = 0;
+ }
+ 
+ 
+ ListViewItem::ListViewItem(ListViewItem *parent)
+     : QListViewItem(parent)
+ {
++    hiddenChild = 0;
++    hiddenSibling = 0;
++    formerParent = 0;
+ }
+ 
+ 
+ ListViewItem *ListViewItem::myFirstChild() const
+ {
++    if (!visible())
++        return 0;
++    
++    if (hiddenChild)
++        return hiddenChild;
++
+     // Cast guaranteed by ListViewItem's constructor
+     // (provided no other QListViewItems are constructed)
+     return static_cast<ListViewItem*>(firstChild());
+@@ -43,13 +55,53 @@
+ 
+ ListViewItem *ListViewItem::myNextSibling() const
+ {
+-    return static_cast<ListViewItem*>(nextSibling());
++    if (visible())
++        return static_cast<ListViewItem*>(nextSibling());
++
++    if (hiddenSibling)
++        return hiddenSibling;
++
++    // We're the last hidden item of our parent
++    return static_cast<ListViewItem*>(formerParent->firstChild());
 +}
 +
---- kbabel/common/Makefile.am	29 Oct 2002 18:25:03 -0000	1.1.1.5
-+++ kbabel/common/Makefile.am	29 Oct 2002 18:31:05 -0000	1.4
-@@ -11,7 +11,7 @@
- lib_LTLIBRARIES = libkbabelcommon.la
- 
- # set the include path for X, qt and KDE
--INCLUDES         = $(all_includes)
-+INCLUDES         = $(all_includes) -I$(top_srcdir)/kbabel/kbabel
- 
- # which sources should be compiled 
- libkbabelcommon_la_SOURCES = catalog.cpp catalogitem.cpp editcmd.cpp\
---- kbabel/kbabel/Makefile.am	10 Jul 2002 05:29:11 -0000	1.1.1.2
-+++ kbabel/kbabel/Makefile.am	7 May 2003 00:34:56 -0000	1.3
-@@ -6,7 +6,7 @@
- 
- # this is the program that gets installed.  it's name is used for all
- # of the other Makefile.am variables
--lib_LTLIBRARIES = libkbabel.la
-+lib_LTLIBRARIES = kbabel.la libkbabel_main.la
- bin_PROGRAMS = kbabel
- 
- # set the include path for X, qt and KDE
-@@ -14,7 +14,7 @@
- 
- 
- # which sources should be compiled for kbabel
--libkbabel_la_SOURCES =	kbabel.cpp kbabelview.cpp kbabelview2.cpp\
-+libkbabel_main_la_SOURCES = main.cpp kbabel.cpp kbabelview.cpp kbabelview2.cpp\
- 			kbabelpref.cpp kbabeliface.skel \
- 			kbcatalog.cpp \
- 			headereditor.cpp prefwidgets.cpp\
-@@ -23,15 +23,24 @@
- 			finddialog.cpp spelldlg.cpp roughtransdlg.cpp settings.cpp
- 
- 
--libkbabel_la_LIBADD =  ../common/libkbabelcommon.la ../kbabeldict/libkbabeldict.la $(LIB_KIO) $(LIB_KSPELL)
--libkbabel_la_LDFLAGS = $(all_libraries) -module -version-info 1:0:0 -no-undefined
-+libkbabel_main_la_LIBADD =  ../common/libkbabelcommon.la ../kbabeldict/libkbabeldict_main.la $(LIB_KIO) $(LIB_KSPELL)
-+libkbabel_main_la_LDFLAGS = $(all_libraries) -version-info 1:0:0 -no-undefined
- 
-+kbabel_la_SOURCES = kbabel_la_main.cpp
-+kbabel_la_LIBADD  = libkbabel_main.la
-+kbabel_la_LDFLAGS = $(all_libraries) -module -avoid-version
- 
--kbabel_SOURCES = main.cpp
-+kbabel_la_main.cpp: stub_main.cpp
-+	cat stub_main.cpp > kbabel_la_main.cpp
 +
-+kbabel_SOURCES = kbabel_main.cpp
- 
- # the libraries to link against.
--kbabel_LDADD   = libkbabel.la
-+kbabel_LDADD   = libkbabel_main.la
- kbabel_LDFLAGS = $(all_libraries) $(KDE_RPATH)
++void ListViewItem::setVisible(bool b)
++{
++    if (visible() == b)
++        return;
 +
-+kbabel_main.cpp: stub_main.cpp
-+	cat stub_main.cpp > kbabel_main.cpp
++    if (b)
++        {
++            ListViewItem *item = formerParent->hiddenChild;
++            if (item == this)
++                formerParent->hiddenChild = item->hiddenSibling;
++            else
++                {
++                    // Loop should be finite...
++                    while (item->hiddenSibling != this)
++                        item = item->hiddenSibling;
++                    item->hiddenSibling = this->hiddenSibling;
++                }
++            formerParent->insertItem(this);
++            formerParent = 0;
++        }
++    else
++        {
++            // Cast guaranteed by constructor
++            ListViewItem *p = static_cast<ListViewItem*>(parent());
++            ListViewItem *item = p->hiddenChild;
++            this->hiddenSibling = item;
++            p->hiddenChild = this;
++            formerParent = p;
++            p->takeItem(this);
++        }
+ }
  
- # these are the headers for your project
- noinst_HEADERS   = kbabel.h kbabelview.h kbabeliface.h kbabelpref.h\
---- kbabel/kbabel/main.cpp	7 May 2003 00:28:56 -0000	1.1.1.7
-+++ kbabel/kbabel/main.cpp	7 May 2003 00:31:36 -0000	1.4
-@@ -408,7 +408,8 @@
+ 
+ bool ListViewItem::visible() const
+ {
+-    return isVisible();
++    return formerParent == 0;
+ }
+ 
+ 
+--- cervisia/listview.h	20 Jul 2003 02:50:46 -0000	1.1.1.4
++++ cervisia/listview.h	3 Mar 2003 03:53:42 -0000	1.1.1.3
+@@ -28,10 +28,16 @@
+     ListViewItem(ListView *parent);
+     ListViewItem(ListViewItem *parent);
+ 
++    void setVisible(bool b);
+     bool visible() const;
+ 
+     ListViewItem *myFirstChild() const;
+     ListViewItem *myNextSibling() const;
++    
++private:
++    ListViewItem *hiddenChild;
++    ListViewItem *hiddenSibling;
++    ListViewItem *formerParent;
  };
  
  
--int main(int argc, char **argv)
-+extern "C" int kdemain(int, char**);
-+int kdemain(int argc, char **argv)
+--- cervisia/protocolview.cpp	20 Jul 2003 02:50:45 -0000	1.1.1.6
++++ cervisia/protocolview.cpp	3 Mar 2003 03:53:43 -0000	1.1.1.5
+@@ -61,7 +61,7 @@
  {
-     KAboutData about("kbabel",I18N_NOOP("KBabel"),VERSION,
-        I18N_NOOP("An advanced PO file editor"),KAboutData::License_GPL,
---- /dev/null	1 Jan 1970 00:00:00 -0000
-+++ kbabel/kbabel/stub_main.cpp	29 Nov 2002 19:01:23 -0000	1.1
-@@ -0,0 +1,28 @@
-+/*
-+ *
-+ * Copyright (c) 2001 Nick Hudson <skrll@netbsd.org>
-+ *
-+ * Permission is hereby granted, free of charge, to any person obtaining a copy
-+ * of this software and associated documentation files (the "Software"), to deal
-+ * in the Software without restriction, including without limitation the rights
-+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-+ * copies of the Software, and to permit persons to whom the Software is
-+ * furnished to do so, subject to the following conditions:
-+ *
-+ * The above copyright notice and this permission notice shall be included in
-+ * all copies or substantial portions of the Software.
-+ *
-+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
-+ * AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
-+ * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-+ */
-+extern "C" int kdemain(int, char* []);
+     if (childproc)
+         {
+-            KMessageBox::sorry(topLevelWidget(),
++            KMessageBox::sorry(topLevelWidget(), 
+                                i18n("There is already a job running"),
+                                "Cervisia");
+             return false;
+@@ -81,7 +81,7 @@
+     if (!rsh.isEmpty())
+ 	*childproc << QString("CVS_RSH=" + KShellProcess::quote(rsh));
+     *childproc << cmdline;
+-
++    
+     connect( childproc, SIGNAL(processExited(KProcess *)),
+ 	     SLOT(childExited()) );
+     connect( childproc, SIGNAL(receivedStdout(KProcess *, char *, int)),
+@@ -97,19 +97,6 @@
+ }
+ 
+ 
+-QPopupMenu* ProtocolView::createPopupMenu(const QPoint &pos)
+-{
+-    QPopupMenu* menu = QTextEdit::createPopupMenu(pos);
+-
+-    int id = menu->insertItem(i18n("Clear"), this, SLOT( clear() ), 0, -1, 0);
+-
+-    if( length() == 0 )
+-        menu->setItemEnabled(id, false);
+-
+-    return menu;
+-}
+-
+-
+ void ProtocolView::cancelJob()
+ {
+     childproc->kill();
+@@ -182,6 +169,41 @@
+         QString("%1").arg(line));
+ }
+ 
 +
-+int main( int argc, char* argv[] )
++void ProtocolView::execContextMenu(const QPoint &p)
 +{
-+        return kdemain(argc, argv);
++    QPopupMenu *popup = new QPopupMenu(this);
++    int clearId = popup->insertItem(i18n("Clear"));
++    int selallId = popup->insertItem(i18n("Select All"));
++    
++    int res = popup->exec(p);
++    if (res == clearId)
++        clear();
++    else if (res == selallId)
++        selectAll();
++    
++    delete popup;
 +}
 +
---- /dev/null	1 Jan 1970 00:00:00 -0000
-+++ kbabel/kbabel/version.h	17 Aug 2002 17:46:03 -0000	1.1
-@@ -0,0 +1,3 @@
-+#undef VERSION
-+#define VERSION "0.5.5"
 +
---- kbabel/kbabeldict/Makefile.am	29 Oct 2002 18:25:10 -0000	1.1.1.4
-+++ kbabel/kbabeldict/Makefile.am	1 Jun 2003 14:59:20 -0000	1.3
-@@ -8,7 +8,7 @@
- 
- # this is the program that gets installed.  it's name is used for all
- # of the other Makefile.am variables
--lib_LTLIBRARIES = libkbabeldict.la libkbabeldictplugin.la
-+lib_LTLIBRARIES = kbabeldict.la libkbabeldictplugin.la libkbabeldictplugin_shared.la libkbabeldict_main.la
- bin_PROGRAMS = kbabeldict
- 
- # set the include path for X, qt and KDE
-@@ -16,21 +16,34 @@
- 
- 
- # which sources should be compiled for kbabeldict
--libkbabeldictplugin_la_SOURCES = searchengine.cpp 
--libkbabeldictplugin_la_LIBADD =  $(LIB_KDECORE)
--libkbabeldictplugin_la_LDFLAGS = $(all_libraries) -module -version-info 1:0:0 -no-undefined
-+libkbabeldictplugin_shared_la_SOURCES = searchengine.cpp 
-+libkbabeldictplugin_shared_la_LIBADD =  $(LIB_KDECORE)
-+libkbabeldictplugin_shared_la_LDFLAGS = $(all_libraries) -version-info 1:0:0 -no-undefined
++void ProtocolView::mousePressEvent(QMouseEvent *e)
++{
++    if (e->button() == RightButton)
++        execContextMenu(e->globalPos());
++    else
++        QTextEdit::mousePressEvent(e);
++}
 +
-+libkbabeldictplugin_la_SOURCES = libkbabeldictplugin_la_dummy.cpp
-+libkbabeldictplugin_la_LIBADD  = libkbabeldictplugin_shared.la
-+libkbabeldictplugin_la_LDFLAGS = $(all_libraries) -avoid-version -no-undefined
- 
--libkbabeldict_la_SOURCES = kbabeldictbox.cpp \
-+libkbabeldictplugin_la_dummy.cpp:
-+	echo > libkbabeldictplugin_la_dummy.cpp
 +
-+libkbabeldict_main_la_SOURCES = kbabeldictbox.cpp \
-             kbabeldictiface.skel dictionarymenu.cpp dictchooser.cpp \
--            aboutmoduledlg.cpp 
--libkbabeldict_la_LIBADD =  ../common/libkbabelcommon.la libkbabeldictplugin.la $(LIB_KDEUI)
--libkbabeldict_la_LDFLAGS = $(all_libraries) -module -version-info 1:0:0 -no-undefined
-+            aboutmoduledlg.cpp kbabeldictview.cpp kbabeldict.cpp kbabelsplash.cpp
-+libkbabeldict_main_la_LIBADD =  ../common/libkbabelcommon.la libkbabeldictplugin_shared.la $(LIB_KDEUI)
-+libkbabeldict_main_la_LDFLAGS = $(all_libraries) -version-info 1:0:0 -no-undefined
++void ProtocolView::keyPressEvent(QKeyEvent *e)
++{
++    if (e->key() == KGlobalSettings::contextMenuKey())
++        execContextMenu(mapToGlobal(QPoint(10, 10)));
++    else if (e->key() == Key_Tab)
++        QTextEdit::focusNextPrevChild(true);
++    else
++        QTextEdit::keyPressEvent(e);
++}
+ 
+ #include "protocolview.moc"
+ 
+--- cervisia/protocolview.h	20 Jul 2003 02:50:45 -0000	1.1.1.4
++++ cervisia/protocolview.h	14 Aug 2002 19:48:28 -0000	1.1.1.3
+@@ -18,14 +18,11 @@
+ #include <qtextedit.h>
+ #include <kprocess.h>
+ 
+-class QPoint;
+-class QPopupMenu;
+-
+ 
+ class ProtocolView : public QTextEdit
+ {
+     Q_OBJECT
+-
++    
+ public:
+     ProtocolView( QWidget *parent=0, const char *name=0 );
+     ~ProtocolView();
+@@ -37,8 +34,9 @@
+     void jobFinished(bool success);
+ 
+ protected:
+-    virtual QPopupMenu* createPopupMenu(const QPoint &pos);
+-
++    void mousePressEvent(QMouseEvent *e);
++    void keyPressEvent(QKeyEvent *e);
++    
+ private slots:
+     void receivedOutput(KProcess *proc, char *buffer, int buflen);
+     void childExited();
+@@ -47,7 +45,8 @@
+ private:
+     void processOutput();
+     void appendLine(const QString &line);
+-
++    void execContextMenu(const QPoint &pos);
++    
+     KShellProcess *childproc;
+     QString buf;
+     
+--- cervisia/settingsdlg.cpp	20 Jul 2003 02:50:47 -0000	1.1.1.5
++++ cervisia/settingsdlg.cpp	3 Oct 2002 01:05:38 -0000	1.1.1.4
+@@ -308,8 +308,6 @@
+             if (w->inherits("DiffView"))
+                 w->setFont(difffontbox->font());
+         }
+-
+-    config->sync();
+ }
+ 
+ void SettingsDialog::done(int res)
+--- debian/adddebug.1	20 Jul 2003 02:51:00 -0000	1.1.1.4
++++ debian/adddebug.1	27 Nov 2002 02:45:09 -0000	1.1.1.3
+@@ -21,6 +21,12 @@
+ .B adddebug
+ .RB "[ " \-k " ] [ " \-r " ]"
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B adddebug
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBadddebug\fP modifies the \fIMakefile\fP in the current directory
+ (and optionally in its subdirectories) to add debug info (\fI\-g3\fP).
+ It will also remove optimisations (\fI\-O[1-9]?\fP).
+--- debian/catalogmanager.1	20 Jul 2003 02:51:00 -0000	1.1.1.4
++++ debian/catalogmanager.1	27 Nov 2002 02:45:09 -0000	1.1.1.3
+@@ -2,7 +2,7 @@
+ .\" First parameter, NAME, should be all caps
+ .\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
+ .\" other parameters are allowed: see man(7), man(1)
+-.TH CATALOGMANAGER 1 "May 12, 2003"
++.TH CATALOGMANAGER 1 "September 26, 2002"
+ .\" Please adjust this date whenever revising the manpage.
+ .\"
+ .\" Some roff macros, for reference:
+@@ -22,6 +22,12 @@
+ .RI "[ " generic-options " ]"
+ [ \fB\-\-project\fP \fIconfig-file\fP ]
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B catalogmanager
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBCatalogManager\fP is part of a suite of programs for editing gettext
+ message files (PO-files).  This suite is designed to help you translate fast
+ and consistently.
+@@ -43,16 +49,8 @@
+ .BR kbabel (1),
+ .BR kbabeldict (1).
+ .PP
+-Full user documentation for KBabel is available through the KDE Help Centre.
+-You can also enter the URL
+-\fIhelp:/kbabel/\fP
+-directly into konqueror or you can run
+-`\fIkhelpcenter help:/kbabel/\fP'
+-from the command-line.
+-.PP
+-If the KDE Help Centre is not installed then you can install the package
+-\fIkdesdk-doc-html\fP and read this documentation in HTML format from
+-\fI/usr/share/doc/kde/HTML/en/kbabel/\fP.
++The original documentation from the program author
++is available in \fI/usr/share/doc/kbabel/\fP.
+ .SH AUTHOR
+ KBabel was written by Matthias Kiefer <kiefer@kde.org>,
+ Wolfram Diestel <wolfram@steloj.de>, Andrea Rizzi <rizzi@kde.org>,
+--- debian/catalogmanager.xpm	20 Jul 2003 02:51:00 -0000	1.1.1.2
++++ debian/catalogmanager.xpm	25 Jun 2002 03:21:08 -0000	1.1.1.1
+@@ -1,295 +1,68 @@
+ /* XPM */
+-static char *catalogmanager[] = {
+-/* columns rows colors chars-per-pixel */
+-"32 32 257 2",
+-"   c #000000",
+-".  c #00090D",
+-"X  c #080808",
+-"o  c #0B0603",
+-"O  c #140909",
+-"+  c #151403",
+-"@  c #171818",
+-"#  c #1D1D1D",
+-"$  c #161619",
+-"%  c #030B2C",
+-"&  c #141624",
+-"*  c #1F1F20",
+-"=  c #12232E",
+-"-  c #19203E",
+-";  c #260A05",
+-":  c #3E0E0E",
+-">  c #3D1718",
+-",  c #27260C",
+-"<  c #2E250B",
+-"1  c #36201F",
+-"2  c #252423",
+-"3  c #302220",
+-"4  c #32312C",
+-"5  c #353532",
+-"6  c #3B3936",
+-"7  c #2A2B37",
+-"8  c #0D1A53",
+-"9  c #0B0C49",
+-"0  c #091172",
+-"q  c #1D3442",
+-"w  c #15277B",
+-"e  c #213D50",
+-"r  c #3E3E5D",
+-"t  c #213F7E",
+-"y  c #3B3B69",
+-"u  c #075777",
+-"i  c #00567F",
+-"p  c #085B7D",
+-"a  c #195E7B",
+-"s  c #19627F",
+-"d  c #27404F",
+-"f  c #3B505B",
+-"g  c #2A4C62",
+-"h  c #2E536B",
+-"j  c #334F60",
+-"k  c #3F5E6E",
+-"l  c #29627C",
+-"z  c #386175",
+-"x  c #441919",
+-"c  c #413906",
+-"v  c #4B2324",
+-"b  c #512D28",
+-"n  c #671414",
+-"m  c #7F201C",
+-"M  c #672A28",
+-"N  c #7B2A2A",
+-"B  c #4B4819",
+-"V  c #4A4820",
+-"C  c #40403E",
+-"Z  c #4A453A",
+-"A  c #5E5C21",
+-"S  c #716E2D",
+-"D  c #464645",
+-"F  c #474E54",
+-"G  c #52524A",
+-"H  c #5D5E5D",
+-"J  c #595755",
+-"K  c #405D6A",
+-"L  c #5E5F60",
+-"P  c #5A5D72",
+-"I  c #4A6676",
+-"U  c #576064",
+-"Y  c #596A76",
+-"T  c #605E5B",
+-"R  c #775959",
+-"E  c #60605D",
+-"W  c #606056",
+-"Q  c #79635C",
+-"!  c #666665",
+-"~  c #6B6A64",
+-"^  c #6D6D6D",
+-"/  c #75756D",
+-"(  c #7A7A7A",
+-")  c #777773",
+-"_  c #0D19B8",
+-"`  c #1118BA",
+-"'  c #23259D",
+-"]  c #373992",
+-"[  c #2123AD",
+-"{  c #151ECC",
+-"}  c #1C33D8",
+-"|  c #1625D6",
+-" . c #2735DC",
+-".. c #015A83",
+-"X. c #0A5E80",
+-"o. c #04638B",
+-"O. c #0C6083",
+-"+. c #09638B",
+-"@. c #0A6D95",
+-"#. c #066B93",
+-"$. c #0B739C",
+-"%. c #146485",
+-"&. c #176788",
+-"*. c #1A6584",
+-"=. c #176C91",
+-"-. c #1C7196",
+-";. c #0D7AA4",
+-":. c #117DA5",
+-">. c #216A87",
+-",. c #266F8C",
+-"<. c #206380",
+-"1. c #28708D",
+-"2. c #22789D",
+-"3. c #2646DA",
+-"4. c #2E56C9",
+-"5. c #2C53E2",
+-"6. c #305BE4",
+-"7. c #3D72E9",
+-"8. c #474989",
+-"9. c #4D748B",
+-"0. c #4B4ED7",
+-"q. c #4179E5",
+-"w. c #5460E1",
+-"e. c #7C827C",
+-"r. c #0F83AD",
+-"t. c #0B86B0",
+-"y. c #1383AD",
+-"u. c #168EB9",
+-"i. c #1688B3",
+-"p. c #2C80A5",
+-"a. c #3787AA",
+-"s. c #1A9AC5",
+-"d. c #468199",
+-"f. c #488199",
+-"g. c #5A8390",
+-"h. c #4897B6",
+-"j. c #5589A0",
+-"k. c #658C99",
+-"l. c #7C949B",
+-"z. c #699BB2",
+-"x. c #58A4C3",
+-"c. c #62ACC9",
+-"v. c #67B3CE",
+-"b. c #69B7D3",
+-"n. c #9A1211",
+-"m. c #932222",
+-"M. c #B32318",
+-"N. c #AB2727",
+-"B. c #B3393A",
+-"V. c #947E2C",
+-"C. c #A46A18",
+-"Z. c #9B4343",
+-"A. c #A25D5F",
+-"S. c #FE3F12",
+-"D. c #FE2525",
+-"F. c #FE2A2B",
+-"G. c #F52929",
+-"H. c #FD3939",
+-"J. c #FE781B",
+-"K. c #DF4646",
+-"L. c #DD5A5A",
+-"P. c #DB7878",
+-"I. c #FE4F4F",
+-"U. c #F74647",
+-"Y. c #FF5B5B",
+-"T. c #E76262",
+-"R. c #FF6B6B",
+-"E. c #FE7D7D",
+-"W. c #998915",
+-"Q. c #B6A32B",
+-"!. c #83837E",
+-"~. c #BCB64F",
+-"^. c #DA8B2D",
+-"/. c #EC8A27",
+-"(. c #F18C29",
+-"). c #FE8D31",
+-"_. c #FA9642",
+-"`. c #FD9947",
+-"'. c #D8D056",
+-"]. c #D7D065",
+-"[. c #F8E24B",
+-"{. c #FEEF63",
+-"}. c #F2E866",
+-"|. c #FFF87C",
+-" X c #868684",
+-".X c #8C8C86",
+-"XX c #8B8B8B",
+-"oX c #8E908E",
+-"OX c #979787",
+-"+X c #96978A",
+-"@X c #939493",
+-"#X c #9C9C9A",
+-"$X c #979998",
+-"%X c #9EA1A4",
+-"&X c #A88686",
+-"*X c #A29393",
+-"=X c #A0A08E",
+-"-X c #A1A19B",
+-";X c #AFAF9E",
+-":X c #A6A6A5",
+-">X c #A7A7A8",
+-",X c #A6A8A7",
+-"<X c #ABA9A6",
+-"1X c #ACADAC",
+-"2X c #A8A8A8",
+-"3X c #ABB1A4",
+-"4X c #B4B6A3",
+-"5X c #B2B1AC",
+-"6X c #BBBBAC",
+-"7X c #B4B4B2",
+-"8X c #BCBCB6",
+-"9X c #BCBCBB",
+-"0X c #B9B2B2",
+-"qX c #9398E9",
+-"wX c #A9AEEE",
+-"eX c #FD9F9F",
+-"rX c #FCAAAA",
+-"tX c #C3C3B4",
+-"yX c #C2C2BE",
+-"uX c #CDCDBB",
+-"iX c #D0D0BF",
+-"pX c #C6C5AB",
+-"aX c #C4C4C3",
+-"sX c #CBCCCB",
+-"dX c #CDC8C1",
+-"fX c #CFD0DE",
+-"gX c #D4D4C5",
+-"hX c #D3D3CC",
+-"jX c #DADAC8",
+-"kX c #D2D2D2",
+-"lX c #DBDBDB",
+-"zX c #D8D8D6",
+-"xX c #D0D0E1",
+-"cX c #DBDEF3",
+-"vX c #DDE0DF",
+-"bX c #E0DBDB",
+-"nX c #FED0CF",
+-"mX c #FFD9D9",
+-"MX c #E7E7C9",
+-"NX c #E3E3D1",
+-"BX c #E3E2DB",
+-"VX c #EAEAD7",
+-"CX c #FAFADB",
+-"ZX c #E2E3E3",
+-"AX c #ECECE3",
+-"SX c #ECECEC",
+-"DX c #EFF1F3",
+-"FX c #FCE4E5",
+-"GX c #F5F5E4",
+-"HX c #F4F4EC",
+-"JX c #FCFCE4",
+-"KX c #FEFEEB",
+-"LX c #F5F4F4",
+-"PX c #FEFEF4",
+-"IX c #FEFEFD",
+-"UX c #FAF0F0",
+-"YX c None",
+-/* pixels */
+-"  . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   ",
+-". p 1.1.>.%.&.&.&.%.%.%.%.%.%.O.O.X.O.p p p %.1.1.*.>.,.,.*.u . ",
+-". ,.DXZXaXl.b.b.v.c.c.x.x.h.h.h.a.p.2.-.=.O.z.UXZX,XsXDXZX@Xa . ",
+-". ,.ZXaX7Xk.s.s.s.u.u.i.y.:.:.:.$.@.@.+.+...z.bXaX#XsXkXaXXXa . ",
+-". >.aX1X:Xg.r.r.r.;.;.;.;.$.@.#.#.+.o.+.....j.aX1X@X7X8X2XoXs . ",
+-". *.#X#X#Xl.f.f.f.f.f.f.9.f.f.f.f.f.f.f.f.f.k.#X#X#X#X#X#X%Xl . ",
+-". s ,X2X:X2X2X2X2X<X2X2X2X2X2X<X<X<X<X<X2X<X<X:X:X2X2X2X2X,Xz . ",
+-"X K #XyXaXyX9X9XaXaXyX9X9X9X9XaX9X9X9X9X9X9XaX9X9X9X9X-X X-XE o ",
+-"X T aXZX) 2XIXIX9X^ kXIXIXIXLXXXLXIXIXIXIXsX2XIXIXIXIXyX.XaX! X ",
+-"X T aXaX  H yX1X) D cXoXH ZX(  X) ZXT  XsX^ 9XIXIXIXIXtX.XaX! X ",
+-"X E aXSX2XsXlXsXkXzXPX9X#XSX1XDX1XDX#X8XBX9XIXPXPXIXIXtXXXaX^ #X",
+-"X E aXsX( IX1X#XIXIXIXIXIXIXIXIXIXIXIXPXPXIXPXPXPXPXPXtXXXaX^ SX",
+-"X H yXSXsXIXZXlXIX X7XIX! kXE VXVXb U HX6X.XuXKXKXKXKXtX.XaX/ SX",
+-"X T yXsX^ IX:X@X@XXX! aX6 uX2 6 hX@ G 6 @ 2 J ;XJXJXKXtX.XaX^ SX",
+-"X T aXLXlXIXDXSXSXSXZXLXBXGXjXjXNXW & 8 % Z MXVXJXJXJX6XXXaX^ MX",
+-"X U aXsX! IXIXIXIXIXIXPXPXPXKXVXe.& w 4.t - P tXCXCX3Xe.!.aX/ SX",
+-"X E yXLXzXSXPXPXSXHXPXPXVXJXCX4X$ 0 3.7.q.3.` 8.tX4XI z U 9X^ SX",
+-"X E aXaX  H HXGX/ ) HXVXG 4XuX# 9 _ } 5.6.3. .] 4 z q g f 1X^ SX",
+-"X E aXsX2 ( <XOXOX2 6X~ tXG 4 # 7 ' { |  .w.wXxXT h - X g Y U AX",
+-"X E yXIXPXPXzXjXJXKXJXJXJX=X@ 5 D y [ 0.qXcXLXLX:XI d = h d W MX",
+-"X T aXIXPXPX1X+XPXiXMXKXVX6 @ D F D r fXPXLXDXLXvXU h d.9.f H SX",
+-"X H yXIXIXPXhXgXgX5 -XtXE @ 2 G ^ C 6 dXIXLXLXLXmXQ 6 A./ -X! SX",
+-"X H yXIXPXIX8X<X1XH sXJ   x v *XlXoXx P.FXIXUXrXY.m.1 E  XsX/ aX",
+-"X H 8XGXGXGXGXGXGXJXKXQ n N.N.&X5X&XN.F.E.nXeXH.H.K.M 1 T 4XG r ",
+-"X H !.OXOXOXOXOXOXOX+Xb n.m.N.B.A.B.H.F.D.U.F.D.U.R.T.B.M Z #   ",
+-"  2 2 # # * * # * # 2 X ; , C.(.^._.`.`.).J.S.D.U.L.Z.N :       ",
+-"YXYXYXYXYXYXYXYXYXYXYX    + < W.Q.[.{.{.{.[./.M.n > +           ",
+-"YXYXYXYXYXYXYXYXYXYXYXYX    o + , A S ].|.}.V.; o             YX",
+-"YXYXYXYXYXYXYXYXYXYXYXYXYX        o X V ~.'.S               YXYX",
+-"YXYXYXYXYXYXYXYXYXYXYXYXYXYXYXYXYX    X , B ,     YXYXYXYXYXYXYX",
+-"YXYXYXYXYXYXYXYXYXYXYXYXYXYXYXYXYX                  YXYXYXYXYXYX",
+-"YXYXYXYXYXYXYXYXYXYXYXYXYXYXYXYXYXYXYX              YXYXYXYXYXYX"
+-};
++static char * catalogmanager_xpm[] = {
++"32 32 33 1",
++" 	c None",
++".	c #150F14",
++"+	c #1C7CA6",
++"@	c #4A839C",
++"#	c #68B4D0",
++"$	c #F8433F",
++"%	c #322D32",
++"&	c #D3D0C8",
++"*	c #942725",
++"=	c #D98E2A",
++"-	c #0F6589",
++";	c #26567A",
++">	c #F8E259",
++",	c #5992AA",
++"'	c #324FE1",
++")	c #E2E1DB",
++"!	c #FE9160",
++"~	c #72645B",
++"{	c #761717",
++"]	c #2131D9",
++"^	c #141CC8",
++"/	c #FEEA66",
++"(	c #6EBAD4",
++"_	c #77776E",
++":	c #424039",
++"<	c #BD403E",
++"[	c #ACA6A3",
++"}	c #8F928D",
++"|	c #565B60",
++"1	c #C0C0BA",
++"2	c #FAF9F1",
++"3	c #121EBE",
++"4	c #2424A8",
++"                                ",
++" --+--------------------+--+--- ",
++" +2)&}(((###,#,@@++---}2)1&2)}- ",
++" +)&[,#+,+++++++-+----,&1[1&1}- ",
++" -&[[@+++++++++-------,1[}11[}- ",
++" -}[}#+,,@@@+@@@@@@@@@,}[}[}[[; ",
++" -[[[[[[([[[[[[[[[[[[[[[[[[[[[- ",
++" |[111111111111111111111111[}[~ ",
++" |1)_[221_&2222,22222&[22221}1~ ",
++" ~11.|1[_|)}~)_}_2~})_122221}1~ ",
++" |1)[1)&&)21[2[2[2[1)1222221}&| ",
++" ~1)_21[22222222222222222221}&~ ",
++" |12&2))2}12_)|22:|21}&22221}1~ ",
++" ~1&_2[}}}|1:&.%).|%.%~[2221}1~ ",
++" |12)22)22)2)2))2|...|)22221}&| ",
++" ~11|22222222222_.]';.|122[}_&~ ",
++" |12222222222221..'+@'3|1[@;|1~ ",
++" ~11.|22__22:1&..^]''']:%;%;;[~ ",
++" |1&%_[}}%[~&:%.%33]]'[&~;%.;|| ",
++" ~1222))22222[.%|:4'[)2)[+%%;:| ",
++" |1222[[2&)2):.;:::&2222&~;@+:| ",
++" |&222&&&:[1_.%|_|%122)2&~%__[| ",
++" ~12221[[_1|..{}&}%=&22!$<%~_&~ ",
++" |122)222)2~{**_1_*$!&!$$${%~[| ",
++" |_}}}}}}}}%*{<<<$$$$$$$$$=*::. ",
++"           ..{~!=!!!!$$$$<<*... ",
++"             .:=}>>>/>=*{%....  ",
++"                %~_&/>=..       ",
++"                  .:11|.        ",
++"                   .%:..        ",
++"                     ...        ",
++"                                "};
+--- debian/cervisia.README.Debian	20 Jul 2003 02:50:59 -0000	1.1.1.1
++++ /dev/null	1 Jan 1970 00:00:00 -0000
+@@ -1,8 +0,0 @@
+-Cervisia for Debian
+--------------------
+-
+-This application provides documentation in a docbook format that the KDE
+-Help Centre can display.  For HTML documentation that can be read in any
+-web browser, see the package kdesdk-doc-html.
+-
+- -- Ben Burton <bab@debian.org>, Mon, 12 May 2003 12:29:39 +1000
+--- debian/cervisia.xpm	20 Jul 2003 02:51:00 -0000	1.1.1.2
++++ debian/cervisia.xpm	25 Jun 2002 03:21:08 -0000	1.1.1.1
+@@ -1,199 +1,68 @@
+ /* XPM */
+-static char *cervisia[] = {
+-/* columns rows colors chars-per-pixel */
+-"24 24 169 2",
+-"   c #010000",
+-".  c #0D0403",
+-"X  c #1B0A09",
+-"o  c #151212",
+-"O  c #1D1919",
+-"+  c #220F0B",
+-"@  c #290A07",
+-"#  c #2D0B08",
+-"$  c #2A120F",
+-"%  c #251716",
+-"&  c #2F1211",
+-"*  c #340D0A",
+-"=  c #3D0E0B",
+-"-  c #37100A",
+-";  c #3E1111",
+-":  c #332624",
+-">  c #372C2A",
+-",  c #363131",
+-"<  c #393232",
+-"1  c #3F3F3F",
+-"2  c #421006",
+-"3  c #42110C",
+-"4  c #4D160F",
+-"5  c #441210",
+-"6  c #431A14",
+-"7  c #4B1411",
+-"8  c #481C15",
+-"9  c #4F1D19",
+-"0  c #51150D",
+-"q  c #531512",
+-"w  c #511912",
+-"e  c #561B18",
+-"r  c #581717",
+-"t  c #5C1813",
+-"y  c #5A1818",
+-"u  c #4E2019",
+-"i  c #52201A",
+-"p  c #5E221E",
+-"a  c #4F2621",
+-"s  c #44322F",
+-"d  c #483937",
+-"f  c #6C1B1A",
+-"g  c #6C231E",
+-"h  c #79261E",
+-"j  c #622420",
+-"k  c #622820",
+-"l  c #612F28",
+-"z  c #623029",
+-"x  c #653938",
+-"c  c #6F3E38",
+-"v  c #7F2F29",
+-"b  c #733B3B",
+-"n  c #4B4443",
+-"m  c gray31",
+-"M  c #535353",
+-"N  c #5A5A5A",
+-"B  c #624141",
+-"V  c #685E5E",
+-"C  c #744E4C",
+-"Z  c #745452",
+-"A  c #775E5D",
+-"S  c #7B5D5E",
+-"D  c #636363",
+-"F  c #696363",
+-"G  c gray42",
+-"H  c #706C6B",
+-"J  c #7D6463",
+-"K  c #727272",
+-"L  c #7A7A7A",
+-"P  c #812820",
+-"I  c #8C2621",
+-"U  c #8B2A24",
+-"Y  c #85332E",
+-"T  c #942B23",
+-"R  c #9B2A26",
+-"E  c #9B2B2C",
+-"W  c #963725",
+-"Q  c #9B362C",
+-"!  c #9B3330",
+-"~  c #AB2B1F",
+-"^  c #A32D27",
+-"/  c #AC2C20",
+-"(  c #AB2C28",
+-")  c #A43020",
+-"_  c #A33229",
+-"`  c #A33B28",
+-"'  c #AC3020",
+-"]  c #AB3228",
+-"[  c #AB3330",
+-"{  c #AB3931",
+-"}  c #AB3C38",
+-"|  c #A44239",
+-" . c #AC4039",
+-".. c #B24039",
+-"X. c #925756",
+-"o. c #9A5758",
+-"O. c #836866",
+-"+. c #857D7C",
+-"@. c #976762",
+-"#. c #956F67",
+-"$. c #A44441",
+-"%. c #AC4441",
+-"&. c #AB4B42",
+-"*. c #A95046",
+-"=. c #A75E5F",
+-"-. c #A85354",
+-";. c #B44441",
+-":. c #B44841",
+-">. c #B24F49",
+-",. c #B4504A",
+-"<. c #B05758",
+-"1. c #B4595A",
+-"2. c #BE5B59",
+-"3. c #BC685D",
+-"4. c #AC6162",
+-"5. c #BA6461",
+-"6. c #BD6A65",
+-"7. c #C77B75",
+-"8. c #CC7A78",
+-"9. c #C6807C",
+-"0. c #D5847B",
+-"q. c #848484",
+-"w. c #8C8C8C",
+-"e. c #928B89",
+-"r. c #9D8381",
+-"t. c #988E8D",
+-"y. c gray58",
+-"u. c #A48584",
+-"i. c #BE9190",
+-"p. c #B5A3A3",
+-"a. c #C08D87",
+-"s. c #C28F89",
+-"d. c #C98B85",
+-"f. c #C5918B",
+-"g. c #CD9490",
+-"h. c #CC9C9B",
+-"j. c #D48C82",
+-"k. c #DD8682",
+-"l. c #DE8B83",
+-"z. c #D49B9B",
+-"x. c #CCA4A3",
+-"c. c #C6B4B3",
+-"v. c #D5ABAA",
+-"b. c #DEB4B2",
+-"n. c #E48581",
+-"m. c #E28688",
+-"M. c #E68983",
+-"N. c #E6898B",
+-"B. c #E0B2AD",
+-"V. c #EBBEBD",
+-"C. c #C0C0C0",
+-"Z. c #CFC5C3",
+-"A. c #CECDCC",
+-"S. c gray84",
+-"D. c #DBDBDB",
+-"F. c #E5C1C0",
+-"G. c #E7C8C8",
+-"H. c #E8C7C5",
+-"J. c #E8CBC8",
+-"K. c #E3D5D4",
+-"L. c #EBD3D1",
+-"P. c #F3CECF",
+-"I. c #F5D0D1",
+-"U. c #E2E2E2",
+-"Y. c #EAEAEA",
+-"T. c #F4E4E4",
+-"R. c #FAEAE9",
+-"E. c #F1F1F1",
+-"W. c #FEFEFE",
+-/* pixels */
+-"                                      , L L L L ",
+-"O * 3 7 7 4 7 e i q e i r r @ w.Z y t K.J K L L ",
+-"n d - = 9 6 7 a 7 2 3 ; 9 = + A.U = 3 r.Z.D L L ",
+-"L L q.S.Y.E.E.Y.E.E.E.E.E.E.E.E.E.E.E.E.W.q.G L ",
+-"L L V O.8.k.i.Q W.P.0.z.x.0.z.N.j.k.n.M.V.K.D K ",
+-"L q.y.e.# ^ ,.i W.l.} ' ] ` :.] [ ] .._ ~ L.J D ",
+-"L y.    x T <.r W.M.]  .:.| $.` } { { { ( d.W.m ",
+-"L . : i v E 4.4 W.z.) ] ) ] _ { _ ] ) 5.B.W.u.D ",
+-"L . 5 j Y E _ 4 W.z.] ~ ] ( ] ( { &.2.J.W.S D G ",
+-"L < s = 8 y 0 & W.[ w q 0 k i y z b #.W.G D L L ",
+-"L q.L q.U.E.W.W.W.W.W.W.W.W.W.W.W.W.W.W.W.D L L ",
+-"L L q.D O.f.k.j.l.n.M.k.l.f.! W.I.0.z.x.R.t.G L ",
+-"L L q.y.e.& _ [ ] :._ / ( ,.i W.l. .' ] ` L.C L ",
+-"L q.y.    B W } [ { { ( _ 1.y W.M.]  .;.*.v.W.m ",
+-"L y.  > q h Q _ ] ) %.} ] 4.w W.z.) ] 3.H.W.@.M ",
+-"L y.. 3 f U R ` &.( { } _ ( w W.z.{ B.W.T.N K L ",
+-"L w.o @ 8 6 r l y 0 0 w g 7 $ W.[ c W.F N H L L ",
+-"L q.w.1 C.Y.W.W.W.W.W.W.W.W.W.W.W.W.W.W.N L L L ",
+-"L L w.O X.7.i.E W.I.0.z.x.M.h.N.j.l.n.R.p.G L L ",
+-"L L +.F - I &.9 W.l. .' ] ` :.[ [ ] :.6.L.Z K L ",
+-"L L L w.% P -.y W.M.]  ...| | | } { { { F.u.G L ",
+-"L L L q.F = o.0 W.z.~ _ ) ] _ { _ ] ) %. .G.S L ",
+-"L L L L w.X I 4 W.z.' ' { ( ] ( { &.( ] | 9.g.L ",
+-"L L L L L n +.A.D.D.D.U.U.Y.Y.Y.E.E.W.W.W.c.L L "
+-};
++static char * cervisia_xpm[] = {
++"32 32 33 1",
++" 	c None",
++".	c #0F0807",
++"+	c #D3C6C5",
++"@	c #998E8D",
++"#	c #511C18",
++"$	c #847A79",
++"%	c #6D2E2A",
++"&	c #756665",
++"*	c #822F29",
++"=	c #FEFEFE",
++"-	c #A98E8B",
++";	c #9A827F",
++">	c #5A5454",
++",	c #805450",
++"'	c #C1645D",
++")	c #B2A4A2",
++"!	c #F6ECEC",
++"~	c #3B1A17",
++"{	c #8F312B",
++"]	c #534949",
++"^	c #6C5958",
++"/	c #D8AEAB",
++"(	c #EBDEDD",
++"_	c #AA453E",
++":	c #B2524C",
++"<	c #483F3E",
++"[	c #292120",
++"}	c #AE6260",
++"|	c #C97B76",
++"1	c #D28D89",
++"2	c #E8CCCB",
++"3	c #A9372E",
++"4	c #403A3A",
++"..........................4>    ",
++".....................[...[>&    ",
++".[.~~~#~###########~<$,%#,(;&   ",
++"44#~~~##~##~#~#~##~~&)*#~%))@   ",
++">]]],}$;;;;;;};$;;$$)+1;;-/(+&  ",
++"  $$@+2222+(!((2((2((((2(2(!+@  ",
++"   &&&|11|32!/111/1111111|1/2+  ",
++"   $;&%{::#221:::_:':___::_:1+& ",
++"  @]]4#*__#+2|33333_33333333'/) ",
++"  >[.[%*__#/2|333_____3333_:|/(@",
++"  .[~#*{_,#+2|33333333333_'/((;$",
++"  .~#%**3{#+2|333333333_:'/2+;$ ",
++"  [~##%%*##//:{***{*{{{3:|!+@^  ",
++"  44%<%,_,](/:,_{{,_,,}&;/=)$&  ",
++"    $)(!!===================+>  ",
++"    $&@)/////1/////|/=(///+(+;  ",
++"    $$$,:':''''::''*-!/|'''1))^ ",
++"   $$&&4*33333333_:*-(1:3333|/; ",
++"   @4..[{333333333:%-(1:3__:|+=)",
++"  @[[~~%*333333333}%1!1_3_}122-&",
++"  @[.~#*{333333_33_#-(/::|/2+)$ ",
++"  @[.###*{3333{3{{3#-(|:|2(+)^  ",
++"  @[.~####%########~;23{)(&>&   ",
++"   &]]-)/+++/+/+2+/+(=2+!!($&   ",
++"   @]<-///1!!(222222222222=)$   ",
++"    ]4,}|}{2(/||1||||||'|1++@&  ",
++"    &].*3_#+2|33333_33333:'/-,  ",
++"    $,.%*_#/2|333_3__3333_:/)$  ",
++"     &<%%,#+2'3333333333333|1)& ",
++"     $&#%{#22|333333333333_3|/& ",
++"      @[#*#/21333333333_3333'|1 ",
++"       <]&)(2///////2/22222(/); "};
+--- debian/changelog	20 Jul 2003 02:51:00 -0000	1.1.1.12
++++ debian/changelog	7 May 2003 00:28:47 -0000	1.1.1.11
+@@ -1,12 +1,3 @@
+-kdesdk (4:3.1.2-1) unstable; urgency=low
+-
+-  * New upstream release.
+-  * Build-depends on flex-old instead of flex (closes: #193871).
+-  * Debian menu pixmaps no longer use a restricted colour map.
+-  * Man page overhaul.
+-
+- -- Ben Burton <bab@debian.org>  Sun,  1 Jun 2003 14:15:47 +1000
+-
+ kdesdk (4:3.1.1-1) unstable; urgency=low
+ 
+   * New upstream release.
+--- debian/cheatmake.1	20 Jul 2003 02:51:00 -0000	1.1.1.3
++++ debian/cheatmake.1	27 Nov 2002 02:45:09 -0000	1.1.1.2
+@@ -26,6 +26,12 @@
+ .B cheatmake why
+ .I file
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B cheatmake
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBcheatmake\fP is used to save time when recompiling.  It can fool \fBmake\fP
+ into skipping files that haven't changed in a meaningful way.  This can be
+ used for instance when you change a comment in a file but none of the actual
+--- debian/control	20 Jul 2003 02:50:59 -0000	1.1.1.12
++++ debian/control	7 May 2003 00:28:46 -0000	1.1.1.11
+@@ -1,13 +1,13 @@
+ Source: kdesdk
+-Section: kde
++Section: devel
+ Priority: optional
+ Maintainer: Ben Burton <bab@debian.org>
+-Build-Depends: automake1.7, binutils-dev, bison, debhelper (>> 4.0.0), flex-old, libdb4.0-dev, kdelibs4-dev
+-Standards-Version: 3.5.10.0
++Build-Depends: automake1.7, binutils-dev, bison, debhelper (>> 4.0.0), flex, libdb4.0-dev, kdelibs4-dev
++Standards-Version: 3.5.8.0
+ 
+ Package: kdesdk
+ Architecture: any
+-Section: kde
++Section: devel
+ Depends: cervisia, kapptemplate, kbabel, kbugbuster, kdesdk-kfile-plugins, kdesdk-misc, kdesdk-scripts, kompare, kspy, poxml
+ Suggests: kbabel-dev
+ Description: KDE Software Development Kit
+@@ -62,7 +62,7 @@
+ 
+ Package: kbabel-dev
+ Architecture: any
+-Section: libdevel
++Section: devel
+ Depends: kbabel (= ${Source-Version}), kdelibs4-dev
+ Conflicts: kbabel (<< 4:3.0.8-0)
+ Description: PO-file editing suite for KDE (development files)
+@@ -93,7 +93,7 @@
+ 
+ Package: kdesdk-kfile-plugins
+ Architecture: any
+-Section: kde
++Section: devel
+ Depends: ${shlibs:Depends}
+ Description: KDE file dialog plugins for source and patch files
+  This is a collection of plugins for the KDE file dialog.  These plugins
+--- debian/create_cvsignore.1	20 Jul 2003 02:50:59 -0000	1.1.1.3
++++ debian/create_cvsignore.1	27 Nov 2002 02:45:10 -0000	1.1.1.2
+@@ -20,6 +20,12 @@
+ .SH SYNOPSIS
+ .B create_cvsignore
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B create_cvsignore
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBcreate_cvsignore\fP is used to create a preliminary \fI.cvsignore\fP
+ file in the current directory.  It does this by adding some standard
+ stuff according to what it finds in \fIMakefile.am\fP.
+--- debian/create_makefile.1	20 Jul 2003 02:50:59 -0000	1.1.1.4
++++ debian/create_makefile.1	27 Nov 2002 02:45:10 -0000	1.1.1.3
+@@ -24,6 +24,12 @@
+ .B create_makefile
+ .I relativepath
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B create_makefile
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBcreate_makefile\fP creates the \fIMakefile.in\fP and \fIMakefile\fP
+ in a subdirectory containing a \fIMakefile.am\fP.
+ This script saves time compared to re-running configure completely.
+--- debian/create_makefiles.1	20 Jul 2003 02:51:00 -0000	1.1.1.4
++++ debian/create_makefiles.1	27 Nov 2002 02:45:10 -0000	1.1.1.3
+@@ -21,6 +21,12 @@
+ .B create_makefiles
+ .I dir
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B create_makefiles
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBcreate_makefiles\fP recreates all \fIMakefile\fPs in
+ \fIdir\fP and its (recursed) subdirectories from the corresponding
+ \fIMakefile.am\fP templates.
+--- debian/cvscheck.1	20 Jul 2003 02:50:59 -0000	1.1.1.3
++++ debian/cvscheck.1	27 Nov 2002 02:45:10 -0000	1.1.1.2
+@@ -21,6 +21,12 @@
+ .B cvscheck
+ [ \fIdir\fP ]
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B cvscheck
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBcvscheck\fP prints information about the status of your local CVS
+ checkout without communicating with the server.  This means it is
+ extremely fast and does not require a network connection.
+--- debian/cvslastchange.1	20 Jul 2003 02:50:59 -0000	1.1.1.4
++++ debian/cvslastchange.1	27 Nov 2002 02:45:10 -0000	1.1.1.3
+@@ -2,7 +2,7 @@
+ .\" First parameter, NAME, should be all caps
+ .\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
+ .\" other parameters are allowed: see man(7), man(1)
+-.TH CVSLASTCHANGE 1 "May 12, 2003"
++.TH CVSLASTCHANGE 1 "September 26, 2002"
+ .\" Please adjust this date whenever revising the manpage.
+ .\"
+ .\" Some roff macros, for reference:
+@@ -21,6 +21,12 @@
+ .B cvslastchange
+ .I file
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B cvslastchange
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBcvslastchange\fP displays the last changes committed to the CVS
+ for the given file.
+ It does this by launching '\fIcvs log\fP' and '\fIcvs diff\fP'.
+@@ -28,10 +34,6 @@
+ This tool works with other branches as well as with HEAD.
+ .PP
+ This utility is part of the KDE Software Development Kit.
+-.SH SEE ALSO
+-.BR cvsblame (1),
+-.BR cvslastlog (1),
+-.BR cvsrevertlast (1).
+ .SH AUTHOR
+ This manual page was prepared by Ben Burton <bab@debian.org>
+ for the Debian GNU/Linux system (but may be used by others).
+--- debian/cvslastlog.1	20 Jul 2003 02:50:59 -0000	1.1.1.4
++++ debian/cvslastlog.1	27 Nov 2002 02:45:10 -0000	1.1.1.3
+@@ -2,7 +2,7 @@
+ .\" First parameter, NAME, should be all caps
+ .\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
+ .\" other parameters are allowed: see man(7), man(1)
+-.TH CVSLASTLOG 1 "May 12, 2003"
++.TH CVSLASTLOG 1 "April 28, 2001"
+ .\" Please adjust this date whenever revising the manpage.
+ .\"
+ .\" Some roff macros, for reference:
+@@ -21,15 +21,17 @@
+ .B cvslastlog
+ .I file
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B cvslastlog
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBcvslastlog\fP shows the log associated with the last CVS commit for the
+ given file.
+ It depends on the version of the local file, not the one on the server.
+ .PP
+ This utility is part of the KDE Software Development Kit.
+-.SH SEE ALSO
+-.BR cvsblame (1),
+-.BR cvslastchange (1),
+-.BR cvsrevertlast (1).
+ .SH AUTHOR
+ cvslastlog was written by David Faure <faure@kde.org>.
+ .br
+--- debian/cvsrevertlast.1	20 Jul 2003 02:50:59 -0000	1.1.1.3
++++ debian/cvsrevertlast.1	27 Nov 2002 02:45:10 -0000	1.1.1.2
+@@ -2,7 +2,7 @@
+ .\" First parameter, NAME, should be all caps
+ .\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
+ .\" other parameters are allowed: see man(7), man(1)
+-.TH CVSREVERTLAST 1 "May 12, 2003"
++.TH CVSREVERTLAST 1 "May 13, 2002"
+ .\" Please adjust this date whenever revising the manpage.
+ .\"
+ .\" Some roff macros, for reference:
+@@ -21,14 +21,18 @@
+ .B cvsrevertlast
+ \fIfile\fP ...
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B cvsrevertlast
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBcvsrevertlast\fP is used to revert all the files on the command line
+ by one version in CVS.  The files will not be committed.
+ .PP
+ This utility is part of the KDE Software Development Kit.
+ .SH SEE ALSO
+-.BR cvsblame (1),
+-.BR cvslastchange (1),
+-.BR cvslastlog (1).
++.BR cvsblame (1).
+ .SH AUTHOR
+ This utility was written by Charles Samuels <charles@kde.org>.
+ .br
+--- debian/cxxmetric.1	20 Jul 2003 02:51:00 -0000	1.1.1.4
++++ debian/cxxmetric.1	27 Nov 2002 02:45:10 -0000	1.1.1.3
+@@ -21,6 +21,12 @@
+ .B cxxmetric
+ .RI "[ " file " ] ..."
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B cxxmetric
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBcxxmetric\fP counts lines of code, comment and blank space and
+ calculates various other statistics for each given source file.
+ Source files must be in C or C++.
+--- debian/demangle.1	20 Jul 2003 02:51:00 -0000	1.1.1.3
++++ debian/demangle.1	3 Mar 2003 03:53:44 -0000	1.1.1.2
+@@ -20,6 +20,12 @@
+ .SH SYNOPSIS
+ .B demangle
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B demangle
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBDemangle\fP reads a list of C++ mangled symbol names from standard
+ input and converts these names to human-readable form on standard
+ output.
+--- debian/extend_dmalloc.1	20 Jul 2003 02:51:00 -0000	1.1.1.4
++++ debian/extend_dmalloc.1	27 Nov 2002 02:45:10 -0000	1.1.1.3
+@@ -21,6 +21,12 @@
+ .B extend_dmalloc
+ .I dmalloc-log binary
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B extend_dmalloc
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBextend_dmalloc\fP will run
+ .BR gdb (1)
+ to get information on the return-addresses from a
+--- debian/extractrc.1	20 Jul 2003 02:50:59 -0000	1.1.1.4
++++ debian/extractrc.1	27 Nov 2002 02:45:10 -0000	1.1.1.3
+@@ -21,6 +21,12 @@
+ .B extractrc
+ .RI "[ " file " ] ..."
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B extractrc
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBextractrc\fP finds all text tags and other message strings in the given
+ files and writes the corresponding \fIi18n()\fP calls to standard output
+ so that xgettext can parse them.
+--- debian/fixkdeincludes.1	20 Jul 2003 02:51:00 -0000	1.1.1.2
++++ debian/fixkdeincludes.1	3 Mar 2003 03:53:44 -0000	1.1.1.1
+@@ -26,6 +26,12 @@
+ .br
+ .B fixkdeincludes \-\-help
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B fixkdeincludes
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBfixkdeincludes\fP tries to reduce the number of #includes in C++ source
+ files.  Much of its processing is specific to KDE sources and so it
+ might not work so well with sources for non-KDE applications.
+--- debian/fixsgml.1	20 Jul 2003 02:51:00 -0000	1.1.1.4
++++ debian/fixsgml.1	27 Nov 2002 02:45:10 -0000	1.1.1.3
+@@ -21,6 +21,12 @@
+ .B fixsgml
+ .I XML-file
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B fixsgml
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBfixsgml\fP is a command-line tool that checks the given DocBook
+ XML file for any syntactic errors and fixes whatever problems it finds.
+ The resulting (correct) XML file will be written over the old XML file.
+--- debian/kapptemplate.1	20 Jul 2003 02:50:59 -0000	1.1.1.4
++++ debian/kapptemplate.1	27 Nov 2002 02:45:10 -0000	1.1.1.3
+@@ -25,6 +25,12 @@
+ .PP
+ .B kapptemplate \-\-help
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B kapptemplate
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBKAppTemplate\fP is a shell script that will create the necessary
+ framework to develop various KDE applications.  It takes care of the
+ autoconf/automake code as well as providing a skeleton and example of
+--- debian/kbabel.1	20 Jul 2003 02:50:59 -0000	1.1.1.5
++++ debian/kbabel.1	27 Nov 2002 02:45:10 -0000	1.1.1.4
+@@ -2,7 +2,7 @@
+ .\" First parameter, NAME, should be all caps
+ .\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
+ .\" other parameters are allowed: see man(7), man(1)
+-.TH KBABEL 1 "May 12, 2003"
++.TH KBABEL 1 "September 26, 2002"
+ .\" Please adjust this date whenever revising the manpage.
+ .\"
+ .\" Some roff macros, for reference:
+@@ -24,6 +24,12 @@
+ [ \fB\-\-project\fP \fIconfig-file\fP ]
+ .RI "[ " file " ]"
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B kbabel
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBKBabel\fP is part of a suite of programs for editing gettext message
+ files (PO-files).  It is designed to help you translate fast and
+ consistently.
+@@ -51,16 +57,8 @@
+ .BR catalogmanager (1),
+ .BR kbabeldict (1).
+ .PP
+-Full user documentation is available through the KDE Help Centre.
+-You can also enter the URL
+-\fIhelp:/kbabel/\fP
+-directly into konqueror or you can run
+-`\fIkhelpcenter help:/kbabel/\fP'
+-from the command-line.
+-.PP
+-If the KDE Help Centre is not installed then you can install the package
+-\fIkdesdk-doc-html\fP and read this documentation in HTML format from
+-\fI/usr/share/doc/kde/HTML/en/kbabel/\fP.
++The original documentation from the program author
++is available in \fI/usr/share/doc/kbabel/\fP.
+ .SH AUTHOR
+ KBabel was written by Matthias Kiefer <kiefer@kde.org>,
+ Wolfram Diestel <wolfram@steloj.de>, Andrea Rizzi <rizzi@kde.org>,
+--- debian/kbabel.README.Debian	20 Jul 2003 02:51:00 -0000	1.1.1.1
++++ /dev/null	1 Jan 1970 00:00:00 -0000
+@@ -1,8 +0,0 @@
+-KBabel for Debian
+------------------
+-
+-This application provides documentation in a docbook format that the KDE
+-Help Centre can display.  For HTML documentation that can be read in any
+-web browser, see the package kdesdk-doc-html.
+-
+- -- Ben Burton <bab@debian.org>, Mon, 12 May 2003 12:29:39 +1000
+--- debian/kbabel.xpm	20 Jul 2003 02:51:00 -0000	1.1.1.2
++++ debian/kbabel.xpm	25 Jun 2002 03:20:49 -0000	1.1.1.1
+@@ -1,270 +1,60 @@
+ /* XPM */
+-static char *kbabel[] = {
+-/* columns rows colors chars-per-pixel */
+-"32 32 232 2",
+-"   c #000000",
+-".  c #03050B",
+-"X  c #05090B",
+-"o  c #0B0505",
+-"O  c #0B0A09",
+-"+  c #0F140B",
+-"@  c #120303",
+-"#  c #100F06",
+-"$  c #150808",
+-"%  c #1B0505",
+-"&  c #101005",
+-"*  c #151313",
+-"=  c #1B1A1A",
+-"-  c #020337",
+-";  c #050A38",
+-":  c #080F37",
+-">  c #09122B",
+-",  c #0F1C24",
+-"<  c #151525",
+-"1  c #101D25",
+-"2  c #141533",
+-"3  c #12212B",
+-"4  c #152631",
+-"5  c #172A37",
+-"6  c #1A303D",
+-"7  c #2B0303",
+-"8  c #3D090B",
+-"9  c #371111",
+-"0  c #2E2B04",
+-"q  c #2B290D",
+-"w  c #302B08",
+-"e  c #3F3C13",
+-"r  c #212121",
+-"t  c #292323",
+-"y  c #2F2F27",
+-"u  c #3C2A2A",
+-"i  c #323232",
+-"p  c #383737",
+-"a  c #3C3C3B",
+-"s  c #040859",
+-"d  c #0E1A4F",
+-"f  c #010363",
+-"g  c #0D1867",
+-"h  c #1D3544",
+-"j  c #1F3A4B",
+-"k  c #172C6A",
+-"l  c #213C4E",
+-"z  c #223E50",
+-"x  c #373742",
+-"c  c #2A2B79",
+-"v  c #254356",
+-"b  c #294A5F",
+-"n  c #2B4D63",
+-"m  c #37647C",
+-"M  c #450E0E",
+-"N  c #421919",
+-"B  c #540D0D",
+-"V  c #541B19",
+-"C  c #6E0E0D",
+-"Z  c #612727",
+-"A  c #444116",
+-"S  c #47441F",
+-"D  c #5C5824",
+-"F  c #74741B",
+-"G  c #736F31",
+-"H  c #7A762C",
+-"J  c #474545",
+-"K  c #4B4B4A",
+-"L  c #434350",
+-"P  c #534A4A",
+-"I  c #535352",
+-"U  c #5C5C5C",
+-"Y  c #665858",
+-"T  c #6B5757",
+-"R  c #636464",
+-"E  c #746161",
+-"W  c #7E7E7E",
+-"Q  c #141597",
+-"!  c #151799",
+-"~  c #0001B9",
+-"^  c #090DB0",
+-"/  c #101EB6",
+-"(  c #1E38BE",
+-")  c #2C2C97",
+-"_  c #090DCD",
+-"`  c #090ED1",
+-"'  c #0B14D4",
+-"]  c #1517C8",
+-"[  c #131ACD",
+-"{  c #121BD1",
+-"}  c #111ED9",
+-"|  c #1D20C9",
+-" . c #1424D6",
+-".. c #1B21D6",
+-"X. c #1C28D7",
+-"o. c #1B32DA",
+-"O. c #1D38E4",
+-"+. c #203BDC",
+-"@. c #274986",
+-"#. c #396682",
+-"$. c #3B6C8A",
+-"%. c #3E7090",
+-"&. c #2341C1",
+-"*. c #2647E5",
+-"=. c #2749E0",
+-"-. c #2E56E3",
+-";. c #325DE4",
+-":. c #335EEE",
+-">. c #3666ED",
+-",. c #3D71E9",
+-"<. c #437A9D",
+-"1. c #447EEC",
+-"2. c #4982A7",
+-"3. c #4A86AC",
+-"4. c #5599C5",
+-"5. c #579DCA",
+-"6. c #4A88EF",
+-"7. c #4886F4",
+-"8. c #64B5E8",
+-"9. c #8C1510",
+-"0. c #9D201B",
+-"q. c #952C2C",
+-"w. c #993939",
+-"e. c #AC1616",
+-"r. c #B01111",
+-"t. c #B41818",
+-"y. c #A42D2D",
+-"u. c #A82625",
+-"i. c #AB2C2C",
+-"p. c #A43D3D",
+-"a. c #B62A2B",
+-"s. c #BF2222",
+-"d. c #B43A3A",
+-"f. c #837B1E",
+-"g. c #9A6915",
+-"h. c #805B5B",
+-"j. c #8E7B7B",
+-"k. c #A24747",
+-"l. c #AE4343",
+-"z. c #C61313",
+-"x. c #C62626",
+-"c. c #C52F2D",
+-"v. c #DA3A38",
+-"b. c #FE0205",
+-"n. c #FD0B0C",
+-"m. c #F51717",
+-"M. c #FE1414",
+-"N. c #FE1A12",
+-"B. c #FE1C1B",
+-"V. c #FF201D",
+-"C. c #FE2A1A",
+-"Z. c #EB2A29",
+-"A. c #F42828",
+-"S. c #FD2222",
+-"D. c #FE2826",
+-"F. c #FD2B2A",
+-"G. c #FC3534",
+-"H. c #FE3B3C",
+-"J. c #FE5B13",
+-"K. c #FE671E",
+-"L. c #FE7129",
+-"P. c #FE7534",
+-"I. c #FD7B3D",
+-"U. c #DF6565",
+-"Y. c #FF4644",
+-"T. c #FF4C4C",
+-"R. c #FC5151",
+-"E. c #FE5B5B",
+-"W. c #FD7F42",
+-"Q. c #FC6464",
+-"!. c #FE6D6D",
+-"~. c #FD7575",
+-"^. c #8A8212",
+-"/. c #9A8B0B",
+-"(. c #BAAF13",
+-"). c #F38B2B",
+-"_. c #FC8044",
+-"`. c #FDE928",
+-"'. c #FFF727",
+-"]. c #FFF53B",
+-"[. c #FEF83C",
+-"{. c #C6C040",
+-"}. c #DDDA5E",
+-"|. c #D7D466",
+-" X c #E7E351",
+-".X c #EFEB54",
+-"XX c #FEED45",
+-"oX c #F5EC5D",
+-"OX c #FCED54",
+-"+X c #FEF34B",
+-"@X c #FCF256",
+-"#X c #FDF059",
+-"$X c #ECE463",
+-"%X c #FDF460",
+-"&X c #FFFE61",
+-"*X c #FFFA6C",
+-"=X c #FDF474",
+-"-X c #FEF478",
+-";X c #FFFE76",
+-":X c #868687",
+-">X c #8F8D8C",
+-",X c #9E9595",
+-"<X c #999898",
+-"1X c #A89898",
+-"2X c #B6A5A5",
+-"3X c #B5B5B4",
+-"4X c #B7B7BD",
+-"5X c #9596E7",
+-"6X c #9EA3EC",
+-"7X c #A1A2E4",
+-"8X c #A3AAED",
+-"9X c #BBBFEF",
+-"0X c #FEA8A7",
+-"qX c #FEAAAA",
+-"wX c #FEB4B3",
+-"eX c #FCBEBE",
+-"rX c #FCF583",
+-"tX c #FFF982",
+-"yX c #C2C1C0",
+-"uX c #C8CECE",
+-"iX c #D0D0CF",
+-"pX c #C5C9F2",
+-"aX c #D1D2F4",
+-"sX c #EEECEC",
+-"dX c #EEF2F2",
+-"fX c #FCE3E3",
+-"gX c #F4F4F4",
+-"hX c #F3F3F9",
+-"jX c #F9F6F6",
+-"kX c #F8F9F6",
+-"lX c #FCFAFA",
+-"zX c None",
+-/* pixels */
+-"zXzXzXzXzXzXzXzXzXzXzXzXzXzXzXzXzXzXzXzXzXzXzXzXzXzXzXzXzXzXzXzX",
+-"zXzXzXzXzXzXzXzXzXzXzXzXzXzXzX      zXzXzXzXzXzXzXzXzXzXzXzXzXzX",
+-"zXzXzXzXzXzXzXzXzXzXzXzXzX              zXzXzXzXzXzXzXzXzXzXzXzX",
+-"zXzXzXzXzXzXzXzXzXzX                      zXzXzXzXzXzXzXzXzXzXzX",
+-"zXzXzXzXzXzXzXzXzX                        zXzXzXzXzXzXzXzXzXzXzX",
+-"zXzXzXzXzXzXzXzX      : d .               zXzX      zXzXzXzXzXzX",
+-"zXzXzXzXzXzXzX      : &.:.>               zX    zX    zXzXzXzXzX",
+-"zXzXzXzXzXzX      ; ( >.7.@.k g s       zX  5 h         zXzXzXzX",
+-"zXzXzXzXzXzX    - / *.,.6.7.>.O.' f       4 $.#.6       zXzXzXzX",
+-"zXzXzXzXzX    - ^  .+.;.,.,.-.o.' ~     3 $.5 m #.        zXzXzX",
+-"zXzXzXzX    o 2 ! {  .+.=.=.o. ...7X:X  z 3.  1 $.j         zXzX",
+-"zXzXzX    o 3 y c | [ {  . .X.8X9XlXiX  l 2.    1 $.6         zX",
+-"zXzXzX    * a K L ) ] _ _ 8XpXhXlXgXsX>Xj 2.      <.b         zX",
+-"zXzX    X = I U I x Q 5XaXhXkXgXhXgXlXyX. n 5.4.4.8.v         zX",
+-"zXzX  o = a U R U a < 4XlXlXgXgXgXgXkXgX<X. 1 , , , X         zX",
+-"zX    O * J a = i p * 3XlXlXhXgXgXjXkXlX2X                    zX",
+-"    o * t u j.kXj.= * 2XlXlXlXjXgXjXfXwXt.    O O             zX",
+-"    o N N E gXsXlXR % z.qXjXlXlXkXeXS.D.s.$   P P       +       ",
+-"  7 B D.x.h.,X1XdXY e.B.M.qXlXlXeXB.S.H.T.d.$         zXK *     ",
+-"% m.A.c.v.a.T uXE u.H.F.B.M.0XwXM.B.G.R.Q.!.l.9 %               ",
+-"@ r.0.+ V H.a.8 y.Y.H.G.D.N.n.b.n.S.H.E.!.~.!.E.y.%             ",
+-"    O q g.L.P.I.W.W.W.W.I.L.K.J.N.S.H.E.!.U.k.p.i.M             ",
+-"      w /.(.'.].XXOXoX@X@X+X[.`.C.V.Z.q.w.Z                     ",
+-"          0 ^.f.{.&X*X=X=X=X%XXX).9.C                           ",
+-"                e H G |.tXrX-XoXF                               ",
+-"                      S }.;X=X$X&                             zX",
+-"zX                      A D  X.X&                           zXzX",
+-"zXzXzXzXzX                  e A                       zXzXzXzXzX",
+-"zXzXzXzXzXzXzXzX                              zXzXzXzXzXzXzXzXzX",
+-"zXzXzXzXzXzXzXzXzX                            zXzXzXzXzXzXzXzXzX",
+-"zXzXzXzXzXzXzXzXzXzX                          zXzXzXzXzXzXzXzXzX",
+-"zXzXzXzXzXzXzXzXzXzXzXzX                      zXzXzXzXzXzXzXzXzX"
+-};
++static char * kbabel_xpm[] = {
++"32 32 25 1",
++" 	c None",
++".	c #000000",
++"+	c #FFFFFF",
++"@	c #C05800",
++"#	c #303030",
++"$	c #FF0000",
++"%	c #585858",
++"&	c #FFFF00",
++"*	c #FFDCA8",
++"=	c #0000FF",
++"-	c #400000",
++";	c #C0C0FF",
++">	c #004040",
++",	c #DCDCDC",
++"'	c #FFFFC0",
++")	c #000080",
++"!	c #0000C0",
++"~	c #FF00FF",
++"{	c #FF8000",
++"]	c #00C0C0",
++"^	c #808080",
++"/	c #008080",
++"(	c #404000",
++"_	c #C3C3C3",
++":	c #800080",
++"                                ",
++"                                ",
++"              ...               ",
++"           ........             ",
++"          ......                ",
++"         ..)>%..                ",
++"        ...>%/)...      .       ",
++"       ..)>%^/^%>!.    .;.      ",
++"       ..!#>/^/%>=!.  .;.]-     ",
++"      ..==#>%%/%##!...]..;.     ",
++"     ..##!#=>>##==++..;...]-    ",
++"    ..##%##=#==>++++..;....;.   ",
++"    ..#(%##==#+++,+++.]....].   ",
++"   ...%%%%(=++++,+,++..;;];;.   ",
++"   .##%^%%#.++,++,+,++.......   ",
++"  ...#%.)%#.+++,++++++..        ",
++"  ..##-++.#.+++++,++*$..        ",
++" ..##-++++.-$++++++$@$..._      ",
++"...$@-+-++.$@$+++,$$@@@)..    ^ ",
++".$@~@@.++)@@$$$++$$@~@{@...   . ",
++".$$#-@@-.@@~@$$$$$@~{{{{@@).... ",
++"..#.:@$@~@@@@@$@$$@~@@{{@@@.... ",
++"...#**&*&****'&*&$$@@@@!)-....  ",
++"  ....&*&*&'&*'&'@$~!-.......   ",
++"     ....&*&*'&*&*.........     ",
++"        ....&*''&...            ",
++"          ...'&*'..             ",
++"           ....&&..             ",
++"             .......            ",
++"              .......           ",
++"                                ",
++"                                "};
+--- debian/kbabeldict.1	20 Jul 2003 02:50:59 -0000	1.1.1.5
++++ debian/kbabeldict.1	27 Nov 2002 02:45:10 -0000	1.1.1.4
+@@ -2,7 +2,7 @@
+ .\" First parameter, NAME, should be all caps
+ .\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
+ .\" other parameters are allowed: see man(7), man(1)
+-.TH KBABELDICT 1 "May 12, 2003"
++.TH KBABELDICT 1 "September 26, 2002"
+ .\" Please adjust this date whenever revising the manpage.
+ .\"
+ .\" Some roff macros, for reference:
+@@ -22,6 +22,12 @@
+ .RI "[ " generic-options " ]"
+ .RB "[ " \-\-nosplash " ]"
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B kbabeldict
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBKBabelDict\fP is part of a suite of programs for editing gettext message
+ files (PO-files).  This suite is designed to help you translate fast and
+ consistently.
+@@ -43,16 +49,8 @@
+ .BR kbabel (1),
+ .BR catalogmanager (1).
+ .PP
+-Full user documentation for KBabel is available through the KDE Help Centre.
+-You can also enter the URL
+-\fIhelp:/kbabel/\fP
+-directly into konqueror or you can run
+-`\fIkhelpcenter help:/kbabel/\fP'
+-from the command-line.
+-.PP
+-If the KDE Help Centre is not installed then you can install the package
+-\fIkdesdk-doc-html\fP and read this documentation in HTML format from
+-\fI/usr/share/doc/kde/HTML/en/kbabel/\fP.
++The original documentation from the program author
++is available in \fI/usr/share/doc/kbabel/\fP.
+ .SH AUTHOR
+ KBabel was written by Matthias Kiefer <kiefer@kde.org>,
+ Wolfram Diestel <wolfram@steloj.de>, Andrea Rizzi <rizzi@kde.org>,
+--- debian/kbabeldict.xpm	20 Jul 2003 02:51:00 -0000	1.1.1.2
++++ debian/kbabeldict.xpm	25 Jun 2002 03:20:49 -0000	1.1.1.1
+@@ -1,239 +1,64 @@
+ /* XPM */
+-static char *kbabeldict[] = {
+-/* columns rows colors chars-per-pixel */
+-"32 32 201 2",
+-"   c #000000",
+-".  c #000C0F",
+-"X  c #0A0402",
+-"o  c #0D0C0C",
+-"O  c #130E0E",
+-"+  c #19170D",
+-"@  c #131111",
+-"#  c #1B1C1C",
+-"$  c #002129",
+-"%  c #002933",
+-"&  c #221515",
+-"*  c #251F1F",
+-"=  c #340F0F",
+-"-  c #232323",
+-";  c #292424",
+-":  c #2C2C2C",
+-">  c #332222",
+-",  c #353535",
+-"<  c #3C3636",
+-"1  c #3B3A3A",
+-"2  c #0A6B69",
+-"3  c #1C7674",
+-"4  c #267C79",
+-"5  c #4B4B4B",
+-"6  c #535353",
+-"7  c #645C4E",
+-"8  c #665E51",
+-"9  c #6B6355",
+-"0  c #6F6857",
+-"q  c #706557",
+-"w  c #706758",
+-"e  c #746A5A",
+-"r  c #7B6E56",
+-"t  c #7E7158",
+-"y  c gray39",
+-"u  c DimGray",
+-"i  c #787365",
+-"p  c #2425BE",
+-"a  c #2B2CBB",
+-"s  c #0A0CCC",
+-"d  c #0A0DD2",
+-"f  c #0E12CB",
+-"g  c #0B14D2",
+-"h  c #0F1BD5",
+-"j  c #1212C7",
+-"k  c #1016CE",
+-"l  c #141CCD",
+-"z  c #191CC6",
+-"x  c #1422D5",
+-"c  c #172CDA",
+-"v  c #1A23D5",
+-"b  c #182CD9",
+-"n  c #1B33DB",
+-"m  c #203CDD",
+-"M  c #2342DF",
+-"N  c #294CE1",
+-"B  c #2C52E2",
+-"V  c #315CE5",
+-"C  c #3563E6",
+-"Z  c #3868E8",
+-"A  c #4076EB",
+-"S  c #437DEC",
+-"D  c #2D807E",
+-"F  c #0F8A84",
+-"G  c #328381",
+-"H  c #398987",
+-"J  c #408E8B",
+-"K  c #45918E",
+-"L  c #4B9592",
+-"P  c #549896",
+-"I  c #559B99",
+-"U  c #5A9E9B",
+-"Y  c #5EA09D",
+-"T  c #609E9D",
+-"R  c #62A29F",
+-"E  c #66A4A1",
+-"W  c #6BA6A3",
+-"Q  c #76ACA9",
+-"!  c #4682ED",
+-"~  c #4A88EF",
+-"^  c #4C8DF0",
+-"/  c #82755B",
+-"(  c #85785D",
+-")  c #817767",
+-"_  c #867C6B",
+-"`  c #8C7E62",
+-"'  c #FF0706",
+-"]  c #FD0C0B",
+-"[  c #FF120E",
+-"{  c #FE1615",
+-"}  c #FF1C16",
+-"|  c #FF1818",
+-" . c #F72F2F",
+-".. c #FC2524",
+-"X. c #FE2A21",
+-"o. c #FD2E2C",
+-"O. c #FE342E",
+-"+. c #FD3433",
+-"@. c #FC3D3B",
+-"#. c #FD4137",
+-"$. c #FD463E",
+-"%. c #FD483E",
+-"&. c #FC4241",
+-"*. c #FC4A42",
+-"=. c #928264",
+-"-. c #968669",
+-";. c #9A8A6B",
+-":. c #918572",
+-">. c #968A75",
+-",. c #998B76",
+-"<. c #9C8F79",
+-"1. c #9E936B",
+-"2. c #9F9573",
+-"3. c #9E917B",
+-"4. c #A2947D",
+-"5. c #C3AA7E",
+-"6. c #FDE213",
+-"7. c #FDE318",
+-"8. c #FDED1B",
+-"9. c #FDF11E",
+-"0. c #FDE223",
+-"q. c #FDE332",
+-"w. c #FFE43F",
+-"e. c #FFEF31",
+-"r. c #FFF12E",
+-"t. c #FDF236",
+-"y. c #FFF03D",
+-"u. c #FDE44B",
+-"i. c #FEED46",
+-"p. c #FDE94C",
+-"a. c #FEF44D",
+-"s. c #FEF353",
+-"d. c #FDF55D",
+-"f. c #FDF264",
+-"g. c #FDF36B",
+-"h. c #FDF470",
+-"j. c #FDF57D",
+-"k. c #83B4B3",
+-"l. c #8EBAB9",
+-"z. c #A79980",
+-"x. c #AA9C82",
+-"c. c #AEA182",
+-"v. c #B0A086",
+-"b. c #BCAB8D",
+-"n. c #B5AA93",
+-"m. c #C6AD80",
+-"M. c #C8AF82",
+-"N. c #CBB285",
+-"B. c #CFB588",
+-"V. c #C5B593",
+-"C. c #CCB996",
+-"Z. c #C8B899",
+-"A. c #D0B688",
+-"S. c #D7BF90",
+-"D. c #CCBEA2",
+-"F. c #D6C295",
+-"G. c #D9C49C",
+-"H. c #CEC1AA",
+-"J. c #DBC8A3",
+-"K. c #DCCCAB",
+-"L. c #D3C7B0",
+-"P. c #D3C9B3",
+-"I. c #DECCB1",
+-"U. c #DCD0B7",
+-"Y. c #DDD1B9",
+-"T. c #E4CDA5",
+-"R. c #E4D0AC",
+-"E. c #EBD4AC",
+-"W. c #E7D5B0",
+-"Q. c #E9D5B3",
+-"!. c #ECDBBC",
+-"~. c #FDF582",
+-"^. c #DFD3C0",
+-"/. c #DEDDD9",
+-"(. c #E1D7C6",
+-"). c #E4DBCD",
+-"_. c #E2DDD5",
+-"`. c #E3DFDA",
+-"'. c #EEE0C7",
+-"]. c #E3E1DA",
+-"[. c #E9E4DD",
+-"{. c #F4E3C3",
+-"}. c #F2E4CA",
+-"|. c #F3E7D2",
+-" X c #F4E9D4",
+-".X c #F5ECDA",
+-"XX c #F8EEDE",
+-"oX c #E4E3E1",
+-"OX c #E9E7E4",
+-"+X c gray91",
+-"@X c #F7EFE0",
+-"#X c #F8EFE1",
+-"$X c #F7F0E0",
+-"%X c #F8F2E4",
+-"&X c #FAF4EB",
+-"*X c #F3F4F4",
+-"=X c #F2F7FA",
+-"-X c #F5F8FB",
+-";X c #FBF9F5",
+-":X c #FDFDFD",
+-">X c None",
+-/* pixels */
+-">X  >X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X",
+-"% Q     >X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X      ",
+-"% k.3 v.  >X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X            ",
+-"% l.3 x.:X  >X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X                >X",
+-"% k.3 v.:X:X  >X>X>X>X>X>X>X>X>X>X>X>X>X>X    [.      M N     >X",
+-"% W 3 v.:X:X:X  >X>X>X>X>X>X>X>X>X>X>X    `.;X      M Z A       ",
+-"% W 3 v.:X:X:X:X  >X>X>X>X>X>X>X>X>X  /.;X;X      c B S ^ ! V n ",
+-"% E 3 v.:X:X:X:X:X  >X>X>X>X>X>X    OX;X;X;X    g b V Z ^ S C n ",
+-"% E 3 x.:X:X:X:X:X:X  >X>X>X>X  ).;X;X;X:X    s f x m V Z Z N b ",
+-"% Y 3 v.:X:X:X:X:X:X:X  >X>X  Y..X;X:X:X    # # z l x n m n n x ",
+-"% Y 3 x.:X:X:X:X:X:X:X+X    C.}.XX-X:X    - , , a z l h h x v =X",
+-"% I 3 x.:X:X:X:X:X:X:X+X;.A.E.}.XX;X:X  X < 5 6 1 z j s s -X-X*X",
+-"% I 3 z.:X:X:X:X:X:X:X+X;.B.E.}.XX;X  @   5 y y 5 : j -X:X:X*X*X",
+-"% L 3 z.:X:X:X:X:X:X:X+X-.B.E.}.XX;X  # 1 6 u u 6 : @ -X-X-X*X*X",
+-"% L 3 4.:X:X:X:X:X:X:X+X=.B.E.}.XX  o   1 6     5 : @ -X;X-X*X*X",
+-"% H 3 3.:X:X:X:X:X:X:XoX` N.E.}.XX  O * < = :X:X  ; O ;X:X:X;X*X",
+-"% H 3 <.:X:X;X:X;X;X;X].` N.E.}.  X & > = :X:X:X:X  & ' -X:X:X;X",
+-"% G 3 ,.;X;X;X&X&X&X&X_./ N.E.      .. .= :X= :X:X  ..{ ] ;X:X-X",
+-"% D 3 ,.&X&X&X%X%X%XXX).( m.E.  | ..@.@.&.  :X:X  @.+...| ] ;X-X",
+-"% 4 3 :.%X%X%XXX#X.XXX(./ m.E.  | ..+ + &.&.X   *.&.@.+...{ ] ' ",
+-"% D 3 :.$X.X.X.X.X X|.Y.r m.E.    + + + o.+.@.%.*.*.&.#.O.X.{ [ ",
+-"  2 Q ) x. X X X|.}.}.Y.r m.E.      + 6.7.0.q.w.u.u.p.u.i.y.r.9.",
+-">X  2 l.e x.}.}.{.(.!.I.r m.E.}.XX        8.e.i.s.f.f.g.g.f.a.t.",
+-">X>X  2 Q r 4.{.{.Q.Q.K.r m.E.{..XXX.X)         s.f.h.j.~.~.g.s.",
+-">X>X>X  2 T 0 x.E.R.R.J.r m.E.}.).L./ c.b.H.H.        h.~.~.j.f.",
+-">X>X>X>X  2 U 9 z.E.T.G.r m.E.E.=.;.c.Z.D.P.).}.|.      d.g.h.f.",
+-">X>X>X>X>X  2 T 9 x.G.F.r m.E.( 2.c.V.Q.!.!.}.}.|..X        a.a.",
+-">X>X>X>X>X>X  2 P w x.S.e 5.( 1.5.G.J.b.b.x.x.x.c.z.x.4.        ",
+-">X>X>X>X>X>X>X  2 P 7 x.r t 1.9 8 7 9 9 9 9 9 9 w w w w e       ",
+-">X>X>X>X>X>X>X>X  2 P 9 r _ i G G G G G G G G G G G G G G G G . ",
+-">X>X>X>X>X>X>X>X>X  G 2 2 2 F $                               >X",
+-">X>X>X>X>X>X>X>X>X>X. . . . . >X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X>X"
+-};
++static char * kbabeldict_xpm[] = {
++"32 32 29 1",
++" 	c None",
++".	c #FFFFFF",
++"+	c #000000",
++"@	c #A0A0A0",
++"#	c #FFDCA8",
++"$	c #585858",
++"%	c #DCDCDC",
++"&	c #008080",
++"*	c #808080",
++"=	c #303030",
++"-	c #004040",
++";	c #C05800",
++">	c #FFFF00",
++",	c #FF0000",
++"'	c #FFFFC0",
++")	c #C3C3C3",
++"!	c #0000FF",
++"~	c #808000",
++"{	c #400000",
++"]	c #FFC0C0",
++"^	c #000080",
++"/	c #FFA858",
++"(	c #C0C000",
++"_	c #FF00FF",
++":	c #004000",
++"<	c #008000",
++"[	c #0000C0",
++"}	c #404000",
++"|	c #FF8000",
++" +                              ",
++"-@++                         +++",
++"=@&@+                     ++++++",
++"-@&@.+                 ++++++++ ",
++"-@&@..+              ++%+++-$^+ ",
++"-@&@...+           ++%.++^-$&+++",
++"=*&@'...+         +%..+++=$&**$-",
++"-@$@.....+      ++%...++!!$*&&$=",
++"-*&@......+    +%....++[=--$&$--",
++"-@&@.......+  +%#...++==!!=!$-=!",
++"-*&@'......%++)#...++=====!-!==.",
++"-*&@.......%@/%#%..++=$$$=!!!...",
++"-*&@.......%*)#%'.+++$$$$=!...%.",
++"-&$@........~@#%#.+==$$$$=+...%.",
++"=*&@'......%*]##.+++=$^+$=+.....",
++"-*&@.......#*(%%.+^=}{..+=+..%..",
++"=&&*.......%*/%#++=={....+{,....",
++"=&$*...#.%'%*@#+++,;{.{..+;,,...",
++"-&&@#....#.%*/%+,;,;;^..+;,;,,..",
++"=$&*.#%.%.#%~@#+,_{{;;+^;;;,;,,,",
++"-&$*'.#.#'%%*/%++:=^,;;;_;;_;,;,",
++"+&@*@%.#%##)*@#+++=>#]#>##>'#>#>",
++" +&@$@#.%#%]~@##.++++>>#>#>#>#>>",
++"  +&@$@#%#%]~)%#%.#*++++>#>'''#>",
++"   +&@$@#)#)$/%#%)*@@))++++#>''#",
++"    +&@$@%])~@##*~@)])#%.+++#>>'",
++"     +&*$@(]*@#*@@/#%#%#%'++++#>",
++"      +<@$@/~@~@@))(@@@@@@@@++++",
++"       +&*$@$*|$$$$$*$~$;$*$*+++",
++"        +&@$**~*&*&*&*&&*&*&&*&+",
++"         +&&$&&=+++++++++++++++ ",
++"          +++++                 "};
+--- debian/kbugbuster.1	20 Jul 2003 02:51:00 -0000	1.1.1.4
++++ debian/kbugbuster.1	27 Nov 2002 02:45:10 -0000	1.1.1.3
+@@ -2,7 +2,7 @@
+ .\" First parameter, NAME, should be all caps
+ .\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
+ .\" other parameters are allowed: see man(7), man(1)
+-.TH KBUGBUSTER 1 "May 12, 2003"
++.TH KBUGBUSTER 1 "May 13, 2002"
+ .\" Please adjust this date whenever revising the manpage.
+ .\"
+ .\" Some roff macros, for reference:
+@@ -24,6 +24,12 @@
+ [ \fB\-\-pkg, \-\-package\fP \fIpkg\fP ]
+ [ \fB\-\-bug\fP \fInumber\fP ]
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B kbugbuster
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBKBugBuster\fP is a GUI front end for the KDE bug tracking system.
+ It allows the user to view and manipulate bug reports and provides a
+ variety of options for searching through reports.
+@@ -41,6 +47,9 @@
+ .TP
+ [ \fB\-\-bug\fP \fInumber\fP ]
+ Start with the given bug report.
++.SH SEE ALSO
++The original documentation from the program author
++is available in \fI/usr/share/doc/kbugbuster/\fP.
+ .SH AUTHOR
+ KBugBuster was written by Martijn Klingens <mklingens@yahoo.com>,
+ Simon Hausmann <hausmann@kde.org>, Cornelius Schumacher <schumacher@kde.org>
+--- debian/kbugbuster.xpm	20 Jul 2003 02:50:59 -0000	1.1.1.2
++++ debian/kbugbuster.xpm	29 Oct 2002 18:24:50 -0000	1.1.1.1
+@@ -1,47 +1,44 @@
+ /* XPM */
+-static char *kbugbuster[] = {
+-/* columns rows colors chars-per-pixel */
++static char * kbugbuster_xpm[] = {
+ "32 32 9 1",
+-"  c black",
+-". c #0000C0",
+-"X c blue",
+-"o c #008080",
+-"O c #00C0C0",
+-"+ c #808080",
+-"@ c #C0C0C0",
+-"# c gray100",
+-"$ c None",
+-/* pixels */
+-"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$",
+-"$$$$$$$$$$$$$  $$$$$$$$$$$$$$$$$",
+-"$$$$$$$$$$$$$ +  $$$$$$$$$$$$$$$",
+-"$$$$$$$$$$$$$ @@   $$$$$$$$$$$$$",
+-"$$$$$  $$$$$$ @@ ..  $$$$$$$$$$$",
+-"$$$$$ +  $$$$  + XX..  $$$$$$$$$",
+-"$$$$$ @@   $$ @  ..XX..  $$$$$$$",
+-"$$$$$ @@ ..   ##@  ..XX.   $$$$$",
+-"$$$$$  + XX..  @##@  ..X @+  $$$",
+-"$$$$$ @  ..XX..  @##@  . @@ +  $",
+-"$$$$$ ##@  ..XX.   @##@  +@ @@ $",
+-"$$$$$ ####@  ..X @+  @##@   @@ $",
+-"$$$$$ ######@  . @@ +  ###@  + $",
+-"$$$$$ ########@  +@ @@ @####@  $",
+-"$  $$ ##########@   @@ @@####@ $",
+-"$ o   ############@  + @@####@ $",
+-"$ Ooo  @############@  @@####@ $",
+-"$ oOOoo  @###########@ @@####@ $",
+-"$  ooOOoo  @#########@ @@####@ $",
+-"$ @  ooOO +  ########@ @@####@ $",
+-"$ ##@  oo @@ @#######@ @@####@ $",
+-"$ ####@   @@ @@######@ @@####@ $",
+-"$ ######@  + @@######@ @@@###@ $",
+-"$ ########@  @@######@   @@@#@ $",
+-"$ @@#######@ @@@#####@ $$  @@@ $",
+-"$  @@@#####@   @@@###@ $$$$  @ $",
+-"$$$  @@@###@ $$  @@@#@ $$$$$$  $",
+-"$$$$$  @@@#@ $$$$  @@@ $$$$$$$$$",
+-"$$$$$$$  @@@ $$$$$$  @ $$$$$$$$$",
+-"$$$$$$$$$  @ $$$$$$$$  $$$$$$$$$",
+-"$$$$$$$$$$$  $$$$$$$$$$$$$$$$$$$",
+-"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
+-};
++" 	c None",
++".	c #000000",
++"+	c #808080",
++"@	c #C0C0C0",
++"#	c #0000C0",
++"$	c #0000FF",
++"%	c #FFFFFF",
++"&	c #008080",
++"*	c #00C0C0",
++"                                ",
++"             ..                 ",
++"             .+..               ",
++"             .@@...             ",
++"     ..      .@@.##..           ",
++"     .+..    ..+.$$##..         ",
++"     .@@...  .@..##$$##..       ",
++"     .@@.##...%%@..##$$#...     ",
++"     ..+.$$##..@%%@..##$.@+..   ",
++"     .@..##$$##..@%%@..#.@@.+.. ",
++"     .%%@..##$$#...@%%@..+@.@@. ",
++"     .%%%%@..##$.@+..@%%@...@@. ",
++"     .%%%%%%@..#.@@.+..%%%@..+. ",
++"     .%%%%%%%%@..+@.@@.@%%%%@.. ",
++" ..  .%%%%%%%%%%@...@@.@@%%%%@. ",
++" .&...%%%%%%%%%%%%@..+.@@%%%%@. ",
++" .*&&..@%%%%%%%%%%%%@..@@%%%%@. ",
++" .&**&&..@%%%%%%%%%%%@.@@%%%%@. ",
++" ..&&**&&..@%%%%%%%%%@.@@%%%%@. ",
++" .@..&&**.+..%%%%%%%%@.@@%%%%@. ",
++" .%%@..&&.@@.@%%%%%%%@.@@%%%%@. ",
++" .%%%%@...@@.@@%%%%%%@.@@%%%%@. ",
++" .%%%%%%@..+.@@%%%%%%@.@@@%%%@. ",
++" .%%%%%%%%@..@@%%%%%%@...@@@%@. ",
++" .@@%%%%%%%@.@@@%%%%%@.  ..@@@. ",
++" ..@@@%%%%%@...@@@%%%@.    ..@. ",
++"   ..@@@%%%@.  ..@@@%@.      .. ",
++"     ..@@@%@.    ..@@@.         ",
++"       ..@@@.      ..@.         ",
++"         ..@.        ..         ",
++"           ..                   ",
++"                                "};
+--- debian/kdedoc.1	20 Jul 2003 02:51:00 -0000	1.1.1.4
++++ debian/kdedoc.1	27 Nov 2002 02:45:10 -0000	1.1.1.3
+@@ -21,6 +21,12 @@
+ .B kdedoc
+ .I classname
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B kdedoc
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBkdedoc\fP opens the help page for KDE class \fIclassname\fP
+ in kfm/konqueror.  Note that \fIclassname\fP is case sensitive.
+ .PP
+--- debian/kdekillall.1	20 Jul 2003 02:51:00 -0000	1.1.1.4
++++ debian/kdekillall.1	27 Nov 2002 02:45:10 -0000	1.1.1.3
+@@ -21,6 +21,12 @@
+ .B kdekillall
+ [ \fB\-\fP\fIsignal\fP ] \fIprocess-name\fP
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B kdekillall
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBkdekillall\fP kills all processes with a particular name
+ that were started through kdeinit.  Specifically, it kills all processes
+ \fBkdeinit:\fP \fIprocess-name\fP.
+--- debian/kdelnk2desktop.py.1	20 Jul 2003 02:51:00 -0000	1.1.1.5
++++ debian/kdelnk2desktop.py.1	27 Nov 2002 02:45:10 -0000	1.1.1.4
+@@ -21,6 +21,12 @@
+ .B kdelnk2desktop.py
+ .RI "[ " kdelnk-file " ] ..."
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B kdelnk2desktop.py
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBkdelnk2desktop.py\fP is used to convert
+ a \fI.kdelnk\fP file (used by KDE 1) into a \fI.desktop\fP
+ file (used by KDE 2 and later).
+--- debian/kdesdk.README.Debian	20 Jul 2003 02:51:00 -0000	1.1.1.3
++++ debian/kdesdk.README.Debian	27 Nov 2002 02:45:10 -0000	1.1.1.2
+@@ -4,8 +4,4 @@
+ Package kdesdk is a metapackage that depends on the core components of
+ the KDE Software Development Kit and suggests the remaining components.
+ 
+-Some applications provide documentation in a docbook format that the KDE
+-Help Centre can display.  For HTML documentation that can be read in any
+-web browser, see the package kdesdk-doc-html.
+-
+- -- Ben Burton <bab@debian.org>, Mon, 12 May 2003 12:29:39 +1000
++ -- Ben Burton <bab@debian.org>, Mon, 26 Mar 2001 09:10:56 -0600
+--- debian/kminspector.1	20 Jul 2003 02:51:00 -0000	1.1.1.5
++++ debian/kminspector.1	3 Mar 2003 03:53:44 -0000	1.1.1.4
+@@ -21,6 +21,12 @@
+ .B kminspector
+ \fIprogram\fP [ \fIprogram-args\fP ]
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B kminspector
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBKMinspector\fP runs the given program, examines its memory
+ allocation behaviour using \fIlibktrace\fP and pipes the resulting
+ allocation tree through \fIless\fP.
+--- debian/kmmatch.1	20 Jul 2003 02:51:00 -0000	1.1.1.2
++++ debian/kmmatch.1	3 Mar 2003 03:53:44 -0000	1.1.1.1
+@@ -21,6 +21,12 @@
+ .B kmmatch
+ .I map-file call-file
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B kmmatch
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBKMMatch\fP determines which symbols from a given set (\fIcall-file\fP) are
+ present in a given map file.
+ .PP
+--- debian/kmtrace.1	20 Jul 2003 02:51:00 -0000	1.1.1.6
++++ debian/kmtrace.1	3 Mar 2003 03:53:44 -0000	1.1.1.5
+@@ -27,6 +27,12 @@
+ [ \fB\-\-td, \-\-treedepth\fP \fIvalue\fP ]]
+ [ \fItrace-log\fP ]
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B kmtrace
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBKMtrace\fP is a KDE tool to assist with malloc debugging using
+ glibc's "mtrace" functionality. Unfortunately the mtrace that is part of
+ current (9/9/2000) glibc versions only logs the return-address of the
+--- debian/kompare.1	20 Jul 2003 02:51:00 -0000	1.1.1.4
++++ debian/kompare.1	27 Nov 2002 02:45:10 -0000	1.1.1.3
+@@ -28,6 +28,12 @@
+ .RI "[ " generic-options " ]"
+ .I URL1 URL2
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B kompare
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBKompare\fP is a KDE GUI for viewing the differences between two files.
+ It will also optionally create a diff file.
+ .PP
+--- debian/kompare.xpm	20 Jul 2003 02:50:59 -0000	1.1.1.2
++++ debian/kompare.xpm	25 Jun 2002 03:21:08 -0000	1.1.1.1
+@@ -1,47 +1,44 @@
+ /* XPM */
+-static char *kompare[] = {
+-/* columns rows colors chars-per-pixel */
++static char * kompare_xpm[] = {
+ "32 32 9 1",
+-"  c black",
+-". c #0000C0",
+-"X c blue",
+-"o c #008080",
+-"O c #00C0C0",
+-"+ c #808080",
+-"@ c #C0C0C0",
+-"# c gray100",
+-"$ c None",
+-/* pixels */
+-"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$",
+-"$$$$$$$$$$$$$  $$$$$$$$$$$$$$$$$",
+-"$$$$$$$$$$$$$ +  $$$$$$$$$$$$$$$",
+-"$$$$$$$$$$$$$ @@   $$$$$$$$$$$$$",
+-"$$$$$  $$$$$$ @@ ..  $$$$$$$$$$$",
+-"$$$$$ +  $$$$  + XX..  $$$$$$$$$",
+-"$$$$$ @@   $$ @  ..XX..  $$$$$$$",
+-"$$$$$ @@ ..   ##@  ..XX.   $$$$$",
+-"$$$$$  + XX..  @##@  ..X @+  $$$",
+-"$$$$$ @  ..XX..  @##@  . @@ +  $",
+-"$$$$$ ##@  ..XX.   @##@  +@ @@ $",
+-"$$$$$ ####@  ..X @+  @##@   @@ $",
+-"$$$$$ ######@  . @@ +  ###@  + $",
+-"$$$$$ ########@  +@ @@ @####@  $",
+-"$  $$ ##########@   @@ @@####@ $",
+-"$ o   ############@  + @@####@ $",
+-"$ Ooo  @############@  @@####@ $",
+-"$ oOOoo  @###########@ @@####@ $",
+-"$  ooOOoo  @#########@ @@####@ $",
+-"$ @  ooOO +  ########@ @@####@ $",
+-"$ ##@  oo @@ @#######@ @@####@ $",
+-"$ ####@   @@ @@######@ @@####@ $",
+-"$ ######@  + @@######@ @@@###@ $",
+-"$ ########@  @@######@   @@@#@ $",
+-"$ @@#######@ @@@#####@ $$  @@@ $",
+-"$  @@@#####@   @@@###@ $$$$  @ $",
+-"$$$  @@@###@ $$  @@@#@ $$$$$$  $",
+-"$$$$$  @@@#@ $$$$  @@@ $$$$$$$$$",
+-"$$$$$$$  @@@ $$$$$$  @ $$$$$$$$$",
+-"$$$$$$$$$  @ $$$$$$$$  $$$$$$$$$",
+-"$$$$$$$$$$$  $$$$$$$$$$$$$$$$$$$",
+-"$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
+-};
++" 	c None",
++".	c #000000",
++"+	c #808080",
++"@	c #C0C0C0",
++"#	c #0000C0",
++"$	c #0000FF",
++"%	c #FFFFFF",
++"&	c #008080",
++"*	c #00C0C0",
++"                                ",
++"             ..                 ",
++"             .+..               ",
++"             .@@...             ",
++"     ..      .@@.##..           ",
++"     .+..    ..+.$$##..         ",
++"     .@@...  .@..##$$##..       ",
++"     .@@.##...%%@..##$$#...     ",
++"     ..+.$$##..@%%@..##$.@+..   ",
++"     .@..##$$##..@%%@..#.@@.+.. ",
++"     .%%@..##$$#...@%%@..+@.@@. ",
++"     .%%%%@..##$.@+..@%%@...@@. ",
++"     .%%%%%%@..#.@@.+..%%%@..+. ",
++"     .%%%%%%%%@..+@.@@.@%%%%@.. ",
++" ..  .%%%%%%%%%%@...@@.@@%%%%@. ",
++" .&...%%%%%%%%%%%%@..+.@@%%%%@. ",
++" .*&&..@%%%%%%%%%%%%@..@@%%%%@. ",
++" .&**&&..@%%%%%%%%%%%@.@@%%%%@. ",
++" ..&&**&&..@%%%%%%%%%@.@@%%%%@. ",
++" .@..&&**.+..%%%%%%%%@.@@%%%%@. ",
++" .%%@..&&.@@.@%%%%%%%@.@@%%%%@. ",
++" .%%%%@...@@.@@%%%%%%@.@@%%%%@. ",
++" .%%%%%%@..+.@@%%%%%%@.@@@%%%@. ",
++" .%%%%%%%%@..@@%%%%%%@...@@@%@. ",
++" .@@%%%%%%%@.@@@%%%%%@.  ..@@@. ",
++" ..@@@%%%%%@...@@@%%%@.    ..@. ",
++"   ..@@@%%%@.  ..@@@%@.      .. ",
++"     ..@@@%@.    ..@@@.         ",
++"       ..@@@.      ..@.         ",
++"         ..@.        ..         ",
++"           ..                   ",
++"                                "};
+--- debian/licensecheck.1	20 Jul 2003 02:51:00 -0000	1.1.1.4
++++ debian/licensecheck.1	27 Nov 2002 02:45:10 -0000	1.1.1.3
+@@ -22,6 +22,12 @@
+ .RB "[ " \-v " ]"
+ .RI "[ " file " ] ..."
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B licensecheck
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBlicensecheck\fP examines the comments at the beginning of each given
+ source file and tries to determine which license the file is placed
+ under.  It does this by searching for blocks of text that it recognises
+--- debian/makeobj.1	20 Jul 2003 02:50:59 -0000	1.1.1.3
++++ debian/makeobj.1	27 Nov 2002 02:45:10 -0000	1.1.1.2
+@@ -21,6 +21,12 @@
+ .B makeobj
+ [ \fImake-argument\fP ... ]
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B makeobj
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBmakeobj\fP is a wrapper around \fBmake\fP which basically checks
+ whether it's in the source directory or the build directory and changes
+ to the correct directory before calling make.
+--- debian/po2xml.1	20 Jul 2003 02:51:00 -0000	1.1.1.4
++++ debian/po2xml.1	27 Nov 2002 02:45:10 -0000	1.1.1.3
+@@ -21,6 +21,12 @@
+ .B po2xml
+ .I original-XML translated-PO
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B po2xml
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBpo2xml\fP is a command-line tool that translates the DocBook
+ XML file \fIoriginal-XML\fP using the gettext message file
+ \fItranslated-PO\fP.  The resulting translated XML file is sent to standard
+--- debian/pruneemptydirs.1	20 Jul 2003 02:51:00 -0000	1.1.1.5
++++ debian/pruneemptydirs.1	27 Nov 2002 02:45:10 -0000	1.1.1.4
+@@ -21,6 +21,12 @@
+ .B pruneemptydirs
+ [ \fB\-f\fP ]
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B pruneemptydirs
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBpruneemptydirs\fP is used to clean up a local CVS tree.
+ It detects directories containing remnants of old stuff which has been
+ removed from the CVS.  Such stale directories often break compilation.
+--- debian/qtdoc.1	20 Jul 2003 02:50:59 -0000	1.1.1.5
++++ debian/qtdoc.1	3 Mar 2003 03:53:44 -0000	1.1.1.4
+@@ -21,6 +21,12 @@
+ .B qtdoc
+ .RI "[ " classname " ]"
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B qtdoc
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBqtdoc\fP opens a Qt help page in kfm/konqueror.
+ If \fIclassname\fP is given, it opens the help page for that class (note
+ that \fIclassname\fP is case insensitive).  Otherwise the main Qt help
+--- debian/split2po.1	20 Jul 2003 02:51:00 -0000	1.1.1.4
++++ debian/split2po.1	27 Nov 2002 02:45:10 -0000	1.1.1.3
+@@ -21,6 +21,12 @@
+ .B split2po
+ .I original-XML translated-XML
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B split2po
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBsplit2po\fP is a command-line tool that takes the two given DocBook
+ XML files and produces a gettext message file (PO-file) that represents
+ the changes between them.  The resulting PO-file is sent to standard
+--- debian/swappo.1	20 Jul 2003 02:50:59 -0000	1.1.1.4
++++ debian/swappo.1	27 Nov 2002 02:45:10 -0000	1.1.1.3
+@@ -21,6 +21,12 @@
+ .B swappo
+ .I PO-file
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B swappo
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBswappo\fP reads the given PO-file and swaps the \fImsgid\fP and
+ \fImsgstr\fP fields for every message.  The result is a new PO-file that
+ translates in the opposite direction.  For example, if \fIPO-file\fP
+--- debian/testkspy.1	20 Jul 2003 02:50:59 -0000	1.1.1.4
++++ debian/testkspy.1	27 Nov 2002 02:45:10 -0000	1.1.1.3
+@@ -21,6 +21,12 @@
+ .B testkspy
+ .RI "[ " generic-options " ]"
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B testkspy
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBtestkspy\fP is a small application that shows off KSpy's capabilities.
+ It simply uses KSpy to spy on itself.
+ .PP
+--- debian/transxx.1	20 Jul 2003 02:50:59 -0000	1.1.1.4
++++ debian/transxx.1	27 Nov 2002 02:45:10 -0000	1.1.1.3
+@@ -21,6 +21,12 @@
+ .B transxx
+ .I template
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B transxx
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBtransxx\fP is a command-line tool that produces a basic fleshed-out
+ PO-file from a PO-template file.  Some of the formatting and
+ structure of the \fImsgid\fP strings will be copied to the \fImsgstr\fP
+--- debian/xml2pot.1	20 Jul 2003 02:50:59 -0000	1.1.1.4
++++ debian/xml2pot.1	27 Nov 2002 02:45:10 -0000	1.1.1.3
+@@ -21,6 +21,12 @@
+ .B xml2pot
+ .I original-XML
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B xml2pot
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBxml2pot\fP is a command-line tool that produces a gettext message
+ template file from the DocBook XML file \fIoriginal-XML\fP.
+ The template file is sent to standard output.
+--- debian/zonetab2pot.py.1	20 Jul 2003 02:51:00 -0000	1.1.1.3
++++ debian/zonetab2pot.py.1	27 Nov 2002 02:45:10 -0000	1.1.1.2
+@@ -21,6 +21,12 @@
+ .B zonetab2pot.py
+ [ \fItimezone-list\fP ]
+ .SH DESCRIPTION
++This manual page documents briefly the
++.B zonetab2pot.py
++command.
++This manual page was written for the Debian GNU/Linux distribution
++because the original program does not have a manual page.
++.PP
+ \fBzonetab2pot.py\fP reads the timezone list given on the command-line
+ and converts it to a gettext message file (PO-file) template containing
+ the names of the individual timezones.
+--- kbabel/VERSION	20 Jul 2003 02:51:02 -0000	1.1.1.5
++++ kbabel/VERSION	3 Mar 2003 03:53:57 -0000	1.1.1.4
+@@ -1 +1 @@
+-1.0.2
++1.0.1
+--- kbabel/catalogmanager/roughtransdlg.cpp	20 Jul 2003 02:51:03 -0000	1.1.1.5
++++ kbabel/catalogmanager/roughtransdlg.cpp	3 Mar 2003 03:53:58 -0000	1.1.1.4
+@@ -528,9 +528,6 @@
+ 			}
+ 		}
+ 
+-        	// handle the last word as well
+-        	if( !word.isEmpty() ) wordList.append(word);
+-
+ 		dit = dictList.begin();
+ 		int wordCounter=0;
+ 		while(wordCounter==0 && dit != dictList.end())
+--- kbabel/common/catalog.cpp	20 Jul 2003 02:51:05 -0000	1.1.1.7
++++ kbabel/common/catalog.cpp	7 May 2003 00:28:53 -0000	1.1.1.6
+@@ -506,7 +506,7 @@
+ 			    KMessageBox::information(0,i18n("Free Software Foundation Copyright does not contain any year. "
+ 			    "It will not be updated."));
+ 			} else {
+-			    (*it).insert(index+1, QString(", ")+cy);
++			    (*it).insert(index+1, QString(",")+cy);
+ 			}
+ 		    }
+ 	    }
+@@ -547,7 +547,7 @@
+       {
+          temp+=(" <"+d->_identitySettings.authorEmail+">");
+       }
+-      temp+=", "+QDate::currentDate().toString("yyyy")+".";
++      temp+=", "+QDate::currentDate().toString("yyyy");
+       
+       for( it = commentList.begin(); it != commentList.end(); ++it )
+       {
+@@ -587,9 +587,8 @@
+ 		    //update years
+ 		    int index = (*ait).findRev( QRegExp("[\\d]+[\\d\\-, ]*") );
+ 		    if( index == -1 ) (*ait)+=", "+cy;
+-		    else (*ait).insert(index+1, QString(", ")+cy);
++		    else (*ait).insert(index+1, QString(",")+cy);
+ 		}
+-		
+ 	}
+ 	else foundAuthors.append(temp);
+ 	it=commentList.end();
+@@ -598,13 +597,7 @@
+ 	while( (*it).contains( QRegExp( "^#\\s*$")) || (*it).contains( QRegExp( "^#[:,\\.]")));
+ 	it++;
+ 	for( ait = foundAuthors.begin() ; ait != foundAuthors.end() ; ++ait )
+-	{
+-	    QString s = (*ait);
+-
+-	    // ensure dot at the end of copyright
+-	    if( !s.endsWith(".") ) s += ".";
+-	    commentList.insert(it, s);
+-	}
++	    commentList.insert(it, (*ait));
+    }
+ 
+    QString comment;
+@@ -685,7 +678,7 @@
+     
+     QString package=d->_url.fileName();
+ 
+-    int index=package.find(QRegExp("(\\."+d->_identitySettings.languageCode+")?\\.pot?$"));
++    int index=package.findRev(QRegExp(".pot?"));
+ 
+     if(index>0)
+       package=package.left(index);
+--- kbabel/common/catalogsettings.cpp	20 Jul 2003 02:51:05 -0000	1.1.1.5
++++ kbabel/common/catalogsettings.cpp	20 Nov 2002 03:20:36 -0000	1.1.1.4
+@@ -241,7 +241,7 @@
+     list.append("http:\\/\\/[a-zA-Z0-9\\.\\-_/~]+");
+     list.append("mailto:[a-z0-9\\.\\-_]+@[a-z0-9\\.\\-_]+");
+     list.append("<?[a-z0-9\\.\\-_]+@[a-z0-9\\.\\-_]+>?");
+-    list.append("&[a-z,A-Z,\\-,0-9,#\\.]*;");
++    list.append("&[a-z,A-Z,\\-,0-9,#]*;");
+ 
+     return list;
+ }
+--- kbabel/kbabel/kbabel.cpp	20 Jul 2003 02:51:09 -0000	1.1.1.9
++++ kbabel/kbabel/kbabel.cpp	7 May 2003 00:28:59 -0000	1.1.1.8
+@@ -1014,9 +1014,6 @@
+ 
+ void KBabel::addToRecentFiles(KURL url)
+ {
+-    // do not allow invalid URLs
+-    if( !url.isValid() || url.isEmpty() ) return;
+-    
+     KRecentFilesAction *recent;
+     recent = (KRecentFilesAction*)actionCollection()->action(KStdAction::stdName(KStdAction::OpenRecent));
+ 
+--- kbabel/kbabel/mime/x-gettext.desktop	20 Jul 2003 02:51:09 -0000	1.1.1.11
++++ kbabel/kbabel/mime/x-gettext.desktop	7 May 2003 00:29:00 -0000	1.1.1.10
+@@ -29,6 +29,7 @@
+ Comment[ko]=메세지 카탈로그
+ Comment[lt]=Laiškų katalogas
+ Comment[lv]=Ziņojumu Katalogs
++Comment[mn]=Мэдээний катлог
+ Comment[mt]=Katalgu ta' Messaġġi
+ Comment[nb]=Meldingskatalog
+ Comment[nl]=Meldingencatalogus
+--- kbabel/kbabel/roughtransdlg.cpp	20 Jul 2003 02:51:06 -0000	1.1.1.6
++++ kbabel/kbabel/roughtransdlg.cpp	3 Mar 2003 03:54:05 -0000	1.1.1.5
+@@ -454,9 +454,6 @@
+                 }
+             }
+             
+-            // handle the last word as well
+-            if( !word.isEmpty() ) wordList.append(word);
+-
+             dit = dictList.begin();
+             int wordCounter=0;
+             while(wordCounter==0 && dit != dictList.end())
+--- kbabel/kbabeldict/kbabeldictbox.cpp	20 Jul 2003 02:51:11 -0000	1.1.1.6
++++ kbabel/kbabeldict/kbabeldictbox.cpp	4 Jan 2003 20:24:36 -0000	1.1.1.5
+@@ -258,7 +258,6 @@
+    vbox->setResizeMode(QLayout::FreeResize);
+    origView = new QTextView(viewContainer,"origView");
+    origView->setMinimumSize(1,1);
+-   origView->setWordWrap( QTextEdit::WidgetWidth );
+    vbox->addWidget(origView);
+    translationView = new QTextView(viewContainer,"translationView");
+    translationView->setMinimumSize(1,1);
+--- kbabel/kbabeldict/modules/dbsearchengine/KDBSearchEngine.cpp	20 Jul 2003 02:51:13 -0000	1.1.1.6
++++ kbabel/kbabeldict/modules/dbsearchengine/KDBSearchEngine.cpp	3 Mar 2003 03:54:08 -0000	1.1.1.5
+@@ -23,7 +23,6 @@
+ #include <qinputdialog.h>
+ #include <klocale.h>
+ #include <kdebug.h>
+-#include <kio/netaccess.h>
+ #include <kmessagebox.h>
+ #include <kfiledialog.h>
+ #include <kurlrequester.h>
+@@ -138,58 +137,6 @@
+  
+   if(ret)
+   {
+-      // test, if there are both of ,old and standard databases
+-      QString transFile = database+"/translations."+lang+".db";
+-      
+-      bool oldstuff = QFile::exists( transFile+",old" );
+-      bool newstuff = QFile::exists( transFile );
+-      
+-      if( oldstuff && newstuff ) {
+-        // there is an old db2 database, ask user
+-	
+-	if( KMessageBox::questionYesNo(0
+-	    ,i18n("<p>There are backup database files from previous versions "
+-	    "of KBabel. However, another version of KBabel (probably from KDE 3.1.1 or 3.1.2) "
+-	    "created a new database. As a result, your KBabel installation contains two versions "
+-	    "of database files. Unfortunatelly, the old and new version "
+-	    "can't be merged. You need to choose one of them.<br/><br/>"
+-	    "If you choose the old version, the new one will be removed. "
+-	    "If you choose the new version, the old database files will be left alone "
+-	    "and you need to remove them manually. Otherwise this message will be displayed "
+-	    "again (the old files are at $KDEHOME/share/apps/kbabeldict/dbsearchengine/*,old).</p>")
+-	    , i18n("Old database found"), i18n("Use &old database"), i18n("Use &new database")
+-	  ) == KMessageBox::Yes ) {
+-	    // remove the new files
+-	    QFile::remove( transFile );
+-	    QFile::remove( database+"/wordsindex."+lang+".db" );
+-	    QFile::remove( database+"/keysindex."+lang+".db" );
+-	    QFile::remove( database+"/catalogsinfo."+lang+".db" );
+-	    
+-	    // rename the old files
+-	    KIO::NetAccess::copy( transFile+",old", transFile );
+-	    KIO::NetAccess::copy( database+"/wordsindex."+lang+".db,old", database+"/wordsindex."+lang+".db" );
+-	    KIO::NetAccess::copy( database+"/keysindex."+lang+".db,old", database+"/keysindex."+lang+".db" );
+-	    KIO::NetAccess::copy( database+"/catalogsinfo."+lang+".db,old", database+"/catalogsinfo."+lang+".db" );
+-
+-	    QFile::remove( transFile+",old" );
+-	    QFile::remove( database+"/wordsindex."+lang+".db,old" );
+-	    QFile::remove( database+"/keysindex."+lang+".db,old" );
+-	    QFile::remove( database+"/catalogsinfo."+lang+".db,old" );
+-	  }
+-      }
+-      else if ( oldstuff ) {
+-    	  // rename the old files
+-	    KIO::NetAccess::copy( transFile+",old", transFile );
+-	    KIO::NetAccess::copy( database+"/wordsindex."+lang+".db,old", database+"/wordsindex."+lang+".db" );
+-	    KIO::NetAccess::copy( database+"/keysindex."+lang+".db,old", database+"/keysindex."+lang+".db" );
+-	    KIO::NetAccess::copy( database+"/catalogsinfo."+lang+".db,old", database+"/catalogsinfo."+lang+".db" );
+-
+-	    QFile::remove( transFile+",old" );
+-	    QFile::remove( database+"/wordsindex."+lang+".db,old" );
+-	    QFile::remove( database+"/keysindex."+lang+".db,old" );
+-	    QFile::remove( database+"/catalogsinfo."+lang+".db,old" );
+-      }
+-      
+       dm= new DataBaseManager(database,lang,this,"Database manager");
+ 
+       if(!dm->isOk())
+@@ -592,10 +539,9 @@
+     {
+       idMod=&((*it).string);
+ 	int pos;
+-	for(i=0;i<len;i++){
++	for(i=0;i<len;i++)
+ 	 while((pos=idMod->find(remchar.at(i)))!=-1)
+ 	idMod->remove(pos,1);
+-	}
+ 
+         if(comm)
+ 	 idMod->replace(QRegExp("\\_\\:.*\\\\n"),"");  //Read it from catalog !!! (NOT ONLY HERE)
+@@ -625,9 +571,8 @@
+   bool gk=(searchmode==MD_GOOD_KEYS)||allkey;
+   int k=0;
+   
+-    if(gk) {
++  if(gk) {
+      goodkeys=searchWords(mainRequest,thre,threorig,listmax);//FIX IT, mainReq?
+-     if( goodkeys.count() == 0 ) gk = false; // if no good keys, use the whole database
+ 	}
+    totalprogress=gk?goodkeys.count():totalRecord;
+    int step=(totalprogress/30)+1;
+@@ -640,7 +585,7 @@
+ 
+ //   Emit progress, process event and check stop now
+       if(count%step==0){
+-           emit progress(100*count/ /*QMAX(*/totalprogress/*,1)*/);
++           emit progress(100*count/QMAX(totalprogress,1));
+            kapp->processEvents(100);
+          }
+       if(stopNow) {
+@@ -1018,6 +963,7 @@
+ {
+ 
+  pw =  new PreferencesWidget(parent);
++ kdDebug(0) << "new pref" << endl;
+  setSettings();
+  connect(pw,SIGNAL(restoreNow()),this,SLOT(setSettings()));
+  connect(pw,SIGNAL(applyNow()),this,SLOT(updateSettings()));
+--- kbabel/kbabeldict/modules/dbsearchengine/database.cpp	20 Jul 2003 02:51:12 -0000	1.1.1.4
++++ kbabel/kbabeldict/modules/dbsearchengine/database.cpp	15 May 2003 03:17:47 -0000	1.1.1.3
+@@ -12,7 +12,6 @@
+ 
+   Copyright  2000
+   Andrea Rizzi rizzi@kde.org
+-  Copyright 2003 Stanislav Visnovsky visnovsky@kde.org
+ 
+   License GPL v 2.0
+ 
+@@ -23,13 +22,6 @@
+ #include "database.h"
+ #include <unistd.h>
+ 
+-#include <qfile.h>
+-
+-#include <ktempfile.h>
+-#include <kio/netaccess.h>
+-
+-#define KBABEL_SEARCH	8107
+-
+ WordItem::WordItem(char *data,QString w)
+ {
+ word=w;
+@@ -70,7 +62,7 @@
+ WordItem *i=new WordItem(wi);
+ i->locations.detach();
+ return *i;
+-}	
++}
+ */
+ 
+ bool WordItem::notFound()
+@@ -80,8 +72,8 @@
+ 
+ InfoItem::InfoItem()
+ {
+-  catalogName="No catalog";  
+-  lastTranslator="No translator";
++  catalogName="No catalog";
++  lastTranslator="No tranlsator";
+   lastFullPath="";
+   charset="No charset";
+   language="No language";
+@@ -109,32 +101,32 @@
+   lastFullPath=QString::fromUtf8(rd);
+   len=strlen(rd)+1;
+   rd+=len;
+-  
+-  
 +
-+kbabeldict_la_SOURCES = kbabeldict_main.cpp
-+kbabeldict_la_LDFLAGS = $(all_libraries) -module -avoid-version
-+kbabeldict_la_LIBADD  = libkbabeldict_main.la
- 
-+kbabeldict_main.cpp:
-+	cat main.cpp > kbabeldict_main.cpp
- 
--kbabeldict_SOURCES = main.cpp kbabeldictview.cpp kbabeldict.cpp kbabelsplash.cpp
-+kbabeldict_SOURCES = main.cpp
- 
- # the libraries to link against.
--kbabeldict_LDADD   = libkbabeldict.la
-+kbabeldict_LDADD   = libkbabeldict_main.la
- kbabeldict_LDFLAGS = $(all_libraries) $(KDE_RPATH)
- 
- # these are the headers for your project
-@@ -42,7 +55,7 @@
- # let automoc handle all of the meta source files (moc)
- METASOURCES = AUTO
- 
--KDE_OPTIONS = nofinal
-+#KDE_OPTIONS = nofinal
- #rcdir = $(kde_datadir)/kbabel
- #rc_DATA = kbabelui.rc
- 
---- kbabel/kbabeldict/modules/dbsearchengine/configure.in.in	15 May 2003 03:17:47 -0000	1.1.1.4
-+++ kbabel/kbabeldict/modules/dbsearchengine/configure.in.in	15 May 2003 14:09:27 -0000	1.2
-@@ -77,15 +77,15 @@
-    AC_DEFINE_UNQUOTED(HAVE_DB_DB_H, 1, [DB 4 header location] )
-    ;;
-  db4-db)
--   LIB_DBIV='-ldb4'
-+   LIB_DBIV='-ldb-4'
-    kde_db_header=db.h
--   AC_MSG_RESULT("flag is -ldb4 and header is db.h")   
-+   AC_MSG_RESULT("flag is -ldb-4 and header is db.h")   
-    AC_DEFINE_UNQUOTED(HAVE_DB_DB_H, 1, [DB 4 header location] )
-    ;;
-  db4)
--   LIB_DBIV='-ldb4'
-+   LIB_DBIV='-ldb-4'
-    kde_db_header=db4/db.h
--   AC_MSG_RESULT(-ldb4) 
-+   AC_MSG_RESULT(-ldb-4)
-    AC_DEFINE_UNQUOTED(HAVE_DB4_DB_H, 1, [DB 4 header location] )
- esac
- 
---- kmtrace/Makefile.am	10 Jul 2002 05:30:08 -0000	1.1.1.2
-+++ kmtrace/Makefile.am	1 Jun 2003 14:59:20 -0000	1.2
-@@ -40,7 +40,7 @@
- 	$(LN_S) $< $@
- 
- lib_LTLIBRARIES = libktrace.la
--libktrace_la_LDFLAGS = -version-info 1:0 
-+libktrace_la_LDFLAGS = -version-info 1:0 -no-undefined
- libktrace_la_SOURCES = ksotrace.cpp ktrace.c
- libktrace_la_LIBADD = $(LIBDL)
- 
---- kompare/komparepart/Makefile.am	10 Jul 2002 05:30:35 -0000	1.1.1.2
-+++ kompare/komparepart/Makefile.am	1 Jun 2003 14:59:21 -0000	1.4
-@@ -25,7 +25,8 @@
- # let automoc handle all of the meta source files (moc)
- METASOURCES = AUTO
- 
--kde_module_LTLIBRARIES = libkomparepart.la
-+lib_LTLIBRARIES = libkomparepart.la
-+kde_module_LTLIBRARIES = komparepart.la
- 
- # the Part's source, library search path, and link libraries
- libkomparepart_la_SOURCES = \
-@@ -46,9 +47,16 @@
- 	komparesaveoptionsbase.ui \
- 	komparesaveoptionswidget.cpp
- 
--libkomparepart_la_LDFLAGS = -module $(KDE_PLUGIN) $(all_libraries)
-+libkomparepart_la_LDFLAGS = $(KDE_RPATH) $(all_libraries) -no-undefined
- libkomparepart_la_LIBADD  = $(LIB_KPARTS) $(LIB_KFILE) \
- 	$(top_builddir)/kompare/libdiff2/libdiff2.la
 +
-+komparepart_la_SOURCES = dummy.cpp
-+komparepart_la_LDFLAGS = $(all_libraries) $(KDE_PLUGIN) -module
-+komparepart_la_LIBADD  = libkomparepart.la
+   language=lang;
+ }
+ 
+ void InfoItem::rawData( char *rawData)
+ {
+-  char *rd; 
++  char *rd;
+   rd=rawData;
+-  
 +
-+dummy.cpp:
-+	echo > dummy.cpp
+   strcpy(rd,catalogName.utf8());
+   rd+=strlen(rd)+1;
+   strcpy(rd,lastTranslator.utf8());
+   rd+=strlen(rd)+1;
+-  
+-  
++
++
+   //QDate Time problem!!!!!!!!!!!
+   QDateTime zeroDate;
+   zeroDate.setTime_t(0);
+-  *(unsigned int *)rd=-revisionDate.secsTo(zeroDate);  
++  *(unsigned int *)rd=-revisionDate.secsTo(zeroDate);
+   rd+=4;
+   strcpy(rd,lastFullPath.utf8());
+   rd+=strlen(rd)+1;
  
- # this is where the desktop file will go
- partdesktopdir   = $(kde_servicesdir)
---- kompare/komparepart/komparepart.desktop	7 May 2003 00:28:31 -0000	1.1.1.4
-+++ kompare/komparepart/komparepart.desktop	7 May 2003 00:31:36 -0000	1.3
-@@ -16,6 +16,6 @@
- Name[zu]=Ingxenye ye-Kompare
- MimeType=text/x-diff
- ServiceTypes=KParts/ReadOnlyPart,KParts/ReadWritePart,Kompare/ViewPart
--X-KDE-Library=libkomparepart
-+X-KDE-Library=komparepart
- Type=Service
- Icon=kompare
---- kompare/libdiff2/Makefile.am	4 Jan 2003 20:24:03 -0000	1.1.1.2
-+++ kompare/libdiff2/Makefile.am	1 Jun 2003 14:59:21 -0000	1.5
-@@ -21,6 +21,6 @@
- 	difference.cpp \
- 	diffhunk.cpp
+   *rd=0;   //Empty for further info
+-  
++
+ }
  
--libdiff2_la_LDFLAGS = $(all_libraries)
-+libdiff2_la_LDFLAGS = $(all_libraries) -no-undefined
- libdiff2_la_LIBADD  = $(LIB_KPARTS) $(LIB_KFILE)
+ int InfoItem::size()
+@@ -151,27 +143,7 @@
+ return _size;
+ }
  
+-// this is a quick hack to copy a local file
+-int copy_hack( QFile& input, QFile& output )
+-{
+-    if( !input.isOpen() ) {
+-	if( ! input.open( IO_ReadOnly ) ) return -1;
+-    }
+-    
+-    if( !output.isOpen() ) {
+-	if( ! output.open( IO_WriteOnly ) ) return -1;
+-    }
+-    
+-    char buffer[10240];
+-    int s = 0;
+-    while( !input.atEnd() ) {
+-        s = input.readBlock(buffer, 10240);
+-        output.writeBlock(buffer, s);
+-    }
+-    output.close();
+-    input.close();
+-    return 0;
+-}
++
+ 
+ DataBaseItem::DataBaseItem()
+ {
+@@ -184,21 +156,21 @@
+ 
+  char *data=_data;
+  key=QString::fromUtf8(_key);
+- 
++
+  unsigned int i,r;
+  numTra=*(uint32 *)data;
+  data+=4;
+  location=*(uint32 *)data;
+  data+=4;
+-    
++
+  for(i=0;i<numTra;i++)
+   {
+- 
++
+    TranslationItem tr;
+    tr.numRef=*(uint32 *)data;
+-   
++
+    data+=4;
+-   for(r=0;r<tr.numRef;r++) 
++   for(r=0;r<tr.numRef;r++)
+    {
+ 
+     int ref;
+@@ -209,7 +181,7 @@
+    }
+    tr.translation=QString::fromUtf8((const char *)data);
+    translations.append(tr);
+-   data+=strlen(data)+1;    
++   data+=strlen(data)+1;
+ 
+   }
+ 
+@@ -226,7 +198,7 @@
+  _size+=numTra*4;
+  _size+=4;  // location
+  for(i=0;i<numTra;i++)
+- { 
++ {
+   _size+=strlen(translations[i].translation.utf8())+1;   // +1 is for \0
+   _size+=translations[i].numRef*4;
+  }
+@@ -249,16 +221,16 @@
+ 
+ *(uint32 *)data=location;
+  data+=4;
+- 
++
+  for(i=0;i<numTra;i++)
+   {
+    TranslationItem tr(translations[i]);
+    *(uint32 *)data=tr.numRef;
+    data+=4;
+-   for(r=0;r<tr.numRef;r++) 
++   for(r=0;r<tr.numRef;r++)
+    {
+      *(uint32 *)data=tr.infoRef[r];   //sub i with r
+-     
++
+      data+=4;
+    }
+    strcpy((char *)data,tr.translation.utf8());
+@@ -284,175 +256,65 @@
+ 
+ void DataBaseManager::openDataBase()
+ {
+-kdDebug() << "Opendatabase" << endl;
+-QString directory;
++QString filename,directory;
+ directory=basedir;
+ QString ll="."+language;
+ if(ll==".") ll=".NOLANG";
+-
+-QString transfilename="%1/translations%2.db";
+-transfilename=transfilename.arg(directory).arg(ll);
+-
+-QString infofilename="%1/catalogsinfo%2.db";
+-infofilename=infofilename.arg(directory).arg(ll);
+-
+-QString wordsfilename="%1/wordsindex%2.db";
+-wordsfilename=wordsfilename.arg(directory).arg(ll);
+-
+-QString keysfilename="%1/keysindex%2.db";
+-keysfilename=keysfilename.arg(directory).arg(ll);
++filename="%1/translations%2.db";
++filename=filename.arg(directory).arg(ll);
+ 
+ cursor=0;
+ int ret;
+ 
+  if (!db)
+      db_create( &db, 0, 0);
+-
+- db_create(&infoDb, 0, 0);
+- db_create(&wordDb, 0, 0);
+- db_create(&indexDb,0, 0);
+-
+- ret=db->open(db,
++ret=db->open(db,
+ #if DB_VERSION_MINOR > 0
+-              NULL,
++             NULL,
+ #endif
+-              transfilename.local8Bit(), 0, DB_BTREE, 0,0644);
+-
+- if( ret == DB_OLD_VERSION ) {
+-    kdDebug(KBABEL_SEARCH) << "Trying upgrade" << endl;
+-    // try upgrade
+-    
+-    KTempFile transFile, infoFile, keysFile, wordsFile;
+-    
+-    // do the upgrade on the translation file
+-    QFile transfilenameFile( transfilename );
+-    
+-    if( (ret = copy_hack( transfilenameFile , *transFile.file())) == 0 ) { 
+-        ret = db->upgrade( db, transFile.name().local8Bit(), 0 );
+-    }
+-    
+-    if( ret!= 0 ) {
+-	kdDebug(KBABEL_SEARCH) << "Cannot upgrade translations, " << ret << endl;
+-	// cleanup
+-	transFile.unlink();
+-	iAmOk=false;
+-	emit cannotOpenDB(ret);
+-	return ;
+-    }
+-    
+-    // do the upgrade on the info file
+-    QFile infofilenameFile( infofilename );
+-    if( (ret = copy_hack( infofilenameFile , *infoFile.file())) == 0 ) { 
+-        ret = infoDb->upgrade( infoDb, infoFile.name().local8Bit(), 0 );
+-    }
+-    
+-    if( ret!= 0 ) {
+-	kdDebug(KBABEL_SEARCH) << "Cannot upgrade catalogsinfo" << endl;
+-	// cleanup
+-	transFile.unlink();
+-	infoFile.unlink();
+-	iAmOk=false;
+-	emit cannotOpenDB(ret);
+-	return ;
+-    }
+-    
+-    // do the upgrade on the words file
+-    QFile wordfilenameFile( wordsfilename );
+-    if( (ret = copy_hack( wordfilenameFile , *wordsFile.file())) == 0 ) { 
+-        ret = wordDb->upgrade( wordDb, wordsFile.name().local8Bit(), 0 );
+-    }
+-    
+-    if( ret!= 0 ) {
+-	kdDebug(KBABEL_SEARCH) << "Cannot upgrade words" << endl;
+-	// cleanup
+-	transFile.unlink();
+-	infoFile.unlink();
+-	wordsFile.unlink();
+-	iAmOk=false;
+-	emit cannotOpenDB(ret);
+-	return ;
+-    }
+-    
+-    // do the upgrade on the keys file
+-    QFile keysfilenameFile( keysfilename );
+-    if( (ret = copy_hack( keysfilenameFile , *keysFile.file())) == 0 ) { 
+-        ret = indexDb->upgrade( indexDb, keysFile.name().local8Bit(), 0 );
+-    }
+-    
+-    if( ret!= 0 ) {
+-	kdDebug(KBABEL_SEARCH) << "Cannot upgrade keys" << endl;
+-	// cleanup
+-	transFile.unlink();
+-	infoFile.unlink();
+-	wordsFile.unlink();
+-	keysFile.unlink();
+-	iAmOk=false;
+-	emit cannotOpenDB(ret);
+-	return ;
+-    }
+-    
+-    kdDebug(KBABEL_SEARCH) << "Files upgraded, copying" << endl;
+-    // use temporary file instead
+-    if( ret==0 ) {
+-	KIO::NetAccess::del( transfilename );
+-	copy_hack( *transFile.file(), transfilenameFile );
+-	transFile.unlink();
+-
+-	KIO::NetAccess::del( infofilename );
+-	copy_hack( *infoFile.file(), infofilenameFile );
+-	infoFile.unlink();
+-	
+-	KIO::NetAccess::del( wordsfilename );
+-	copy_hack( *wordsFile.file(), wordfilenameFile );
+-	wordsFile.unlink();
+-
+-	KIO::NetAccess::del( keysfilename );
+-	copy_hack( *keysFile.file(), keysfilenameFile );
+-	keysFile.unlink();
++             filename.local8Bit(), 0, DB_BTREE, 0,0644);
++if(ret!=0)
++ {
++  iAmOk=false;
++  emit cannotOpenDB(ret);
++  //Process error here.
++ }
+ 
+-	ret = db->open(db,
+-#if DB_VERSION_MINOR > 0
+-                       NULL,
+-#endif
+-                       transfilename.local8Bit(), 0, DB_BTREE, 0,0644);
+-	if( ret != 0 ) {
+-	    kdWarning(KBABEL_SEARCH) << "transFilename database can't be opened." << endl;
+-	    kdWarning(KBABEL_SEARCH) << "Please, report this incident and how to reproduce it to kbabel@kde.org." << endl;
+-	    iAmOk=false;
+-	    emit cannotOpenDB(ret);
+-	    return;
+-	}
+ 
+-    }
+-    kdDebug(KBABEL_SEARCH) << "Upgrade done OK" << endl;
+-}
+ 
+ // Open catalogs information database
+ 
+ 
++filename="%1/catalogsinfo%2.db";
++filename=filename.arg(directory).arg(ll);
++ db_create(&infoDb, 0, 0);
+ 
+ ret=infoDb->open(infoDb,
+ #if DB_VERSION_MINOR > 0
+-              NULL,
++                 NULL,
+ #endif
+-                 infofilename.local8Bit(), 0, DB_RECNO, 0,0644);
++                 filename.local8Bit(), 0, DB_RECNO, 0,0644);
+ if(ret!=0)
+  {
+   iAmOk=false;
+   emit cannotOpenDB(ret);
+   //Process error here.
+  }
+-  else loadInfo();  
++  else
++  loadInfo();
+ 
+ 
+ 
+ // Words index database
+ 
++filename="%1/wordsindex%2.db";
++filename=filename.arg(directory).arg(ll);
++ db_create(&wordDb, 0, 0);
+ ret=wordDb->open(wordDb,
+ #if DB_VERSION_MINOR > 0
+                  NULL,
+ #endif
+-                 wordsfilename.local8Bit(), 0, DB_BTREE, 0,0644);
++                 filename.local8Bit(), 0, DB_BTREE, 0,0644);
+ if(ret!=0)
+  {
+   iAmOk=false;
+@@ -462,18 +324,21 @@
+ 
+ //Index of keys.
+ 
++filename="%1/keysindex%2.db";
++filename=filename.arg(directory).arg(ll);
++ db_create(&indexDb,0, 0);
+ ret=indexDb->open(indexDb,
+ #if DB_VERSION_MINOR > 0
+                   NULL,
+ #endif
+-                  keysfilename.local8Bit(), 0, DB_RECNO,0,0644);
++                  filename.local8Bit(), 0, DB_RECNO,0,0644);
+ if(ret!=0)
+  {
+    iAmOk=false;
+    emit cannotOpenDB(ret);
+      //Process error here.
+     }
+- 
++
+ 
+ }
+ 
+@@ -485,18 +350,18 @@
+ 
+   infoDb->sync(infoDb,0);
+   infoDb->close(infoDb,0);
+- 
++
+   wordDb->sync(wordDb,0);
+   wordDb->close(wordDb,0);
+-   
++
+   indexDb->sync(indexDb,0);
+   indexDb->close(indexDb,0);
+-    
++
+   // can not be opened again
+   indexDb = wordDb = infoDb = db = 0;
+ 
+   }
+- 
++
+ }
+ 
+ 
+@@ -504,8 +369,8 @@
+ 
+ void DataBaseManager::sync()
+ {
+-// if(iAmOk)  
+-// { 
++// if(iAmOk)
++// {
+ //  db->sync(db,0);
+ //  infoDb->sync(infoDb,0);
+ //  cursor=0;
+@@ -518,13 +383,13 @@
+   infoDb->sync(infoDb,0);
+   wordDb->sync(wordDb,0);
+   indexDb->sync(indexDb,0);
+-  loadInfo();			
++  loadInfo();
+ }
+ 
+ 
+ DataBaseManager::~DataBaseManager()
+ {
+- closeDataBase(); 
++ closeDataBase();
+ }
+ 
+ int DataBaseManager::putItem(DataBaseItem *item,bool ow)
+@@ -587,31 +452,31 @@
+ DataBaseItem DataBaseManager::getItem(QString key)
+ {
+  if(!iAmOk) return DataBaseItem();
+- 
++
+ 
+  DBT _key,data;
+ 
+  memset(&_key,0,sizeof(DBT));
+ 
+  memset(&data,0,sizeof(DBT));
+- 
++
+  int len=strlen(key.utf8());
+  _key.data=malloc(len+1);
+  _key.size=len+1;
+  strcpy((char *)_key.data,key.utf8());
+ 
+- 
++
+  int ret;
+  ret=db->get(db,0,&_key,&data,0);
+-   
++
+  if(ret!=0)
+  {
+   free(_key.data);
+-  return DataBaseItem(); //return an empty database item 
++  return DataBaseItem(); //return an empty database item
+  }
+- 
++
+  DataBaseItem returnItem=DataBaseItem((char *)_key.data,(char *)data.data);
+- 
++
+  free(_key.data);
+  return returnItem;
+ 
+@@ -631,8 +496,8 @@
+ 
+  memset(&data,0,sizeof(DBT));
+ 
+- if(cursor==0) 
+-  re=db->cursor(db,0,&cursor,0); 
++ if(cursor==0)
++  re=db->cursor(db,0,&cursor,0);
+ 
+  int ret;
+  if((ret=cursor->c_get(cursor,&key,&data,flags))==0)
+@@ -642,29 +507,29 @@
+   else
+   {
+     kdDebug(0) << QString("...cursor getting...%1").arg(ret) << endl;
+- 
++
+    return DataBaseItem();
+    }
+-}   
++}
+ 
+ 
+ DataBaseItem DataBaseManager::firstItem()
+ {
+ return cursorGet(DB_FIRST);
+ }
+- 
++
+ DataBaseItem DataBaseManager::currentItem()
+ {
+ return cursorGet(DB_CURRENT);
+-} 
+-  
+- 
++}
++
++
+ DataBaseItem DataBaseManager::nextItem()
+ {
+ return cursorGet(DB_NEXT);
+ }
+- 
+- 
++
++
+ bool DataBaseManager::isOk()
+ {
+ return iAmOk;
+@@ -677,25 +542,25 @@
+  int ret=dstat->bt_nkeys;
+  free(dstat);
+ 
+- return ret; 
+-} 
+- 
++ return ret;
++}
++
+ int DataBaseManager::current()
+ {
+ // THIS FUNCTION SEEM TO NOT WORK (not used)
+  if(!iAmOk) return 0;
+- 
++
+  DBT key,data;
+  memset(&key,0,sizeof(DBT));
+  memset(&data,0,sizeof(DBT));
+- 
++
+  if(cursor!=0)
+-  db->cursor(db,0,&cursor,0); 
++  db->cursor(db,0,&cursor,0);
+  cursor->c_get(cursor,&key,&data,DB_GET_RECNO);
+  return *(uint32 *)(data.data);
+ 
+ }
+- 
++
+ int DataBaseManager::createDataBase(QString directory,
+ 		                    QString language,int mode)
+ {
+@@ -766,7 +631,7 @@
+ filename="%1/keysindex%2.db";
+ filename=filename.arg(directory).arg(ll);
+ rename(filename.local8Bit(),filename.local8Bit()+",old");
+- 
++
+ db_create( &indexDb, 0, 0);
+ ret=indexDb->open(indexDb,
+ #if DB_VERSION_MINOR > 0
+@@ -775,14 +640,14 @@
+                   filename.local8Bit(),0, DB_RECNO, DB_CREATE, mode);
+ if(ret!=0)
+  iAmOk=false;
+- 
++
+ 
+ 
+ if(iAmOk)
+  loadInfo();
+ else kdDebug(0) << QString("I am NOT  ok : %1").arg(ret) << endl;
+ 
+-//THIS IS WRONG, rewrite the error handling. 
++//THIS IS WRONG, rewrite the error handling.
+ return iAmOk;
+ 
+ }
+@@ -806,7 +671,7 @@
+ if(ret)
+ {
+  return InfoItem();
+-}	
++}
+ 
+ // kdDebug(0) << QString("Trad %1").arg(ret) << endl;
+ 
+@@ -862,16 +727,16 @@
+ int DataBaseManager::searchCatalogInfo(QString location)
+ {
+  int n=0;
+-      QValueList<InfoItem>::Iterator it; 
++      QValueList<InfoItem>::Iterator it;
+       for( it = info.begin(); it != info.end(); ++it )
+-        {    
+-         n++; 
++        {
++         n++;
+ 	 if ((*it).catalogName==location)
+ 	  return n;
+-	}          
++	}
+ return -1;
+ }
+- 
++
+ bool DataBaseManager::putCatalogInfo(int refnum, InfoItem *catInfo)
+ {
+ DBT data;
+@@ -894,9 +759,9 @@
+ free(data.data);
+ 
+ return (ret==0);
+-} 
++}
+ 
+-void  DataBaseManager::loadInfo()  
++void  DataBaseManager::loadInfo()
+ {
+  int nrec;
+  DB_BTREE_STAT *stat;
+@@ -908,7 +773,7 @@
+ 
+  info.clear();
+  for(int i=1;i<=nrec;i++)     // I think DB2 Recno are 1 based.
+-  { 
++  {
+   info.append(getCatalogInfo(i));
+   }
+ 
+@@ -980,19 +845,19 @@
+ 
+ WordItem it((char *)data.data,keystring);
+ 
+-free(keydata); 
++free(keydata);
+ 
+ 
+ //  kdDebug(0) << ((uint32 *)it.locations.data())[0] << endl;
+- 
++
+  return it;
+ 
+ }
+- 
++
+ 
+ bool DataBaseManager::addLocation(QString word, unsigned int location)
+ {
+- 
++
+ QString keystring=word.lower();
+ 
+ 
+@@ -1030,13 +895,13 @@
+ 
+ int antibounce=0;
+ //d+=4;
+-//int score=d[1];
+-//d+=4; 
++int score=d[1];
++//d+=4;
+ bool forward,end=false;
+ 
+-d[1]=0; //Before the begin...  
++d[1]=0; //Before the begin...
+ 
+-d+=2; //1 uint32!  
++d+=2; //1 uint32!
+ 
+ 
+ //Try to guess...
+@@ -1064,21 +929,21 @@
+ 
+ 
+ 
+-while( (!end) && ( (forward=(d[loc])<location) 
++while( (!end) && ( (forward=(d[loc])<location)
+ 			 ||(d[loc-1]>location)) )
+ {
+ 
+   antibounce++;
+- 	//calculate step or use antibounce 
++ 	//calculate step or use antibounce
+   if(abs((int)d[loc]-(int)location)<50 || antibounce > 100)
+ 	  step=1;   //Go linear...
+ 	  else
+    {
+      step=(abs(d[loc]-location)*num)/totalrecord +1;
+ 
+-   }                        
++   }
+ 
+-    kdDebug(0) << "Insert:" << location << " We are at: "<< loc << " i.e. " <<  d[loc] << "  Step:" << step<< endl;     
++    kdDebug(0) << "Insert:" << location << " We are at: "<< loc << " i.e. " <<  d[loc] << "  Step:" << step<< endl;
+     if (forward)
+ kdDebug(0) << "Go " << "forward" << " prev is " << d[loc-1] << endl;
+     else
+@@ -1089,7 +954,7 @@
+    if(loc+step<num)
+     loc+=step; // Go forward
+    else
+-    loc=num; // Go to num 	   
++    loc=num; // Go to num
+   }
+   else
+   {
+@@ -1100,15 +965,15 @@
+   }
+ 
+   //Now check if I am in the right place [THIS IS NOT NECESSARY]
+-  
++
+   //check if loc and loc -1 are well defined 1<loc<num-1
+   if(loc>num) loc=num; //Must not happen,       idem
+-  
+-  if(loc==0) 
++
++  if(loc==0)
+   {
+     if(d[loc]>location)
+      end=true;
+-     else loc=1;		
++     else loc=1;
+   }
+ 
+   if((loc==num)&&!end)
+@@ -1116,14 +981,14 @@
+    if(d[loc-1]<location)
+      end=true;
+     else loc=num-1;
+-  } 
+- 
++  }
++
+ }
+ 
+ if(loc==num) kdDebug(0) << "END" << endl;
+ if(loc==0) kdDebug(0) << "BEGIN" << endl;
+ 
+-kdDebug(0) << location << " inserted between " << d[loc-1] << " and " << d[loc] <<endl; 
++kdDebug(0) << location << " inserted between " << d[loc-1] << " and " << d[loc] <<endl;
+ 
+ if((loc<num && location==d[loc]) || (loc>0 && location==d[loc-1]))  //What about word repetition
+     {
+@@ -1131,8 +996,8 @@
+        return true;  //Why true ??
+       }
+ 
+-					      
+-					      
++
++
+ //Now insert and put back in the database!
+ newdata=( char *)malloc(4*(num+3));   //uint32*(num+score+1..NUM+new)
+ memcpy(newdata,data.data,4+4 + 4*loc);
+@@ -1172,19 +1037,18 @@
+ 
+ 
+ free(newdata);
+-free(keydata); 
++free(keydata);
+ //return it;
+ 
+ return true;
+ }
+ 
+ 
+-bool DataBaseManager::removeLocation(QString /*word*/, int /*location*/)
++bool DataBaseManager::removeLocation(QString word, int location)
+ {
+ 
+ //#warning TODO: REMOVE LOCATION
+-return true;
+-	
++
+ }
+ 
+ uint32 DataBaseManager::appendKey(QString _key)
+@@ -1241,7 +1105,7 @@
+ return QString::fromUtf8((char *)data.data);
+ 
+ // kdDebug(0) << QString("Trad %1").arg(ret) << endl;
+-	
++
+ }
+ 
+ int DataBaseManager::catalogRef(QString location, QString author,QString path)
+@@ -1257,7 +1121,7 @@
+   cinfo.lastFullPath=path;
+       //TO DO:
+       // //Add date info
+-  
++
+   kdDebug(0) << "New catalog "<< endl;
+   catnum=addCatalogInfo(&cinfo);
+   //sync();
+@@ -1272,13 +1136,13 @@
+      cinfo.lastFullPath=path;
+       kdDebug(0) << "New full path " << path << endl;
+       kdDebug(0) << "Ref " << cat << endl;
+-    
++
+       catnum=addCatalogInfo(&cinfo,cat);
+       kdDebug(0) << " must be equal to  " << catnum << endl;
+ 
+       catnum=cat;
+ }
+-               
++
+ return catnum;
+ }
+ 
+@@ -1307,11 +1171,11 @@
+ 
+    //Check ret value
+     count++;
+-    
++
+     int aa=putItem(&dbit);
+     if(aa)
+             kdDebug(0) << QString("-----------put code ") << aa << endl;
+-    
++
+ //    kdDebug(0) << QString("error: %1").arg(aa) << endl;
+ 
+    dbit.translations.clear();
+@@ -1324,9 +1188,9 @@
+    QString msgstr=tran;
+ //   TranslationItem tr;
+ //   DataBaseItem newItem=dbit;
+-//    int ref;
++    int ref;
+     bool found=false,foundTr=false,isThisOne=false;
+-//    int removed=0;
++    int removed=0;
+ 
+     QValueList<TranslationItem>::Iterator ittr; //,ittrb;
+     bool rem=false;
+@@ -1337,7 +1201,7 @@
+        found=false;
+ 
+        isThisOne=(*ittr).translation==msgstr;
+-       
++
+ 	if((*ittr).infoRef.find(catnum)!=(*ittr).infoRef.end())
+ 	{
+ 		found=true;
+@@ -1345,23 +1209,23 @@
+ 	   {
+   	       kdDebug(0) << "Removing the old translation "<<endl;
+ 	       (*ittr).numRef-=1;
+- 	       (*ittr).infoRef.remove(catnum); 			 
++ 	       (*ittr).infoRef.remove(catnum);
+ 	       if((*ittr).numRef==0)
+ 	       {
+ 		 dbit.numTra-=1;
+ 		 ittr=dbit.translations.remove(ittr);
+-		 rem=true;	
++		 rem=true;
+ 	       }
+ 	   }
+-	 
++
+          }
+-    
++
+       if(isThisOne)
+        {
+ 
+         if(!found)  //There are no reference of this catalog for this translation => add it
+ 	   {
+-	
++
+ 	     (*ittr).infoRef.append(catnum);
+ 	     (*ittr).numRef+=1;
+ 	   }
+@@ -1369,9 +1233,9 @@
+ 	foundTr=true;  // Ok, we found this translation, no need to add it.
+        }
+ 
+-  } 
++  }
++
+ 
+-		   
+ 
+    if(!foundTr)  //This translation is new => Add it !
+     {
+@@ -1407,7 +1271,7 @@
+ 
+ void DataBaseManager::rebuildIndexes()
+ {
+-//  uint32 loc;
++  uint32 loc;
+ #if 0
+ //Reset the 2 databases here.
+ 
+@@ -1425,12 +1289,12 @@
+    for(wlistit=wlist.begin();wlistit!=wlist.end();++wlistit)
+       {
+           addLocation(*wlistit,location);
+-      }  
++      }
+ 
+    }
+ #endif
+ }
+ 
+ 
+-	
++
+ #include "database.moc"
+--- kbugbuster/kbugbuster.desktop	20 Jul 2003 02:50:55 -0000	1.1.1.10
++++ kbugbuster/kbugbuster.desktop	7 May 2003 00:28:37 -0000	1.1.1.9
+@@ -29,7 +29,7 @@
+ GenericName[is]=KDE Villu-umsýsla
+ GenericName[it]=Gestione bug di KDE
+ GenericName[ja]=KDEバグマネージメント
+-GenericName[lt]=KDE ydų tvarkymas
++GenericName[lt]=KDE klaidų tvarkymas
+ GenericName[lv]=KDE Kļūdu Pārvalde
+ GenericName[nb]=KDE feilhåndterer
+ GenericName[nl]=KDE-hulpprogramma voor het opsporen van bugs
+--- kdesdk.lsm	20 Jul 2003 02:50:34 -0000	1.1.1.11
++++ kdesdk.lsm	7 May 2003 00:28:04 -0000	1.1.1.10
+@@ -1,7 +1,7 @@
+ Begin4
+ Title:          kdesdk
+-Version:        3.1.3
+-Entered-date:   2003-07-14
++Version:        3.1.2
++Entered-date:   2003-05-05
+ Description:    K Desktop Environment (KDE) SDK
+ Keywords:       KDE X11 desktop Qt 
+ Author:         submit@bugs.kde.org (KDE Bugtracking System)
+--- kompare/ChangeLog	20 Jul 2003 02:50:49 -0000	1.1.1.4
++++ kompare/ChangeLog	7 May 2003 00:28:29 -0000	1.1.1.3
+@@ -1,13 +1,3 @@
+-June   29, 2003 : Otto Bruggeman
+-	* Fixed remaining part of bug 57774 (the context format parsing one)
+-	* Fixed bug 58144 by adding a check for comparing dirs, in that case
+-	  destinationURL is a directory and not a file name so we need to 
+-	  recreate the filename. This involved changing some code to use a 
+-	  different enum value, so i hope i did it the right way, session 
+-	  management may be broken now when the session was stored with 3.1.2
+-	  and restarted with 3.1.3. But that is unfortunately unfixable with a
+-	  kconf_update script.
+-
+ May     3, 2003 : Otto Bruggeman
+ 	* Fixed accel conflict
+ 	* Moved Open Diff to the top of the menu
+--- kompare/kompare.desktop	20 Jul 2003 02:50:49 -0000	1.1.1.8
++++ kompare/kompare.desktop	27 Nov 2002 02:45:40 -0000	1.1.1.7
+@@ -5,7 +5,6 @@
+ Name=Kompare
+ Name[af]=K-vergelyk
+ Name[ar]=المقارن
+-Name[bg]=Сравни
+ Name[eo]=Komparilo
+ Name[lv]=Salīdzināt
+ Name[th]=เปรียบเทียบ
+--- kompare/kompare_shell.cpp	20 Jul 2003 02:50:49 -0000	1.1.1.5
++++ kompare/kompare_shell.cpp	7 May 2003 00:28:29 -0000	1.1.1.4
+@@ -241,21 +241,15 @@
+ 	// The 'config' object points to the session managed
+ 	// config file.  Anything you write here will be available
+ 	// later when this app is restored
+-	if ( m_mode == Kompare::ComparingFiles )
++	if ( m_mode == Kompare::Compare )
+ 	{
+-		config->writeEntry( "Mode", "ComparingFiles" );
++		config->writeEntry( "Mode", "Compare" );
+ 		config->writeEntry( "SourceUrl", m_sourceURL.url() );
+ 		config->writeEntry( "DestinationUrl", m_destinationURL.url() );
+ 	}
+-	else if ( m_mode == Kompare::ComparingDirs )
++	else if ( m_mode == Kompare::Diff )
+ 	{
+-		config->writeEntry( "Mode", "ComparingDirs" );
+-		config->writeEntry( "SourceUrl", m_sourceURL.url() );
+-		config->writeEntry( "DestinationUrl", m_destinationURL.url() );
+-	}
+-	else if ( m_mode == Kompare::ShowingDiff )
+-	{
+-		config->writeEntry( "Mode", "ShowingDiff" );
++		config->writeEntry( "Mode", "Diff" );
+ 		config->writeEntry( "DiffUrl", m_diffURL.url() );
+ 	}
+ 
+@@ -269,20 +263,10 @@
+ 	// the app is being restored. Read in here whatever you wrote
+ 	// in 'saveProperties'
+ 
+-	QString mode = config->readEntry( "Mode", "ComparingFiles" );
+-	if ( mode == "ComparingFiles" )
+-	{
+-		m_mode  = Kompare::ComparingFiles;
+-		m_sourceURL  = config->readEntry( "SourceUrl", "" );
+-		m_destinationURL = config->readEntry( "DestinationFile", "" );
+-
+-		m_viewPart->loadSettings( config );
+-
+-		m_viewPart->compare( m_sourceURL, m_destinationURL );
+-	}
+-	else if ( mode == "ComparingDirs" )
++	QString mode = config->readEntry( "Mode", "Compare" );
++	if ( mode == "Compare" )
+ 	{
+-		m_mode  = Kompare::ComparingDirs;
++		m_mode  = Kompare::Compare;
+ 		m_sourceURL  = config->readEntry( "SourceUrl", "" );
+ 		m_destinationURL = config->readEntry( "DestinationFile", "" );
+ 
+@@ -290,9 +274,9 @@
+ 
+ 		m_viewPart->compare( m_sourceURL, m_destinationURL );
+ 	}
+-	else if ( mode == "ShowingDiff" )
++	else if ( mode == "Diff" )
+ 	{
+-		m_mode = Kompare::ShowingDiff;
++		m_mode = Kompare::Diff;
+ 		m_diffURL = config->readEntry( "DiffUrl", "" );
+ 
+ 		m_viewPart->loadSettings( config );
+--- kompare/komparepart/kompare_part.cpp	20 Jul 2003 02:50:50 -0000	1.1.1.4
++++ kompare/komparepart/kompare_part.cpp	3 Oct 2002 01:06:08 -0000	1.1.1.3
+@@ -176,8 +176,8 @@
+ void KomparePart::updateActions()
+ {
+ 	m_saveAll->setEnabled  ( m_models->isModified() );
+-	m_saveDiff->setEnabled ( m_models->mode() == Kompare::ComparingFiles || m_models->mode() == Kompare::ComparingDirs );
+-	m_swap->setEnabled     ( m_models->mode() == Kompare::ComparingFiles || m_models->mode() == Kompare::ComparingDirs );
++	m_saveDiff->setEnabled ( m_models->mode() == Kompare::Compare );
++	m_swap->setEnabled     ( m_models->mode() == Kompare::Compare );
+ 	m_diffStats->setEnabled( m_models->modelCount() > 0 );
+ 
+ 	const DiffModel* model = m_models->selectedModel();
+@@ -282,7 +282,7 @@
+ 
+ void KomparePart::updateStatus()
+ {
+-	if( m_models->mode() == Kompare::ComparingFiles || m_models->mode() == Kompare::ComparingDirs )
++	if( m_models->mode() == Kompare::Compare )
+ 	{
+ 		if( modelCount() > 1 )
+ 		{
+--- kompare/libdiff2/diffmodel.cpp	20 Jul 2003 02:50:52 -0000	1.1.1.4
++++ kompare/libdiff2/diffmodel.cpp	7 May 2003 00:28:32 -0000	1.1.1.3
+@@ -218,7 +218,7 @@
+ 				}
+ 			}
+ 
+-			else if( (oldIt != oldLines.end() && changed.exactMatch( *oldIt ) ) &&
++			else if( (oldIt != oldLines.end() && changed.exactMatch( *oldIt ) ) ||
+ 			    (newIt != newLines.end() && changed.exactMatch( *newIt ) ) ) {
+ //				kdDebug() << "Changed: " << endl;
+ 				diff = new Difference( linenoA, linenoB );
+--- kompare/libdiff2/kompare.h	20 Jul 2003 02:50:52 -0000	1.1.1.2
++++ kompare/libdiff2/kompare.h	10 Jul 2002 05:30:39 -0000	1.1.1.1
+@@ -36,9 +36,8 @@
+ 	};
+ 	
+ 	enum Mode {
+-		ComparingFiles,
+-		ComparingDirs,
+-		ShowingDiff
++		Compare,
++		Diff
+ 	};
+ 
+ 	enum Status {
+--- kompare/libdiff2/komparemodellist.cpp	20 Jul 2003 02:50:51 -0000	1.1.1.4
++++ kompare/libdiff2/komparemodellist.cpp	7 May 2003 00:28:32 -0000	1.1.1.3
+@@ -36,7 +36,7 @@
+ 	: QObject(),
+ 	m_diffProcess( 0 ),
+ 	m_diffTemp( 0 ),
+-	m_mode( ComparingFiles ),
++	m_mode( Compare ),
+ 	m_selectedModel( 0 ),
+ 	m_selectedDifference( 0 ),
+ 	m_modelIt( 0 ),
+@@ -76,7 +76,7 @@
+ 		if ( m_sourceURL.protocol() == "file" && m_destinationURL.protocol() == "file" )
+ 		{
+ 			// proceed
+-			m_mode = ComparingDirs;
++			m_mode = Compare;
+ 			m_type = MultiFileDiff;
+ 
+ 			m_diffProcess = new KompareProcess( m_sourceURL.path(), m_destinationURL.path() );
+@@ -91,7 +91,7 @@
+ 	else if ( !sourceIsDirectory && !destinationIsDirectory )
+ 	{
+ 		// dealing with files... proceed even if both are remote
+-		m_mode = ComparingFiles;
++		m_mode = Compare;
+ 		m_type = SingleFileDiff;
+ 
+ 		if( m_type == SingleFileDiff && !KIO::NetAccess::download( m_sourceURL, m_sourceTemp ) ) {
+@@ -170,15 +170,7 @@
+ 		return false;
+ 	}
+ 
+-	if ( m_mode == Kompare::ComparingDirs )
+-	{
+-		QString destination = model->destPath() + model->destFile();
+-		KIO::NetAccess::upload( temp->name(), destination );
+-	}
+-	else
+-	{
+-		KIO::NetAccess::upload( temp->name(), m_destinationURL );
+-	}
++	KIO::NetAccess::upload( temp->name(), m_destinationURL );
+ 
+ 	model->setModified( false );
+ 
+@@ -282,7 +274,7 @@
+ 		KIO::NetAccess::removeTempFile( diffTemp );
+ 	}
+ 
+-	m_mode = ShowingDiff;
++	m_mode = Diff;
+ 	emit status( FinishedParsing );
+ 
+ 	return true;
