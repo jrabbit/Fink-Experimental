@@ -11,6 +11,7 @@ my %files;
 
 find(sub {
 	return unless ($File::Find::name =~ /kde/ or $File::Find::name =~ /qt3/);
+	return if ($File::Find::name =~ /notready/);
 	$files{$File::Find::name}++ if ($File::Find::name =~ /\.(info|patch)$/);
 }, $path . '/common');
 
@@ -48,7 +49,7 @@ for my $file (sort keys %files) {
 											print "$package ($version-$revision) -> ";
 											$revision += 10 if ($tree eq '10.2-gcc3.3');
 											$revision += 20 if ($tree eq '10.3');
-											$newline =~ s/${package}\s+\([^\)]*?\)/$package ($comparator $version-$revision)/;
+											$newline =~ s/${package}\s+\([^\)]*?\)/$package ($comparator $version-$revision)/g;
 											print "($version-$revision)... ";
 										}
 									}
