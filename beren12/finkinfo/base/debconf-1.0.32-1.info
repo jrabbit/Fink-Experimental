@@ -17,11 +17,27 @@ cd ..
 make -C po
 <<
 InstallScript: <<
+  mkdir -p %i/etc/apt/apt.conf.d
+  install -m 0644 debian/apt.conf %i/etc/apt/apt.conf.d/70debconf
   make install prefix=%i
+  make install-utils prefix=%i
+  make install-rest prefix=%i
   mkdir -p %i/share/doc/%n
   rm -rf samples/CVS
   mv samples %i/share/doc/%n/
+  cp debian/config debian/templates* %d/DEBIAN
 <<
+
+PostInstScript: <<
+# Fix up broken db's before debconf starts up.
+if [ -z "$DEBIAN_HAS_FRONTEND" -a "$1" = configure ] && \
+   dpkg --compare-versions "$2" lt 1.0.25; then
+        %p/share/debconf/fix_db.pl
+fi
+
+. %p/share/debconf/confmodule
+<<
+
 DocFiles: doc/COPYRIGHT doc/EXAMPLES doc/README.LDAP doc/CREDITS doc/Makefile doc/README.translators doc/CREDITS doc/Makefile doc/README.translators doc/README doc/TODO doc/debconf.schema doc/passthrough.txt doc/graph.pl doc/tutorial.xml doc/html.dsl doc/namespace.txt
 Description: Package configuration management system
 DescDetail: <<
