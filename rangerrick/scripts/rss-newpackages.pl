@@ -369,7 +369,7 @@ sub make_rss {
 		if ($package->{'tree'} eq 'experimental') {
 			$link = $package->{'filename'};
 			$link =~ s/^${EXPDIR}\///s;
-			$link = 'http://cvs.sourceforge.net/viewcvs.py/fink/experimental/' . $link;
+			$link = 'http://cvs.sourceforge.net/viewcvs.py/fink/experimental/' . $link . '?rev=' . $package->{'revision'}? $package->{'revision'} : 'HEAD' . '&view=auto';
 			$title = $packagestring . ' (';
 			if (exists $package->{'description'}) {
 				$title .= $package->{'description'} . ', ';
@@ -431,7 +431,9 @@ sub find_infofiles {
 	my ($shortname) = $_;
 	my $is_info = ($File::Find::name =~ /\.info$/);
 	my ($properties, @versions, $tree, $user);
-	return if (-d $File::Find::name or $File::Find::name =~ m#/CVS/#);
+	return if (-d $File::Find::name);
+	return if ($File::Find::name =~ m#/CVS/#);
+	return if ($File::Find::name =~ m#\.(patch)$#);
 
 	if ($File::Find::name =~ m#/experimental/([^/]*)/#) {
 		$user = $1;
