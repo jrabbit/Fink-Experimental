@@ -7,21 +7,48 @@ mkdir -p ${i}/lib
 # since we remove it from the hard-coded path in the patch (first multiline sed command)
 # For the same reason, SINGULARPATH must be set _ and our new SINGULAR_SO_DIR
 # The last item in PATH is appended to enable the configure in omalloc to find addr2line;
-# It finds however later that addr2line doesn't work... Leaving the thing till I get time to see why.
-export PATH=${i}/bin:${PATH}:/usr/libexec/binutils
+# It finds however later that addr2line doesn't work... Leaving it till I get time to see why (possibly since we compile w/o "-g")
+# XCode1.5 removed /usr/libexec/binutils !!! Svd the old in /usr/local/bin, and adding this too
+#export PATH=${i}/bin:${PATH}:/usr/libexec/binutils:/usr/local/bin
+export PATH=${i}/bin:${PATH}
 export CPATH=${p}/include/pari:${p}/include
 export LIBRARY_PATH=${p}/lib
 export SINGULARPATH=${i}/share/singular/LIB
 export SINGULAR_SO_DIR=${i}/bin
-if ${dyn} ; then tmp1='' ; else tmp1='--without-dynamic-kernel' ; fi
+nooptflags="-mdynamic-no-pic -O0 -ggdb"
+warnflags="-Wall -Wcast-align -W -Wno-unused"
+mflags="-mcpu=`machine|sed 's,ppc,,'` -mtune=`machine|sed 's,ppc,,'` -faltivec"
+if ${noopt} ; then flags="$nooptflags $warnflags"; ipflags=$flags
+  else flags="-mdynamic-no-pic -O3 -fno-sched-interblock -fstrict-aliasing -fnew-ra -floop-transpose"
+#       flags="$flags -fomit-frame-pointer -fschedule-insns -fschedule-insns2 -fregmove -freorder-blocks"     
+# Don't matter: -fomit-frame-pointer -fregmove -fschedule-insns -fschedule-insns2
+# Matter: -freorder-blocks _ and is worse
+       flags="$flags --param max-gcse-passes=3 -ffast-math -fno-objc-exceptions $mflags $warnflags"
+fi
+# -malign-natural causes runtime errors in IntegerProgramming, and doesn't accelerate things elsewhere
+export CFLAGS=$flags
+if ${noopt} ; then export CXXFLAGS="$flags"
+              else export CXXFLAGS="$flags -fno-rtti -fno-exceptions"
+fi
+if ${dyn} ; then SFLAGS="-fPIC -mno-dynamic-no-pic" ; tmp1=""
+            else SFLAGS=""; tmp1="--without-dynamic-kernel"
+fi
+# Later we'll try to add -s to the LDFLAGS
+b=`pwd`
+if ${strip} ; then stripflags="-dead_strip -Wl,-x -exported_symbols_list ../lst" ; else stripflags='' ; fi 
+#export LDFLAGS="-Wl,-sect_diff_relocs,warning"
+export LDFLAGS=""
 # Also --with-dynamic-modules ???
 ##ConfigureParams: --disable-streamio
 ## removed -with-malloc=external (<- omalloc, removal for MP) _  Try now: malloc=system in omalloc; malloc=stdlib.h in MP
 # Don't use "--with-namespaces" , else "ipshell.h:167: error: too few arguments to function `sleftv*" (called from iparith.cc:4098)
+### Try now: --with-readline=static (instead of dynamic)
+### Also, for omalloc, try --without-debug --enable-omalloc --with-external-config_h=${b}/Singular/omSingularConfig.h
 ./configure --prefix=${i}/share/${ni} --exec-prefix=${i} --bindir=${i}/bin --datadir=${p}/share --mandir=${p}/share/man --infodir=${i}/share/info \
 --with-rootdir=${p}/share/${ni} --enable-doc --enable-emacs --enable-MP --enable-factory --enable-libfac --disable-NTL --with-NTL \
---enable-Singular --enable-IntegerProgramming --with-malloc=system --with-readline=dynamic ${tmp1}
-mkdir -p ${i}/bin  ${i}/share/${ni}
+--enable-Singular --enable-IntegerProgramming --with-malloc=system --with-readline=static --with-extra_cflags="${SFLAGS}" ${tmp1} \
+--with-stripflags="$stripflags" --without-debug --enable-omalloc --with-external-config_h=${b}/Singular/omSingularConfig.h
+mkdir -p ${i}/bin ${i}/share/${ni}
 make install 2>&1
 # Fixing the install in doc (in particular, singular.idx didn't get installed)
 chmod a-x ${i}/share/${ni}/html/*.gif		# .gif files are not executable ... 
@@ -37,11 +64,13 @@ cd IntegerProgramming; cp -p *.hlp ${i}/share/doc/${n}/IntegerProgramming; cd ..
 mkdir -p ${i}/share/emacs/site-lisp ${i}/share/${ni}/emacs ${i}/lib/xemacs/site-lisp
 cd emacs; cp -p *.el ${i}/share/emacs/site-lisp ; cp -p .emacs* singular.xpm ${i}/share/${ni}/emacs
 rm ${i}/share/${ni}/emacs/.*.bak ; cd ..
-cd ${i}/lib/xemacs/site-lisp; ln -s ../../../share/emacs/site-lisp/* . ; cd ${b}
+cd ${i}/lib/xemacs/site-lisp; ln -s ../../../share/emacs/site-lisp/* . ; cd -
 # conffiles go in etc
 mkdir -p ${i}/etc
 mv ${i}/share/${ni}/LIB/.singularrc ${i}/etc/singularrc
 ln -s ${p}/etc/singularrc ${i}/share/${ni}/LIB/.singularrc
+## provisionally, rename, to avoid conflict with singular-factory :
+#mv ${i}/include/factoryconf.h ${i}/include/factoryconf_singular.h
 ### Finally, "make test" :
 singtst () {
 # This one OK :
@@ -78,8 +107,7 @@ rm Tst/Short/N*
 # his machine such as to enable rsh and ssh w/o passwd to localhost and to `hostname`).
 perl -pi.bak -e 's,mpsr_s,;mpsr_s,g' Tst/Short/ok_s.lst
 # Now:
-make Tst-All
-cd Tst; perl ./regress.cmd -k -v 4 Buch/buch.lst; cd ..
+time make Tst-All
 # Save the diff-files
 cd Tst; find . -name '*.diff'|xargs tar -cjf ${i}/share/doc/${n}/diffs.tar.bz2 ; cd ..
 mv Tst/Short/ok_s.lst.bak Tst/Short/ok_s.lst
@@ -110,3 +138,9 @@ egrep "[^=][iI]nstall[^_].*\ ${p}/(bin|etc|lib|share|var|sbin|include|App|man|in
 |grep -v '[Cc]hecking for'|grep -v '[iI]nstall path'|grep -v mkinstalldirs|grep -v 'will be installed in' \
 |grep -v 'echo '|grep -v ': warning'
 ##
+## Write test-summary to log file :
+egrep 'Summary|^real|^user|^sys' ${i}/share/doc/${n}/${n}.log
+###
+#find . -name \*.o -ls
+### Write sizes to log-file :
+ls -l ${i}/lib/${ni}/*.so ${i}/lib/lib*.a ${i}/lib/omalloc.o ${i}/bin/*

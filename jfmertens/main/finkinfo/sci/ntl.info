@@ -1,6 +1,6 @@
 Package: ntl
 Version: 5.3.1
-Revision: 12
+Revision: 13
 GCC: 3.3
 Maintainer: William McCallum <wmc@math.arizona.edu>
 Description: Library for doing number theory
@@ -10,21 +10,23 @@ SourceDirectory: %n-%v/src
 BuildDepends: gmp (>= 4.1.2-11)
 Depends: gmp-shlibs (>= 4.1.2-11)
 BuildDependsOnly: true
-#Conflicts: ntl-sing
-#Replaces: ntl-sing
-#Provides: ntl-sing
+Conflicts: ntl-sing
+Replaces: ntl-sing
+Provides: ntl-sing
 License: GPL
 CompileScript: <<
-#!/bin/sh -v
+# -ftracer -fssa -fssa-ccp -fssa-dce ??  NTL_PSTD_NTN=on ???
  ./configure LDLIBS="" PREFIX=%i DOCDIR=%i/share/doc GMP_PREFIX=%p \
- NTL_GMP_LIP=on NTL_STD_CXX=on NTL_NO_INIT_TRANS=on NTL_CXX_ONLY=on CC=g++ \
- "CFLAGS=-mdynamic-no-pic -O3 -fschedule-insns -fschedule-insns2 -fsched-interblock -fstrict-aliasing \
-   -fregmove -freorder-blocks -floop-transpose --param max-gcse-passes=3" \
- "CXXFLAGS=-mdynamic-no-pic -O3 -fschedule-insns -fschedule-insns2 -fsched-interblock -fstrict-aliasing \
-   -fregmove -freorder-blocks -floop-transpose --param max-gcse-passes=3 -fno-exceptions -fno-rtti"
+ NTL_GMP_LIP=on NTL_NO_INIT_TRANS=on NTL_CXX_ONLY=on CC=g++ \
+ "CFLAGS=-mdynamic-no-pic -O3 -fstrict-aliasing -fno-sched-interblock \
+   -fnew-ra -floop-transpose --param max-gcse-passes=3 -ffast-math -faltivec \
+   -mcpu=`machine|sed 's,ppc,,'` -mtune=`machine|sed 's,ppc,,'` -fno-objc-exceptions -fno-exceptions -fno-rtti" \
+ "CXXFLAGS=-mdynamic-no-pic -O3 -fstrict-aliasing -fno-sched-interblock \
+   -fnew-ra -floop-transpose --param max-gcse-passes=3 -ffast-math -faltivec \
+   -mcpu=`machine|sed 's,ppc,,'` -mtune=`machine|sed 's,ppc,,'` -fno-objc-exceptions -fno-exceptions -fno-rtti"
  make
-# make QuickTest CanZassTest BerlekampTest ZZXFacTest MoreFacTest GF2EXTest MatrixTest CharPolyTest BitMatTest RRTest QuadTest LLLTest subset ZZ_pEXTest lzz_pEXTest
-# time make check
+ make QuickTest CanZassTest BerlekampTest ZZXFacTest MoreFacTest GF2EXTest MatrixTest CharPolyTest BitMatTest RRTest QuadTest LLLTest subset ZZ_pEXTest lzz_pEXTest
+ ( time make check ) 2>&1
 <<
 InstallScript:<<
  make install
