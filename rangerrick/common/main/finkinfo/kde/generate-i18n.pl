@@ -2,7 +2,7 @@
 
 my $KOI18NRELNUM  = 1;
 my $KDEVERSION    = '3.4.0';
-my $KDEDIRECTORY  = 'unstable/%v-rc1/src/';
+my $KDEDIRECTORY  = 'stable/3.4/src/';
 my $KDERELNUM     = 1;
 my $KDEARTSVER    = '1.4.0-1';
 my $KDEI18NRELNUM = 1;
