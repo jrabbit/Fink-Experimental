@@ -60,7 +60,7 @@ Revision: ${KDEI18NRELNUM}
 Replaces: koffice-i18n-${normalized}
 Depends: kdelibs3-ssl (>= %v-${KDERELNUM}) | kdelibs3 (>= %v-${KDERELNUM}), arts (>= ${KDEARTSVER}), xfonts-intl
 BuildDepends: fink (>= 0.17.1-1), kdebase3-ssl-dev (>= %v-${KDERELNUM}) | kdebase3-dev (>= %v-${KDERELNUM}), kdelibs3-ssl-dev (>= %v-${KDERELNUM}) | kdelibs3-dev (>= %v-${KDERELNUM}), arts-dev (>= ${KDEARTSVER}), libxml2, libxslt, xfonts-intl
-Maintainer: Benjamin Reed <ranger\@befunk.com>
+Maintainer: Benjamin Reed <kde-i18n-${normalized}\@fink.racoonfink.com>
 PatchScript: perl -pi -e 's,doc/HTML,doc/kde,g' configure
 CompileScript: (export HOME=/tmp; export KDEDIR=%p; sh configure %c; find . -name \\*.bz2 -exec touch {} \\;; make -j2)
 InstallScript: <<
@@ -105,7 +105,7 @@ Revision: ${KOI18NRELNUM}
 Replaces: kde-i18n-${normalized}
 Depends: kdelibs3-ssl (>= ${KDEVERSION}-${KDERELNUM}) | kdelibs3 (>= ${KDEVERSION}-${KDERELNUM}), arts (>= ${KDEARTSVER}), xfonts-intl, koffice-base (>= ${KOVERSION}-${KORELNUM})
 BuildDepends: fink (>= 0.17.1-1), kdebase3-ssl-dev (>= ${KDEVERSION}-${KDERELNUM}) | kdebase3-dev (>= ${KDEVERSION}-${KDERELNUM}), kdelibs3-ssl-dev (>= ${KDEVERSION}-${KDERELNUM}) | kdelibs3-dev (>= ${KDEVERSION}-${KDERELNUM}), arts-dev (>= ${KDEARTSVER}), koffice-dev (>= ${KOVERSION}-${KORELNUM}), libxml2, libxslt, xfonts-intl
-Maintainer: Benjamin Reed <ranger\@befunk.com>
+Maintainer: Benjamin Reed <koffice-i18n-${normalized}\@fink.racoonfink.com>
 PatchScript: perl -pi -e 's,doc/HTML,doc/kde,g' configure
 CompileScript: (export HOME=/tmp; export KDEDIR=%p; sh configure %c; find . -name \\*.bz2 -exec touch {} \\;; make -j2)
 InstallScript: <<
@@ -141,7 +141,7 @@ DescDetail: <<
 This package doesn't install any files of itself, but instead makes
 sure that all KDE language files get installed.
 <<
-Maintainer: Benjamin Reed <ranger\@befunk.com>
+Maintainer: Benjamin Reed <bundle-kde-i18n\@fink.racoonfink.com>
 END
 	close(FILEOUT);
 
@@ -158,7 +158,7 @@ DescDetail: <<
 This package doesn't install any files of itself, but instead makes
 sure that all KOffice language files get installed.
 <<
-Maintainer: Benjamin Reed <ranger\@befunk.com>
+Maintainer: Benjamin Reed <bundle-koffice-i18n\@fink.racoonfink.com>
 END
 	close(FILEOUT);
 }
