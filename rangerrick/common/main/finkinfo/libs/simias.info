@@ -1,0 +1,46 @@
+Package: simias
+Version: 0.10
+Revision: 0.20040630.1
+CustomMirror: <<
+  nam-US: http://ranger.befunk.com/fink
+  nam-US: http://astrange.ithinksw.net/ranger-fink
+  nam-CA: http://www.southofheaven.net/befunk
+<<
+Source: mirror:custom:%n-%v.20040630.tar.gz
+Source-MD5: 2da97c9f91bf813d68ef3cbd3b84baed
+DocFiles: AUTHORS COPYING* ChangeLog NEWS README
+Depends: gtk-sharp (>= 1.0-1), mono (>= 1.0-1)
+BuildDepends: gtk-sharp (>= 1.0-1), mono-dev (>= 1.0-1)
+Homepage: http://forge.novell.com/modules/xfmod/project/?ifolder
+Maintainer: Benjamin Reed <ranger@befunk.com>
+Description: data store for iFolder
+NoSetCPPFLAGS: true
+SetCPPFLAGS: -I%p/include
+NoSETLDFLAGS: true
+SetLIBS: -L%p/lib
+NoSetMAKEFLAGS: true
+ConfigureParams: --mandir=%p/share/man
+CompileScript: <<
+#!/bin/sh
+
+  export ICU_DATA=/sw/lib/icu/current
+  perl -pi -e 's/hardcode_direct=yes/hardcode_direct=no/g' configure
+  ./configure %c
+  for i in 0 1 2 3 4 5 6 7 8 9 10; do
+    make SQLITELIB_PATH="%p/bin" SQLITELIB=libsqlite.0.dylib && break
+  done
+<<
+InstallScript: <<
+  make install DESTDIR=%d
+  rm -rf %i/bin/*sqlite* %i/lib/*sqlite*
+<<
+PostInstScript: <<
+  %p/bin/install-simias-to-gac
+<<
+
+DescDetail: <<
+Simias is a technology that will allow various types of data to be stored and
+related in what is known as a collection.  Initially Simias is the underlying
+data store for the iFolder project although it has potiential to do much more.
+<<
+License: GPL
