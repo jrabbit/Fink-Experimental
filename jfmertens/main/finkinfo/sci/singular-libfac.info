@@ -2,7 +2,7 @@ Package: singular-libfac
 Version: 2.05
 Revision: 1
 GCC: 3.3
-BuildDepends: gmp (>= 4.1.2-11), singular-factory (>= %v-%r), autoconf
+BuildDepends: gmp (>= 4.1.2-11), singular-factory (>= %v-%r)
 Depends: gmp-shlibs (>= 4.1.2-11)
 Replaces: singular, singular-sta
 BuildDependsOnly: true
@@ -14,16 +14,14 @@ SourceDirectory: libfac
 ## 2) the vars ac_cv_c_const and ac_cv_c_inline from the previous patchscript no longer appear in the build-dir
 ## 3) NDEBUG is automatically set to 1 in present setting.
 ## 4) the flags are set such as to coincide exactly with those in the corresponding build in singular.info
-## 5) making sure that all flags referring to the build-dir come before any other (foolproofing). 
-PatchScript: <<
- perl -pi.bak -e "s/\-O3/-mdynamic-no-pic -O3 -fschedule-insns -fschedule-insns2 -fsched-interblock -fstrict-aliasing -fregmove -freorder-blocks -floop-transpose --param max-gcse-passes=3 -malign-natural -ffast-math -faltivec -mcpu=`machine|sed 's,ppc,,'` -mtune=`machine|sed 's,ppc,,'` -Wall -Wcast-align -W -Wno-unused/g" configure.in
- autoconf
-<<
+## 5) making sure that all flags referring to the build-dir come before any other (foolproofing).
 NoSetLDFLAGS: true
 NoSetCPPFLAGS: true
 ConfigureParams: --with-NOSTREAMIO
 CompileScript: <<
 #!/bin/sh -v
+ export CXXFLAGS="-mdynamic-no-pic -O3 -fschedule-insns -fschedule-insns2 -fsched-interblock -fstrict-aliasing -fregmove \
+   -freorder-blocks -floop-transpose --param max-gcse-passes=3 -malign-natural -ffast-math -fno-exceptions -fno-rtti"
  export CPATH=%p/include
 ./configure %c
  make DEFS=-DHAVE_SINGULAR_ERROR
