@@ -246,19 +246,23 @@ diff -ruN menu-2.1.5/update-menus/procbuf.h menu-2.1.5.new/update-menus/procbuf.
 +#endif
 diff -ruN menu-2.1.5/update-menus/update-menus.cc menu-2.1.5.new/update-menus/update-menus.cc
 --- menu-2.1.5/update-menus/update-menus.cc	Sun Jul 29 09:32:08 2001
-+++ menu-2.1.5.new/update-menus/update-menus.cc	Tue Aug 20 16:45:11 2002
-@@ -21,7 +21,9 @@
++++ menu-2.1.5.new/update-menus/update-menus.cc	Tue Aug 20 17:07:46 2002
+@@ -21,7 +21,13 @@
  #include <signal.h>
  #include <syslog.h>
  #include <errno.h>
 -#include <procbuf.h>
 +#include "lprocbuf.h"
 +
++#ifndef O_SYNC
++#define O_SYNC O_FSYNC
++#endif
++
 +using namespace std;
  
  int debug=0, verbose=0;
  set <String, less<String> > installed_packages;
-@@ -475,7 +477,6 @@
+@@ -475,7 +481,6 @@
  		   vector<String> &menudata){
    bool wrote_filename=false;
    parsestream *i;
@@ -266,7 +270,7 @@ diff -ruN menu-2.1.5/update-menus/update-menus.cc menu-2.1.5.new/update-menus/up
    istream *pipe_istr=NULL;
    int linenr=1;
  
-@@ -483,7 +484,7 @@
+@@ -483,7 +488,7 @@
  		configinfo::report_debug);
    try{
      if(executable(filename)){
@@ -275,7 +279,7 @@ diff -ruN menu-2.1.5/update-menus/update-menus.cc menu-2.1.5.new/update-menus/up
        pipe_istr=new istream(&pr);
        try{
  	i=new parsestream(*pipe_istr);
-@@ -529,7 +530,6 @@
+@@ -529,7 +534,6 @@
      if(executable(filename)){
        if(pipe_istr)
  	delete pipe_istr;
@@ -283,7 +287,7 @@ diff -ruN menu-2.1.5/update-menus/update-menus.cc menu-2.1.5.new/update-menus/up
      }
      delete i;
    }
-@@ -543,7 +543,7 @@
+@@ -543,7 +547,7 @@
    int r;
    String name;
    String dummy;
@@ -292,7 +296,7 @@ diff -ruN menu-2.1.5/update-menus/update-menus.cc menu-2.1.5.new/update-menus/up
    String dirname;
  
    for(method_i=config.menufilesdir.begin();
-@@ -680,6 +680,7 @@
+@@ -680,6 +684,7 @@
  int create_lock(){
    // return lock fd if succesful, false if unsuccesfull.
    int fd=true;
@@ -300,7 +304,7 @@ diff -ruN menu-2.1.5/update-menus/update-menus.cc menu-2.1.5.new/update-menus/up
    
    if(!getuid()){
      fd=open(UPMEN_LOCKFILE,O_WRONLY|O_CREAT,00644);
-@@ -698,15 +699,17 @@
+@@ -698,15 +703,17 @@
  	
      }
  
