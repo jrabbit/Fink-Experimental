@@ -1,7 +1,63 @@
+diff -uNr kdesdk-3.4.0/cervisia/Makefile.am kdesdk-3.4.0-new/cervisia/Makefile.am
+--- kdesdk-3.4.0/cervisia/Makefile.am	Thu Feb  3 17:57:03 2005
++++ kdesdk-3.4.0-new/cervisia/Makefile.am	Fri Mar  4 08:20:10 2005
+@@ -3,7 +3,9 @@
+ 
+ SUBDIRS = cvsservice . pics
+ 
+-bin_PROGRAMS = cervisia
++bin_PROGRAMS =
++lib_LTLIBRARIES =
++kdeinit_LTLIBRARIES = cervisia.la
+ kde_module_LTLIBRARIES = libcervisiapart.la
+ noinst_LTLIBRARIES = libcervisia.la
+ 
+@@ -27,10 +29,10 @@
+ 		   cvsservice/libcvsservice.la libcervisia.la
+ libcervisiapart_la_COMPILE_FIRST = cvsservice/cvsservice_stub.h cervisiasettings.h
+ 
+-cervisia_SOURCES = main.cpp cervisiashell.cpp
+-cervisia_LDFLAGS = $(all_libraries) $(KDE_RPATH)
+-cervisia_LDADD = $(LIB_KPARTS) $(LIB_KUTILS) cvsservice/libcvsservice.la libcervisia.la
+-cervisia_COMPILE_FIRST = cvsservice/cvsservice_stub.h cervisiasettings.h
++cervisia_la_SOURCES = main.cpp cervisiashell.cpp
++cervisia_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -module $(KDE_PLUGIN)
++cervisia_la_LIBADD = $(LIB_KPARTS) $(LIB_KUTILS) cvsservice/libcvsservice.la libcervisia.la
++cervisia_la_COMPILE_FIRST = cvsservice/cvsservice_stub.h cervisiasettings.h
+ 
+ man_MANS = cervisia.1
+ 
 diff -uNr kdesdk-3.4.0/cervisia/cvsservice/Makefile.am kdesdk-3.4.0-new/cervisia/cvsservice/Makefile.am
 --- kdesdk-3.4.0/cervisia/cvsservice/Makefile.am	Fri Aug 27 11:24:38 2004
-+++ kdesdk-3.4.0-new/cervisia/cvsservice/Makefile.am	Mon Feb 28 13:57:30 2005
-@@ -30,7 +30,10 @@
++++ kdesdk-3.4.0-new/cervisia/cvsservice/Makefile.am	Fri Mar  4 08:20:27 2005
+@@ -8,18 +8,19 @@
+ INCLUDES = $(all_includes)
+ 
+ # cvs DCOP service
+-bin_PROGRAMS = cvsservice cvsaskpass
++bin_PROGRAMS =
++kdeinit_LTLIBRARIES = cvsservice.la cvsaskpass.la
+ 
+-cvsservice_LDFLAGS = $(all_libraries) $(KDE_RPATH)
+-cvsservice_LDADD = $(LIB_KIO)
+-cvsservice_SOURCES = main.cpp cvsservice.cpp cvsjob.cpp \
++cvsservice_la_LDFLAGS = $(all_libraries) $(KDE_PLUGIN) -module
++cvsservice_la_LIBADD = $(LIB_KIO)
++cvsservice_la_SOURCES = main.cpp cvsservice.cpp cvsjob.cpp \
+ 	cvsservice.skel cvsservice.stub cvsjob.skel cvsjob.stub \
+ 	repository.cpp repository.skel repository.stub sshagent.cpp \
+ 	cvsserviceutils.cpp cvsloginjob.cpp cvsloginjob.skel cvsloginjob.stub
+ 
+-cvsaskpass_LDFLAGS = $(all_libraries) $(KDE_RPATH)
+-cvsaskpass_LDADD = $(LIB_KDEUI)
+-cvsaskpass_SOURCES = cvsaskpass.cpp
++cvsaskpass_la_LDFLAGS = $(all_libraries) $(KDE_PLUGIN) -module
++cvsaskpass_la_LIBADD = $(LIB_KDEUI)
++cvsaskpass_la_SOURCES = cvsaskpass.cpp
+ 
+ include_HEADERS = cvsservice_stub.h cvsjob_stub.h repository_stub.h
+ noinst_HEADERS = cvsservice.h cvsjob.h repository.h cvsserviceutils.h \
+@@ -30,7 +31,10 @@
  
  libcvsservice_la_LDFLAGS = $(all_libraries) -no-undefined -version-info 0:1
  libcvsservice_la_LIBADD = $(LIB_KDECORE)
@@ -13,9 +69,45 @@ diff -uNr kdesdk-3.4.0/cervisia/cvsservice/Makefile.am kdesdk-3.4.0-new/cervisia
  
  # let automoc handle all of the meta source files (moc)
  METASOURCES = AUTO
+diff -uNr kdesdk-3.4.0/cervisia/cvsservice/cvsaskpass.cpp kdesdk-3.4.0-new/cervisia/cvsservice/cvsaskpass.cpp
+--- kdesdk-3.4.0/cervisia/cvsservice/cvsaskpass.cpp	Tue Oct 14 15:11:56 2003
++++ kdesdk-3.4.0-new/cervisia/cvsservice/cvsaskpass.cpp	Fri Mar  4 08:21:31 2005
+@@ -35,7 +35,7 @@
+ };
+ 
+ 
+-int main(int argc, char** argv)
++extern "C" int kdemain(int argc, char** argv)
+ {
+     KAboutData about("cvsaskpass", I18N_NOOP("cvsaskpass"), "0.1",
+                      I18N_NOOP("ssh-askpass for the CVS DCOP Service"),
+diff -uNr kdesdk-3.4.0/cervisia/cvsservice/main.cpp kdesdk-3.4.0-new/cervisia/cvsservice/main.cpp
+--- kdesdk-3.4.0/cervisia/cvsservice/main.cpp	Thu Feb  6 16:22:31 2003
++++ kdesdk-3.4.0-new/cervisia/cvsservice/main.cpp	Fri Mar  4 08:20:35 2005
+@@ -25,7 +25,7 @@
+ #include "cvsservice.h"
+ 
+ 
+-int main(int argc, char** argv)
++extern "C" int kdemain(int argc, char** argv)
+ {
+     KAboutData about("cvsservice", I18N_NOOP("CVS DCOP service"), "0.1",
+             I18N_NOOP("DCOP service for CVS"), KAboutData::License_LGPL,
+diff -uNr kdesdk-3.4.0/cervisia/main.cpp kdesdk-3.4.0-new/cervisia/main.cpp
+--- kdesdk-3.4.0/cervisia/main.cpp	Thu Sep  9 15:56:06 2004
++++ kdesdk-3.4.0-new/cervisia/main.cpp	Fri Mar  4 08:20:16 2005
+@@ -131,7 +131,7 @@
+ }
+ 
+ 
+-int main(int argc, char **argv)
++extern "C" int kdemain(int argc, char **argv)
+ {
+     static KCmdLineOptions options[] = {
+         { "+[directory]", I18N_NOOP("The sandbox to be loaded"), 0 },
 diff -uNr kdesdk-3.4.0/kcachegrind/kcachegrind/sourceitem.h kdesdk-3.4.0-new/kcachegrind/kcachegrind/sourceitem.h
 --- kdesdk-3.4.0/kcachegrind/kcachegrind/sourceitem.h	Fri Apr  2 08:00:42 2004
-+++ kdesdk-3.4.0-new/kcachegrind/kcachegrind/sourceitem.h	Mon Feb 28 13:57:30 2005
++++ kdesdk-3.4.0-new/kcachegrind/kcachegrind/sourceitem.h	Fri Mar  4 08:19:58 2005
 @@ -25,6 +25,7 @@
  
  #include <qlistview.h>
@@ -26,7 +118,7 @@ diff -uNr kdesdk-3.4.0/kcachegrind/kcachegrind/sourceitem.h kdesdk-3.4.0-new/kca
  
 diff -uNr kdesdk-3.4.0/umbrello/umbrello/classparser/Makefile.am kdesdk-3.4.0-new/umbrello/umbrello/classparser/Makefile.am
 --- kdesdk-3.4.0/umbrello/umbrello/classparser/Makefile.am	Wed Apr 14 14:44:53 2004
-+++ kdesdk-3.4.0-new/umbrello/umbrello/classparser/Makefile.am	Mon Feb 28 13:57:30 2005
++++ kdesdk-3.4.0-new/umbrello/umbrello/classparser/Makefile.am	Fri Mar  4 08:19:58 2005
 @@ -1,4 +1,4 @@
 -INCLUDES = -I../dialogs $(all_includes)
 +INCLUDES = -I../dialogs -I@FINKPREFIX@/lib/flex/include $(all_includes)
