@@ -1,6 +1,15 @@
 diff -ruN giFT/FastTrack/Makefile giFT.new/FastTrack/Makefile
 --- giFT/FastTrack/Makefile	2003-05-20 19:51:09.000000000 -0400
 +++ giFT.new/FastTrack/Makefile	2003-05-20 20:51:48.000000000 -0400
+@@ -19,7 +19,7 @@
+ 
+ all: $(FST_OBJS) $(CRYPT_OBJS)
+ 	@echo
+-	$(CC) -shared -o FastTrack.so $(CFLAGS) $(LDFLAGS) $(DEBUGFLAGS) $(FST_OBJS) $(CRYPT_OBJS)
++	$(CC) -bundle -o FastTrack.so $(CFLAGS) $(LDFLAGS) $(DEBUGFLAGS) $(FST_OBJS) $(CRYPT_OBJS)
+ 	@echo
+ 	@echo "*************************************************************"
+ 	@echo Your giFT settings path is $(GIFT_INSTALL_DIR) and the plugin will be installed into $(FST_INSTALL_DIR).
 @@ -30,7 +30,7 @@
  
  mac: $(FST_OBJS) $(CRYPT_OBJS)
@@ -10,6 +19,58 @@ diff -ruN giFT/FastTrack/Makefile giFT.new/FastTrack/Makefile
  	@echo
  	@echo "*************************************************************"
  	@echo Your giFT settings path is $(GIFT_INSTALL_DIR) and the plugin will be installed into $(FST_INSTALL_DIR).
+diff -ruN giFT/FastTrack/Makefile.am giFT.new/FastTrack/Makefile.am
+--- giFT/FastTrack/Makefile.am	1969-12-31 19:00:00.000000000 -0500
++++ giFT.new/FastTrack/Makefile.am	2003-05-20 21:30:44.000000000 -0400
+@@ -0,0 +1,39 @@
++AM_CFLAGS = $(GIFT_CFLAGS)
++
++INCLUDES = -I$(top_srcdir)/lib \
++	   -I$(top_srcdir)/src \
++	   -I$(top_srcdir)/plugin
++
++# libdir = $(plugindir)
++
++#
++# The rest of this file is conditional on whether we're 
++# compiling the gnutella plugin at all
++#
++
++plugin_LTLIBRARIES = libFastTrack.la
++
++libFastTrack_la_SOURCES = \
++fst_download.c	fst_download.h \
++fst_fasttrack.c	fst_fasttrack.h \
++fst_hash.c	fst_hash.h \
++fst_http.c	fst_http.h \
++fst_meta.c	fst_meta.h \
++fst_node.c	fst_node.h \
++fst_packet.c	fst_packet.h \
++fst_search.c	fst_search.h \
++fst_session.c	fst_session.h \
++fst_stats.c	fst_stats.h \
++fst_utils.c	fst_utils.h \
++md5.c		md5.h \
++crypt/enc_type_1.c \
++crypt/enc_type_2.c \
++crypt/enc_type_20.c \
++crypt/fst_crypt.c	crypt/fst_crypt.h
++
++# _BIG_ hack
++# libFastTrack_la_LDFLAGS = -module -avoid-version -L$(top_builddir)/lib/.libs
++
++libFastTrack_la_LIBADD = \
++	$(top_builddir)/lib/libgiFT.la \
++	$(top_builddir)/plugin/libgiFTproto.la
+diff -ruN giFT/Makefile.am giFT.new/Makefile.am
+--- giFT/Makefile.am	2003-05-20 19:51:25.000000000 -0400
++++ giFT.new/Makefile.am	2003-05-20 21:22:41.000000000 -0400
+@@ -1,4 +1,4 @@
+-SUBDIRS = lib plugin OpenFT Gnutella src data
++SUBDIRS = lib plugin OpenFT Gnutella FastTrack src data
+ 
+ man_MANS = giFT.1 gift.conf.5 OpenFT.conf.5
+ 
 diff -ruN giFT/autogen.sh giFT.new/autogen.sh
 --- giFT/autogen.sh	2002-10-29 19:36:21.000000000 -0500
 +++ giFT.new/autogen.sh	2003-05-20 19:54:45.000000000 -0400
