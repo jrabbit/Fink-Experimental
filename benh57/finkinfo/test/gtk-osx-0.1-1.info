@@ -1,0 +1,76 @@
+Package: gtk-osx
+Version: 0.1
+Revision: 1
+Depends: glib, %N-shlibs (=%v-%r)
+#, %N-data (=%v-%r)
+BuildDepends: fink (>= 0.9.9), dlcompat-dev
+Replaces: gtk+, gtk+-shlibs (<= 1.2.10-12)
+Source: mirror:sourceforge:%n/%n.%v.tar.gz
+SourceDirectory: %n
+Source-MD5: ffec8c8ce9af0e4cde5ed48904a7875b
+PatchScript: sed 's|/sw|%p|g' <%a/%f.patch | patch -p1
+CompileScript: <<
+#!/bin/sh
+  cd gdk
+  pbxbuild -target "gdk (Fink/Dynamic)"
+  cd ../gtk
+  pbxbuild -target "gtk (Fink/Dynamic)"
+<<
+InstallScript: <<
+#!/bin/sh
+ cd gdk
+ pbxbuild install -target "gdk (Fink/Dynamic)" DSTROOT=%d
+ cd ../gtk
+ pbxbuild install -target "gtk (Fink/Dynamic)" DSTROOT=%d
+ mkdir -p %i/share/locale
+<<
+PostinstScript: <<
+  for f in gdk gtk; do
+    if test -L %p/include/$f; then
+      rm -f %p/include/$f
+    fi
+  done
+<<
+
+SplitOff: <<
+  Package: %N-shlibs
+  Depends: glib-shlibs
+  #, gtk+-data (=%v-%r)
+  Replaces: gtk+ ( << 1.2.10-8 ), gtk+-shlibs
+  Files: lib/libgdk-* lib/libgtk-*
+  Shlibs: <<
+    %p/lib/libgdk-1.2.0.dylib 10.0.0 %n (>= 0.1-1)
+    %p/lib/libgtk-1.2.0.dylib 10.0.0 %n (>= 0.1-1)
+  <<
+  DocFiles: Readme.txt TODO
+<<
+#SplitOff2: <<
+#  Package: %N-data
+#  Files: share/themes share/locale
+#  Replaces: gtk+-data, gtk+ ( << 1.2.10-8 )
+# DocFiles: 
+#<<
+DocFiles: Readme.txt TODO
+Description: The Gimp Toolkit - Native OS X Version
+DescDetail: <<
+GTK+ is a multi-platform toolkit for creating graphical 
+user interfaces.
+
+This is the native OS X version which does not require X11.
+
+This native OS X port is HIGHLY experimental and will likely
+not work with most GTK apps. Use at own risk. 
+
+Version 0.1 does not work well when apps are launched from the CLI
+(similar to the old SDL problem), but works ok for bundled apps 
+launched from the finder.
+
+Try simple apps such as "gothello" "dama" and "danican". 
+<<
+DescPort: <<
+<<
+DescPackaging: <<
+<<
+License: LGPL
+Homepage: http://gtk-osx.sf.net/
+Maintainer: Ben Hines <bhines@alumni.ucsd.edu>
