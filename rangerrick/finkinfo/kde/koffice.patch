@@ -36,14 +36,14 @@
  
  libkarbonaiimport_la_LDFLAGS = \
  	$(all_libraries) \
---- filters/karbon/eps/Makefile.am	25 Apr 2003 15:43:29 -0000	1.1.1.3
-+++ filters/karbon/eps/Makefile.am	26 Apr 2003 02:07:13 -0000	1.3
-@@ -9,7 +9,7 @@
+--- filters/karbon/eps/Makefile.am	10 Aug 2003 15:19:27 -0000	1.1.1.4
++++ filters/karbon/eps/Makefile.am	10 Aug 2003 16:11:29 -0000	1.4
+@@ -7,7 +7,7 @@
+ 	epsexportdlg.cc 
+ 
  libkarbonepsexport_la_LDFLAGS = $(KDE_PLUGIN)
- libkarbonepsexport_la_LIBADD  = \
- 	$(LIB_KOFFICEUI) \
--	../../../karbon/libkarbonpart.la
-+	../../../karbon/libkarbonpart_shared.la
+-libkarbonepsexport_la_LIBADD  = $(LIB_KOFFICEUI) ../../../karbon/libkarbonpart.la
++libkarbonepsexport_la_LIBADD  = $(LIB_KOFFICEUI) ../../../karbon/libkarbonpart_shared.la
  
  libkarbonepsimport_la_SOURCES = epsimport.cc pscommentlexer.cc
  libkarbonepsimport_la_LDFLAGS = $(KDE_PLUGIN)
@@ -232,1871 +232,6 @@
  liblatexparser_la_LIBADD  = -lm $(KOFFICE_LIBS)
  
  ####### Files
---- filters/kword/mswrite/kword_mswrite_export.desktop	5 Jul 2003 18:31:18 -0000	1.1.1.2
-+++ filters/kword/mswrite/kword_mswrite_export.desktop	9 Jul 2003 14:40:22 -0000	1.2
-@@ -3,18 +3,23 @@
- Type=Service
- Name=KWord Microsoft Write Export Filter
- Name[bg]=Филтър за импорт от Microsoft Write към KWord
-+Name[ca]=Filtre d'exportació Microsoft Write per a KWord
- Name[cs]=Exportní filtr formátu MS Write pro KWord
-+Name[cy]=Hidl Allforio Microsoft Write KWord
- Name[da]=KWord Microsoft Write-eksportfilter
- Name[el]=Φίλτρο εξαγωγής σε Microsoft Write του KWord
- Name[es]=Filtro de importación a Microsoft Write de KWord
- Name[fa]=KWord برای Microsoft Write صافی صدور
- Name[fr]=Filtre d'exportation MS-Write de KWord
- Name[hu]=KWord Microsoft Write exportszűrő
-+Name[it]=Filtro di esportazione Microsoft Write per KWord
- Name[lv]=KWord Microsoft Write Eksporta Filtrs
- Name[pt]=Filtro de Exportação de Microsoft Write para o KWord
- Name[pt_BR]=Filtro de Exportação Microsoft Write do KWord
- Name[ru]=Фильтр экспорта KWord в Microsoft Write
-+Name[sk]=Microsoft Write filter pre export z KWordu
- Name[sv]=Kword-exportfilter för Microsoft Write
-+Name[tr]=KWord Microsoft Write Alma Filtresi 
- Name[wa]=Passete MS-Write di rexhowe po KWord
- X-KDE-Export=application/x-mswrite
- X-KDE-Import=application/x-kword
---- filters/kword/mswrite/kword_mswrite_import.desktop	5 Jul 2003 18:31:18 -0000	1.1.1.6
-+++ filters/kword/mswrite/kword_mswrite_import.desktop	9 Jul 2003 14:40:22 -0000	1.2
-@@ -6,6 +6,7 @@
- Name[bg]=Филтър за импорт от Microsoft Write към KWord
- Name[ca]=Filtre d'importació Microsoft Write per a KWord
- Name[cs]=Importní filtr Microsoft Write pro KWord
-+Name[cy]=Hidl Mewnforio Microsoft Write KWord 
- Name[da]=KWord Microsoft Write-importfilter
- Name[de]=KWord-Import für MS Write
- Name[el]=Φίλτρο εισαγωγής Microsoft Write του KWord
---- filters/kword/mswrite/libmswrite.cpp	5 Jul 2003 18:31:18 -0000	1.1.1.2
-+++ filters/kword/mswrite/libmswrite.cpp	9 Jul 2003 14:40:23 -0000	1.2
-@@ -328,6 +328,14 @@
- 	}
- 
- 
-+	Generator::Generator ()
-+	{
-+	}
-+
-+	Generator::~Generator ()
-+	{
-+	}
-+
- 	bool Generator::processText (const Byte *string, bool willReachEndOfParagraph)
- 	{
- 		//
---- filters/kword/mswrite/libmswrite.h	5 Jul 2003 18:31:19 -0000	1.1.1.2
-+++ filters/kword/mswrite/libmswrite.h	9 Jul 2003 14:40:23 -0000	1.2
-@@ -86,7 +86,7 @@
- 		FormatInfo &operator= (const FormatInfo &rhs);	// TODO
- 	public:
- 		FormatInfo ();
--		~FormatInfo ();
-+		virtual ~FormatInfo ();
- 
- 		void setType (const enum FormatInfoPageTypes t)	{	m_type = t;	}
- 
-@@ -129,6 +129,9 @@
- 	class Generator
- 	{
- 	public:
-+		Generator ();
-+		virtual ~Generator ();
-+
- 		/**
- 		 *
- 		 * Document block (you must implement these signals)
-@@ -251,7 +254,7 @@
- 
- 	public:
- 		InternalParser ();
--		~InternalParser ();
-+		virtual ~InternalParser ();
- 
- 		bool parse (void);
- 	};
-@@ -274,7 +277,7 @@
- 		
- 	public:
- 		InternalGenerator ();
--		~InternalGenerator ();
-+		virtual ~InternalGenerator ();
- 
- 		bool writeDocumentBegin (const Word format, const PageLayout *pageLayout);
- 		bool writeDocumentEnd (const Word format, const PageLayout *pageLayout);
---- filters/kword/mswrite/libmswrite_defs.cpp	5 Jul 2003 18:31:19 -0000	1.1.1.2
-+++ filters/kword/mswrite/libmswrite_defs.cpp	9 Jul 2003 14:40:23 -0000	1.2
-@@ -23,7 +23,7 @@
- 
- namespace MSWrite
- {
--	const char *Version = "0.51pre 2003/06/08";
-+	const char *Version = "0.51pre 2003/07/09";
- }
- 
- // end of libmswrite_defs.cpp
---- filters/kword/mswrite/libmswrite_defs.h	5 Jul 2003 18:31:19 -0000	1.1.1.2
-+++ filters/kword/mswrite/libmswrite_defs.h	9 Jul 2003 14:40:24 -0000	1.2
-@@ -434,6 +434,14 @@
- 	class MemoryDevice : public Device
- 	{
- 	public:
-+		MemoryDevice ()
-+		{
-+		}
-+
-+		virtual ~MemoryDevice ()
-+		{
-+		}
-+
- 		bool read (Byte * /*buf*/, const DWord /*numBytes*/)
- 		{
- 			error (Error::InternalError, "memory device not reading from memory?\n");
-@@ -502,6 +510,10 @@
- 			setVal (val);
- 		}
- 
-+		~UseThisMuchPrefixSize ()
-+		{
-+		}
-+
- 		bool operator== (const UseThisMuchPrefixSize &rhs)
- 		{
- 			return m_val == rhs.m_val;
-@@ -573,6 +585,15 @@
- 				return biggest / 8 + 1;	// account for fractional byte
- 			else
- 				return biggest / 8;
-+		}
-+
-+	public:
-+		UseThisMuch ()
-+		{
-+		}
-+
-+		virtual ~UseThisMuch ()
-+		{
- 		}
- 	};
- 	
---- filters/kword/mswrite/list.h	5 Jul 2003 18:31:19 -0000	1.1.1.2
-+++ filters/kword/mswrite/list.h	9 Jul 2003 14:40:24 -0000	1.2
-@@ -61,6 +61,10 @@
- 			m_data = data;
- 		}
- 
-+		~ListElement ()
-+		{
-+		}
-+
- 		dtype &getData (void) const
- 		{
- 			return m_data;
-@@ -96,7 +100,7 @@
- 	class ListIterator
- 	{
- 	private:
--		bool m_foward;
-+		bool m_forward;
- 		ListElement <dtype> *m_upto;
- 
- 		void setPtr (ListElement <dtype> *ptr)
-@@ -105,14 +109,14 @@
- 		}
- 
- 	public:
--		ListIterator (const bool foward = true)
-+		ListIterator (const bool forward = true)
- 		{
--			m_foward = foward;
-+			m_forward = forward;
- 		}
- 
- 		ListIterator <dtype> &prev (void)
- 		{
--			if (m_foward)
-+			if (m_forward)
- 				m_upto = m_upto->m_prev;
- 			else
- 				m_upto = m_upto->m_next;
-@@ -120,6 +124,10 @@
- 			return *this;
- 		}
- 
-+		~ListIterator ()
-+		{
-+		}
-+		
- 		ListIterator <dtype> &operator-- (void)
- 		{
- 			return prev ();
-@@ -132,7 +140,7 @@
- 
- 		ListIterator <dtype> &next (void)
- 		{
--			if (m_foward)
-+			if (m_forward)
- 				m_upto = m_upto->m_next;
- 			else
- 				m_upto = m_upto->m_prev;
-@@ -185,7 +193,7 @@
- 			m_good = true;
- 		}
- 
--		~List ()
-+		virtual ~List ()
- 		{
- 			killself ();
- 		}
-@@ -308,10 +316,10 @@
- 		typedef ListIterator <dtype> Iterator;
- 		friend class ListIterator <dtype>;
- 
--		ListIterator <dtype> begin (const bool foward = true) const
-+		ListIterator <dtype> begin (const bool forward = true) const
- 		{
--			ListIterator <dtype> ret (foward);
--			if (foward)
-+			ListIterator <dtype> ret (forward);
-+			if (forward)
- 				ret.setPtr (m_head);
- 			else
- 				ret.setPtr (m_tail);
---- filters/kword/mswrite/mswriteexport.cc	5 Jul 2003 18:31:19 -0000	1.1.1.2
-+++ filters/kword/mswrite/mswriteexport.cc	9 Jul 2003 14:40:25 -0000	1.4
-@@ -1,4 +1,4 @@
--/* $Id$ */
-+/* $Id$ */
- 
- /* This file is part of the KDE project
-    Copyright (C) 2002-2003 Clarence Dang <dang@kde.org>
-@@ -408,9 +408,13 @@
- 	// In Write the header/footer must be the same for every page except that
- 	// you can choose to not display it on the first page
- 	//
--	// This filter aims to be as lossless as possible so if we can't
--	// accomodate the types of headers/footers found in KWord, we at least
--	// print out the paragraphs in the body
-+	// /*This filter aims to be as lossless as possible so if we can't
-+	// accommodate the types of headers/footers found in KWord, we at least
-+	// print out the paragraphs in the body*/
-+	//
-+	//    Not anymore. Dumping headers & footers in the body didn't
-+	//    turn out to be that useful, nor was it expected by users.
-+	//
- 	bool doPageInfo (int headerType, int footerType)
- 	{
- 		kdDebug (30509) << "doPageInfo (headerType=" << headerType
-@@ -1063,6 +1067,11 @@
- 
- 						// convert twip measurements that aren't in 72dpi
- 						int defaultDpi = wmf.defaultDpi ();
-+						if (defaultDpi <= 0)
-+						{
-+							kdWarning (30509) << "Invalid defaultDPI: " << defaultDpi << endl;
-+							defaultDpi = 1440;
-+						}
- 						imageActualWidth = width * 1440 / defaultDpi;
- 						imageActualHeight = height * 1440 / defaultDpi;
- 
-@@ -1247,7 +1256,7 @@
- 
- 		MSWrite::FormatParaProperty paraProp; paraProp = *paraPropIn;
- 		paraProp.setIsObject (true);
--		paraProp.setLeftIndent (0);	// not neccessary but...
-+		paraProp.setLeftIndent (0);	// not necessary but...
- 		if (!m_generator->writeParaInfoBegin (&paraProp, NULL, &image))
- 			return false;
- 
-@@ -1897,7 +1906,7 @@
- 
- KoFilter::ConversionStatus MSWriteExport::convert (const QCString &from, const QCString &to)
- {
--	kdDebug (30509) << "MSWriteExport $Date$ using LibMSWrite "
-+	kdDebug (30509) << "MSWriteExport $Date$ using LibMSWrite "
- 			  				<< MSWrite::Version << endl;
- 
- 	if (to != "application/x-mswrite" || from != "application/x-kword")
---- filters/kword/mswrite/mswriteimport.cc	5 Jul 2003 18:31:19 -0000	1.1.1.5
-+++ filters/kword/mswrite/mswriteimport.cc	9 Jul 2003 14:40:26 -0000	1.2
-@@ -1,5 +1,3 @@
--/* $Id$ */
--
- /* This file is part of the KDE project
-    Copyright (C) 2001-2003 Clarence Dang <dang@kde.org>
- 
-@@ -1093,7 +1091,7 @@
- 
- 		m_formatOutput += "<FONT name=\"";
- 			m_formatOutput += (const char *) (charProperty->getFont ()->getName ());
--			m_formatOutput += "\"/>";;
-+			m_formatOutput += "\"/>";
- 			m_formatOutput += "<SIZE value=\"";
- 			m_formatOutput += QString::number (charProperty->getFontSize ());
- 			m_formatOutput += "\"/>";
-@@ -1348,7 +1346,7 @@
- 
- KoFilter::ConversionStatus MSWriteImport::convert (const QCString &from, const QCString &to)
- {
--	kdDebug (30509) << "MSWriteImport $Date$ using LibMSWrite "
-+	kdDebug (30509) << "MSWriteImport $Date$ using LibMSWrite "
- 			  				<< MSWrite::Version << endl;
- 
- 	if (to != "application/x-kword" || from != "application/x-mswrite")
---- filters/kword/mswrite/structures.cpp	5 Jul 2003 18:31:20 -0000	1.1.1.2
-+++ filters/kword/mswrite/structures.cpp	9 Jul 2003 14:40:26 -0000	1.2
-@@ -23,7 +23,7 @@
-  * structures.cpp - Process Internal Microsoft(r) Write file structures
-  * This file has ugly reading/writing code that couldn't be generated.
-  * It performs some higher-level sanity checks.
-- * 
-+ *
-  */
- 
- #include "structures.h"
-@@ -39,6 +39,19 @@
- 	{
- 	}
- 
-+	PageLayout &PageLayout::operator= (const PageLayout &rhs)
-+	{
-+		if (this == &rhs)
-+			return *this;
-+
-+		PageLayoutGenerated::operator= (rhs);
-+		NeedsHeader::operator= (rhs);
-+
-+		m_numModified = rhs.m_numModified;
-+
-+		return *this;
-+	}
-+
- 	bool PageLayout::readFromDevice (void)
- 	{
- 	CHECK_DEVICE;
-@@ -69,7 +82,7 @@
- 	#ifdef DEBUG_PAGELAYOUT
- 		Dump (magic102);
- 		Dump (magic512);
--		
-+
- 		Dump (pageHeight);
- 		Dump (pageWidth);
- 		Dump (pageNumberStart);
-@@ -79,7 +92,7 @@
- 		Dump (textWidth);
- 
- 		Dump (magic256);
--		
-+
- 		Dump (headerFromTop);
- 		Dump (footerFromTop);
- 
-@@ -109,7 +122,7 @@
- 		//UpdateModifiedCount (unknown);	// no reliable default for unknown
- 		UpdateModifiedCount (zero2);
- 		#undef UpdateModifiedCount
--		
-+
- 		return true;
- 	}
- 
-@@ -145,6 +158,18 @@
- 		delete [] m_name;
- 	}
- 
-+	Font &Font::operator= (const Font &rhs)
-+	{
-+		if (this == &rhs)
-+			return *this;
-+
-+		FontGenerated::operator= (rhs);
-+
-+		setName (rhs.getName ());
-+
-+		return *this;
-+	}
-+
- 	bool Font::readFromDevice (void)
- 	{
- 	CHECK_DEVICE;
-@@ -228,11 +253,38 @@
- 	FormatCharProperty::~FormatCharProperty ()
- 	{
- 	}
--	
-+
-+	FormatCharProperty &FormatCharProperty::operator= (const FormatCharProperty &rhs)
-+	{
-+		if (this == &rhs)
-+			return *this;
-+
-+		FormatCharPropertyGenerated::operator= (rhs);
-+
-+		m_afterEndCharByte = rhs.m_afterEndCharByte;
-+		m_fontTable = rhs.m_fontTable;
-+		m_font = rhs.m_font;
-+
-+		return *this;
-+	}
-+
-+	bool FormatCharProperty::operator== (FormatCharProperty &rhs)
-+	{
-+		DWord numDataBytes;
-+
-+		if ((numDataBytes = getNumDataBytes ()) != rhs.getNumDataBytes ())
-+			return false;
-+
-+		writeToArray ();
-+		rhs.writeToArray ();
-+
-+		return memcmp (m_data + sizeof (m_numDataBytes), rhs.m_data + sizeof (m_numDataBytes), numDataBytes) == 0;
-+	}
-+
- 	bool FormatCharProperty::readFromDevice (void)
- 	{
- 	CHECK_DEVICE;
--	
-+
- 	#ifdef DEBUG_CHAR
- 		m_device->debug ("\nFormatCharProperty::readFromDevice\n");
- 	#endif
-@@ -259,7 +311,7 @@
- 
- 		return FormatCharPropertyGenerated::writeToDevice ();
- 	}
--	
-+
- 	bool FormatCharProperty::updateFont (void)
- 	{
- 		Font *fontPtr = m_fontTable->getFont (getFontCode ());
-@@ -291,6 +343,16 @@
- 	{
- 	}
- 
-+	FormatParaPropertyTabulator &FormatParaPropertyTabulator::operator= (const FormatParaPropertyTabulator &rhs)
-+	{
-+		if (this == &rhs)
-+			return *this;
-+
-+		FormatParaPropertyTabulatorGenerated::operator= (rhs);
-+
-+		return *this;
-+	}
-+
- 	bool FormatParaPropertyTabulator::readFromDevice (void)
- 	{
- 	CHECK_DEVICE;
-@@ -328,13 +390,39 @@
- 																m_numTabulators (0),
- 																m_addedTooManyTabs (false)
- 	{
--		// m_afterEndCharByte = 
-+		// m_afterEndCharByte =
- 	}
- 
- 	FormatParaProperty::~FormatParaProperty ()
- 	{
- 	}
- 
-+	FormatParaProperty &FormatParaProperty::operator= (const FormatParaProperty &rhs)
-+	{
-+		if (this == &rhs)
-+			return *this;
-+
-+		FormatParaPropertyGenerated::operator= (rhs);
-+
-+		m_afterEndCharByte = rhs.m_afterEndCharByte;
-+		m_leftMargin = rhs.m_leftMargin, m_rightMargin = rhs.m_rightMargin;
-+		m_numTabulators = rhs.m_numTabulators;
-+		m_addedTooManyTabs = rhs.m_addedTooManyTabs;
-+
-+		return *this;
-+	}
-+
-+	bool FormatParaProperty::operator== (FormatParaProperty &rhs)
-+	{
-+		DWord numDataBytes;
-+		if ((numDataBytes = getNumDataBytes ()) != rhs.getNumDataBytes ())
-+			return false;
-+
-+		writeToArray ();
-+		rhs.writeToArray ();
-+
-+		return memcmp (m_data + sizeof (m_numDataBytes), rhs.m_data + sizeof (m_numDataBytes), numDataBytes) == 0;
-+	}
- 
- 	bool FormatParaProperty::readFromDevice (void)
- 	{
-@@ -343,7 +431,7 @@
- 	#ifdef DEBUG_PARA
- 		m_device->debug ("\nFormatParaProperty::readFromDevice\n");
- 	#endif
--		
-+
- 	#ifdef CHECK_INTERNAL
- 		if (m_leftMargin == 0xFFFF && m_rightMargin == 0xFFFF)
- 			ErrorAndQuit (Error::InternalError, "FormatParaProperty::readFromDevice call not setup\n");
-@@ -405,9 +493,9 @@
- 
- 		if (m_numTabulators > 12)
- 			m_device->error (Error::Warn, "should not have more than 12 tabulators since you can only access 12 tabs via the GUI\n");
--		
-+
- 		// --- indents adjusted in updateIndents() called by FormatInfoPage::add() ---
--		
-+
- 		if (!FormatParaPropertyGenerated::writeToDevice ())
- 			return false;
- 
-@@ -428,6 +516,33 @@
- 		delete [] m_externalImage;
- 	}
- 
-+	Image &Image::operator= (const Image &rhs)
-+	{
-+		if (this == &rhs)
-+			return *this;
-+
-+		ImageGenerated::operator= (rhs);
-+
-+		m_externalImageSize = rhs.m_externalImageSize;
-+		m_externalImageUpto = rhs.m_externalImageUpto;
-+
-+		delete [] m_externalImage;
-+		m_externalImage = new Byte [m_externalImageSize];
-+		if (!m_externalImage)
-+			return *this;  // TODO: error check
-+
-+		if (rhs.m_externalImage)
-+			memcpy (m_externalImage, rhs.m_externalImage, m_externalImageUpto);
-+
-+		m_originalWidth = rhs.m_originalWidth;
-+		m_originalHeight = rhs.m_originalHeight;
-+
-+		m_displayedWidth = rhs.m_displayedWidth;
-+		m_displayedHeight = rhs.m_displayedHeight;
-+
-+		return *this;
-+	}
-+
- 	// returns how many bytes are needed for each scanline (with byte padding)
- 	int Image::getBytesPerScanLine (const int width, const int bitsPerPixel, const int padBytes)
- 	{
-@@ -539,10 +654,10 @@
- 				m_device->error (Error::Warn, "m_MFP_height != m_bmh->getHeight() * 2.64\n");
- 
- #undef MSWrite_fabs
--				
-+
- 			if (m_width)
- 				m_device->error (Error::Warn, "m_width should not be set for BMPs\n");
--			
-+
- 			if (m_height)
- 				m_device->error (Error::Warn, "m_height should not be set for BMPs\n");
- 
-@@ -550,13 +665,13 @@
- 			//
- 			// read image
- 			//
--			
-+
- 			Byte *internalData = new Byte [getNumDataBytes ()];
- 			if (!internalData)
- 				ErrorAndQuit (Error::OutOfMemory, "could not allocate memory for internal BMP image\n");
- 			if (!m_device->readInternal (internalData, getNumDataBytes ()))
- 				ErrorAndQuit (Error::FileError, "could not read internal BMP\n");
--		
-+
- 			// infoHeader
- 			BMP_BitmapInfoHeader infoHeader;
- 			infoHeader.setWidth (m_bmh->getWidth ());
-@@ -713,8 +828,8 @@
- 
- 			// not used by WMFs
- 			m_horizontalScalingRel1000 = m_verticalScalingRel1000 = 1000;
--			
--			
-+
-+
- 			// write header
- 			setNumDataBytes (m_externalImageSize);
- 			if (!ImageGenerated::writeToDevice ())
-@@ -748,7 +863,7 @@
- 			BMP_BitmapInfoHeader infoHeader;
- 			infoHeader.setDevice (m_device);
- 			if (!infoHeader.readFromDevice ()) return false;
--			
-+
- 			// write out each scanline
- 			// to .WRI (padded to 2) vs input BMP (padded to 4
- 			Word scanLineWRILength = getBytesPerScanLine (infoHeader.getWidth (), infoHeader.getBitsPerPixel (), 2);
-@@ -758,7 +873,7 @@
- 				ErrorAndQuit (Error::Warn, "infoHeader width != m_originalWidth\n");
- 			if (infoHeader.getHeight () != Word (Twip2Point (m_originalHeight)))
- 				ErrorAndQuit (Error::Warn, "infoHeader.height != m_originalHeight\n");
--				
-+
- 			m_bmh->setWidth (infoHeader.getWidth ());
- 			m_bmh->setHeight (infoHeader.getHeight ());
- 			m_bmh->setWidthBytes (scanLineWRILength);
-@@ -792,20 +907,20 @@
- 			// finish reading from m_externalImage
- 			m_device->setCache (NULL);
- 
--		
-+
- 			//
- 			// set image dimensions
- 			//
--			
-+
- 			m_MFP_width = Word (Twip2Point (m_originalWidth) * 2.64);
- 			m_MFP_height = Word (Twip2Point (m_originalHeight) * 2.64);
--			
-+
- 			// BMPs don't use
- 			m_width = 0, m_height = 0;
--			
-+
- 			m_horizontalScalingRel1000 = Word (m_displayedWidth * 1.38889 * 1000.0 / m_originalWidth);
- 			m_verticalScalingRel1000 = Word (m_displayedHeight * 1.38889 * 1000.0 / m_originalHeight);
--			
-+
- 
- 			// write header
- 			setNumDataBytes (infoHeader.getHeight () * scanLineBMPLength);
-@@ -841,6 +956,27 @@
- 		delete [] m_externalObject;
- 	}
- 
-+	OLE &OLE::operator= (const OLE &rhs)
-+	{
-+		if (this == &rhs)
-+			return *this;
-+
-+		OLEGenerated::operator= (rhs);
-+
-+		m_externalObjectSize = rhs.m_externalObjectSize;
-+		m_externalObjectUpto = rhs.m_externalObjectUpto;
-+
-+		delete [] m_externalObject;
-+		m_externalObject = new Byte [m_externalObjectSize];
-+		if (!m_externalObject)
-+			return *this;  // TODO: error check
-+
-+		if (rhs.m_externalObject)
-+			memcpy (m_externalObject, rhs.m_externalObject, m_externalObjectUpto);
-+
-+		return *this;
-+	}
-+
- 	bool OLE::readFromDevice (void)
- 	{
- 	CHECK_DEVICE;
-@@ -900,7 +1036,7 @@
- 	#ifdef DEBUG_OBJECT
- 		m_device->debug ("\n>>>> OLE::writeToDevice <<<<\n");
- 	#endif
--		
-+
- 	#ifdef DEBUG_OBJECT
- 		Dump (zero);
- 
-@@ -934,11 +1070,11 @@
- 		// write header
- 		if (!OLEGenerated::writeToDevice ())
- 			return false;
--		
-+
- 		// write data
- 		if (!m_device->writeInternal (m_externalObject, m_externalObjectSize))
- 			return false;
--		
-+
- 		return true;
- 	}
- 
---- filters/kword/mswrite/structures.h	5 Jul 2003 18:31:20 -0000	1.1.1.2
-+++ filters/kword/mswrite/structures.h	9 Jul 2003 14:40:26 -0000	1.2
-@@ -65,7 +65,9 @@
- 
- 	public:
- 		PageLayout ();
--		~PageLayout ();
-+		virtual ~PageLayout ();
-+
-+		PageLayout &operator= (const PageLayout &rhs);
- 
- 		bool getIsModified (void) const	{	return m_numModified > 0;	}
- 
-@@ -161,19 +163,9 @@
- 		};
- 
- 		Font (const Byte *name = NULL, const Byte family = DontCare);
--		~Font ();
--
--		Font &operator= (const Font &rhs)
--		{
--			if (this == &rhs)
--				return *this;
-+		virtual ~Font ();
- 
--			FontGenerated::operator= (rhs);
--
--			setName (rhs.getName ());
--
--			return *this;
--		}
-+		Font &operator= (const Font &rhs);
- 
- 		Byte *getName (void) const	{	return m_name;	}
- 		Byte *setName (const Byte *s)
-@@ -258,21 +250,9 @@
- 
- 	public:
- 		FormatCharProperty ();
--		~FormatCharProperty ();
-+		virtual ~FormatCharProperty ();
- 
--		FormatCharProperty &operator= (const FormatCharProperty &rhs)
--		{
--			if (this == &rhs)
--				return *this;
--
--			FormatCharPropertyGenerated::operator= (rhs);
--
--			m_afterEndCharByte = rhs.m_afterEndCharByte;
--			m_fontTable = rhs.m_fontTable;
--			m_font = rhs.m_font;
--
--			return *this;
--		}
-+		FormatCharProperty &operator= (const FormatCharProperty &rhs);
- 
- 		const Font *getFont (void) const
- 		{
-@@ -310,18 +290,7 @@
- 		void setIsSubscript (void)	{	setPosition (252);	/* common value */	}
- 
- 		// compares if the contents are the same (not if it points to the same place etc. etc.)
--		bool operator== (FormatCharProperty &rhs)
--		{
--			DWord numDataBytes;
--			
--			if ((numDataBytes = getNumDataBytes ()) != rhs.getNumDataBytes ())
--				return false;
--			
--			writeToArray ();
--			rhs.writeToArray ();
--			
--			return memcmp (m_data + sizeof (m_numDataBytes), rhs.m_data + sizeof (m_numDataBytes), numDataBytes) == 0;
--		}
-+		bool operator== (FormatCharProperty &rhs);
- 	};
- 
- 	
-@@ -335,8 +304,10 @@
- 
- 	public:
- 		FormatParaPropertyTabulator ();
--		~FormatParaPropertyTabulator ();
-+		virtual ~FormatParaPropertyTabulator ();
- 
-+		FormatParaPropertyTabulator &operator= (const FormatParaPropertyTabulator &rhs);
-+		
- 		// you can use getType()/setType() if you really want to...
- 		bool getIsNormal (void) const	{	return m_type == 0;	}
- 		void setIsNormal (const bool yes = true)	{	m_type = (yes ? 0 : 3);	}
-@@ -401,21 +372,9 @@
- 
- 	public:
- 		FormatParaProperty ();
--		~FormatParaProperty ();
-+		virtual ~FormatParaProperty ();
- 
--		FormatParaProperty &operator= (const FormatParaProperty &rhs)
--		{
--			if (this == &rhs)
--				return *this;
--
--			FormatParaPropertyGenerated::operator= (rhs);
--			
--			m_afterEndCharByte = rhs.m_afterEndCharByte;
--			m_leftMargin = rhs.m_leftMargin, m_rightMargin = rhs.m_rightMargin;
--			m_numTabulators = rhs.m_numTabulators;
--			
--			return *this;
--		}
-+		FormatParaProperty &operator= (const FormatParaProperty &rhs);
- 		
- 		// convenience functions
- 		Byte getAlign (void) const	{	return getAlignment ();	}
-@@ -507,17 +466,7 @@
- 		}
- 
- 		// compares if the contents are the same (not if it points to the same place etc. etc.)
--		bool operator== (FormatParaProperty &rhs)
--		{
--			DWord numDataBytes;
--			if ((numDataBytes = getNumDataBytes ()) != rhs.getNumDataBytes ())
--				return false;
--			
--			writeToArray ();
--			rhs.writeToArray ();
--			
--			return memcmp (m_data + sizeof (m_numDataBytes), rhs.m_data + sizeof (m_numDataBytes), numDataBytes) == 0;
--		}
-+		bool operator== (FormatParaProperty &rhs);
- 	};
- 	
- 
-@@ -548,34 +497,9 @@
- 		bool writeToDevice (void);	friend class InternalParser;
- 	public:
- 		Image ();
--		~Image ();
--
--		Image &operator= (const Image &rhs)
--		{
--			if (this == &rhs)
--				return *this;
--
--			ImageGenerated::operator= (rhs);
--
--			m_externalImageSize = rhs.m_externalImageSize;
--			m_externalImageUpto = rhs.m_externalImageUpto;
--
--			delete [] m_externalImage;
--			m_externalImage = new Byte [m_externalImageSize];
--			if (!m_externalImage)
--				return *this;	// TODO: error check
--
--			if (rhs.m_externalImage)
--				memcpy (m_externalImage, rhs.m_externalImage, m_externalImageUpto);
-+		virtual ~Image ();
- 
--			m_originalWidth = rhs.m_originalWidth;
--			m_originalHeight = rhs.m_originalHeight;
--
--			m_displayedWidth = rhs.m_displayedWidth;
--			m_displayedHeight = rhs.m_displayedHeight;
--			
--			return *this;
--		}
-+		Image &operator= (const Image &rhs);
- 		
- 		bool getIsWMF (void) const	{	return m_mappingMode != 0xE3;	}
- 		bool getIsBMP (void) const	{	return m_mappingMode == 0xE3;	}
-@@ -658,28 +582,9 @@
- 
- 	public:
- 		OLE ();
--		~OLE ();
--
--		OLE &operator= (const OLE &rhs)
--		{
--			if (this == &rhs)
--				return *this;
-+		virtual ~OLE ();
- 
--			OLEGenerated::operator= (rhs);
--
--			m_externalObjectSize = rhs.m_externalObjectSize;
--			m_externalObjectUpto = rhs.m_externalObjectUpto;
--
--			delete [] m_externalObject;
--			m_externalObject = new Byte [m_externalObjectSize];
--			if (!m_externalObject)
--				return *this;	// TODO: error check
--				
--			if (rhs.m_externalObject)
--				memcpy (m_externalObject, rhs.m_externalObject, m_externalObjectUpto);
--
--			return *this;
--		}
-+		OLE &operator= (const OLE &rhs);
- 
- 		Byte *getExternalObject (void) const	{	return m_externalObject;	}
- 		DWord getExternalObjectSize (void) const	{	return m_externalObjectSize;	}
---- filters/kword/mswrite/structures_generated.cpp	5 Jul 2003 18:31:20 -0000	1.1.1.2
-+++ filters/kword/mswrite/structures_generated.cpp	9 Jul 2003 14:40:27 -0000	1.2
-@@ -21,7 +21,7 @@
- 
- /*
-  * structures_generated - Internal MS Write file structures
-- * This file was generated by make_structures_generated 0.51pre 2003/06/08.
-+ * This file was generated by make_structures_generated 0.51pre 2003/07/09.
-  * ALL CHANGES MADE TO THIS FILE "WILL BE LOST IN TIME LIKE TEARS IN RAIN"!
-  */
- 
-@@ -30,8 +30,8 @@
- #include <string.h>
- 
- #include "structures_generated.h"
--#include "structures_private.h"	// for foward references to embedded structures
--#include "structures.h"	// for foward references to embedded structures
-+#include "structures_private.h"	// for forward references to embedded structures
-+#include "structures.h"	// for forward references to embedded structures
- 
- namespace MSWrite
- {
-@@ -431,7 +431,7 @@
- 		// --- allocate memory for embedded structures ---
- 		for (int i = 0; i < 2; i++)
- 		{
--			m_sed [i] = new SectionDescriptor;	// foward ref to structures*.cpp
-+			m_sed [i] = new SectionDescriptor;	// forward ref to structures*.cpp
- 			if (!m_sed [i]) return;
- 		}
- 		
-@@ -1160,7 +1160,7 @@
- 		// --- allocate memory for embedded structures ---
- 		for (int i = 0; i < 14; i++)
- 		{
--			m_tab [i] = new FormatParaPropertyTabulator;	// foward ref to structures*.cpp
-+			m_tab [i] = new FormatParaPropertyTabulator;	// forward ref to structures*.cpp
- 			if (!m_tab [i]) return;
- 		}
- 		
-@@ -1968,7 +1968,7 @@
- 		m_bmh = NULL;
- 		
- 		// --- allocate memory for embedded structures ---
--		m_bmh = new BitmapHeader;	// foward ref to structures*.cpp
-+		m_bmh = new BitmapHeader;	// forward ref to structures*.cpp
- 		if (!m_bmh) return;
- 		
- 		// --- set defaults for variables --
---- filters/kword/mswrite/structures_generated.h	5 Jul 2003 18:31:20 -0000	1.1.1.2
-+++ filters/kword/mswrite/structures_generated.h	9 Jul 2003 14:40:27 -0000	1.5
-@@ -21,7 +21,7 @@
- 
- /*
-  * structures_generated - Internal MS Write file structures
-- * This file was generated by make_structures_generated 0.51pre 2003/06/08.
-+ * This file was generated by make_structures_generated 0.51pre 2003/07/09.
-  * ALL CHANGES MADE TO THIS FILE "WILL BE LOST IN TIME LIKE TEARS IN RAIN"!
-  */
- 
-@@ -32,7 +32,7 @@
- 
- namespace MSWrite
- {
--	// $Id$
-+	// $Id$
- 	// 
- 	//    This file is part of the LibMSWrite Library
- 	//    Copyright (C) 2001-2003 Clarence Dang <clarencedang@users.sourceforge.net>
---- filters/kword/mswrite/structures_private.cpp	5 Jul 2003 18:31:20 -0000	1.1.1.2
-+++ filters/kword/mswrite/structures_private.cpp	9 Jul 2003 14:40:27 -0000	1.2
-@@ -24,7 +24,7 @@
-  *                        - that are hidden/abstracted away from the user
-  * This file has ugly reading/writing code that couldn't be generated.
-  * It performs some higher-level sanity checks.
-- * 
-+ *
-  * Don't use any of these classes as it would defeat the purpose of LibMSWrite.
-  */
- 
-@@ -33,6 +33,27 @@
- 
- namespace MSWrite
- {
-+	Header::Header ()
-+	{
-+	}
-+
-+	Header::~Header ()
-+	{
-+	}
-+
-+	Header &Header::operator= (const Header &rhs)
-+	{
-+		if (this == &rhs)
-+			return *this;
-+
-+		HeaderGenerated::operator= (rhs);
-+
-+		m_numCharBytes = rhs.m_numCharBytes;
-+		m_pageCharInfo = rhs.m_pageCharInfo;
-+
-+		return *this;
-+	}
-+
- 	bool Header::readFromDevice (void)
- 	{
- 	CHECK_DEVICE;
-@@ -125,6 +146,44 @@
- 	}
- 
- 
-+	SectionDescriptor::SectionDescriptor ()
-+	{
-+	}
-+
-+	SectionDescriptor::~SectionDescriptor ()
-+	{
-+	}
-+
-+	SectionDescriptor &SectionDescriptor::operator= (const SectionDescriptor &rhs)
-+	{
-+		if (this == &rhs)
-+			return *this;
-+
-+		SectionDescriptorGenerated::operator= (rhs);
-+
-+		return *this;
-+	}
-+
-+
-+	SectionTable::SectionTable ()
-+	{
-+	}
-+
-+	SectionTable::~SectionTable ()
-+	{
-+	}
-+
-+	SectionTable &SectionTable::operator= (const SectionTable &rhs)
-+	{
-+		if (this == &rhs)
-+			return *this;
-+
-+		SectionTableGenerated::operator= (rhs);
-+		NeedsHeader::operator= (rhs);
-+
-+		return *this;
-+	}
-+
- 	// this function really only does some sanity checking
- 	// in fact, a SectionTable is quite useless in Write...
- 	// ...so you actually don't have to call it :)
-@@ -319,7 +378,7 @@
- 
- 					// let's not cause problems later with uninitialised Font::m_name's
- 					m_fontList.erase (it);
--								 
-+
- 					// better quit just in case (it is better to have fewer fonts than risk errors)
- 					break;
- 				}
-@@ -410,13 +469,13 @@
- 	DWord FontTable::findFont (const Font *want) const
- 	{
- 		DWord code = 0;
--		
-+
- 		List <Font>::Iterator it;
- 		for (it = m_fontList.begin (); it != m_fontList.end (); it++)
- 		{
- 			if ((*it) == *want)
- 				return code;
--			
-+
- 			code++;
- 		}
- 
-@@ -440,7 +499,7 @@
- 		#ifdef DEBUG_FONT
- 			m_device->debug ("\t\t\t\tAlready in list, fontCode=", e);
- 		#endif
--			
-+
- 			// return fontCode
- 			return e;
- 		}
-@@ -450,7 +509,7 @@
- 		#ifdef DEBUG_FONT
- 			m_device->debug ("\t\t\t\tNew font, adding to list\n");
- 		#endif
--			
-+
- 			if (!m_fontList.addToBack (*input))
- 				ErrorAndQuit (Error::OutOfMemory, "could not allocate memory for next font element\n");
- 			return m_fontList.getNumElements () - 1;
-@@ -458,6 +517,24 @@
- 	}
- 
- 
-+	PagePointer::PagePointer ()
-+	{
-+	}
-+
-+	PagePointer::~PagePointer ()
-+	{
-+	}
-+
-+	PagePointer &PagePointer::operator= (const PagePointer &rhs)
-+	{
-+		if (this == &rhs)
-+			return *this;
-+
-+		PagePointerGenerated::operator= (rhs);
-+
-+		return *this;
-+	}
-+
- 	bool PagePointer::readFromDevice (void)
- 	{
- 	CHECK_DEVICE;
-@@ -492,6 +569,22 @@
- 	{
- 	}
- 
-+	PageTable &PageTable::operator= (const PageTable &rhs)
-+	{
-+		if (this == &rhs)
-+			return *this;
-+
-+		PageTableGenerated::operator= (rhs);
-+		NeedsHeader::operator= (rhs);
-+
-+		m_pagePointerList = rhs.m_pagePointerList;
-+		m_pageNumberStart = rhs.m_pageNumberStart;
-+
-+		m_pageTableIterator = rhs.m_pageTableIterator;
-+
-+		return *this;
-+	}
-+
- 	bool PageTable::readFromDevice (void)
- 	{
- 	CHECK_DEVICE;
-@@ -556,7 +649,7 @@
- 					m_device->error (Error::Warn, "pages don't follow each other\n");
- 
- 				if (pp.getFirstCharByte () <= lastCharByte)
--					ErrorAndQuit (Error::InvalidFormat, "pageTable is not going foward?\n");
-+					ErrorAndQuit (Error::InvalidFormat, "pageTable is not going forward?\n");
- 			}
- 
- 			// for checking, on next iteration
-@@ -615,7 +708,20 @@
- 	FormatPointer::~FormatPointer ()
- 	{
- 	}
--	
-+
-+	FormatPointer &FormatPointer::operator= (const FormatPointer &rhs)
-+	{
-+		if (this == &rhs)
-+			return *this;
-+
-+		FormatPointerGenerated::operator= (rhs);
-+
-+		m_afterEndCharByte = rhs.m_afterEndCharByte;
-+		m_formatProperty = rhs.m_formatProperty;
-+
-+		return *this;
-+	}
-+
- 	bool FormatPointer::readFromDevice (void)
- 	{
- 	CHECK_DEVICE;
-@@ -636,7 +742,7 @@
- 	bool FormatPointer::writeToDevice (void)
- 	{
- 	CHECK_DEVICE;
--	
-+
- 	#ifdef DEBUG_FORMATINFO
- 		m_device->debug ("\t\t\t\tafterEndCharByte: ", m_afterEndCharByte);
- 		m_device->debug ("\t\t\t\tformatPropertyOffset: ", m_formatPropertyOffset);
-@@ -646,7 +752,7 @@
- 
- 		if (!FormatPointerGenerated::writeToDevice ())
- 			return false;
--			
-+
- 		return true;
- 	}
- 
-@@ -684,7 +790,7 @@
- 		else	// if (m_type == CharType)
- 			m_device->debug ("FormatInfoPage::readFromDevice (CharType)\n");
- 	#endif
--		
-+
- 		if (!FormatInfoPageGenerated::readFromDevice ())
- 			return false;
- 
-@@ -694,7 +800,7 @@
- 		m_device->debug ("number of FormatPointers on this page: ", FormatInfoPageGenerated::m_numFormatPointers);
- 		m_device->debug ("byte number of first character covered by this page: ", m_firstCharByte);
- 	#endif
--	
-+
- 		return true;
- 	}
- 
-@@ -708,7 +814,7 @@
- 		else	// if (m_type == CharType)
- 			m_device->debug ("FormatInfoPage::writeToDevice (CharType)\n");
- 	#endif
--		
-+
- 		FormatInfoPageGenerated::m_firstCharBytePlus128 = m_firstCharByte + 128;
- 
- 	#ifdef DEBUG_FORMATINFO
-@@ -725,16 +831,16 @@
- 	bool FormatInfoPage::writeToArray (void)
- 	{
- 	CHECK_DEVICE;
--	
-+
- 	#ifdef DEBUG_FORMATINFO
- 		if (m_type == ParaType)
- 			m_device->debug ("\tFormatInfoPage::writeToArray (ParaType)\n");
- 		else	// if (m_type == CharType)
- 			m_device->debug ("\tFormatInfoPage::writeToArray (CharType)\n");
- 	#endif
--		
-+
- 		MemoryDevice memdev;
--		
-+
- 		m_formatPointerPos = 0;
- 		m_formatPropertyPos = 123;
- 
-@@ -763,7 +869,7 @@
- 			if (m_type == ParaType)
- 			{
- 				FormatParaProperty *prop = &m_formatParaProperty [i];
--					
-+
- 				m_formatPropertyPos -= (sizeof (Byte) + prop->getNumDataBytes ());
- 				memdev.setCache (m_packedStructs + m_formatPropertyPos);
- 					prop->setDevice (&memdev);	// device was set to m_device to keep operator== happy in FormatInfoPage::add
-@@ -784,10 +890,10 @@
- 				m_device->debug ("\t\t\tWrote at Offset=", m_formatPropertyPos);
- 			#endif
- 		}
--		
-+
- 		if (!FormatInfoPageGenerated::writeToArray ())
- 			return false;
--		
-+
- 		return true;
- 	}
- 
-@@ -834,7 +940,7 @@
- 			m_device->debug ("\tChar FormatPointer #", m_formatPointerUpto);
- 	#endif
- 
--		
-+
- 		//
- 		// read Format Pointer
- 		//
-@@ -854,7 +960,7 @@
- 
- 		// check that it continues on from the last
- 		if (formatPointerAfterEndCharByte <= m_nextCharByte)
--			m_device->error (Error::Warn, "FormatPointer afterEndCharByte does not go foward\n");
-+			m_device->error (Error::Warn, "FormatPointer afterEndCharByte does not go forward\n");
- 		m_nextCharByte = formatPointerAfterEndCharByte;
- 
- 		// check whether it is the last one (EOF-wise)
-@@ -880,7 +986,7 @@
- 			}
- 		}
- 
--		
-+
- 		//
- 		// read in corresponding Format Property
- 		//
-@@ -944,7 +1050,7 @@
- 
- 				m_formatParaProperty->setDevice (m_device);
- 				m_formatParaProperty->setMargins (m_leftMargin, m_rightMargin);
--				
-+
- 				// corresponding paraProperty structure exists?
- 				if (currentPropertyOffset != 0xFFFF)
- 				{
-@@ -983,7 +1089,7 @@
- 		// 	This is also true for FormatProperties because m_numFormatPointer >= m_numProperty
- 		// 	so MaxElements is also the upper limit on the number of properties
- 		const int MaxElements = 123 / FormatPointer::s_size;
--			
-+
- 	#ifdef DEBUG_FORMATINFO
- 		if (m_type == ParaType)
- 			m_device->debug (">>>> FormatInfoPage::add (ParaType) <<<<\n");
-@@ -1004,7 +1110,7 @@
- 		#ifdef DEBUG_FORMATINFO
- 			m_device->debug ("\tFIRST CALL!  Allocating memory for FormatPointer[] and FormatProperty[]\n");
- 		#endif
--			
-+
- 			// allocate memory for FormatPointers
- 			m_formatPointer = new FormatPointer [MaxElements + 1];	// lazy memory allocation (+1 in case we can merge the last one)
- 			if (!m_formatPointer)
-@@ -1032,7 +1138,7 @@
- 
- 			m_numProperty = 0;
- 		}
--		
-+
- 
- 		//
- 		// Setup pointers
-@@ -1040,13 +1146,13 @@
- 
- 		FormatParaProperty inpp;
- 		FormatCharProperty incp;
--		
-+
- 		if (m_type == ParaType)
- 		{
- 		#ifdef DEBUG_FORMATINFO
- 			m_device->debug ("\tTrying to add ParaProperty, #numDataBytes=", ((FormatParaProperty *) property)->getNumDataBytes ());
- 		#endif
--			
-+
- 			inpp = *((FormatParaProperty *) property);
- 			inpp.setDevice (m_device);
- 			inpp.setAfterEndCharByte (m_device->tellInternal () - 128);
-@@ -1058,7 +1164,7 @@
- 		#ifdef DEBUG_FORMATINFO
- 			m_device->debug ("\tTrying to add CharProperty, #numDataBytes=", ((FormatCharProperty *) property)->getNumDataBytes ());
- 		#endif
--			
-+
- 			incp = *((FormatCharProperty *) property);
- 			incp.setDevice (m_device);
- 			incp.setAfterEndCharByte (m_device->tellInternal () - 128);
-@@ -1066,15 +1172,15 @@
- 			if (!incp.updateFontCode ()) return false;
- 		}
- 
--		
-+
- 		//
- 		// Attempt to add Property to current page:
--		// 
-+		//
- 		// Since MS programmers tried so hard to save space, we will do the same :)
- 		// This results in having to store variable-length structures and the use of other nasty
- 		// tricks such as having multiple FormatPointers pointing to the same FormatProperty.
- 		// Details follow in code :)
--		// 
-+		//
- 
- 		// In Write, character formatting blocks can extend across paragraphs
- 		// In LibMSWrite they don't (for convenience?) so here we merge FormatPointers that have been split up
-@@ -1088,7 +1194,7 @@
- 		#ifdef DEBUG_FORMATINFO
- 			m_device->debug ("\tIs it the same property as last? ");
- 		#endif
--			
-+
- 			// simply extend last FormatPointer
- 			FormatCharProperty *lastProp = (FormatCharProperty *) m_formatPointer [m_numFormatPointers - 1].getFormatProperty ();
- 			if (incp == *lastProp)
-@@ -1097,9 +1203,9 @@
- 				m_device->debug ("Yes, extending FormatPointer #", m_numFormatPointers - 1);
- 				m_device->debug ("\t\tFrom ", m_formatPointer [m_numFormatPointers - 1].getAfterEndCharByte ());
- 			#endif
--				
-+
- 				m_formatPointer [m_numFormatPointers - 1].setAfterEndCharByte (incp.getAfterEndCharByte ());
--				
-+
- 			#ifdef DEBUG_FORMATINFO
- 				m_device->debug ("\t\tTo: ", incp.getAfterEndCharByte ());
- 			#endif
-@@ -1114,7 +1220,7 @@
- 		#ifdef DEBUG_FORMATINFO
- 			m_device->debug ("\tSame as earlier FormatPointer? ");
- 		#endif
--		
-+
- 		// points to same property as an earlier formatPointer?
- 		for (int i = 0; i < m_numFormatPointers - (checkedLastFormatPointer ? 1 : 0); i++)
- 		{
-@@ -1161,7 +1267,7 @@
- 					#endif
- 						return false;	// not enough room
- 					}
--					
-+
- 				#ifdef DEBUG_FORMATINFO
- 					m_device->debug ("Yes, same property as ", i);
- 				#endif
-@@ -1178,7 +1284,7 @@
- 		#ifdef DEBUG_FORMATINFO
- 			m_device->debug ("No, outputting full FormatPointer & Property\n");
- 		#endif
--		
-+
- 		// ok we can't compress, must output a full FormatPointer & FormatProperty
- 		if (m_type == ParaType)
- 		{
-@@ -1251,19 +1357,37 @@
- 			return true;
- 		}
- 	}
--	
--	
-+
-+
-+	BMP_BitmapFileHeader::BMP_BitmapFileHeader ()
-+	{
-+	}
-+
-+	BMP_BitmapFileHeader::~BMP_BitmapFileHeader ()
-+	{
-+	}
-+
-+	BMP_BitmapFileHeader &BMP_BitmapFileHeader::operator= (const BMP_BitmapFileHeader &rhs)
-+	{
-+		if (this == &rhs)
-+			return *this;
-+
-+		BMP_BitmapFileHeaderGenerated::operator= (rhs);
-+
-+		return *this;
-+	}
-+
- 	bool BMP_BitmapFileHeader::readFromDevice (void)
- 	{
- 	CHECK_DEVICE;
--	
-+
- 	#ifdef DEBUG_IMAGE
- 		m_device->debug ("\n<<<< BMP_BitmapFileHeader::readFromDevice >>>>\n");
- 	#endif
--	
-+
- 		if (!BMP_BitmapFileHeaderGenerated::readFromDevice ())
- 			return false;
--		
-+
- 	#ifdef DEBUG_IMAGE
- 		Dump (magic);
- 		Dump (totalBytes);
-@@ -1271,10 +1395,10 @@
- 		Dump (zero [1]);
- 		Dump (actualImageOffset);
- 	#endif
--		
-+
- 		return true;
- 	}
--	
-+
- 	bool BMP_BitmapFileHeader::writeToDevice (void)
- 	{
- 	CHECK_DEVICE;
-@@ -1291,14 +1415,32 @@
- 	}
- 
- 
-+	BMP_BitmapInfoHeader::BMP_BitmapInfoHeader ()
-+	{
-+	}
-+
-+	BMP_BitmapInfoHeader::~BMP_BitmapInfoHeader ()
-+	{
-+	}
-+
-+	BMP_BitmapInfoHeader &BMP_BitmapInfoHeader::operator= (const BMP_BitmapInfoHeader &rhs)
-+	{
-+		if (this == &rhs)
-+			return *this;
-+
-+		BMP_BitmapInfoHeaderGenerated::operator= (rhs);
-+
-+		return *this;
-+	}
-+
- 	bool BMP_BitmapInfoHeader::readFromDevice (void)
- 	{
- 	CHECK_DEVICE;
--	
-+
- 	#ifdef DEBUG_IMAGE
- 		m_device->debug ("\n<<<< BMP_BitmapInfoHeader::readFromDevice >>>>\n");
- 	#endif
--	
-+
- 		if (!BMP_BitmapInfoHeaderGenerated::readFromDevice ())
- 			return false;
- 
-@@ -1315,24 +1457,61 @@
- 		Dump (coloursUsed);
- 		Dump (coloursImportant);
- 	#endif
--		
-+
- 		return true;
- 	}
--	
-+
- 	bool BMP_BitmapInfoHeader::writeToDevice (void)
- 	{
- 	CHECK_DEVICE;
--	
-+
- 	#ifdef DEBUG_IMAGE
- 		m_device->debug ("\n<<<< BMP_BitmapInfoHeader::writeToDevice >>>>\n");
- 	#endif
- 
- 		if (!BMP_BitmapInfoHeaderGenerated::writeToDevice ())
- 			return false;
--			
-+
- 		return true;
- 	}
--	
-+
-+
-+	BMP_BitmapColourIndex::BMP_BitmapColourIndex ()
-+	{
-+	}
-+
-+	BMP_BitmapColourIndex::~BMP_BitmapColourIndex ()
-+	{
-+	}
-+
-+	BMP_BitmapColourIndex &BMP_BitmapColourIndex::operator= (const BMP_BitmapColourIndex &rhs)
-+	{
-+		if (this == &rhs)
-+			return *this;
-+
-+		BMP_BitmapColourIndexGenerated::operator= (rhs);
-+
-+		return *this;
-+	}
-+
-+
-+	BitmapHeader::BitmapHeader ()
-+	{
-+	}
-+
-+	BitmapHeader::~BitmapHeader ()
-+	{
-+	}
-+
-+	BitmapHeader &BitmapHeader::operator= (const BitmapHeader &rhs)
-+	{
-+		if (this == &rhs)
-+			return *this;
-+
-+		BitmapHeaderGenerated::operator= (rhs);
-+
-+		return *this;
-+	}
- 
- 	bool BitmapHeader::readFromDevice (void)
- 	{
-@@ -1354,7 +1533,7 @@
- 		Dump (bitsPerPixel);
- 		Dump (zero2);
- 	#endif
--		
-+
- 		return true;
- 	}
- 
-@@ -1373,6 +1552,24 @@
- 	}
- 
- 
-+	WMFHeader::WMFHeader ()
-+	{
-+	}
-+
-+	WMFHeader::~WMFHeader ()
-+	{
-+	}
-+
-+	WMFHeader &WMFHeader::operator= (const WMFHeader &rhs)
-+	{
-+		if (this == &rhs)
-+			return *this;
-+
-+		WMFHeaderGenerated::operator= (rhs);
-+
-+		return *this;
-+	}
-+
- 	bool WMFHeader::readFromDevice (void)
- 	{
- 	CHECK_DEVICE;
-@@ -1380,7 +1577,7 @@
- 	#ifdef DEBUG_IMAGE
- 		m_device->debug ("\n<<<< WMFHeader::readFromDevice >>>>\n");
- 	#endif
--		
-+
- 		if (!WMFHeaderGenerated::readFromDevice ())
- 			return false;
- 
-@@ -1393,7 +1590,7 @@
- 		Dump (maxRecordSize);
- 		Dump (zero);
- 	#endif
--				
-+
- 		return true;
- 	}
- 
-@@ -1404,7 +1601,7 @@
- 	#ifdef DEBUG_IMAGE
- 		m_device->debug ("\n>>>> WMFHeader::writeToDevice <<<<\n");
- 	#endif
--		
-+
- 	#ifdef DEBUG_IMAGE
- 		Dump (fieldType);
- 		Dump (headerSize);
---- filters/kword/mswrite/structures_private.h	5 Jul 2003 18:31:20 -0000	1.1.1.2
-+++ filters/kword/mswrite/structures_private.h	9 Jul 2003 14:40:28 -0000	1.2
-@@ -37,18 +37,10 @@
- 		bool writeToDevice (void);	friend class InternalGenerator;
- 
- 	public:
--		Header &operator= (const Header &rhs)
--		{
--			if (this == &rhs)
--				return *this;
-+		Header ();
-+		virtual ~Header ();
- 
--			HeaderGenerated::operator= (rhs);
--
--			m_numCharBytes = rhs.m_numCharBytes;
--			m_pageCharInfo = rhs.m_pageCharInfo;
--
--			return *this;
--		}
-+		Header &operator= (const Header &rhs);
- 
- 		Word getFormat (void) const	{	return getMagic ();	}
- 		void setFormat (const Word f)	{	setMagic (f);	}
-@@ -91,18 +83,29 @@
- 
- 			return *this;
- 		}
--		
-+
- 		void setHeader (Header *header)	{	m_header = header;	}
- 	};
- 
- 
- 	class SectionDescriptor : public SectionDescriptorGenerated
- 	{
-+	public:
-+		SectionDescriptor ();
-+		virtual ~SectionDescriptor ();
-+
-+		SectionDescriptor &operator= (const SectionDescriptor &rhs);
- 	};
- 
- 
- 	class SectionTable : public SectionTableGenerated, public NeedsHeader
- 	{
-+	public:
-+		SectionTable ();
-+		virtual ~SectionTable ();
-+
-+		SectionTable &operator= (const SectionTable &rhs);
-+
- 	private:
- 		bool readFromDevice (void);	friend class InternalParser;
- 		bool writeToDevice (const bool needed);	friend class InternalGenerator;
-@@ -120,7 +123,7 @@
- 
- 	public:
- 		FontTable ();
--		~FontTable ();
-+		virtual ~FontTable ();
- 
- 		FontTable &operator= (const FontTable &rhs);
- 
-@@ -129,16 +132,22 @@
- 		DWord addFont (const Font *input);
- 	};
- 
--	
-+
- 	class PagePointer : public PagePointerGenerated
- 	{
- 	private:
- 		friend class PageTable;
- 			bool readFromDevice (void);
- 			bool writeToDevice (void);
-+
-+	public:
-+		PagePointer ();
-+		virtual ~PagePointer ();
-+
-+		PagePointer &operator= (const PagePointer &rhs);
- 	};
- 
--	
-+
- 	class PageTable : public PageTableGenerated, public NeedsHeader
- 	{
- 	private:
-@@ -157,24 +166,9 @@
- 
- 	public:
- 		PageTable ();
--		~PageTable ();
--
--		PageTable &operator= (const PageTable &rhs)
--		{
--			if (this == &rhs)
--				return *this;
-+		virtual ~PageTable ();
- 
--			PageTableGenerated::operator= (rhs);
--			NeedsHeader::operator= (rhs);
--
--			m_pagePointerList = rhs.m_pagePointerList;
--			m_pageNumberStart = rhs.m_pageNumberStart;
--
--			m_pageTableIterator = rhs.m_pageTableIterator;
--
--			return *this;
--		}
--		
-+		PageTable &operator= (const PageTable &rhs);
- 
- 		PagePointer *begin (void)
- 		{
-@@ -187,7 +181,7 @@
- 			m_pageTableIterator = m_pageTableIterator.next ();
- 			return &(*m_pageTableIterator);
- 		}
--		
-+
- 		bool end (void) /*const*/
- 		{
- 			return m_pageTableIterator == m_pagePointerList.end ();
-@@ -199,7 +193,7 @@
- 		}
- 	};
- 
--	
-+
- 	class FormatPointer : public FormatPointerGenerated
- 	{
- 	private:
-@@ -211,7 +205,7 @@
- 
- 			//
- 			// for exporting
--			// 
-+			//
- 			const void *m_formatProperty;
- 
- 			const void *getFormatProperty (void) const	{	return m_formatProperty;	}
-@@ -219,7 +213,9 @@
- 
- 	public:
- 		FormatPointer ();
--		~FormatPointer ();
-+		virtual ~FormatPointer ();
-+
-+		FormatPointer &operator= (const FormatPointer &rhs);
- 
- 		DWord getAfterEndCharByte (void) const	{	return m_afterEndCharByte;	}
- 		void setAfterEndCharByte (const DWord val)	{	m_afterEndCharByte = val;	}
-@@ -240,7 +236,7 @@
- 		DWord m_firstCharByte;	// FormatInfoPageGenerated::m_firstCharBytePlus128 - 128
- 		enum FormatInfoPageTypes m_type;	// CharInfo or ParaInfo?
- 
--		
-+
- 		//
- 		// uncompressed data
- 		//
-@@ -254,7 +250,7 @@
- 		FormatParaProperty *m_formatParaProperty;
- 			Word m_leftMargin, m_rightMargin;	// for ParaProperty
- 
--			
-+
- 		//
- 		// Iterator helpers
- 		//
-@@ -275,7 +271,7 @@
- 
- 	public:
- 		FormatInfoPage ();
--		~FormatInfoPage ();
-+		virtual ~FormatInfoPage ();
- 
- 		void setMargins (const Word leftMargin, const Word rightMargin)
- 		{
-@@ -305,6 +301,11 @@
- 	class BMP_BitmapFileHeader : public BMP_BitmapFileHeaderGenerated
- 	{
- 	public:
-+		BMP_BitmapFileHeader ();
-+		virtual ~BMP_BitmapFileHeader ();
-+
-+		BMP_BitmapFileHeader &operator= (const BMP_BitmapFileHeader &rhs);
-+
- 		bool readFromDevice (void);
- 		bool writeToDevice (void);
- 	};
-@@ -313,6 +314,11 @@
- 	class BMP_BitmapInfoHeader : public BMP_BitmapInfoHeaderGenerated
- 	{
- 	public:
-+		BMP_BitmapInfoHeader ();
-+		virtual ~BMP_BitmapInfoHeader ();
-+
-+		BMP_BitmapInfoHeader &operator= (const BMP_BitmapInfoHeader &rhs);
-+
- 		bool readFromDevice (void);
- 		bool writeToDevice (void);
- 	};
-@@ -320,6 +326,11 @@
- 
- 	class BMP_BitmapColourIndex : public BMP_BitmapColourIndexGenerated
- 	{
-+	public:
-+		BMP_BitmapColourIndex ();
-+		virtual ~BMP_BitmapColourIndex ();
-+
-+		BMP_BitmapColourIndex &operator= (const BMP_BitmapColourIndex &rhs);
- 	};
- 
- 
-@@ -328,6 +339,11 @@
- 	//private:
- 	//	friend class ImageGenerated;
- 	public:
-+		BitmapHeader ();
-+		virtual ~BitmapHeader ();
-+
-+		BitmapHeader &operator= (const BitmapHeader &rhs);
-+
- 		bool readFromDevice (void);
- 		bool writeToDevice (void);
- 	};
-@@ -338,6 +354,11 @@
- 	//private:
- 	//	friend class Image;
- 	public:
-+		WMFHeader ();
-+		virtual ~WMFHeader ();
-+
-+		WMFHeader &operator= (const WMFHeader &rhs);
-+
- 		bool readFromDevice (void);
- 		bool writeToDevice (void);
- 	};
 --- interfaces/Makefile.am	20 Jun 2002 04:43:14 -0000	1.1.1.1
 +++ interfaces/Makefile.am	1 Jun 2003 14:59:32 -0000	1.2
 @@ -3,7 +3,7 @@
@@ -2108,8 +243,8 @@
  libkochart_la_LIBADD = $(LIB_KOFFICECORE)
  METASOURCES = AUTO
  
---- karbon/Makefile.am	5 Jul 2003 18:31:46 -0000	1.1.1.6
-+++ karbon/Makefile.am	9 Jul 2003 14:40:31 -0000	1.11
+--- karbon/Makefile.am	10 Aug 2003 15:20:23 -0000	1.1.1.7
++++ karbon/Makefile.am	10 Aug 2003 16:11:31 -0000	1.12
 @@ -12,22 +12,24 @@
  
  SUBDIRS = commands visitors core shapes widgets dialogs dockers render tools . plugins data pics
@@ -2142,7 +277,7 @@
  	widgets/libkarbonwidgets.la \
  	render/libvpainter.la \
 @@ -43,18 +45,18 @@
- 	$(FONTCONFIG_LIBS) \
+ 	$(LIBFONTCONFIG_LIBS) \
  	$(LIBFREETYPE_LIBS)
  
 -libkarbonpart_la_METASOURCES = AUTO
@@ -2168,8 +303,8 @@
  
  noinst_HEADERS = \
  	karbon_factory.h \
---- karbon/configure.in.in	5 Jul 2003 18:31:45 -0000	1.1.1.5
-+++ karbon/configure.in.in	6 Jul 2003 14:11:33 -0000	1.3
+--- karbon/configure.in.in	10 Aug 2003 15:20:21 -0000	1.1.1.6
++++ karbon/configure.in.in	10 Aug 2003 16:11:31 -0000	1.4
 @@ -1,5 +1,5 @@
  
 -KDE_FIND_PATH(freetype-config, FREETYPE_CONFIG, [${prefix}/bin ${exec_prefix}/bin /usr/local/bin /opt/local/bin], [
@@ -2407,68 +542,1224 @@
  {
      KCmdLineArgs::init( argc, argv, newKFormulaAboutData() );
      KCmdLineArgs::addCmdLineOptions( options );
---- kivio/kiviopart/Makefile.am	5 Jul 2003 18:32:14 -0000	1.1.1.5
-+++ kivio/kiviopart/Makefile.am	9 Jul 2003 14:40:33 -0000	1.9
-@@ -1,7 +1,9 @@
- SUBDIRS = ui kiviosdk tools pics tiles stencils .
- 
- kde_module_LTLIBRARIES = libkiviopart.la
--libkiviopart_la_LIBADD = \
-+lib_LTLIBRARIES = libkiviopart_shared.la
-+
-+libkiviopart_shared_la_LIBADD = \
- 		$(top_builddir)/kivio/kiviopart/tools/libtools.la\
- 		$(top_builddir)/kivio/kiviopart/kiviosdk/libkiviosdk.la\
- 		$(top_builddir)/kivio/kiviopart/ui/libui.la \
-@@ -16,8 +18,8 @@
- 	-I$(top_srcdir)/lib/kformula\
+--- kivio/kiviopart/Makefile.am	10 Aug 2003 15:20:49 -0000	1.1.1.6
++++ kivio/kiviopart/Makefile.am	10 Aug 2003 16:11:31 -0000	1.10
+@@ -10,19 +10,20 @@
  	$(all_includes)
  
--libkiviopart_la_METASOURCES = AUTO
--libkiviopart_la_SOURCES = kivio_canvas.cpp kivio_doc.cpp kivio_factory.cpp kivio_tabbar.cpp 	kivio_view.cpp kivio_map.cpp kivio_page.cpp kivio_dlg_pageshow.cpp kivio_zoomaction.cpp 	kivio_icon_view.cpp kivio_config.cpp kivio_spawner_drag.cpp kivio_intra_stencil_data.cpp	kivio_stackbar.cpp stencilbarbutton.cpp stencilbardockmanager.cpp stencilbarmovemanager.cpp	tooldockbase.cpp tooldockmanager.cpp stencil_text_dlg.cpp kivio_grid_data.cpp kivio_guidelines.cpp	kivio_stencil_geometry_panel.cpp kivio_viewmanager_panel.cpp KIvioViewIface.skel	KIvioViewIface.cc KIvioDocIface.skel KIvioDocIface.cc KIvioMapIface.skel KIvioMapIface.cc	KIvioPageIface.skel KIvioPageIface.cc kivio_command.cc KIvioLayerIface.skel KIvioLayerIface.cc	kivioglobal.cpp kiviostencilsetaction.cpp kivioarrowheadaction.cpp KIvioStencilIface.skel	KIvioStencilIface.cc kiviodragobject.cpp
-+libkiviopart_shared_la_METASOURCES = AUTO
-+libkiviopart_shared_la_SOURCES = kivio_canvas.cpp kivio_doc.cpp kivio_factory.cpp kivio_tabbar.cpp 	kivio_view.cpp kivio_map.cpp kivio_page.cpp kivio_dlg_pageshow.cpp kivio_zoomaction.cpp 	kivio_icon_view.cpp kivio_config.cpp kivio_spawner_drag.cpp kivio_intra_stencil_data.cpp	kivio_stackbar.cpp stencilbarbutton.cpp stencilbardockmanager.cpp stencilbarmovemanager.cpp	tooldockbase.cpp tooldockmanager.cpp stencil_text_dlg.cpp kivio_grid_data.cpp kivio_guidelines.cpp	kivio_stencil_geometry_panel.cpp kivio_viewmanager_panel.cpp KIvioViewIface.skel	KIvioViewIface.cc KIvioDocIface.skel KIvioDocIface.cc KIvioMapIface.skel KIvioMapIface.cc	KIvioPageIface.skel KIvioPageIface.cc kivio_command.cc KIvioLayerIface.skel KIvioLayerIface.cc	kivioglobal.cpp kiviostencilsetaction.cpp kivioarrowheadaction.cpp KIvioStencilIface.skel	KIvioStencilIface.cc kiviodragobject.cpp
  
- EXTRA_DIST = \
- 		main.cpp\
-@@ -95,17 +97,18 @@
- 		kiviodragobject.cpp
- 
- 
--lib_LTLIBRARIES = kivio.la
-+bin_PROGRAMS =
-+kdeinit_LTLIBRARIES = kivio.la
-+
- kivio_la_SOURCES = main.cpp
- kivio_la_LDFLAGS = $(all_libraries) -module -avoid-version
- kivio_la_LIBADD = ../../lib/kofficecore/libkofficecore.la
+-kde_module_LTLIBRARIES = libkiviopart.la
++kde_module_LTLIBRARIES = libkiviopart.la kivio.la
++lib_LTLIBRARIES = libkiviopart_shared.la
  
 -libkiviopart_la_LDFLAGS = -avoid-version -module $(all_libraries) -no-undefined
 +libkiviopart_shared_la_LDFLAGS = -avoid-version $(all_libraries) -no-undefined
  
--bin_PROGRAMS = kivio
--kivio_SOURCES = dummy.cpp
--kivio_LDFLAGS = $(all_libraries) $(KDE_RPATH)
--kivio_LDADD = kivio.la
-+libkiviopart_la_SOURCES = dummy.cpp
-+libkiviopart_la_LIBADD  = libkiviopart_shared.la
-+libkiviopart_la_LDFLAGS = -avoid-version $(all_libraries) $(KDE_PLUGIN) -module
+-libkiviopart_la_LIBADD = \
++libkiviopart_shared_la_LIBADD = \
+ 	$(top_builddir)/kivio/kiviopart/tools/libtools.la\
+ 	$(top_builddir)/kivio/kiviopart/kiviosdk/libkiviosdk.la\
+ 	$(top_builddir)/kivio/kiviopart/ui/libui.la \
+ 	$(LIB_KOFFICEUI) $(LIB_KOPAINTER) $(LIB_KOTEXT) $(LIBPYTHON) $(PYTHONLIB)
  
+-libkiviopart_la_METASOURCES = AUTO
++libkiviopart_shared_la_METASOURCES = AUTO
+ 
+-libkiviopart_la_SOURCES = kivio_canvas.cpp kivio_doc.cpp kivio_factory.cpp \
++libkiviopart_shared_la_SOURCES = kivio_canvas.cpp kivio_doc.cpp kivio_factory.cpp \
+ 	kivio_tabbar.cpp kivio_view.cpp kivio_map.cpp kivio_page.cpp \
+ 	kivio_dlg_pageshow.cpp kivio_zoomaction.cpp kivio_icon_view.cpp \
+ 	kivio_config.cpp kivio_spawner_drag.cpp kivio_intra_stencil_data.cpp \
+@@ -36,25 +37,28 @@
+ 	kiviostencilsetaction.cpp kivioarrowheadaction.cpp KIvioStencilIface.skel \
+ 	KIvioStencilIface.cc kiviodragobject.cpp
+ 
+-
+-lib_LTLIBRARIES = kivio.la
++libkiviopart_la_LDFLAGS = -module -avoid-version $(all_libraries)
++libkiviopart_la_LIBADD  = libkiviopart_shared.la
++libkiviopart_la_SOURCES = dummy.cpp
+ 
+ kivio_la_SOURCES = main.cpp
+ 
+ kivio_la_LDFLAGS = $(all_libraries) -module -avoid-version
+ 
+-kivio_la_LIBADD = ../../lib/kofficecore/libkofficecore.la
++kivio_la_LIBADD = ../../lib/kofficecore/libkofficecore.la libkiviopart_shared.la
+ 
+ 
+ bin_PROGRAMS = kivio
+ 
+-kivio_SOURCES = dummy.cpp
++kivio_SOURCES = kivio_main.cpp
+ 
+ kivio_LDFLAGS = $(all_libraries) $(KDE_RPATH)
+ 
+-kivio_LDADD = kivio.la
+-
++kivio_LDADD = ../../lib/kofficecore/libkofficecore.la libkiviopart_shared.la
+ 
++kivio_main.cpp:
++	cat main.cpp > kivio_main.cpp
++	
  dummy.cpp:
  	echo > dummy.cpp
---- kivio/kiviopart/main.cpp	25 Apr 2003 15:45:13 -0000	1.1.1.4
-+++ kivio/kiviopart/main.cpp	6 Jul 2003 21:05:02 -0000	1.2
-@@ -30,7 +30,7 @@
-   KCmdLineLastOption
- };
  
--int main( int argc, char **argv )
-+extern "C" int kdemain( int argc, char **argv )
- {
-   KCmdLineArgs::init( argc, argv, newKivioAboutData() );
-   KCmdLineArgs::addCmdLineOptions( options );
---- kivio/plugins/kivioconnectortool/Makefile.am	5 Jul 2003 18:32:27 -0000	1.1.1.5
-+++ kivio/plugins/kivioconnectortool/Makefile.am	6 Jul 2003 14:11:50 -0000	1.5
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ kivio/kiviopart/dummy.cpp	10 Aug 2003 21:19:43 -0000	1.1
+@@ -0,0 +1 @@
++
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ kivio/kiviopart/stub_main.cpp	10 Aug 2003 16:11:32 -0000	1.1
+@@ -0,0 +1,28 @@
++/*
++ *
++ * Copyright (c) 2001 Nick Hudson <skrll@netbsd.org>
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a copy
++ * of this software and associated documentation files (the "Software"), to deal
++ * in the Software without restriction, including without limitation the rights
++ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++ * copies of the Software, and to permit persons to whom the Software is
++ * furnished to do so, subject to the following conditions:
++ *
++ * The above copyright notice and this permission notice shall be included in
++ * all copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
++ * AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
++ * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
++ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++ */
++extern "C" int kdemain(int, char* []);
++
++int main( int argc, char* argv[] )
++{
++        return kdemain(argc, argv);
++}
++
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ kivio/kiviopart/ui/aligndialog.cpp	10 Aug 2003 21:19:43 -0000	1.1
+@@ -0,0 +1,662 @@
++#include <klocale.h>
++/****************************************************************************
++** Form implementation generated from reading ui file './aligndialog.ui'
++**
++** Created: Sun May 11 19:13:34 2003
++**      by: The User Interface Compiler ($Id$)
++**
++** WARNING! All changes made in this file will be lost!
++****************************************************************************/
++
++#include "aligndialog.h"
++
++#include <qvariant.h>
++#include <qpushbutton.h>
++#include <qtabwidget.h>
++#include <qwidget.h>
++#include <qbuttongroup.h>
++#include <qlabel.h>
++#include <qradiobutton.h>
++#include <qcheckbox.h>
++#include <qlayout.h>
++#include <qtooltip.h>
++#include <qwhatsthis.h>
++#include <qimage.h>
++#include <qpixmap.h>
++
++static const char* const img0_aligndialog[] = { 
++"16 16 3 1",
++"# c None",
++"a c #000000",
++". c #838183",
++".###############",
++".aaaaaaaaaa#####",
++".a########a#####",
++".a########a#####",
++".a########a#####",
++".a########a#####",
++".aaaaaaaaaa#####",
++".###############",
++".######aaa######",
++".####aa###aa####",
++".##aa#######aa##",
++".aa###########aa",
++".##aa#######aa##",
++".####aa###aa####",
++".######aaa######",
++".###############"};
++
++static const char* const img1_aligndialog[] = { 
++"16 16 3 1",
++". c None",
++"a c #000000",
++"# c #838183",
++"........#.......",
++"...aaaaa#aaaaa..",
++"...a....#....a..",
++"...a....#....a..",
++"...a....#....a..",
++"...a....#....a..",
++"...aaaaa#aaaaa..",
++"........#.......",
++".......a#a......",
++".....aa.#.aa....",
++"...aa...#...aa..",
++".aa.....#.....aa",
++"...aa...#...aa..",
++".....aa.#.aa....",
++".......a#a......",
++"........#......."};
++
++static const char* const img2_aligndialog[] = { 
++"16 16 3 1",
++". c None",
++"a c #000000",
++"# c #838183",
++"...............#",
++".....aaaaaaaaaa#",
++".....a........a#",
++".....a........a#",
++".....a........a#",
++".....a........a#",
++".....aaaaaaaaaa#",
++"...............#",
++".......aaa.....#",
++".....aa...aa...#",
++"...aa.......aa.#",
++"..a...........a#",
++"...aa.......aa.#",
++".....aa...aa...#",
++".......aaa.....#",
++"...............#"};
++
++static const char* const img3_aligndialog[] = { 
++"16 16 3 1",
++"# c None",
++"a c #000000",
++". c #838183",
++"................",
++"####a####aaaaaa#",
++"####a####a####a#",
++"###a#a###a####a#",
++"###a#a###a####a#",
++"##a###a##a####a#",
++"##a###a##a####a#",
++"#a#####a#a####a#",
++"#a#####a#a####a#",
++"#a#####a#a####a#",
++"##a###a##aaaaaa#",
++"##a###a#########",
++"###a#a##########",
++"###a#a##########",
++"####a###########",
++"####a###########"};
++
++static const char* const img4_aligndialog[] = { 
++"16 16 3 1",
++". c None",
++"# c #000000",
++"a c #838183",
++"...........#....",
++"...........#....",
++".######...#.#...",
++".#....#...#.#...",
++".#....#..#...#..",
++".#....#..#...#..",
++".#....#.#.....#.",
++"aaaaaaaaaaaaaaaa",
++".#....#.#.....#.",
++".#....#..#...#..",
++".#....#..#...#..",
++".######...#.#...",
++"..........#.#...",
++"...........#....",
++"...........#....",
++"................"};
++
++static const char* const img5_aligndialog[] = { 
++"16 16 3 1",
++". c None",
++"# c #000000",
++"a c #838183",
++"...........#....",
++"...........#....",
++"..........#.#...",
++"..........#.#...",
++".........#...#..",
++".######..#...#..",
++".#....#.#.....#.",
++".#....#.#.....#.",
++".#....#.#.....#.",
++".#....#..#...#..",
++".#....#..#...#..",
++".#....#...#.#...",
++".#....#...#.#...",
++".#....#....#....",
++".######....#....",
++"aaaaaaaaaaaaaaaa"};
++
++static const char* const img6_aligndialog[] = { 
++"16 16 3 1",
++"# c None",
++"a c #000000",
++". c #838183",
++"................",
++"#####aaaaa###a##",
++"#####a###a##aaa#",
++"#####a###a##.a.#",
++"#####a###a###a##",
++"#####aaaaa###a##",
++"############.a.#",
++"############aaa#",
++"#############a##",
++"................",
++"aaaaa###########",
++"a###a###########",
++"a###a###########",
++"a###a###########",
++"aaaaa###########",
++"################"};
++
++static const char* const img7_aligndialog[] = { 
++"16 16 3 1",
++". c None",
++"# c #000000",
++"a c #838183",
++"................",
++".....#####......",
++".....#...#......",
++"aaaaa#aaa#aaaaaa",
++".....#...#...#..",
++".....#####..###.",
++"............a#a.",
++".............#..",
++".............#..",
++"............a#a.",
++"#####.......###.",
++"#...#........#..",
++"#aaa#aaaaaaaaaaa",
++"#...#...........",
++"#####...........",
++"................"};
++
++static const char* const img8_aligndialog[] = { 
++"16 16 3 1",
++". c None",
++"# c #000000",
++"a c #838183",
++".............#..",
++".....#####...#..",
++".....#...#...#..",
++".....#...#..a#a.",
++".....#...#..###.",
++".....#####...#..",
++"aaaaaaaaaaaaaaaa",
++"................",
++"................",
++"aaaaaaaaaaaaaaaa",
++"#####........#..",
++"#...#.......###.",
++"#...#.......a#a.",
++"#...#........#..",
++"#####........#..",
++".............#.."};
++
++static const char* const img9_aligndialog[] = { 
++"16 16 3 1",
++". c None",
++"# c #000000",
++"a c #838183",
++"................",
++"#####...........",
++"#...#...........",
++"#...#...........",
++"#...#...........",
++"#####...........",
++"aaaaaaaaaaaaaaaa",
++".............#..",
++"............###.",
++"............a#a.",
++".....#####...#..",
++".....#...#...#..",
++".....#...#..a#a.",
++".....#...#..###.",
++".....#####...#..",
++"aaaaaaaaaaaaaaaa"};
++
++static const char* const img10_aligndialog[] = { 
++"16 16 3 1",
++". c None",
++"a c #000000",
++"# c #838183",
++".#........#.....",
++".#.a#..#a.#.....",
++".#aaaaaaaa#.....",
++".#.a#..#a.#.....",
++".#........#.....",
++".#........#.....",
++".#aaaaa...#.....",
++".#a...a...#.....",
++".#a...a...#.....",
++".#a...a...#.....",
++".#aaaaa...#.....",
++".#........#aaaaa",
++".#........#a...a",
++".#........#a...a",
++".#........#a...a",
++".#........#aaaaa"};
++
++static const char* const img11_aligndialog[] = { 
++"16 16 3 1",
++". c None",
++"a c #000000",
++"# c #838183",
++".....#........#.",
++".....#.a#..#a.#.",
++".....#aaaaaaaa#.",
++".....#.a#..#a.#.",
++".....#........#.",
++".....#........#.",
++".....#...aaaaa#.",
++".....#...a...a#.",
++".....#...a...a#.",
++".....#...a...a#.",
++".....#...aaaaa#.",
++"aaaaa#........#.",
++"a...a#........#.",
++"a...a#........#.",
++"a...a#........#.",
++"aaaaa#........#."};
++
++static const char* const img12_aligndialog[] = { 
++"16 16 3 1",
++". c None",
++"a c #000000",
++"# c #838183",
++"...#........#...",
++"...#.a#..#a.#...",
++"...#aaaaaaaa#...",
++"...#.a#..#a.#...",
++"...#........#...",
++"...#........#...",
++".aaaaa......#...",
++".a.#.a......#...",
++".a.#.a......#...",
++".a.#.a......#...",
++".aaaaa......#...",
++"...#......aaaaa.",
++"...#......a.#.a.",
++"...#......a.#.a.",
++"...#......a.#.a.",
++"...#......aaaaa."};
++
++static const char* const img13_aligndialog[] = { 
++"16 16 3 1",
++". c None",
++"a c #000000",
++"# c #838183",
++"......#..#......",
++"...#a.#..#.a#...",
++"aaaaaa#..#aaaaaa",
++"...#a.#..#.a#...",
++"......#..#......",
++"......#..#......",
++".aaaaa#..#......",
++".a...a#..#......",
++".a...a#..#......",
++".a...a#..#......",
++".aaaaa#..#......",
++"......#..#aaaaa.",
++"......#..#a...a.",
++"......#..#a...a.",
++"......#..#a...a.",
++"......#..#aaaaa."};
++
++
++/* 
++ *  Constructs a AlignDialog as a child of 'parent', with the 
++ *  name 'name' and widget flags set to 'f'.
++ *
++ *  The dialog will by default be modeless, unless you set 'modal' to
++ *  TRUE to construct a modal dialog.
++ */
++AlignDialog::AlignDialog( QWidget* parent, const char* name, bool modal, WFlags fl )
++    : QDialog( parent, name, modal, fl ),
++      image0( (const char **) img0_aligndialog ),
++      image1( (const char **) img1_aligndialog ),
++      image2( (const char **) img2_aligndialog ),
++      image3( (const char **) img3_aligndialog ),
++      image4( (const char **) img4_aligndialog ),
++      image5( (const char **) img5_aligndialog ),
++      image6( (const char **) img6_aligndialog ),
++      image7( (const char **) img7_aligndialog ),
++      image8( (const char **) img8_aligndialog ),
++      image9( (const char **) img9_aligndialog ),
++      image10( (const char **) img10_aligndialog ),
++      image11( (const char **) img11_aligndialog ),
++      image12( (const char **) img12_aligndialog ),
++      image13( (const char **) img13_aligndialog )
++{
++    if ( !name )
++	setName( "AlignDialog" );
++    setSizePolicy( QSizePolicy( (QSizePolicy::SizeType)5, (QSizePolicy::SizeType)5, 0, 0, sizePolicy().hasHeightForWidth() ) );
++    AlignDialogLayout = new QVBoxLayout( this, 6, 6, "AlignDialogLayout"); 
++
++    tab = new QTabWidget( this, "tab" );
++    tab->setSizePolicy( QSizePolicy( (QSizePolicy::SizeType)7, (QSizePolicy::SizeType)7, 0, 0, tab->sizePolicy().hasHeightForWidth() ) );
++
++    align = new QWidget( tab, "align" );
++    alignLayout = new QGridLayout( align, 1, 1, 11, 6, "alignLayout"); 
++
++    hAlignBox = new QButtonGroup( align, "hAlignBox" );
++    hAlignBox->setColumnLayout(0, Qt::Vertical );
++    hAlignBox->layout()->setSpacing( 6 );
++    hAlignBox->layout()->setMargin( 11 );
++    hAlignBoxLayout = new QGridLayout( hAlignBox->layout() );
++    hAlignBoxLayout->setAlignment( Qt::AlignTop );
++
++    PixmapLabel3_2_2 = new QLabel( hAlignBox, "PixmapLabel3_2_2" );
++    PixmapLabel3_2_2->setPixmap( image0 );
++
++    hAlignBoxLayout->addWidget( PixmapLabel3_2_2, 0, 0 );
++
++    PixmapLabel2_2_2 = new QLabel( hAlignBox, "PixmapLabel2_2_2" );
++    PixmapLabel2_2_2->setPixmap( image1 );
++
++    hAlignBoxLayout->addWidget( PixmapLabel2_2_2, 0, 2 );
++
++    PixmapLabel1_2_2 = new QLabel( hAlignBox, "PixmapLabel1_2_2" );
++    PixmapLabel1_2_2->setPixmap( image2 );
++    PixmapLabel1_2_2->setScaledContents( FALSE );
++
++    hAlignBoxLayout->addWidget( PixmapLabel1_2_2, 0, 4 );
++    QSpacerItem* spacer = new QSpacerItem( 20, 20, QSizePolicy::Expanding, QSizePolicy::Minimum );
++    hAlignBoxLayout->addItem( spacer, 0, 1 );
++    QSpacerItem* spacer_2 = new QSpacerItem( 20, 20, QSizePolicy::Expanding, QSizePolicy::Minimum );
++    hAlignBoxLayout->addItem( spacer_2, 0, 3 );
++
++    ahleft = new QRadioButton( hAlignBox, "ahleft" );
++
++    hAlignBoxLayout->addMultiCellWidget( ahleft, 1, 1, 0, 1 );
++
++    ahcenter = new QRadioButton( hAlignBox, "ahcenter" );
++
++    hAlignBoxLayout->addMultiCellWidget( ahcenter, 1, 1, 2, 3 );
++
++    ahnone = new QRadioButton( hAlignBox, "ahnone" );
++    ahnone->setChecked( TRUE );
++
++    hAlignBoxLayout->addMultiCellWidget( ahnone, 2, 2, 2, 3 );
++    QSpacerItem* spacer_3 = new QSpacerItem( 41, 20, QSizePolicy::Expanding, QSizePolicy::Minimum );
++    hAlignBoxLayout->addMultiCell( spacer_3, 2, 2, 0, 1 );
++    QSpacerItem* spacer_4 = new QSpacerItem( 20, 20, QSizePolicy::Expanding, QSizePolicy::Minimum );
++    hAlignBoxLayout->addItem( spacer_4, 0, 5 );
++
++    ahright = new QRadioButton( hAlignBox, "ahright" );
++
++    hAlignBoxLayout->addMultiCellWidget( ahright, 1, 1, 4, 5 );
++    QSpacerItem* spacer_5 = new QSpacerItem( 51, 20, QSizePolicy::Expanding, QSizePolicy::Minimum );
++    hAlignBoxLayout->addMultiCell( spacer_5, 2, 2, 4, 5 );
++
++    alignLayout->addWidget( hAlignBox, 0, 1 );
++
++    aCenterPage = new QCheckBox( align, "aCenterPage" );
++
++    alignLayout->addWidget( aCenterPage, 1, 1 );
++
++    vAlignBox = new QButtonGroup( align, "vAlignBox" );
++    vAlignBox->setColumnLayout(0, Qt::Vertical );
++    vAlignBox->layout()->setSpacing( 6 );
++    vAlignBox->layout()->setMargin( 11 );
++    vAlignBoxLayout = new QGridLayout( vAlignBox->layout() );
++    vAlignBoxLayout->setAlignment( Qt::AlignTop );
++
++    PixmapLabel6_2 = new QLabel( vAlignBox, "PixmapLabel6_2" );
++    PixmapLabel6_2->setPixmap( image3 );
++    PixmapLabel6_2->setAlignment( int( QLabel::AlignTop | QLabel::AlignLeft ) );
++
++    vAlignBoxLayout->addWidget( PixmapLabel6_2, 0, 0 );
++
++    avtop = new QRadioButton( vAlignBox, "avtop" );
++
++    vAlignBoxLayout->addWidget( avtop, 0, 1 );
++
++    PixmapLabel5_2 = new QLabel( vAlignBox, "PixmapLabel5_2" );
++    PixmapLabel5_2->setPixmap( image4 );
++
++    vAlignBoxLayout->addWidget( PixmapLabel5_2, 1, 0 );
++
++    avcenter = new QRadioButton( vAlignBox, "avcenter" );
++
++    vAlignBoxLayout->addWidget( avcenter, 1, 1 );
++
++    PixmapLabel4_2 = new QLabel( vAlignBox, "PixmapLabel4_2" );
++    PixmapLabel4_2->setPixmap( image5 );
++    PixmapLabel4_2->setAlignment( int( QLabel::AlignBottom | QLabel::AlignLeft ) );
++
++    vAlignBoxLayout->addWidget( PixmapLabel4_2, 2, 0 );
++
++    avnone = new QRadioButton( vAlignBox, "avnone" );
++    avnone->setChecked( TRUE );
++
++    vAlignBoxLayout->addWidget( avnone, 3, 1 );
++
++    avbottom = new QRadioButton( vAlignBox, "avbottom" );
++
++    vAlignBoxLayout->addWidget( avbottom, 2, 1 );
++
++    alignLayout->addMultiCellWidget( vAlignBox, 0, 2, 0, 0 );
++    QSpacerItem* spacer_6 = new QSpacerItem( 20, 16, QSizePolicy::Minimum, QSizePolicy::Expanding );
++    alignLayout->addItem( spacer_6, 2, 1 );
++    tab->insertTab( align, QString("") );
++
++    distribute = new QWidget( tab, "distribute" );
++    distributeLayout = new QGridLayout( distribute, 1, 1, 11, 6, "distributeLayout"); 
++
++    ButtonGroup9 = new QButtonGroup( distribute, "ButtonGroup9" );
++    ButtonGroup9->setFrameShape( QButtonGroup::NoFrame );
++    ButtonGroup9->setColumnLayout(0, Qt::Vertical );
++    ButtonGroup9->layout()->setSpacing( 0 );
++    ButtonGroup9->layout()->setMargin( 0 );
++    ButtonGroup9Layout = new QVBoxLayout( ButtonGroup9->layout() );
++    ButtonGroup9Layout->setAlignment( Qt::AlignTop );
++
++    dselection = new QRadioButton( ButtonGroup9, "dselection" );
++    dselection->setChecked( TRUE );
++    ButtonGroup9Layout->addWidget( dselection );
++
++    dpage = new QRadioButton( ButtonGroup9, "dpage" );
++    ButtonGroup9Layout->addWidget( dpage );
++
++    distributeLayout->addWidget( ButtonGroup9, 1, 1 );
++
++    vDistBox = new QButtonGroup( distribute, "vDistBox" );
++    vDistBox->setColumnLayout(0, Qt::Vertical );
++    vDistBox->layout()->setSpacing( 6 );
++    vDistBox->layout()->setMargin( 11 );
++    vDistBoxLayout = new QGridLayout( vDistBox->layout() );
++    vDistBoxLayout->setAlignment( Qt::AlignTop );
++
++    PixmapLabel8_2 = new QLabel( vDistBox, "PixmapLabel8_2" );
++    PixmapLabel8_2->setPixmap( image6 );
++
++    vDistBoxLayout->addWidget( PixmapLabel8_2, 0, 0 );
++
++    dvtop = new QRadioButton( vDistBox, "dvtop" );
++
++    vDistBoxLayout->addWidget( dvtop, 0, 1 );
++
++    dvcenter = new QRadioButton( vDistBox, "dvcenter" );
++
++    vDistBoxLayout->addWidget( dvcenter, 1, 1 );
++
++    PixmapLabel8_3 = new QLabel( vDistBox, "PixmapLabel8_3" );
++    PixmapLabel8_3->setPixmap( image7 );
++
++    vDistBoxLayout->addWidget( PixmapLabel8_3, 1, 0 );
++
++    dvnone = new QRadioButton( vDistBox, "dvnone" );
++    dvnone->setChecked( TRUE );
++
++    vDistBoxLayout->addWidget( dvnone, 4, 1 );
++
++    dvspacing = new QRadioButton( vDistBox, "dvspacing" );
++
++    vDistBoxLayout->addWidget( dvspacing, 2, 1 );
++
++    PixmapLabel8_4 = new QLabel( vDistBox, "PixmapLabel8_4" );
++    PixmapLabel8_4->setPixmap( image8 );
++
++    vDistBoxLayout->addWidget( PixmapLabel8_4, 2, 0 );
++
++    dvbottom = new QRadioButton( vDistBox, "dvbottom" );
++
++    vDistBoxLayout->addWidget( dvbottom, 3, 1 );
++
++    PixmapLabel8_5 = new QLabel( vDistBox, "PixmapLabel8_5" );
++    PixmapLabel8_5->setPixmap( image9 );
++
++    vDistBoxLayout->addWidget( PixmapLabel8_5, 3, 0 );
++
++    distributeLayout->addMultiCellWidget( vDistBox, 0, 1, 0, 0 );
++
++    hDistBox = new QButtonGroup( distribute, "hDistBox" );
++    hDistBox->setColumnLayout(0, Qt::Vertical );
++    hDistBox->layout()->setSpacing( 6 );
++    hDistBox->layout()->setMargin( 11 );
++    hDistBoxLayout = new QGridLayout( hDistBox->layout() );
++    hDistBoxLayout->setAlignment( Qt::AlignTop );
++
++    PixmapLabel10_2 = new QLabel( hDistBox, "PixmapLabel10_2" );
++    PixmapLabel10_2->setPixmap( image10 );
++
++    hDistBoxLayout->addWidget( PixmapLabel10_2, 0, 0 );
++
++    PixmapLabel7_2 = new QLabel( hDistBox, "PixmapLabel7_2" );
++    PixmapLabel7_2->setPixmap( image11 );
++
++    hDistBoxLayout->addWidget( PixmapLabel7_2, 0, 3 );
++
++    PixmapLabel9_2 = new QLabel( hDistBox, "PixmapLabel9_2" );
++    PixmapLabel9_2->setPixmap( image12 );
++
++    hDistBoxLayout->addWidget( PixmapLabel9_2, 0, 1 );
++
++    PixmapLabel8_6 = new QLabel( hDistBox, "PixmapLabel8_6" );
++    PixmapLabel8_6->setPixmap( image13 );
++
++    hDistBoxLayout->addWidget( PixmapLabel8_6, 0, 2 );
++
++    dhleft = new QRadioButton( hDistBox, "dhleft" );
++
++    hDistBoxLayout->addWidget( dhleft, 1, 0 );
++
++    dhspacing = new QRadioButton( hDistBox, "dhspacing" );
++
++    hDistBoxLayout->addWidget( dhspacing, 1, 2 );
++
++    dhright = new QRadioButton( hDistBox, "dhright" );
++
++    hDistBoxLayout->addWidget( dhright, 1, 3 );
++
++    dhcenter = new QRadioButton( hDistBox, "dhcenter" );
++
++    hDistBoxLayout->addWidget( dhcenter, 1, 1 );
++
++    dhnone = new QRadioButton( hDistBox, "dhnone" );
++    dhnone->setChecked( TRUE );
++
++    hDistBoxLayout->addMultiCellWidget( dhnone, 2, 2, 1, 2 );
++
++    distributeLayout->addWidget( hDistBox, 0, 1 );
++    tab->insertTab( distribute, QString("") );
++    AlignDialogLayout->addWidget( tab );
++
++    Layout1 = new QHBoxLayout( 0, 0, 6, "Layout1"); 
++    QSpacerItem* spacer_7 = new QSpacerItem( 20, 20, QSizePolicy::Expanding, QSizePolicy::Minimum );
++    Layout1->addItem( spacer_7 );
++
++    okButton = new QPushButton( this, "okButton" );
++    okButton->setDefault( TRUE );
++    Layout1->addWidget( okButton );
++
++    cancelButton = new QPushButton( this, "cancelButton" );
++    Layout1->addWidget( cancelButton );
++    AlignDialogLayout->addLayout( Layout1 );
++    languageChange();
++    resize( QSize(467, 289).expandedTo(minimumSizeHint()) );
++    clearWState( WState_Polished );
++
++    // signals and slots connections
++    connect( okButton, SIGNAL( clicked() ), this, SLOT( accept() ) );
++    connect( cancelButton, SIGNAL( clicked() ), this, SLOT( reject() ) );
++}
++
++/*
++ *  Destroys the object and frees any allocated resources
++ */
++AlignDialog::~AlignDialog()
++{
++    // no need to delete child widgets, Qt does it all for us
++}
++
++/*
++ *  Sets the strings of the subwidgets using the current
++ *  language.
++ */
++void AlignDialog::languageChange()
++{
++    setCaption( tr2i18n( "Align & Distribute" ) );
++    hAlignBox->setTitle( tr2i18n( "Horizontal" ) );
++    ahleft->setText( tr2i18n( "&Left" ) );
++    ahcenter->setText( tr2i18n( "Ce&nter" ) );
++    ahnone->setText( tr2i18n( "N&one" ) );
++    ahright->setText( tr2i18n( "&Right" ) );
++    aCenterPage->setText( tr2i18n( "Center of &page" ) );
++    vAlignBox->setTitle( tr2i18n( "Vertical" ) );
++    avtop->setText( tr2i18n( "&Top" ) );
++    avcenter->setText( tr2i18n( "C&enter" ) );
++    avnone->setText( tr2i18n( "&None" ) );
++    avbottom->setText( tr2i18n( "&Bottom" ) );
++    tab->changeTab( align, tr2i18n( "&Align" ) );
++    ButtonGroup9->setTitle( QString::null );
++    dselection->setText( tr2i18n( "E&xtent of selection" ) );
++    dpage->setText( tr2i18n( "Extent of pa&ge" ) );
++    vDistBox->setTitle( tr2i18n( "Vertical" ) );
++    dvtop->setText( tr2i18n( "&Top" ) );
++    dvcenter->setText( tr2i18n( "C&enter" ) );
++    dvnone->setText( tr2i18n( "&None" ) );
++    dvspacing->setText( tr2i18n( "&Spacing" ) );
++    dvbottom->setText( tr2i18n( "&Bottom" ) );
++    hDistBox->setTitle( tr2i18n( "Horizontal" ) );
++    dhleft->setText( tr2i18n( "&Left" ) );
++    dhspacing->setText( tr2i18n( "S&pacing" ) );
++    dhright->setText( tr2i18n( "&Right" ) );
++    dhcenter->setText( tr2i18n( "Ce&nter" ) );
++    dhnone->setText( tr2i18n( "N&one" ) );
++    tab->changeTab( distribute, tr2i18n( "&Distribute" ) );
++    okButton->setText( tr2i18n( "&OK" ) );
++    cancelButton->setText( tr2i18n( "&Cancel" ) );
++}
++
++#include "aligndialog.moc"
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ kivio/kiviopart/ui/export_page_dialog_base.cpp	10 Aug 2003 21:19:43 -0000	1.1
+@@ -0,0 +1,135 @@
++#include <klocale.h>
++/****************************************************************************
++** Form implementation generated from reading ui file './export_page_dialog_base.ui'
++**
++** Created: Sun May 11 19:13:35 2003
++**      by: The User Interface Compiler ($Id$)
++**
++** WARNING! All changes made in this file will be lost!
++****************************************************************************/
++
++#include "export_page_dialog_base.h"
++
++#include <qvariant.h>
++#include <qlabel.h>
++#include <qbuttongroup.h>
++#include <qcheckbox.h>
++#include <qradiobutton.h>
++#include <qspinbox.h>
++#include <qpushbutton.h>
++#include <qlayout.h>
++#include <qtooltip.h>
++#include <qwhatsthis.h>
++
++/* 
++ *  Constructs a ExportPageDialogBase as a child of 'parent', with the 
++ *  name 'name' and widget flags set to 'f'.
++ *
++ *  The dialog will by default be modeless, unless you set 'modal' to
++ *  TRUE to construct a modal dialog.
++ */
++ExportPageDialogBase::ExportPageDialogBase( QWidget* parent, const char* name, bool modal, WFlags fl )
++    : QDialog( parent, name, modal, fl )
++{
++    if ( !name )
++	setName( "ExportPageDialogBase" );
++    setBaseSize( QSize( 0, 0 ) );
++    ExportPageDialogBaseLayout = new QGridLayout( this, 1, 1, 11, 6, "ExportPageDialogBaseLayout"); 
++
++    TextLabel2 = new QLabel( this, "TextLabel2" );
++
++    ExportPageDialogBaseLayout->addWidget( TextLabel2, 1, 0 );
++
++    TextLabel3 = new QLabel( this, "TextLabel3" );
++
++    ExportPageDialogBaseLayout->addWidget( TextLabel3, 2, 0 );
++
++    ButtonGroup1 = new QButtonGroup( this, "ButtonGroup1" );
++    ButtonGroup1->setSizePolicy( QSizePolicy( (QSizePolicy::SizeType)3, (QSizePolicy::SizeType)3, 0, 0, ButtonGroup1->sizePolicy().hasHeightForWidth() ) );
++
++    m_checkCrop = new QCheckBox( ButtonGroup1, "m_checkCrop" );
++    m_checkCrop->setEnabled( FALSE );
++    m_checkCrop->setGeometry( QRect( 9, 82, 242, 20 ) );
++
++    m_radioSelectedStencils = new QRadioButton( ButtonGroup1, "m_radioSelectedStencils" );
++    m_radioSelectedStencils->setGeometry( QRect( 10, 48, 249, 20 ) );
++
++    m_radioFullPage = new QRadioButton( ButtonGroup1, "m_radioFullPage" );
++    m_radioFullPage->setGeometry( QRect( 10, 20, 246, 20 ) );
++    m_radioFullPage->setChecked( TRUE );
++    ButtonGroup1->insert( m_radioFullPage, 1 );
++
++    ExportPageDialogBaseLayout->addMultiCellWidget( ButtonGroup1, 0, 0, 0, 2 );
++
++    m_spinQuality = new QSpinBox( this, "m_spinQuality" );
++    m_spinQuality->setMaxValue( 100 );
++    m_spinQuality->setValue( 100 );
++
++    ExportPageDialogBaseLayout->addMultiCellWidget( m_spinQuality, 1, 1, 1, 2 );
++
++    m_spinBorder = new QSpinBox( this, "m_spinBorder" );
++    m_spinBorder->setMaxValue( 10000 );
++
++    ExportPageDialogBaseLayout->addMultiCellWidget( m_spinBorder, 2, 2, 1, 2 );
++
++    m_cancel = new QPushButton( this, "m_cancel" );
++
++    ExportPageDialogBaseLayout->addWidget( m_cancel, 3, 2 );
++
++    m_ok = new QPushButton( this, "m_ok" );
++
++    ExportPageDialogBaseLayout->addMultiCellWidget( m_ok, 3, 3, 0, 1 );
++    languageChange();
++    resize( QSize(290, 224).expandedTo(minimumSizeHint()) );
++    clearWState( WState_Polished );
++
++    // buddies
++    TextLabel2->setBuddy( m_spinQuality );
++    TextLabel3->setBuddy( m_spinBorder );
++}
++
++/*
++ *  Destroys the object and frees any allocated resources
++ */
++ExportPageDialogBase::~ExportPageDialogBase()
++{
++    // no need to delete child widgets, Qt does it all for us
++}
++
++/*
++ *  Sets the strings of the subwidgets using the current
++ *  language.
++ */
++void ExportPageDialogBase::languageChange()
++{
++    setCaption( tr2i18n( "Export Page" ) );
++    TextLabel2->setText( tr2i18n( "&Quality:" ) );
++    TextLabel3->setText( tr2i18n( "&Border:" ) );
++    ButtonGroup1->setTitle( tr2i18n( "Export" ) );
++    m_checkCrop->setText( tr2i18n( "C&rop picture to edges" ) );
++    QToolTip::add( m_checkCrop, tr2i18n( "Don't export extra blank space to file" ) );
++    QWhatsThis::add( m_checkCrop, tr2i18n( "<b>Crop picture to edges</b><br>\n"
++"This will eliminate all blank portions of the drawing. The picture will only be as large as the stencils it contains. If your stencils are located in the upper right corner of the page, then only the upper right corner will be exported." ) );
++    m_radioSelectedStencils->setText( tr2i18n( "&Selected stencils" ) );
++    QToolTip::add( m_radioSelectedStencils, tr2i18n( "Export the selected stencils on the current page" ) );
++    QWhatsThis::add( m_radioSelectedStencils, tr2i18n( "<b>Selected Stencils</b><br>\n"
++"Export only the selected stencils to file." ) );
++    m_radioFullPage->setText( tr2i18n( "&All stencils" ) );
++    QToolTip::add( m_radioFullPage, tr2i18n( "Export all stencils on the current page" ) );
++    QWhatsThis::add( m_radioFullPage, tr2i18n( "<b>All Stencils</b><br>\n"
++"This will cause the entire page to be exported to the file. This means that <i>all</i> stencils will be exported." ) );
++    QToolTip::add( m_spinQuality, tr2i18n( "The higher the quality, the more space the file takes up." ) );
++    QWhatsThis::add( m_spinQuality, tr2i18n( "<b>Quality</b><br>\n"
++"Not all file formats use this. But for those that do, this affects the quality of the image that gets exported. 100 is the maximum quality. The higher the number, the better the picture looks. The downside is the higher the number, the larger the filesize." ) );
++    QToolTip::add( m_spinBorder, tr2i18n( "An optional border of whitespace around the page, in pixels" ) );
++    QWhatsThis::add( m_spinBorder, tr2i18n( "<b>Border</b><br>\n"
++"Places a blank border around the edges of the image. This can be used if for one reason or another, the stencils don't fit into the export page with a 0-pixel border (default)." ) );
++    m_cancel->setText( tr2i18n( "&Cancel" ) );
++    QWhatsThis::add( m_cancel, tr2i18n( "<b>Cancel</b><br>\n"
++"Abort the page export." ) );
++    m_ok->setText( tr2i18n( "&OK" ) );
++    QWhatsThis::add( m_ok, tr2i18n( "<b>OK</b><br>\n"
++"Export the page with the current settings." ) );
++}
++
++#include "export_page_dialog_base.moc"
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ kivio/kiviopart/ui/kivio_birdeye_panel_base.cpp	10 Aug 2003 21:19:43 -0000	1.1
+@@ -0,0 +1,106 @@
++#include <klocale.h>
++/****************************************************************************
++** Form implementation generated from reading ui file './kivio_birdeye_panel_base.ui'
++**
++** Created: Sun May 11 19:13:34 2003
++**      by: The User Interface Compiler ($Id$)
++**
++** WARNING! All changes made in this file will be lost!
++****************************************************************************/
++
++#include "kivio_birdeye_panel_base.h"
++
++#include <qvariant.h>
++#include <qframe.h>
++#include <qslider.h>
++#include <qspinbox.h>
++#include <qlayout.h>
++#include <qtooltip.h>
++#include <qwhatsthis.h>
++#include <qimage.h>
++#include <qpixmap.h>
++
++#include "ktoolbar.h"
++/* 
++ *  Constructs a KivioBirdEyePanelBase as a child of 'parent', with the 
++ *  name 'name' and widget flags set to 'f'.
++ */
++KivioBirdEyePanelBase::KivioBirdEyePanelBase( QWidget* parent, const char* name, WFlags fl )
++    : QWidget( parent, name, fl )
++{
++    if ( !name )
++	setName( "KivioBirdEyePanelBase" );
++    setSizePolicy( QSizePolicy( (QSizePolicy::SizeType)1, (QSizePolicy::SizeType)1, 0, 0, sizePolicy().hasHeightForWidth() ) );
++    KivioBirdEyePanelBaseLayout = new QVBoxLayout( this, 0, 0, "KivioBirdEyePanelBaseLayout"); 
++
++    bar = new KToolBar( this, "bar" );
++    KivioBirdEyePanelBaseLayout->addWidget( bar );
++
++    Layout1 = new QGridLayout( 0, 1, 1, 0, 3, "Layout1"); 
++
++    canvas = new QFrame( this, "canvas" );
++    canvas->setMouseTracking( TRUE );
++    canvas->setFrameShape( QFrame::Box );
++    canvas->setFrameShadow( QFrame::Raised );
++
++    Layout1->addMultiCellWidget( canvas, 0, 0, 0, 1 );
++
++    slider = new QSlider( this, "slider" );
++    slider->setMinValue( 5 );
++    slider->setMaxValue( 500 );
++    slider->setValue( 100 );
++    slider->setOrientation( QSlider::Horizontal );
++
++    Layout1->addWidget( slider, 1, 0 );
++
++    zoomBox = new QSpinBox( this, "zoomBox" );
++    zoomBox->setButtonSymbols( QSpinBox::PlusMinus );
++    zoomBox->setMaxValue( 10000 );
++    zoomBox->setMinValue( 5 );
++    zoomBox->setValue( 100 );
++
++    Layout1->addWidget( zoomBox, 1, 1 );
++    KivioBirdEyePanelBaseLayout->addLayout( Layout1 );
++    languageChange();
++    resize( QSize(281, 293).expandedTo(minimumSizeHint()) );
++    clearWState( WState_Polished );
++
++    // signals and slots connections
++    connect( slider, SIGNAL( valueChanged(int) ), this, SLOT( zoomChanged(int) ) );
++    connect( zoomBox, SIGNAL( valueChanged(int) ), this, SLOT( zoomChanged(int) ) );
++}
++
++/*
++ *  Destroys the object and frees any allocated resources
++ */
++KivioBirdEyePanelBase::~KivioBirdEyePanelBase()
++{
++    // no need to delete child widgets, Qt does it all for us
++}
++
++/*
++ *  Sets the strings of the subwidgets using the current
++ *  language.
++ */
++void KivioBirdEyePanelBase::languageChange()
++{
++    setCaption( tr2i18n( "KivioBirdEyePanelBase" ) );
++    zoomBox->setSuffix( tr2i18n( "%" ) );
++}
++
++void KivioBirdEyePanelBase::zoomChanged(int)
++{
++    qWarning( "KivioBirdEyePanelBase::zoomChanged(int): Not implemented yet" );
++}
++
++void KivioBirdEyePanelBase::zoomMinus()
++{
++    qWarning( "KivioBirdEyePanelBase::zoomMinus(): Not implemented yet" );
++}
++
++void KivioBirdEyePanelBase::zoomPlus()
++{
++    qWarning( "KivioBirdEyePanelBase::zoomPlus(): Not implemented yet" );
++}
++
++#include "kivio_birdeye_panel_base.moc"
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ kivio/kiviopart/ui/kivio_layer_panel_base.cpp	10 Aug 2003 21:19:43 -0000	1.1
+@@ -0,0 +1,111 @@
++#include <klocale.h>
++/****************************************************************************
++** Form implementation generated from reading ui file './kivio_layer_panel_base.ui'
++**
++** Created: Sun May 11 19:13:35 2003
++**      by: The User Interface Compiler ($Id$)
++**
++** WARNING! All changes made in this file will be lost!
++****************************************************************************/
++
++#include "kivio_layer_panel_base.h"
++
++#include <qvariant.h>
++#include <qheader.h>
++#include <qlistview.h>
++#include <qlayout.h>
++#include <qtooltip.h>
++#include <qwhatsthis.h>
++#include <qimage.h>
++#include <qpixmap.h>
++
++#include "ktoolbar.h"
++static const char* const img21_kivio_layer_panel_base[] = { 
++"22 22 2 1",
++". c None",
++"# c #a1c410",
++"........######........",
++".....###########......",
++"....##############....",
++"...################...",
++"..######......######..",
++"..#####........#####..",
++".#####.......#..#####.",
++".####.......###..####.",
++"####.......#####..####",
++"####......#####...####",
++"####....#######...####",
++"####....######....####",
++"####...########...####",
++".####.##########..####",
++".####..####.#########.",
++".#####..##...########.",
++"..#####.......#######.",
++"..######......######..",
++"...###################",
++"....##################",
++"......###########.###.",
++"........######.....#.."};
++
++
++/* 
++ *  Constructs a KivioLayerPanelBase as a child of 'parent', with the 
++ *  name 'name' and widget flags set to 'f'.
++ */
++KivioLayerPanelBase::KivioLayerPanelBase( QWidget* parent, const char* name, WFlags fl )
++    : QWidget( parent, name, fl ),
++      image21( (const char **) img21_kivio_layer_panel_base )
++{
++    if ( !name )
++	setName( "KivioLayerPanelBase" );
++    KivioLayerPanelBaseLayout = new QVBoxLayout( this, 0, 0, "KivioLayerPanelBaseLayout"); 
++
++    bar = new KToolBar( this, "bar" );
++    KivioLayerPanelBaseLayout->addWidget( bar );
++
++    list = new QListView( this, "list" );
++    list->setAllColumnsShowFocus( TRUE );
++    KivioLayerPanelBaseLayout->addWidget( list );
++    languageChange();
++    resize( QSize(177, 240).expandedTo(minimumSizeHint()) );
++    clearWState( WState_Polished );
++
++    // signals and slots connections
++    connect( list, SIGNAL( currentChanged(QListViewItem*) ), this, SLOT( updateButtons(QListViewItem*) ) );
++    connect( list, SIGNAL( currentChanged(QListViewItem*) ), this, SLOT( itemActivated(QListViewItem*) ) );
++    connect( list, SIGNAL( clicked(QListViewItem*,const QPoint&,int) ), this, SLOT( itemClicked(QListViewItem*,const QPoint&,int) ) );
++}
++
++/*
++ *  Destroys the object and frees any allocated resources
++ */
++KivioLayerPanelBase::~KivioLayerPanelBase()
++{
++    // no need to delete child widgets, Qt does it all for us
++}
++
++/*
++ *  Sets the strings of the subwidgets using the current
++ *  language.
++ */
++void KivioLayerPanelBase::languageChange()
++{
++    setCaption( QString::null );
++}
++
++void KivioLayerPanelBase::itemActivated(QListViewItem*)
++{
++    qWarning( "KivioLayerPanelBase::itemActivated(QListViewItem*): Not implemented yet" );
++}
++
++void KivioLayerPanelBase::itemClicked(QListViewItem*,const QPoint&,int)
++{
++    qWarning( "KivioLayerPanelBase::itemClicked(QListViewItem*,const QPoint&,int): Not implemented yet" );
++}
++
++void KivioLayerPanelBase::updateButtons(QListViewItem*)
++{
++    qWarning( "KivioLayerPanelBase::updateButtons(QListViewItem*): Not implemented yet" );
++}
++
++#include "kivio_layer_panel_base.moc"
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ kivio/kiviopart/ui/kivio_protection_panel_base.cpp	10 Aug 2003 21:19:43 -0000	1.1
+@@ -0,0 +1,89 @@
++#include <klocale.h>
++/****************************************************************************
++** Form implementation generated from reading ui file './kivio_protection_panel_base.ui'
++**
++** Created: Sun May 11 19:13:35 2003
++**      by: The User Interface Compiler ($Id$)
++**
++** WARNING! All changes made in this file will be lost!
++****************************************************************************/
++
++#include "kivio_protection_panel_base.h"
++
++#include <qvariant.h>
++#include <qcheckbox.h>
++#include <qlayout.h>
++#include <qtooltip.h>
++#include <qwhatsthis.h>
++
++/* 
++ *  Constructs a KivioProtectionPanelBase as a child of 'parent', with the 
++ *  name 'name' and widget flags set to 'f'.
++ */
++KivioProtectionPanelBase::KivioProtectionPanelBase( QWidget* parent, const char* name, WFlags fl )
++    : QWidget( parent, name, fl )
++{
++    if ( !name )
++	setName( "KivioProtectionPanelBase" );
++    setMinimumSize( QSize( 120, 120 ) );
++    setMaximumSize( QSize( 120, 120 ) );
++
++    m_checkXPosition = new QCheckBox( this, "m_checkXPosition" );
++    m_checkXPosition->setGeometry( QRect( 0, 60, 120, 20 ) );
++
++    m_checkYPosition = new QCheckBox( this, "m_checkYPosition" );
++    m_checkYPosition->setGeometry( QRect( 0, 80, 120, 20 ) );
++
++    m_checkHeight = new QCheckBox( this, "m_checkHeight" );
++    m_checkHeight->setGeometry( QRect( 0, 20, 120, 20 ) );
++
++    m_checkWidth = new QCheckBox( this, "m_checkWidth" );
++    m_checkWidth->setGeometry( QRect( 0, 0, 120, 20 ) );
++
++    m_checkAspect = new QCheckBox( this, "m_checkAspect" );
++    m_checkAspect->setGeometry( QRect( 0, 41, 120, 16 ) );
++
++    m_checkDeletion = new QCheckBox( this, "m_checkDeletion" );
++    m_checkDeletion->setGeometry( QRect( 0, 100, 143, 20 ) );
++    languageChange();
++    resize( QSize(120, 120).expandedTo(minimumSizeHint()) );
++    clearWState( WState_Polished );
++
++    // tab order
++    setTabOrder( m_checkWidth, m_checkHeight );
++    setTabOrder( m_checkHeight, m_checkAspect );
++    setTabOrder( m_checkAspect, m_checkXPosition );
++    setTabOrder( m_checkXPosition, m_checkYPosition );
++    setTabOrder( m_checkYPosition, m_checkDeletion );
++}
++
++/*
++ *  Destroys the object and frees any allocated resources
++ */
++KivioProtectionPanelBase::~KivioProtectionPanelBase()
++{
++    // no need to delete child widgets, Qt does it all for us
++}
++
++/*
++ *  Sets the strings of the subwidgets using the current
++ *  language.
++ */
++void KivioProtectionPanelBase::languageChange()
++{
++    setCaption( tr2i18n( "Protection" ) );
++    m_checkXPosition->setText( tr2i18n( "&X position" ) );
++    QToolTip::add( m_checkXPosition, tr2i18n( "Toggles the ability to protect the x position of the selected stencils" ) );
++    m_checkYPosition->setText( tr2i18n( "&Y position" ) );
++    QToolTip::add( m_checkYPosition, tr2i18n( "Toggles the ability to protect the y position of the selected stencils" ) );
++    m_checkHeight->setText( tr2i18n( "&Height" ) );
++    QToolTip::add( m_checkHeight, tr2i18n( "Toggles the ability to change the height of the selected stencils" ) );
++    m_checkWidth->setText( tr2i18n( "&Width" ) );
++    QToolTip::add( m_checkWidth, tr2i18n( "Toggles the ability to change the width of the selected stencils" ) );
++    m_checkAspect->setText( tr2i18n( "&Aspect ratio" ) );
++    QToolTip::add( m_checkAspect, tr2i18n( "Toggles the ability to change the aspect ratio of the selected stencils" ) );
++    m_checkDeletion->setText( tr2i18n( "&Deletion" ) );
++    QToolTip::add( m_checkDeletion, tr2i18n( "Toggles the ability to delete the selected stencils" ) );
++}
++
++#include "kivio_protection_panel_base.moc"
+--- kivio/plugins/kivioconnectortool/Makefile.am	10 Aug 2003 15:21:20 -0000	1.1.1.6
++++ kivio/plugins/kivioconnectortool/Makefile.am	10 Aug 2003 16:11:32 -0000	1.6
 @@ -1,5 +1,6 @@
  SUBDIRS = straight_connector
 -lib_LTLIBRARIES =libkivioconnectortool.la
@@ -2618,8 +1909,8 @@
  {
    KAboutData * aboutData = new KAboutData( "koshell", I18N_NOOP("KOffice Workspace"),
       version, description, KAboutData::License_GPL,
---- kpresenter/Makefile.am	25 Apr 2003 15:45:57 -0000	1.1.1.4
-+++ kpresenter/Makefile.am	9 Jul 2003 14:40:36 -0000	1.6
+--- kpresenter/Makefile.am	10 Aug 2003 15:21:33 -0000	1.1.1.5
++++ kpresenter/Makefile.am	10 Aug 2003 16:11:32 -0000	1.7
 @@ -54,19 +54,12 @@
  libkpresenterpart_la_METASOURCES = AUTO
  
@@ -2644,8 +1935,8 @@
  
  noinst_HEADERS = koPointArray.h kprcanvas.h kprpage.h kpresenter_doc.h kpresenter_view.h \
  		backdia.h styledia.h \
---- kpresenter/kpresenter_view.cc	5 Jul 2003 18:32:37 -0000	1.1.1.7
-+++ kpresenter/kpresenter_view.cc	6 Jul 2003 14:12:02 -0000	1.11
+--- kpresenter/kpresenter_view.cc	10 Aug 2003 15:21:31 -0000	1.1.1.8
++++ kpresenter/kpresenter_view.cc	10 Aug 2003 16:11:33 -0000	1.12
 @@ -4276,7 +4276,7 @@
      //(Laurent) deselect object when we change page.
      //otherwise you can change object properties on other page
@@ -2837,8 +2128,8 @@
  {
  
  	KCmdLineArgs::init( argc, argv, newKugarAboutData() );
---- kword/Makefile.am	5 Jul 2003 18:33:34 -0000	1.1.1.5
-+++ kword/Makefile.am	6 Jul 2003 21:05:06 -0000	1.6
+--- kword/Makefile.am	10 Aug 2003 15:22:39 -0000	1.1.1.6
++++ kword/Makefile.am	10 Aug 2003 16:11:34 -0000	1.7
 @@ -1,3 +1,4 @@
 +KDE_OPTIONS = nofinal
  
