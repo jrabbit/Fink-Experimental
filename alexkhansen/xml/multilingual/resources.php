@@ -1,7 +1,7 @@
 <?
 $title = "i18n - resources";
 $cvs_author = 'Author: alexkhansen';
-$cvs_date = 'Date: 2004/03/04 21:43:46';
+$cvs_date = 'Date: 2004/03/04 22:05:44';
 
 $metatags = '<link rel="contents" href="index.php" title="i18n Contents"><link rel="prev" href="procedure.php" title="Procedure for Updating Documents">';
 

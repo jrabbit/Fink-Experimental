@@ -1,7 +1,7 @@
 <?
 $title = "i18n - Files";
 $cvs_author = 'Author: alexkhansen';
-$cvs_date = 'Date: 2004/03/04 19:13:52';
+$cvs_date = 'Date: 2004/03/04 22:05:44';
 
 $metatags = '<link rel="contents" href="index.php" title="i18n Contents"><link rel="next" href="procedure.php" title="Procedure for Updating Documents"><link rel="prev" href="intro.php" title="Introduction">';
 
@@ -47,16 +47,23 @@ For <code>bash</code> and <code>zsh</code>:
 For <code>tcsh</code>:
 <pre>setenv CVS_RSH ssh</pre>
         </li>
-        <li>
-Login to cvs.sourceforge.net:
-<pre>cvs -d:pserver:anonymous@cvs.sourceforge.net:/cvsroot/fink login</pre>
-        </li>
-        <li>
+        <li>Login to cvs.sourceforge.net.  If you aren't signed up for CVS access yet, then you can do this anonymously:
+<ol>
+            <li>
+              <pre>cvs -d:pserver:anonymous@cvs.sourceforge.net:/cvsroot/fink login</pre>
+            </li>
+            <li>
 Push the enter key (no password, anonymous as default)
 </li>
-        <li>
+            <li>
 Check out the xml module (for example):
 <pre>cvs -z3 -d:pserver:anonymous@cvs.sourceforge.net:/cvsroot/fink co web/xml</pre>
+            </li>
+          </ol>If you do have commits access, you may prefer to check out using your username:<ol>
+            <li>You don't have to do the login step above, but can go right to<pre>cvs -z3 -d:ext:yourusername@cvs.sourceforge.net:/cvsroot/fink co web/xml</pre>
+    where <b>yourusername</b> is of course your SourceForge username.</li>
+            <li>In this case you should enter your SourceForge passport at the prompt.</li>
+          </ol>
         </li>
       </ol>
     
@@ -68,8 +75,8 @@ Check out the xml module (for example):
         Title (English version file)</p>
       <ol>
         <li>Constants file (<code>web/xml/web/constants.*.inc</code>)(see below)</li>
-        <li>et. al)Static PHP files (<code>web/xml/web/*.en.php</code>
-        </li>
+        <li>Static PHP files (e.g. <code>web/xml/web/*.en.php</code>)
+  </li>
         <li>User's Guide (<code>web/xml/uguide.xml</code>)</li>
         <li>FAQ (<code>web/xml/faq.xml</code>)</li>
         <li>Running X11 (<code>web/xml/x11/x11.xml</code>)</li>
@@ -155,18 +162,11 @@ environment variable to something more friendly, e.g. for bash and zsh:</p>
 <pre>cd ~/Documents/Fink-i18n/web/xml/web</pre>
               <p>if you created your <code>web</code> tree under <code>Documents/Fink-i18n/</code> in your home folder, and you want to commit a PHP file from the web/xml/web directory.</p>
             </li>
-            <li>Login to cvs.sourceforge.net, using your SourceForge username:
-<pre>cvs -d:pserver:<b>username</b>@cvs.sourceforge.net:/cvsroot/fink login</pre>
+            <li>If the file is a new one that you've created, then you need to add it to the list of files, e,g.:<pre>cvs -z3 -d:ext:yourusername@cvs.sourceforge.net:/cvsroot/fink add download.ru.php</pre>Give your SourceForge password at the prompt.  You may get a message about the DSA key of the server being unknown.  Go ahead and answer yes.
+    <p>If the file already exists, you can skip to the next step.</p>
             </li>
-            <li>Give your SourceForge password, then hit Enter.
-</li>
-            <li>If the file is a new one that you've created, then you need to add it to the list of files, e,g.:<pre>cvs -z3 -d:ext:username@cvs.sourceforge.net:/cvsroot/fink add download.ru.php</pre>
-              <p>You may get a message about the DSA key of the server.  Go ahead and anwer yes.</p>
-              <p>If the file already exists, you can skip to the next step.</p>
-            </li>
-            <li>Commit the file, e.g. in the prior example:<pre>cvs -z3 -d:ext:username@cvs.sourceforge.net:/cvsroot/fink ci download.ru.php</pre>
-              <p>You may get a message about the DSA key of the server.  Go ahead and anwer yes.</p>
-              <p>Note:  you can commit multiple files at once, and use wildcards, too.</p>
+            <li>Commit the file, e.g. in the prior example:<pre>cvs -z3 -d:ext:yourusername@cvs.sourceforge.net:/cvsroot/fink ci download.ru.php</pre>Give your SourceForge password at the prompt.  You may get a message about the DSA key of the server being unknown.  Go ahead and answer yes.
+    <p>Note:  you can commit multiple files at once, and use wildcards, too.</p>
             </li>
           </ol>
         </li>
@@ -192,7 +192,7 @@ environment variable to something more friendly, e.g. for bash and zsh:</p>
             <li>In Terminal 2 move to the directory that contains the file you've added or modified, e.g.<pre>cd ~/Documents/Fink-i18n/web/xml/faq</pre>if you've been working on the FAQ.</li>
             <li>Now in Terminal 2, run<pre>make</pre>
             </li>
-            <li>In Terminal 2, if the .xml file is a new one that you've created, then you need to add it to the list of files, e,g.:<pre>cvs -z3 -d:ext:username@cvs.sourceforge.net:/cvsroot/fink add faq.ru.php</pre>
+            <li>In Terminal 2, if the .xml file is a new one that you've created, then you need to add it to the list of files, e,g.:<pre>cvs -z3 -d:ext:username@cvs.sourceforge.net:/cvsroot/fink add faq.ru.xml</pre>
     You'll need to give your SourceForge password.  You may get a message about the DSA key of the server.  Go ahead and anwer yes.
     <p>If the file already exists, you can skip to the next step.</p>
             </li>

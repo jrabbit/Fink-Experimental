@@ -1,7 +1,7 @@
 <?
 $title = "i18n";
 $cvs_author = 'Author: alexkhansen';
-$cvs_date = 'Date: 2004/03/04 21:43:46';
+$cvs_date = 'Date: 2004/03/04 22:05:44';
 
 $metatags = '<link rel="contents" href="index.php" title="i18n Contents"><link rel="next" href="intro.php" title="Introduction">';
 
@@ -41,7 +41,7 @@ to contribute to the i18n effort for the Fink website.</p>
 <ul>
 <li><a href="resources.php#resources">4.1 </a></li>
 </ul>
-</ul><p>Generated from <i>$Fink: multilingual.xml,v 1.4 2004/03/04 21:43:46 alexkhansen Exp $</i></p>
+</ul><p>Generated from <i>$Fink: multilingual.xml,v 1.5 2004/03/04 22:05:44 alexkhansen Exp $</i></p>
 
 
 <?
