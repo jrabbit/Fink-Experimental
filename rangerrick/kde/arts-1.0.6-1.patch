@@ -1,111 +1,35 @@
 Index: admin/Makefile.common
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/admin/Makefile.common,v
-retrieving revision 1.1.1.2
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.2 -r1.3
---- admin/Makefile.common	25 Jun 2002 03:35:55 -0000	1.1.1.2
-+++ admin/Makefile.common	25 Jun 2002 03:36:46 -0000	1.3
-@@ -1,24 +1,12 @@
- 
- SHELL=/bin/sh
- 
-+ACLOCAL=aclocal-1.5
-+AUTOMAKE=automake-1.5
-+AUTOCONF=autoconf
-+
- cvs:
--	if test -x /usr/bin/autoconf2.50 ; then \
--	   AUTOCONF="/usr/bin/autoconf2.50" ;\
--	else \
--	   AUTOCONF="autoconf" ;\
--	fi; \
--	AUTOCONF_VERSION=`$$AUTOCONF --version` ;\
--	if test "x$$AUTOCONF_VERSION" = "xAutoconf version 2.13"; then \
--	   echo "*** YOU'RE USING AUTOCONF 2.13. We suggest updating." ;\
--	   echo "*** autoconf 2.5x works best for now, we will drop" ;\
--	   echo "*** support for autoconf 2.13 soon."; \
--	   test ! -f admin/libtool.m4.in || mv admin/libtool.m4.in admin/new-libtool.m4.in ;\
--	   test ! -f admin/ltmain.sh || mv admin/ltmain.sh admin/new-ltmain.sh ;\
--	   for file in libtool.m4.in ltcf-c.sh ltcf-cxx.sh ltcf-gcj.sh ltconfig ltmain.sh; do \
--		rm -f admin/$$file ;\
--		ln -s old-$$file admin/$$file ;\
--	   done ;\
--	fi 
-+	@chmod a+x admin/*
- 	@if grep '$$(top_srcdir)/acinclude.m4:' Makefile.am >/dev/null; then \
- 	  echo "*** Creating acinclude.m4" ;\
- 	  rm -f acinclude.m4 configure.files ;\
-@@ -34,7 +22,7 @@
- 	  $(MAKE) -f Makefile.am top_srcdir=. configure.in ;\
- 	fi
- 	@echo "*** Creating aclocal.m4"
--	@aclocal
-+	@$(ACLOCAL)
- 	@echo "*** Creating configure"
- 	@autoconf
- 	@if test -r configure.in.in ; then \
-@@ -52,7 +40,7 @@
- 		autoheader ;\
- 	fi
- 	@echo "*** Creating Makefile templates"
--	@automake
-+	@$(AUTOMAKE)
- 	@echo "*** Postprocessing Makefile templates"
- 	@perl admin/am_edit
- 	@if egrep "^cvs-local:" Makefile.am >/dev/null; then \
-@@ -71,9 +59,9 @@
- 	@if test -r configure.in.in; then \
- 	  $(MAKE) -f Makefile.am top_srcdir=. subdirs configure.in; \
- 	fi ;\
--	aclocal; \
-+	$(ACLOCAL); \
- 	autoheader; \
--	automake --foreign --include-deps; \
-+	$(AUTOMAKE) --foreign --include-deps; \
- 	perl admin/am_edit; \
- 	autoconf; \
- 	if test -r configure.in.in ; then \
-@@ -281,7 +269,9 @@
- 	done ;\
- 	rm -f _SUBDIRS ;\
- 	for i in $$dirs; do \
-+	if [ $$i != "kdm" ]; then \
- 	echo $$i >> ./_SUBDIRS; \
-+        fi \
- 	done
- 	@if test -r subdirs && diff subdirs _SUBDIRS > /dev/null; then \
- 	  rm -f _SUBDIRS; \
+retrieving revision 1.1.1.3
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.3 -r1.4
 Index: admin/acinclude.m4.in
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/admin/acinclude.m4.in,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- admin/acinclude.m4.in	25 Jun 2002 03:34:27 -0000	1.1.1.1
-+++ admin/acinclude.m4.in	25 Jun 2002 03:35:36 -0000	1.2
-@@ -693,6 +693,19 @@
-    AC_CHECK_FUNC(shmat, ,
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- admin/acinclude.m4.in	10 Jul 2002 02:47:38 -0000	1.1.1.2
++++ admin/acinclude.m4.in	10 Jul 2002 02:50:11 -0000	1.3
+@@ -699,13 +699,10 @@
       AC_CHECK_LIB(ipc, shmat, X_EXTRA_LIBS="$X_EXTRA_LIBS -lipc"))
     
-+   # darwin needs this to initialize the environment
+    # darwin needs this to initialize the environment
+-   AC_CHECK_HEADERS(crt_externs.h)
 +   AC_CHECK_HEADERS([crt_externs.h sys/types.h])
-+   AC_CHECK_FUNC(_NSGetEnviron, [AC_DEFINE(HAVE_NSGETENVIRON, 1, [Define if your system needs _NSGetEnviron to set up the environment])])
-+
+    AC_CHECK_FUNC(_NSGetEnviron, [AC_DEFINE(HAVE_NSGETENVIRON, 1, [Define if your system needs _NSGetEnviron to set up the environment])])
+  
+-   # more headers that need to be explicitly included on darwin
+-   AC_CHECK_HEADERS(sys/types.h stdint.h)
+-
+-   # darwin requires a poll emulation library
 +   # darwin requires a poll.h emulation library
-+   AC_CHECK_LIB(poll, poll, LIB_POLL="-lpoll")
-+
-+   # CoreAudio framework
-+   AC_CHECK_HEADER(CoreAudio/CoreAudio.h, [
-+     AC_DEFINE(HAVE_COREAUDIO, 1, [Define if you have the CoreAudio API])
-+     FRAMEWORK_COREAUDIO="-framework CoreAudio"
-+   ])
-+
-    # Solaris 2.6 and others need -lresolv for res_init
-    AC_CHECK_FUNCS(res_init, , [
-      kde_libs_safe="$LIBS"
-@@ -713,6 +726,8 @@
+    AC_CHECK_LIB(poll, poll, LIB_POLL="-lpoll")
  
+    # CoreAudio framework
+@@ -736,6 +733,8 @@
+    AC_SUBST(FRAMEWORK_COREAUDIO)
     LIBSOCKET="$X_EXTRA_LIBS"
     AC_SUBST(LIBSOCKET)
 +   AC_SUBST(FRAMEWORK_COREAUDIO)
@@ -113,49 +37,42 @@ diff -u -b -u -r1.1.1.1 -r1.2
     AC_SUBST(LIBRESOLV)
     AC_SUBST(X_EXTRA_LIBS)
     AC_CHECK_LIB(ucb, killpg, [LIBUCB="-lucb"]) dnl for Solaris2.4
-@@ -1826,6 +1841,32 @@
+@@ -1846,15 +1845,29 @@
+    AC_REQUIRE([K_PATH_X])
+ 
  if test $kde_qtver = 3; then
-    LIB_KDECORE='-lkdecore'
-    AC_SUBST(LIB_KDECORE)
-+   LIB_KDEFX='-lkdefx'
-+   AC_SUBST(LIB_KDEFX)
-+   LIB_ARTSKDE='-lartskde'
-+   AC_SUBST(LIB_ARTSKDE)
-+   LIB_KABC='-lkabc'
-+   AC_SUBST(LIB_KABC)
-+   LIB_KDESASL='-lkdesasl'
-+   AC_SUBST(LIB_KDESASL)
-+   LIB_KDESU='-lkdesu'
-+   AC_SUBST(LIB_KDESU)
-+   LIB_KJAVA='-lkjava'
-+   AC_SUBST(LIB_KJAVA)
-+   LIB_KJS='-lkjs'
-+   AC_SUBST(LIB_KJS)
-+   LIB_KMID='-lkmid'
-+   AC_SUBST(LIB_KMID)
-+   LIB_KSCRIPT='-lkscript'
-+   AC_SUBST(LIB_KSCRIPT)
-+   LIB_KTEXTEDITOR='-lktexteditor'
-+   AC_SUBST(LIB_KTEXTEDITOR)
-+   LIB_SHELLSCRIPT='-lshellscript'
-+   AC_SUBST(LIB_SHELLSCRIPT)
-+   LIB_VCARD='-lvcard'
-+   AC_SUBST(LIB_VCARD)
-+   LIB_DCOP='-lDCOP'
-+   AC_SUBST(LIB_DCOP)
-    LIB_KDEUI='-lkdeui'
-    AC_SUBST(LIB_KDEUI)
-    LIB_KIO='-lkio'
-@@ -1842,6 +1883,8 @@
-    AC_SUBST(LIB_KPARTS)
-    LIB_KDEPRINT='-lkdeprint'
-    AC_SUBST(LIB_KDEPRINT)
-+   LIB_KDED='@PREFIX@/lib/kded.la'
-+   AC_SUBST(LIB_KDED)
++   AC_SUBST(LIB_ARTSKDE, "-lartskde")
++   AC_SUBST(LIB_DCOP, "-lDCOP")
++   AC_SUBST(LIB_KAB, "-lkab")
++   AC_SUBST(LIB_KABC, "-lkabc")
+    AC_SUBST(LIB_KDECORE, "-lkdecore")
++   AC_SUBST(LIB_KDED, "@PREFIX@/lib/kded.la")
++   AC_SUBST(LIB_KDEFX, "-lkdefx")
++   AC_SUBST(LIB_KDEPRINT, "-lkdeprint")
++   AC_SUBST(LIB_KDESASL, "-lkdesasl")
++   AC_SUBST(LIB_KDESU, "-lkdesu")
+    AC_SUBST(LIB_KDEUI, "-lkdeui")
+-   AC_SUBST(LIB_KIO, "-lkio")
+-   AC_SUBST(LIB_SMB, "-lsmb")
+-   AC_SUBST(LIB_KAB, "-lkab")
+    AC_SUBST(LIB_KHTML, "-lkhtml")
+-   AC_SUBST(LIB_KSPELL, "-lkspell")
++   AC_SUBST(LIB_KIO, "-lkio")
+    AC_SUBST(LIB_KPARTS, "-lkparts")
+-   AC_SUBST(LIB_KDEPRINT, "-lkdeprint")
++   AC_SUBST(LIB_KJAVA, "-lkjava")
++   AC_SUBST(LIB_KJS, "-lkjs")
++   AC_SUBST(LIB_KMID, "-lkmid")
++   AC_SUBST(LIB_KSCRIPT, "-lkscript")
++   AC_SUBST(LIB_KSPELL, "-lkspell")
++   AC_SUBST(LIB_KTEXTEDITOR, "-lktexteditor")
++   AC_SUBST(LIB_SHELLSCRIPT, "-lshellscript")
++   AC_SUBST(LIB_SMB, "-lsmb")
++   AC_SUBST(LIB_VCARD, "-lvcard")
  # these are for backward compatibility
-    LIB_KSYCOCA='-lkio'
-    AC_SUBST(LIB_KSYCOCA)
-@@ -4158,7 +4201,7 @@
+    AC_SUBST(LIB_KSYCOCA, "-lkio")
+    AC_SUBST(LIB_KFILE, "-lkio")
+@@ -4117,7 +4130,7 @@
  AC_DEFUN(KDE_CREATE_SUBDIRSLIST,
  [
  
@@ -164,53 +81,40 @@ diff -u -b -u -r1.1.1.1 -r1.2
  
  if test ! -s $srcdir/subdirs; then
    dnl Note: Makefile.common creates subdirs, so this is just a fallback
-@@ -4530,9 +4573,12 @@
-            [initgroups may exist but not its prototype (e.g. AIX<4.3.3:8)])
- ])
- 
--
- AC_DEFUN(KDE_CHECK_JAVA_DIR,
- [
-+
-+# needed by the MacOS X JVM in certain circumstances
-+AC_CHECK_HEADERS([TargetConditionals.h])
-+
- AC_MSG_CHECKING([for Java directory])
- 
- AC_ARG_WITH(java,
-@@ -4541,6 +4587,7 @@
- ], ac_java_dir=""
- )
- 
-+
- dnl at this point ac_java_dir is either a dir, 'no' to disable, or '' to say look in $PATH
- if test "x$ac_java_dir" = "xno"; then
-    kde_cv_java_bindir=no
-@@ -4572,10 +4619,20 @@
- dnl At this point kde_cv_java_bindir and kde_cv_java_includedir are either set or "no"
- if test "x$kde_cv_java_bindir" != "xno"; then
+@@ -4570,6 +4583,7 @@
+       KDE_JAVA_PREFIX(/usr/lib/IBMJava2*)
+       KDE_JAVA_PREFIX(/usr/lib/IBMJava*)
+       KDE_JAVA_PREFIX(/opt/java*)
++      KDE_JAVA_PREFIX(/Library/Java/Home)
+     
+       kde_cv_path="NONE"
+       kde_save_IFS=$IFS
+@@ -4621,10 +4635,20 @@
+ dnl At this point kde_java_bindir and kde_java_includedir are either set or "no"
+ if test "x$kde_java_bindir" != "xno"; then
  
 +  case $host_os in
 +    darwin*)
 +      dnl Look for libjvm.dylib
-+      kde_java_libjvmdir=`find /System/Library/Frameworks/JavaVM.framework/ -name libjvm.dylib | sed 's,libjvm.dylib,,'|head -n 1`
++      kde_java_libjvmdir=`find $kde_java_bindir/.. -name libjvm.dylib | sed 's,libjvm.dylib,,'|head -n 1`
 +      kd_java_libhpidir=''
 +      dnl Darwin doesn't have libhpi
 +      ;;
 +    *)
    dnl Look for libjvm.so
-   kde_java_libjvmdir=`find $kde_cv_java_bindir/.. -name libjvm.so | sed 's,libjvm.so,,'|head -n 1`
+   kde_java_libjvmdir=`find $kde_java_bindir/.. -name libjvm.so | sed 's,libjvm.so,,'|head -n 1`
    dnl Look for libhpi.so and avoid green threads
-   kde_java_libhpidir=`find $kde_cv_java_bindir/.. -name libhpi.so | grep -v green | sed 's,libhpi.so,,'`
+   kde_java_libhpidir=`find $kde_java_bindir/.. -name libhpi.so | grep -v green | sed 's,libhpi.so,,' | tail -n 1`
 +      ;;
 +  esac
  
    dnl Now check everything's fine under there
- 
-@@ -4591,12 +4648,26 @@
-   if test ! -r "$kde_cv_java_includedir/jni.h"; then
-     AC_MSG_ERROR([jni.h not found under $kde_cv_java_includedir. Use --with-java or --without-java.])
+   dnl the include dir is our flag for having the JDK
+@@ -4652,17 +4676,29 @@
+     JAVAC=
+     jni_includes=
    fi
+-
 +  case $host_os in
 +    darwin*)
 +      if test ! -r "$kde_java_libjvmdir/libjvm.dylib"; then
@@ -222,36 +126,34 @@ diff -u -b -u -r1.1.1.1 -r1.2
 +      ;;
 +    *)
    if test ! -r "$kde_java_libjvmdir/libjvm.so"; then
-     AC_MSG_ERROR([libjvm.so not found under $kde_java_libjvmdir. Use --without-java.])
-   fi
+      AC_MSG_ERROR([libjvm.so not found under $kde_java_libjvmdir. Use --without-java.])
+   fi 
 +      LIB_JVM="-L$kde_java_libjvmdir -ljvm"
-   if test ! -r "$kde_java_libhpidir/libhpi.so"; then
-     AC_MSG_ERROR([libhpi.so not found under $kde_java_libhpidir. Use --without-java.])
-   fi
++      if test ! -r "$kde_java_libhpidir/libhpi.so"; then
++        AC_MSG_ERROR([libhpi.so not found under $kde_java_libhpidir. Use --without-java.])
++      fi
 +      LIB_HPI="-L$kde_java_libhpidir -lhpi"
 +      ;;
 +  esac
  
-   jni_includes="-I$kde_cv_java_includedir"
-   dnl Strange thing, jni.h requires jni_md.h which is under genunix here..
-@@ -4643,7 +4714,7 @@
-   JAR=$kde_cv_java_bindir/jar
-   AC_SUBST(JAR)
-   AC_SUBST(jni_includes)
--  JVMLIBS="-L$kde_java_libjvmdir -ljvm -L$kde_java_libhpidir -lhpi"
-+  JVMLIBS="$LIB_JVM $LIB_HPI"
-   AC_SUBST(JVMLIBS)
- fi
- ])
+   if test ! -x "$kde_java_bindir/java"; then
+       AC_MSG_ERROR([java not found under $kde_java_bindir. javac was found though! Use --with-java or --without-java.])
+-  fi
+-
+-  if test ! -r "$kde_java_libhpidir/libhpi.so"; then
+-    AC_MSG_ERROR([libhpi.so not found under $kde_java_libhpidir. Use --without-java.])
+   fi
+ 
+   if test -n "$jni_includes"; then
 Index: admin/libtool.m4.in
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/admin/libtool.m4.in,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- admin/libtool.m4.in	25 Jun 2002 03:34:27 -0000	1.1.1.1
-+++ admin/libtool.m4.in	25 Jun 2002 03:35:36 -0000	1.2
-@@ -593,6 +593,12 @@
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- admin/libtool.m4.in	10 Jul 2002 02:47:38 -0000	1.1.1.2
++++ admin/libtool.m4.in	10 Jul 2002 02:50:11 -0000	1.3
+@@ -609,6 +609,12 @@
      lt_cv_sys_max_cmd_len=-1;
      ;;
  
@@ -264,7 +166,7 @@ diff -u -b -u -r1.1.1.1 -r1.2
    *)
      # If test is not a shell built-in, we'll probably end up computing a
      # maximum length that is only half of the actual maximum length, but
-@@ -1876,16 +1882,7 @@
+@@ -1901,16 +1907,7 @@
    ;;
  
  darwin* | rhapsody*)
@@ -282,7 +184,7 @@ diff -u -b -u -r1.1.1.1 -r1.2
    ;;
  
  freebsd*)
-@@ -2535,6 +2532,11 @@
+@@ -2560,6 +2557,11 @@
  	;;
      esac
      ;;
@@ -294,7 +196,7 @@ diff -u -b -u -r1.1.1.1 -r1.2
    dgux*)
      case $cc_basename in
        ec++)
-@@ -4725,7 +4727,9 @@
+@@ -4750,7 +4752,9 @@
  	_LT_AC_TAGVAR(allow_undefined_flag, $1)='-undefined suppress'
  	;;
        *) # Darwin 1.3 on
@@ -305,7 +207,7 @@ diff -u -b -u -r1.1.1.1 -r1.2
  	;;
        esac
  
-@@ -4733,7 +4737,7 @@
+@@ -4758,7 +4762,7 @@
        #        cross-compilation, but unfortunately the echo tests do not
        #        yet detect zsh echo's removal of \ escapes.  Also zsh mangles
        #	       `"' quotes if we put them in here... so don't!
@@ -314,15 +216,26 @@ diff -u -b -u -r1.1.1.1 -r1.2
        # We need to add '_' to the symbols in $export_symbols first
        #_LT_AC_TAGVAR(archive_expsym_cmds, $1)="$_LT_AC_TAGVAR(archive_cmds, $1)"' && strip -s $export_symbols'
        _LT_AC_TAGVAR(hardcode_direct, $1)=yes
+Index: admin/ltconfig
+===================================================================
+RCS file: admin/ltconfig
+diff -N admin/ltconfig
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ admin/ltconfig	25 Jun 2002 03:34:27 -0000	1.1.1.1
+@@ -0,0 +1,4 @@
++#! /bin/sh
++# Written by <matz@kde.org> and placed into the public domain ;-)
++echo "This file shouldn't be called.  It exists solely for the purpose"
++echo "to make automake 1.4 cope with newer libtools."
 Index: admin/ltmain.sh
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/admin/ltmain.sh,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- admin/ltmain.sh	25 Jun 2002 03:34:27 -0000	1.1.1.1
-+++ admin/ltmain.sh	25 Jun 2002 03:35:36 -0000	1.2
-@@ -3324,7 +3324,18 @@
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- admin/ltmain.sh	10 Jul 2002 02:47:39 -0000	1.1.1.2
++++ admin/ltmain.sh	10 Jul 2002 02:50:11 -0000	1.3
+@@ -3321,7 +3321,18 @@
  	if test -n "$export_symbols" && test -n "$archive_expsym_cmds"; then
  	  eval cmds=\"$archive_expsym_cmds\"
  	else
@@ -341,7 +254,7 @@ diff -u -b -u -r1.1.1.1 -r1.2
  	fi
  
  	if len=`expr "X$cmds" : ".*"` &&
-@@ -3635,6 +3646,14 @@
+@@ -3632,6 +3643,14 @@
  	compile_deplibs=`$echo "X $compile_deplibs" | $Xsed -e 's/ -lc / -framework System /'`
  	finalize_deplibs=`$echo "X $finalize_deplibs" | $Xsed -e 's/ -lc / -framework System /'`
  	;;
@@ -359,12 +272,12 @@ diff -u -b -u -r1.1.1.1 -r1.2
 Index: admin/missing
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/admin/missing,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- admin/missing	25 Jun 2002 03:34:27 -0000	1.1.1.1
-+++ admin/missing	25 Jun 2002 03:35:36 -0000	1.2
-@@ -87,7 +87,7 @@
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- admin/missing	10 Jul 2002 02:47:39 -0000	1.1.1.2
++++ admin/missing	10 Jul 2002 02:50:11 -0000	1.3
+@@ -106,7 +106,7 @@
      exit 1
      ;;
  
@@ -373,7 +286,7 @@ diff -u -b -u -r1.1.1.1 -r1.2
      echo 1>&2 "\
  WARNING: \`$1' is missing on your system.  You should only need it if
           you modified \`acinclude.m4' or \`${configure_ac}'.  You might want
-@@ -124,7 +124,7 @@
+@@ -143,7 +143,7 @@
      touch $touch_files
      ;;
  
@@ -382,46 +295,45 @@ diff -u -b -u -r1.1.1.1 -r1.2
      echo 1>&2 "\
  WARNING: \`$1' is missing on your system.  You should only need it if
           you modified \`Makefile.am', \`acinclude.m4' or \`${configure_ac}'.
-Index: Makefile.am
+Index: Makefile.am.in
 ===================================================================
-RCS file: /cvs/od/proj/KDE-Darwin/arts/Makefile.am,v
+RCS file: /cvs/od/proj/KDE-Darwin/arts/Makefile.am.in,v
 retrieving revision 1.1.1.1
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.1 -r1.3
---- Makefile.am	25 Jun 2002 01:45:58 -0000	1.1.1.1
-+++ Makefile.am	25 Jun 2002 12:11:01 -0000	1.3
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- Makefile.am.in	10 Jul 2002 02:52:23 -0000	1.1.1.1
++++ Makefile.am.in	10 Jul 2002 21:40:07 -0000	1.2
 @@ -27,7 +27,7 @@
  	cd $(top_srcdir) && $(MAKE) -f admin/Makefile.common subdirs 
  
  AUTOMAKE_OPTIONS = foreign 1.4
 -COMPILE_FIRST = libltdl mcop mcopidl flow mcop_mt soundserver artsc examples tests doc 
 +COMPILE_FIRST = libltdl mcop mcopidl flow mcop_mt x11 soundserver artsc examples tests doc 
- SUBDIRS = $(COMPILE_FIRST) $(TOPSUBDIRS)
  EXTRA_DIST = admin
  
-@@ -40,9 +40,9 @@
- 	rm -f acinclude.m4 && \
- 	cp ../admin/libtool.m4.in acinclude.m4 && \
- 	cat ltdl.m4 >> acinclude.m4 && \
--	aclocal && \
-+	aclocal-1.5 && \
- 	autoheader && \
--	automake --gnits --add-missing && \
-+	automake-1.5 --gnits --add-missing && \
- 	autoconf
- 
- #DIST_SUBDIRS = mcop mcop_mt mcopidl flow soundserver artsc examples tests doc \
+ dist-hook:
 Index: configure.in.in
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/arts/configure.in.in,v
-retrieving revision 1.1.1.2
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.2 -r1.3
---- configure.in.in	25 Jun 2002 01:47:01 -0000	1.1.1.2
-+++ configure.in.in	25 Jun 2002 01:48:34 -0000	1.3
-@@ -584,6 +584,26 @@
- AC_SUBST(GLIB_LIBS)
- AC_SUBST(GLIB_DEPLIBS)
+retrieving revision 1.1.1.3
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.3 -r1.4
+--- configure.in.in	10 Jul 2002 02:52:23 -0000	1.1.1.3
++++ configure.in.in	10 Jul 2002 03:01:20 -0000	1.4
+@@ -16,8 +16,8 @@
+ 
+ dnl Version (we /might/ want to use libtool versioning, too)
+ ARTS_MAJOR_VERSION=1
+-ARTS_MINOR_VERSION=1
+-ARTS_MICRO_VERSION=0
++ARTS_MINOR_VERSION=0
++ARTS_MICRO_VERSION=6
+ ARTS_VERSION=$ARTS_MAJOR_VERSION.$ARTS_MINOR_VERSION.$ARTS_MICRO_VERSION
+ 
+ dnl Automake doc recommends to do this only here. (Janos)
+@@ -586,6 +586,26 @@
+ AC_SUBST(GLIB_LIBADD)
+ AC_SUBST(GLIB_LDFLAGS)
   
 +dnl Check for esd
 +AC_MSG_CHECKING(for esound)
@@ -449,34 +361,34 @@ diff -u -b -u -r1.1.1.2 -r1.3
 Index: artsc/Makefile.am
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/arts/artsc/Makefile.am,v
-retrieving revision 1.1.1.1
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.1 -r1.3
---- artsc/Makefile.am	25 Jun 2002 01:45:58 -0000	1.1.1.1
-+++ artsc/Makefile.am	25 Jun 2002 12:39:42 -0000	1.3
+retrieving revision 1.1.1.2
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.2 -r1.4
+--- artsc/Makefile.am	10 Jul 2002 02:52:23 -0000	1.1.1.2
++++ artsc/Makefile.am	10 Jul 2002 03:01:23 -0000	1.4
 @@ -9,21 +9,26 @@
  bin_SCRIPTS = artsc-config artsdsp
  
  libartsdsp_la_SOURCES = artsdsp.c
 -libartsdsp_la_LDFLAGS = -no-undefined -module
-+libartsdsp_la_LDFLAGS = -no-undefined -version-info 1:3 -module
++libartsdsp_la_LDFLAGS = -no-undefined -version-info 1:6 -module
  libartsdsp_la_LIBADD = libartsc.la
  
  libartsdsp_st_la_SOURCES = artsc.c artsdsp.c
 -libartsdsp_st_la_LDFLAGS = -no-undefined -module
-+libartsdsp_st_la_LDFLAGS = -no-undefined -version-info 1:3 -module
++libartsdsp_st_la_LDFLAGS = -no-undefined -version-info 1:6 -module
  libartsdsp_st_la_LIBADD = $(top_builddir)/libltdl/libltdlc.la
  
  libartsc_la_SOURCES = artsc.c
 -libartsc_la_LDFLAGS = -no-undefined
-+libartsc_la_LDFLAGS = -no-undefined -version-info 1:3
++libartsc_la_LDFLAGS = -no-undefined -version-info 1:6
  libartsc_la_LIBADD = $(top_builddir)/libltdl/libltdlc.la $(LIBPTHREAD) $(USE_THREADS)
  
  libartscbackend_la_SOURCES = artscbackend.cc
 -libartscbackend_la_LDFLAGS = -no-undefined -module $(KDE_RPATH)
 -libartscbackend_la_LIBADD = $(FLOWLIBS) \
 -    $(top_builddir)/soundserver/libsoundserver_idl.la
-+libartscbackend_la_LDFLAGS = -no-undefined -version-info 1:3 -module $(KDE_RPATH)
++libartscbackend_la_LDFLAGS = -no-undefined -version-info 1:6 -module $(KDE_RPATH)
 +libartscbackend_la_LIBADD = \
 +    $(top_builddir)/mcop/libmcop.la \
 +    $(top_builddir)/flow/libartsflow.la \
@@ -490,45 +402,42 @@ diff -u -b -u -r1.1.1.1 -r1.3
 Index: flow/Makefile.am
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/arts/flow/Makefile.am,v
-retrieving revision 1.1.1.1
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.1 -r1.3
---- flow/Makefile.am	25 Jun 2002 01:45:58 -0000	1.1.1.1
-+++ flow/Makefile.am	25 Jun 2002 12:39:42 -0000	1.3
-@@ -1,9 +1,8 @@
--
- AM_CFLAGS = -DGSL_WANT_GLIB_WRAPPER -DGSL_WANT_ARTS_THREADS
- AM_CXXFLAGS = -DGSL_WANT_GLIB_WRAPPER -DGSL_WANT_ARTS_THREADS
+retrieving revision 1.1.1.2
+retrieving revision 1.5
+diff -u -b -u -r1.1.1.2 -r1.5
+--- flow/Makefile.am	10 Jul 2002 02:52:24 -0000	1.1.1.2
++++ flow/Makefile.am	10 Jul 2002 18:59:37 -0000	1.5
+@@ -1,18 +1,20 @@
++AM_CFLAGS = -DGSL_WANT_GLIB_WRAPPER -DGSL_WANT_ARTS_THREADS
++AM_CXXFLAGS = -DGSL_WANT_GLIB_WRAPPER -DGSL_WANT_ARTS_THREADS
  
- SUBDIRS = mcopclass gsl
+ SUBDIRS = mcopclass gsl gslpp
 -INCLUDES = -I$(top_srcdir)/mcop $(all_includes)
 +INCLUDES = -I$(top_srcdir)/mcop $(all_includes) $(ESD_CFLAGS)
- CLOSURE = $(libartsflow_la_OBJECTS) $(libartsflow_idl_la_OBJECTS)
  
  ####### Files
-@@ -11,12 +10,12 @@
+ 
  lib_LTLIBRARIES = libartsflow_idl.la libartsflow.la
  
  libartsflow_idl_la_SOURCES = artsflow.cc
 -libartsflow_idl_la_LDFLAGS = -no-undefined -version-info 1:0
-+libartsflow_idl_la_LDFLAGS = -no-undefined -version-info 1:3
++libartsflow_idl_la_LDFLAGS = -no-undefined -version-info 1:6
  libartsflow_idl_la_LIBADD = $(top_builddir)/mcop/libmcop.la $(LIBPOSIX4)
  
--libartsflow_la_LIBADD = $(top_builddir)/mcop/libmcop.la libartsflow_idl.la $(LIBAUDIOFILE) $(LIBASOUND) $(LIBAUDIOIO) $(LIBOSSAUDIO) $(LIBAUDIONAS) $(SGILIBAUDIO) -lm \
+ libartsflow_la_LIBADD = $(top_builddir)/mcop/libmcop.la libartsflow_idl.la $(top_builddir)/flow/gslpp/libgslpp.la $(LIBAUDIOFILE) $(LIBASOUND) $(LIBAUDIOIO) $(LIBOSSAUDIO) $(LIBAUDIONAS) $(SGILIBAUDIO) -lm \
 -  $(top_builddir)/flow/gsl/libgsl.la
 -libartsflow_la_LDFLAGS = -no-undefined -version-info 1:0
-+libartsflow_la_LIBADD = $(top_builddir)/mcop/libmcop.la libartsflow_idl.la $(LIBAUDIOFILE) $(LIBASOUND) \
-+	$(LIBAUDIOIO) $(LIBOSSAUDIO) $(LIBAUDIONAS) -lm $(top_builddir)/flow/gsl/libgsl.la $(LIB_POLL) $(ESD_DEPLIBS)
-+libartsflow_la_LDFLAGS = -no-undefined -version-info 1:3
++ $(top_builddir)/flow/gsl/libgsl.la $(LIB_POLL) $(ESD_DEPLIBS)
++libartsflow_la_LDFLAGS = -no-undefined -version-info 1:6
  libartsflow_la_COMPILE_FIRST = artsflow.h
  libartsflow_la_SOURCES =  synth_play_impl.cc \
    synthschedule.cc gslschedule.cc audiosubsys.cc \
-@@ -29,7 +28,7 @@
-   audioio.cc audioiooss.cc audioioalsa.cc audioioalsa9.cc \
+@@ -26,7 +28,7 @@
    audioionull.cc audioiolibaudioio.cc \
    audioiosun.cc audioioaix.cc audioionas.cc cpuinfo.cc \
--  audioioossthreaded.cc audiotobytestream_impl.cc audioiosgi.cc
-+  audioioossthreaded.cc audiotobytestream_impl.cc audioiosgi.cc audioioesd.cc
+   audioioossthreaded.cc audiotobytestream_impl.cc audioiosgi.cc \
+-  datahandle_impl.cc
++  audioioesd.cc datahandle_impl.cc
  
  artsincludedir = $(includedir)/arts
  artsinclude_HEADERS = artsflow.h audiosubsys.h cache.h \
@@ -908,58 +817,45 @@ diff -N flow/audioioesd.cc
 Index: flow/gsl/Makefile.am
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/arts/flow/gsl/Makefile.am,v
-retrieving revision 1.1.1.2
-retrieving revision 1.4
-diff -u -b -u -r1.1.1.2 -r1.4
---- flow/gsl/Makefile.am	25 Jun 2002 01:47:03 -0000	1.1.1.2
-+++ flow/gsl/Makefile.am	25 Jun 2002 12:39:42 -0000	1.4
+retrieving revision 1.1.1.3
+retrieving revision 1.6
+diff -u -b -u -r1.1.1.3 -r1.6
+--- flow/gsl/Makefile.am	10 Jul 2002 02:52:28 -0000	1.1.1.3
++++ flow/gsl/Makefile.am	10 Jul 2002 19:10:45 -0000	1.6
 @@ -1,4 +1,3 @@
 -
  EXTRA_DIST =
  CLEANFILES =
  MAINTAINERCLEANFILES = 
-@@ -14,10 +13,10 @@
- noinst_LTLIBRARIES = libgsl.la
+@@ -15,11 +14,11 @@
  
  libgsl_la_SOURCES = $(GSL_C_SRC) gslglib.c gslglibhash.cc gslartsthreads.cc
--libgsl_la_LIBADD = $(top_builddir)/mcop/libmcop.la -lm $(LIBPOSIX4)
+ libgsl_la_LIBADD = $(top_builddir)/mcop/libmcop.la -lm $(LIBPOSIX4) $(GSL_LIBS) $(LIB_POLL)
 -libgsl_la_LDFLAGS = -no-undefined
-+libgsl_la_LIBADD = $(top_builddir)/mcop/libmcop.la -lm $(LIBPOSIX4) $(LIB_POLL)
-+libgsl_la_LDFLAGS = -no-undefined -version-info 1:3
++libgsl_la_LDFLAGS = -no-undefined -version-info 1:6
  
  noinst_PROGRAMS = $(GSL_NOINST_PROGS)
  
 -GSL_progs_ldadd = libgsl.la
 +GSL_progs_ldadd = libgsl.la $(LIB_POLL)
  GSL_cc_dummy = dummy.cc
+ $(srcdir)/dummy.cc: gslconfig.h
+ 
 Index: gmcop/Makefile.am
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/arts/gmcop/Makefile.am,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- gmcop/Makefile.am	25 Jun 2002 01:45:59 -0000	1.1.1.1
-+++ gmcop/Makefile.am	25 Jun 2002 01:46:40 -0000	1.2
-@@ -6,8 +6,8 @@
- 
- # $(GLIB_DEPLIBS) ?
- libgmcop_la_SOURCES = giomanager.cc
--libgmcop_la_LIBADD = $(top_builddir)/mcop/libmcop.la $(GLIB_LIBS)
--libgmcop_la_LDFLAGS = -no-undefined -L$(GLIB_PREFIX)/lib -version-info 1:0
-+libgmcop_la_LIBADD = $(top_builddir)/mcop/libmcop.la
-+libgmcop_la_LDFLAGS = -no-undefined -L$(GLIB_PREFIX)/lib -version-info 1:0 $(GLIB_LIBS)
- 
- artsincludedir = $(includedir)/arts
- artsinclude_HEADERS = giomanager.h
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
 Index: libltdl/ltdl.m4
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/arts/libltdl/ltdl.m4,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- libltdl/ltdl.m4	25 Jun 2002 01:45:59 -0000	1.1.1.1
-+++ libltdl/ltdl.m4	25 Jun 2002 01:46:40 -0000	1.2
-@@ -93,6 +93,9 @@
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- libltdl/ltdl.m4	10 Jul 2002 02:52:29 -0000	1.1.1.2
++++ libltdl/ltdl.m4	10 Jul 2002 03:01:23 -0000	1.3
+@@ -103,6 +103,9 @@
  	osf*)
  	  libltdl_cv_sys_dlopen_deplibs=yes
  	  ;;
@@ -972,69 +868,69 @@ diff -u -b -u -r1.1.1.1 -r1.2
 Index: mcop/Makefile.am
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/arts/mcop/Makefile.am,v
-retrieving revision 1.1.1.1
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.1 -r1.3
---- mcop/Makefile.am	25 Jun 2002 01:45:59 -0000	1.1.1.1
-+++ mcop/Makefile.am	25 Jun 2002 12:39:42 -0000	1.3
+retrieving revision 1.1.1.2
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.2 -r1.4
+--- mcop/Makefile.am	10 Jul 2002 02:52:30 -0000	1.1.1.2
++++ mcop/Makefile.am	10 Jul 2002 03:01:24 -0000	1.4
 @@ -17,7 +17,7 @@
  	 delayedreturn.cc thread.cc dynamicskeleton.cc
  
  libmcop_la_LIBADD = $(LIBSOCKET) $(top_builddir)/libltdl/libltdlc.la
 -libmcop_la_LDFLAGS = -no-undefined -version-info 1:0
-+libmcop_la_LDFLAGS = -no-undefined -version-info 1:3
++libmcop_la_LDFLAGS = -no-undefined -version-info 1:6
  
  artsincludedir = $(includedir)/arts
  artsinclude_HEADERS = buffer.h common.h connection.h core.h dispatcher.h \
 Index: mcop_mt/Makefile.am
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/arts/mcop_mt/Makefile.am,v
-retrieving revision 1.1.1.1
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.1 -r1.3
---- mcop_mt/Makefile.am	25 Jun 2002 01:45:59 -0000	1.1.1.1
-+++ mcop_mt/Makefile.am	25 Jun 2002 12:39:43 -0000	1.3
-@@ -6,4 +6,4 @@
+retrieving revision 1.1.1.2
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.2 -r1.4
+--- mcop_mt/Makefile.am	10 Jul 2002 02:52:31 -0000	1.1.1.2
++++ mcop_mt/Makefile.am	10 Jul 2002 03:01:24 -0000	1.4
+@@ -4,4 +4,4 @@
  
  libmcop_mt_la_SOURCES = threads_posix.cc
  libmcop_mt_la_LIBADD = $(top_builddir)/mcop/libmcop.la $(LIBPTHREAD) $(LIBPOSIX4)
 -libmcop_mt_la_LDFLAGS = -no-undefined -version-info 1:0 $(USE_THREADS) 
-+libmcop_mt_la_LDFLAGS = -no-undefined -version-info 1:3 $(USE_THREADS) 
++libmcop_mt_la_LDFLAGS = -no-undefined -version-info 1:6 $(USE_THREADS) 
 Index: qtmcop/Makefile.am
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/arts/qtmcop/Makefile.am,v
 retrieving revision 1.1.1.1
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.1 -r1.3
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.1 -r1.4
 --- qtmcop/Makefile.am	25 Jun 2002 01:45:59 -0000	1.1.1.1
-+++ qtmcop/Makefile.am	25 Jun 2002 12:39:43 -0000	1.3
++++ qtmcop/Makefile.am	10 Jul 2002 03:01:24 -0000	1.4
 @@ -5,7 +5,7 @@
  
  libqtmcop_la_SOURCES = qiomanager.cc
  libqtmcop_la_LIBADD = $(top_builddir)/mcop/libmcop.la $(LIB_QT)
 -libqtmcop_la_LDFLAGS = -no-undefined -version-info 1:0 $(KDE_RPATH) $(KDE_MT_LDFLAGS) $(QT_LDFLAGS) \
-+libqtmcop_la_LDFLAGS = -no-undefined -version-info 1:3 $(KDE_RPATH) $(KDE_MT_LDFLAGS) $(QT_LDFLAGS) \
++libqtmcop_la_LDFLAGS = -no-undefined -version-info 1:6 $(KDE_RPATH) $(KDE_MT_LDFLAGS) $(QT_LDFLAGS) \
    $(X_LDFLAGS) $(USER_LDFLAGS)
  
  METASOURCES = qiomanager_p.moc
 Index: soundserver/Makefile.am
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/arts/soundserver/Makefile.am,v
-retrieving revision 1.1.1.2
-retrieving revision 1.4
-diff -u -b -u -r1.1.1.2 -r1.4
---- soundserver/Makefile.am	25 Jun 2002 01:47:04 -0000	1.1.1.2
-+++ soundserver/Makefile.am	25 Jun 2002 12:39:43 -0000	1.4
+retrieving revision 1.1.1.3
+retrieving revision 1.5
+diff -u -b -u -r1.1.1.3 -r1.5
+--- soundserver/Makefile.am	10 Jul 2002 02:52:33 -0000	1.1.1.3
++++ soundserver/Makefile.am	10 Jul 2002 03:01:24 -0000	1.5
 @@ -19,25 +19,28 @@
  lib_LTLIBRARIES = libkmedia2_idl.la libsoundserver_idl.la \
- 						libartswavplayobject.la libkmedia2.la
+ 	libartsgslplayobject.la libartswavplayobject.la libkmedia2.la
  
 -libsoundserver_idl_la_LIBADD = libkmedia2_idl.la \
 -                          $(top_builddir)/flow/libartsflow_idl.la
 -libsoundserver_idl_la_LDFLAGS = -no-undefined -version-info 1:0
 +libsoundserver_idl_la_LIBADD = libkmedia2_idl.la $(top_builddir)/x11/libx11globalcomm.la \
 +                          $(top_builddir)/flow/libartsflow_idl.la $(top_builddir)/mcop/libmcop.la
-+libsoundserver_idl_la_LDFLAGS = -no-undefined -version-info 1:3
++libsoundserver_idl_la_LDFLAGS = -no-undefined -version-info 1:6
  libsoundserver_idl_la_SOURCES = soundserver.cc
  libsoundserver_idl_la_COMPILE_FIRST = soundserver.h
  
@@ -1044,14 +940,14 @@ diff -u -b -u -r1.1.1.2 -r1.4
 -libkmedia2_idl_la_LDFLAGS = -no-undefined -version-info 1:0
 +libkmedia2_idl_la_LIBADD  = $(top_builddir)/flow/libartsflow.la $(top_builddir)/mcop/libmcop.la \
 +	$(top_builddir)/x11/libx11globalcomm.la $(top_builddir)/flow/libartsflow_idl.la
-+libkmedia2_idl_la_LDFLAGS = -no-undefined -version-info 1:3
++libkmedia2_idl_la_LDFLAGS = -no-undefined -version-info 1:6
  
  libkmedia2_la_SOURCES = fileinputstream_impl.cc stdoutwriter_impl.cc
 -libkmedia2_la_LIBADD  = libkmedia2_idl.la $(FLOWLIBS)
 -libkmedia2_la_LDFLAGS = -no-undefined -version-info 1:0
 +libkmedia2_la_LIBADD  = libkmedia2_idl.la $(FLOWLIBS) $(top_builddir)/flow/libartsflow_idl.la \
 +	$(top_builddir)/mcop/libmcop.la $(top_builddir)/x11/libx11globalcomm.la
-+libkmedia2_la_LDFLAGS = -no-undefined -version-info 1:3
++libkmedia2_la_LDFLAGS = -no-undefined -version-info 1:6
  
  libartswavplayobject_la_SOURCES = wavplayobject_impl.cc
 -libartswavplayobject_la_LIBADD  = $(top_builddir)/mcop/libmcop.la \
@@ -1060,18 +956,18 @@ diff -u -b -u -r1.1.1.2 -r1.4
 +libartswavplayobject_la_LIBADD  = $(top_builddir)/mcop/libmcop.la $(top_builddir)/x11/libx11globalcomm.la \
 +                                  libsoundserver_idl.la $(FLOWLIBS) $(top_builddir)/flow/libartsflow_idl.la \
 +				  libkmedia2_idl.la
-+libartswavplayobject_la_LDFLAGS = -no-undefined -version-info 1:3 -module
++libartswavplayobject_la_LDFLAGS = -no-undefined -version-info 1:6 -module
  
- 
- ###### "real" programs
+ libartsgslplayobject_la_SOURCES = gslplayobject_impl.cc
+ libartsgslplayobject_la_LIBADD  = $(top_builddir)/mcop/libmcop.la \
 Index: soundserver/artsd.cc
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/arts/soundserver/artsd.cc,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- soundserver/artsd.cc	25 Jun 2002 01:45:59 -0000	1.1.1.1
-+++ soundserver/artsd.cc	25 Jun 2002 01:46:40 -0000	1.2
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- soundserver/artsd.cc	10 Jul 2002 02:52:33 -0000	1.1.1.2
++++ soundserver/artsd.cc	10 Jul 2002 03:01:24 -0000	1.3
 @@ -35,6 +35,13 @@
  #include "debug.h"
  #include "artsversion.h"
@@ -1116,7 +1012,7 @@ diff -u -b -u -r1.1.1.1 -r1.2
  int main(int argc, char **argv)
  {
  	handleArgs(argc, argv);
-@@ -243,7 +273,9 @@
+@@ -244,7 +274,9 @@
  
  	if(cfgPort)			 TCPServer::setPort(cfgPort);
  
@@ -1126,7 +1022,7 @@ diff -u -b -u -r1.1.1.1 -r1.2
  	Dispatcher	dispatcher(0,cfgServers);
  
  	initSignals();
-@@ -297,6 +329,10 @@
+@@ -298,6 +330,10 @@
  		cleanUnusedReferences();
  		if(!publishReferences(server,audioManager,false)) return 1;
  	}
@@ -1162,17 +1058,17 @@ diff -u -b -u -r1.1.1.1 -r1.2
 Index: x11/Makefile.am
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/arts/x11/Makefile.am,v
-retrieving revision 1.1.1.1
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.1 -r1.3
---- x11/Makefile.am	25 Jun 2002 01:45:59 -0000	1.1.1.1
-+++ x11/Makefile.am	25 Jun 2002 12:39:43 -0000	1.3
+retrieving revision 1.1.1.2
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.2 -r1.4
+--- x11/Makefile.am	10 Jul 2002 02:52:34 -0000	1.1.1.2
++++ x11/Makefile.am	10 Jul 2002 03:01:24 -0000	1.4
 @@ -4,7 +4,7 @@
  
  libx11globalcomm_la_SOURCES = x11globalcomm.cc x11globalcomm_impl.cc
  libx11globalcomm_la_LIBADD = $(top_builddir)/mcop/libmcop.la $(LIB_X11)
 -libx11globalcomm_la_LDFLAGS = -no-undefined -module -version-info 1:0 $(X_LDFLAGS)
-+libx11globalcomm_la_LDFLAGS = -no-undefined -module -version-info 1:3 $(X_LDFLAGS)
++libx11globalcomm_la_LDFLAGS = -no-undefined -module -version-info 1:6 $(X_LDFLAGS)
  
  DISTCLEANFILES = x11globalcomm.cc x11globalcomm.h \
                   x11globalcomm.mcoptype x11globalcomm.mcopclass

@@ -1,111 +1,35 @@
 Index: admin/Makefile.common
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/admin/Makefile.common,v
-retrieving revision 1.1.1.2
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.2 -r1.3
---- admin/Makefile.common	25 Jun 2002 03:35:55 -0000	1.1.1.2
-+++ admin/Makefile.common	25 Jun 2002 03:36:46 -0000	1.3
-@@ -1,24 +1,12 @@
- 
- SHELL=/bin/sh
- 
-+ACLOCAL=aclocal-1.5
-+AUTOMAKE=automake-1.5
-+AUTOCONF=autoconf
-+
- cvs:
--	if test -x /usr/bin/autoconf2.50 ; then \
--	   AUTOCONF="/usr/bin/autoconf2.50" ;\
--	else \
--	   AUTOCONF="autoconf" ;\
--	fi; \
--	AUTOCONF_VERSION=`$$AUTOCONF --version` ;\
--	if test "x$$AUTOCONF_VERSION" = "xAutoconf version 2.13"; then \
--	   echo "*** YOU'RE USING AUTOCONF 2.13. We suggest updating." ;\
--	   echo "*** autoconf 2.5x works best for now, we will drop" ;\
--	   echo "*** support for autoconf 2.13 soon."; \
--	   test ! -f admin/libtool.m4.in || mv admin/libtool.m4.in admin/new-libtool.m4.in ;\
--	   test ! -f admin/ltmain.sh || mv admin/ltmain.sh admin/new-ltmain.sh ;\
--	   for file in libtool.m4.in ltcf-c.sh ltcf-cxx.sh ltcf-gcj.sh ltconfig ltmain.sh; do \
--		rm -f admin/$$file ;\
--		ln -s old-$$file admin/$$file ;\
--	   done ;\
--	fi 
-+	@chmod a+x admin/*
- 	@if grep '$$(top_srcdir)/acinclude.m4:' Makefile.am >/dev/null; then \
- 	  echo "*** Creating acinclude.m4" ;\
- 	  rm -f acinclude.m4 configure.files ;\
-@@ -34,7 +22,7 @@
- 	  $(MAKE) -f Makefile.am top_srcdir=. configure.in ;\
- 	fi
- 	@echo "*** Creating aclocal.m4"
--	@aclocal
-+	@$(ACLOCAL)
- 	@echo "*** Creating configure"
- 	@autoconf
- 	@if test -r configure.in.in ; then \
-@@ -52,7 +40,7 @@
- 		autoheader ;\
- 	fi
- 	@echo "*** Creating Makefile templates"
--	@automake
-+	@$(AUTOMAKE)
- 	@echo "*** Postprocessing Makefile templates"
- 	@perl admin/am_edit
- 	@if egrep "^cvs-local:" Makefile.am >/dev/null; then \
-@@ -71,9 +59,9 @@
- 	@if test -r configure.in.in; then \
- 	  $(MAKE) -f Makefile.am top_srcdir=. subdirs configure.in; \
- 	fi ;\
--	aclocal; \
-+	$(ACLOCAL); \
- 	autoheader; \
--	automake --foreign --include-deps; \
-+	$(AUTOMAKE) --foreign --include-deps; \
- 	perl admin/am_edit; \
- 	autoconf; \
- 	if test -r configure.in.in ; then \
-@@ -281,7 +269,9 @@
- 	done ;\
- 	rm -f _SUBDIRS ;\
- 	for i in $$dirs; do \
-+	if [ $$i != "kdm" ]; then \
- 	echo $$i >> ./_SUBDIRS; \
-+        fi \
- 	done
- 	@if test -r subdirs && diff subdirs _SUBDIRS > /dev/null; then \
- 	  rm -f _SUBDIRS; \
+retrieving revision 1.1.1.3
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.3 -r1.4
 Index: admin/acinclude.m4.in
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/admin/acinclude.m4.in,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- admin/acinclude.m4.in	25 Jun 2002 03:34:27 -0000	1.1.1.1
-+++ admin/acinclude.m4.in	25 Jun 2002 03:35:36 -0000	1.2
-@@ -693,6 +693,19 @@
-    AC_CHECK_FUNC(shmat, ,
+retrieving revision 1.1.1.2
+retrieving revision 1.6
+diff -u -b -u -r1.1.1.2 -r1.6
+--- admin/acinclude.m4.in	10 Jul 2002 02:47:38 -0000	1.1.1.2
++++ admin/acinclude.m4.in	11 Jul 2002 12:08:01 -0000	1.6
+@@ -699,13 +699,10 @@
       AC_CHECK_LIB(ipc, shmat, X_EXTRA_LIBS="$X_EXTRA_LIBS -lipc"))
     
-+   # darwin needs this to initialize the environment
+    # darwin needs this to initialize the environment
+-   AC_CHECK_HEADERS(crt_externs.h)
 +   AC_CHECK_HEADERS([crt_externs.h sys/types.h])
-+   AC_CHECK_FUNC(_NSGetEnviron, [AC_DEFINE(HAVE_NSGETENVIRON, 1, [Define if your system needs _NSGetEnviron to set up the environment])])
-+
+    AC_CHECK_FUNC(_NSGetEnviron, [AC_DEFINE(HAVE_NSGETENVIRON, 1, [Define if your system needs _NSGetEnviron to set up the environment])])
+  
+-   # more headers that need to be explicitly included on darwin
+-   AC_CHECK_HEADERS(sys/types.h stdint.h)
+-
+-   # darwin requires a poll emulation library
 +   # darwin requires a poll.h emulation library
-+   AC_CHECK_LIB(poll, poll, LIB_POLL="-lpoll")
-+
-+   # CoreAudio framework
-+   AC_CHECK_HEADER(CoreAudio/CoreAudio.h, [
-+     AC_DEFINE(HAVE_COREAUDIO, 1, [Define if you have the CoreAudio API])
-+     FRAMEWORK_COREAUDIO="-framework CoreAudio"
-+   ])
-+
-    # Solaris 2.6 and others need -lresolv for res_init
-    AC_CHECK_FUNCS(res_init, , [
-      kde_libs_safe="$LIBS"
-@@ -713,6 +726,8 @@
+    AC_CHECK_LIB(poll, poll, LIB_POLL="-lpoll")
  
+    # CoreAudio framework
+@@ -736,6 +733,8 @@
+    AC_SUBST(FRAMEWORK_COREAUDIO)
     LIBSOCKET="$X_EXTRA_LIBS"
     AC_SUBST(LIBSOCKET)
 +   AC_SUBST(FRAMEWORK_COREAUDIO)
@@ -113,49 +37,51 @@ diff -u -b -u -r1.1.1.1 -r1.2
     AC_SUBST(LIBRESOLV)
     AC_SUBST(X_EXTRA_LIBS)
     AC_CHECK_LIB(ucb, killpg, [LIBUCB="-lucb"]) dnl for Solaris2.4
-@@ -1826,6 +1841,32 @@
+@@ -949,7 +948,7 @@
+ kde_save_LIBS="$LIBS"
+ LDFLAGS="$LDFLAGS $X_LDFLAGS $USER_LDFLAGS"
+ CFLAGS="$CFLAGS -I$x_includes"
+-LIBS="-lXinerama -lXext"
++LIBS="-lXinerama -lXext -lX11"
+ 
+ if test "x$no_xinerama" = "xno"; then
+ 
+@@ -1846,15 +1845,29 @@
+    AC_REQUIRE([K_PATH_X])
+ 
  if test $kde_qtver = 3; then
-    LIB_KDECORE='-lkdecore'
-    AC_SUBST(LIB_KDECORE)
-+   LIB_KDEFX='-lkdefx'
-+   AC_SUBST(LIB_KDEFX)
-+   LIB_ARTSKDE='-lartskde'
-+   AC_SUBST(LIB_ARTSKDE)
-+   LIB_KABC='-lkabc'
-+   AC_SUBST(LIB_KABC)
-+   LIB_KDESASL='-lkdesasl'
-+   AC_SUBST(LIB_KDESASL)
-+   LIB_KDESU='-lkdesu'
-+   AC_SUBST(LIB_KDESU)
-+   LIB_KJAVA='-lkjava'
-+   AC_SUBST(LIB_KJAVA)
-+   LIB_KJS='-lkjs'
-+   AC_SUBST(LIB_KJS)
-+   LIB_KMID='-lkmid'
-+   AC_SUBST(LIB_KMID)
-+   LIB_KSCRIPT='-lkscript'
-+   AC_SUBST(LIB_KSCRIPT)
-+   LIB_KTEXTEDITOR='-lktexteditor'
-+   AC_SUBST(LIB_KTEXTEDITOR)
-+   LIB_SHELLSCRIPT='-lshellscript'
-+   AC_SUBST(LIB_SHELLSCRIPT)
-+   LIB_VCARD='-lvcard'
-+   AC_SUBST(LIB_VCARD)
-+   LIB_DCOP='-lDCOP'
-+   AC_SUBST(LIB_DCOP)
-    LIB_KDEUI='-lkdeui'
-    AC_SUBST(LIB_KDEUI)
-    LIB_KIO='-lkio'
-@@ -1842,6 +1883,8 @@
-    AC_SUBST(LIB_KPARTS)
-    LIB_KDEPRINT='-lkdeprint'
-    AC_SUBST(LIB_KDEPRINT)
-+   LIB_KDED='@PREFIX@/lib/kded.la'
-+   AC_SUBST(LIB_KDED)
++   AC_SUBST(LIB_ARTSKDE, "-lartskde")
++   AC_SUBST(LIB_DCOP, "-lDCOP")
++   AC_SUBST(LIB_KAB, "-lkab")
++   AC_SUBST(LIB_KABC, "-lkabc")
+    AC_SUBST(LIB_KDECORE, "-lkdecore")
++   AC_SUBST(LIB_KDED, "@PREFIX@/lib/kded.la")
++   AC_SUBST(LIB_KDEFX, "-lkdefx")
++   AC_SUBST(LIB_KDEPRINT, "-lkdeprint")
++   AC_SUBST(LIB_KDESASL, "-lkdesasl")
++   AC_SUBST(LIB_KDESU, "-lkdesu")
+    AC_SUBST(LIB_KDEUI, "-lkdeui")
+-   AC_SUBST(LIB_KIO, "-lkio")
+-   AC_SUBST(LIB_SMB, "-lsmb")
+-   AC_SUBST(LIB_KAB, "-lkab")
+    AC_SUBST(LIB_KHTML, "-lkhtml")
+-   AC_SUBST(LIB_KSPELL, "-lkspell")
++   AC_SUBST(LIB_KIO, "-lkio")
+    AC_SUBST(LIB_KPARTS, "-lkparts")
+-   AC_SUBST(LIB_KDEPRINT, "-lkdeprint")
++   AC_SUBST(LIB_KJAVA, "-lkjava")
++   AC_SUBST(LIB_KJS, "-lkjs")
++   AC_SUBST(LIB_KMID, "-lkmid")
++   AC_SUBST(LIB_KSCRIPT, "-lkscript")
++   AC_SUBST(LIB_KSPELL, "-lkspell")
++   AC_SUBST(LIB_KTEXTEDITOR, "-lktexteditor")
++   AC_SUBST(LIB_SHELLSCRIPT, "-lshellscript")
++   AC_SUBST(LIB_SMB, "-lsmb")
++   AC_SUBST(LIB_VCARD, "-lvcard")
  # these are for backward compatibility
-    LIB_KSYCOCA='-lkio'
-    AC_SUBST(LIB_KSYCOCA)
-@@ -4158,7 +4201,7 @@
+    AC_SUBST(LIB_KSYCOCA, "-lkio")
+    AC_SUBST(LIB_KFILE, "-lkio")
+@@ -4117,7 +4130,7 @@
  AC_DEFUN(KDE_CREATE_SUBDIRSLIST,
  [
  
@@ -164,53 +90,40 @@ diff -u -b -u -r1.1.1.1 -r1.2
  
  if test ! -s $srcdir/subdirs; then
    dnl Note: Makefile.common creates subdirs, so this is just a fallback
-@@ -4530,9 +4573,12 @@
-            [initgroups may exist but not its prototype (e.g. AIX<4.3.3:8)])
- ])
- 
--
- AC_DEFUN(KDE_CHECK_JAVA_DIR,
- [
-+
-+# needed by the MacOS X JVM in certain circumstances
-+AC_CHECK_HEADERS([TargetConditionals.h])
-+
- AC_MSG_CHECKING([for Java directory])
- 
- AC_ARG_WITH(java,
-@@ -4541,6 +4587,7 @@
- ], ac_java_dir=""
- )
- 
-+
- dnl at this point ac_java_dir is either a dir, 'no' to disable, or '' to say look in $PATH
- if test "x$ac_java_dir" = "xno"; then
-    kde_cv_java_bindir=no
-@@ -4572,10 +4619,20 @@
- dnl At this point kde_cv_java_bindir and kde_cv_java_includedir are either set or "no"
- if test "x$kde_cv_java_bindir" != "xno"; then
+@@ -4570,6 +4583,7 @@
+       KDE_JAVA_PREFIX(/usr/lib/IBMJava2*)
+       KDE_JAVA_PREFIX(/usr/lib/IBMJava*)
+       KDE_JAVA_PREFIX(/opt/java*)
++      KDE_JAVA_PREFIX(/Library/Java/Home)
+     
+       kde_cv_path="NONE"
+       kde_save_IFS=$IFS
+@@ -4621,10 +4635,20 @@
+ dnl At this point kde_java_bindir and kde_java_includedir are either set or "no"
+ if test "x$kde_java_bindir" != "xno"; then
  
 +  case $host_os in
 +    darwin*)
 +      dnl Look for libjvm.dylib
-+      kde_java_libjvmdir=`find /System/Library/Frameworks/JavaVM.framework/ -name libjvm.dylib | sed 's,libjvm.dylib,,'|head -n 1`
++      kde_java_libjvmdir=`find $kde_java_bindir/.. -name libjvm.dylib | sed 's,libjvm.dylib,,'|head -n 1`
 +      kd_java_libhpidir=''
 +      dnl Darwin doesn't have libhpi
 +      ;;
 +    *)
    dnl Look for libjvm.so
-   kde_java_libjvmdir=`find $kde_cv_java_bindir/.. -name libjvm.so | sed 's,libjvm.so,,'|head -n 1`
+   kde_java_libjvmdir=`find $kde_java_bindir/.. -name libjvm.so | sed 's,libjvm.so,,'|head -n 1`
    dnl Look for libhpi.so and avoid green threads
-   kde_java_libhpidir=`find $kde_cv_java_bindir/.. -name libhpi.so | grep -v green | sed 's,libhpi.so,,'`
+   kde_java_libhpidir=`find $kde_java_bindir/.. -name libhpi.so | grep -v green | sed 's,libhpi.so,,' | tail -n 1`
 +      ;;
 +  esac
  
    dnl Now check everything's fine under there
- 
-@@ -4591,12 +4648,26 @@
-   if test ! -r "$kde_cv_java_includedir/jni.h"; then
-     AC_MSG_ERROR([jni.h not found under $kde_cv_java_includedir. Use --with-java or --without-java.])
+   dnl the include dir is our flag for having the JDK
+@@ -4652,17 +4676,29 @@
+     JAVAC=
+     jni_includes=
    fi
+-
 +  case $host_os in
 +    darwin*)
 +      if test ! -r "$kde_java_libjvmdir/libjvm.dylib"; then
@@ -222,36 +135,34 @@ diff -u -b -u -r1.1.1.1 -r1.2
 +      ;;
 +    *)
    if test ! -r "$kde_java_libjvmdir/libjvm.so"; then
-     AC_MSG_ERROR([libjvm.so not found under $kde_java_libjvmdir. Use --without-java.])
-   fi
+      AC_MSG_ERROR([libjvm.so not found under $kde_java_libjvmdir. Use --without-java.])
+   fi 
 +      LIB_JVM="-L$kde_java_libjvmdir -ljvm"
-   if test ! -r "$kde_java_libhpidir/libhpi.so"; then
-     AC_MSG_ERROR([libhpi.so not found under $kde_java_libhpidir. Use --without-java.])
-   fi
++      if test ! -r "$kde_java_libhpidir/libhpi.so"; then
++        AC_MSG_ERROR([libhpi.so not found under $kde_java_libhpidir. Use --without-java.])
++      fi
 +      LIB_HPI="-L$kde_java_libhpidir -lhpi"
 +      ;;
 +  esac
  
-   jni_includes="-I$kde_cv_java_includedir"
-   dnl Strange thing, jni.h requires jni_md.h which is under genunix here..
-@@ -4643,7 +4714,7 @@
-   JAR=$kde_cv_java_bindir/jar
-   AC_SUBST(JAR)
-   AC_SUBST(jni_includes)
--  JVMLIBS="-L$kde_java_libjvmdir -ljvm -L$kde_java_libhpidir -lhpi"
-+  JVMLIBS="$LIB_JVM $LIB_HPI"
-   AC_SUBST(JVMLIBS)
- fi
- ])
+   if test ! -x "$kde_java_bindir/java"; then
+       AC_MSG_ERROR([java not found under $kde_java_bindir. javac was found though! Use --with-java or --without-java.])
+-  fi
+-
+-  if test ! -r "$kde_java_libhpidir/libhpi.so"; then
+-    AC_MSG_ERROR([libhpi.so not found under $kde_java_libhpidir. Use --without-java.])
+   fi
+ 
+   if test -n "$jni_includes"; then
 Index: admin/libtool.m4.in
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/admin/libtool.m4.in,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- admin/libtool.m4.in	25 Jun 2002 03:34:27 -0000	1.1.1.1
-+++ admin/libtool.m4.in	25 Jun 2002 03:35:36 -0000	1.2
-@@ -593,6 +593,12 @@
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- admin/libtool.m4.in	10 Jul 2002 02:47:38 -0000	1.1.1.2
++++ admin/libtool.m4.in	10 Jul 2002 02:50:11 -0000	1.3
+@@ -609,6 +609,12 @@
      lt_cv_sys_max_cmd_len=-1;
      ;;
  
@@ -264,7 +175,7 @@ diff -u -b -u -r1.1.1.1 -r1.2
    *)
      # If test is not a shell built-in, we'll probably end up computing a
      # maximum length that is only half of the actual maximum length, but
-@@ -1876,16 +1882,7 @@
+@@ -1901,16 +1907,7 @@
    ;;
  
  darwin* | rhapsody*)
@@ -282,7 +193,7 @@ diff -u -b -u -r1.1.1.1 -r1.2
    ;;
  
  freebsd*)
-@@ -2535,6 +2532,11 @@
+@@ -2560,6 +2557,11 @@
  	;;
      esac
      ;;
@@ -294,7 +205,7 @@ diff -u -b -u -r1.1.1.1 -r1.2
    dgux*)
      case $cc_basename in
        ec++)
-@@ -4725,7 +4727,9 @@
+@@ -4750,7 +4752,9 @@
  	_LT_AC_TAGVAR(allow_undefined_flag, $1)='-undefined suppress'
  	;;
        *) # Darwin 1.3 on
@@ -305,7 +216,7 @@ diff -u -b -u -r1.1.1.1 -r1.2
  	;;
        esac
  
-@@ -4733,7 +4737,7 @@
+@@ -4758,7 +4762,7 @@
        #        cross-compilation, but unfortunately the echo tests do not
        #        yet detect zsh echo's removal of \ escapes.  Also zsh mangles
        #	       `"' quotes if we put them in here... so don't!
@@ -314,15 +225,26 @@ diff -u -b -u -r1.1.1.1 -r1.2
        # We need to add '_' to the symbols in $export_symbols first
        #_LT_AC_TAGVAR(archive_expsym_cmds, $1)="$_LT_AC_TAGVAR(archive_cmds, $1)"' && strip -s $export_symbols'
        _LT_AC_TAGVAR(hardcode_direct, $1)=yes
+Index: admin/ltconfig
+===================================================================
+RCS file: admin/ltconfig
+diff -N admin/ltconfig
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ admin/ltconfig	25 Jun 2002 03:34:27 -0000	1.1.1.1
+@@ -0,0 +1,4 @@
++#! /bin/sh
++# Written by <matz@kde.org> and placed into the public domain ;-)
++echo "This file shouldn't be called.  It exists solely for the purpose"
++echo "to make automake 1.4 cope with newer libtools."
 Index: admin/ltmain.sh
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/admin/ltmain.sh,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- admin/ltmain.sh	25 Jun 2002 03:34:27 -0000	1.1.1.1
-+++ admin/ltmain.sh	25 Jun 2002 03:35:36 -0000	1.2
-@@ -3324,7 +3324,18 @@
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- admin/ltmain.sh	10 Jul 2002 02:47:39 -0000	1.1.1.2
++++ admin/ltmain.sh	10 Jul 2002 02:50:11 -0000	1.3
+@@ -3321,7 +3321,18 @@
  	if test -n "$export_symbols" && test -n "$archive_expsym_cmds"; then
  	  eval cmds=\"$archive_expsym_cmds\"
  	else
@@ -341,7 +263,7 @@ diff -u -b -u -r1.1.1.1 -r1.2
  	fi
  
  	if len=`expr "X$cmds" : ".*"` &&
-@@ -3635,6 +3646,14 @@
+@@ -3632,6 +3643,14 @@
  	compile_deplibs=`$echo "X $compile_deplibs" | $Xsed -e 's/ -lc / -framework System /'`
  	finalize_deplibs=`$echo "X $finalize_deplibs" | $Xsed -e 's/ -lc / -framework System /'`
  	;;
@@ -359,12 +281,12 @@ diff -u -b -u -r1.1.1.1 -r1.2
 Index: admin/missing
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/admin/missing,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- admin/missing	25 Jun 2002 03:34:27 -0000	1.1.1.1
-+++ admin/missing	25 Jun 2002 03:35:36 -0000	1.2
-@@ -87,7 +87,7 @@
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- admin/missing	10 Jul 2002 02:47:39 -0000	1.1.1.2
++++ admin/missing	10 Jul 2002 02:50:11 -0000	1.3
+@@ -106,7 +106,7 @@
      exit 1
      ;;
  
@@ -373,7 +295,7 @@ diff -u -b -u -r1.1.1.1 -r1.2
      echo 1>&2 "\
  WARNING: \`$1' is missing on your system.  You should only need it if
           you modified \`acinclude.m4' or \`${configure_ac}'.  You might want
-@@ -124,7 +124,7 @@
+@@ -143,7 +143,7 @@
      touch $touch_files
      ;;
  
@@ -382,87 +304,79 @@ diff -u -b -u -r1.1.1.1 -r1.2
      echo 1>&2 "\
  WARNING: \`$1' is missing on your system.  You should only need it if
           you modified \`Makefile.am', \`acinclude.m4' or \`${configure_ac}'.
-Index: Makefile.am
-===================================================================
-RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/Makefile.am,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- Makefile.am	25 Jun 2002 02:46:53 -0000	1.1.1.1
-+++ Makefile.am	25 Jun 2002 02:49:08 -0000	1.2
-@@ -71,13 +71,13 @@
- 	rm -f acinclude.m4 && \
- 	cat ../admin/libtool.m4.in > acinclude.m4 && \
- 	cat ltdl.m4 >> acinclude.m4 && \
--	aclocal && \
-+	aclocal-1.5 && \
- 	autoheader && \
--	automake --gnits --add-missing && \
-+	automake-1.5 --gnits --add-missing && \
- 	autoconf
- 
- cvs-dist-local:
--	cd libltdl && automake --gnits --add-missing -i &&  autoconf
-+	cd libltdl && automake-1.5 --gnits --add-missing -i &&  autoconf
- 
- # Rule for generating HTML documentation [you need kdoc installed]
- # Don't forget to run qt2kdoc first (qt2kdoc $QTDIR/doc/html)
 Index: configure.in.in
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/configure.in.in,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- configure.in.in	25 Jun 2002 02:46:53 -0000	1.1.1.1
-+++ configure.in.in	25 Jun 2002 02:49:08 -0000	1.2
-@@ -163,6 +163,18 @@
- AC_SUBST(LIB_KHTML)
- LIB_DCOP='$(top_builddir)/dcop/libDCOP.la'
- AC_SUBST(LIB_DCOP)
-+LIB_KDESU='$(top_builddir)/kdesu/libkdesu.la'
-+AC_SUBST(LIB_KDESU)
-+LIB_KDEFX='$(top_builddir)/kdefx/libkdefx.la'
-+AC_SUBST(LIB_KDEFX)
-+LIB_KSPELL='$(top_builddir)/kspell/libkspell.la'
-+AC_SUBST(LIB_KSPELL)
-+LIB_KDEPRINT='$(top_builddir)/kdeprint/libkdeprint.la'
-+AC_SUBST(LIB_KDEPRINT)
-+LIB_KDED='$(top_builddir)/kded/kded.la'
-+AC_SUBST(LIB_KDED)
-+LIB_KDEFAKES='$(top_builddir)/kdecore/libkdefakes.la'
-+AC_SUBST(LIB_KDEFAKES)
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- configure.in.in	10 Jul 2002 04:40:42 -0000	1.1.1.2
++++ configure.in.in	10 Jul 2002 05:12:43 -0000	1.3
+@@ -146,6 +146,18 @@
+ AC_SUBST(LIB_KDEUI, '$(top_builddir)/kdeui/libkdeui.la')
+ AC_SUBST(LIB_KIO, '$(top_builddir)/kio/libkio.la')
+ AC_SUBST(LIB_KPARTS, '$(top_builddir)/kparts/libkparts.la')
++AC_SUBST(LIB_KFORMULA, '$(top_builddir)/kformula/libkformula.la')
++AC_SUBST(LIB_KSYCOCA, '$(top_builddir)/kio/libkio.la')
++AC_SUBST(LIB_KFILE, '$(top_builddir)/kio/libkio.la')
++AC_SUBST(LIB_KAB, '$(top_builddir)/kab/libkab.la')
++AC_SUBST(LIB_KHTML, '$(top_builddir)/khtml/libkhtml.la')
++AC_SUBST(LIB_DCOP, '$(top_builddir)/dcop/libDCOP.la')
++AC_SUBST(LIB_KDESU, '$(top_builddir)/kdesu/libkdesu.la')
++AC_SUBST(LIB_KDEFX, '$(top_builddir)/kdefx/libkdefx.la')
++AC_SUBST(LIB_KSPELL, '$(top_builddir)/kspell/libkspell.la')
++AC_SUBST(LIB_KDEPRINT, '$(top_builddir)/kdeprint/libkdeprint.la')
++AC_SUBST(LIB_KDED, '$(top_builddir)/kded/kded.la')
++AC_SUBST(LIB_KDEFAKES, '$(top_builddir)/kdecore/libkdefakes.la')
  
  AC_SUBST(EXTRA_SUBDIRS)
+ 
+Index: arts/configure.in.in
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/arts/configure.in.in,v
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- arts/configure.in.in	10 Jul 2002 04:40:57 -0000	1.1.1.2
++++ arts/configure.in.in	11 Jul 2002 00:06:12 -0000	1.3
+@@ -11,7 +11,7 @@
+ dnl comment below for mcopidl)
+ dnl AC_PATH_PROG(ARTSCCONFIG, artsc-config, no)
+ 
+-ARTS_WANT_VERSION=1.1.x
++ARTS_WANT_VERSION=1.0.x
+ ARTS_HAVE_VERSION=none
+ ARTS_HAVE_PREFIX=none
  
 Index: arts/knotify/Makefile.am
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/arts/knotify/Makefile.am,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- arts/knotify/Makefile.am	25 Jun 2002 02:46:53 -0000	1.1.1.1
-+++ arts/knotify/Makefile.am	25 Jun 2002 02:49:08 -0000	1.2
+retrieving revision 1.1.1.2
+diff -u -b -u -r1.1.1.2 Makefile.am
+--- arts/knotify/Makefile.am	10 Jul 2002 04:41:09 -0000	1.1.1.2
++++ arts/knotify/Makefile.am	11 Jul 2002 12:11:59 -0000
 @@ -7,7 +7,7 @@
  lib_LTLIBRARIES = knotify.la
  
  knotify_la_SOURCES	= knotify.cpp knotify.skel
--knotify_la_LIBADD	= -lsoundserver_idl -lqtmcop $(LIB_KDEUI) $(LIB_KDECORE)
-+knotify_la_LIBADD	= -lsoundserver_idl -lqtmcop -lmcop -lkmedia2_idl -lartsflow_idl $(LIB_KDEUI) $(LIB_KDECORE)
+-knotify_la_LIBADD	= -lsoundserver_idl -lqtmcop $(LIB_KDEUI)
++knotify_la_LIBADD	= -lsoundserver_idl -lqtmcop $(LIB_KDEUI) $(LIB_KDECORE) -lartsflow -lkmedia2_idl -lartsflow_idl -lmcop
  knotify_la_LDFLAGS = $(all_libraries) -module -avoid-version
  knotify_la_METASOURCES = AUTO
  
 Index: kabc/vcard/Makefile.am
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/kabc/vcard/Makefile.am,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- kabc/vcard/Makefile.am	25 Jun 2002 02:46:54 -0000	1.1.1.1
-+++ kabc/vcard/Makefile.am	25 Jun 2002 02:49:08 -0000	1.2
-@@ -6,6 +6,7 @@
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- kabc/vcard/Makefile.am	10 Jul 2002 04:42:34 -0000	1.1.1.2
++++ kabc/vcard/Makefile.am	10 Jul 2002 05:12:43 -0000	1.3
+@@ -6,7 +6,7 @@
  lib_LTLIBRARIES = libvcard.la
  
  libvcard_la_SOURCES = vCard-all.cpp
+-libvcard_la_LIBADD = $(LIB_KDECORE)
 +libvcard_la_LIBADD = $(all_libraries) $(LIB_QT) $(LIB_KDECORE)
  
  check_PROGRAMS = testwrite testread
@@ -470,12 +384,12 @@ diff -u -b -u -r1.1.1.1 -r1.2
 Index: kdecore/kglobalsettings.cpp
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/kdecore/kglobalsettings.cpp,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- kdecore/kglobalsettings.cpp	25 Jun 2002 02:46:55 -0000	1.1.1.1
-+++ kdecore/kglobalsettings.cpp	25 Jun 2002 02:49:08 -0000	1.2
-@@ -391,7 +391,7 @@
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- kdecore/kglobalsettings.cpp	10 Jul 2002 04:43:36 -0000	1.1.1.2
++++ kdecore/kglobalsettings.cpp	10 Jul 2002 05:12:43 -0000	1.3
+@@ -455,7 +455,7 @@
          *s_desktopPath += "/";
  
      // Trash Path
@@ -488,28 +402,21 @@ Index: kdecore/tests/ksimpleconfigtest.cpp
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/kdecore/tests/ksimpleconfigtest.cpp,v
 retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- kdecore/tests/ksimpleconfigtest.cpp	25 Jun 2002 02:46:56 -0000	1.1.1.1
-+++ kdecore/tests/ksimpleconfigtest.cpp	25 Jun 2002 02:49:09 -0000	1.2
-@@ -73,4 +73,3 @@
-   aConfig.deleteGroup( "Another Test group", true );
-   fprintf( stderr, "Deleted Another Test group\n" );
- }
--
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.1 -r1.3
 Index: kdeprint/Makefile.am
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/kdeprint/Makefile.am,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- kdeprint/Makefile.am	25 Jun 2002 02:46:56 -0000	1.1.1.1
-+++ kdeprint/Makefile.am	25 Jun 2002 02:49:09 -0000	1.2
-@@ -6,7 +6,7 @@
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- kdeprint/Makefile.am	10 Jul 2002 04:44:29 -0000	1.1.1.2
++++ kdeprint/Makefile.am	10 Jul 2002 05:12:44 -0000	1.3
+@@ -10,7 +10,7 @@
  kde_module_LTLIBRARIES = kded_kdeprintd.la
  
  kded_kdeprintd_la_SOURCES = kdeprintd.skel kdeprintd.cpp kprintprocess.cpp
--kded_kdeprintd_la_LIBADD = $(LIB_KDEUI) $(LIB_KDECORE) $(LIB_KIO) $(LIB_KFILE)
+-kded_kdeprintd_la_LIBADD = $(LIB_KIO)
 +kded_kdeprintd_la_LIBADD = $(LIB_KDEUI) $(LIB_KDECORE) $(LIB_KIO) $(LIB_KFILE) $(LIB_KDED)
  kded_kdeprintd_la_LDFLAGS = $(all_libraries) -module -avoid-version
  #kded_kdeprintd_la_METASOURCES = AUTO
@@ -517,11 +424,11 @@ diff -u -b -u -r1.1.1.1 -r1.2
 Index: kdeui/kedittoolbar.cpp
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/kdeui/kedittoolbar.cpp,v
-retrieving revision 1.1.1.2
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.2 -r1.3
---- kdeui/kedittoolbar.cpp	25 Jun 2002 02:50:02 -0000	1.1.1.2
-+++ kdeui/kedittoolbar.cpp	25 Jun 2002 02:53:41 -0000	1.3
+retrieving revision 1.1.1.3
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.3 -r1.4
+--- kdeui/kedittoolbar.cpp	10 Jul 2002 04:46:06 -0000	1.1.1.3
++++ kdeui/kedittoolbar.cpp	10 Jul 2002 05:12:44 -0000	1.4
 @@ -141,13 +141,13 @@
     */
    ToolbarList findToolbars(QDomElement elem)
@@ -542,22 +449,19 @@ diff -u -b -u -r1.1.1.2 -r1.3
 Index: kdeui/kxmlguifactory.cpp
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/kdeui/kxmlguifactory.cpp,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- kdeui/kxmlguifactory.cpp	25 Jun 2002 02:46:59 -0000	1.1.1.1
-+++ kdeui/kxmlguifactory.cpp	25 Jun 2002 02:49:09 -0000	1.2
-@@ -49,14 +49,14 @@
+retrieving revision 1.1.1.2
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.2 -r1.4
+--- kdeui/kxmlguifactory.cpp	10 Jul 2002 04:46:16 -0000	1.1.1.2
++++ kdeui/kxmlguifactory.cpp	10 Jul 2002 20:14:55 -0000	1.4
+@@ -49,14 +49,10 @@
  public:
      KXMLGUIFactoryPrivate()
      {
 -        static const QString &defaultMergingName = KGlobal::staticQString( "<default>" );
 -        static const QString &actionList = KGlobal::staticQString( "actionlist" );
 -        static const QString &name = KGlobal::staticQString( "name" );
-+        // static const QString &defaultMergingName = KGlobal::staticQString( "<default>" );
-+        // static const QString &actionList = KGlobal::staticQString( "actionlist" );
-+        // static const QString &name = KGlobal::staticQString( "name" );
- 
+-
          m_rootNode = new ContainerNode( 0L, QString::null, 0L );
 -        m_defaultMergingName = defaultMergingName;
 -        tagActionList = actionList;
@@ -571,30 +475,30 @@ diff -u -b -u -r1.1.1.1 -r1.2
 Index: khtml/html/html_formimpl.cpp
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/khtml/html/html_formimpl.cpp,v
-retrieving revision 1.1.1.2
-retrieving revision 1.4
-diff -u -b -u -r1.1.1.2 -r1.4
+retrieving revision 1.1.1.3
+retrieving revision 1.5
+diff -u -b -u -r1.1.1.3 -r1.5
 Index: khtml/html/html_formimpl.h
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/khtml/html/html_formimpl.h,v
-retrieving revision 1.1.1.2
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.2 -r1.3
+retrieving revision 1.1.1.3
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.3 -r1.4
 Index: khtml/html/html_objectimpl.cpp
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/khtml/html/html_objectimpl.cpp,v
-retrieving revision 1.1.1.2
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.2 -r1.2
+retrieving revision 1.1.1.3
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.3 -r1.3
 Index: kimgio/Makefile.am
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/kimgio/Makefile.am,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- kimgio/Makefile.am	25 Jun 2002 02:47:02 -0000	1.1.1.1
-+++ kimgio/Makefile.am	25 Jun 2002 02:49:09 -0000	1.2
-@@ -10,27 +10,27 @@
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- kimgio/Makefile.am	10 Jul 2002 04:49:09 -0000	1.1.1.2
++++ kimgio/Makefile.am	10 Jul 2002 05:12:45 -0000	1.3
+@@ -11,23 +11,27 @@
  
  kimg_tiff_la_SOURCES = tiffr.cpp
  kimg_tiff_la_LDFLAGS = -module $(USER_LDFLAGS) $(KIMGIO_PLUGIN)
@@ -608,22 +512,18 @@ diff -u -b -u -r1.1.1.1 -r1.2
  
  kimg_xview_la_SOURCES = xview.cpp
  kimg_xview_la_LDFLAGS = -module $(USER_LDFLAGS) $(KIMGIO_PLUGIN)
--kimg_xview_la_LIBADD = 
 +kimg_xview_la_LIBADD = $(all_libraries) $(LIB_QT)
  
  kimg_krl_la_SOURCES = krl.cpp
  kimg_krl_la_LDFLAGS = -module $(USER_LDFLAGS) $(KIMGIO_PLUGIN)
--kimg_krl_la_LIBADD = 
 +kimg_krl_la_LIBADD = $(all_libraries) $(LIB_QT)
  
  kimg_eps_la_SOURCES = eps.cpp
  kimg_eps_la_LDFLAGS = -module $(USER_LDFLAGS) $(KIMGIO_PLUGIN)
--kimg_eps_la_LIBADD = 
 +kimg_eps_la_LIBADD =  $(all_libraries) $(LIB_KDECORE) $(LIB_QT)
  
  kimg_ico_la_SOURCES = ico.cpp
  kimg_ico_la_LDFLAGS = -module $(USER_LDFLAGS) $(KIMGIO_PLUGIN)
--kimg_ico_la_LIBADD = 
 +kimg_ico_la_LIBADD = $(all_libraries) $(LIB_QT)
  
  noinst_HEADERS= xview.h eps.h tiffr.h krl.h g3r.h ico.h
@@ -631,24 +531,12 @@ diff -u -b -u -r1.1.1.1 -r1.2
 Index: kinit/kinit.cpp
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/kinit/kinit.cpp,v
-retrieving revision 1.1.1.2
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.2 -r1.3
---- kinit/kinit.cpp	25 Jun 2002 02:50:15 -0000	1.1.1.2
-+++ kinit/kinit.cpp	25 Jun 2002 02:53:42 -0000	1.3
-@@ -81,6 +81,11 @@
- # endif
- #endif
- 
-+#if defined(HAVE_NSGETENVIRON) && defined(HAVE_CRT_EXTERNS_H)
-+#include <crt_externs.h>
-+#define environ (*_NSGetEnviron())
-+#endif
-+
- extern char **environ;
- 
- extern int lt_dlopen_flag;
-@@ -1403,6 +1408,7 @@
+retrieving revision 1.1.1.3
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.3 -r1.4
+--- kinit/kinit.cpp	10 Jul 2002 04:49:11 -0000	1.1.1.3
++++ kinit/kinit.cpp	10 Jul 2002 05:12:45 -0000	1.4
+@@ -1409,6 +1409,7 @@
     kdeinit_setproctitle("Starting up...");
     kdeinit_library_path();
     unsetenv("LD_BIND_NOW");
@@ -659,12 +547,12 @@ diff -u -b -u -r1.1.1.2 -r1.3
 Index: kinit/setproctitle.cpp
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/kinit/setproctitle.cpp,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- kinit/setproctitle.cpp	25 Jun 2002 02:47:03 -0000	1.1.1.1
-+++ kinit/setproctitle.cpp	25 Jun 2002 02:49:09 -0000	1.2
-@@ -67,6 +67,12 @@
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- kinit/setproctitle.cpp	10 Jul 2002 04:49:13 -0000	1.1.1.2
++++ kinit/setproctitle.cpp	10 Jul 2002 05:12:45 -0000	1.3
+@@ -73,6 +73,12 @@
  # define SPT_TYPE	SPT_REUSEARGV
  #endif
  
@@ -677,51 +565,26 @@ diff -u -b -u -r1.1.1.1 -r1.2
  #if SPT_TYPE != SPT_NONE && SPT_TYPE != SPT_BUILTIN
  
  # if SPT_TYPE == SPT_PSTAT
-@@ -133,7 +139,10 @@
- kdeinit_initsetproctitle(int argc, char **argv, char **envp)
- {
- 	register int i, envpsize = 0;
-+
-+#if !defined(HAVE_NSGETENVIRON) && !defined(HAVE_CRT_EXTERNS_H)
- 	extern char **environ;
-+#endif
- 
- 	/*
- 	**  Move the environment so setproctitle can use the space at
 Index: kinit/wrapper.c
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/kinit/wrapper.c,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- kinit/wrapper.c	25 Jun 2002 02:47:03 -0000	1.1.1.1
-+++ kinit/wrapper.c	25 Jun 2002 02:49:09 -0000	1.2
-@@ -39,6 +39,11 @@
- #include <pwd.h>
- #include <signal.h>
- 
-+#if  defined(HAVE_NSGETENVIRON) && defined(HAVE_CRT_EXTERNS_H)
-+#include <crt_externs.h>
-+#define environ (*_NSGetEnviron())
-+#endif
-+
- extern char **environ;
- 
- static char *getDisplay()
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
 Index: kio/Makefile.am
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/kio/Makefile.am,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- kio/Makefile.am	25 Jun 2002 02:47:03 -0000	1.1.1.1
-+++ kio/Makefile.am	25 Jun 2002 02:49:09 -0000	1.2
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- kio/Makefile.am	10 Jul 2002 04:49:16 -0000	1.1.1.2
++++ kio/Makefile.am	10 Jul 2002 05:12:45 -0000	1.3
 @@ -20,7 +20,7 @@
  
  INCLUDES=  -I$(srcdir)/.. $(all_includes) $(SSL_INCLUDES)
  
--SUBDIRS = kssl kio bookmarks kfile . misc pics tests
-+SUBDIRS = kssl kio bookmarks kfile . kded misc pics tests
+-SUBDIRS = kssl kio bookmarks kfile . kpasswdserver misc pics tests
++SUBDIRS = kssl kio bookmarks kfile . kded kpasswdserver misc pics tests
  
  lib_LTLIBRARIES = libkio.la
  
@@ -742,12 +605,12 @@ diff -N kio/kded/Makefile
 Index: kio/kio/kurlcompletion.cpp
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/kio/kio/kurlcompletion.cpp,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- kio/kio/kurlcompletion.cpp	25 Jun 2002 02:47:04 -0000	1.1.1.1
-+++ kio/kio/kurlcompletion.cpp	25 Jun 2002 02:49:09 -0000	1.2
-@@ -733,6 +733,11 @@
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- kio/kio/kurlcompletion.cpp	10 Jul 2002 04:49:47 -0000	1.1.1.2
++++ kio/kio/kurlcompletion.cpp	10 Jul 2002 05:12:46 -0000	1.3
+@@ -739,6 +739,11 @@
  // Environment variables
  //
  
@@ -762,11 +625,11 @@ diff -u -b -u -r1.1.1.1 -r1.2
 Index: kio/kio/kurlcompletion.h
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/kio/kio/kurlcompletion.h,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- kio/kio/kurlcompletion.h	25 Jun 2002 02:47:04 -0000	1.1.1.1
-+++ kio/kio/kurlcompletion.h	25 Jun 2002 02:49:09 -0000	1.2
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- kio/kio/kurlcompletion.h	10 Jul 2002 04:49:47 -0000	1.1.1.2
++++ kio/kio/kurlcompletion.h	10 Jul 2002 05:12:46 -0000	1.3
 @@ -23,6 +23,10 @@
  #ifndef KURLCOMPLETION_H
  #define KURLCOMPLETION_H
@@ -778,15 +641,29 @@ diff -u -b -u -r1.1.1.1 -r1.2
  #include <kcompletion.h>
  #include <kio/jobclasses.h>
  #include <qstring.h>
-Index: kio/kssl/kopenssl.cc
+Index: kio/kpasswdserver/Makefile.am
 ===================================================================
-RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/kio/kssl/kopenssl.cc,v
+RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/kio/kpasswdserver/Makefile.am,v
 retrieving revision 1.1.1.1
 retrieving revision 1.2
 diff -u -b -u -r1.1.1.1 -r1.2
---- kio/kssl/kopenssl.cc	25 Jun 2002 02:47:04 -0000	1.1.1.1
-+++ kio/kssl/kopenssl.cc	25 Jun 2002 02:49:09 -0000	1.2
-@@ -247,6 +247,9 @@
+--- kio/kpasswdserver/Makefile.am	10 Jul 2002 04:49:51 -0000	1.1.1.1
++++ kio/kpasswdserver/Makefile.am	11 Jul 2002 03:09:45 -0000	1.2
+@@ -10,4 +10,4 @@
+ kded_kpasswdserver_la_SOURCES = kpasswdserver.cpp kpasswdserver.skel 
+ kded_kpasswdserver_la_METASOURCES = AUTO
+ kded_kpasswdserver_la_LDFLAGS = $(all_libraries) -module -avoid-version
+-kded_kpasswdserver_la_LIBADD = $(LIB_KIO)
++kded_kpasswdserver_la_LIBADD = $(LIB_KIO) $(LIB_KDED)
+Index: kio/kssl/kopenssl.cc
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/kio/kssl/kopenssl.cc,v
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- kio/kssl/kopenssl.cc	10 Jul 2002 04:49:52 -0000	1.1.1.2
++++ kio/kssl/kopenssl.cc	10 Jul 2002 05:12:46 -0000	1.3
+@@ -248,6 +248,9 @@
              #ifdef _AIX
              << "/opt/freeware/lib/"
  	    #endif
@@ -796,24 +673,18 @@ diff -u -b -u -r1.1.1.1 -r1.2
  	    << "/usr/lib/"
  	    << "/usr/ssl/lib/"
              << "/usr/local/lib/"
-@@ -262,6 +265,10 @@
-              << "libssl.sl"
-              #elif defined(_AIX)
-              << "libssl.a(libssl.so.0)"
-+	     #elif defined(__APPLE__)
-+	     << "libssl.dylib"
-+	     << "libssl.0.9.dylib"
+@@ -266,6 +269,7 @@
+ 	     #elif defined(__APPLE__)
+ 	     << "libssl.dylib"
+ 	     << "libssl.0.9.dylib"
 +	     << "libssl.0.9.6.dylib"
               #else
               << "libssl.so"
  	     << "libssl.so.0"
-@@ -276,6 +283,10 @@
-              << "libcrypto.sl"
-              #elif defined(_AIX)
-              << "libcrypto.a(libcrypto.so.0)"
-+	     #elif defined(__APPLE__)
-+	     << "libcrypto.dylib"
-+	     << "libcrypto.0.9.dylib"
+@@ -283,6 +287,7 @@
+ 	     #elif defined(__APPLE__)
+ 	     << "libcrypto.dylib"
+ 	     << "libcrypto.0.9.dylib"
 +	     << "libcrypto.0.9.6.dylib"
  	     #else
               << "libcrypto.so"
@@ -821,12 +692,12 @@ diff -u -b -u -r1.1.1.1 -r1.2
 Index: kio/misc/kpac/dhcp.h
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/kio/misc/kpac/dhcp.h,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- kio/misc/kpac/dhcp.h	25 Jun 2002 02:47:04 -0000	1.1.1.1
-+++ kio/misc/kpac/dhcp.h	25 Jun 2002 02:49:09 -0000	1.2
-@@ -25,6 +25,10 @@
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- kio/misc/kpac/dhcp.h	10 Jul 2002 04:50:03 -0000	1.1.1.2
++++ kio/misc/kpac/dhcp.h	10 Jul 2002 05:12:46 -0000	1.3
+@@ -29,6 +29,10 @@
  
  #define DHCP_OPT_LEN 312
  
@@ -840,34 +711,70 @@ diff -u -b -u -r1.1.1.1 -r1.2
 Index: kio/misc/kssld/Makefile.am
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/kio/misc/kssld/Makefile.am,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- kio/misc/kssld/Makefile.am	25 Jun 2002 02:47:04 -0000	1.1.1.1
-+++ kio/misc/kssld/Makefile.am	25 Jun 2002 02:49:09 -0000	1.2
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- kio/misc/kssld/Makefile.am	10 Jul 2002 04:50:08 -0000	1.1.1.2
++++ kio/misc/kssld/Makefile.am	10 Jul 2002 05:12:46 -0000	1.3
 @@ -21,7 +21,7 @@
  kde_module_LTLIBRARIES = kded_kssld.la
  
  kded_kssld_la_LDFLAGS = $(all_libraries) -module -avoid-version
--kded_kssld_la_LIBADD = $(LIB_KSYCOCA)
-+kded_kssld_la_LIBADD = $(LIB_KSYCOCA) $(LIB_KDED)
+-kded_kssld_la_LIBADD = $(LIB_KIO)
++kded_kssld_la_LIBADD = $(LIB_KIO) $(LIB_KSYCOCA) $(LIB_KDED)
  kded_kssld_la_SOURCES = kssld.cpp kssld.skel
  
  METASOURCES = AUTO
+Index: kioslave/http/http.cc
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/kioslave/http/http.cc,v
+retrieving revision 1.1.1.3
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.3 -r1.2
+--- kioslave/http/http.cc	10 Jul 2002 04:50:14 -0000	1.1.1.3
++++ kioslave/http/http.cc	11 Jul 2002 03:09:46 -0000	1.2
+@@ -33,9 +33,9 @@
+ #include <sys/socket.h>
+ #include <netinet/tcp.h>
+ 
++#include <unistd.h>
+ /*
+ #include <netdb.h>
+-#include <unistd.h>
+ #include <sys/time.h>
+ #include <sys/wait.h>
+ #include <netinet/in.h>
+Index: kioslave/http/kcookiejar/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/kioslave/http/kcookiejar/Makefile.am,v
+retrieving revision 1.1.1.2
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.2 -r1.2
+--- kioslave/http/kcookiejar/Makefile.am	10 Jul 2002 04:50:21 -0000	1.1.1.2
++++ kioslave/http/kcookiejar/Makefile.am	11 Jul 2002 03:09:46 -0000	1.2
+@@ -16,7 +16,7 @@
+ kded_kcookiejar_la_SOURCES = kcookiejar.cpp kcookieserver.cpp \
+ 			kcookieserver.skel kcookiewin.cpp 
+ kded_kcookiejar_la_LDFLAGS = $(all_libraries) -module -avoid-version
+-kded_kcookiejar_la_LIBADD = $(LIB_KIO)
++kded_kcookiejar_la_LIBADD = $(LIB_KIO) $(LIB_KDED)
+ 
+ kcookiejar_SOURCES = dummy.cpp
+ kcookiejar_LDADD = kcookiejar.la
 Index: libkscreensaver/Makefile.am
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/libkscreensaver/Makefile.am,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- libkscreensaver/Makefile.am	25 Jun 2002 02:47:05 -0000	1.1.1.1
-+++ libkscreensaver/Makefile.am	25 Jun 2002 02:49:09 -0000	1.2
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- libkscreensaver/Makefile.am	10 Jul 2002 04:51:20 -0000	1.1.1.2
++++ libkscreensaver/Makefile.am	10 Jul 2002 05:12:47 -0000	1.3
 @@ -1,7 +1,7 @@
  lib_LTLIBRARIES = libkscreensaver.la
  libkscreensaver_la_SOURCES = main.cpp kscreensaver.cpp
--libkscreensaver_la_LIBADD  = $(LIB_KSYCOCA)
+-libkscreensaver_la_LIBADD  = $(LIB_KIO)
 -libkscreensaver_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -version-info 4:0
-+libkscreensaver_la_LIBADD  = $(LIB_KSYCOCA) $(LIB_X11) $(LIB_KDECORE) $(LIB_QT)
++libkscreensaver_la_LIBADD  = $(LIB_KIO) $(LIB_KSYCOCA) $(LIB_X11) $(LIB_KDECORE) $(LIB_QT)
 +libkscreensaver_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -version-info 4:0 $(QT_LDFLAGS) -static
  
  include_HEADERS = kscreensaver.h kscreensaver_vroot.h
@@ -875,12 +782,12 @@ diff -u -b -u -r1.1.1.1 -r1.2
 Index: libltdl/ltdl.c
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/libltdl/ltdl.c,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- libltdl/ltdl.c	25 Jun 2002 02:47:05 -0000	1.1.1.1
-+++ libltdl/ltdl.c	25 Jun 2002 02:49:09 -0000	1.2
-@@ -1539,11 +1539,14 @@
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- libltdl/ltdl.c	10 Jul 2002 04:51:21 -0000	1.1.1.2
++++ libltdl/ltdl.c	10 Jul 2002 05:12:47 -0000	1.3
+@@ -1544,11 +1544,14 @@
    /* try to open the old library first; if it was dlpreopened,
       we want the preopened version of it, even if a dlopenable
       module is available */
@@ -899,12 +806,12 @@ diff -u -b -u -r1.1.1.1 -r1.2
 Index: libltdl/ltdl.m4
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdelibs/libltdl/ltdl.m4,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- libltdl/ltdl.m4	25 Jun 2002 02:47:06 -0000	1.1.1.1
-+++ libltdl/ltdl.m4	25 Jun 2002 02:49:09 -0000	1.2
-@@ -93,6 +93,9 @@
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- libltdl/ltdl.m4	10 Jul 2002 04:51:21 -0000	1.1.1.2
++++ libltdl/ltdl.m4	10 Jul 2002 05:12:47 -0000	1.3
+@@ -103,6 +103,9 @@
  	osf*)
  	  libltdl_cv_sys_dlopen_deplibs=yes
  	  ;;
@@ -914,13 +821,13 @@ diff -u -b -u -r1.1.1.1 -r1.2
  	esac
  ])
  if test "$libltdl_cv_sys_dlopen_deplibs" != yes; then
---- /dev/null	Tue Jun 25 21:42:25 2002
+--- /dev/null	Thu Jul 11 08:14:44 2002
 +++ kdelibs.csh	Wed May 15 18:08:04 2002
 @@ -0,0 +1,3 @@
 +#!/bin/csh
 +
 +setenv KDEDIR @PREFIX@
---- /dev/null	Tue Jun 25 21:42:25 2002
+--- /dev/null	Thu Jul 11 08:14:44 2002
 +++ kdelibs.sh	Wed May 15 18:08:04 2002
 @@ -0,0 +1,4 @@
 +#!/bin/sh
