@@ -1,0 +1,44 @@
+Package: the
+Version: 3.1
+Revision: 1
+GCC: 3.1
+Source: mirror:sourceforge:/hessling-editor/THE-%v.tar.gz
+Source-MD5: 3d09dad65e1c0efe9ec8ead013df9d08
+SourceDirectory: THE-%v
+Depends: ncurses, pdcurses, regina, xaw3d-shlibs
+License: GPL
+NoSetLDFLAGS: true
+CompileScript: <<
+  #!/bin/sh
+  ./configure --prefix=%p --with-rexx=regina --with-rexxlibdir=%p/lib --with-ncurses --with-curseslibdir=%p/lib
+  make
+  mv the the-ncurses
+  ./configure --prefix=%p --with-rexx=regina --with-rexxlibdir=%p/lib --with-xcurses --with-cursesincdir=%p/include --with-curseslibdir=%p/lib
+  make the
+  mv the the-xcurses
+<<
+InstallScript: <<
+  #!/bin/sh
+  echo "
+  #!/bin/sh
+  if [ \$?TERM_PROGRAM ]; then
+      the-ncurses;
+  elif [ \$?TERM ]; then
+      the-xcurses;
+   fi
+  " >> the
+  chmod 755 the
+  make install prefix=%i
+  install -m 755 the-ncurses %i/bin/
+  install -m 755 the-xcurses %i/bin/
+<<
+RuntimeVars: <<
+  DYLD_LIBRARY_PATH: %p/lib
+<<
+DocFiles: COPYING FAQ README THE_Help.txt
+Description: THE is The Hessling Editor
+DescDetail: <<
+This package makes Mark Hessling's THE, a unix implementation of IBM's VM/CMS Xedit and Kedit for the DOS platform, available to the Mac OS X platform.  There are actually two versions of this program, one built to run in X11 and one built to run in the terminal window. 
+ <<
+Maintainer: eric 
+Homepage: http://hessling-editor.sf.net
