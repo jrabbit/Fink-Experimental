@@ -26,7 +26,7 @@ include $(basedir)/Makefile.i18n.common
 	echo '<? include_once "../phpLang.inc.php"; ?>' > index.php.tmp
 	echo '<? include_once "news.en.inc"; ?>' > news.inc.tmp
 
-%.rdf: $(SOURCE) $(STYLESHEET_RDF)
+news.rdf %.rdf: $(SOURCE) $(STYLESHEET_RDF)
 	xmllint --noout --valid $(SOURCE)
 	$(foreach XMLFILE, $(SOURCE), xsltproc --stringparam currdate "$(CURRDATE)" -o $(subst .xml,.rdf,$(XMLFILE)) $(STYLESHEET_RDF) $(XMLFILE); )
 	-cp news.en.rdf news.rdf
