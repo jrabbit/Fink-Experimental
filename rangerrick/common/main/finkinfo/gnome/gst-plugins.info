@@ -9,7 +9,7 @@ PatchScript: <<
   perl -pi -e 's,/etc/xml/catalog,%p/etc/xml/catalog,g' configure
 <<
 Patch: %n.patch
-SetCPPFLAGS: -I%p/lib/freetype219/include -no-cpp-precomp -I/usr/X11R6/include
+SetCPPFLAGS: -I%p/lib/freetype219/include/freetype2 -I%p/lib/freetype219/include -no-cpp-precomp -I/usr/X11R6/include
 SetCFLAGS: -O3 -funroll-loops -fstrict-aliasing
 SetLIBS: -L%p/lib -L%p/lib/freetype219/lib -L/usr/X11R6/lib
 NoSetMAKEFLAGS: true
@@ -24,7 +24,11 @@ CompileScript: <<
 <<
 ConfigureParams: --libexecdir=%p/lib/%n --mandir=%p/share/man --disable-arts --disable-artsc --with-ft-prefix=%p/lib/freetype219
 InstallScript: <<
+#!/bin/sh -e
   GCONF_DISABLE_MAKEFILE_SCHEMA_INSTALL=1 make install DESTDIR=%d
+
+  # temporary, the OSX Video sink causes crazy objc errors
+  rm -rf %i/lib/gstreamer-0.8/libgstosxvideo*
 <<
 PostInstScript: <<
   if [ configure = "$1" ]; then
@@ -59,7 +63,7 @@ SplitOff2: <<
   Files: lib include
   BuildDependsOnly: true
 <<
-DocFiles: AUTHORS COPYING ChangeLog README TODO
+DocFiles: AUTHORS COPYING ChangeLog README
 Description: Streaming-media framework plugins
 DescDetail: <<
 GStreamer is a streaming-media framework, based 
