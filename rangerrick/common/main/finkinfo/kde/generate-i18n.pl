@@ -57,7 +57,7 @@ Source-MD5: $md5
 Version: ${KDEVERSION}
 Revision: ${KDEI18NRELNUM}
 Depends: kdelibs3-ssl (>= %v-${KDERELNUM}) | kdelibs3 (>= %v-${KDERELNUM}), arts (>= ${KDEARTSVER}), xfonts-intl
-BuildDepends: fink (>= 0.12.1-1), kdebase3-ssl-dev (>= %v-${KDERELNUM}) | kdebase3-dev (>= %v-${KDERELNUM}), kdelibs3-ssl-dev (>= %v-${KDERELNUM}) | kdelibs3-dev (>= %v-${KDERELNUM}), arts-dev (>= ${KDEARTSVER}), libxml2, libxslt (>= 1.0.27-1), xfonts-intl
+BuildDepends: fink (>= 0.17.1-1), kdebase3-ssl-dev (>= %v-${KDERELNUM}) | kdebase3-dev (>= %v-${KDERELNUM}), kdelibs3-ssl-dev (>= %v-${KDERELNUM}) | kdelibs3-dev (>= %v-${KDERELNUM}), arts-dev (>= ${KDEARTSVER}), libxml2, libxslt, xfonts-intl
 Maintainer: Benjamin Reed <ranger\@befunk.com>
 PatchScript: perl -pi -e 's,/share/doc/HTML,/share/doc/kde,g' configure
 CompileScript: (export KDEDIR=%p; sh configure %c; make -j8)
@@ -100,7 +100,7 @@ Source-MD5: $md5
 Version: ${KOVERSION}
 Revision: ${KOI18NRELNUM}
 Depends: kdelibs3-ssl (>= ${KDEVERSION}-${KDERELNUM}) | kdelibs3 (>= ${KDEVERSION}-${KDERELNUM}), arts (>= ${KDEARTSVER}), xfonts-intl, koffice-base (>= ${KOVERSION}-${KORELNUM})
-BuildDepends: fink (>= 0.12.1-1), kdebase3-ssl-dev (>= ${KDEVERSION}-${KDERELNUM}) | kdebase3-dev (>= ${KDEVERSION}-${KDERELNUM}), kdelibs3-ssl-dev (>= ${KDEVERSION}-${KDERELNUM}) | kdelibs3-dev (>= ${KDEVERSION}-${KDERELNUM}), arts-dev (>= ${KDEARTSVER}), koffice-dev (>= ${KOVERSION}-${KORELNUM}), libxml2, libxslt (>= 1.0.27-1), xfonts-intl
+BuildDepends: fink (>= 0.17.1-1), kdebase3-ssl-dev (>= ${KDEVERSION}-${KDERELNUM}) | kdebase3-dev (>= ${KDEVERSION}-${KDERELNUM}), kdelibs3-ssl-dev (>= ${KDEVERSION}-${KDERELNUM}) | kdelibs3-dev (>= ${KDEVERSION}-${KDERELNUM}), arts-dev (>= ${KDEARTSVER}), koffice-dev (>= ${KOVERSION}-${KORELNUM}), libxml2, libxslt, xfonts-intl
 Maintainer: Benjamin Reed <ranger\@befunk.com>
 PatchScript: perl -pi -e 's,/share/doc/HTML,/share/doc/kde,g' configure
 CompileScript: (export KDEDIR=%p; sh configure %c; make -j8)
