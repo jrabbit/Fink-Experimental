@@ -1,0 +1,1 @@
+<? include_once "phpLang.inc.php"; $lang_code = 'en'; if ((phpLang_current)) $lang_code=phpLang_current; if (is_readable ("news/news." . $lang_code . ".inc")) include_once "news." . $lang_code . ".inc"; else include_once "news.en.inc"; ?>
