@@ -1,0 +1,45 @@
+Package: perl561
+Version: 5.6.1
+Revision: 1
+Depends: perl561-core
+Conflicts: perl580
+Replaces: perl580
+Description: Practical extraction and report language
+Maintainer: Ken Williams <ken@mathforum.org>
+Source: http://www.cpan.org/src/5.0/perl-5.6.1.tar.gz
+Source-MD5: ec1ff15464809b562aecfaa2e65edba6
+Homepage: http://www.perl.com/
+License: GPL, Artistic
+
+DocFiles: README Changes Artistic AUTHORS Copying
+Patch: %f.patch
+
+CompileScript: <<
+ LC_ALL=C LANG=en_US sh Configure -des -Dfirstmakefile=GNUmakefile -Dldflags="-flat_namespace" -Dprefix=/sw -Dinstallprefix="%d/sw" -Uinstallusrbinperl
+ LC_ALL=C LANG=en_US make
+<<
+
+# Will need to edit Config.pm here?
+InstallScript: <<
+ mv INSTALL INSTALL.save
+ make install
+ /usr/bin/perl -pi.bak -e 's{%d}{}' "%i/lib/perl5/%v/darwin/Config.pm"
+ mkdir -p %i/share
+ mv %i/man %i/share/man
+ mv %i/share/man/man3/Shell.3 %i/share/man/man3/Shell.3.perl
+<<
+SplitOff: <<
+ Package: perl561-core
+ Files: bin/perl5.6.1 lib/perl5
+ DocFiles: README Changes Artistic AUTHORS Copying
+<<
+DescPackaging: <<
+ We move the man pages to the correct place after installation, and
+ rename man/man3/Shell.3 to avoid a conflict with the lesstif package.
+
+ We split the perl5.6.1 binary and the files in lib/perl5 off as a separate
+ "core" package which does not conflict with other versions of perl.
+ /sw/bin/perl and other binaries remain in the perl580 package, and
+ different versions of perl can be selected by installing a different
+ package instead.
+<<

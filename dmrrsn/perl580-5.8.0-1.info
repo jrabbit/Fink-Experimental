@@ -1,0 +1,69 @@
+Package: perl580
+Version: 5.8.0
+Revision: 1
+Depends: perl580-core
+Conflicts: perl561
+Replaces: perl561
+License: Artistic
+Description: The Perl programming language.
+DescDetail: <<
+Perl is a high-level programming language with roots in C, sed, awk
+and shell scripting.  Perl is good at handling processes and files,
+and is especially good at handling text.  Perl's hallmarks are
+practicality and efficiency.  While it is used to do a lot of
+different things, Perl's most common applications are system
+administration utilities and web programming.  A large proportion of
+the CGI scripts on the web are written in Perl.
+
+This is the latest stable version of Perl.  This differs from the
+Apple OS X 10.1 distribution of Perl 5.6.0 (and supporting fink
+libraries) in that it retains the perl version subdirectories in the
+lib tree.  Without these, upgrading or downgrading Perl breaks all of
+the binary modules.
+<<
+DescPort: <<
+The DB_File interface is disabled because the MacOSX version of libdb
+is not compatible with Perl.
+
+This package does not alter /usr/bin/perl.  To make this perl the
+default, run:
+  sudo /bin/cp /sw/bin/perl5.8.0 /usr/bin/perl
+after installation.
+<<
+DescUsage: <<
+Most perl scripts start with #!/usr/bin/perl which will invoke Apple's
+perl5.6.0.  To use this version of perl instead, you should overwrite
+/usr/bin/perl via:
+  sudo /bin/cp /sw/bin/perl5.8.0 /usr/bin/perl
+To revert to Apple's perl:
+  sudo /bin/cp /usr/bin/perl5.6.0 /usr/bin/perl
+<<
+Source: mirror:cpan:authors/id/JHI/perl-%v.tar.gz
+Source-MD5: d9bdb180620306023fd35901a2878b62
+CompileScript: <<
+ sh Configure -des -Dprefix=%p -Dinstallprefix=%i -Dccflags=-I%p/include -Dldflags=-L%p/lib -Dperladmin=none -Ui_db -Uinstallusrbinperl -Dman3ext=3pm
+ make
+ make test
+<<
+DocFiles: README Copying
+
+# After install, fix the Config.pm script to remove
+# "src/root-perl-5.8.0" from the install paths
+InstallScript: <<
+ make install
+ /usr/bin/perl5.6.0 -pi -e's#%p/src/root[^/]+## if/^install/' %i/lib/perl5/5.8.0/darwin/Config.pm
+<<
+SplitOff: <<
+ Package: %N-core
+ Files: bin/perl5.8.0 lib/perl5
+ DocFiles: README Copying
+<<
+DescPackaging: <<
+ We split the perl5.8.0 binary and the files in lib/perl5 off as a separate
+ "core" package which does not conflict with other versions of perl.
+ /sw/bin/perl and other binaries remain in the perl580 package, and
+ different versions of perl can be selected by installing a different
+ package instead.
+<<
+Homepage: http://www.cpan.org/
+Maintainer: Chris Dolan <chris@clotho.com>
