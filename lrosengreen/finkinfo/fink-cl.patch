@@ -1,4 +1,4 @@
-diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x _darcs fink-cl.old/LICENSE fink-cl/LICENSE
+diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x fink-cl.info.in fink-cl.old/LICENSE fink-cl/LICENSE
 --- fink-cl.old/LICENSE	1969-12-31 16:00:00.000000000 -0800
 +++ fink-cl/LICENSE	2004-09-22 13:07:06.000000000 -0700
 @@ -0,0 +1,19 @@
@@ -21,13 +21,12 @@ diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x _darcs fink-cl.old/LICENSE fink-
 +LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 +FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 +DEALINGS IN THE SOFTWARE. 
-diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x _darcs fink-cl.old/VERSION fink-cl/VERSION
+diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x fink-cl.info.in fink-cl.old/VERSION fink-cl/VERSION
 --- fink-cl.old/VERSION	1969-12-31 16:00:00.000000000 -0800
-+++ fink-cl/VERSION	2004-09-28 16:09:48.000000000 -0700
-@@ -0,0 +1,2 @@
-+0.0.2
-+
-diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x _darcs fink-cl.old/lisp/compile.lisp fink-cl/lisp/compile.lisp
++++ fink-cl/VERSION	2004-10-04 12:16:14.000000000 -0700
+@@ -0,0 +1 @@
++0.0.3
+diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x fink-cl.info.in fink-cl.old/lisp/compile.lisp fink-cl/lisp/compile.lisp
 --- fink-cl.old/lisp/compile.lisp	1969-12-31 16:00:00.000000000 -0800
 +++ fink-cl/lisp/compile.lisp	2004-09-28 16:09:12.000000000 -0700
 @@ -0,0 +1,38 @@
@@ -69,7 +68,7 @@ diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x _darcs fink-cl.old/lisp/compile.
 +
 +#-allegro (quit)
 +#+allegro (exit)
-diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x _darcs fink-cl.old/lisp/get-env-var.lisp fink-cl/lisp/get-env-var.lisp
+diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x fink-cl.info.in fink-cl.old/lisp/get-env-var.lisp fink-cl/lisp/get-env-var.lisp
 --- fink-cl.old/lisp/get-env-var.lisp	1969-12-31 16:00:00.000000000 -0800
 +++ fink-cl/lisp/get-env-var.lisp	2004-09-26 21:58:00.000000000 -0700
 @@ -0,0 +1,13 @@
@@ -86,7 +85,7 @@ diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x _darcs fink-cl.old/lisp/get-env-
 +  #+:lispworks (lw:environment-variable name)
 +  #+:clisp (ext:getenv name)
 +  #+:mcl (ccl::getenv name))
-diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x _darcs fink-cl.old/lisp/split-sequence.lisp fink-cl/lisp/split-sequence.lisp
+diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x fink-cl.info.in fink-cl.old/lisp/split-sequence.lisp fink-cl/lisp/split-sequence.lisp
 --- fink-cl.old/lisp/split-sequence.lisp	1969-12-31 16:00:00.000000000 -0800
 +++ fink-cl/lisp/split-sequence.lisp	2004-09-27 20:27:07.000000000 -0700
 @@ -0,0 +1,236 @@
@@ -326,11 +325,15 @@ diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x _darcs fink-cl.old/lisp/split-se
 +  (warn "PARTITION-IF-NOT is deprecated; use SPLIT-SEQUENCE-IF-NOT instead")
 +  form)
 +
-diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x _darcs fink-cl.old/scripts/compile-cl fink-cl/scripts/compile-cl
+diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x fink-cl.info.in fink-cl.old/scripts/compile-cl fink-cl/scripts/compile-cl
 --- fink-cl.old/scripts/compile-cl	1969-12-31 16:00:00.000000000 -0800
-+++ fink-cl/scripts/compile-cl	2004-09-27 18:47:32.000000000 -0700
-@@ -0,0 +1,55 @@
++++ fink-cl/scripts/compile-cl	2004-10-04 12:00:00.000000000 -0700
+@@ -0,0 +1,60 @@
 +#! /bin/sh
++
++# In most cases, %p/lib/fink-cl/compile.lisp is sufficient for
++# compiling, but for those cases where it is not, it can be overloaded
++# by ./fink/compile.lisp or ./fink/compile-$FLAVOR.lisp.
 +
 +usage_help()
 +{
@@ -345,12 +348,12 @@ diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x _darcs fink-cl.old/scripts/compi
 +  
 +    *openmcl* )
 +      FLAVOR="openmcl"
-+      EXEC="@PREFIX@/bin/${FLAVOR} --load"
++      EXEC="@PREFIX@/bin/${FLAVOR} --no-init --load "
 +      ;;
 +
 +    *sbcl* )
 +      FLAVOR="sbcl"
-+      EXEC="@PREFIX@/bin/$FLAVOR --load"
++      EXEC="@PREFIX@/bin/$FLAVOR --sysinit /dev/null --userinit /dev/null --disable-debugger --load"
 +      ;;
 +
 +    *)
@@ -363,18 +366,19 @@ diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x _darcs fink-cl.old/scripts/compi
 +
 +find_compile()
 +{
-+  if [ -f $PWD/fink/compile.lisp ]; then 
++  if [ -f $PWD/fink/compile-$FLAVOR.lisp ]; then
++    COMPILE="$PWD/fink/compile-$FLAVOR.lisp"
++  elif [ -f $PWD/fink/compile.lisp ]; then 
 +    COMPILE="$PWD/fink/compile.lisp"
 +  fi
 +}
 +
 +
-+
++find_flavor
 +export COMPILE="@PREFIX@/lib/fink-cl/compile.lisp"
 +find_compile
 +export PREFIX=@PREFIX@
 +export SYSTEMS=$@
-+find_flavor
 +export FLAVOR
 +
 +if [ $# -eq 0 ]; then
@@ -385,7 +389,20 @@ diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x _darcs fink-cl.old/scripts/compi
 +  echo
 +  $EXEC $COMPILE
 +fi
-diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x _darcs fink-cl.old/scripts/package-cl fink-cl/scripts/package-cl
+diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x fink-cl.info.in fink-cl.old/scripts/install-all-cl fink-cl/scripts/install-all-cl
+--- fink-cl.old/scripts/install-all-cl	1969-12-31 16:00:00.000000000 -0800
++++ fink-cl/scripts/install-all-cl	2004-10-04 11:32:32.000000000 -0700
+@@ -0,0 +1,9 @@
++#! /bin/sh
++
++if [ $# -gt 0 -a \( "$1" = "sbcl" -o "$1" = "openmcl" \) ] ; then
++  fink install `fink list '*-'$1 | awk 'BEGIN{ORS = " "} /-'$1'/{ print $1 }'`;
++else 
++  echo "usage:" `basename $0` "<lisp>"
++  echo "where <lisp> is sbcl or openmcl"
++  exit 1
++fi
+diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x fink-cl.info.in fink-cl.old/scripts/package-cl fink-cl/scripts/package-cl
 --- fink-cl.old/scripts/package-cl	1969-12-31 16:00:00.000000000 -0800
 +++ fink-cl/scripts/package-cl	2004-09-28 13:45:28.000000000 -0700
 @@ -0,0 +1,93 @@
@@ -482,7 +499,7 @@ diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x _darcs fink-cl.old/scripts/packa
 +  fi
 +
 +fi
-diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x _darcs fink-cl.old/scripts/rebuild-all-cl fink-cl/scripts/rebuild-all-cl
+diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x fink-cl.info.in fink-cl.old/scripts/rebuild-all-cl fink-cl/scripts/rebuild-all-cl
 --- fink-cl.old/scripts/rebuild-all-cl	1969-12-31 16:00:00.000000000 -0800
 +++ fink-cl/scripts/rebuild-all-cl	2004-09-26 22:41:31.000000000 -0700
 @@ -0,0 +1,9 @@
@@ -495,7 +512,7 @@ diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x _darcs fink-cl.old/scripts/rebui
 +  echo "where <lisp> is sbcl or openmcl"
 +  exit 1
 +fi
-diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x _darcs fink-cl.old/scripts/remove-all-cl fink-cl/scripts/remove-all-cl
+diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x fink-cl.info.in fink-cl.old/scripts/remove-all-cl fink-cl/scripts/remove-all-cl
 --- fink-cl.old/scripts/remove-all-cl	1969-12-31 16:00:00.000000000 -0800
 +++ fink-cl/scripts/remove-all-cl	2004-09-28 00:41:14.000000000 -0700
 @@ -0,0 +1,9 @@
