@@ -134,9 +134,9 @@ diff -uNr postgresql-7.3.4/pgsql.sh postgresql-7.3.4-new/pgsql.sh
 +	ulimit $flag 65536 >/dev/null 2>&1 || :
 +done
 +
-+PREFIX="@PREFIX@"
++PREFIX="@INSTPREFIX@"
 +DATADIR="${PREFIX}/var/postgresql/data"
-+LOGFILE="${DATADIR}/pgsql.log"
++LOGFILE="${PREFIX}/var/postgresql/pgsql.log"
 +
 +case "$1" in
 +	start)
@@ -789,7 +789,226 @@ diff -uNr postgresql-7.3.4/src/backend/utils/misc/postgresql.conf.sample postgre
  #max_locks_per_transaction = 64	# min 10
 diff -uNr postgresql-7.3.4/src/bin/initdb/initdb.sh postgresql-7.3.4-new/src/bin/initdb/initdb.sh
 --- postgresql-7.3.4/src/bin/initdb/initdb.sh	Mon Nov 25 16:42:11 2002
-+++ postgresql-7.3.4-new/src/bin/initdb/initdb.sh	Thu Jun 10 14:03:05 2004
++++ postgresql-7.3.4-new/src/bin/initdb/initdb.sh	Thu Jun 10 15:23:23 2004
+@@ -51,7 +51,7 @@
+     exit 1
+ }
+ 
+-pg_getlocale(){
++pg_getlocale(){
+     arg=$1
+     unset ret
+ 
+@@ -122,20 +122,20 @@
+ # their trees to backup places, so $bindir might be inaccurate.
+ 
+ if [ x"$self_path" != x"" ] \
+-  && [ -x "$self_path/postgres" ] \
+-  && [ x"`$self_path/postgres -V 2>/dev/null`" = x"postgres (PostgreSQL) $VERSION" ]
++  && [ -x "$self_path/postgres-7.3" ] \
++  && [ x"`$self_path/postgres-7.3 -V 2>/dev/null`" = x"postgres (PostgreSQL) $VERSION" ]
+ then
+     PGPATH=$self_path
+-elif [ -x "$bindir/postgres" ]; then
+-    if [ x"`$bindir/postgres -V 2>/dev/null`" = x"postgres (PostgreSQL) $VERSION" ]
++elif [ -x "$bindir/postgres-7.3" ]; then
++    if [ x"`$bindir/postgres-7.3 -V 2>/dev/null`" = x"postgres (PostgreSQL) $VERSION" ]
+     then
+         PGPATH=$bindir
+     else
+         # Maybe there was an error message?
+-        errormsg=`$bindir/postgres -V 2>&1 >/dev/null`
++        errormsg=`$bindir/postgres-7.3 -V 2>&1 >/dev/null`
+       (
+         echo "The program "
+-        echo "    '$bindir/postgres'"
++        echo "    '$bindir/postgres-7.3'"
+         echo "needed by $CMDNAME does not belong to PostgreSQL version $VERSION, or"
+         echo "there may be a configuration problem."
+         if test x"$errormsg" != x""; then
+@@ -147,7 +147,7 @@
+         exit 1
+     fi
+ else
+-    echo "The program 'postgres' is needed by $CMDNAME but was not found in" 1>&2
++    echo "The program 'postgres-7.3' is needed by $CMDNAME but was not found in" 1>&2
+     echo "the directory '$bindir'.  Check your installation." 1>&2
+     exit 1
+ fi
+@@ -155,20 +155,20 @@
+ 
+ # Now we can assume that 'pg_id' belongs to the same version as the
+ # verified 'postgres' in the same directory.
+-if [ ! -x "$PGPATH/pg_id" ]; then
+-    echo "The program 'pg_id' is needed by $CMDNAME but was not found in" 1>&2
++if [ ! -x "$PGPATH/pg_id-7.3" ]; then
++    echo "The program 'pg_id-7.3' is needed by $CMDNAME but was not found in" 1>&2
+     echo "the directory '$PGPATH'.  Check your installation." 1>&2
+     exit 1
+ fi
+ 
+ 
+-EffectiveUser=`$PGPATH/pg_id -n -u`
++EffectiveUser=`$PGPATH/pg_id-7.3 -n -u`
+ if [ -z "$EffectiveUser" ]; then
+     echo "$CMDNAME: could not determine current user name" 1>&2
+     exit 1
+ fi
+ 
+-if [ `$PGPATH/pg_id -u` -eq 0 ]
++if [ `$PGPATH/pg_id-7.3 -u` -eq 0 ]
+ then
+     echo "You cannot run $CMDNAME as root. Please log in (using, e.g., 'su')" 1>&2
+     echo "as the (unprivileged) user that will own the server process." 1>&2
+@@ -370,7 +370,7 @@
+ 
+ if [ "$ENCODING" ]
+ then
+-	ENCODINGID=`$PGPATH/pg_encoding -b $ENCODING`
++	ENCODINGID=`$PGPATH/pg_encoding-7.3 -b $ENCODING`
+ 	if [ "$?" -ne 0 ]
+ 	then
+               (
+@@ -466,21 +466,21 @@
+ 
+ TAB='	'
+ 
+-if test x`pg_getlocale CTYPE` = x`pg_getlocale COLLATE` \
+-   && test x`pg_getlocale CTYPE` = x`pg_getlocale TIME` \
+-   && test x`pg_getlocale CTYPE` = x`pg_getlocale NUMERIC` \
+-   && test x`pg_getlocale CTYPE` = x`pg_getlocale MONETARY` \
+-   && test x`pg_getlocale CTYPE` = x`pg_getlocale MESSAGES`
++if test x`pg_getlocale CTYPE` = x`pg_getlocale COLLATE` \
++   && test x`pg_getlocale CTYPE` = x`pg_getlocale TIME` \
++   && test x`pg_getlocale CTYPE` = x`pg_getlocale NUMERIC` \
++   && test x`pg_getlocale CTYPE` = x`pg_getlocale MONETARY` \
++   && test x`pg_getlocale CTYPE` = x`pg_getlocale MESSAGES`
+ then
+-    echo "The database cluster will be initialized with locale `pg_getlocale CTYPE`."
++    echo "The database cluster will be initialized with locale `pg_getlocale CTYPE`."
+ else
+     echo "The database cluster will be initialized with locales:"
+-    echo "    COLLATE:  `pg_getlocale COLLATE`${TAB}CTYPE:   `pg_getlocale CTYPE`${TAB}MESSAGES: `pg_getlocale MESSAGES`"
+-    echo "    MONETARY: `pg_getlocale MONETARY`${TAB}NUMERIC: `pg_getlocale NUMERIC`${TAB}TIME:     `pg_getlocale TIME`"
++    echo "    COLLATE:  `pg_getlocale COLLATE`${TAB}CTYPE:   `pg_getlocale CTYPE`${TAB}MESSAGES: `pg_getlocale MESSAGES`"
++    echo "    MONETARY: `pg_getlocale MONETARY`${TAB}NUMERIC: `pg_getlocale NUMERIC`${TAB}TIME:     `pg_getlocale TIME`"
+ fi
+ 
+ # (Be sure to maintain the correspondence with locale_is_like_safe() in selfuncs.c.)
+-if test x`pg_getlocale COLLATE` != xC && test x`pg_getlocale COLLATE` != xPOSIX; then
++if test x`pg_getlocale COLLATE` != xC && test x`pg_getlocale COLLATE` != xPOSIX; then
+     echo "This locale setting will prevent the use of indexes for pattern matching"
+     echo "operations.  If that is a concern, rerun $CMDNAME with the collation order"
+     echo "set to \"C\".  For more information see the Administrator's Guide."
+@@ -572,12 +572,12 @@
+       -e "s/ENCODING/$ENCODINGID/g" \
+ | 
+ (
+-  LC_COLLATE=`pg_getlocale COLLATE`
+-  LC_CTYPE=`pg_getlocale CTYPE`
++  LC_COLLATE=`pg_getlocale COLLATE`
++  LC_CTYPE=`pg_getlocale CTYPE`
+   export LC_COLLATE
+   export LC_CTYPE
+   unset LC_ALL
+-  "$PGPATH"/postgres -boot -x1 $PGSQL_OPT $BACKEND_TALK_ARG template1
++  "$PGPATH"/postgres-7.3 -boot -x1 $PGSQL_OPT $BACKEND_TALK_ARG template1
+ ) \
+ || exit_nicely
+ 
+@@ -603,7 +603,7 @@
+   echo "#"
+   echo "# (initialized by initdb -- may be changed)"
+   for cat in MESSAGES MONETARY NUMERIC TIME; do
+-    echo "LC_$cat = '`pg_getlocale $cat`'"
++    echo "LC_$cat = '`pg_getlocale $cat`'"
+   done
+ ) > "$PGDATA"/postgresql.conf || exit_nicely
+ 
+@@ -625,7 +625,7 @@
+ 
+ $ECHO_N "initializing pg_shadow... "$ECHO_C
+ 
+-"$PGPATH"/postgres $PGSQL_OPT template1 >/dev/null <<EOF
++"$PGPATH"/postgres-7.3 $PGSQL_OPT template1 >/dev/null <<EOF
+ -- Create a trigger so that direct updates to pg_shadow will be written
+ -- to the flat password/group files pg_pwd and pg_group
+ CREATE TRIGGER pg_sync_pg_pwd AFTER INSERT OR UPDATE OR DELETE ON pg_shadow \
+@@ -658,7 +658,7 @@
+         exit_nicely
+     fi
+     $ECHO_N "setting password... "$ECHO_C
+-    "$PGPATH"/postgres $PGSQL_OPT template1 >/dev/null <<EOF
++    "$PGPATH"/postgres-7.3 $PGSQL_OPT template1 >/dev/null <<EOF
+ 	ALTER USER "$POSTGRES_SUPERUSERNAME" WITH PASSWORD '$FirstPw';
+ EOF
+     if [ "$?" -ne 0 ]; then
+@@ -674,7 +674,7 @@
+ 
+ $ECHO_N "enabling unlimited row size for system tables... "$ECHO_C
+ 
+-"$PGPATH"/postgres $PGSQL_OPT template1 >/dev/null <<EOF
++"$PGPATH"/postgres-7.3 $PGSQL_OPT template1 >/dev/null <<EOF
+ ALTER TABLE pg_attrdef CREATE TOAST TABLE;
+ ALTER TABLE pg_constraint CREATE TOAST TABLE;
+ ALTER TABLE pg_database CREATE TOAST TABLE;
+@@ -693,7 +693,7 @@
+ 
+ $ECHO_N "initializing pg_depend... "$ECHO_C
+ 
+-"$PGPATH"/postgres $PGSQL_OPT template1 >/dev/null <<EOF
++"$PGPATH"/postgres-7.3 $PGSQL_OPT template1 >/dev/null <<EOF
+ -- Make PIN entries in pg_depend for all objects made so far in the tables
+ -- that the dependency code handles.  This is overkill (the system doesn't
+ -- really depend on having every last weird datatype, for instance)
+@@ -725,7 +725,7 @@
+ 
+ $ECHO_N "creating system views... "$ECHO_C
+ 
+-"$PGPATH"/postgres $PGSQL_OPT template1 >/dev/null <<EOF
++"$PGPATH"/postgres-7.3 $PGSQL_OPT template1 >/dev/null <<EOF
+ 
+ CREATE VIEW pg_user AS \
+     SELECT \
+@@ -1014,12 +1014,12 @@
+     FROM tmp_pg_description t, pg_class c WHERE c.relname = t.classname;
+ EOF
+ ) \
+-	| "$PGPATH"/postgres $PGSQL_OPT template1 > /dev/null || exit_nicely
++	| "$PGPATH"/postgres-7.3 $PGSQL_OPT template1 > /dev/null || exit_nicely
+ echo "ok"
+ 
+ # Create pg_conversion and support functions
+ $ECHO_N "creating conversions... "$ECHO_C
+-grep -v '^DROP CONVERSION' $datadir/conversion_create.sql | "$PGPATH"/postgres $PGSQL_OPT template1 > /dev/null || exit_nicely
++grep -v '^DROP CONVERSION' $datadir/conversion_create.sql | "$PGPATH"/postgres-7.3 $PGSQL_OPT template1 > /dev/null || exit_nicely
+ echo "ok"
+ 
+ # Set most system catalogs and built-in functions as world-accessible.
+@@ -1039,12 +1039,12 @@
+         WHERE NOT lanpltrusted;
+ EOF
+ ) \
+-	| "$PGPATH"/postgres $PGSQL_OPT template1 > /dev/null || exit_nicely
++	| "$PGPATH"/postgres-7.3 $PGSQL_OPT template1 > /dev/null || exit_nicely
+ echo "ok"
+ 
+ $ECHO_N "vacuuming database template1... "$ECHO_C
+ 
+-"$PGPATH"/postgres $PGSQL_OPT template1 >/dev/null <<EOF
++"$PGPATH"/postgres-7.3 $PGSQL_OPT template1 >/dev/null <<EOF
+ ANALYZE;
+ VACUUM FULL FREEZE;
+ EOF
+@@ -1055,7 +1055,7 @@
+ 
+ $ECHO_N "copying template1 to template0... "$ECHO_C
+ 
+-"$PGPATH"/postgres $PGSQL_OPT template1 >/dev/null <<EOF
++"$PGPATH"/postgres-7.3 $PGSQL_OPT template1 >/dev/null <<EOF
+ CREATE DATABASE template0;
+ 
+ UPDATE pg_database SET \
 @@ -1091,11 +1091,8 @@
  echo
  echo "Success. You can now start the database server using:"
@@ -800,14 +1019,26 @@ diff -uNr postgresql-7.3.4/src/bin/initdb/initdb.sh postgresql-7.3.4-new/src/bin
 -#  process writing to the terminal.)
 -echo "    $PGPATH/pg_ctl -D $PGDATA -l logfile start"
 -echo
-+echo "    sudo -u root sudo -u postgres $PGPATH/pg_ctl \\"
-+echo "        -D $PGDATA -l @PREFIX@/var/log/postgresql/logfile start"
++echo "    sudo -u root sudo -u postgres $PGPATH/pg_ctl-7.3 \\"
++echo "        -D $PGDATA -l @INSTPREFIX@/var/postgresql/pgsql.log start"
 +echo ""
  
  exit 0
+diff -uNr postgresql-7.3.4/src/bin/initlocation/initlocation.sh postgresql-7.3.4-new/src/bin/initlocation/initlocation.sh
+--- postgresql-7.3.4/src/bin/initlocation/initlocation.sh	Fri Oct 18 18:05:35 2002
++++ postgresql-7.3.4-new/src/bin/initlocation/initlocation.sh	Thu Jun 10 15:23:46 2004
+@@ -162,7 +162,7 @@
+     echo "You can now create a database using"
+     echo "  CREATE DATABASE <name> WITH LOCATION = '$Location'"
+     echo "in SQL, or"
+-    echo "  createdb -D '$Location' <name>"
++    echo "  createdb-7.3 -D '$Location' <name>"
+     echo "from the shell."
+ fi
+ echo
 diff -uNr postgresql-7.3.4/src/bin/pg_ctl/pg_ctl.sh postgresql-7.3.4-new/src/bin/pg_ctl/pg_ctl.sh
 --- postgresql-7.3.4/src/bin/pg_ctl/pg_ctl.sh	Fri Oct 18 18:05:35 2002
-+++ postgresql-7.3.4-new/src/bin/pg_ctl/pg_ctl.sh	Thu Jun 10 14:03:05 2004
++++ postgresql-7.3.4-new/src/bin/pg_ctl/pg_ctl.sh	Thu Jun 10 15:27:47 2004
 @@ -14,6 +14,10 @@
  
  CMDNAME=`basename $0`
@@ -819,6 +1050,369 @@ diff -uNr postgresql-7.3.4/src/bin/pg_ctl/pg_ctl.sh postgresql-7.3.4-new/src/bin
  help="\
  $CMDNAME is a utility to start, stop, restart, reload configuration files,
  or report the status of a PostgreSQL server.
+@@ -97,18 +101,18 @@
+ fi
+ 
+ # Check if needed programs actually exist in path
+-if [ -x "$self_path/postmaster" ] && [ -x "$self_path/psql" ]; then
++if [ -x "$self_path/postmaster-7.3" ] && [ -x "$self_path/psql-7.3" ]; then
+     PGPATH="$self_path"
+-elif [ -x "$bindir/postmaster" ] && [ -x "$bindir/psql" ]; then
++elif [ -x "$bindir/postmaster-7.3" ] && [ -x "$bindir/psql-7.3" ]; then
+     PGPATH="$bindir"
+ else
+-    echo "The programs 'postmaster' and 'psql' are needed by $CMDNAME but" 1>&2
++    echo "The programs 'postmaster-7.3' and 'psql-7.3' are needed by $CMDNAME but" 1>&2
+     echo "were not found in the directory '$bindir'." 1>&2
+     echo "Check your installation." 1>&2
+     exit 1
+ fi
+ 
+-po_path="$PGPATH/postmaster"
++po_path="$PGPATH/postmaster-7.3"
+ 
+ wait=
+ wait_seconds=60
+@@ -243,15 +247,15 @@
+ 	PID=`sed -n 1p $PIDFILE`
+ 	if [ "$PID" -lt 0 ];then
+ 	    PID=`expr 0 - $PID`
+-	    echo "$CMDNAME: postgres is running (pid: $PID)"
++	    echo "$CMDNAME: postgres-7.3 is running (pid: $PID)"
+ 	else
+-	    echo "$CMDNAME: postmaster is running (pid: $PID)"
++	    echo "$CMDNAME: postmaster-7.3 is running (pid: $PID)"
+ 	    echo "Command line was:"
+ 	    cat "$POSTOPTSFILE"
+ 	fi
+ 	exit 0
+     else
+-	echo "$CMDNAME: postmaster or postgres is not running"
++	echo "$CMDNAME: postmaster-7.3 or postgres-7.3 is not running"
+ 	exit 1
+     fi
+ fi
+@@ -261,8 +265,8 @@
+ 	PID=`sed -n 1p $PIDFILE`
+ 	if [ "$PID" -lt 0 ];then
+ 	    PID=`expr 0 - $PID`
+-	    echo "$CMDNAME: Cannot restart postmaster.  postgres is running (pid: $PID)" 1>&2
+-	    echo "Please terminate postgres and try again." 1>&2
++	    echo "$CMDNAME: Cannot restart postmaster-7.3.  postgres-7.3 is running (pid: $PID)" 1>&2
++	    echo "Please terminate postgres-7.3 and try again." 1>&2
+ 	    exit 1
+ 	fi
+ 
+@@ -271,7 +275,7 @@
+ 	# wait for postmaster to shut down
+ 	if [ "$wait" = yes -o "$op" = restart ];then
+ 	    cnt=0
+-	    $silence_echo $ECHO_N "waiting for postmaster to shut down..."$ECHO_C
++	    $silence_echo $ECHO_N "waiting for postmaster-7.3 to shut down..."$ECHO_C
+ 
+ 	    while :
+ 	    do
+@@ -280,7 +284,7 @@
+ 		    cnt=`expr $cnt + 1`
+ 		    if [ "$cnt" -gt "$wait_seconds" ];then
+ 			$silence_echo echo " failed"
+-			echo "$CMDNAME: postmaster does not shut down" 1>&2
++			echo "$CMDNAME: postmaster-7.3 does not shut down" 1>&2
+ 			exit 1
+ 		    fi
+ 		else
+@@ -292,16 +296,16 @@
+ 	fi
+ 
+ 	if [ "$op" = "reload" ];then
+-	    $silence_echo echo "postmaster successfully signaled"
++	    $silence_echo echo "postmaster-7.3 successfully signaled"
+ 	else
+-	    $silence_echo echo "postmaster successfully shut down"
++	    $silence_echo echo "postmaster-7.3 successfully shut down"
+ 	fi
+ 
+     else # ! -f $PIDFILE
+ 	echo "$CMDNAME: cannot find $PIDFILE" 1>&2
+-	echo "Is postmaster running?" 1>&2
++	echo "Is postmaster-7.3 running?" 1>&2
+ 	if [ "$op" = "restart" ];then
+-	    echo "starting postmaster anyway" 1>&2
++	    echo "starting postmaster-7.3 anyway" 1>&2
+ 	else
+ 	    exit 1
+ 	fi
+@@ -311,7 +315,7 @@
+ if [ "$op" = "start" -o "$op" = "restart" ];then
+     oldpid=""
+     if [ -f "$PIDFILE" ];then
+-	echo "$CMDNAME: Another postmaster may be running.  Trying to start postmaster anyway." 1>&2
++	echo "$CMDNAME: Another postmaster-7.3 may be running.  Trying to start postmaster-7.3 anyway." 1>&2
+ 	oldpid=`sed -n 1p $PIDFILE`
+     fi
+ 
+@@ -346,7 +350,7 @@
+ 	sleep 1
+ 	if [ -f "$PIDFILE" ];then
+ 	    if [ "`sed -n 1p $PIDFILE`" = "$oldpid" ];then
+-		echo "$CMDNAME: cannot start postmaster" 1>&2
++		echo "$CMDNAME: cannot start postmaster-7.3" 1>&2
+ 		echo "Examine the log output." 1>&2
+ 		exit 1
+ 	    fi
+@@ -356,7 +360,7 @@
+     # wait for postmaster to start
+     if [ "$wait" = yes ];then
+ 	cnt=0
+-	$silence_echo $ECHO_N "waiting for postmaster to start..."$ECHO_C
++	$silence_echo $ECHO_N "waiting for postmaster-7.3 to start..."$ECHO_C
+ 	while :
+ 	do
+ # FIXME:  This is horribly misconceived.
+@@ -371,7 +375,7 @@
+ # 6) If the dynamic loader is not set up correctly (for this user/at
+ #    this time), psql will fail (to find libpq).
+ # 7) If psql is misconfigured, this may fail.
+-	    if "$PGPATH/psql" -l >/dev/null 2>&1
++	    if "$PGPATH/psql-7.3" -l >/dev/null 2>&1
+ 	    then
+ 		break;
+ 	    else
+@@ -379,7 +383,7 @@
+ 		cnt=`expr $cnt + 1`
+ 		if [ "$cnt" -gt "$wait_seconds" ];then
+ 		    $silence_echo echo "failed"
+-		    echo "$CMDNAME: postmaster does not start" 1>&2
++		    echo "$CMDNAME: postmaster-7.3 does not start" 1>&2
+ 		    exit 1
+ 		fi
+ 		sleep 1
+@@ -387,7 +391,7 @@
+ 	done
+ 	$silence_echo echo "done"
+     fi
+-    $silence_echo echo "postmaster successfully started"
++    $silence_echo echo "postmaster-7.3 successfully started"
+ fi # start or restart
+ 
+ exit 0
+diff -uNr postgresql-7.3.4/src/bin/scripts/clusterdb postgresql-7.3.4-new/src/bin/scripts/clusterdb
+--- postgresql-7.3.4/src/bin/scripts/clusterdb	Mon Oct 21 16:32:33 2002
++++ postgresql-7.3.4-new/src/bin/scripts/clusterdb	Thu Jun 10 15:29:18 2004
+@@ -140,7 +140,7 @@
+ 		echo "$CMDNAME: cannot cluster all databases and a specific one at the same time" 1>&2
+ 		exit 1
+ 	fi
+-	dbname=`${PATHNAME}psql $PSQLOPT -q -t -A -d template1 -c 'SELECT datname FROM pg_database WHERE datallowconn'`
++	dbname=`${PATHNAME}psql-7.3 $PSQLOPT -q -t -A -d template1 -c 'SELECT datname FROM pg_database WHERE datallowconn'`
+ 	[ "$?" -ne 0 ] && exit 1
+ 
+ elif [ -z "$dbname" ]; then
+@@ -149,7 +149,7 @@
+ 	elif [ "$PGUSER" ]; then
+ 		dbname="$PGUSER"
+ 	else
+-		dbname=`${PATHNAME}pg_id -u -n`
++		dbname=`${PATHNAME}pg_id-7.3 -u -n`
+ 	fi
+ 	[ "$?" -ne 0 ] && exit 1
+ fi
+@@ -159,7 +159,7 @@
+ 	[ "$alldb" ] && echo "Clustering $db"
+ 	query="SELECT nspname, pg_class.relname, pg_class_2.relname FROM pg_class, pg_class AS pg_class_2 JOIN pg_namespace ON (pg_namespace.oid=relnamespace), pg_index WHERE pg_class.oid=pg_index.indrelid AND pg_class_2.oid=pg_index.indexrelid AND pg_index.indisclustered AND pg_class.relowner=(SELECT usesysid FROM pg_user WHERE usename=current_user)"
+ 	if [ -z "$table" ]; then
+-		tables=`${PATHNAME}psql $db $PSQLOPT -F: -P format=unaligned -t -c "$query"`
++		tables=`${PATHNAME}psql-7.3 $db $PSQLOPT -F: -P format=unaligned -t -c "$query"`
+ 		[ "$?" -ne 0 ] && exit 1
+ 	else
+ 		# if tablename has a dot, use it as namespace separator
+@@ -167,10 +167,10 @@
+ 		then
+ 			tbl=`echo $table | cut -d. -f2`
+ 			nspc=`echo $table | cut -d. -f1`
+-			tables=`${PATHNAME}psql $db $PSQLOPT -F: -P format=unaligned -t -c "$query AND pg_class.relname='$tbl' AND nspname='$nspc'"`
++			tables=`${PATHNAME}psql-7.3 $db $PSQLOPT -F: -P format=unaligned -t -c "$query AND pg_class.relname='$tbl' AND nspname='$nspc'"`
+ 			echo $tables
+ 		else
+-			tables=`${PATHNAME}psql $db $PSQLOPT -F: -P format=unaligned -t -c "$query AND pg_class.relname='$table'"`
++			tables=`${PATHNAME}psql-7.3 $db $PSQLOPT -F: -P format=unaligned -t -c "$query AND pg_class.relname='$table'"`
+ 		fi
+ 	fi
+ 	query=
+@@ -181,7 +181,7 @@
+ 		idx=`echo $tabs | cut -d: -f3`
+ 		query="$query CLUSTER $idx ON $nspc.$tab;"
+ 	done
+-	${PATHNAME}psql $PSQLOPT $ECHOOPT -c "SET autocommit TO 'on';$query" -d $db
++	${PATHNAME}psql-7.3 $PSQLOPT $ECHOOPT -c "SET autocommit TO 'on';$query" -d $db
+ 	if [ "$?" -ne 0 ]
+ 	then
+ 		echo "$CMDNAME: While clustering $db, the following failed: $query" 1>&2
+diff -uNr postgresql-7.3.4/src/bin/scripts/createdb postgresql-7.3.4-new/src/bin/scripts/createdb
+--- postgresql-7.3.4/src/bin/scripts/createdb	Fri Oct 18 18:05:36 2002
++++ postgresql-7.3.4-new/src/bin/scripts/createdb	Thu Jun 10 15:29:48 2004
+@@ -160,7 +160,7 @@
+ 
+ if [ -n "$MB" ]
+ then
+-        mbcode=`${PATHNAME}pg_encoding "$MB"`
++        mbcode=`${PATHNAME}pg_encoding-7.3 "$MB"`
+         if [ -z "$mbcode" ]
+ 	then
+ 		echo "$CMDNAME: \"$MB\" is not a valid encoding name" 1>&2
+@@ -174,7 +174,7 @@
+         elif [ "$PGUSER" ]; then
+                 dbname="$PGUSER"
+         else
+-                dbname=`${PATHNAME}pg_id -u -n`
++                dbname=`${PATHNAME}pg_id-7.3 -u -n`
+         fi
+         [ "$?" -ne 0 ] && exit 1
+ fi
+@@ -192,7 +192,7 @@
+ [ "$TEMPLATE" ] &&   withstring="$withstring TEMPLATE = \"$TEMPLATE\""
+ [ "$withstring" ] && withstring=" WITH$withstring"
+ 
+-${PATHNAME}psql $PSQLOPT -d template1 -c "SET autocommit TO 'on';CREATE DATABASE \"$dbname\"$withstring"
++${PATHNAME}psql-7.3 $PSQLOPT -d template1 -c "SET autocommit TO 'on';CREATE DATABASE \"$dbname\"$withstring"
+ if [ "$?" -ne 0 ]; then
+ 	echo "$CMDNAME: database creation failed" 1>&2
+ 	exit 1
+@@ -203,7 +203,7 @@
+ 
+ dbcomment=`echo "$dbcomment" | sed "s/'/\\\\\'/g"`
+ 
+-${PATHNAME}psql $PSQLOPT -d "$dbname" -c "SET autocommit TO 'on';COMMENT ON DATABASE \"$dbname\" IS '$dbcomment'"
++${PATHNAME}psql-7.3 $PSQLOPT -d "$dbname" -c "SET autocommit TO 'on';COMMENT ON DATABASE \"$dbname\" IS '$dbcomment'"
+ if [ "$?" -ne 0 ]; then
+ 	echo "$CMDNAME: comment creation failed (database was created)" 1>&2
+ 	exit 1
+diff -uNr postgresql-7.3.4/src/bin/scripts/createlang.sh postgresql-7.3.4-new/src/bin/scripts/createlang.sh
+--- postgresql-7.3.4/src/bin/scripts/createlang.sh	Sat Apr 26 11:19:05 2003
++++ postgresql-7.3.4-new/src/bin/scripts/createlang.sh	Thu Jun 10 15:30:40 2004
+@@ -153,7 +153,7 @@
+         elif [ "$PGUSER" ]; then
+                 dbname="$PGUSER"
+         else
+-                dbname=`${PATHNAME}pg_id -u -n`
++                dbname=`${PATHNAME}pg_id-7.3 -u -n`
+         fi
+         [ "$?" -ne 0 ] && exit 1
+ fi
+@@ -167,7 +167,7 @@
+ 	if [ "$showsql" = yes ]; then
+ 		echo "$sqlcmd"
+ 	fi
+-        ${PATHNAME}psql $PSQLOPT -d "$dbname" -P 'title=Procedural languages' -c "$sqlcmd"
++        ${PATHNAME}psql-7.3 $PSQLOPT -d "$dbname" -P 'title=Procedural languages' -c "$sqlcmd"
+         exit $?
+ fi
+ 
+@@ -233,7 +233,7 @@
+ esac
+ 
+ 
+-PSQL="${PATHNAME}psql -A -t -q $PSQLOPT -d $dbname -c"
++PSQL="${PATHNAME}psql-7.3 -A -t -q $PSQLOPT -d $dbname -c"
+ 
+ # ----------
+ # Make sure the language isn't already installed
+diff -uNr postgresql-7.3.4/src/bin/scripts/createuser postgresql-7.3.4-new/src/bin/scripts/createuser
+--- postgresql-7.3.4/src/bin/scripts/createuser	Fri May 16 11:17:02 2003
++++ postgresql-7.3.4-new/src/bin/scripts/createuser	Thu Jun 10 15:31:02 2004
+@@ -256,7 +256,7 @@
+ [ "$CanAddUser" = t ] &&  QUERY="$QUERY CREATEUSER"
+ [ "$CanAddUser" = f ] &&  QUERY="$QUERY NOCREATEUSER"
+ 
+-${PATHNAME}psql -c "SET autocommit TO 'on';$QUERY" -d template1 $PSQLOPT
++${PATHNAME}psql-7.3 -c "SET autocommit TO 'on';$QUERY" -d template1 $PSQLOPT
+ if [ "$?" -ne 0 ]; then
+ 	echo "$CMDNAME: creation of user \"$NewUser\" failed" 1>&2
+ 	exit 1
+diff -uNr postgresql-7.3.4/src/bin/scripts/dropdb postgresql-7.3.4-new/src/bin/scripts/dropdb
+--- postgresql-7.3.4/src/bin/scripts/dropdb	Fri Oct 18 18:05:36 2002
++++ postgresql-7.3.4-new/src/bin/scripts/dropdb	Thu Jun 10 15:31:18 2004
+@@ -139,7 +139,7 @@
+ 
+ dbname=`echo "$dbname" | sed 's/\"/\\\"/g'`
+ 
+-${PATHNAME}psql $PSQLOPT -d template1 -c "SET autocommit TO 'on';DROP DATABASE \"$dbname\""
++${PATHNAME}psql-7.3 $PSQLOPT -d template1 -c "SET autocommit TO 'on';DROP DATABASE \"$dbname\""
+ if [ "$?" -ne 0 ]; then
+ 	echo "$CMDNAME: database removal failed" 1>&2
+ 	exit 1
+diff -uNr postgresql-7.3.4/src/bin/scripts/droplang postgresql-7.3.4-new/src/bin/scripts/droplang
+--- postgresql-7.3.4/src/bin/scripts/droplang	Fri Oct 18 18:05:36 2002
++++ postgresql-7.3.4-new/src/bin/scripts/droplang	Thu Jun 10 15:31:45 2004
+@@ -142,7 +142,7 @@
+         elif [ "$PGUSER" ]; then
+                 dbname="$PGUSER"
+         else
+-                dbname=`${PATHNAME}pg_id -u -n`
++                dbname=`${PATHNAME}pg_id-7.3 -u -n`
+         fi
+         [ "$?" -ne 0 ] && exit 1
+ fi
+@@ -156,7 +156,7 @@
+ 	if [ "$showsql" = yes ]; then
+ 		echo "$sqlcmd"
+ 	fi
+-        ${PATHNAME}psql $PSQLOPT -d "$dbname" -P 'title=Procedural languages' -c "$sqlcmd"
++        ${PATHNAME}psql-7.3 $PSQLOPT -d "$dbname" -P 'title=Procedural languages' -c "$sqlcmd"
+         exit $?
+ fi
+ 
+@@ -170,7 +170,7 @@
+ 	exit 1
+ fi
+ 
+-PSQL="${PATHNAME}psql -A -t -q $PSQLOPT -d $dbname -c"
++PSQL="${PATHNAME}psql-7.3 -A -t -q $PSQLOPT -d $dbname -c"
+ 
+ 
+ # ----------
+diff -uNr postgresql-7.3.4/src/bin/scripts/dropuser postgresql-7.3.4-new/src/bin/scripts/dropuser
+--- postgresql-7.3.4/src/bin/scripts/dropuser	Fri Oct 18 18:05:36 2002
++++ postgresql-7.3.4-new/src/bin/scripts/dropuser	Thu Jun 10 15:32:00 2004
+@@ -149,7 +149,7 @@
+ 
+ DelUser=`echo "$DelUser" | sed 's/\"/\\\"/g'`
+ 
+-${PATHNAME}psql $PSQLOPT -d template1 -c "SET autocommit TO 'on';DROP USER \"$DelUser\""
++${PATHNAME}psql-7.3 $PSQLOPT -d template1 -c "SET autocommit TO 'on';DROP USER \"$DelUser\""
+ 
+ if [ "$?" -ne 0 ]; then
+ 	echo "$CMDNAME: deletion of user \"$DelUser\" failed" 1>&2
+diff -uNr postgresql-7.3.4/src/bin/scripts/vacuumdb postgresql-7.3.4-new/src/bin/scripts/vacuumdb
+--- postgresql-7.3.4/src/bin/scripts/vacuumdb	Fri Oct 18 18:05:36 2002
++++ postgresql-7.3.4-new/src/bin/scripts/vacuumdb	Thu Jun 10 15:32:23 2004
+@@ -156,7 +156,7 @@
+                 echo "$CMDNAME: cannot vacuum all databases and a specific one at the same time" 1>&2
+                 exit 1
+         fi
+-	dbname=`${PATHNAME}psql $PSQLOPT -q -t -A -d template1 -c 'SELECT datname FROM pg_database WHERE datallowconn'`
++	dbname=`${PATHNAME}psql-7.3 $PSQLOPT -q -t -A -d template1 -c 'SELECT datname FROM pg_database WHERE datallowconn'`
+ 
+ elif [ -z "$dbname" ]; then
+         if [ "$PGDATABASE" ]; then
+@@ -164,7 +164,7 @@
+         elif [ "$PGUSER" ]; then
+                 dbname="$PGUSER"
+         else
+-                dbname=`${PATHNAME}pg_id -u -n`
++                dbname=`${PATHNAME}pg_id-7.3 -u -n`
+         fi
+         [ "$?" -ne 0 ] && exit 1
+ fi
+@@ -172,7 +172,7 @@
+ for db in $dbname
+ do
+         [ "$alldb" -a "$quiet" -ne 1 ] && echo "Vacuuming $db"
+-	${PATHNAME}psql $PSQLOPT $ECHOOPT -c "SET autocommit TO 'on';VACUUM $full $verbose $analyze $table" -d $db
++	${PATHNAME}psql-7.3 $PSQLOPT $ECHOOPT -c "SET autocommit TO 'on';VACUUM $full $verbose $analyze $table" -d $db
+ 	if [ "$?" -ne 0 ]; then
+ 	    echo "$CMDNAME: vacuum $table $db failed" 1>&2
+ 	    exit 1
 diff -uNr postgresql-7.3.4/src/include/miscadmin.h postgresql-7.3.4-new/src/include/miscadmin.h
 --- postgresql-7.3.4/src/include/miscadmin.h	Thu Oct  3 13:07:53 2002
 +++ postgresql-7.3.4-new/src/include/miscadmin.h	Thu Jun 10 14:03:05 2004
@@ -883,7 +1477,7 @@ diff -uNr postgresql-7.3.4/src/interfaces/python/GNUmakefile postgresql-7.3.4-ne
  endif
 -
 +ifeq ($(PORTNAME), darwin)
-+SHLIB_LINK += -bundle_loader @PREFIX@/bin/python2.1
++SHLIB_LINK += -bundle_loader @INSTPREFIX@/bin/python2.1
 +endif
  
  include $(top_srcdir)/src/Makefile.shlib
@@ -970,7 +1564,7 @@ diff -uNr postgresql-7.3.4/src/pl/plpython/Makefile postgresql-7.3.4-new/src/pl/
  OBJS = plpython.o
  
 -SHLIB_LINK = $(BE_DLLLIBS) $(python_libspec)
-+SHLIB_LINK = $(BE_DLLLIBS) -bundle_loader @PREFIX@/bin/python2.1
++SHLIB_LINK = $(BE_DLLLIBS) -bundle_loader @INSTPREFIX@/bin/python2.1
  
  include $(top_srcdir)/src/Makefile.shlib
  

@@ -63,7 +63,7 @@ Conflicts: postgresql, postgresql-ssl (<< %v-%r), postgresql73 (<< 7.3.4-14), po
 Replaces: postgresql-ssl (<< %v-%r), postgresql-shlibs, postgresql-ssl-shlibs, postgresql, postgresql-python (<< 7.3), postgresql-ssl-python (<< 7.3), postgresql-perl (<< 7.3), postgresql-ssl-perl (<< 7.3), %N, %N-ssl, postgresql73 (<< 7.3.4-14), postgresql73-ssl (<< 7.3.4-14)
 Depends: readline-shlibs (>= 4.3-5), passwd (>= 20030906-1), daemonic (>= 20010902-1), postgresql74-ssl-shlibs (>= %v-%r)
 Description: PostgreSQL open-source database (with SSL)
-PatchScript: sed -e 's|@BUILDDIR@|%b|g' -e 's|@PREFIX@|%p|g' < %a/%n.patch | patch -p1
+PatchScript: sed -e 's|@BUILDDIR@|%b|g' -e 's|@INSTPREFIX@|%p|g' < %a/%n.patch | patch -p1
 NoSetMAKEFLAGS: true
 SetMAKEFLAGS: -j1
 ConfigureParams: --prefix=%p --docdir=%p/share/doc --mandir=%p/share/man --enable-multibyte --enable-recode --with-CXX --without-perl --without-python --without-openssl --with-libraries=%p/lib --with-includes=%p/include --without-tcl --without-tk --without-java --enable-odbc --with-pam --with-rendezvous
@@ -87,7 +87,7 @@ CompileScript: <<
 
   # libpq++
   pushd ../libpq++-4.0 && \
-  sed 's|@PREFIX@|%p|g' %a/libpqpp-4.0.patch | patch -p1 && \
+  sed 's|@INSTPREFIX@|%p|g' %a/libpqpp-4.0.patch | patch -p1 && \
   make DESTDIR=%d || exit 2
   popd
 
@@ -121,7 +121,7 @@ END
   make CC="g++" CPP="g++ -E" includedir=%p/include/postgresql/pqxx || exit 4
   popd
 
-  #sed 's|@PREFIX@|%p|g' %a/libpgeasy-3.0.4.patch | patch -p1 && \
+  #sed 's|@INSTPREFIX@|%p|g' %a/libpgeasy-3.0.4.patch | patch -p1 && \
   # pgeasy
   pushd ../libpgeasy-3.0.4 && \
   perl -pi -e 's,hardcode_direct=yes,hardcode_direct=no,g' configure && \
@@ -337,7 +337,7 @@ DaemonicFile: <<
   
   <daemon name="%N">
   <executable background="no">/usr/bin/sudo</executable>
-  <parameters>-u postgres %p/bin/pgsql.sh start</parameters>
+  <parameters>-u postgres %p/bin/pgsql.sh-7.4 start</parameters>
   </daemon>
   
   </service>
@@ -536,7 +536,7 @@ revision, note that this one expects the data files to be installed
 at <prefix>/var/postgresql-7.4/data.
 
 When run from the startup script, logs output to 
-<prefix>/var/log/postgresql-7.4/logfile
+<prefix>/var/postgresql-7.4/pgsql.log
 <<
 DescPort: <<
 Rearranged a lot of the PostgreSQL build to be more "correct" on

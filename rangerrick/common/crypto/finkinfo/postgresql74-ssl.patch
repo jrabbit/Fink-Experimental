@@ -8,19 +8,19 @@ diff -uNr postgresql-7.4.2/pgsql.sh postgresql-7.4.2-new/pgsql.sh
 +	ulimit $flag 65536 >/dev/null 2>&1 || :
 +done
 +
-+PREFIX="@PREFIX@"
++PREFIX="@INSTPREFIX@"
 +DATADIR="${PREFIX}/var/postgresql-7.4/data"
-+LOGFILE="${DATADIR}/pgsql.log"
++LOGFILE="${PREFIX}/var/postgresql-7.4/pgsql.log"
 +
 +case "$1" in
 +	start)
-+		sudo -u postgres "${PREFIX}/bin/pg_ctl" start -D "$DATADIR" -l "$LOGFILE"
++		sudo -u postgres "${PREFIX}/bin/pg_ctl-7.4" start -D "$DATADIR" -l "$LOGFILE"
 +		;;
 +	restart)
-+		sudo -u postgres "${PREFIX}/bin/pg_ctl" restart -D "$DATADIR" -m fast
++		sudo -u postgres "${PREFIX}/bin/pg_ctl-7.4" restart -D "$DATADIR" -m fast
 +		;;
 +	stop)
-+		sudo -u postgres "${PREFIX}/bin/pg_ctl" stop -D "$DATADIR" -m fast
++		sudo -u postgres "${PREFIX}/bin/pg_ctl-7.4" stop -D "$DATADIR" -m fast
 +		;;
 +esac
 diff -uNr postgresql-7.4.2/src/Makefile.global.in postgresql-7.4.2-new/src/Makefile.global.in
@@ -581,7 +581,248 @@ diff -uNr postgresql-7.4.2/src/backend/utils/misc/postgresql.conf.sample postgre
  #db_user_namespace = false
 diff -uNr postgresql-7.4.2/src/bin/initdb/initdb.sh postgresql-7.4.2-new/src/bin/initdb/initdb.sh
 --- postgresql-7.4.2/src/bin/initdb/initdb.sh	Tue Jan 13 22:47:12 2004
-+++ postgresql-7.4.2-new/src/bin/initdb/initdb.sh	Fri May 21 08:42:56 2004
++++ postgresql-7.4.2-new/src/bin/initdb/initdb.sh	Thu Jun 10 15:07:52 2004
+@@ -123,20 +123,20 @@
+ # their trees to backup places, so $bindir might be inaccurate.
+ 
+ if [ x"$self_path" != x"" ] \
+-  && [ -x "$self_path/postgres" ] \
+-  && [ x"`$self_path/postgres -V 2>/dev/null`" = x"postgres (PostgreSQL) $VERSION" ]
++  && [ -x "$self_path/postgres-7.4" ] \
++  && [ x"`$self_path/postgres-7.4 -V 2>/dev/null`" = x"postgres (PostgreSQL) $VERSION" ]
+ then
+     PGPATH=$self_path
+-elif [ -x "$bindir/postgres" ]; then
+-    if [ x"`$bindir/postgres -V 2>/dev/null`" = x"postgres (PostgreSQL) $VERSION" ]
++elif [ -x "$bindir/postgres-7.4" ]; then
++    if [ x"`$bindir/postgres-7.4 -V 2>/dev/null`" = x"postgres (PostgreSQL) $VERSION" ]
+     then
+         PGPATH=$bindir
+     else
+         # Maybe there was an error message?
+-        errormsg=`$bindir/postgres -V 2>&1 >/dev/null`
++        errormsg=`$bindir/postgres-7.4 -V 2>&1 >/dev/null`
+       (
+         echo "The program "
+-        echo "    $bindir/postgres"
++        echo "    $bindir/postgres-7.4"
+         echo "needed by $CMDNAME does not belong to PostgreSQL version $VERSION, or"
+         echo "there may be a configuration problem."
+         if test x"$errormsg" != x""; then
+@@ -148,7 +148,7 @@
+         exit 1
+     fi
+ else
+-    echo "The program \"postgres\" is needed by $CMDNAME but was not found in" 1>&2
++    echo "The program \"postgres-7.4\" is needed by $CMDNAME but was not found in" 1>&2
+     echo "the directory \"$bindir\".  Check your installation." 1>&2
+     exit 1
+ fi
+@@ -156,20 +156,20 @@
+ 
+ # Now we can assume that 'pg_id' belongs to the same version as the
+ # verified 'postgres' in the same directory.
+-if [ ! -x "$PGPATH/pg_id" ]; then
+-    echo "The program \"pg_id\" is needed by $CMDNAME but was not found in" 1>&2
++if [ ! -x "$PGPATH/pg_id-7.4" ]; then
++    echo "The program \"pg_id-7.4\" is needed by $CMDNAME but was not found in" 1>&2
+     echo "the directory \"$PGPATH\".  Check your installation." 1>&2
+     exit 1
+ fi
+ 
+ 
+-EffectiveUser=`$PGPATH/pg_id -n -u`
++EffectiveUser=`$PGPATH/pg_id-7.4 -n -u`
+ if [ -z "$EffectiveUser" ]; then
+     echo "$CMDNAME: could not determine current user name" 1>&2
+     exit 1
+ fi
+ 
+-if [ `$PGPATH/pg_id -u` -eq 0 ]
++if [ `$PGPATH/pg_id-7.4 -u` -eq 0 ]
+ then
+     echo "$CMDNAME: cannot be run as root" 1>&2
+     echo "Please log in (using, e.g., \"su\") as the (unprivileged) user that will" 1>&2
+@@ -372,11 +372,11 @@
+ 
+ if [ "$ENCODING" ]
+ then
+-	ENCODINGID=`$PGPATH/pg_encoding -b $ENCODING`
++	ENCODINGID=`$PGPATH/pg_encoding-7.4 -b $ENCODING`
+ 	if [ "$?" -ne 0 ]
+ 	then
+               (
+-                echo "$CMDNAME: pg_encoding failed"
++                echo "$CMDNAME: pg_encoding-7.4 failed"
+                 echo "Make sure the program was installed correctly."
+               ) 1>&2
+                 exit 1
+@@ -468,21 +468,21 @@
+ 
+ TAB='	'
+ 
+-if test x`pg_getlocale CTYPE` = x`pg_getlocale COLLATE` \
+-   && test x`pg_getlocale CTYPE` = x`pg_getlocale TIME` \
+-   && test x`pg_getlocale CTYPE` = x`pg_getlocale NUMERIC` \
+-   && test x`pg_getlocale CTYPE` = x`pg_getlocale MONETARY` \
+-   && test x`pg_getlocale CTYPE` = x`pg_getlocale MESSAGES`
++if test x`pg_getlocale CTYPE` = x`pg_getlocale COLLATE` \
++   && test x`pg_getlocale CTYPE` = x`pg_getlocale TIME` \
++   && test x`pg_getlocale CTYPE` = x`pg_getlocale NUMERIC` \
++   && test x`pg_getlocale CTYPE` = x`pg_getlocale MONETARY` \
++   && test x`pg_getlocale CTYPE` = x`pg_getlocale MESSAGES`
+ then
+-    echo "The database cluster will be initialized with locale `pg_getlocale CTYPE`."
++    echo "The database cluster will be initialized with locale `pg_getlocale CTYPE`."
+ else
+     echo "The database cluster will be initialized with locales:"
+-    echo "  COLLATE:  `pg_getlocale COLLATE`"
+-    echo "  CTYPE:    `pg_getlocale CTYPE`"
+-    echo "  MESSAGES: `pg_getlocale MESSAGES`"
+-    echo "  MONETARY: `pg_getlocale MONETARY`"
+-    echo "  NUMERIC:  `pg_getlocale NUMERIC`"
+-    echo "  TIME:     `pg_getlocale TIME`"
++    echo "  COLLATE:  `pg_getlocale COLLATE`"
++    echo "  CTYPE:    `pg_getlocale CTYPE`"
++    echo "  MESSAGES: `pg_getlocale MESSAGES`"
++    echo "  MONETARY: `pg_getlocale MONETARY`"
++    echo "  NUMERIC:  `pg_getlocale NUMERIC`"
++    echo "  TIME:     `pg_getlocale TIME`"
+ fi
+ echo
+ 
+@@ -565,7 +565,7 @@
+ do
+     nbuffers=`expr $nconns '*' 5`
+     TEST_OPT="$PGSQL_OPT -c shared_buffers=$nbuffers -c max_connections=$nconns"
+-    if "$PGPATH"/postgres -boot -x0 $TEST_OPT template1 </dev/null >/dev/null 2>&1
++    if "$PGPATH"/postgres-7.4 -boot -x0 $TEST_OPT template1 </dev/null >/dev/null 2>&1
+     then
+ 	break
+     fi
+@@ -578,7 +578,7 @@
+ for nbuffers in 1000 900 800 700 600 500 400 300 200 100 50
+ do
+     TEST_OPT="$PGSQL_OPT -c shared_buffers=$nbuffers -c max_connections=$nconns"
+-    if "$PGPATH"/postgres -boot -x0 $TEST_OPT template1 </dev/null >/dev/null 2>&1
++    if "$PGPATH"/postgres-7.4 -boot -x0 $TEST_OPT template1 </dev/null >/dev/null 2>&1
+     then
+ 	break
+     fi
+@@ -632,12 +632,12 @@
+       -e "s/ENCODING/$ENCODINGID/g" \
+ | 
+ (
+-  LC_COLLATE=`pg_getlocale COLLATE`
+-  LC_CTYPE=`pg_getlocale CTYPE`
++  LC_COLLATE=`pg_getlocale COLLATE`
++  LC_CTYPE=`pg_getlocale CTYPE`
+   export LC_COLLATE
+   export LC_CTYPE
+   unset LC_ALL
+-  "$PGPATH"/postgres -boot -x1 $PGSQL_OPT $BOOTSTRAP_TALK_ARG template1
++  "$PGPATH"/postgres-7.4 -boot -x1 $PGSQL_OPT $BOOTSTRAP_TALK_ARG template1
+ ) \
+ || exit_nicely
+ 
+@@ -659,7 +659,7 @@
+ 
+ $ECHO_N "initializing pg_shadow... "$ECHO_C
+ 
+-"$PGPATH"/postgres $PGSQL_OPT template1 >/dev/null <<EOF
++"$PGPATH"/postgres-7.4 $PGSQL_OPT template1 >/dev/null <<EOF
+ -- Create a trigger so that direct updates to pg_shadow will be written
+ -- to the flat password/group files pg_pwd and pg_group
+ CREATE TRIGGER pg_sync_pg_pwd AFTER INSERT OR UPDATE OR DELETE ON pg_shadow \
+@@ -692,7 +692,7 @@
+         exit_nicely
+     fi
+     $ECHO_N "setting password... "$ECHO_C
+-    "$PGPATH"/postgres $PGSQL_OPT template1 >/dev/null <<EOF
++    "$PGPATH"/postgres-7.4 $PGSQL_OPT template1 >/dev/null <<EOF
+ 	ALTER USER "$POSTGRES_SUPERUSERNAME" WITH PASSWORD '$FirstPw';
+ EOF
+     if [ "$?" -ne 0 ]; then
+@@ -708,7 +708,7 @@
+ 
+ $ECHO_N "enabling unlimited row size for system tables... "$ECHO_C
+ 
+-"$PGPATH"/postgres $PGSQL_OPT template1 >/dev/null <<EOF
++"$PGPATH"/postgres-7.4 $PGSQL_OPT template1 >/dev/null <<EOF
+ ALTER TABLE pg_attrdef CREATE TOAST TABLE;
+ ALTER TABLE pg_constraint CREATE TOAST TABLE;
+ ALTER TABLE pg_database CREATE TOAST TABLE;
+@@ -727,7 +727,7 @@
+ 
+ $ECHO_N "initializing pg_depend... "$ECHO_C
+ 
+-"$PGPATH"/postgres $PGSQL_OPT template1 >/dev/null <<EOF
++"$PGPATH"/postgres-7.4 $PGSQL_OPT template1 >/dev/null <<EOF
+ -- Make PIN entries in pg_depend for all objects made so far in the tables
+ -- that the dependency code handles.  This is overkill (the system doesn't
+ -- really depend on having every last weird datatype, for instance)
+@@ -759,7 +759,7 @@
+ 
+ $ECHO_N "creating system views... "$ECHO_C
+ 
+-"$PGPATH"/postgres $PGSQL_OPT template1 >/dev/null <<EOF
++"$PGPATH"/postgres-7.4 $PGSQL_OPT template1 >/dev/null <<EOF
+ 
+ CREATE VIEW pg_user AS \
+     SELECT \
+@@ -1053,12 +1053,12 @@
+     FROM tmp_pg_description t, pg_class c WHERE c.relname = t.classname;
+ EOF
+ ) \
+-	| "$PGPATH"/postgres $PGSQL_OPT template1 > /dev/null || exit_nicely
++	| "$PGPATH"/postgres-7.4 $PGSQL_OPT template1 > /dev/null || exit_nicely
+ echo "ok"
+ 
+ # Create pg_conversion and support functions
+ $ECHO_N "creating conversions... "$ECHO_C
+-grep -v '^DROP CONVERSION' $datadir/conversion_create.sql | "$PGPATH"/postgres $PGSQL_OPT template1 > /dev/null || exit_nicely
++grep -v '^DROP CONVERSION' $datadir/conversion_create.sql | "$PGPATH"/postgres-7.4 $PGSQL_OPT template1 > /dev/null || exit_nicely
+ echo "ok"
+ 
+ # Set most system catalogs and built-in functions as world-accessible.
+@@ -1078,11 +1078,11 @@
+     GRANT CREATE, USAGE ON SCHEMA public TO PUBLIC;
+ EOF
+ ) \
+-	| "$PGPATH"/postgres $PGSQL_OPT template1 > /dev/null || exit_nicely
++	| "$PGPATH"/postgres-7.4 $PGSQL_OPT template1 > /dev/null || exit_nicely
+ echo "ok"
+ 
+ $ECHO_N "creating information schema... "$ECHO_C
+-"$PGPATH"/postgres $PGSQL_OPT -N template1 > /dev/null < "$datadir"/information_schema.sql || exit_nicely
++"$PGPATH"/postgres-7.4 $PGSQL_OPT -N template1 > /dev/null < "$datadir"/information_schema.sql || exit_nicely
+ (
+   # Format version number to format required by information schema (09.08.0007abc).
+   major_version=`echo $VERSION | sed 's/^\([0-9]*\).*/00\1/;s/.*\(..\)$/\1/'`
+@@ -1095,12 +1095,12 @@
+ 
+   echo "COPY information_schema.sql_features (feature_id, feature_name, sub_feature_id, sub_feature_name, is_supported, comments) FROM '$datadir/sql_features.txt';"
+ ) \
+-	| "$PGPATH"/postgres $PGSQL_OPT template1 > /dev/null || exit_nicely
++	| "$PGPATH"/postgres-7.4 $PGSQL_OPT template1 > /dev/null || exit_nicely
+ echo "ok"
+ 
+ $ECHO_N "vacuuming database template1... "$ECHO_C
+ 
+-"$PGPATH"/postgres $PGSQL_OPT template1 >/dev/null <<EOF
++"$PGPATH"/postgres-7.4 $PGSQL_OPT template1 >/dev/null <<EOF
+ ANALYZE;
+ VACUUM FULL FREEZE;
+ EOF
+@@ -1111,7 +1111,7 @@
+ 
+ $ECHO_N "copying template1 to template0... "$ECHO_C
+ 
+-"$PGPATH"/postgres $PGSQL_OPT template1 >/dev/null <<EOF
++"$PGPATH"/postgres-7.4 $PGSQL_OPT template1 >/dev/null <<EOF
+ CREATE DATABASE template0;
+ 
+ UPDATE pg_database SET \
 @@ -1147,11 +1147,7 @@
  echo
  echo "Success. You can now start the database server using:"
@@ -591,13 +832,25 @@ diff -uNr postgresql-7.4.2/src/bin/initdb/initdb.sh postgresql-7.4.2-new/src/bin
 -# (Advertise -l option here, otherwise we have a background
 -#  process writing to the terminal.)
 -echo "    $PGPATH/pg_ctl -D $PGDATA -l logfile start"
-+echo "    sudo @PREFIX@/bin/pgsql.sh start"
++echo "    sudo @INSTPREFIX@/bin/pgsql.sh start"
  echo
  
  exit 0
+diff -uNr postgresql-7.4.2/src/bin/initlocation/initlocation.sh postgresql-7.4.2-new/src/bin/initlocation/initlocation.sh
+--- postgresql-7.4.2/src/bin/initlocation/initlocation.sh	Wed Jul 23 04:46:57 2003
++++ postgresql-7.4.2-new/src/bin/initlocation/initlocation.sh	Thu Jun 10 15:10:10 2004
+@@ -163,7 +163,7 @@
+     echo "You can now create a database using"
+     echo "  CREATE DATABASE <name> WITH LOCATION = '$Location'"
+     echo "in SQL, or"
+-    echo "  createdb -D '$Location' <name>"
++    echo "  createdb-7.4 -D '$Location' <name>"
+     echo "from the shell."
+ fi
+ echo
 diff -uNr postgresql-7.4.2/src/bin/pg_ctl/pg_ctl.sh postgresql-7.4.2-new/src/bin/pg_ctl/pg_ctl.sh
 --- postgresql-7.4.2/src/bin/pg_ctl/pg_ctl.sh	Thu Aug 14 14:56:41 2003
-+++ postgresql-7.4.2-new/src/bin/pg_ctl/pg_ctl.sh	Fri May 21 08:42:56 2004
++++ postgresql-7.4.2-new/src/bin/pg_ctl/pg_ctl.sh	Thu Jun 10 15:11:37 2004
 @@ -14,6 +14,10 @@
  
  CMDNAME=`basename $0`
@@ -609,6 +862,38 @@ diff -uNr postgresql-7.4.2/src/bin/pg_ctl/pg_ctl.sh postgresql-7.4.2-new/src/bin
  help="\
  $CMDNAME is a utility to start, stop, restart, reload configuration files,
  or report the status of a PostgreSQL server.
+@@ -98,18 +102,18 @@
+ fi
+ 
+ # Check if needed programs actually exist in path
+-if [ -x "$self_path/postmaster" ] && [ -x "$self_path/psql" ]; then
++if [ -x "$self_path/postmaster-7.4" ] && [ -x "$self_path/psql-7.4" ]; then
+     PGPATH="$self_path"
+-elif [ -x "$bindir/postmaster" ] && [ -x "$bindir/psql" ]; then
++elif [ -x "$bindir/postmaster-7.4" ] && [ -x "$bindir/psql-7.4" ]; then
+     PGPATH="$bindir"
+ else
+-    echo "The programs \"postmaster\" and \"psql\" are needed by $CMDNAME but" 1>&2
++    echo "The programs \"postmaster-7.4\" and \"psql-7.4\" are needed by $CMDNAME but" 1>&2
+     echo "were not found in the directory \"$bindir\"." 1>&2
+     echo "Check your installation." 1>&2
+     exit 1
+ fi
+ 
+-po_path="$PGPATH/postmaster"
++po_path="$PGPATH/postmaster-7.4"
+ 
+ wait=
+ wait_seconds=60
+@@ -384,7 +388,7 @@
+ 	$silence_echo $ECHO_N "waiting for postmaster to start..."$ECHO_C
+ 	while :
+ 	do
+-	    if "$PGPATH/psql" -p $PGPORT -l >/dev/null 2>&1
++	    if "$PGPATH/psql-7.4" -p $PGPORT -l >/dev/null 2>&1
+ 	    then
+ 		break;
+ 	    else
 diff -uNr postgresql-7.4.2/src/interfaces/ecpg/compatlib/Makefile postgresql-7.4.2-new/src/interfaces/ecpg/compatlib/Makefile
 --- postgresql-7.4.2/src/interfaces/ecpg/compatlib/Makefile	Tue Feb 10 02:26:48 2004
 +++ postgresql-7.4.2-new/src/interfaces/ecpg/compatlib/Makefile	Thu Jun  3 13:57:36 2004
