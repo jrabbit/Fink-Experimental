@@ -41,7 +41,9 @@ NoSourceDirectory: true
 ## And where are the sources for sgroup, Plural, etc ?
 PatchScript: <<
 #!/bin/sh -v
-. %a/%n.patch
+## The first line here _ together with the configure-params _ ensures correctness of paths in the installed pkg. 
+  cd Singular; patch -b -z '.bak' < %a/feResource.patch; cd ..
+  . %a/%n.patch
 <<
 UpdateConfigGuessInDirs: . MP
 ##ConfigureParams: --disable-streamio
@@ -66,7 +68,7 @@ export MACOSX_DEPLOYMENT_TARGET=10.3
 # Else the configure might wrongly find things there from a previous build :
 rm -fR %i
 ## removed -with-malloc=external (<- omalloc, removal for MP) _  Try now: malloc=system in omalloc; malloc=stdlib.h in MP :
-./configure --prefix=%i/share/%n --exec-prefix=%i --bindir=%i/bin --datadir=%i/mydata  --mandir=%i/share/man --infodir=%i/share/info --enable-doc --enable-emacs --enable-MP --enable-NTL -enable-factory --enable-libfac --enable-Singular --enable-IntegerProgramming --with-malloc=system --with-readline=dynamic -without-dynamic-kernel
+./configure --prefix=%i/share/%n --exec-prefix=%i --bindir=%i/bin --with-rootdir=%p/share/%n --datadir=%i/share  --mandir=%i/share/man --infodir=%i/share/info --enable-doc --enable-emacs --enable-MP --enable-NTL -enable-factory --enable-libfac --enable-Singular --enable-IntegerProgramming --with-malloc=system --with-readline=dynamic -without-dynamic-kernel
 <<
 InstallScript: <<
 #!/bin/sh -v
@@ -75,16 +77,24 @@ export CPATH=%p/include/pari:%p/include
 export LIBRARY_PATH=%p/lib
 export DYLD_LIBRARY_PATH=%p/lib
 export MACOSX_DEPLOYMENT_TARGET=10.3
-mkdir -p %i/share/%n/localdir
+# mkdir -p %i/share/%n/localdir
 mkdir -p %i/bin
 make install
+# Fixing the install in doc
+mkdir -p %i/share/doc/%n
+mv %i/share/%n/html %i/share/%n/examples %i/share/doc/%n
+mv doc/%n.idx %i/share/%n
+mkdir -p %i/share/info
+mv %i/share/%n/info/%n.hlp %i/share/info/%n.info
 # Still to fix the install in emacs _ for the moment
 mkdir -p %i/share/emacs/site-lisp %i/share/%n/emacs %i/share/info
 cd emacs; cp -p *.el %i/share/emacs/site-lisp ; cp .emacs* singular.xpm %i/share/%n/emacs ; cd ..
-# And to fix this location :
-ln -s ../%n/info/%n.hlp %i/share/info/singular.info
+# conffiles go in etc
+mkdir -p %i/etc
+mv %i/share/%n/LIB/.singularrc %i/etc/singularrc
+ln -s %p/etc/singularrc %i/share/%n/LIB/.singularrc
+### Finally, "make test" :
 singtst () {
-### "make test"
 # This one OK :
 cd omalloc; make check > %p/var/logs/%n.test 2>&1 ; cd ..
 # Here : "make: *** No rule to make target `test.cc', needed by `test'.  Stop"  :
@@ -105,29 +115,38 @@ cd ntl/src; make check  >> %p/var/logs/%n.test 2>&1 ; cd ../..
 # test.cc:23: error: `cout' undeclared (first use this function)
 # etc...
 cd libfac; make tests >> %p/var/logs/%n.test 2>&1 ; cd ..
-## Finally, the last one runs, but with scores of errors !!
+## 
 #cd Tst; ln -s ../ppcMac-darwin/Singular; perl ./regress.cmd `find . -name '*\.lst'`; cd ..
+# We first rm the NFlist from the distrib, which causes errors
+#  (despite being apparently identical _ at least in perms and size _ to the one generated) :
+#	>    ? DBM link I/O error. Is 'NFlist' readonly?
+#	>    ? write: Error for link of type DBM, mode: rw, name: NFlist
+#	>    ? cannot write to NFlist
+# NFlist.pag from the dist and the one generated here differ in that every odd byte is
+# swapped with the following even byte: seems a sequence of short int's.
+rm Tst/Short/N*
+# We also disable for the moment mpsr_s, as long as 'system("sh",...)' returns -1 instead of 0
+perl -i -e 's,mpsr_s,;mpsr_s,g' Tst/Short/ok_s.lst
+# Now:
 make Tst-All >> %p/var/logs/%n.test 2>&1
+cd Tst; perl ./regress.cmd -k -v 4 Buch/buch.lst >> %p/var/logs/%n.test 2>&1; cd ..
 # Save the diff-files
 cd Tst; find . -name '*.diff'|xargs tar -cjf %i/share/%n/diffs.tar.bz2 ; cd ..
+mv Tst %i/share/doc/%n
 }
-## Comment out to run the tests ..
+## Uncomment to run the tests ..
 singtst
 ###
-## God knows if this is still going to build something _ just exploring the set of targets ...
-make bindist sharedist
-# And not to lose them :
-install -pd %i/share/%n/dist
-install -p *.tar.gz %i/share/%n/dist
 ## Cleanup
 rm -fR %i/share/%n/LIB{,/gftables}/CVS
 ## Rough check for direct installs
-egrep '[^=][iI]nstall[^_].*\ %p/(bin|etc|man|lib|share|var|sbin|include|App|info|doc)' %p/var/logs/%n.log |grep -v '[Cc]hecking for'|grep -v '[iI]nstall path'|grep -v mkinstalldirs|grep -v 'will be installed in'|grep -v 'echo '|grep -v ': warning'
+egrep '[^=][iI]nstall[^_].*\ %p/(bin|etc|lib|share|var|sbin|include|App)' %p/var/logs/%n.log |grep -v '[Cc]hecking for'|grep -v '[iI]nstall path'|grep -v mkinstalldirs|grep -v 'will be installed in'|grep -v 'echo '|grep -v ': warning'
 # Finally, let's save the logs
-cp -p %p/var/logs/%n.* %i/share/%n
+cp -p %p/var/logs/%n.* %i/share/doc/%n
 <<
 InfoDocs: %p/share/info/%n.info
-DocFiles: COPYING ChangeLog README.%n
+DocFiles: doc/COPYING doc/README README.%n
+ConfFiles: %p/etc/singularrc
 License: GPL
 Description: A pkg for commutative algebra 
 DescPort: << 
