@@ -1,31 +1,125 @@
---- config/cf/darwin.cf	Fri Aug 13 17:18:27 2004
-+++ config/cf/darwin.cf	Fri Aug 13 17:20:38 2004
-@@ -159,7 +159,9 @@
+diff -uNr xc/config/cf/darwin.cf xc-new/config/cf/darwin.cf
+--- xc/config/cf/darwin.cf	2004-12-14 23:53:05.000000000 -0500
++++ xc-new/config/cf/darwin.cf	2005-03-07 15:54:30.000000000 -0500
+@@ -160,7 +160,7 @@
   * The default cpp-3.3 that ships with Panther inserts spurious #pragmas,
   * so we use the 3.1-based version.
   */
 -#if OSMajorVersion >= 7
-+#if OSMajorVersion >= 8
-+# define CppCmd                 /usr/bin/cpp-3.5
-+#elif OSMajorVersion >= 7
++#if OSMajorVersion == 7
  # define CppCmd                 /usr/bin/cpp3
  # define StandardCppOptions     -traditional -D__GNUC__
  #else
---- extras/freetype2/include/freetype/freetype.h.orig	Thu Feb 10 17:19:38 2005
-+++ extras/freetype2/include/freetype/freetype.h	Thu Feb 10 17:19:51 2005
-@@ -15,14 +15,7 @@
- /*                                                                         */
- /***************************************************************************/
+diff -uNr xc/extras/freetype2/builds/unix/detect.mk xc-new/extras/freetype2/builds/unix/detect.mk
+--- xc/extras/freetype2/builds/unix/detect.mk	2004-04-28 06:38:58.000000000 -0400
++++ xc-new/extras/freetype2/builds/unix/detect.mk	2005-03-07 15:53:23.000000000 -0500
+@@ -20,7 +20,8 @@
+   #
+   is_unix := $(strip $(wildcard /sbin/init) \
+                      $(wildcard /usr/sbin/init) \
+-                     $(wildcard /hurd/auth))
++                     $(wildcard /hurd/auth) \
++                     $(wildcard /sbin/launchd))
+   ifneq ($(is_unix),)
  
--
--#ifndef FT_FREETYPE_H
+     PLATFORM := unix
+diff -uNr xc/extras/freetype2/include/freetype/freetype.h xc-new/extras/freetype2/include/freetype/freetype.h
+--- xc/extras/freetype2/include/freetype/freetype.h	2004-04-28 06:38:59.000000000 -0400
++++ xc-new/extras/freetype2/include/freetype/freetype.h	2005-03-07 15:53:24.000000000 -0500
+@@ -17,11 +17,7 @@
+ 
+ 
+ #ifndef FT_FREETYPE_H
 -#error "`ft2build.h' hasn't been included yet!"
 -#error "Please always use macros to include FreeType header files."
 -#error "Example:"
 -#error "  #include <ft2build.h>"
 -#error "  #include FT_FREETYPE_H"
--#endif
++#include <ft2build.h>
+ #endif
+ 
+ 
+diff -uNr xc/extras/freetype2/src/base/ftapi.c xc-new/extras/freetype2/src/base/ftapi.c
+--- xc/extras/freetype2/src/base/ftapi.c	2003-11-14 11:48:24.000000000 -0500
++++ xc-new/extras/freetype2/src/base/ftapi.c	2005-03-07 15:53:23.000000000 -0500
+@@ -118,4 +118,18 @@
+   }
+                    
+ 
++  FT_BASE_DEF( FT_Short )
++  FT_Get_Short( FT_Stream stream )
++  {
++    return FT_GET_SHORT();
++  }
 +
++
++  FT_BASE_DEF( FT_Long )
++  FT_Get_Long( FT_Stream stream )
++  {
++    return FT_GET_LONG();
++  }
++
++
+ /* END */
+diff -uNr xc/extras/freetype2/src/base/ftbase.c xc-new/extras/freetype2/src/base/ftbase.c
+--- xc/extras/freetype2/src/base/ftbase.c	2004-04-28 06:39:03.000000000 -0400
++++ xc-new/extras/freetype2/src/base/ftbase.c	2005-03-07 15:53:23.000000000 -0500
+@@ -29,6 +29,7 @@
+ #include "ftgloadr.c"
+ #include "ftobjs.c"
+ #include "ftnames.c"
++#include "ftapi.c"
+ #include "ftrfork.c"
+ 
+ #if defined( __APPLE__ ) && !defined ( DARWIN_NO_CARBON )
+diff -uNr xc/extras/freetype2/src/base/ftobjs.c xc-new/extras/freetype2/src/base/ftobjs.c
+--- xc/extras/freetype2/src/base/ftobjs.c	2004-04-28 06:39:03.000000000 -0400
++++ xc-new/extras/freetype2/src/base/ftobjs.c	2005-03-07 15:53:23.000000000 -0500
+@@ -947,7 +947,7 @@
+   /* there's a Mac-specific extended implementation of FT_New_Face() */
+   /* in src/base/ftmac.c                                             */
+ 
+-#ifndef FT_MACINTOSH
++/* #ifndef FT_MACINTOSH */
+ 
+   /* documentation is in freetype.h */
+ 
+@@ -970,7 +970,7 @@
+     return FT_Open_Face( library, &args, face_index, aface );
+   }
+ 
+-#endif  /* !FT_MACINTOSH */
++/* #endif */ /* !FT_MACINTOSH */
  
  
- #ifndef __FREETYPE_H__
+   /* documentation is in freetype.h */
+diff -uNr xc/extras/freetype2/src/truetype/ttinterp.c xc-new/extras/freetype2/src/truetype/ttinterp.c
+--- xc/extras/freetype2/src/truetype/ttinterp.c	2004-04-28 06:39:07.000000000 -0400
++++ xc-new/extras/freetype2/src/truetype/ttinterp.c	2005-03-07 15:53:24.000000000 -0500
+@@ -2474,7 +2474,7 @@
+     W = Vx * Vx + Vy * Vy;
+ 
+     /* Now, we want that Sqrt( W ) = 0x4000 */
+-    /* Or 0x1000000 <= W < 0x1004000        */
++    /* Or 0x10000000 <= W < 0x10004000        */
+ 
+     if ( Vx < 0 )
+     {
+@@ -2492,7 +2492,7 @@
+     else
+       S2 = FALSE;
+ 
+-    while ( W < 0x1000000L )
++    while ( W < 0x10000000L )
+     {
+       /* We need to increase W by a minimal amount */
+       if ( Vx < Vy )
+@@ -2503,7 +2503,7 @@
+       W = Vx * Vx + Vy * Vy;
+     }
+ 
+-    while ( W >= 0x1004000L )
++    while ( W >= 0x10004000L )
+     {
+       /* We need to decrease W by a minimal amount */
+       if ( Vx < Vy )
