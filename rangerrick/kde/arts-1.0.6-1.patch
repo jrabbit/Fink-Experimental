@@ -893,6 +893,53 @@ diff -u -b -u -r1.1.1.3 -r1.6
  GSL_cc_dummy = dummy.cc
  $(srcdir)/dummy.cc: gslconfig.h
  
+Index: flow/gsl/configure.in.in
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/arts/flow/gsl/configure.in.in,v
+retrieving revision 1.1.1.2
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.2 -r1.2
+--- flow/gsl/configure.in.in	10 Jul 2002 02:52:25 -0000	1.1.1.2
++++ flow/gsl/configure.in.in	29 Jul 2002 22:25:00 -0000	1.2
+@@ -57,6 +57,23 @@
+     fi
+     AC_SUBST(GSL_HAVE_OGGVORBIS)
+ 
++    dnl check for ov_read_float parameter count (differs in 1.0 vs. rc3)
++    if test $GSL_HAVE_OGGVORBIS = 1; then
++      AC_MSG_CHECKING([for ov_read_float() from rc3])
++      AC_TRY_COMPILE([
++        #include <vorbis/vorbisfile.h>
++      ], [
++        ov_read_float(0,0,0);
++      ], [
++        GSL_HAVE_OGGVORBIS_RC3=1
++        AC_MSG_RESULT(yes)
++      ], [
++        GSL_HAVE_OGGVORBIS_RC3=0
++        AC_MSG_RESULT(no)
++      ])
++      AC_SUBST(GSL_HAVE_OGGVORBIS_RC3)
++    fi
++
+     dnl === libmad MPEG decoder check ===
+     mad_detect=0
+     AC_CHECK_LIB(mad, mad_synth_frame,
+Index: flow/gsl/gslconfig.h.in
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/arts/flow/gsl/gslconfig.h.in,v
+retrieving revision 1.1.1.2
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.2 -r1.2
+--- flow/gsl/gslconfig.h.in	10 Jul 2002 02:52:25 -0000	1.1.1.2
++++ flow/gsl/gslconfig.h.in	29 Jul 2002 22:25:00 -0000	1.2
+@@ -6,5 +6,6 @@
+ #define GSL_SIZEOF_STD_INTMAX_T		(@GSL_SIZEOF_STD_INTMAX_T@)
+ #define GSL_HAVE_LIBMAD			(@GSL_HAVE_LIBMAD@)
+ #define GSL_HAVE_OGGVORBIS		(@GSL_HAVE_OGGVORBIS@)
++#define GSL_HAVE_OGGVORBIS_RC3          (@GSL_HAVE_OGGVORBIS_RC3@)
+ #define GSL_USE_GSL_GLIB		(@GSL_USE_GSL_GLIB@)
+ #define GSL_USE_ARTS_THREADS		(@GSL_USE_ARTS_THREADS@)
 Index: flow/gsl/gsldatahandle-mad.c
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/arts/flow/gsl/gsldatahandle-mad.c,v
@@ -912,6 +959,26 @@ diff -u -b -u -r1.1.1.1 -r1.2
  #if	GSL_HAVE_LIBMAD
  #include <mad.h>
  
+Index: flow/gsl/gsldatahandle-vorbis.c
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/arts/flow/gsl/gsldatahandle-vorbis.c,v
+retrieving revision 1.1.1.2
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.2 -r1.2
+--- flow/gsl/gsldatahandle-vorbis.c	10 Jul 2002 02:52:25 -0000	1.1.1.2
++++ flow/gsl/gsldatahandle-vorbis.c	29 Jul 2002 22:25:00 -0000	1.2
+@@ -150,7 +150,11 @@
+   gint stream_id, i;
+   
+   vhandle->pcm_pos = ov_pcm_tell (&vhandle->ofile) - vhandle->soffset;
++#if GSL_HAVE_OGGVORBIS_RC3
+   vhandle->pcm_length = ov_read_float (&vhandle->ofile, &pcm, &stream_id);
++#else
++  vhandle->pcm_length = ov_read_float (&vhandle->ofile, &pcm, (~0U>>1), &stream_id);
++#endif
+   if (vhandle->pcm_pos < 0 || vhandle->pcm_length < 0 || stream_id != vhandle->stream)
+     {
+       /* urg, this is bad! */
 Index: gmcop/Makefile.am
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/arts/gmcop/Makefile.am,v
