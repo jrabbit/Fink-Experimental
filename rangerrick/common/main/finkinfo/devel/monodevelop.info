@@ -1,0 +1,48 @@
+Package: monodevelop
+Version: 0.4
+Revision: 1
+Source: http://www.go-mono.com/archive/beta2/%n-%v.tar.gz
+Source-MD5: b57c29af39bfc44842799cc211d6564d
+#Patch: %n.patch
+DocFiles: AUTHORS COPYING* ChangeLog INSTALL NEWS README
+Depends: gecko-sharp (>= 0.4-1), gtk-sharp (>= 0.93-1), gtksourceview-sharp (>= 0.3-1), mono (>= 0.95-1), monodoc (>= 0.16-1)
+BuildDepends: gecko-sharp (>= 0.4-1), gettext-dev, gtk-sharp (>= 0.93-1), gtksourceview-dev, gtksourceview-sharp (>= 0.3-1), libicu28-dev, mono-dev (>= 0.95-1), monodoc (>= 0.16-1)
+Homepage: http://go-mono.com/
+Maintainer: Benjamin Reed <ranger@befunk.com>
+Description: Integrated Development Environment for C#
+NoSetCPPFLAGS: true
+SetCPPFLAGS: -I%p/include
+NoSETLDFLAGS: true
+SetLIBS: -L%p/lib
+NoSetMAKEFLAGS: true
+SetMAKEFLAGS: -j1
+ConfigureParams: --mandir=%p/share/man
+CompileScript: <<
+#!/bin/sh
+
+  export ICU_DATA=/sw/lib/icu/current
+  perl -pi -e 's/hardcode_direct=yes/hardcode_direct=no/g' configure
+  ./configure %c
+  make
+<<
+InstallScript: <<
+  MAKEFLAGS=-j1 make install DESTDIR=%d
+<<
+
+DescDetail: <<
+MonoDevelop is a project to port SharpDevelop to Gtk#.  There are numerous
+goals that MonoDevelop hopes to achieve.  Some of these are:
+* To create a best of breed development environment for Unix systems for
+  C# and Mono.
+* Since its written in Gtk#, and we like Gtk# and we get good support from
+  Gtk#, most likely it will add functionality to improve the Gtk# experience.
+* To drift as little as possible from the main SharpDevelop: we want ideally
+  to merge the code back (through ifdefs, conditional compilation,
+  interfaces, whatever) to maximize the contributions and maximize the
+  development speed.
+* Today the IDE is a simple IDE and on Unix does not do GUI design (that is
+  limited to SharpDevelop), but we want to add a GUI designer.
+* We want to integrate the tools we have been building so far, so things
+  like MonoDoc, NUnit-Gtk and the debugger should target MonoDevelop.
+<<
+License: GPL
