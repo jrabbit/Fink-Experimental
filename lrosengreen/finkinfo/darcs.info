@@ -1,5 +1,5 @@
 Package: darcs
-Version: 1.0.0rel
+Version: 1.0.0rc3
 Revision: 1
 Description: Advanced distributed revision control system
 License: GPL
@@ -7,27 +7,16 @@ Maintainer: Lars Rosengreen <lars@margay.org>
 
 Depends: ncurses-shlibs, readline-shlibs, curl-shlibs | curl-ssl-shlibs, gmp-shlibs
 BuildDepends: autoconf2.5, ncurses-dev, readline, curl | curl-ssl, curl-dev | curl-ssl-dev, ghc-dev (>= 6.2), tetex | system-tetex, latex2html
-Replaces: darcs-bash-completion
-Conflicts: darcs-bash-completion
+Recommends: darcs-bash-completion
 
-Source: http://abridgegame.org/%n/%n-1.0.0.tar.gz
-Source-MD5: 452b8d5a123c440fa1c35728db0a80ec
+Source: http://abridgegame.org/%n/%n-%v.tar.gz
+Source-MD5: 1c4206244c25a764809fdb0ae3827a8e
 
-SourceDirectory: %n-1.0.0
+Patch: darcs.patch
 
 ConfigureParams: --mandir=%p/share/man
 
-InstallScript: <<
-make install DESTDIR=%d
-
-mkdir -p %p/etc/bash_completion.d
-cp darcs_completion %p/etc/bash_completion.d/darcs
-chmod 755 %p/etc/bash_completion.d/darcs
-
-mkdir -p %p/share/zsh/site-functions
-cp zsh_completion_new %p/share/zsh/site-functions/darcs
-chmod 755 %p/share/zsh/site-functions/darcs
-<<
+InstallScript: make install DESTDIR=%d
 
 DocFiles: AUTHORS COPYING
 
@@ -45,6 +34,23 @@ patches.
 
 Homepage: http://abridgegame.org/darcs/
 
+SplitOff: <<
+  Package: %N-bash-completion
+  Description: Bash completion for Darcs
+  
+  Depends: %N, bash-completion
+
+  InstallScript: <<
+    install -m 755 -d %i/etc/bash_completion.d
+    cp %N_completion %i/etc/bash_completion.d/%N
+    chmod 755 %i/etc/bash_completion.d/%N
+  << 
+<<
+
 DescPort: <<
 Previous versions by Vadim Zaliva
+
+As suggested by dmacks, use a SplitOff for the bash completion script.
+In the future (after 1.0), additional SplitOffs could be used for zsh
+completion and the darcs server.
 <<
