@@ -1,0 +1,162 @@
+
+--- dc_gui-0.62/src/bdb.c	2002-05-18 05:48:11.000000000 -0700
++++ dc_gui-0.62-patched/src/bdb.c	2002-10-04 02:55:37.000000000 -0700
+@@ -28,7 +28,7 @@
+ #include <sys/stat.h>
+ #include <sys/types.h>
+ #include <string.h>
+-#include <db.h>
++#include <db3/db.h>
+ #include <gtk/gtk.h>
+ 
+ #include "main.h"
+--- dc_gui-0.62/src/bdb.h	2002-05-18 05:48:15.000000000 -0700
++++ dc_gui-0.62-patched/src/bdb.h	2002-10-04 02:54:48.000000000 -0700
+@@ -1,7 +1,7 @@
+ #ifndef __BDB_H__
+ #define __BDB_H__
+ 
+-#include <db.h>
++#include <db3/db.h>
+ 
+ /**************************/
+ /* BerkeleyDB environment */
+--- dc_gui-0.62/src/callbacks.c	2002-09-24 09:25:08.000000000 -0700
++++ dc_gui-0.62-patched/src/callbacks.c	2002-10-04 02:54:20.000000000 -0700
+@@ -14,11 +14,19 @@
+ #include <dirent.h>
+ #include <gdk/gdkkeysyms.h>
+ #include <gdk/gdk.h>
+-#include <linux/sem.h>
++
++#ifdef __linux__
++#include <linux/sem.h>		/* for the value of SEMVMX */
++#else
++#include <sys/sem.h>
++#ifndef SEMVMX
++#define SEMVMX 32767
++#endif
++#endif
+ #include <gnome.h>
+ #include <glib.h>
+ #include <time.h>
+-#include <db.h>
++#include <db3/db.h>
+ #include <string.h>
+ 
+ #include "callbacks.h"
+@@ -2040,6 +2048,7 @@
+ 					break;
+ 
+ 		default:
++                                        break;
+ 	}
+ }
+ 
+@@ -3468,6 +3477,7 @@
+ 					break;
+ 
+ 		default:
++					break;
+ 	}
+ }
+ 
+@@ -3864,6 +3874,7 @@
+ 							break;
+ 
+ 				default:
++                                                        break;
+ 			}
+ 		}
+ 	}
+@@ -4346,6 +4357,7 @@
+ 					break;
+ 
+ 		default:
++					break;
+ 	}
+ }
+ 
+--- dc_gui-0.62/src/init_fnc.c	2002-09-25 08:12:36.000000000 -0700
++++ dc_gui-0.62-patched/src/init_fnc.c	2002-10-04 02:54:14.000000000 -0700
+@@ -11,7 +11,14 @@
+ #include <math.h>
+ #include <sys/types.h>
+ #include <sys/stat.h>
++#ifdef __linux__
+ #include <linux/sem.h>		/* for the value of SEMVMX */
++#else
++#include <sys/sem.h>
++#ifndef SEMVMX
++#define SEMVMX 32767
++#endif
++#endif
+ #include <dirent.h>
+ #include <string.h>
+ #include <gnome.h>
+--- dc_gui-0.62/src/main.c      2002-09-29 00:16:52.000000000 -0700
++++ dc_gui-0.62-patched/src/main.c      2002-10-04 03:31:04.000000000 -0700
+@@ -8,12 +8,12 @@
+ #endif
+
+ #include <signal.h>
+-#include <db.h>
++#include <db3/db.h>
+ #include <errno.h>
+ #include <sys/stat.h>
+ #include <sys/types.h>
+ #include <sys/socket.h>
+-#include <getopt.h>
++ 
+ #include <gnome.h>
+
+ #include "interface.h"
+--- dc_gui-0.62/po/Makefile.in.in	2001-09-01 23:58:14.000000000 -0700
++++ dc_gui-0.62-patched/po/Makefile.in.in	2002-10-04 03:24:11.000000000 -0700
+@@ -119,8 +119,8 @@
+ 	for cat in $$catalogs; do \
+ 	  cat=`basename $$cat`; \
+ 	  case "$$cat" in \
+-	    *.gmo) destdir=$(gnulocaledir);; \
+-	    *)     destdir=$(localedir);; \
++	    *.gmo) destdir=$(DESTDIR)$(gnulocaledir);; \
++	    *)     destdir=$(DESTDIR)$(localedir);; \
+ 	  esac; \
+ 	  lang=`echo $$cat | sed 's/\$(CATOBJEXT)$$//'`; \
+ 	  dir=$$destdir/$$lang/LC_MESSAGES; \
+--- dc_gui-0.62/config.h.in	2002-03-16 02:35:46.000000000 -0800
++++ dc_gui-0.62-patched/config.h.in	2002-10-04 02:46:52.000000000 -0700
+@@ -1,5 +1,10 @@
+ /* config.h.in.  Generated automatically from configure.in by autoheader.  */
+ 
++/* Not all OSes support NOSIGNAL */
++#ifndef MSG_NOSIGNAL
++#  define MSG_NOSIGNAL 0
++#endif
++
+ /* Define if using alloca.c.  */
+ #undef C_ALLOCA
+ 
+--- dc_gui-0.62/src/dctc_process.c	2002-09-24 09:08:16.000000000 -0700
++++ dc_gui-0.62-patched/src/dctc_process.c	2002-10-04 04:04:23.000000000 -0700
+@@ -539,9 +539,9 @@
+ 	}
+ 
+ 	if( (amount/(1024.0*1024.0*1024.0)) > 1024.0)
+-		sprintf(buf,"%'d users (%'.2lfTB)",clst->rows,amount/(1024.0*1024.0*1024.0*1024.0));
++		sprintf(buf,"%d users (%.2lfTB)",clst->rows,amount/(1024.0*1024.0*1024.0*1024.0));
+ 	else
+-		sprintf(buf,"%'d users (%'.2lfGB)",clst->rows,amount/(1024.0*1024.0*1024.0));
++		sprintf(buf,"%d users (%.2lfGB)",clst->rows,amount/(1024.0*1024.0*1024.0));
+ 	w=get_widget_by_widget_name("users_info_label");
+ 	if(w==NULL)
+ 		return;
+@@ -701,7 +701,7 @@
+ 	fsize=g_string_new("");
+ 	
+ 	if(vsize>(1024.0*1024.0*1024.0))
+-		g_string_sprintf(fsize,"%'.2fGB",vsize/(1024.0*1024.0*1024.0));
++		g_string_sprintf(fsize,"%.2fGB",vsize/(1024.0*1024.0*1024.0));
+ 	else if(vsize>(1024.0*1024.0))
+ 		g_string_sprintf(fsize,"%.2fMB",vsize/(1024.0*1024.0));
+ 	else if(vsize>(1024.0))

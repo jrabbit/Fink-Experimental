@@ -1,0 +1,175 @@
+--- dctc-0.83.5/config.h.in	2002-03-16 02:20:32.000000000 -0800
++++ dctc-0.83.5-patched/config.h.in	2002-10-04 01:55:04.000000000 -0700
+@@ -1,5 +1,10 @@
+ /* config.h.in.  Generated automatically from configure.in by autoheader.  */
+ 
++/* Not all OSes support NOSIGNAL */
++#ifndef MSG_NOSIGNAL
++#  define MSG_NOSIGNAL 0
++#endif
++
+ /* Define to empty if the keyword does not work.  */
+ #undef const
+ 
+--- dctc-0.83.5/src/sema.c	2002-09-28 09:55:52.000000000 -0700
++++ dctc-0.83.5-patched/src/sema.c	2002-10-04 02:15:49.000000000 -0700
+@@ -36,7 +36,7 @@
+ 
+ #include "sema.h"
+ 
+-#if !(defined(BSD) && (BSD >= 199103))
++#if !(defined(BSD) && (BSD >= 199103)) && !defined(__APPLE__)
+        #if defined(__GNU_LIBRARY__) && !defined(_SEM_SEMUN_UNDEFINED)
+        /* union semun is defined by including <sys/sem.h> */
+        #else
+@@ -251,7 +251,7 @@
+ 		for(i=0;i<3;i++)
+ 		{
+ 			/* reset speed */
+-			v.val=semctl(semid,2+2*i,GETVAL);
++			v.val=semctl(semid,2+2*i,GETVAL, (union semun) 0);
+ 			if(v.val==-1)
+ 				v.val=SEMVMX;
+ 
+@@ -392,8 +392,8 @@
+ {
+ 	lock_ul_slot_controler(semid);
+ 
+-	*ttl_slot=semctl(semid,UL_SLOT_TTL_SEMA,GETVAL);
+-	*busy_slot=semctl(semid,UL_SLOT_BUSY_SEMA,GETVAL);
++	*ttl_slot=semctl(semid,UL_SLOT_TTL_SEMA,GETVAL, (union semun) 0);
++	*busy_slot=semctl(semid,UL_SLOT_BUSY_SEMA,GETVAL, (union semun) 0);
+ 
+ 	release_ul_slot_controler(semid);
+ }
+@@ -408,8 +408,8 @@
+ 	int ttl, busy;
+ 	int free_slt;
+ 
+-	ttl=semctl(semid,UL_SLOT_TTL_SEMA,GETVAL);
+-	busy=semctl(semid,UL_SLOT_BUSY_SEMA,GETVAL);
++	ttl=semctl(semid,UL_SLOT_TTL_SEMA,GETVAL, (union semun) 0);
++	busy=semctl(semid,UL_SLOT_BUSY_SEMA,GETVAL, (union semun) 0);
+ 
+ 	free_slt=ttl-busy;
+ 	if(free_slt<0)
+@@ -433,8 +433,8 @@
+ 
+ 	lock_ul_slot_controler(semid);
+ 
+-	ttl_slot=semctl(semid,UL_SLOT_TTL_SEMA,GETVAL);
+-	busy_slot=semctl(semid,UL_SLOT_BUSY_SEMA,GETVAL);
++	ttl_slot=semctl(semid,UL_SLOT_TTL_SEMA,GETVAL, (union semun) 0);
++	busy_slot=semctl(semid,UL_SLOT_BUSY_SEMA,GETVAL, (union semun) 0);
+ 	if(busy_slot<ttl_slot)
+ 	{
+ #if 0
+@@ -515,7 +515,7 @@
+ {
+ 	int busy_slot;
+ 	lock_ul_slot_controler(semid);
+-	busy_slot=semctl(semid,UL_SLOT_BUSY_SEMA,GETVAL);
++	busy_slot=semctl(semid,UL_SLOT_BUSY_SEMA,GETVAL, (union semun) 0);
+ 	if(busy_slot>0)
+ 	{
+ #if 0
+@@ -568,7 +568,7 @@
+ 	int ttl_slot;
+ 
+ 	lock_ul_slot_controler(semid);
+-	ttl_slot=semctl(semid,UL_SLOT_TTL_SEMA,GETVAL);
++	ttl_slot=semctl(semid,UL_SLOT_TTL_SEMA,GETVAL, (union semun) 0);
+ 	release_ul_slot_controler(semid);
+ 
+ 	return ttl_slot;
+--- dctc-0.83.5/src/user_manage.c	2002-07-27 22:18:48.000000000 -0700
++++ dctc-0.83.5-patched/src/user_manage.c	2002-10-04 02:16:46.000000000 -0700
+@@ -5,7 +5,7 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+-#include <db.h>
++#include <db3/db.h>
+ #include <glib.h>
+ 
+ #include "user_manage.h"
+--- dctc-0.83.5/src/gdl.c	2002-09-28 09:43:47.000000000 -0700
++++ dctc-0.83.5-patched/src/gdl.c	2002-10-04 02:20:09.000000000 -0700
+@@ -721,8 +721,12 @@
+ 		}
+ 		if(have!=want)
+ 		{
++                #ifndef ENODATA
++                        a=EINVAL;
++                #else
+ 			a=ENODATA;			/* set the error message to "no data available */
+-			break;
++		#endif
++                        break;
+ 		}
+ 
+ 		/* and write it at the end of the file */
+--- dctc-0.83.5/src/uaddr.c	2002-05-28 09:23:48.000000000 -0700
++++ dctc-0.83.5-patched/src/uaddr.c	2002-10-04 02:20:48.000000000 -0700
+@@ -17,7 +17,7 @@
+ #include <sys/socket.h>
+ #include <errno.h>
+ #include <sys/un.h>
+-#include <db.h>
++#include <db3/db.h>
+ #include <glib.h>
+ 
+ #include "var.h"
+--- dctc-0.83.5/src/bdb.c	2002-05-18 03:09:04.000000000 -0700
++++ dctc-0.83.5-patched/src/bdb.c	2002-10-04 02:21:41.000000000 -0700
+@@ -28,7 +28,7 @@
+ #include <sys/stat.h>
+ #include <sys/types.h>
+ #include <string.h>
+-#include <db.h>
++#include <db3/db.h>
+ #include <glib.h>
+ 
+ #include "var.h"
+--- dctc-0.83.5/src/main.c	2002-09-28 09:52:38.000000000 -0700
++++ dctc-0.83.5-patched/src/main.c	2002-10-04 03:07:27.000000000 -0700
+@@ -40,9 +40,13 @@
+ #include <sys/sem.h>
+ #endif
+ #include <errno.h>
++#if defined(__APPLE__)
++#include <gnugetopt/getopt.h>
++#else
+ #include <getopt.h>
++#endif
+ #include <string.h>
+-#include <db.h>
++#include <db3/db.h>
+ #include <glib.h>
+ #include <pthread.h>
+ 
+--- dctc-0.83.5/src/keyboard.c	2002-09-28 09:39:51.000000000 -0700
++++ dctc-0.83.5-patched/src/keyboard.c	2002-10-04 03:18:39.000000000 -0700
+@@ -34,6 +34,7 @@
+ #include <sys/sem.h>
+ #include <netdb.h>
+ #include <glib.h>
++#include <netinet/in.h>  /* for sockaddr_in */
+ 
+ #if !(defined(BSD) && (BSD >= 199103))
+        #if defined(__GNU_LIBRARY__) && !defined(_SEM_SEMUN_UNDEFINED)
+@@ -2549,11 +2550,11 @@
+ 	sprintf(buf,"%d",((int)cnx_opt)&255);
+ 	disp_msg(VAR_MSG,NULL,"cnx_opt",buf,NULL);
+ 
+-	sprintf(buf,"%d",semctl(bl_semid,UL_SPD_SEMA,GETVAL));
++	sprintf(buf,"%d",semctl(bl_semid,UL_SPD_SEMA,GETVAL, (union semun) 0));
+ 	disp_msg(VAR_MSG,NULL,"ubl",buf,NULL);
+-	sprintf(buf,"%d",semctl(bl_semid,DL_SPD_SEMA,GETVAL));
++	sprintf(buf,"%d",semctl(bl_semid,DL_SPD_SEMA,GETVAL, (union semun)0));
+ 	disp_msg(VAR_MSG,NULL,"dbl",buf,NULL);
+-	sprintf(buf,"%d",semctl(bl_semid,GATHER_SPD_SEMA,GETVAL));
++	sprintf(buf,"%d",semctl(bl_semid,GATHER_SPD_SEMA,GETVAL,(union semun) 0));
+ 	disp_msg(VAR_MSG,NULL,"gbl",buf,NULL);
+ 
+ 	/* display int vars */
