@@ -250,7 +250,8 @@ sub display_info
     
     #--SCREEN RESOLUTION--#
     if ($UNAME =~ /^darwin/i) {
-      $RES = `dmesg | grep video | cut -d"(" -f2 | cut -d")" -f1`;
+      #$RES = `dmesg | grep video | cut -d"(" -f2 | cut -d")" -f1`;
+      $RES = `xdpyinfo | grep dimensions | cut -d" " -f7`;
       chop ($RES);
     } else {
       $RES = `xdpyinfo | grep dimensions | cut -d" " -f7`;
