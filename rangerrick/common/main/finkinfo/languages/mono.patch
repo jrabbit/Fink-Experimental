@@ -1,0 +1,35 @@
+diff -uNr mono-1.1.4/data/config.in mono-1.1.4-patched/data/config.in
+--- mono-1.1.4/data/config.in	Sat Feb  5 14:52:50 2005
++++ mono-1.1.4-patched/data/config.in	Mon Feb 21 10:46:33 2005
+@@ -9,4 +9,8 @@
+ 	<dllmap dll="db2cli" target="libdb2_36@libsuffix@"/>
+ 	<dllmap dll="msvcrt" target="@LIBC@"/>
+ 	<dllmap dll="MonoPosixHelper" target="libMonoPosixHelper@libsuffix@"/>
++	<dllmap dll="libgtk-win32-2.0-0.dll" target="libgtk-x11-2.0@libsuffix@"/>
++	<dllmap dll="glib-2.0" target="libglib-2.0@libsuffix@"/>
++	<dllmap dll="gnomevfs-2" target="libgnomevfs-2@libsuffix@"/>
++	<dllmap dll="gtksourceview-1.0" target="libgtksourceview-1.0@libsuffix@"/>
+ </configuration>
+diff -uNr mono-1.1.4/mono/metadata/loader.c mono-1.1.4-patched/mono/metadata/loader.c
+--- mono-1.1.4/mono/metadata/loader.c	Sat Feb  5 14:51:20 2005
++++ mono-1.1.4-patched/mono/metadata/loader.c	Mon Feb 21 10:49:12 2005
+@@ -695,6 +695,19 @@
+ 		}
+ 
+ 		if (!gmodule) {
++			full_name = g_module_build_path ("@PREFIX@/lib", file_name);
++			mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_DLLIMPORT,
++					"DllImport loading library: '@PREFIX@/lib/%s'.", full_name);
++			gmodule = g_module_open (full_name, G_MODULE_BIND_LAZY);
++			if (!gmodule) {
++				mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_DLLIMPORT,
++						"DllImport error loading library '%s'.",
++						g_module_error ());
++			}
++			g_free (full_name);
++		}
++
++		if (!gmodule) {
+ 			full_name = g_module_build_path (".", file_name);
+ 			mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_DLLIMPORT,
+ 					"DllImport loading library: '%s'.", full_name);
