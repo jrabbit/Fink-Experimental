@@ -1,0 +1,49 @@
+Package: gcdmaster
+Version: 1.1.6-20020910
+Revision: 1
+Source: mirror:sourceforge:fink/cdrdao-%v.tar.gz
+SourceDirectory: cdrdao
+Source-MD5: a05f5ab3a72247524298aac02f004808
+BuildDepends: pccts, autoconf25, lame, gtkmm, gnomemm
+Depends: gtkmm-shlibs, gnomemm-shlibs, cdrdao
+Patch: cdrdao-%v-%r.patch
+UpdateConfigGuessInDirs: scsilib/conf
+SetLDFLAGS: -framework IOKit -framework CoreFoundation
+SetLIBS: -lstdc++ -lcc_dynamic
+ConfigureParams: --with-pcctsbin=%p/bin --with-pcctsinc=%p/include/pccts --mandir='${prefix}/share/man' --with-lame-lib=%p/lib --with-lame-include=%p/include/
+CompileScript: <<
+autoconf
+./configure %c
+make
+<<
+InstallScript: <<
+make install DESTDIR=%d
+mkdir -p %i/share/doc/cdrdao
+mv testtocs %i/share/doc/cdrdao/example-tocs
+mv utils/toc2cue utils/toc2mp3 %i/bin
+mv contrib %i/share/doc/cdrdao/
+ln -s %p/bin/gcdmaster %i/bin/xcdrdao
+ln -s %p/share/man/man1/xcdrdao.1 %i/share/man/man1/gcdmaster.1
+<<
+Splitoff: <<
+Package: cdrdao
+Depends: lame-shlibs
+Files: bin/cdrdao bin/toc* share/cdrdao share/doc/cdrdao share/man/man1/cdrdao.1
+DocFiles: COPYING CREDITS README* Release*
+Description: Create CDs in disc-at-once (DAO) mode
+DescDetail: <<
+Writes audio CD-Rs in disc-at-once (DAO) mode allowing control over
+pre-gaps (length down to 0, nonzero audio data) and sub-channel
+information like ISRC codes. All data that is written to the disc must
+be specified with a text file. Audio data may be in WAVE or raw format.
+<<
+<<
+
+DocFiles: COPYING CREDITS README* Release*
+Description: Gtk frontend for cdrdao
+DescDetail: <<
+The default graphical frontend to the popular cdrdao program. It uses gtk for display.
+<<
+License: GPL
+Maintainer: Chris Zubrzycki <beren12@users.sourceforge.net>
+Homepage: http://cdrdao.sf.net/
