@@ -8,10 +8,9 @@ Index: admin/acinclude.m4.in
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/admin/acinclude.m4.in,v
 retrieving revision 1.1.1.2
-retrieving revision 1.7
-diff -u -b -u -r1.1.1.2 -r1.7
+diff -u -b -u -r1.1.1.2 acinclude.m4.in
 --- admin/acinclude.m4.in	10 Jul 2002 02:47:38 -0000	1.1.1.2
-+++ admin/acinclude.m4.in	30 Jul 2002 01:14:58 -0000	1.7
++++ admin/acinclude.m4.in	31 Jul 2002 23:59:42 -0000
 @@ -699,13 +699,10 @@
       AC_CHECK_LIB(ipc, shmat, X_EXTRA_LIBS="$X_EXTRA_LIBS -lipc"))
     
@@ -37,9 +36,21 @@ diff -u -b -u -r1.1.1.2 -r1.7
     AC_SUBST(LIBRESOLV)
     AC_SUBST(X_EXTRA_LIBS)
     AC_CHECK_LIB(ucb, killpg, [LIBUCB="-lucb"]) dnl for Solaris2.4
-@@ -949,7 +948,7 @@
+@@ -905,7 +904,7 @@
+ kde_ldflags_safe="$LDFLAGS"
+ kde_libs_safe="$LIBS"
+ 
+-LDFLAGS="$LDFLAGS $X_LDFLAGS $USER_LDFLAGS"
++LDFLAGS="$LDFLAGS $USER_LDFLAGS $X_LDFLAGS"
+ LIBS="-lXext -lX11 $LIBSOCKET"
+ 
+ AC_TRY_LINK([
+@@ -947,9 +946,9 @@
+ kde_save_LDFLAGS="$LDFLAGS"
+ kde_save_CFLAGS="$CFLAGS"
  kde_save_LIBS="$LIBS"
- LDFLAGS="$LDFLAGS $X_LDFLAGS $USER_LDFLAGS"
+-LDFLAGS="$LDFLAGS $X_LDFLAGS $USER_LDFLAGS"
++LDFLAGS="$LDFLAGS $USER_LDFLAGS $X_LDFLAGS"
  CFLAGS="$CFLAGS -I$x_includes"
 -LIBS="-lXinerama -lXext"
 +LIBS="-lXinerama -lXext -lX11"
@@ -112,6 +123,18 @@ diff -u -b -u -r1.1.1.2 -r1.7
        fi  
      fi
    fi
+@@ -3070,9 +3083,9 @@
+     ac_save_ldflags="$LDFLAGS"
+     ac_save_cflags="$CFLAGS"
+     if test "x$kde_use_qt_emb" != "xyes"; then
+-      LDFLAGS="$LDFLAGS $X_LDFLAGS $USER_LDFLAGS $LDFLAGS $XPM_LDFLAGS $all_libraries -lXpm -lX11 -lXext $LIBZ $LIBSOCKET"
++      LDFLAGS="$LDFLAGS $USER_LDFLAGS $X_LDFLAGS $LDFLAGS $XPM_LDFLAGS $all_libraries -lXpm -lX11 -lXext $LIBZ $LIBSOCKET"
+     else
+-      LDFLAGS="$LDFLAGS $X_LDFLAGS $USER_LDFLAGS $LDFLAGS $XPM_LDFLAGS $all_libraries -lXpm $LIBZ $LIBSOCKET"
++      LDFLAGS="$LDFLAGS $USER_LDFLAGS $X_LDFLAGS $LDFLAGS $XPM_LDFLAGS $all_libraries -lXpm $LIBZ $LIBSOCKET"
+     fi
+     CFLAGS="$CFLAGS $X_INCLUDES $USER_INCLUDES"
+     test -n "$XPM_INCLUDE" && CFLAGS="-I$XPM_INCLUDE $CFLAGS"
 @@ -4117,7 +4130,7 @@
  AC_DEFUN(KDE_CREATE_SUBDIRSLIST,
  [
@@ -412,6 +435,48 @@ diff -u -b -u -r1.1.1.2 -r1.3
  
  kcalc_SOURCES = dummy.cpp
  kcalc_LDADD = kcalc.la
+Index: kcalc/kcalc_core.cpp
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdeutils/kcalc/kcalc_core.cpp,v
+retrieving revision 1.1.1.2
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.2 -r1.2
+--- kcalc/kcalc_core.cpp	10 Jul 2002 05:32:46 -0000	1.1.1.2
++++ kcalc/kcalc_core.cpp	31 Jul 2002 19:29:47 -0000	1.2
+@@ -48,6 +48,13 @@
+ 
+ #define UNUSED(x) ((void)(x))
+ 
++#if defined(__APPLE__) && __GNUC__ > 2
++/* FIXME: Jaguar's math.h does some weird isinf trickery
++   that breaks using the builtins... this should be made into
++   an aclocal.m4 macro */
++# undef HAVE_FUNC_ISINF
++#endif
++
+ #ifndef HAVE_FUNC_ISINF
+ 	#ifdef HAVE_IEEEFP_H
+ 		#include <ieeefp.h>
+Index: kcalc/kcalctype.h
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdeutils/kcalc/kcalctype.h,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcalc/kcalctype.h	25 Jun 2002 03:24:54 -0000	1.1.1.1
++++ kcalc/kcalctype.h	31 Jul 2002 19:29:47 -0000	1.2
+@@ -97,7 +97,11 @@
+ 	#define ATAN(X)		atan(X)
+ 	#define ATANH(X)	atanh(X)
+ 	#define EXP(X)		exp(X)
++# if defined(__APPLE__) && __GNUC__ > 2
++	#define POW(X,Y)	(double)pow((double)X,Y)
++# else
+ 	#define POW(X,Y)	pow(X,Y)
++# endif
+ 	#define LOG(X)		log(X)
+ 	#define LOG_TEN(X)	log10(X)
+ 	#define SQRT(X)		sqrt(X)
 Index: kedit/Makefile.am
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdeutils/kedit/Makefile.am,v
