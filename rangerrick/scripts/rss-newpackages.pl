@@ -11,6 +11,7 @@ use Data::Dumper;
 use Cwd qw(abs_path);
 use File::Basename;
 use File::Find;
+use File::MMagic;
 use XML::RSS;
 use Storable;
 use Fink::Package;
@@ -51,6 +52,7 @@ use vars qw(
   $Config
 
   $URIFINDER
+  $MAGIC
 );
 
 $basepath = '/home/ranger/share/sw';
@@ -67,6 +69,7 @@ $DOCACHE  = 0;
 
 $DISTDIR = '/sw/fink' if ( -e '/sw/fink/dists' );
 
+$MAGIC     = File::MMagic->new();
 $URIFINDER = URI::Find->new(
 	sub {
 		my ( $uri, $orig_uri ) = @_;
@@ -641,35 +644,39 @@ sub find_infofiles
 		$type = 'misc';
 		$type = 'perl' if ( $File::Find::name =~ /\.(pl|pm)$/ );
 
-		my $escaped = $File::Find::name;
-		$escaped =~ s/\'/\\\'/gs;
-
-		#		if (open (SCRIPT, "/usr/bin/code2html '$escaped' 2>/dev/null |")) {
-		if (
-			open( SCRIPT,
-				"enscript -E --color -whtml -p- '$escaped' 2>/dev/null |"
-			)
-		  )
-		{
-			local $/ = undef;
-			$descdetail = <SCRIPT>;
-			$descdetail =~ s/^.*?<pre>\n//si;
-			$descdetail =~ s/<\/pre>.*?$//si;
-			close(SCRIPT);
-		}
-		else
-		{
-			warn "unable to run syntax hilighter on $File::Find::name: $!\n";
-			if ( open( SCRIPT, $File::Find::name ) )
+		if ( $MAGIC->checktype_filename($File::Find::name) =~ /\btext\b/ ) {
+			my $escaped = $File::Find::name;
+			$escaped =~ s/\'/\\\'/gs;
+	
+			if (
+				open( SCRIPT,
+#					"/usr/bin/code2html '$escaped' 2>/dev/null |"
+					"enscript -E --color -whtml -p- '$escaped' 2>/dev/null |"
+				)
+			  )
 			{
 				local $/ = undef;
 				$descdetail = <SCRIPT>;
+				$descdetail =~ s/^.*?<pre>\n//si;
+				$descdetail =~ s/<\/pre>.*?$//si;
 				close(SCRIPT);
 			}
 			else
 			{
-				warn "couldn't read from $File::Find::name: $!\n";
+				warn "unable to run syntax hilighter on $File::Find::name: $!\n";
+				if ( open( SCRIPT, $File::Find::name ) )
+				{
+					local $/ = undef;
+					$descdetail = <SCRIPT>;
+					close(SCRIPT);
+				}
+				else
+				{
+					warn "couldn't read from $File::Find::name: $!\n";
+				}
 			}
+		} else {
+			$descdetail = "(binary file)";
 		}
 
 		# make the package hash
