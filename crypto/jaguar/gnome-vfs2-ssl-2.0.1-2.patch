@@ -1,0 +1,228 @@
+diff -Naur gnome-vfs-2.0.1.old/Makefile.in gnome-vfs-2.0.1.new/Makefile.in
+--- gnome-vfs-2.0.1.old/Makefile.in	Fri Jun 21 04:08:46 2002
++++ gnome-vfs-2.0.1.new/Makefile.in	Sun Jun 23 08:51:57 2002
+@@ -170,7 +170,7 @@
+ 
+ SUBDIRS_GNOME = monikers doc schemas
+ 
+-SUBDIRS =  	libgnomevfs					modules						schemas						devel-docs					doc						test						monikers					po
++SUBDIRS =  	libgnomevfs					modules						schemas						devel-docs					doc						monikers					po
+ 
+ 
+ EXTRA_DIST =  	HACKING						TODO						autogen.sh					gnome-vfs.spec					gnome-vfs-2.0.pc.in				gnome-vfs-module-2.0.pc.in			intltool-extract.in				intltool-merge.in				intltool-update.in
+diff -Naur gnome-vfs-2.0.1.old/config.h.in gnome-vfs-2.0.1.new/config.h.in
+--- gnome-vfs-2.0.1.old/config.h.in	Fri Jun 21 03:53:18 2002
++++ gnome-vfs-2.0.1.new/config.h.in	Sun Jun 23 08:34:49 2002
+@@ -156,6 +156,9 @@
+ /* Define if you have the `statvfs' function. */
+ #undef HAVE_STATVFS
+ 
++/* Define if you have the `strtok_r' function. */
++#undef HAVE_STRTOK_R
++
+ /* Define if you have the <stdint.h> header file. */
+ #undef HAVE_STDINT_H
+ 
+diff -Naur gnome-vfs-2.0.1.old/configure gnome-vfs-2.0.1.new/configure
+--- gnome-vfs-2.0.1.old/configure	Fri Jun 21 03:53:38 2002
++++ gnome-vfs-2.0.1.new/configure	Sun Jun 23 08:36:14 2002
+@@ -5254,7 +5254,7 @@
+     # FIXME: Relying on posixy $() will cause problems for
+     #        cross-compilation, but unfortunately the echo tests do not
+     #        yet detect zsh echo's removal of \ escapes.
+-    archive_cmds='$nonopt $(test "x$module" = xyes && echo -bundle || echo -dynamiclib) $allow_undefined_flag -o $lib $libobjs $deplibs$linker_flags -install_name $rpath/$soname $verstring'
++    archive_cmds='$nonopt $(test x$module = xyes && echo -bundle || echo -dynamiclib) $allow_undefined_flag -o $lib $libobjs $deplibs$linker_flags $(test .$module != .yes && echo -install_name $rpath/$soname $tmp_verstring)'
+     # We need to add '_' to the symbols in $export_symbols first
+     #archive_expsym_cmds="$archive_cmds"' && strip -s $export_symbols'
+     hardcode_direct=yes
+@@ -10640,7 +10640,7 @@
+ 
+ fi
+ 
+-for ac_func in getdtablesize open64 lseek64 statvfs
++for ac_func in getdtablesize open64 lseek64 statvfs strtok_r
+ do
+ as_ac_var=`echo "ac_cv_func_$ac_func" | $as_tr_sh`
+ echo "$as_me:10646: checking for $ac_func" >&5
+diff -Naur gnome-vfs-2.0.1.old/libgnomevfs/gnome-vfs-configuration.c gnome-vfs-2.0.1.new/libgnomevfs/gnome-vfs-configuration.c
+--- gnome-vfs-2.0.1.old/libgnomevfs/gnome-vfs-configuration.c	Tue Jan 29 04:10:07 2002
++++ gnome-vfs-2.0.1.new/libgnomevfs/gnome-vfs-configuration.c	Sun Jun 23 08:34:49 2002
+@@ -24,6 +24,7 @@
+ #include <config.h>
+ #include "gnome-vfs-configuration.h"
+ 
++#include <sys/types.h>
+ #include <dirent.h>
+ #include <errno.h>
+ #include <glib/ghash.h>
+diff -Naur gnome-vfs-2.0.1.old/libgnomevfs/gnome-vfs-job.c gnome-vfs-2.0.1.new/libgnomevfs/gnome-vfs-job.c
+--- gnome-vfs-2.0.1.old/libgnomevfs/gnome-vfs-job.c	Tue Oct 16 03:18:57 2001
++++ gnome-vfs-2.0.1.new/libgnomevfs/gnome-vfs-job.c	Sun Jun 23 08:34:49 2002
+@@ -1676,8 +1676,8 @@
+ 
+ void
+ gnome_vfs_dispatch_module_callback (GnomeVFSAsyncModuleCallback callback,
+-				    gconstpointer in, size_t in_size,
+-				    gpointer out, size_t out_size,
++				    gconstpointer in, gsize in_size,
++				    gpointer out, gsize out_size,
+ 				    gpointer user_data,
+ 				    GnomeVFSModuleCallbackResponse response,
+ 				    gpointer response_data)
+diff -Naur gnome-vfs-2.0.1.old/libgnomevfs/gnome-vfs-mime.c gnome-vfs-2.0.1.new/libgnomevfs/gnome-vfs-mime.c
+--- gnome-vfs-2.0.1.old/libgnomevfs/gnome-vfs-mime.c	Wed Apr 24 21:20:36 2002
++++ gnome-vfs-2.0.1.new/libgnomevfs/gnome-vfs-mime.c	Sun Jun 23 08:34:49 2002
+@@ -81,6 +81,31 @@
+ #endif /* G_LOCK_DEFINE_STATIC */
+ 
+ 
++#ifndef HAVE_STRTOK_R
++static char *
++strtok_r (char *s, const char *delim, char **save_ptr)
++{
++	char *token;
++
++	if (s == NULL)
++		s = *save_ptr;
++
++	s += strspn (s, delim);
++	if (*s == '\0')
++		return NULL;
++
++	token = s;
++	s = strpbrk (token, delim);
++	if (s == NULL) {
++		*save_ptr = strchr (token, '\0');
++	} else {
++		*s = '\0';
++		*save_ptr = s + 1;
++	}
++	return token;
++}
++#endif
++
+ static char *
+ get_priority (char *def, int *priority)
+ {
+diff -Naur gnome-vfs-2.0.1.old/ltmain.sh gnome-vfs-2.0.1.new/ltmain.sh
+--- gnome-vfs-2.0.1.old/ltmain.sh	Fri Jun 21 03:53:08 2002
++++ gnome-vfs-2.0.1.new/ltmain.sh	Wed Jun 26 19:36:49 2002
+@@ -2896,6 +2896,11 @@
+ 	if test -n "$export_symbols" && test -n "$archive_expsym_cmds"; then
+ 	  eval cmds=\"$archive_expsym_cmds\"
+ 	else
++	  if test "x$verstring" = "x0.0"; then
++	    tmp_verstring=
++	  else
++	    tmp_verstring="$verstring"
++	  fi
+ 	  eval cmds=\"$archive_cmds\"
+ 	fi
+ 	IFS="${IFS= 	}"; save_ifs="$IFS"; IFS='~'
+@@ -3950,10 +3955,10 @@
+ 
+ # Directory that this library needs to be installed in:
+ libdir='$install_libdir'"
+-	  if test "$installed" = no && test $need_relink = yes; then
+-	    $echo >> $output "\
+-relink_command=\"$relink_command\""
+-	  fi
++#	  if test "$installed" = no && test $need_relink = yes; then
++#	    $echo >> $output "\
++#relink_command=\"$relink_command\""
++#	  fi
+ 	done
+       fi
+ 
+diff -Naur gnome-vfs-2.0.1.old/modules/Makefile.in gnome-vfs-2.0.1.new/modules/Makefile.in
+--- gnome-vfs-2.0.1.old/modules/Makefile.in	Fri Jun 21 04:08:50 2002
++++ gnome-vfs-2.0.1.new/modules/Makefile.in	Sun Jun 23 08:34:49 2002
+@@ -171,7 +171,7 @@
+ NULL = 
+ SUBDIRS = extfs
+ 
+-INCLUDES =  	-I$(top_srcdir)					-I$(top_builddir)				$(MODULES_XML_GCONF_CFLAGS)			$(MODULES_FILE_CFLAGS) 				$(LIBEFS_CFLAGS)				$(VFS_CFLAGS)					-D_FILE_OFFSET_BITS=64				-D_BSD_SOURCE					-D_GNU_SOURCE					-D_LARGEFILE64_SOURCE				-D_POSIX_PTHREAD_SEMANTICS			-D_REENTRANT					-DG_DISABLE_DEPRECATED				-DDATADIR=\"$(datadir)\"			-DPREFIX=\"$(prefix)\"				-DSYSCONFDIR=\"$(sysconfdir)\"			-DG_LOG_DOMAIN=\"gnome-vfs-modules\"		$(NULL)
++INCLUDES =  	-I$(top_srcdir)					-I$(top_builddir)				$(MODULES_XML_GCONF_CFLAGS)			$(MODULES_FILE_CFLAGS) 				$(LIBEFS_CFLAGS)				$(VFS_CFLAGS)					-D_FILE_OFFSET_BITS=64				-D_BSD_SOURCE					-D_GNU_SOURCE					-D_LARGEFILE64_SOURCE				-D_POSIX_PTHREAD_SEMANTICS			-D_REENTRANT					-DG_DISABLE_DEPRECATED				-DDATADIR=\"$(datadir)\"			-DPREFIX=\"$(prefix)\"				-DLIBDIR=\"$(libdir)\" -DSYSCONFDIR=\"$(sysconfdir)\"			-DG_LOG_DOMAIN=\"gnome-vfs-modules\"		$(NULL)
+ 
+ 
+ EXTRA_DIST =  	applications.vfolder-info.in			preferences.vfolder-info.in			default-modules.conf				cdda-module.conf				ssl-modules.conf
+@@ -181,7 +181,7 @@
+ @BUILD_CDEMENU_MODULE_TRUE@CDEMENU_LTLIBS = libcdemenu-desktop.la
+ @BUILD_CDEMENU_MODULE_FALSE@CDEMENU_LTLIBS = 
+ 
+-module_flags = -export_dynamic -avoid-version
++module_flags = -export_dynamic -avoid-version -module
+ modulesdir = $(libdir)/gnome-vfs-2.0/modules
+ 
+ modules_LTLIBRARIES =  	$(CDDA_LTLIBS)					libdesktop.la					libvfolder-desktop.la				libextfs.la					libfile.la					libnntp.la					libvfs-test.la					$(HTTP_LTLIBS)					libbzip2.la					libgzip.la					libftp.la					libvfs-pipe.la					libvfs-translate.la				$(CDEMENU_LTLIBS)                       	libssh.la					libtar.la					$(NULL)
+diff -Naur gnome-vfs-2.0.1.old/modules/file-method.c gnome-vfs-2.0.1.new/modules/file-method.c
+--- gnome-vfs-2.0.1.old/modules/file-method.c	Fri Jun 14 04:24:04 2002
++++ gnome-vfs-2.0.1.new/modules/file-method.c	Sun Jun 23 08:34:49 2002
+@@ -36,6 +36,7 @@
+ #include <libgnomevfs/gnome-vfs-utils.h>
+ #include <libgnomevfs/gnome-vfs-mime.h>
+ #include <libgnomevfs/gnome-vfs-monitor-private.h>
++#include <sys/types.h>
+ #include <dirent.h>
+ #include <errno.h>
+ #include <fcntl.h>
+@@ -46,13 +47,46 @@
+ #include <stdlib.h>
+ #include <string.h>
+ #include <sys/stat.h>
+-#include <sys/types.h>
+ #include <unistd.h>
+ #include <utime.h>
+ #include <string.h>
+ #ifdef HAVE_FAM
+ #include <fam.h>
+ #include <glib/giochannel.h>
++#endif
++
++#ifndef HAVE_READDIR_R
++static int
++readdir_r (DIR *dirp, struct dirent *entry, struct dirent **result)
++{
++	static int readdir_mutex_inited = 0;
++	static pthread_mutex_t readdir_mutex;
++	struct dirent *tmp;
++	int old_errno;
++
++	if (!readdir_mutex_inited) {
++		readdir_mutex_inited = 1;
++		pthread_mutex_init (&readdir_mutex, NULL);
++	}
++
++	old_errno = errno;
++	errno = 0;
++
++	pthread_mutex_lock (&readdir_mutex);
++	if ((tmp = readdir (dirp)) != NULL)
++		memcpy (entry, tmp, sizeof (*entry));
++	pthread_mutex_unlock (&readdir_mutex);
++
++	if (errno && !tmp)
++		return errno;
++
++	if (!errno)
++		errno = old_errno;
++
++	*result = (tmp) ? entry : NULL;
++
++	return 0;
++}
+ #endif
+ 
+ #ifdef HAVE_FAM
+diff -Naur gnome-vfs-2.0.1.old/modules/fstype.c gnome-vfs-2.0.1.new/modules/fstype.c
+--- gnome-vfs-2.0.1.old/modules/fstype.c	Tue May  7 09:45:59 2002
++++ gnome-vfs-2.0.1.new/modules/fstype.c	Sun Jun 23 08:34:49 2002
+@@ -352,7 +352,7 @@
+   char *p;
+ 
+   if (S_ISLNK (statp->st_mode))
+-    p = dirname (relpath);
++    p = g_path_get_dirname (relpath);
+   else
+     p = relpath;
+ 
