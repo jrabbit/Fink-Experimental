@@ -17,8 +17,8 @@ CustomMirror: <<
 # commented until release
 Source: mirror:kde:unstable/%n-%v/src/%n-%v.tar.bz2
 Source-MD5: 5f08ec8a42aacd7dcaf7899d486c9885
-Source2: mirror:custom:koffice-admindir-20030425.tar.bz2
-Source2-MD5: eaaf277f4ee39dc5736464d8da78644f
+Source2: mirror:custom:koffice-admindir-20030508.tar.bz2
+Source2-MD5: 4db48666f9a0b260c21d94b2487e92fd
 Source2ExtractDir: %n-%v
 
 PatchScript: sed 's|@PREFIX@|%p|g' <%a/%f.patch | patch -p0
@@ -34,38 +34,31 @@ CompileScript: <<
   export KDEDIR=%p
   mkdir -p /tmp/kde-build
 
-  perl -pi -e 's,need_relink=yes,need_relink=no,g' admin/ltmain.sh
-
-  date > /tmp/kde-build/%N-%v-%r.cvs
-  make -f admin/Makefile.common cvs 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.cvs
-  [ $? -gt 0 ] && exit 1
-
-  date > /tmp/kde-build/%N-%v-%r.configure
-  sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure
-  [ $? -gt 0 ] && exit 1
-
-  date > /tmp/kde-build/%N-%v-%r.make
-  make -j2 all 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.make
+  date > /tmp/kde-build/%N-%v-%r.cvs && \
+  (make -f admin/Makefile.common cvs 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.cvs) && \
+  date > /tmp/kde-build/%N-%v-%r.configure && \
+  (sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure) && \
+  date > /tmp/kde-build/%N-%v-%r.make && \
+  (make -j2 all 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.make)
 <<
 
 InstallScript: <<
 #!/bin/sh
   mkdir -p /tmp/kde-build
-
-  date > /tmp/kde-build/%N-%v-%r.install
-  make install DESTDIR=%d 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.install
-
   mkdir -p %i/share/doc/kde-installed-packages
   touch %i/share/doc/kde-installed-packages/%N
   touch %i/share/doc/kde-installed-packages/%N-base
+
+  date > /tmp/kde-build/%N-%v-%r.install && \
+  (make install DESTDIR=%d 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.install)
 <<
 DocFiles: AUTHORS COPYING* INSTALL README
 SplitOff: <<
-  Package: koffice-dev
+  Package: %N-dev
   Description: koffice development headers and libraries
   Depends: %N (>= %v-%r), %N-base (>= %v-%r)
   Replaces: %N-common (<< %v-%r), %N (<< 3.0.5)
-  Recommends: arts-dev (>= 1.1.1-1), kdelibs3-ssl-dev (>= 3.1.1-1) | kdelibs3-dev (>= 3.1.1-1), kdebase3-ssl-dev (>= 3.1.1-1) | kdebase3-dev (>= 3.1.1-1), qt3 (>= 3.1.0-1), libart2, libxml2 (>= 2.5.2-1), libxslt (>= 1.0.27-1), audiofile, dlcompat-shlibs (>= 20021117-1),  esound (>= 0.2.28-1), freetype2 | freetype2-hinting, libjpeg, libpng3 (>= 1.2.5-4), libpoll (>= 1.1-1)
+  Recommends: arts-dev (>= 1.1.1-1), audiofile, autoconf2.54, automake1.6, dlcompat-dev (>= 20021117-1), esound, fink (>= 0.12.0-1), freetype2 | freetype2-hinting, kdelibs3-ssl-dev (>= 3.1.1-1) | kdelibs3-dev (>= 3.1.1-1), kdebase3-ssl-dev (>= 3.1.1-1) | kdebase3-dev (>= 3.1.1-1), libart2, libjpeg, libogg, libpng3 (>= 1.2.5-4), libpoll (>= 1.1-1), libvorbis0, libxml2 (>= 2.5.2-1), libxslt (>= 1.0.27-1), mad, python (>= 2.2.1-8) | python-nox (>= 2.2.1-8), qt3 (>= 3.1.0-1)
   BuildDependsOnly: true
   Files: <<
     include

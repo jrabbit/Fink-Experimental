@@ -1,14 +1,14 @@
 #!/usr/bin/perl
 
-my $KOI18NRELNUM  = 19;
-my $KDEVERSION    = '3.1.1';
+my $KOI18NRELNUM  = 1;
+my $KDEVERSION    = '3.1.2';
 my $KDEDIRECTORY  = 'stable/%v/src/';
 my $KDERELNUM     = 1;
-my $KDEARTSVER    = '1.1.1-1';
+my $KDEARTSVER    = '1.1.2-1';
 my $KDEI18NRELNUM = 1;
-my $KOVERSION     = '1.2.1';
+my $KOVERSION     = '1.2.90';
 my $KODIRECTORY   = 'stable/koffice-%v/src/';
-my $KORELNUM      = 5;
+my $KORELNUM      = 1;
 my $VERBOSE       = 0;
 my $DRYRUN        = 0;
 
