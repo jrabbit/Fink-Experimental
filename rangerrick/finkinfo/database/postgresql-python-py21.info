@@ -1,9 +1,9 @@
 Package: postgresql-python-py21
-Version: 7.3.3
-Revision: 4
+Version: 7.3.4
+Revision: 1
 GCC: 3.1
 Source: ftp://ftp.postgresql.org/pub/source/v%v/postgresql-%v.tar.gz
-Source-MD5: 60e1efa3a0f34dae06e017f72cd2dcc9
+Source-MD5: 82878d6d74c36384af3595d26ed38067
 BuildDepends: postgresql73-dev (>= %v-%r), python21, libgnugetopt
 Depends: postgresql73-shlibs (>= %v-%r), python21, libgnugetopt-shlibs, python-mx-py21
 NoSetCPPFLAGS: true
@@ -26,9 +26,13 @@ InstallScript: <<
 <<
 PostInstScript: <<
   update-alternatives --install %p/lib/postgresql/plpython.so postgresql-python-plpython.so %p/lib/postgresql/plpython-21.so 21
+  sudo -u postgres %p/bin/createlang plpython template1
 <<
 PostRmScript: <<
   update-alternatives --remove postgresql-python-plpython.so %p/lib/postgresql/plpython-21.so
+  if [ ! -f %p/lib/postgresql/plpython.so ]; then
+    sudo -u postgres %p/bin/droplang plpython template1
+  fi
 <<
 DocFiles: COPYRIGHT HISTORY INSTALL README register.txt
 Description: PostgreSQL Python tools (for Python 2.1.x)
