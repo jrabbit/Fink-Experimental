@@ -1,0 +1,90 @@
+Package: libxpg4
+Version: 20010605
+Revision: 18
+Source: mirror:custom:%n-darwin-%v.tar.gz
+Source2: mirror:custom:localedata.tar.gz
+CustomMirror: <<
+Primary: http://www.ab.wakwak.com/~tino/darwin/
+Secondary: http://hp.vector.co.jp/authors/VA008857/macosx/fink/mirror/libxpg4/
+<<
+SourceDirectory: libxpg4
+PatchScript: <<
+sed 's|@PREFIX@|%p|g' <%a/%f.patch| patch -p1
+<<
+CompileScript: <<
+make CFLAGS='-DXPG4 -D__NETBSD_SYSCALLS -O3 -fno-common -no-cpp-precomp'
+make -C fink
+<<
+InstallScript: <<
+install -d -m 755 %i/lib/xpg4 %i/bin/libxpg4 %i/share %i/etc/profile.d
+make -C fink install DESTDIR=%d
+(cd %i/bin/libxpg4 && ln -sf ../bash.real sh)
+install -c -m 644 libxpg4.dylib %i/lib/xpg4
+mv ../locale %i/share/locale
+<<
+PreInstScript: <<
+  if [ upgrade = "$1" -a -d %p/bin/xpg4 ]; then
+    rm -rf %p/bin/xpg4
+  fi
+  if [ install = "$1" -o upgrade = "$1" ]; then
+    for f in bash cvs cvs-proxy galeon gnome-panel gnuplotx hugs mplayer \
+      octave rbash scigraphica xchat; do
+      dpkg-divert --package %n --add --rename \
+        --divert %p/bin/$f.real %p/bin/$f
+    done
+  fi
+<<
+PreRmScript: <<
+  if [ "$1" != 'upgrade' ]; then
+    echo "**********WARNING**********"
+    echo "If you uninstall libxpg4, you should restart your terminal and"
+    echo "X Window System as soon as possible."
+    echo "After you uninstall this package, you can't launch any program"
+    echo "without removing libxpg4.dylib from DYLD_INSERT_LIBRARIES"
+    echo "environment variable. So, this package should be uninstalled"
+    echo "solely."
+
+    done=no
+    while [ "$done" != "yes" ]; do
+      echo -n 'Are you sure? [y/N] '
+      read answer
+      case "$answer" in
+        'Y'|'y') done=yes;;
+        'N'|'n'|'') exit 1;;
+        *) ;;
+      esac
+    done
+  fi
+<<
+PostRmScript: <<
+  if [ remove = "$1" ]; then
+    for f in bash cvs cvs-proxy galeon gnome-panel gnuplotx hugs mplayer \
+      octave rbash scigraphica xchat; do
+      dpkg-divert --package %n --remove --rename \
+        --divert %p/bin/$f.real %p/bin/$f
+    done
+  fi
+<<
+Description: Locale-enabling preload library
+DescDetail: <<
+This is a port of FreeBSD 3.x's libxpg4, posted to darwin-development ML
+(see http://www.darwinfo.org/devlist.php3?number=9143).
+
+To use this, set DYLD_INSERT_LIBRARIES environment variable like this:
+  setenv DYLD_INSERT_LIBRARIES /sw/lib/xpg4/libxpg4.dylib
+If you use init.(sh|csh), this will be done automatically.
+
+They also set DYLD_FORCE_FLAT_NAMESPACE automatically. On Mac OS X 10.1,
+this is required DYLD_INSERT_LIBRARIES to effect on a two-level namespace
+images.
+
+Some programs does not work if DYLD_FORCE_FLAT_NAMESPACE is set. Such
+programs are listed in libxpg4.conf and init.(sh|csh) does not set
+DYLD_FORCE_FLAT_NAMESPACE for them.
+<<
+DescPackaging: <<
+This library should not be linked with any library or program. So,
+library install location is outside of standard library search path.
+<<
+License: BSD
+Maintainer: Masanori Sekino <msek@users.sourceforge.net>
