@@ -8,38 +8,21 @@ Maintainer: Lars Rosengreen <lars@margay.org>
 
 Type: lisp (openmcl sbcl)
 
-Depends: %type_pkg[lisp]
+Depends: fink-lisp-manager, %type_pkg[lisp]
 
 Source: mirror:debian:/debian/pool/main/c/cl-rt/cl-rt_%v.orig.tar.gz
 Source-MD5: 538544848c3602e0ea3e47147877d116
 
 SourceDirectory: cl-rt-%v
 
+CompileScript: echo "nothing to do"
 
-CompileScript: <<
-  #! /bin/sh -ev
-  SYSTEM="rt"
-  %p/bin/%type_pkg[lisp] <<EOF
-  (require :asdf)
-  (load "$SYSTEM.asd")
-  (asdf:oos 'asdf:compile-op '$SYSTEM)
-  (quit)
-  EOF
-<<
-
-InstallScript: <<
-  #! /bin/sh -ev
-  SYSTEM="rt"
-  LISP="%type_pkg[lisp]"
-  install -d -m 755 %i/lib/common-lisp/%type_pkg[lisp]/systems
-  install -d -m 755 %i/lib/common-lisp/%type_pkg[lisp]/source/$SYSTEM
-  ln -s %p/lib/common-lisp/%type_pkg[lisp]/source/$SYSTEM/$SYSTEM.asd %i/lib/common-lisp/%type_pkg[lisp]/systems/$SYSTEM.asd
-  cp -Rp * %i/lib/common-lisp/%type_pkg[lisp]/source/$SYSTEM
-<<
-
+InstallScript: %p/lib/common-lisp/scripts/install %type_pkg[lisp] rt %i
 
 DocFiles: rt-doc.txt
 
+PreRmScript: %p/lib/common-lisp/scripts/clean %type_pkg[lisp] rt
+PostInstScript: %p/lib/common-lisp/scripts/compile %type_pkg[lisp] rt
 
 DescDetail: <<
 A simple regression test suite for Common Lisp originally developed at MIT.
@@ -56,7 +39,6 @@ Stilll a little rough around the edges :)
          asdf:*central-registry*)
 (asdf:oos 'asdf:load-op 'rt)
 <<
-
 
 Homepage: http://www.cliki.net/RT
 

@@ -1,0 +1,89 @@
+diff -Naur -x mk-patch fink-lisp-manager.orig/scripts/clean fink-lisp-manager/scripts/clean
+--- fink-lisp-manager.orig/scripts/clean	1969-12-31 16:00:00.000000000 -0800
++++ fink-lisp-manager/scripts/clean	2004-09-20 17:04:59.000000000 -0700
+@@ -0,0 +1,26 @@
++#! /bin/sh
++
++FLAVOR=$1
++SYSTEM=$2
++
++echo "Cleaning $SYSTEM for $FLAVOR ..."
++
++case $FLAVOR in 
++  
++  openmcl)
++    FEXT="dfsl"
++    ;;
++  
++  sbcl)
++    FEXT="fasl"
++    ;;
++  
++  *)
++    echo "Package configuration problem: $FLAVOR is not a supported lisp flavor"
++    exit 1
++    ;;
++
++esac
++
++[ -d @PREFIX@/lib/common-lisp/$FLAVOR/source/$SYSTEM ] && \
++find @PREFIX@/lib/common-lisp/$FLAVOR/source/$SYSTEM -name "*.$FEXT" -type f -exec rm -fv {} \;
+diff -Naur -x mk-patch fink-lisp-manager.orig/scripts/compile fink-lisp-manager/scripts/compile
+--- fink-lisp-manager.orig/scripts/compile	1969-12-31 16:00:00.000000000 -0800
++++ fink-lisp-manager/scripts/compile	2004-09-20 17:02:22.000000000 -0700
+@@ -0,0 +1,38 @@
++#! /bin/sh
++
++FLAVOR=$1
++SYSTEM=$2
++
++echo "Building $SYSTEM for $FLAVOR ..."
++
++case $FLAVOR in
++  
++  openmcl )
++    @PREFIX@/bin/openmcl --no-init <<EOF  
++
++(require :asdf)
++(setf asdf:*central-registry* '(#P"@PREFIX@/lib/common-lisp/$FLAVOR/systems/"))
++(asdf:oos 'asdf:compile-op '$SYSTEM)
++(quit)
++EOF
++    ;;
++
++  sbcl )
++    @PREFIX@/bin/sbcl --sysinit /dev/null --userinit /dev/null <<EOF
++
++(require :asdf)
++(setf asdf:*central-registry*
++      '(#P"@PREFIX@/lib/common-lisp/$FLAVOR/systems/"
++        #P"@PREFIX@/lib/sbcl/systems/"))
++(asdf:oos 'asdf:compile-op '$SYSTEM)
++(quit)
++EOF
++    ;;
++
++  *)
++    echo "Package configuration problem: $FLAVOR is not a supported lisp flavor"
++    exit 1
++    ;;
++
++esac
++
+diff -Naur -x mk-patch fink-lisp-manager.orig/scripts/install fink-lisp-manager/scripts/install
+--- fink-lisp-manager.orig/scripts/install	1969-12-31 16:00:00.000000000 -0800
++++ fink-lisp-manager/scripts/install	2004-09-20 17:02:08.000000000 -0700
+@@ -0,0 +1,13 @@
++#! /bin/sh
++
++FLAVOR=$1
++SYSTEM=$2
++INSTDIR=$3
++
++echo "Installing $SYSTEM for $FLAVOR in $INSTDIR ..."
++
++install -d -m 755 $INSTDIR/lib/common-lisp/$FLAVOR/systems
++install -d -m 755 $INSTDIR/lib/common-lisp/$FLAVOR/source/$SYSTEM
++ln -s @PREFIX@/lib/common-lisp/$FLAVOR/source/$SYSTEM/$SYSTEM.asd \
++      $INSTDIR/lib/common-lisp/$FLAVOR/systems/$SYSTEM.asd
++cp -Rp * $INSTDIR/lib/common-lisp/$FLAVOR/source/$SYSTEM

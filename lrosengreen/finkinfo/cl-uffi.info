@@ -8,38 +8,21 @@ Maintainer: Lars Rosengreen <lars@margay.org>
 
 Type: lisp (openmcl sbcl)
 
-Depends: %type_pkg[lisp]
+Depends: fink-lisp-manager, %type_pkg[lisp]
 
 Source: http://files.b9.com/uffi/uffi-%v.tar.gz
 Source-MD5: b8a2606c0bc4b84f20a74a6ba21009bb
 
 SourceDirectory: uffi-%v
 
+CompileScript: echo "nothing to do"
 
-CompileScript: <<
-  #! /bin/sh -ev
-  SYSTEM="uffi"
-  %p/bin/%type_pkg[lisp] <<EOF
-  (require :asdf)
-  (load "$SYSTEM.asd")
-  (asdf:oos 'asdf:compile-op '$SYSTEM)
-  (quit)
-  EOF
-<<
+InstallScript: %p/lib/common-lisp/scripts/install %type_pkg[lisp] uffi %i
 
-InstallScript: <<
-  #! /bin/sh -ev
-  SYSTEM="uffi"
-  LISP="%type_pkg[lisp]"
-  install -d -m 755 %i/lib/common-lisp/%type_pkg[lisp]/systems
-  install -d -m 755 %i/lib/common-lisp/%type_pkg[lisp]/source/$SYSTEM
-  ln -s %p/lib/common-lisp/%type_pkg[lisp]/source/$SYSTEM/$SYSTEM.asd %i/lib/common-lisp/%type_pkg[lisp]/systems/$SYSTEM.asd
-  cp -Rp * %i/lib/common-lisp/%type_pkg[lisp]/source/$SYSTEM
-<<
-
+PreRmScript: %p/lib/common-lisp/scripts/clean %type_pkg[lisp] uffi
+PostInstScript: %p/lib/common-lisp/scripts/compile %type_pkg[lisp] uffi
 
 DocFiles: AUTHORS ChangeLog LICENSE NEWS README TODO doc/uffi.pdf
-
 
 DescDetail: << 
 UFFI is a package to interface Common Lisp programs
@@ -66,7 +49,6 @@ Stilll a little rough around the edges :)
          asdf:*central-registry*)
 (asdf:oos 'asdf:load-op 'uffi)
 <<
-
 
 Homepage: http://uffi.b9.com/
 

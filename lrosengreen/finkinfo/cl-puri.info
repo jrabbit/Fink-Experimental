@@ -8,34 +8,21 @@ Maintainer: Lars Rosengreen <lars@margay.org>
 
 Type: lisp (openmcl sbcl)
 
-Depends: %type_pkg[lisp]
+Depends: fink-lisp-manager, %type_pkg[lisp]
 
 Source: http://files.b9.com/puri/puri-%v.tar.gz
 Source-MD5: 3037d9ff4efdd174c853cdce6d02dee4
 
 SourceDirectory: puri-%v
 
+CompileScript: echo "nothing to do"
 
-CompileScript: <<
-  #! /bin/sh -ev
-  SYSTEM="puri"
-  %p/bin/%type_pkg[lisp] <<EOF
-  (require :asdf)
-  (load "$SYSTEM.asd")
-  (asdf:oos 'asdf:compile-op '$SYSTEM)
-  (quit)
-  EOF
-<<
+InstallScript: %p/lib/common-lisp/scripts/install %type_pkg[lisp] puri %i
 
-InstallScript: <<
-  #! /bin/sh -ev
-  SYSTEM="puri"
-  LISP="%type_pkg[lisp]"
-  install -d -m 755 %i/lib/common-lisp/%type_pkg[lisp]/systems
-  install -d -m 755 %i/lib/common-lisp/%type_pkg[lisp]/source/$SYSTEM
-  ln -s %p/lib/common-lisp/%type_pkg[lisp]/source/$SYSTEM/$SYSTEM.asd %i/lib/common-lisp/%type_pkg[lisp]/systems/$SYSTEM.asd
-  cp -Rp * %i/lib/common-lisp/%type_pkg[lisp]/source/$SYSTEM
-<<
+PreRmScript: %p/lib/common-lisp/scripts/clean %type_pkg[lisp] puri
+PostInstScript: %p/lib/common-lisp/scripts/compile %type_pkg[lisp] puri
+
+DocFiles: LICENSE README
 
 
 DescDetail: << 
