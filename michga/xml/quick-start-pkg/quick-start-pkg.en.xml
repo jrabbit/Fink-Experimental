@@ -1,0 +1,735 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE document SYSTEM "../finkdoc.dtd">
+
+<document filename="index" lang="en" >
+<title>Create a Fink Package - Tutorial</title>
+<shorttitle>Packaging Tutorial</shorttitle>
+<cvsid>$Id$</cvsid>
+
+<preface>
+<p>
+This document is for people who want to create a package for <tt>Fink</tt>. It
+complements the 
+<link url="http://fink.sourceforge.net/doc/packaging/index.php">Packaging Manual</link>, 
+which is a more detailed and comprehensive document.
+</p>
+<p>
+We'll guide you through the process of making a Fink package.
+<!--  The second example is not ready yet... -->
+<!-- First we explain the general procedure. Then we show the creation of two example Fink -->
+<!-- packages. The first one will be <link url="http://maxwell.sourceforge.net"> -->
+<!-- maxwell</link> and the second  -->
+<!-- <link url="http://www.gnu.org/software/stow/stow.html">GNU Stow</link>. -->
+First we explain the general procedure. Then we show the creation of several Fink packages : <link url="http://maxwell.sourceforge.net">maxwell</link> and <link url="http://www.conglomerate.org">conglomerate</link></p>
+</preface>
+
+
+
+
+<chapter filename="howtostart">
+<title>How to Start</title>
+<shorttitle>How to Start</shorttitle>
+
+<section name="Learn"><title>Learn the Basics</title>
+<p>
+<em>Please note:</em> In this document we assume that fink is installed into
+<tt>/sw</tt> - the default location. If you see a codeblock similar to
+</p>
+<codeblock>
+finkdev% somecommand
+</codeblock>
+<p>
+it means that you have to type <code>somecommand</code> into Terminal.app or
+any other terminal on your Mac.
+</p>
+<p>
+First you should learn a few basic concept about how to build Fink packages. 
+We suggest you:
+</p>
+
+<ul>
+<li>
+Have a look at 
+<link url="http://fink.sourceforge.net/doc/UsingFink.pdf">
+Using Fink: A Developer's How To</link>
+(2MB pdf file) - slides from a presentation at the 
+<link url="http://conferences.oreillynet.com/macosx2002/">O'Reilly Mac OS X Conference</link>.
+</li>
+<li>
+<!--  The second example is not ready yet... -->
+<!-- Read and try to understand the two examples  -->
+<!-- (<link url="example.php">Example 1</link>, <link url="example2.php">Example 2</link>) -->
+<!-- provided here. -->
+Read and try to understand the 
+<xref chapter="example" section="basics">example here</xref>.
+</li>
+<li>
+Look at other, similar packages in your 
+<filename>/sw/fink/dists/unstable/main/finkinfo/</filename> directory or 
+<link url="http://cvs.sourceforge.net/viewcvs.py/fink/dists/10.3/unstable/">
+in the online CVS repository</link> and take one (or several) info file(s) as 
+a starting point.
+</li>
+<li>
+Search the 
+<link url="http://sourceforge.net/tracker/?atid=414256&amp;group_id=17203">Package Submission Tracker</link>
+if somebody else already tried to package the same and the 
+<link url="http://sourceforge.net/tracker/?atid=371315&amp;group_id=17203">Package Request Tracker</link>
+if there is a matching request. You might find valuable information there.
+</li>
+<li>
+Maybe browse the 
+<link url="http://fink.sourceforge.net/doc/packaging/index.php">Packaging Manual</link>
+if you think you need more detailed information.
+</li>
+</ul>
+
+</section>
+
+
+<section name="Make"><title>Make your Package</title>
+<p>
+Save your new info file (and patch file - if needed) into your 
+<filename>/sw/fink/dists/local/main/finkinfo/</filename> directory. The file should be named
+<filename>packagename.info</filename> (and <filename>packagename.patch</filename>) where 
+<code>packagename</code> is the name of your package. If this directory doesn't 
+exist you need to create it manually.
+</p>
+
+<p>
+Check if fink found your package by typing:
+</p>
+<codeblock>
+finkdev% fink list packagename
+</codeblock>
+<p>
+If it doesn't show up in the list you might need to change your
+<link url="http://fink.sourceforge.net/doc/users-guide/conf.php#optional">fink configuration file</link>
+to include your local tree.
+</p>
+<p>
+Maybe you also have to manually re-index your packages by typing:
+</p>
+<codeblock>
+finkdev% fink index
+</codeblock>
+<p>
+If you need more information read the 
+<link url="http://fink.sourceforge.net/doc/packaging/index.php">Packaging Manual</link>
+or use one or more of different 
+<link url="http://fink.sourceforge.net/help/index.php">help sources</link>.
+You should also subscribe to the 
+<link url="http://fink.sourceforge.net/lists/index.php">fink-devel</link>
+mailing list.
+</p>
+</section>
+
+
+<section name="Validate"><title>Validate your Package</title>
+<p>
+During validation of your package you should set the verbose level of fink
+to the highest possible value. Check the section on the
+<link url="http://fink.sourceforge.net/doc/users-guide/conf.php#optional">fink configuration file</link>
+about how to change the verbose level.
+</p>
+<p>
+Check if your package passes validation by running:
+</p>
+<codeblock>
+finkdev% fink validate packagename.info
+</codeblock>
+<p>
+If the validation passes try to build your package with:
+</p>
+<codeblock>
+finkdev% fink build packagename
+</codeblock>
+<p>
+Watch the output of the build process carefully for errors or warnings.
+Especially make sure that everything is installed into the destination directory
+(which is located at <filename>/sw/src/root-packagename-%v-%r/sw</filename>) from where
+fink builds the binary package. Nothing should be installed directly into
+<filename>/sw</filename>.
+</p>
+<p>
+If you use the <code>--keep-build-dir</code> or <code>-k</code> option to fink, it will 
+keep the build directory. This is where fink expands the downloaded source and 
+where the package gets built. This might help if you need to debug the build
+process. Type <code>man fink</code> for details.
+</p>
+<p>
+You may also want to use the <code>--keep-root-dir</code> or <code>-K</code> option, it will keep the destination directory. This is where fink builds the installation tree for the package. Comparing build and destination directories may help you debugging the installation phase.
+</p>
+<p>
+If the build succeeds check the content of the binary package with:
+</p>
+<codeblock>
+finkdev% dpkg -c /sw/fink/dists/local/main/binary-darwin-powerpc/packagename.deb
+</codeblock>
+<p>
+Check if all files that you think should be in the package are actually
+in the .deb file. Again: make sure that nothing is installed directly into 
+<filename>/sw</filename>.
+</p>
+<p>
+Now you can also validate the binary package by doing:
+</p>
+<codeblock>
+finkdev% fink validate /sw/fink/dists/local/main/binary-darwin-powerpc/packagename.deb
+</codeblock>
+<p>
+If all is well install the package with:
+</p>
+<codeblock>
+finkdev% fink install packagename
+</codeblock>
+<p>
+and test the functionality of your package.
+</p>
+<p>
+If any of the above steps fail try to correct the errors and restart at the 
+top with the <code>fink validate</code> step.
+</p>
+</section>
+
+
+<section name="Submitt"><title>Submit your Package</title>
+<p>
+If your package passes all the checks above you now can submit the info 
+(and patch if necessary) file to the 
+<link url="http://sourceforge.net/tracker/?func=add&amp;group_id=17203&amp;atid=414256">
+Package Submission Tracker</link>.
+</p>
+<p>
+A package reviewer should now take a look at your package submission and
+add it to the Fink unstable tree if the package seems ready. If not you
+will be asked to bring the package into compliance with the policy.
+</p>
+<p>
+<em>Please note:</em>
+</p>
+<ul>
+<li>
+If feasible add multiple items one at a time to the same tracker item 
+(e.g. info and patch files).
+</li>
+<li>
+Add a note whether your package is intended for the <filename>10.2-gcc3.3</filename> tree, 
+<filename>10.3</filename> tree, or both,
+</li>
+<li>
+which <code>section</code> (graphics, sci, etc.) you feel it belongs in, and
+</li>
+<li>
+that you have run the command <code>fink validate</code> on your info and deb files.
+</li>
+<li>
+Set the <code>Group</code> field of the tracker item to 
+<code>Undergoing Validation</code> when you create the new tracker. Also change it 
+back to <code>Undergoing Validation</code> whenever you fixed problems package 
+reviewers found in your submission.
+</li>
+</ul>
+
+</section>
+
+</chapter>
+
+
+
+
+<chapter filename="example">
+<!--  The second example is not ready yet... -->
+<!-- <title>Example 1 - the Maxwell Package</title> -->
+<!-- <shorttitle>Example 1</shorttitle> -->
+<title>Example - the Maxwell Package</title>
+<shorttitle>Example</shorttitle>
+
+
+<section name="Basics"><title>Basics</title>
+<p>
+First Maxwell. Lets open our editor and get started. We know the package name,
+its version and where to grab the source tar ball from. So we'll type this into
+our editor window:
+</p>
+<codeblock>
+Package: maxwell
+Version: 0.5.1
+Revision: 1
+Source: mirror:sourceforge:%n/%n-%v.tar.gz
+</codeblock>
+<p>
+So we have the name and version which are easy to understand, but what of these
+other two fields? Revision is the &quot;version&quot; of the Fink package,
+Version, on the other hand is the upstream source version. Since this is the
+first time we have attempted to make a maxwell-0.5.1 package, it is revision 1.
+</p>
+<p>
+The Source field is where fink will grab the source tarball from. Because 
+<link url="http://sourceforge.net">Sourceforge</link> has a system where
+packages are mirrored around the world, and since <code>fink</code> knows about it,
+we use <filename>mirror:sourceforge:</filename>. <code>%n</code> expands to the package name,
+maxwell, and <code>%v</code> expands to the package version, 0.5.1.
+</p>
+<p>
+Now we can save this as <filename>maxwell.info</filename> in 
+<filename>/sw/fink/dists/local/main/finkinfo/</filename>. That done, we can see how we
+are doing by using <code>fink validate</code>.
+</p>
+<codeblock>
+finkdev% fink validate maxwell.info 
+Validating package file maxwell.info...
+Error: Required field "Maintainer" missing. (maxwell.info)
+</codeblock>
+<p>
+Oops, looks like we missed a couple of fields. Lets add some more:
+</p>
+<codeblock>
+Maintainer: John Doe &lt;jdoe@example.com&gt;
+HomePage: http://maxwell.sourceforge.net
+License: MIT
+</codeblock>
+<p>
+We add ourselves as the maintainer of the Fink maxwell package and add it's
+homepage, looking at the sourceforge project page, we see that it is MIT
+Licensed, so we add that too. Now lets try again:
+</p>
+<codeblock>
+finkdev% fink validate maxwell.info
+Validating package file maxwell.info...
+Warning: Unknown license "MIT". (maxwell.info)
+Error: No MD5 checksum specified for "source". (maxwell.info)
+Error: No package description supplied. (maxwell.info)
+</codeblock>
+<p>
+Aaargh! We seem to be getting worse, not better, never mind, head off over to
+the <link url="http://fink.sourceforge.net/doc/packaging/policy.php#licenses">
+Packaging Manual</link> to see what is allowed for License, and we see that we
+can just change MIT to OSI-Approved, as the MIT license is, indeed, approved
+by the <link url="http://www.opensource.org/">OSI</link>. We can also grab a
+one line description of the package from the homepage. So we change those:
+</p>
+<codeblock>
+License: OSI-Approved
+Description: Mac OS X S.M.A.R.T. Tool
+</codeblock>
+<p>
+But what to do about that warning about MD5 checksums? Well, why don't we just
+ask fink to fetch the source?
+</p>
+<codeblock>
+finkdev% fink fetch maxwell
+/usr/bin/sudo /sw/bin/fink  fetch maxwell
+Reading package info...
+Updating package index... done.
+Information about 3377 packages read in 30 seconds.
+WARNING: No MD5 specified for Source of package maxwell-0.5.1-1 \
+Maintainer: John Doe &lt;jdoe@example.com&gt;
+curl -f -L -O http://distfiles.opendarwin.org/maxwell-0.5.1.tar.gz
+  % Total    % Received % Xferd  Average Speed          Time             Curr.
+                                 Dload  Upload Total    Current  Left    Speed
+  0     0    0     0    0     0      0      0 --:--:--  0:00:00 --:--:--     0
+curl: (22) The requested URL returned error: 404
+### execution of curl failed, exit code 22
+Downloading the file "maxwell-0.5.1.tar.gz" failed.
+
+(1)      Give up
+(2)      Retry the same mirror
+(3)      Retry another mirror from your continent
+(4)      Retry another mirror
+(5)      Retry using next mirror set "sourceforge"
+
+How do you want to proceed? [3] 5
+curl -f -L -O http://west.dl.sourceforge.net/sourceforge/maxwell/maxwell-0.5.1.tar.gz
+  % Total    % Received % Xferd  Average Speed          Time             Curr.
+                                 Dload  Upload Total    Current  Left    Speed
+100  7856  100  7856    0     0  19838      0  0:00:00  0:00:00  0:00:00 6511k
+</codeblock>
+<p>
+The tarball couldn't be downloaded from the Fink mirrors (distfiles) since
+your package is not added to the distribution yet. That's why you need to 
+change to the next mirror set. More information about this problem is in the
+<link url="http://fink.sourceforge.net/faq/comp-general.php#master-problems">FAQ</link>.
+</p>
+<p>
+So we can now get the md5 by running <code>md5sum /sw/src/maxwell-0.5.1.tar.gz</code>,
+and add it to the .info file:
+</p>
+<codeblock>
+Source-MD5: ce5c354b2fed4e237524ad0bc59997a3
+</codeblock>
+<p>
+And now we find that <code>fink validate</code> passes, yippee!
+</p>
+</section>
+
+
+<section name="build"><title>Build</title>
+<p>
+Now we can build the package, let's just try it:
+</p>
+<codeblock>
+finkdev% fink build maxwell
+/usr/bin/sudo /sw/bin/fink  build maxwell
+Reading package info...
+Updating package index... done.
+Information about 3498 packages read in 32 seconds.
+The following package will be built:
+ maxwell
+gzip -dc /sw/src/maxwell-0.5.1.tar.gz | /sw/bin/tar -xvf -  \
+--no-same-owner --no-same-permissions 
+maxwell-0.5.1/
+maxwell-0.5.1/LICENSE
+maxwell-0.5.1/Makefile
+maxwell-0.5.1/maxwell.8
+maxwell-0.5.1/maxwell.c
+maxwell-0.5.1/README
+./configure --prefix=/sw 
+Can't exec "./configure": No such file or directory at \
+/sw/lib/perl5/Fink/Services.pm line 403.
+</codeblock>
+<p>
+Hmm, well that did not go all that well. Let's read the README 
+(which you can find at <filename>/sw/src/maxwell-0.5.1-1/maxwell-0.5.1/README</filename>)
+and see what it says...
+</p>
+<codeblock>
+To build type 'make'.
+
+To install in /usr/local type 'sudo make install', to install elsewhere, type 
+'sudo make install prefix=/elsewhere'
+</codeblock>
+<p>
+Ah hah, so we can't use the default CompileScript and InstallScript here, 
+we need our own, that's easily resolved:
+</p>
+<codeblock>
+CompileScript: make
+InstallScript: &lt;&lt;
+#! /bin/sh -ev
+make install prefix=%i
+&lt;&lt;
+</codeblock>
+<p>
+We need to use <code>prefix=%i</code> since fink builds the binary deb file
+from the files in <code>%i</code>. These files are later installed into 
+<code>%p</code> (which is <filename>/sw</filename> by default) when you use 
+<code>fink install maxwell</code>. For more details about <code>%p</code> and
+<code>%i</code> please consult the 
+<link url="http://fink.sourceforge.net/doc/packaging/format.php#percent">
+Packaging Manual</link>.
+</p>
+<p>
+Normally the lines in the Script fields are passed line by line to the shell.
+But the <code>#! /bin/sh -ev</code> line makes fink run it as a separate script.
+The parameter <code>-e</code> means &quot;die on error&quot; and <code>-v</code> means
+&quot;verbose&quot;.
+</p>
+<p>
+So, let's validate the package again and try to rebuild it:
+</p>
+<codeblock>
+finkdev% fink validate maxwell.info 
+Validating package file maxwell.info...
+Package looks good!
+finkdev% fink build maxwell
+/usr/bin/sudo /sw/bin/fink  build maxwell
+Reading package info...
+Updating package index... done.
+Information about 3498 packages read in 32 seconds.
+The following package will be built:
+ maxwell
+gzip -dc /sw/src/maxwell-0.5.1.tar.gz | /sw/bin/tar -xvf -  \
+--no-same-owner --no-same-permissions 
+maxwell-0.5.1/
+maxwell-0.5.1/LICENSE
+maxwell-0.5.1/Makefile
+maxwell-0.5.1/maxwell.8
+maxwell-0.5.1/maxwell.c
+maxwell-0.5.1/README
+make
+cc  -L/sw/lib -c -o maxwell.o maxwell.c
+cc  -I/sw/include -o maxwell -framework IOKit -framework CoreFoundation maxwell.o
+/bin/rm -rf /sw/src/root-maxwell-0.5.1-1
+/bin/mkdir -p /sw/src/root-maxwell-0.5.1-1/sw
+/bin/mkdir -p /sw/src/root-maxwell-0.5.1-1/DEBIAN
+/var/tmp/tmp.1.A3sRc2
+#! /bin/sh -ev
+make install prefix=/sw/src/root-maxwell-0.5.1-1/sw
+/usr/bin/install -d -m 755 /sw/src/root-maxwell-0.5.1-1/sw/doc/maxwell
+/usr/bin/install -m 644 LICENSE /sw/src/root-maxwell-0.5.1-1/sw/doc/maxwell/LICENSE
+/usr/bin/install -m 644 README /sw/src/root-maxwell-0.5.1-1/sw/doc/maxwell/README
+/usr/bin/install -d -m 755 /sw/src/root-maxwell-0.5.1-1/sw/bin
+/usr/bin/install -m 755 maxwell /sw/src/root-maxwell-0.5.1-1/sw/bin/maxwell
+/usr/bin/install -d -m 755 /sw/src/root-maxwell-0.5.1-1/sw/man/man8
+/usr/bin/install -m 644 maxwell.8 /sw/src/root-maxwell-0.5.1-1/sw/man/man8/maxwell.8
+/bin/rm -f /sw/src/root-maxwell-0.5.1-1/sw/info/dir \
+/sw/src/root-maxwell-0.5.1-1/sw/info/dir.old \
+/sw/src/root-maxwell-0.5.1-1/sw/share/info/dir \
+/sw/src/root-maxwell-0.5.1-1/sw/share/info/dir.old
+Writing control file...
+Finding prebound objects...
+Writing dependencies...
+Writing package script postinst...
+dpkg-deb -b root-maxwell-0.5.1-1 /sw/fink/dists/local/main/binary-darwin-powerpc
+dpkg-deb: building package `maxwell' in \
+`/sw/fink/dists/local/main/binary-darwin-powerpc/maxwell_0.5.1-1_darwin-powerpc.deb'.
+</codeblock>
+<p>
+Fink seems to have installed everything into the correct place: 
+<filename>/sw/src/root-maxwell-0.5.1-1</filename> from where the binary package 
+<filename>maxwell_0.5.1-1_darwin-powerpc.deb</filename> was built.
+</p>
+<p>
+Also note how fink automatically included some compiler flags to enable it to
+access other fink packages (e.g. <code>-I/sw/include</code>).
+</p>
+<p>
+Let's have a look at what is in the binary package:
+</p>
+<codeblock>
+finkdev% dpkg -c \
+/sw/fink/dists/local/main/binary-darwin-powerpc/maxwell_0.5.1-1_darwin-powerpc.deb
+drwxr-xr-x root/admin        0 2004-07-15 09:40:38 ./
+drwxr-xr-x root/admin        0 2004-07-15 09:40:39 ./sw/
+drwxr-xr-x root/admin        0 2004-07-15 09:40:39 ./sw/bin/
+-rwxr-xr-x root/admin    29508 2004-07-15 09:40:39 ./sw/bin/maxwell
+drwxr-xr-x root/admin        0 2004-07-15 09:40:39 ./sw/doc/
+drwxr-xr-x root/admin        0 2004-07-15 09:40:39 ./sw/doc/maxwell/
+-rw-r--r-- root/admin     1076 2004-07-15 09:40:39 ./sw/doc/maxwell/LICENSE
+-rw-r--r-- root/admin     1236 2004-07-15 09:40:39 ./sw/doc/maxwell/README
+drwxr-xr-x root/admin        0 2004-07-15 09:40:39 ./sw/man/
+drwxr-xr-x root/admin        0 2004-07-15 09:40:39 ./sw/man/man8/
+-rw-r--r-- root/admin     1759 2004-07-15 09:40:39 ./sw/man/man8/maxwell.8
+drwxr-xr-x root/admin        0 2004-07-15 09:40:39 ./sw/var/
+drwxr-xr-x root/admin        0 2004-07-15 09:40:39 ./sw/var/lib/
+drwxr-xr-x root/admin        0 2004-07-15 09:40:39 ./sw/var/lib/fink/
+drwxr-xr-x root/admin        0 2004-07-15 09:40:39 ./sw/var/lib/fink/prebound/
+drwxr-xr-x root/admin        0 2004-07-15 09:40:39 ./sw/var/lib/fink/prebound/files/
+-rw-r--r-- root/admin       16 2004-07-15 09:40:39 ./sw/var/lib/fink/prebound/files/maxwell.pblist
+</codeblock>
+<p>
+Seems ok, right? But we have to verify that it complies with the Fink
+packaging policy. So let's validate it with:
+</p>
+<codeblock>
+finkdev% fink validate \
+/sw/fink/dists/local/main/binary-darwin-powerpc/maxwell_0.5.1-1_darwin-powerpc.deb 
+Validating .deb file \
+/sw/fink/dists/local/main/binary-darwin-powerpc/maxwell_0.5.1-1_darwin-powerpc.deb...
+Warning: File installed into deprecated directory /sw/doc/
+                                        Offender is /sw/doc/
+Warning: File installed into deprecated directory /sw/doc/
+                                        Offender is /sw/doc/maxwell/
+Warning: File installed into deprecated directory /sw/doc/
+                                        Offender is /sw/doc/maxwell/LICENSE
+Warning: File installed into deprecated directory /sw/doc/
+                                        Offender is /sw/doc/maxwell/README
+Warning: File installed into deprecated directory /sw/man/
+                                        Offender is /sw/man/
+Warning: File installed into deprecated directory /sw/man/
+                                        Offender is /sw/man/man8/
+Warning: File installed into deprecated directory /sw/man/
+                                        Offender is /sw/man/man8/maxwell.8
+</codeblock>
+<p>
+Oops... something is wrong. Let's consult the 
+<link url="http://fink.sourceforge.net/doc/packaging/fslayout.php#fhs">Packaging Manual</link>
+again. It tells us to install man pages into <filename>/sw/share/man</filename> and files such
+as <filename>README</filename> into <filename>/sw/share/doc/%n</filename>. If we look into the 
+<filename>Makefile</filename> of maxwell we see that the mandir and datadir can be set:
+</p>
+<codeblock>
+prefix = /usr/local
+mandir = ${prefix}/man
+man8dir = ${mandir}/man8
+bindir = ${prefix}/bin
+datadir = ${prefix}/doc/maxwell
+</codeblock>
+<p>
+One easy way to fix that is to change the InstallScript to
+</p>
+<codeblock>
+make install prefix=%i mandir=%i/share/man datadir=%i/share/doc/%n
+</codeblock>
+<p>
+and rebuild the package with
+</p>
+<codeblock>
+finkdev% fink rebuild maxwell
+</codeblock>
+<p>
+(We used <code>fink rebuild</code> because <code>fink build</code> would not do 
+anything since the package was already built successfully.)
+</p>
+<p>
+Review the contents of your deb file (with <code>dpkg -c</code>) to see where 
+the files got installed now. Then validate the deb file again with 
+<code>fink validate</code>. If all is well you can install the new package with:
+</p>
+<codeblock>
+finkdev% fink install maxwell
+/usr/bin/sudo /sw/bin/fink  install maxwell
+Information about 3377 packages read in 30 seconds.
+The following package will be installed or updated:
+ maxwell
+dpkg -i /sw/fink/dists/local/main/binary-darwin-powerpc/maxwell_0.5.1-1_darwin-powerpc.deb
+Selecting previously deselected package maxwell.
+(Reading database ... 56046 files and directories currently installed.)
+Unpacking maxwell (from .../maxwell_0.5.1-1_darwin-powerpc.deb) ...
+Setting up maxwell (0.5.1-1) ...
+</codeblock>
+<p>
+You can now run the software by typing
+</p>
+<codeblock>
+finkdev% maxwell
+</codeblock>
+<p>
+Congratulations, you just finished your first Fink package! Now have a look at the other example and try to
+package something yourself by following the 
+<link url="http://fink.sourceforge.net/doc/quick-start-pkg/index.php">
+Packaging tutorial</link> from the beginning.
+</p>
+<p>
+We are looking forward to your contributions to Fink!
+</p>
+
+</section>
+
+</chapter>
+
+
+
+
+<!--  The second example is not ready yet... -->
+<!-- <chapter filename="example2"> -->
+<!-- <title>Example 2 - the Stow Package</title> -->
+<!-- <shorttitle>Example 2</shorttitle> -->
+<!--  -->
+<!--  -->
+<!-- <section name="Basics"><title>Basics</title> -->
+<!-- <p> -->
+<!-- bla bla -->
+<!-- </p> -->
+<!-- </section> -->
+<!--  -->
+<!--  -->
+<!-- <section name="build"><title>Build</title> -->
+<!-- <p> -->
+<!-- Now we can build the package, let's just try it: -->
+<!-- </p> -->
+<!-- </section> -->
+<!-- </chapter> -->
+
+<chapter filename="example3">
+<title>Example 3 - the Conglomerate Package</title>
+<shorttitle>Example 3</shorttitle>
+<section name="Basics"><title>Basics</title>
+<p>We will create the necessary <filename>info</filename> and <filename>patch</filename> files to port conglomerate to Fink. Here, we assume that you are on Panther, 10.3 Fink unstable tree.</p>
+<p>We need to do some preliminaries for easy browse of all needed documents.</p>
+<p>First, we need the <filename>tarball</filename>. How to retrieve its location? A quick search with google leads to this <link url="http://www.conglomerate.org/">place</link>. At the top of the page, there is a link to download. We click on it, and then we'll find a link to the tarball page on SourceForge:</p>
+<ol>
+<li>Download the <filename>tarball</filename> from <link url="http://sourceforge.net/project/showfiles.php?group_id=82766">its original location</link> and put it on your desktop.</li>
+<li>Expand it by double-clicking on it.</li>
+<li>Double-click on the new <filename>conglomerate-0.7.14</filename> folder on your Desktop, so that it shows in the Finder and choose the column view.</li>
+</ol>
+<p>Next, we surely want to browse the <link url="http://www.conglomerate.org/">home page</link> later to retrieve some information. </p>
+<p>Then, we'll have to look into the <link url="http://fink.sourceforge.net/doc/packaging/index.php">Packaging Manual</link>.</p>
+<p>Another document we need to browse later is the <link url="http://fink.sourceforge.net/doc/porting/index.php">Porting Manual</link>.</p>
+<p>We need also a <code>terminal</code> to issue some commands. So open a window in Terminal.app and move to your Desktop, i.e. issue:</p>
+<codeblock>
+finkdev% cd Desktop
+</codeblock>
+<p>Finally, we'll create an info file for Fink. As we are lazy (a fundamental quality for a porter), we'll just use the info file we've created for Maxwell as a template for the conglomerate Fink info file:</p>
+<ol>
+<li>Drag and drop the maxwell.info file located in your fink local tree (<filename>/sw/fink/10.3/local/main/finkinfo/maxwell.info</filename>) to your Desktop.</li>
+<li>Open it with any text editor (TextEdit is perfect for that purpose) and save it under a new name, namely <filename>conglomerate.info</filename>.</li>
+</ol>
+<p>Now we have all in place, it's time to begin.</p>
+<p>First, we change the info file for use with conglomerate. Remember we have in it:</p>
+<codeblock>
+Package: maxwell
+Version: 0.5.1
+Revision: 1
+Source: mirror:sourceforge:%n/%n-%v.tar.gz
+Maintainer: John Doe &lt;jdoe@example.com&gt;
+HomePage: http://maxwell.sourceforge.net
+License: OSI-Approved
+Description: Mac OS X S.M.A.R.T. Tool
+Source-MD5: ce5c354b2fed4e237524ad0bc59997a3
+CompileScript: make
+InstallScript: &lt;&lt;
+#! /bin/sh -ev
+make install prefix=%i mandir=%i/share/man datadir=%i/share/doc/%n
+&lt;&lt;
+</codeblock>
+<p>At first glance, we need to change all fields but the <code>Revision</code> one, since it's the first time we make a Fink package for conglomerate.</p>
+<p>We already know the package's name and version from the tarball's name. So we change them to:</p>
+<codeblock>
+Package: conglomerate
+Version: 0.7.14
+</codeblock>
+<p>To check the download location, return to the <link url="http://sourceforge.net/project/showfiles.php?group_id=82766">tarball's location</link> within your browser and pause the mouse onto the tarball's name. You'll see in your browser's status bar at the time of this writing:</p>
+<codeblock>
+http://prdownloads.sourceforge.net/conglomerate/conglomerate-0.7.14.tar.gz?/download
+</codeblock>
+<p>The first part and last part:</p>
+<codeblock>
+http://prdownloads.sourceforge.net/ ... ?/download
+</codeblock>
+<p>matches the <code>mirror:sourceforge:</code> of the <code>Source field</code>.</p>
+<p>The middle part:</p>
+<codeblock>conglomerate/conglomerate-0.7.14.tar.gz</codeblock>
+<p>matches exactly the <code>%n/%n-%v.tar.gz</code> part of the <code>Source</code> field.</p>
+<p>Hence, no need to change the <code>Source</code> field.</p>
+<p>For the <code>Maintainer</code> field, put what you want in it.</p>
+<p>To change the <code>HomePage</code> field, return to the <link url="http://www.conglomerate.org/">conglomerate home page</link>, copy what is in your browser's url field and paste it into the <filename>info</filename> file. It becomes:</p>
+<codeblock>
+HomePage: http://www.conglomerate.org
+</codeblock>
+<p>While you're at this page, look at the footer, you'll see the license's name under which conglomerate is licensed. This GNUGPL. So open the <filename>Packaging Manual</filename>, and go to the <link url="http://fink.sourceforge.net/doc/packaging/policy.php?phpLang=en#licenses">Package licenses</link> section to check if this is an authorized license. Yes, it is, though it is denoted as GPL in Fink nomenclature, so we'll put GPL in the <code>License</code> field:</p>
+<codeblock>
+License: GPL
+</codeblock>
+<p>For the <code>Description</code> field, we return to the <link url="http://www.conglomerate.org/">conglomerate home page</link> and pick something meaningful, for example:</p>
+<codeblock>
+Description: Graphical editor for XML documents
+</codeblock>
+<p>Now, we'll add a detailed description, explained in the <filename>Packaging Manual</filename> just above the <link url="http://fink.sourceforge.net/doc/packaging/policy.php?phpLang=en#splitoffs">SplitOffs</link> section. We browse again the conglomerate pages to find something useful, namely the <link url="http://www.conglomerate.org/intro.html">intro</link> page. From the screenshots, it appears, conglomerate is kind of wysiwyg editor for DocBook documents with source view and export features, so we'll put that in the <code>DescDetail</code> field:</p>
+<codeblock>
+DescDetail: &lt;&lt;
+ Conglomerate aims to be a wyziwyg editor for XML/DocBook
+ documents with source view and export capabilities.
+&lt;&lt;
+</codeblock>
+<p><em>Note:</em> the special structure of this field (here-document syntax-based) is explained in the <link url="http://fink.sourceforge.net/doc/packaging/policy.php?phpLang=en#format">File Format</link> section of the <code>Packaging Manual</code>.</p>
+<p>Now, it's time to compute the MD5-sum, just issue <code>md5sum conglomerate-0.7.14.tar.gz</code> in Terminal.app and copy the numeric part of the result in the <code>Source-MD5</code> field:</p>
+<codeblock>
+Source-MD5: 1a04815a1059987aea45816aa1401bc3
+</codeblock>
+<p>Now, we are done with the most obvious part, we just need to comment out the <code>CompileScript</code> and <code>InstallScript</code> fields (we don't remove them since it may happen we will need them later):</p>
+<codeblock>
+#CompileScript: make
+#InstallScript: &lt;&lt;
+##! /bin/sh -ev
+#make install prefix=%i
+#&lt;&lt;
+</codeblock>
+</section>
+<section name="source-tree">
+<title>A glance at the source tree</title>
+<p>In the previous example, we've experienced that there can be some directives in the original build process not conforming the Fink packaging policy. Therefore, instead of doing numerous tries, we will inspect systematically the files which concurs to this process.</p>
+<p>First, we'll observe some files with uppercase names, such as <filename>AUTHORS</filename>, <filename>COPYING</filename>, and so on. What to do with them? The <link url="http://fink.sourceforge.net/doc/packaging/fslayout.php?phpLang=en#dirs">Directories</link> section of the <filename>Packaging manual</filename> teach us their install location. Then, in the  Install Phase of the <link url="http://fink.sourceforge.net/doc/packaging/reference.php?phpLang=en#fields">Reference</link> section, we'll find a <filename>DocFiles</filename> field, which seems appropriate. So, we populate this field with all files with uppercase names found in the source tree:</p>
+<codeblock>
+DocFiles: AUTHORS BUGS COPYING INSTALL NEWS TODO
+</codeblock>
+<p>Incidentally we'll see a <filename>debian</filename> folder. It may be worth have a look at it, especially the <filename>patches</filename> folder. There's a <filename>no_scrollkeeper-update.dpatch</filename> in it. We are not using it, but we will follow the instructions in <filename>scrollkeeper.info</filename> in Fink's 10.3 unstable tree, to know what to do.</p>
+
+</section>
+<section name="build">
+<title>Build</title>
+<p>Now we can build the package, let's just try it:</p>
+</section>
+</chapter>
+</document>
