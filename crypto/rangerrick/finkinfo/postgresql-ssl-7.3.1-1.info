@@ -88,7 +88,7 @@ SplitOff: <<
   Package: %N-dev
   Depends: %N (>= %v-%r)
   Conflicts: postgresql-dev
-  Replaces: postgresql-ssl (<< 7.3), postgresql-dev
+  Replaces: postgresql-ssl (<< %v), postgresql-dev
   BuildDependsOnly: true
   Files: bin/pg_config include lib/*.a lib/libecpg.dylib lib/libpgeasy.dylib lib/libpq.dylib lib/libpq++.dylib lib/libpqxx.dylib lib/*.la
 <<
@@ -96,7 +96,7 @@ SplitOff2: <<
   Description: PostgreSQL shared libraries (with SSL)
   Package: %N73-shlibs
   Conflicts: postgresql73-shlibs
-  Replaces: postgresql-ssl (<< 7.3), postgresql-shlibs, postgresql-ssl-shlibs, postgresql73-shlibs
+  Replaces: postgresql-ssl (<< %v), postgresql-shlibs, postgresql-ssl-shlibs, postgresql73-shlibs
   BuildDependsOnly: true
   Files: lib/*.dylib
 <<
@@ -142,21 +142,19 @@ It appears you already have an initialized database.
 PostgreSQL changes their on-disk format between major releases
 and we will need to perform a dump and restore of your database
 to upgrade.  Backups of your old database will be in the
-%p/var/tmp directory in case something goes wrong.
+%p/var/tmp directory.  In the interest of being ultra-paranoid
+both a database dump, and a tarball of your postgresql
+directory will be in there.
 
-BE WARNED, if you have any databases with large objects,
-THEY WILL BE LOST.  You should dump them manually, using the
-"custom" format (see the pg_dump manpage and the PostgreSQL
-administrator's guide for more information).
+YOU WILL NEED TO RE-CREATE YOUR DATABASE USING THE DUMP UPON
+UPGRADE OF THIS PACKAGE!
 
-While this process should work in most cases, only you know
-your data.  If you have important databases, it is strongly
-recommended that you have the ability to revert to the current
-(known working) version you have installed, including having
-the .deb files available for downgrading.
+If you have important data in the database, be sure that you
+also have access to the old (7.2.x) postgresql deb files in
+case you need to revert.
 
 END
-    read -p 'Should I automatically upgrade? [Y/n] ' -s -n 1 PG_CONTINUE
+    read -p 'Should I continue? [Y/n] ' -s -n 1 PG_CONTINUE
     if [ "$PG_CONTINUE" = "y" ] || [ "$PG_CONTINUE" = "Y" ] || [ "$PG_CONTINUE" = "" ]; then
       PG_CONTINUE="Y"
     else
@@ -166,7 +164,7 @@ END
     echo ""
 
     if [ "$PG_CONTINUE" = "N" ]; then
-      echo "*** CHICKENING OUT ***"
+      echo "*** BAILING OUT ***"
       echo ""
       echo "manual" > "%p/var/tmp/pg_upgradetype"
       exit 0
@@ -174,7 +172,7 @@ END
 
     echo "automatic" > "%p/var/tmp/pg_upgradetype"
 
-    echo -e "- starting postgresql to do some maintenance: \c"
+    echo -e "- starting postgresql (just to be sure): \c"
     sudo -u pgsql %p/bin/pg_ctl -D %p/var/postgresql/data start -l %p/var/log/postgresql/logfile >/dev/null 2>&1 || true
     echo "ok"
 
@@ -233,41 +231,10 @@ if [ `cat /tmp/postgresql-status` = "failed" ]; then
 fi
 
 if [ -d %p/var/postgresql/data ]; then
-  if grep -q automatic '%p/var/tmp/pg_upgradetype' >/dev/null 2>&1; then
-    rm -rf '%p/var/tmp/pg_upgradetype'
-    OLDVERSION=`cat '%p/var/postgresql/data/PG_VERSION' 2>/dev/null | cut -d. -f1 -f2`
-    CURVERSION=`echo %v | cut -d. -f1 -f2`
-    if [ "$OLDVERSION" != "$CURVERSION" ]; then
-
-      echo ""
-      echo "[[ old database found -- performing upgrade ]]"
-      echo ""
-      echo -e "- stopping postgresql: \c"
-      sudo -u pgsql %p/bin/pg_ctl -D %p/var/postgresql/data stop -l %p/var/log/postgresql/logfile >/dev/null 2>&1 || true
-      killall postmaster postgres pg_ctl >/dev/null 2>&1 || true
-      killall -9 postmaster postgres pg_ctl >/dev/null 2>&1 || true
-      echo "ok"
-
-      echo -e "- moving old database out of the way: \c"
-      mv "%p/var/postgresql/data" "%p/var/postgresql/data-${OLDVERSION}"
-      [ $? -gt 0 ] && die "couldn't move the old postgresql database directory"
-      echo "ok"
-
-      pg_createdb
-
-      echo -e "- starting postgresql: \c"
-      sudo -u pgsql %p/bin/pg_ctl -D %p/var/postgresql/data start -l %p/var/log/postgresql/logfile >/dev/null 2>&1 || true
-      echo "ok"
-
-      echo -e "- importing old data: \c"
-      PSQL_OUTPUT=`psql -U pgsql template1 < "%p/var/tmp/pgdb-${OLDVERSION}.pgsql" 2>&1`
-      if [ "$?" -gt 0 ]; then
-        die "$PSQL_OUTPUT"
-      fi
-      echo "ok"
-    fi
-    if [ "$OLDVERSION" = "7.2" ]; then
-      cat <<END
+  OLDVERSION=`cat '%p/var/postgresql/data/PG_VERSION' 2>/dev/null | cut -d. -f1 -f2`
+  CURVERSION=`echo %v | cut -d. -f1 -f2`
+  if [ "$OLDVERSION" = "7.2" ]; then
+    cat <<END
 
 Warning: you have a database that was created with PostgreSQL 7.2.x.
 Database dumps from versions prior to 7.3 can be missing some 
@@ -278,8 +245,6 @@ install, you install the dbd-pg-pm or dbd-pg-pm-ssl package and then
 run the script in %p/share/doc/%N/contrib/adddepend/ on each
 of your databases.
 END
-    fi
-    echo ""
   fi
 else
   pg_createdb
@@ -294,7 +259,7 @@ if [ $1 != "upgrade" ]; then
   daemonic remove %N
 fi
 <<
-Description: PostgreSQL open-source database (with SSL)
+Description: PostgreSQL open-source database
 DescUsage: <<
 The package runs initdb on installation as the user 'pgsql'.
 
@@ -307,7 +272,7 @@ Also note that installation of this package is interactive, because
 upgrades can make irrevocable changes to your database.
 <<
 DescPackaging: <<
-IMPORTANT: The location of the data files has changed from earlier
+IMPORTANT: The location of the data files has changed from early
 revisions of this package. If you're upgrading from an earlier
 revision, note that this one expects the data files to be installed
 at <prefix>/var/postgresql/data.
@@ -320,7 +285,7 @@ Rearranged a lot of the PostgreSQL build to be more "correct" on
 Darwin, including making proper dylibs (instead of bundles, which
 ended up creating static binaries).
 
-Also had to write a bunch of pre/post-install logic for upgrading
+Also had to write a bunch of pre/post-install logic for dumping
 databases from 7.2.x (or, in theory, older) schemas.
 <<
 License: BSD
