@@ -1,8 +1,8 @@
 #!/usr/bin/perl
 
-my $VERSION   = '3.0.98';
-my $DIRECTORY = 'unstable/kde-3.1-rc2/src/';
-my $ARTSVER   = '1.1.0-6';
+my $VERSION   = '3.0.99';
+my $DIRECTORY = 'unstable/kde-3.1-rc3/src/';
+my $ARTSVER   = '1.1.0-7';
 my $VERBOSE   = 0;
 my $DRYRUN    = 0;
 my @packages;
@@ -47,8 +47,8 @@ Revision: 1
 Depends: kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), arts (>= ${ARTSVER}), xfonts-intl
 BuildDepends: kdebase3-ssl (>= %v-1) | kdebase3 (>= %v-1), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), arts-dev (>= ${ARTSVER})
 Maintainer: Benjamin Reed <ranger\@befunk.com>
-CompileScript: (export KDEDIR=%p; sh configure %c; make)
-InstallScript: make install DESTDIR=%d
+CompileScript: (export KDEDIR=%p; sh configure %c; make -j8)
+InstallScript: make -j8 install DESTDIR=%d
 License: GPL/LGPL
 END
 		print $contents if ($VERBOSE);

@@ -1,0 +1,114 @@
+Package: kdebase3-ssl
+Version: 3.0.99
+Revision: 1
+Replaces: kdebase3, kdebase3-dev, kio-fish, lisa
+Conflicts: bundle-kde, kdelibs3, kdelibs3-dev, kdebase3, kdebase3-dev, kio-fish
+Depends: arts (>= 1.1.0-7), audiofile-shlibs (>= 0.2.3), dlcompat (>= 20020929), esound-shlibs (>= 0.2.28), freetype2-shlibs (>= 2.0.8), kdelibs3-ssl (>= %v-1), lame-shlibs (>= 3.92-4), lesstif-shlibs (>= 0.93.18-6), libart2-shlibs (>= 2.3.9), libjpeg-shlibs (>= 6b), libogg-shlibs (>= 1.0.0), libpng3-shlibs (>= 1.2.5), libpoll-shlibs (>= 1.1), libvorbis0-shlibs (>= 1.0), mad-shlibs (>= 0.4.12b), openssl-shlibs, qt3-shlibs (>= 3.1.0), x11
+BuildDepends: arts-dev (>= 1.1.0-7), kdelibs3-ssl-dev (>= %v-1), automake (>= 1.6), autoconf25, libtool14, lesstif (>= 0.93.18-7), audiofile (>= 0.2.3), openssl-dev (>= 0.9.6e), esound (>= 0.2.28), freetype2 (>= 2.0.8), libjpeg (>= 6b), libpng3 (>= 1.2.5), libpoll (>= 1.2), qt3-dev (>= 3.1.0), fink (>= 0.11.0), lame (>= 3.92-4), cups-dev (>= 1.1.15)
+Maintainer: Benjamin Reed <ranger@befunk.com>
+Source: mirror:kde:unstable/kde-3.1-beta2/src/kdebase-%v.tar.bz2
+Source2: http://www.befunk.com/~ranger/fink/kde-x.tar.gz
+Source-MD5: ae7a867901528d4d070bb2d8eff15d3f
+Source2-MD5: e284a7d03a6c628312d0ec073ed845e3
+PatchScript: sed 's|@PREFIX@|%p|g' <%a/%f.patch | patch -p0
+SetLIBS: -L%p/lib
+SetCPPFLAGS: -no-cpp-precomp -fno-common -Ddlsym=dlsym_auto_underscore -isystem %p/include -I%p/include
+ConfigureParams: --prefix=%p --with-ssl-dir=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --enable-final --without-nfs --with-ldap=yes `cat /tmp/kde-build-options`
+CompileScript: <<
+#!/bin/sh
+ make -f Makefile.cvs
+ export KDEDIR=%p
+ echo running ./configure %c
+ sh ./configure %c
+ make -j2
+<<
+InstallScript: <<
+#!/bin/sh
+ make install DESTDIR=%d
+ install -d -m 755 %i/share/apps/ksplash/pics
+ install -c -m 644 ../kde-x/*.png %i/share/apps/ksplash/pics/
+
+ # get rid of some stragglers
+ for size in 16x16 22x22 32x32 48x48 64x64; do
+  rm -rf %i/share/icons/crystalsvg/${size}/actions/view_choose.png
+  rm -rf %i/share/icons/crystalsvg/${size}/actions/view_detailed.png
+  rm -rf %i/share/icons/crystalsvg/${size}/actions/view_icon.png
+  rm -rf %i/share/icons/crystalsvg/${size}/actions/view_multicolumn.png
+  rm -rf %i/share/icons/crystalsvg/${size}/actions/view_text.png
+  rm -rf %i/share/icons/crystalsvg/${size}/actions/view_tree.png
+  rm -rf %i/share/icons/crystalsvg/${size}/devices/print_class.png
+ done
+<<
+SplitOff: <<
+ Package: %N-dev
+ Description: KDE - base development headers and libraries
+ Depends: %N (>= %v-%r)
+ Recommends: arts-dev (>= 1.1.0-7), kdelibs3-ssl-dev (>= %v-1), lesstif (>= 0.93.18-6), audiofile (>= 0.2.3), openssl-dev (>= 0.9.6e), freetype2 (>= 2.0.8), dlcompat (>= 20020929), esound (>= 0.2.28), libjpeg (>= 6b), libpng3 (>= 1.2.5), libpoll (>= 1.2), qt3 (>= 3.1.0), lame (>= 3.92-4)
+ BuildDependsOnly: true
+ Replaces: kdebase3, kdebase3-dev, %N-dev (<< %v-1)
+ Conflicts: bundle-kde, kdelibs3, kdelibs3-dev, kdebase3, kdebase3-dev
+ Files: <<
+   include/
+   lib/libkickermain.so
+   lib/libkmultitabbar.dylib
+   lib/libkonq.dylib
+   lib/libkonqsidebarplugin.dylib
+   lib/libnsplugin.so
+   lib/libtaskbar.so
+   lib/libtaskmanager.so
+   lib/kde3/libchildpanel_panelextension.so
+   lib/kde3/libclock_panelapplet.so
+   lib/kde3/libdockbar_panelextension.so
+   lib/kde3/libkasbar_panelextension.so
+   lib/kde3/liblauncher_panelapplet.so
+   lib/kde3/liblockout_panelapplet.so
+   lib/kde3/libminipager_panelapplet.so
+   lib/kde3/libnaughty_panelapplet.so
+   lib/kde3/librun_panelapplet.so
+   lib/kde3/libsystemtray_panelapplet.so
+   lib/kde3/libtaskbar_panelapplet.so
+   lib/kde3/libtaskbar_panelextension.so
+ <<
+<<
+DocFiles: AUTHORS COPYING INSTALL README README.pam
+Description: KDE - base system
+DescDetail: <<
+Core applications for the K Desktop Environment.
+<<
+DescUsage: <<
+---[ Installation ]---------------------------------------------------
+
+To install all of the official KDE packages, install "bundle-kde" or
+"bundle-kde-ssl" (depending on whether crypotgraphic laws permit
+downloading strong cryptography).
+
+---[ Configuration ]--------------------------------------------------
+
+To use KDE as your windowing system in XDarwin, create a file called
+".xinitrc" in your home directory, with the following commands (it is
+safe to cut and paste these):
+
+  echo "source /sw/bin/init.sh" > ~/.xinitrc
+  echo "/sw/bin/startkde >/tmp/kde.log 2>&1" >> ~/.xinitrc
+
+Note that this will overwrite an existing .xinitrc file!
+
+---[ Startup ]--------------------------------------------------------
+
+Once you have created an ~/.xinitrc file, you should be able to start
+KDE by clicking on the "XDarwin" icon in your Applications folder.  
+   
+NOTE: If you plan on running in rootless mode, you will likely want to
+disable desktop icons, or else the root window desktop will cover up
+your Aqua destkop.  You can do this by starting the KDE control
+center, expanding the "Desktop" list, click "Behavior", and uncheck   
+the "Enable icons on desktop" checkbox.
+   
+---[ Removal ]--------------------------------------------------------
+   
+To remove all of the official KDE packages, you can remove aRts and
+anything that depends on it, by running (in a terminal):
+   
+  sudo apt-get remove arts
+<<
+License: GPL/LGPL
