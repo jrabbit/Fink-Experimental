@@ -169,6 +169,6 @@ else
     esac	    
 fi
 
-# rm -f $TMPFILE
+rm -f $TMPFILE
 
 # End of program.
