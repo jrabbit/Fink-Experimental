@@ -29,31 +29,43 @@ FILTER_COMMAND=| grep "^Warning\|^Error" || true
 #FILTER_COMMAND=| grep "^Error" || true
 #FILTER_COMMAND=| grep -v "Description ends with" | grep "^Warning\|Error" || true
 
+CVSCRUFT=.\#*
+APPLECRUFT=.DS_Store
+BACKUPCRUFT=\#*\# *.info~ *.patch~
+
 # NO USER-SERVEICABLE PARTS BELOW
 FINK_COMMAND=${p}/bin/fink check
-DEBS=${p}/fink/debs
+DEBSDIR=${p}/fink/debs
 APTCACHE=${p}/var/cache/apt/archives/
 
+INFOFILES=*.info
+DEBFILES=*.deb
+PATCHFILES=*.patch
+
+.phony : $(APPLECRUFT) $(BACKUPCRUFT) $(BRANCHES) $(CHECKDIRS) $(CVSCRUFT) all check checkall checkdebs checkinfo clean cleanall cleancvs clean~ comver copyright describe description fixall fixdebs h help i install licence remove uninstall usage V vercomp version
+ 
 # Docs
 h usage : copyright
 	@$(MAKE) -f ${me} description
 	@echo "USAGE:"
 	@echo " "
-	@echo "finkutil [-j1] check   validate all fink info files in ${DISTS}"
-	@echo "finkutil fixdebs       rebuild soft links in ${DEBS}"
+	@echo "finkutil [-j1] check     validate all fink info files in ${DISTS}"
+	@echo "finkutil [-j1] checkdebs validate all deb files in ${DISTS} and ${APTCACHE}"
+	@echo "finkutil fixdebs         rebuild soft links in ${DEBSDIR}"
 	@echo " "
-	@echo "finkutil cleancvs      delete all cvs temp & emacs temp files (.#*) in ${p}"
-	@echo "finkutil clean         delete all .DS_Store files in ${p}"
-	@echo "finkutil clean~        delete all backup files (*.info~ and *.patch~) in ${p}"
-	@echo "finkutil cleanall      do all three clean actions"
-	@echo "finkutil all           do all clean, check and fix actions"
+	@echo "finkutil cleancvs        delete all cvs temp & emacs temp files (${CVSCRUFT} in ${p})"
+	@echo "finkutil clean           delete all .DS_Store files (${APPLECRUFT} in ${p})"
+	@echo "finkutil clean~          delete all backup files (${BACKUPCRUFT} in ${p})"
 	@echo " "
-	@echo "finkutil [h|usage]     displays this message"
-	@echo "finkutil help          displays all help messages"
-	@echo "finkutil V|version     displays all help messages"
+	@echo "[sudo] finkutil [-j1] cleanall    do all three clean actions"
+	@echo "[sudo] finkutil [-j1] all         do all clean, check and fix actions"
 	@echo " "
-	@echo "finkutil install       link finkutil to ${p}/sbin"
-	@echo "finkutil remove        unlink finkutil from ${p}/sbin"
+	@echo "finkutil [h|usage]       displays this message"
+	@echo "finkutil help            displays all help messages"
+	@echo "finkutil V|version       displays all help messages"
+	@echo " "
+	@echo "finkutil install         link finkutil to ${p}/sbin"
+	@echo "finkutil remove          unlink finkutil from ${p}/sbin"
 	@echo " "
 
 help : copyright
@@ -66,14 +78,14 @@ help : copyright
 	@echo " "
 	@echo "Installation:"
 	@echo "finkutil i|install"
-	#echo "    Adds a symlink to your ${p}/sbin directory."
+#	echo "    Adds a symlink to your ${p}/sbin directory."
 	@echo " "
 	@echo "Uninstallation:"
 	@echo "finkutil remove|uninstall"
 	@echo "    Removes the finkutil symlink from your ${p}/sbin directory."
 	@echo " "
 
-V version :
+-V version :
 	@echo "\$$Id$$"
 	@echo " "
 
@@ -116,46 +128,67 @@ remove uninstall :
 	-@sudo rm -f ${p}/sbin/finkutil
 	@echo "Done."
 
-# primary goals
-all : cleanall fixdebs
-	@$(MAKE) -f ${me} -j1 check
-
-check : $(BRANCHES)
-
-clean :
-	@echo "Removing .DS_Store files...";
-	sudo find ${p} -name .DS_Store -print -exec rm {} \;
-	@echo "Done removing .DS_Store files."
-
-cleancvs :
-	@echo "Removing emacs & cvs .#* files...";
-	sudo find ${p} -name '.#*' -print -exec rm {} \;
-	@echo "Done removing emacs & cvs .#* files."
-
-clean~ :
-	@echo "Removing backup info~ and patch~ files...";
-	sudo find ${p} -name '*.info~' -print -exec rm {} \;
-	sudo find ${p} -name '*.patch~' -print -exec rm {} \;
-	@echo "Done removing backup info~ and patch~ files."
+# "all" goals
+all : cleanall fixall checkall
 
 cleanall : clean cleancvs clean~
+
+checkall :
+	@$(MAKE) -f ${me} -j1 check
+	@$(MAKE) -f ${me} -j1 checkdebs
+
+fixall: fixdebs
+
+# primary goals
+check : $(BRANCHES)
+checkinfo : check
+
+checkdebs :
+	@echo "Validating all ${DEBFILES} files in ${DISTS}/ and ${APTCACHE}...";
+	find ${DISTS}/ -name "${DEBFILES}" -exec ${FINK_COMMAND} {} \;
+	find ${APTCACHE} -name "${DEBFILES}" -maxdepth 1 -exec ${FINK_COMMAND} {} \;
+	@echo "Done validating all ${DEBFILES} files in ${DISTS}/ and ${APTCACHE}.";
+
+clean : $(APPLECRUFT)
+cleancvs : $(CVSCRUFT)
+clean~ : $(BACKUPCRUFT)
 
 fixdebs :
 #	The extra / is needed to cross the symlink from dists->10.2
 #	Avoid partially downloaded apt-get debs using maxdepth.
-	cd ${DEBS} && rm *
-	cd ${DEBS} && find ${DISTS}/ -name "*.deb" -print -exec ln -s {} \;
-	cd ${DEBS} && find ${APTCACHE} -name "*.deb" -maxdepth 1 -print -exec ln -s {} \;
+	@echo "Deleting ${DEBFILES} links in ${DEBSDIR}...";
+	sudo find ${DEBSDIR} -name "${DEBFILES}" -type l -exec rm {} \;
+	@echo "Done deleting ${DEBFILES} links in ${DEBSDIR}.";
+	@echo "Rebuilding ${DEBFILES} from ${DISTS} in ${DEBSDIR}...";
+	cd ${DEBSDIR} && find ${DISTS}/ -name "${DEBFILES}" -print -exec ln -s {} \;
+	@echo "Done rebuilding ${DEBFILES} from ${DISTS} in ${DEBSDIR}.";
+	@echo "Rebuilding ${DEBFILES} from ${APTCACHE} in ${DEBSDIR}...";
+	cd ${DEBSDIR} && find ${APTCACHE} -name "${DEBFILES}" -maxdepth 1 -print -exec ln -s {} \;
+	@echo "Done rebuilding ${DEBFILES} from ${APTCACHE} in ${DEBSDIR}.";
 
 # these subgoals are used internally by the above main goals, don't try to run them directly
+$(CVSCRUFT) $(BACKUPCRUFT) $(APPLECRUFT) :
+	@echo "Removing $@ files...";
+	sudo find ${p} -name "$@" -print -exec rm {} \;
+	@echo "Done removing $@ files."
+
 $(CHECKDIRS) :
 	@echo " "
-	@cd $(DISTS)/$(DIST)/main/finkinfo/$@/ && pwd && $(FINK_COMMAND) *.info $(FILTER_COMMAND)
+	@cd $(DISTS)/$(DIST)/main/finkinfo/$@/ && pwd && $(FINK_COMMAND) ${INFOFILES} $(FILTER_COMMAND)
 
 $(BRANCHES) :
-	@echo "validating branch $@..."
+	@echo "Validating ${INFOFILES} in branch $@..."
 	@echo " "
-	@cd $(DISTS)/$@/crypto/finkinfo/ && pwd && $(FINK_COMMAND) *.info $(FILTER_COMMAND)
+	@cd $(DISTS)/$@/crypto/finkinfo/ && pwd && $(FINK_COMMAND) ${INFOFILES} $(FILTER_COMMAND)
 	@$(MAKE) -f ${me} $(CHECKDIRS) DIST=$@
-	@echo "done branch $@."
+	@echo "Done validating ${INFOFILES} in branch $@."
 	@echo " "
+
+# highly experimental, these may erase all your DVDs
+vercomp : comver
+calendar :
+	@echo $@ is up to date.
+sandwich :
+	@echo no mustard--DOH!
+comver :
+	dpkg --compare-versions $(new) '>>' $(old); result=$($?) ; if [ "$(result)" == "0" ] ; then echo ok ; else echo notok ; fi ; echo $(result)
