@@ -4,6 +4,7 @@
 
 basedir = ..
 
+STYLESHEET_WEBSITE = $(basedir)/finkdoc-website.i18n.xsl
 WANT_HTML = 1
 DESTDIR = faq
 
@@ -17,8 +18,9 @@ BASE_TARGET = index.php general.php relations.php \
 #SOURCE += $(patsubst %.xml,%.ja.xml, $(BASE_SOURCE))
 SOURCE = $(foreach  LANGUAGE, $(LANGUAGES), $(patsubst %.xml,%.$(LANGUAGE).xml, $(BASE_SOURCE)))
 
-TARGET = $(foreach  LANGUAGE, $(LANGUAGES), $(patsubst %.php,%.$(LANGUAGE).php, $(BASE_TARGET)))
+TARGET = $(BASE_TARGET)
+TARGET += $(foreach  LANGUAGE, $(LANGUAGES), $(patsubst %.php,%.$(LANGUAGE).php, $(BASE_TARGET)))
 
-include $(basedir)/Makefile.common
+include $(basedir)/Makefile.i18n.common
 
 # eof
