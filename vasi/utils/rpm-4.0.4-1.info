@@ -1,0 +1,59 @@
+Package: rpm
+Version: 4.0.4
+Revision: 1
+Maintainer: Dave Vasilevsky <thevas@mac.com>
+Homepage: http://rpm.org
+Source: ftp://ftp.%n.org/pub/%n/dist/%n-4.0.x/%n-%v.tar.gz
+Patch: %f.patch
+License: GPL
+Description: RPM Package Manager
+DescDetail: <<
+RPM is the RPM Package Manager. It is an open packaging system available for anyone to use.
+It allows users to take source code for new software and package it into source and binary
+form such that binaries can be easily installed and tracked and source can be rebuilt
+easily. It also maintains a database of all packages and their files that can be used for
+verifying packages and querying for information about files and/or packages.
+
+This version of RPM is not set up to do installs, you will need to edit your rpmmacros
+file to add this capability. Set %_topdir to %{_usrsrc}/apple for this.
+<<
+DescPort: <<
+- Builds its own internal popt library, saved as /sw/lib/librpmpopt
+- Builds its own internal beecrypt library.
+- Builds its own version of libdb.
+- Works around multiple defs problem by eliminating a symbol in librpmio-no-fadio.
+<<
+InstallScript: <<
+	make install DESTDIR=%d
+	rm -r %d/var/
+<<
+DocFiles: README COPYING CREDITS INSTALL
+Depends: %N-shlibs (= %v-%r)
+ConfigureParams: --mandir=%p/share/man --without-python
+SplitOff: <<
+	Package: %N-shlibs
+	DocFiles: README COPYING CREDITS INSTALL
+	Files: <<
+		lib/libbeecrypt.2.dylib				lib/libbeecrypt.2.2.0.dylib
+		lib/librpm-4.0.4.dylib
+		lib/librpmbuild-4.0.4.dylib
+		lib/librpmdb-4.0.4.dylib
+		lib/librpmio-4.0.4.dylib			lib/librpmio-no-fadio-4.0.4.dylib
+		lib/librpmpopt.0.dylib				lib/librpmpopt.0.0.0.dylib
+	<<
+<<
+SplitOff2: <<
+	Package: %N-dev
+	Depends: %N-shlibs (= %v-%r)
+	BuildDependsOnly: true
+	Files: <<
+		include
+									lib/libbeecrypt.dylib			lib/libbeecrypt.la
+		lib/librpm.a				lib/librpm.dylib				lib/librpm.la
+		lib/librpmbuild.a			lib/librpmbuild.dylib			lib/librpmbuild.la
+		lib/librpmdb.a				lib/librpmdb.dylib				lib/librpmdb.la
+		lib/librpmio.a				lib/librpmio.dylib				lib/librpmio.la
+		lib/librpmio-no-fadio.a		lib/librpmio-no-fadio.dylib		lib/librpmio-no-fadio.la
+		lib/librpmpopt.a			lib/librpmpopt.dylib			lib/librpmpopt.la
+	<<
+<<

@@ -1,0 +1,139 @@
+diff -Naur bochs-1.4/Makefile.in bochs-new/Makefile.in
+--- bochs-1.4/Makefile.in	2002-03-27 19:28:42.000000000 -0500
++++ bochs-new/Makefile.in	2002-05-12 11:53:28.000000000 -0400
+@@ -36,7 +36,7 @@
+ VERSION=@VERSION@
+ VER_STRING=@VER_STRING@
+ REL_STRING=@REL_STRING@
+-BOCHSDIR=$(prefix)/bochs
++BOCHSDIR=$(prefix)/share/bochs
+ VERSIONDIR=$(BOCHSDIR)/$(VERSION)
+ MAN_PAGE_LIST=bochs bochsrc bximage bochs-dlx
+ INSTALL_LIST=bios/BIOS-* CHANGES COPYING README bios/VGABIOS* bochs bochsdbg bximage @INSTALL_LIST_FOR_PLATFORM@
+@@ -289,7 +289,7 @@
+ install_unix: install_bin install_man install_fonts unpack_dlx install_dlx
+ 
+ install_fonts::
+-	-srcdir=$(srcdir) $(VERSIONDIR)/install-x11-fonts
++	-srcdir=$(srcdir) $(VERSIONDIR)/install-x11-fonts $(DESTDIR)
+ 
+ install_bin::
+ 	-mkdir -p $(DESTDIR)$(BOCHSDIR)
+@@ -323,19 +323,19 @@
+ 	$(WGET) $(DLXLINUX_TAR_URL)
+ 	test -f $(DLXLINUX_TAR)
+ 
+-unpack_dlx: $(DLXLINUX_TAR)
+-	rm -rf dlxlinux
+-	$(GUNZIP) -c $(DLXLINUX_TAR) | $(TAR) -xvf -
++unpack_dlx:
++#	rm -rf dlxlinux
++#	$(GUNZIP) -c $(DLXLINUX_TAR) | $(TAR) -xvf -
+ 	test -d dlxlinux
+-	(cd dlxlinux; $(MV) bochsrc.txt bochsrc.txt.orig; $(SED) -e "s/1\.1\.2/$(VERSION)/g"  -e 's,/usr/local,$(prefix),g' < bochsrc.txt.orig > bochsrc.txt; rm -f bochsrc.txt.orig)
++	(cd dlxlinux; $(MV) bochsrc.txt bochsrc.txt.orig; $(SED) -e "s/1\.1\.2/$(VERSION)/g"  -e 's,/usr/local,$(prefix)/share,g' < bochsrc.txt.orig > bochsrc.txt; rm -f bochsrc.txt.orig)
+ 
+ install_dlx:
+-	$(RM) -rf $(BOCHSDIR)/dlxlinux
+-	cp -r dlxlinux $(BOCHSDIR)/dlxlinux
+-	$(CHMOD) 755 $(BOCHSDIR)/dlxlinux
+-	$(GZIP) $(BOCHSDIR)/dlxlinux/hd10meg.img
+-	$(CHMOD) 644 $(BOCHSDIR)/dlxlinux/*
+-	for i in bochs-dlx; do cp $(srcdir)/build/linux/$$i $(bindir)/$$i; $(CHMOD) 755 $(bindir)/$$i; done
++	$(RM) -rf $(DESTDIR)$(BOCHSDIR)/dlxlinux
++	cp -r dlxlinux $(DESTDIR)$(BOCHSDIR)/dlxlinux
++	$(CHMOD) 755 $(DESTDIR)$(BOCHSDIR)/dlxlinux
++	$(GZIP) $(DESTDIR)$(BOCHSDIR)/dlxlinux/hd10meg.img
++	$(CHMOD) 644 $(DESTDIR)$(BOCHSDIR)/dlxlinux/*
++	for i in bochs-dlx; do cp $(srcdir)/build/linux/$$i $(DESTDIR)$(bindir)/$$i; $(CHMOD) 755 $(DESTDIR)$(bindir)/$$i; done
+ 
+ uninstall::
+ 	$(RM) -rf $(VERSIONDIR)
+diff -Naur bochs-1.4/install-x11-fonts.in bochs-new/install-x11-fonts.in
+--- bochs-1.4/install-x11-fonts.in	2002-03-18 05:26:30.000000000 -0500
++++ bochs-new/install-x11-fonts.in	2002-05-12 10:10:34.000000000 -0400
+@@ -10,6 +10,7 @@
+ X11_FONT_PATH_CHOICES="/usr/X11R6/lib/X11/fonts /usr/local/lib/X11/fonts /usr/lib/X11/fonts /usr/openwin/lib/X11/fonts"
+ FONTS=vga.pcf
+ FONT_SOURCE_PATH_CHOICES="font ${srcdir+$srcdir/font} @prefix@/bochs/latest"
++DESTDIR=$1
+ 
+ die () {
+ cat <<EOF
+@@ -56,14 +57,16 @@
+ FONT_SOURCE_PATH=$sourcepath
+ 
+ echo $ac_n "Looking for X11 Font Path... "
+-found=0
+-for fontpath in $X11_FONT_PATH_CHOICES; do
+-  if test -d $fontpath -a -d $fontpath/misc; then
+-    echo $fontpath
+-    found=1
+-    break
+-  fi
+-done
++#found=0
++#for fontpath in $X11_FONT_PATH_CHOICES; do
++#  if test -d $fontpath -a -d $fontpath/misc; then
++#    echo $fontpath
++#    found=1
++#    break
++#  fi
++#done
++fontpath=$DESTDIR/`xfontpath basedir`/bochs
++mkdir -p $fontpath/misc
+ 
+ if test ! $found = 1; then
+   echo FAILED
+@@ -108,16 +111,16 @@
+ fi
+ 
+ # try to run xset
+-echo Running xset fp rehash...
+-xset > /dev/null 2>&1
+-XSET_STATUS=$?
+-if test $? != 0; then
++#echo Running xset fp rehash...
++#xset > /dev/null 2>&1
++XSET_STATUS=0
++if false; then
+   echo WARNING: I could not find xset in your path.  This step may not be
+   echo necessary, but if you have vga font problems, try to run 
+   echo \"xset fp rehash\" by hand.
+ else
+-  xset fp rehash >& /dev/null
+-  if test $? != 0; then
++#  xset fp rehash >& /dev/null
++  if false; then
+     echo WARNING: The xset program was found, but the \"xset fp rehash\"
+     echo command failed.  This step may not be necessary, but if you 
+     echo have vga font problems, try to run \"xset fp rehash\" by hand
+@@ -126,17 +129,17 @@
+ fi
+ 
+ # try to restart X font server, if we can figure out how.
+-echo Restarting X font server...
+-SCRIPT=/etc/rc.d/init.d/xfs
++#echo Restarting X font server...
++#SCRIPT=/etc/rc.d/init.d/xfs
+ # sorry I don't have any other systems to test this on...
+-if test -f $SCRIPT -a -x $SCRIPT; then
+-  echo Running $SCRIPT restart...
+-  $SCRIPT restart
+-else
+-  echo WARNING: This script does not know how to restart the X font server
+-  echo on your machine.  This step may not be necessary, but if you have
+-  echo vga font problems, try to restart the X font server manually, or
+-  echo reboot the machine so that it is forced to start again.
+-fi
++#if test -f $SCRIPT -a -x $SCRIPT; then
++#  echo Running $SCRIPT restart...
++#  $SCRIPT restart
++#else
++#  echo WARNING: This script does not know how to restart the X font server
++#  echo on your machine.  This step may not be necessary, but if you have
++#  echo vga font problems, try to restart the X font server manually, or
++#  echo reboot the machine so that it is forced to start again.
++#fi
+ 
+ echo Done installing Bochs fonts for X11.
