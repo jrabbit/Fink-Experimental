@@ -1,0 +1,38 @@
+Package: jabberd2
+Version: 2.0
+Revision: 1.s2.1
+Source: http://www.jabberstudio.org/files/%n/jabberd-%vs2.tar.gz
+Source-MD5: 0f794b00e480a7b4c36d858d4d0095bf
+Patch: %n.patch
+BuildDepends: db42 | db42-ssl
+Depends: %N-shlibs (>= %v-%r)
+ConfigureParams: --enable-dynamic --enable-shared --enable-ui-readline --with-ncurses=%p --with-readline=%p --with-libgsm --without-python --without-openssl --with-pthread --enable-ioctld --sysconfdir=%p/etc --mandir=%p/share/man
+NoSetLDFLAGS: true
+NoSetMAKEFLAGS: true
+SetMAKEFLAGS: -j1
+InstallScript: <<
+#!/bin/sh
+  make install DESTDIR=%d
+  pushd lib
+  install -d -m 755 %i/lib
+  glibtool --mode=install install -c -m 755 libgadu.la %i/lib/libgadu.la
+  mkdir -p %i/share/doc/%n
+  popd
+  pushd docs
+  tar -cf - . | (cd %i/share/doc/%n; tar -xf -)
+  popd
+<<
+SplitOff: <<
+  Description: static libraries and headers for libgadu-ssl
+  Conflicts: ekg-ssl-shlibs
+  Replaces: ekg-ssl-shlibs
+  Package: %N-shlibs
+  Depends: ncurses-shlibs (>= 5.3-12), readline-shlibs
+  BuildDependsOnly: true
+  Files: lib/libgadu.2*.dylib
+<<
+DocFiles: ChangeLog* lib/COPYING 
+Description: Gadu-Gadu program
+License: GPL/LGPL
+Maintainer: Benjamin Reed <ranger@befunk.com>
+Homepage: http://dev.null.pl/ekg/

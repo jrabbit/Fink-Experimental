@@ -93,8 +93,6 @@ InstallScript: <<
   make install install-all-headers includedir=%p/include/postgresql includedir_internal=%p/include/postgresql/internal includedir_server=%p/include/postgresql DESTDIR=%d INSTALLSITEMAN3DIR=%i/share/man/man3 || exit 10
 
   mv %i/share/doc/postgresql %i/share/doc/%N >/dev/null 2>&1
-  mv %i/share/postgresql/* %i/share/doc/%N/
-  rm -rf %i/share/postgresql
 
   ranlib %i/lib/*.a
 
@@ -233,8 +231,8 @@ SplitOff: <<
     lib/libecpg.dylib
     lib/libpq.dylib
   <<
-  PostInstScript: %p/var/postgresql/update-alternatives.sh
-  PreRmScript: %p/var/postgresql/remove-alternatives.sh
+  PostInstScript: [ -x %p/var/postgresql/update-alternatives.sh ] && %p/var/postgresql/update-alternatives.sh
+  PreRmScript: [ -x %p/var/postgresql/remove-alternatives.sh ] && %p/var/postgresql/remove-alternatives.sh
 <<
 SplitOff2: <<
   Description: PostgreSQL shared libraries
@@ -244,8 +242,8 @@ SplitOff2: <<
   Replaces: postgresql (<< %v-%r), postgresql-shlibs, postgresql-ssl-shlibs, %N-ssl-shlibs
   BuildDependsOnly: true
   Files: lib/*.dylib
-  PostInstScript: %p/var/postgresql/update-alternatives.sh
-  PreRmScript: %p/var/postgresql/remove-alternatives.sh
+  PostInstScript: [ -x %p/var/postgresql/update-alternatives.sh ] && %p/var/postgresql/update-alternatives.sh
+  PreRmScript: [ -x %p/var/postgresql/remove-alternatives.sh ] && %p/var/postgresql/remove-alternatives.sh
 <<
 DaemonicFile: <<
   <service>
@@ -278,7 +276,7 @@ if [ "$1" = "upgrade" ] && [ -d "%p/var/postgresql/data" ]; then
   chmod 1777 '%p/var/tmp'
   echo "ok"
 
-  if test `ls -ln /sw/var/ | awk '{ print $3 }' | grep -c '^252$'` -ge 1; then
+  if test `ls -ln @PREFIX@/var/ | awk '{ print $3 }' | grep -c '^252$'` -ge 1; then
     echo -e "- starting postgresql (just to be sure): \c"
     sudo -u postgres %p/bin/pg_ctl start -D %p/var/postgresql/data >/dev/null 2>&1 || true
     echo "ok"
@@ -363,7 +361,7 @@ fi
 PostInstScript: <<
 INSTALL_PHASE="$1"
 
-%p/var/postgresql/update-alternatives.sh
+[ -x %p/var/postgresql/update-alternatives.sh ] && %p/var/postgresql/update-alternatives.sh
 
 # remove the old "pgsql" entries from netinfo; the username was switched to
 # "postgres" but the old ones hang around because of the way niload works
@@ -425,7 +423,7 @@ daemonic install %N
 <<
 PreRmScript: <<
 
-%p/var/postgresql/remove-alternatives.sh
+[ -x %p/var/postgresql/remove-alternatives.sh ] && %p/var/postgresql/remove-alternatives.sh
 
 # clean up
 daemonic remove postgresql >/dev/null 2>&1 || true

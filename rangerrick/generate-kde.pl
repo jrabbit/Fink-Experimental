@@ -10,7 +10,7 @@ my $path = abs_path(dirname($0));
 my %files;
 
 find(sub {
-	return unless ($File::Find::name =~ /kde/ or $File::Find::name =~ /qt3/);
+	return unless ($File::Find::name =~ /kde/ or $File::Find::name =~ /qt3/ or $File::Find::name =~ /(postgres|libpq|libpg)/);
 	return if ($File::Find::name =~ /notready/);
 	$files{$File::Find::name}++ if ($File::Find::name =~ /\.(info|patch)$/);
 }, $path . '/common');
@@ -72,6 +72,7 @@ for my $file (sort keys %files) {
 									$line =~ s/^\#(\s*export\s+LD_TWOLEVEL_NAMESPACE.*)$/$1/;
 									$line =~ s/freetype2(\S*)(\s+\([^\)]+\))?\s*\|\s*freetype2(\S*)(\s+\([^\)]+\))?\s*[\,\s]*//g;
 									$line =~ s/(dlcompat|freetype2|libpoll)(\S*)(\s+\([^\)]+\))?[\,\s]*//g;
+									$line =~ s/, libgnugetopt$//;
 									$line =~ s/^SetMACOSX_DEPLOYMENT_TARGET: 10.2/SetMACOSX_DEPLOYMENT_TARGET: 10.3/;
 									$line =~ s/--disable-(ada|haskell|pascal) *//g;
 									$line =~ s/^\#10.3\s+(.*)$/$1/;
