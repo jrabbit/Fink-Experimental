@@ -1,7 +1,7 @@
-diff -Nu xc/config/cf/darwin.cf xc-patched/config/cf/darwin.cf
+diff -Nur xc/config/cf/darwin.cf xc-patched/config/cf/darwin.cf
 --- xc/config/cf/darwin.cf	Tue Jan 15 16:22:31 2002
-+++ xc-patched/config/cf/darwin.cf	Mon Jul 29 01:49:39 2002
-@@ -27,12 +27,12 @@
++++ xc-patched/config/cf/darwin.cf	Wed Jul 31 12:38:46 2002
+@@ -27,14 +27,22 @@
  #define HasUsableFileMmap       YES
  #define HasZlib                 YES
  #ifndef HasShm
@@ -15,62 +15,174 @@ diff -Nu xc/config/cf/darwin.cf xc-patched/config/cf/darwin.cf
 +#define HasGroff               YES
  #endif
  
++#define	StripInstalledPrograms	YES
++#define HasCplusplus		YES
++#define	HasVarRun		YES
++#define	HasVarDb		YES
++#ifndef HasLibCrypt
++#define	HasLibCrypt		NO
++#endif
++#define	HasZlib			YES
  /* Libtool on Darwin always uses minor numbers */
-@@ -62,10 +62,10 @@
- #define MathLibrary             /**/
+ #define LibtoolMinorVersions	YES
+ 
+@@ -59,13 +67,15 @@
+ #endif
+ 
+ /* we don't need -lm */
+-#define MathLibrary             /**/
++#define MathLibrary             -lm
  
  /* we don't have a termcap library */
 -#define TermcapLibrary          /**/
-+#define TermcapLibrary -lncurses
++#define	HasTermcap		YES
++#define TermcapLibrary		-L@prefix@/lib -lncurses
  
  /* we don't have a dbm library */
 -#define DBMLibrary              /**/
-+#define DBMLibrary              -lgdbm
++#define	HasDBM			YES
++#define DBMLibrary              -L@prefix@/lib -lgdbm
  
  #define MkdirHierCmd            mkdir -p
  
-@@ -83,9 +83,9 @@
+@@ -83,20 +93,24 @@
  # define DefaultCCOptions       -Wall -Wpointer-arith -Wstrict-prototypes \
                                  -Wmissing-prototypes -Wmissing-declarations \
                                  -Wredundant-decls -Wnested-externs \
 -                                -no-cpp-precomp
-+                                -no-cpp-precomp -I@prefix@/include
++                                -no-cpp-precomp -I@prefix@/include -L@prefix@/lib
  #else
 -# define DefaultCCOptions       -Wall -Wpointer-arith -no-cpp-precomp
-+# define DefaultCCOptions       -Wall -Wpointer-arith -no-cpp-precomp -I@prefix@/include
++# define DefaultCCOptions       -Wall -Wpointer-arith -no-cpp-precomp -I@prefix@/include -L@prefix@/lib
  #endif
  #endif
  
-@@ -96,7 +96,7 @@
+ /* flags to pass to cc when building libraries */
++#ifndef PositionIndependentCFlags
++# define PositionIndependentCFlags
++#endif
++
+ #ifndef LibraryCCOptions
+-# define LibraryCCOptions       DefaultCCOptions -fno-common
++# define LibraryCCOptions       DefaultCCOptions -fno-common PositionIndependentCFlags
+ #endif
  
  #ifdef PpcDarwinArchitecture
  # define DarwinMachineDefines   -D__powerpc__
 -# define OptimizedCDebugFlags   -O2
-+# define OptimizedCDebugFlags   -Os
++# define OptimizedCDebugFlags   -Os -mdynamic-no-pic
  # define ByteOrder              X_BIG_ENDIAN
  #endif /* PpcDarwinArchitecture */
  
-@@ -125,7 +125,7 @@
- #define BuildServer             YES
+diff -Nur xc/config/cf/darwinLib.rules xc-patched/config/cf/darwinLib.rules
+--- xc/config/cf/darwinLib.rules	Tue Jan 15 19:39:59 2002
++++ xc-patched/config/cf/darwinLib.rules	Wed Jul 31 11:52:27 2002
+@@ -1,4 +1,4 @@
+-XCOMM $XFree86: xc/config/cf/darwinLib.rules,v 1.4 2002/01/16 00:39:59 keithp Exp $
++XCOMM $XFree86: xc/config/cf/darwinLib.rules,v 1.5 2002/07/17 01:06:04 torrey Exp $
+ /*
+  * Darwin/Mac OS X shared library rules
+  */
+@@ -57,14 +57,14 @@
+  * the library gone for long periods.
+  */
+ #ifndef SharedLibraryTarget
+-#ifdef UseInstalled
+-#define LinkBuildSonameLibrary(lib) true
+-#else
+-#define LinkBuildSonameLibrary(lib) (RemoveFile($(BUILDLIBDIR)/lib); \
++# ifdef UseInstalled
++#  define LinkBuildSonameLibrary(lib) true
++# else
++#  define LinkBuildSonameLibrary(lib) (RemoveFile($(BUILDLIBDIR)/lib); \
+ 	cd $(BUILDLIBDIR); $(LN) $(BUILDINCTOP)/$(CURRENT_DIR)/lib .)
+-#endif
++# endif
  
- /* our custom X server */
--#define XDarwinServer           YES
-+#define XDarwinServer           NO
+-#define SharedLibraryTarget(libname,rev,solist,down,up)			@@\
++# define SharedLibraryTarget(libname,rev,solist,down,up)		@@\
+ AllTarget(Concat(lib,libname.rev.dylib))				@@\
+ 									@@\
+ Concat(lib,libname.rev.dylib):  solist $(EXTRALIBRARYDEPS)		@@\
+@@ -93,18 +93,18 @@
+  * SharedDepLibraryTarget - generate rules to create a shared library.
+  */
+ #ifndef SharedDepLibraryTarget
+-#ifdef UseInstalled
+-#ifndef LinkBuildSonameLibrary
+-#define LinkBuildSonameLibrary(lib) true
+-#endif
+-#else
+-#ifndef LinkBuildSonameLibrary
+-#define LinkBuildSonameLibrary(lib) (RemoveFile($(BUILDLIBDIR)/lib); \
++# ifdef UseInstalled
++#  ifndef LinkBuildSonameLibrary
++#   define LinkBuildSonameLibrary(lib) true
++#  endif
++# else
++#  ifndef LinkBuildSonameLibrary
++#   define LinkBuildSonameLibrary(lib) (RemoveFile($(BUILDLIBDIR)/lib); \
+ 	cd $(BUILDLIBDIR); $(LN) $(BUILDINCTOP)/$(CURRENT_DIR)/lib .)
+-#endif
+-#endif
++#  endif
++# endif
  
- /* Thanks to the IOKit, the X server does not have to be SetUID. */
- #ifndef InstallXserverSetUID
-@@ -142,7 +142,7 @@
- /* no Display Power Management extension */
- #define BuildDPMSExt            NO
+-#define SharedDepLibraryTarget(libname,rev,deplist,solist,down,up)	@@\
++# define SharedDepLibraryTarget(libname,rev,deplist,solist,down,up)	@@\
+ AllTarget(Concat(lib,libname.rev.dylib))				@@\
+ 									@@\
+ Concat(lib,libname.rev.dylib):  deplist $(EXTRALIBRARYDEPS)		@@\
+@@ -128,6 +128,46 @@
+ 	$(RM) Concat(lib,libname.rev.dylib) Concat(lib,libname.dylib)
  
--#define BuildLibPathVar         DYLD_LIBRARY_PATH
-+#define BuildLibPathVar         DYLD_LIBRARY_PATH -L@prefix@/lib
+ #endif /* SharedDepLibraryTarget */
++
++/*
++ * SharedDepCplusplusLibraryTarget - generate rules to create a shared library.
++ */
++#ifndef SharedDepCplusplusLibraryTarget
++# ifdef UseInstalled
++#  ifndef LinkBuildSonameLibrary
++#   define LinkBuildSonameLibrary(lib) true
++#  endif
++# else
++#  ifndef LinkBuildSonameLibrary
++#   define LinkBuildSonameLibrary(lib) (RemoveFile($(BUILDLIBDIR)/lib); \
++	cd $(BUILDLIBDIR); $(LN) $(BUILDINCTOP)/$(CURRENT_DIR)/lib .)
++#  endif
++# endif
++
++# define SharedDepCplusplusLibraryTarget(libname,rev,deplist,solist,down,up)	@@\
++AllTarget(Concat(lib,libname.rev.dylib))				@@\
++									@@\
++Concat(lib,libname.rev.dylib):  deplist $(EXTRALIBRARYDEPS)		@@\
++	$(RM) $@~							@@\
++	@MAJREV=`expr rev : '\([^.]*\)'`; \				@@\
++	  INSTALLNAME=Concat(lib,libname.$$MAJREV.dylib); \		@@\
++	  set -x; (cd down; $(CXX) -o up/$@~ $(SHLIBLDFLAGS) -install_name $(USRLIBDIR)/$$INSTALLNAME -current_version rev -compatibility_version rev solist $(REQUIREDLIBS)); \ @@\
++	  $(RM) $$INSTALLNAME; $(LN) $@ $$INSTALLNAME; \		@@\
++	  LinkBuildSonameLibrary($$INSTALLNAME)				@@\
++	$(RM) $@							@@\
++	$(MV) $@~ $@							@@\
++	@if $(SOSYMLINK); then (set -x; \				@@\
++	  $(RM) Concat(lib,libname.dylib); \				@@\
++	  $(LN) $@ Concat(lib,libname.dylib)); fi			@@\
++	LinkBuildLibrary($@)						@@\
++	LinkBuildLibraryMaybe(Concat(lib,libname.dylib),$(SOSYMLINK))	@@\
++									@@\
++clean::									@@\
++	@MAJREV=`expr rev : '\([^.]*\)'`; \				@@\
++	set -x; $(RM) Concat(lib,libname.$$MAJREV.dylib)		@@\
++	$(RM) Concat(lib,libname.rev.dylib) Concat(lib,libname.dylib)
++
++#endif /* SharedDepCplusplusLibraryTarget */
  
- /* include rules to build shared libraries */
- #include <darwinLib.rules>
-diff -Nu xc/include/Xos_r.h xc-patched/include/Xos_r.h
+ #ifndef SharedDepModuleTarget
+ #define SharedDepModuleTarget(name,deps,solist)				@@\
+diff -Nur xc/include/Xos_r.h xc-patched/include/Xos_r.h
 --- xc/include/Xos_r.h	Fri Dec 14 14:53:26 2001
-+++ xc-patched/include/Xos_r.h	Mon Jul 29 01:46:57 2002
++++ xc-patched/include/Xos_r.h	Wed Jul 31 11:52:27 2002
 @@ -254,7 +254,7 @@
   * fields.
   */
@@ -80,3 +192,246 @@ diff -Nu xc/include/Xos_r.h xc-patched/include/Xos_r.h
  static __inline__ void _Xpw_copyPasswd(_Xgetpwparams p)
  {
     memcpy(&(p).pws, (p).pwp, sizeof(struct passwd));
+diff -Nur xc/lib/GLU/libnurbs/internals/Imakefile xc-patched/lib/GLU/libnurbs/internals/Imakefile
+--- xc/lib/GLU/libnurbs/internals/Imakefile	Mon Jun 11 03:23:11 2001
++++ xc-patched/lib/GLU/libnurbs/internals/Imakefile	Wed Jul 31 11:52:27 2002
+@@ -143,8 +143,12 @@
+ 	-I$(TOP)/include \
+ 	-I$(TOP)/include/GL
+ 
+-#if SystemV4 || defined(DarwinArchitecture)
++#if SystemV4
+ OSDEFINES = -DNEEDCEILF
++#elif defined(DarwinArchitecture)
++# if OSMajorVersion <= 5
++OSDEFINES = -DNEEDCEILF
++# endif
+ #else
+ OSDEFINES = -D_EXTENSIONS_
+ #endif
+diff -Nur xc/programs/Xserver/hw/darwin/bundle/XDarwin.pbproj/astrange.pbxuser xc-patched/programs/Xserver/hw/darwin/bundle/XDarwin.pbproj/astrange.pbxuser
+--- xc/programs/Xserver/hw/darwin/bundle/XDarwin.pbproj/astrange.pbxuser	Wed Dec 31 19:00:00 1969
++++ xc-patched/programs/Xserver/hw/darwin/bundle/XDarwin.pbproj/astrange.pbxuser	Wed Jul 31 11:53:51 2002
+@@ -0,0 +1,39 @@
++// !$*UTF8*$!
++{
++	0A79E19F004499A1CE6F79C2 = {
++		activeExec = 0;
++		executables = (
++			F5FE7E8202F83F5201000105,
++		);
++	};
++	29B97313FDCFA39411CA2CEA = {
++		activeBuildStyle = 237A34C30076E37E7F000001;
++		activeExecutable = F5FE7E8202F83F5201000105;
++		activeTarget = 0A79E19F004499A1CE6F79C2;
++		executables = (
++			F5FE7E8202F83F5201000105,
++		);
++		perUserDictionary = {
++			PBXPerProjectTemplateStateSaveDate = 49823570;
++		};
++		projectwideBuildSettings = {
++		};
++		wantsIndex = 1;
++		wantsSCM = -1;
++	};
++	F5FE7E8202F83F5201000105 = {
++		activeArgIndex = 2147483647;
++		argumentStrings = (
++		);
++		debuggerPlugin = GDBDebugging;
++		enableDebugStr = 1;
++		environmentEntries = (
++		);
++		isa = PBXExecutable;
++		name = XDarwin;
++		shlibInfoDictList = (
++		);
++		sourceDirectories = (
++		);
++	};
++}
+diff -Nur xc/programs/Xserver/hw/darwin/bundle/XDarwin.pbproj/project.pbxproj xc-patched/programs/Xserver/hw/darwin/bundle/XDarwin.pbproj/project.pbxproj
+--- xc/programs/Xserver/hw/darwin/bundle/XDarwin.pbproj/project.pbxproj	Mon Jan 14 02:12:22 2002
++++ xc-patched/programs/Xserver/hw/darwin/bundle/XDarwin.pbproj/project.pbxproj	Wed Jul 31 11:53:51 2002
+@@ -3,7 +3,7 @@
+ 	archiveVersion = 1;
+ 	classes = {
+ 	};
+-	objectVersion = 32;
++	objectVersion = 38;
+ 	objects = {
+ 		01279092000747AA0A000002 = {
+ 			isa = PBXFileReference;
+@@ -324,13 +324,13 @@
+ 				0A79E1A4004499A1CE6F79C2,
+ 			);
+ 			buildSettings = {
+-				INSTALL_PATH = "";
+-				OPTIMIZATION_CFLAGS = "";
++				INSTALL_PATH = /;
+ 				OTHER_CFLAGS = "";
+ 				OTHER_LDFLAGS = "";
+ 				OTHER_REZFLAGS = "";
+ 				PRODUCT_NAME = XDarwin;
+ 				SECTORDER_FLAGS = "";
++				USE_GCC3_PFE_SUPPORT = YES;
+ 				WARNING_CFLAGS = "-Wmost -Wno-four-char-constants -Wno-unknown-pragmas";
+ 				WRAPPER_EXTENSION = app;
+ 			};
+@@ -338,12 +338,12 @@
+ 			);
+ 			isa = PBXApplicationTarget;
+ 			name = XDarwin;
+-			productInstallPath = "";
++			productInstallPath = /;
+ 			productName = XDarwin;
+ 			productReference = 0A79E19E004499A1CE6F79C2;
+ 			productSettingsXML = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+-<!DOCTYPE plist SYSTEM \"file://localhost/System/Library/DTDs/PropertyList.dtd\">
+-<plist version=\"0.9\">
++<!DOCTYPE plist PUBLIC \"-//Apple Computer//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
++<plist version=\"1.0\">
+ <dict>
+ 	<key>CFBundleDevelopmentRegion</key>
+ 	<string>English</string>
+@@ -383,7 +383,7 @@
+ 			files = (
+ 			);
+ 			isa = PBXHeadersBuildPhase;
+-			name = Headers;
++			runOnlyForDeploymentPostprocessing = 0;
+ 		};
+ 		0A79E1A1004499A1CE6F79C2 = {
+ 			buildActionMask = 2147483647;
+@@ -397,28 +397,28 @@
+ 				F54BF6ED017D506E01000001,
+ 			);
+ 			isa = PBXResourcesBuildPhase;
+-			name = "Bundle Resources";
++			runOnlyForDeploymentPostprocessing = 0;
+ 		};
+ 		0A79E1A2004499A1CE6F79C2 = {
+ 			buildActionMask = 2147483647;
+ 			files = (
+ 			);
+ 			isa = PBXSourcesBuildPhase;
+-			name = Sources;
++			runOnlyForDeploymentPostprocessing = 0;
+ 		};
+ 		0A79E1A3004499A1CE6F79C2 = {
+ 			buildActionMask = 2147483647;
+ 			files = (
+ 			);
+ 			isa = PBXFrameworksBuildPhase;
+-			name = "Frameworks & Libraries";
++			runOnlyForDeploymentPostprocessing = 0;
+ 		};
+ 		0A79E1A4004499A1CE6F79C2 = {
+ 			buildActionMask = 2147483647;
+ 			files = (
+ 			);
+ 			isa = PBXRezBuildPhase;
+-			name = "ResourceManager Resources";
++			runOnlyForDeploymentPostprocessing = 0;
+ 		};
+ 		0A79E1A600449EB2CE6F79C2 = {
+ 			fileRef = 29B97318FDCFA39411CA2CEA;
+@@ -683,6 +683,7 @@
+ 			);
+ 			buildSettings = {
+ 				COPY_PHASE_STRIP = NO;
++				OPTIMIZATION_CFLAGS = "-O0";
+ 			};
+ 			isa = PBXBuildStyle;
+ 			name = Development;
+diff -Nur xc/programs/xterm/Tekproc.c xc-patched/programs/xterm/Tekproc.c
+--- xc/programs/xterm/Tekproc.c	Sat Jan  5 17:05:02 2002
++++ xc-patched/programs/xterm/Tekproc.c	Wed Jul 31 11:55:34 2002
+@@ -104,8 +104,7 @@
+ #include <Tekparse.h>
+ #include <data.h>
+ #include <error.h>
+-#include <menu.h>
+-
++#include "menu.h"
+ #ifdef MINIX
+ #include <sys/nbio.h>
+ 
+diff -Nur xc/programs/xterm/charproc.c xc-patched/programs/xterm/charproc.c
+--- xc/programs/xterm/charproc.c	Mon Jan  7 16:02:44 2002
++++ xc-patched/programs/xterm/charproc.c	Wed Jul 31 11:54:39 2002
+@@ -122,7 +122,7 @@
+ #include <VTparse.h>
+ #include <data.h>
+ #include <error.h>
+-#include <menu.h>
++#include "menu.h"
+ #include <main.h>
+ #include <fontutils.h>
+ #include <xcharmouse.h>
+diff -Nur xc/programs/xterm/fontutils.c xc-patched/programs/xterm/fontutils.c
+--- xc/programs/xterm/fontutils.c	Mon Jun 18 15:09:26 2001
++++ xc-patched/programs/xterm/fontutils.c	Wed Jul 31 11:55:57 2002
+@@ -43,12 +43,11 @@
+ #include <fontutils.h>
+ 
+ #include <data.h>
+-#include <menu.h>
++#include "menu.h"
+ #include <xstrings.h>
+ #include <xterm.h>
+ 
+ #include <stdio.h>
+-
+ /* from X11/Xlibint.h - not all vendors install this file */
+ #define CI_NONEXISTCHAR(cs) (((cs)->width == 0) && \
+ 			     (((cs)->rbearing|(cs)->lbearing| \
+diff -Nur xc/programs/xterm/menu.c xc-patched/programs/xterm/menu.c
+--- xc/programs/xterm/menu.c	Sat Jan  5 17:05:03 2002
++++ xc-patched/programs/xterm/menu.c	Wed Jul 31 11:52:27 2002
+@@ -51,6 +51,7 @@
+ #include <xterm.h>
+ #include <data.h>
+ #include <menu.h>
++#include "menu.h"
+ #include <fontutils.h>
+ 
+ #include <X11/StringDefs.h>
+diff -Nur xc/programs/xterm/misc.c xc-patched/programs/xterm/misc.c
+--- xc/programs/xterm/misc.c	Tue Oct 23 21:21:24 2001
++++ xc-patched/programs/xterm/misc.c	Wed Jul 31 11:56:21 2002
+@@ -79,7 +79,7 @@
+ 
+ #include <data.h>
+ #include <error.h>
+-#include <menu.h>
++#include "menu.h"
+ #include <fontutils.h>
+ #include <xcharmouse.h>
+ #include <xstrings.h>
+diff -Nur xc/programs/xterm/scrollbar.c xc-patched/programs/xterm/scrollbar.c
+--- xc/programs/xterm/scrollbar.c	Sat Sep  8 21:07:26 2001
++++ xc-patched/programs/xterm/scrollbar.c	Wed Jul 31 11:56:35 2002
+@@ -66,7 +66,7 @@
+ 
+ #include <data.h>
+ #include <error.h>
+-#include <menu.h>
++#include "menu.h"
+ #include <xcharmouse.h>
+ 
+ /* Event handlers */
+diff -Nur xc/programs/xterm/util.c xc-patched/programs/xterm/util.c
+--- xc/programs/xterm/util.c	Sat Jan  5 17:05:03 2002
++++ xc-patched/programs/xterm/util.c	Wed Jul 31 11:56:47 2002
+@@ -62,7 +62,7 @@
+ 
+ #include <data.h>
+ #include <error.h>
+-#include <menu.h>
++#include "menu.h"
+ #include <fontutils.h>
+ 
+ #if OPT_WIDE_CHARS
