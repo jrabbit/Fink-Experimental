@@ -1,17 +1,28 @@
 
 ===================================================================
-diff -u -u -r1.1.1.5 acinclude.m4.in
---- admin/acinclude.m4.in	29 Oct 2002 02:27:18 -0000	1.1.1.5
-+++ admin/acinclude.m4.in	14 Nov 2002 20:43:32 -0000
-@@ -31,6 +31,7 @@
+diff -u -u -r1.1.1.7 acinclude.m4.in
+--- admin/acinclude.m4.in	20 Nov 2002 00:45:10 -0000	1.1.1.7
++++ admin/acinclude.m4.in	24 Nov 2002 06:59:54 -0000
+@@ -31,6 +31,9 @@
  dnl thanks to Raja R Harinath.
  dnl ------------------------------------------------------------------------
  dnl
 +
++USER_LDFLAGS="-multiply_defined suppress $USER_LDFLAGS"
++
  ifdef([_AC_PATH_X_XMKMF],[],
     [AC_DEFUN([_AC_PATH_X_XMKMF],[AC_PATH_X_XMKMF])])
  ifdef([AC_OUTPUT_SUBDIRS],[],
-@@ -704,13 +705,10 @@
+@@ -366,7 +369,7 @@
+   fi
+ 
+ AC_MSG_CHECKING([for KDE libraries installed])
+-ac_link='$LIBTOOL_SHELL --silent --mode=link ${CXX-g++} -o conftest $CXXFLAGS $all_includes $CPPFLAGS $LDFLAGS $all_libraries conftest.$ac_ext $LIBS -lkdecore $LIBQT $KDE_TEST_RPATH 1>&5'
++ac_link='$LIBTOOL_SHELL --mode=link ${CXX-g++} -o conftest $CXXFLAGS $all_includes $CPPFLAGS $LDFLAGS $all_libraries conftest.$ac_ext $LIBS -lkdecore $LIBQT $KDE_TEST_RPATH 1>&5'
+ 
+ if AC_TRY_EVAL(ac_link) && test -s conftest; then
+   AC_MSG_RESULT(yes)
+@@ -704,13 +707,10 @@
       AC_CHECK_LIB(ipc, shmat, X_EXTRA_LIBS="$X_EXTRA_LIBS -lipc"))
     
     # darwin needs this to initialize the environment
@@ -27,7 +38,7 @@ diff -u -u -r1.1.1.5 acinclude.m4.in
     AC_CHECK_LIB(poll, poll, LIB_POLL="-lpoll")
  
     # CoreAudio framework
-@@ -719,11 +717,36 @@
+@@ -719,11 +719,36 @@
       FRAMEWORK_COREAUDIO="-framework CoreAudio"
     ])
  
@@ -65,7 +76,7 @@ diff -u -u -r1.1.1.5 acinclude.m4.in
     AC_SUBST(LIBRESOLV)
     AC_SUBST(X_EXTRA_LIBS)
     AC_CHECK_LIB(ucb, killpg, [LIBUCB="-lucb"]) dnl for Solaris2.4
-@@ -932,7 +955,7 @@
+@@ -932,7 +957,7 @@
  kde_ldflags_safe="$LDFLAGS"
  kde_libs_safe="$LIBS"
  
@@ -74,7 +85,7 @@ diff -u -u -r1.1.1.5 acinclude.m4.in
  LIBS="-lXext -lX11 $LIBSOCKET"
  
  AC_TRY_LINK([
-@@ -974,9 +997,9 @@
+@@ -974,9 +999,9 @@
  kde_save_LDFLAGS="$LDFLAGS"
  kde_save_CFLAGS="$CFLAGS"
  kde_save_LIBS="$LIBS"
@@ -86,51 +97,25 @@ diff -u -u -r1.1.1.5 acinclude.m4.in
  
  if test "x$no_xinerama" = "xno"; then
  
-@@ -1844,7 +1867,7 @@
+@@ -1844,7 +1869,7 @@
   kde_cxxflags_safe="$CXXFLAGS"
  
   LIBS="-lkde-qt-addon $LIBQT $LIBS"
 - CXXFLAGS="$CXXFLAGS -I$prefix/include -I$prefix/include/kde $all_includes"
-+ CXXFLAGS="$CXXFLAGS $all_includes"
++ CXXFLAGS="-isystem $prefix/include $CXXFLAGS $all_includes"
   LDFLAGS="$LDFLAGS $all_libraries $USER_LDFLAGS"
  
   AC_TRY_LINK([
-@@ -1907,15 +1930,29 @@
-    AC_REQUIRE([K_PATH_X])
- 
- if test $kde_qtver = 3; then
-+   AC_SUBST(LIB_ARTSKDE, "-lartskde")
-+   AC_SUBST(LIB_DCOP, "-lDCOP")
-+   AC_SUBST(LIB_KAB, "-lkab")
-+   AC_SUBST(LIB_KABC, "-lkabc")
-    AC_SUBST(LIB_KDECORE, "-lkdecore")
-+   AC_SUBST(LIB_KDED, "@PREFIX@/lib/kded.la")
-+   AC_SUBST(LIB_KDEFX, "-lkdefx")
-+   AC_SUBST(LIB_KDEPRINT, "-lkdeprint")
-+   AC_SUBST(LIB_KDESASL, "-lkdesasl")
-+   AC_SUBST(LIB_KDESU, "-lkdesu")
-    AC_SUBST(LIB_KDEUI, "-lkdeui")
--   AC_SUBST(LIB_KIO, "-lkio")
--   AC_SUBST(LIB_SMB, "-lsmb")
--   AC_SUBST(LIB_KAB, "-lkab")
+@@ -1916,7 +1941,7 @@
     AC_SUBST(LIB_KHTML, "-lkhtml")
--   AC_SUBST(LIB_KSPELL, "-lkspell")
-+   AC_SUBST(LIB_KIO, "-lkio")
+    AC_SUBST(LIB_KSPELL, "-lkspell")
     AC_SUBST(LIB_KPARTS, "-lkparts")
 -   AC_SUBST(LIB_KDEPRINT, "-lkdeprint")
-+   AC_SUBST(LIB_KJAVA, "-lkjava")
-+   AC_SUBST(LIB_KJS, "-lkjs")
-+   AC_SUBST(LIB_KMID, "-lkmid")
-+   AC_SUBST(LIB_KSCRIPT, "-lkscript")
-+   AC_SUBST(LIB_KSPELL, "-lkspell")
-+   AC_SUBST(LIB_KTEXTEDITOR, "-lktexteditor")
-+   AC_SUBST(LIB_SHELLSCRIPT, "-lshellscript")
-+   AC_SUBST(LIB_SMB, "-lsmb")
-+   AC_SUBST(LIB_VCARD, "-lvcard")
++   AC_SUBST(LIB_KDED, "@PREFIX@/lib/kded.la")
  # these are for backward compatibility
     AC_SUBST(LIB_KSYCOCA, "-lkio")
     AC_SUBST(LIB_KFILE, "-lkio")
-@@ -2646,10 +2683,10 @@
+@@ -2647,10 +2672,10 @@
        if test $kde_use_debug_code = "full"; then
          CFLAGS="-g3 $CFLAGS"
        else
@@ -143,7 +128,7 @@ diff -u -u -r1.1.1.5 acinclude.m4.in
      fi
    fi
  
-@@ -2679,7 +2716,7 @@
+@@ -2680,7 +2705,7 @@
          if test "$kde_use_debug_code" = "full"; then
            CXXFLAGS="-g3 $CXXFLAGS"
          else
@@ -152,7 +137,7 @@ diff -u -u -r1.1.1.5 acinclude.m4.in
          fi
        fi
        KDE_CHECK_COMPILER_FLAG(fno-builtin,[CXXFLAGS="-fno-builtin $CXXFLAGS"])
-@@ -2691,7 +2728,7 @@
+@@ -2692,7 +2717,7 @@
        if test "$CXX" = "KCC"; then
          CXXFLAGS="+K3 $CXXFLAGS"
        else
@@ -161,7 +146,25 @@ diff -u -u -r1.1.1.5 acinclude.m4.in
        fi  
      fi
    fi
-@@ -3188,9 +3225,9 @@
+@@ -2832,7 +2857,7 @@
+ AC_LIBTOOL_CXX
+ 
+ LIBTOOL_SHELL="/bin/sh ./libtool"
+-#  LIBTOOL="$LIBTOOL --silent"
++#  LIBTOOL="$LIBTOOL"
+ KDE_PLUGIN="-avoid-version -module -no-undefined \$(KDE_RPATH) \$(KDE_MT_LDFLAGS)"
+ AC_SUBST(KDE_PLUGIN)
+ 
+@@ -2888,7 +2913,7 @@
+ [
+ AC_CANONICAL_SYSTEM
+ AC_ARG_PROGRAM
+-AM_INIT_AUTOMAKE($1, $2)
++AM_INIT_AUTOMAKE($1, $2, [foreign])
+ AM_DISABLE_LIBRARIES
+ AC_PREFIX_DEFAULT(${KDEDIR:-/usr/local/kde})
+ AC_CHECK_COMPILERS
+@@ -3189,9 +3214,9 @@
      ac_save_ldflags="$LDFLAGS"
      ac_save_cflags="$CFLAGS"
      if test "x$kde_use_qt_emb" != "xyes"; then
@@ -173,8 +176,55 @@ diff -u -u -r1.1.1.5 acinclude.m4.in
      fi
      CFLAGS="$CFLAGS $X_INCLUDES $USER_INCLUDES"
      test -n "$XPM_INCLUDE" && CFLAGS="-I$XPM_INCLUDE $CFLAGS"
-@@ -4625,6 +4662,83 @@
- 	done
+@@ -3418,13 +3443,23 @@
+           AC_CHECK_LIB(pam, pam_start,
+             [ AC_CHECK_HEADER(security/pam_appl.h,
+                 [ use_pam=yes
+-                  pam_service=kde ]) 
++		  pam_header=security/pam_appl.h
++                  pam_service=kde ],
++		[ AC_CHECK_HEADER(pam/pam_appl.h,
++			[ use_pam=yes
++			  pam_header=pam/pam_appl.h
++			  pam_service=kde ])
++		]) 
+             ], , $LIBDL)
+           ac_cv_path_pam="use_pam=$use_pam pam_service=$pam_service"
+         ])
+     ])
+   eval "$ac_cv_path_pam"
+ 
++  if test "$pam_header" = "pam/pam_appl.h"; then
++    AC_DEFINE(PAM_HEADER_IN_PAM, 1, [Define if your pam headers are in pam/ instead of security/])
++  fi
++
+   AC_MSG_CHECKING(for PAM)
+   if test "x$use_pam" = xno; then
+     AC_MSG_RESULT(no)
+@@ -3434,17 +3469,18 @@
+     AC_DEFINE(HAVE_PAM, 1, [Defines if you have PAM (Pluggable Authentication Modules)])
+     PAMLIBS="$PAM_MISC_LIB -lpam $LIBDL"
+ 
++    AC_CHECK_HEADERS([pam/pam_appl.h])
++
+     dnl test whether struct pam_message is const (Linux) or not (Sun)
+     AC_MSG_CHECKING(for const pam_message)
+-    AC_EGREP_HEADER([struct pam_message], security/pam_appl.h,
+-      [ AC_EGREP_HEADER([const struct pam_message], security/pam_appl.h,
++    AC_EGREP_HEADER([struct pam_message], $pam_header,
++      [ AC_EGREP_HEADER([const struct pam_message], $pam_header,
+                         [AC_MSG_RESULT([const: Linux-type PAM])],
+                         [AC_MSG_RESULT([nonconst: Sun-type PAM])
+                         AC_DEFINE(PAM_MESSAGE_NONCONST, 1, [Define if your PAM support takes non-const arguments (Solaris)])]
+                         )],
+       [AC_MSG_RESULT([not found - assume const, Linux-type PAM])])
+   fi
+-
+   AC_SUBST(PAMLIBS)
+ ])
+ 
+@@ -4604,6 +4640,83 @@
+      LIBS="$kde_save_LIBS"
  ])
  
 +AC_DEFUN(KDE_CHECK_LDAP,
@@ -254,10 +304,10 @@ diff -u -u -r1.1.1.5 acinclude.m4.in
 +  fi
 +])
 +
- dnl KDE_CHEC_JAVA_DIR(onlyjre)
- AC_DEFUN(KDE_CHECK_JAVA_DIR,
+ AC_DEFUN(KDE_JAVA_PREFIX,
  [
-@@ -4659,6 +4773,7 @@
+ 	dir=`dirname "$1"`
+@@ -4660,6 +4773,7 @@
        KDE_JAVA_PREFIX(/usr/lib/IBMJava2*)
        KDE_JAVA_PREFIX(/usr/lib/IBMJava*)
        KDE_JAVA_PREFIX(/opt/java*)
@@ -265,7 +315,7 @@ diff -u -u -r1.1.1.5 acinclude.m4.in
      
        kde_cv_path="NONE"
        kde_save_IFS=$IFS
-@@ -4710,10 +4825,20 @@
+@@ -4711,10 +4825,20 @@
  dnl At this point kde_java_bindir and kde_java_includedir are either set or "no"
  if test "x$kde_java_bindir" != "xno"; then
  
@@ -287,7 +337,7 @@ diff -u -u -r1.1.1.5 acinclude.m4.in
  
    dnl Now check everything's fine under there
    dnl the include dir is our flag for having the JDK
-@@ -4742,19 +4867,31 @@
+@@ -4743,19 +4867,31 @@
      JAVAC=
      jni_includes=
    fi
@@ -324,7 +374,7 @@ diff -u -u -r1.1.1.5 acinclude.m4.in
    if test -n "$jni_includes"; then
      dnl Check for JNI version
      AC_LANG_SAVE
-@@ -5118,8 +5255,7 @@
+@@ -5119,8 +5255,7 @@
    LDFLAGS="$LDFLAGS -L$ssl_libdir $all_libraries"
    LIBS="$LIBS $LIBSSL -lRSAglue -lrsaref"
  
@@ -335,18 +385,33 @@ diff -u -u -r1.1.1.5 acinclude.m4.in
    ac_ssl_rsaref="no"
    )
 ===================================================================
-diff -u -u -r1.1.1.2 -r1.3
---- admin/detect-autoconf.sh	29 Oct 2002 02:27:20 -0000	1.1.1.2
-+++ admin/detect-autoconf.sh	29 Oct 2002 02:29:54 -0000	1.3
-@@ -42,12 +42,12 @@
+diff -u -u -r1.1.1.7 cvs.sh
+--- admin/cvs.sh	20 Nov 2002 00:45:12 -0000	1.1.1.7
++++ admin/cvs.sh	24 Nov 2002 06:59:54 -0000
+@@ -119,7 +119,7 @@
+ fi
+ 
+ echo "*** Creating Makefile templates"
+-$AUTOMAKE || exit 1
++$AUTOMAKE --foreign || exit 1
+ if test -z "$UNSERMAKE"; then
+   echo "*** Postprocessing Makefile templates"
+   perl -w admin/am_edit || exit 1
+===================================================================
+diff -u -u -r1.1.1.4 detect-autoconf.sh
+--- admin/detect-autoconf.sh	20 Nov 2002 00:45:12 -0000	1.1.1.4
++++ admin/detect-autoconf.sh	24 Nov 2002 06:59:54 -0000
+@@ -42,12 +42,15 @@
  checkAutomakeAclocal ()
  {
    if test -z "$UNSERMAKE"; then
 -    if test -x "`$WHICH automake-1.5`" ; then
 -      AUTOMAKE="`$WHICH automake-1.5`"
 -      ACLOCAL="`$WHICH aclocal-1.5`"
--    elif test -x "`$WHICH automake-1.6`" ; then
-+    if test -x "`$WHICH automake-1.6`" ; then
++    if test -x "`$WHICH automake-1.7`" ; then
++      AUTOMAKE="`$WHICH automake-1.7`"
++      ACLOCAL="`$WHICH aclocal-1.7`"
+     elif test -x "`$WHICH automake-1.6`" ; then
        AUTOMAKE="`$WHICH automake-1.6`"
        ACLOCAL="`$WHICH aclocal-1.6`"
 +    elif test -x "`$WHICH automake-1.5`" ; then
@@ -356,9 +421,18 @@ diff -u -u -r1.1.1.2 -r1.3
    else
       AUTOMAKE="$UNSERMAKE"
 ===================================================================
-diff -u -u -r1.1.1.3 -r1.8
---- admin/libtool.m4.in	14 Aug 2002 13:18:45 -0000	1.1.1.3
-+++ admin/libtool.m4.in	11 Nov 2002 20:56:47 -0000	1.8
+diff -u -u -r1.1.1.5 libtool.m4.in
+--- admin/libtool.m4.in	20 Nov 2002 00:45:13 -0000	1.1.1.5
++++ admin/libtool.m4.in	24 Nov 2002 06:59:55 -0000
+@@ -65,7 +65,7 @@
+ LIBTOOL_DEPS="$ac_aux_dir/ltmain.sh"
+ 
+ # Always use our own libtool.
+-LIBTOOL='$(SHELL) $(top_builddir)/libtool --silent'
++LIBTOOL='$(SHELL) $(top_builddir)/libtool'
+ AC_SUBST(LIBTOOL)dnl
+ 
+ # Prevent multiple expansion
 @@ -609,6 +609,12 @@
      lt_cv_sys_max_cmd_len=-1;
      ;;
@@ -372,46 +446,29 @@ diff -u -u -r1.1.1.3 -r1.8
    *)
      # If test is not a shell built-in, we'll probably end up computing a
      # maximum length that is only half of the actual maximum length, but
-@@ -1132,7 +1138,7 @@
- darwin* | rhapsody*)
-   dynamic_linker="$host_os dyld"
-   version_type=darwin
--  need_lib_prefix=no
-+  need_lib_prefix=yes
-   need_version=no
-   # FIXME: Relying on posixy $() will cause problems for
-   #        cross-compilation, but unfortunately the echo tests do not
-@@ -1901,16 +1907,7 @@
-   ;;
- 
- darwin* | rhapsody*)
--  lt_cv_deplibs_check_method='file_magic Mach-O dynamically linked shared library'
--  lt_cv_file_magic_cmd='/usr/bin/file -L'
--  case "$host_os" in
--  rhapsody* | darwin1.[[012]])
--    lt_cv_file_magic_test_file=`/System/Library/Frameworks/System.framework/System`
--    ;;
--  *) # Darwin 1.3 on
+@@ -1908,7 +1914,8 @@
+     lt_cv_file_magic_test_file=`/System/Library/Frameworks/System.framework/System`
+     ;;
+   *) # Darwin 1.3 on
 -    lt_cv_file_magic_test_file='/usr/lib/libSystem.dylib'
--    ;;
--  esac
-+  lt_cv_deplibs_check_method='pass_all'
++    lt_cv_deplibs_check_method='pass_all'
++    lt_cv_file_magic_cmd=''
+     ;;
+   esac
    ;;
- 
- freebsd*)
-@@ -2560,6 +2557,11 @@
+@@ -2560,6 +2567,11 @@
  	;;
      esac
      ;;
 +  darwin*)
 +    shared_flag='-dynamiclib'
-+    _LT_AC_TAGVAR(archive_cmds, $1)='$CC -r -keep_private_externs -nostdlib -o ${lib}-master.o $libobjs && $CC -dynamiclib -install_name $rpath/$soname $predep_objects ${lib}-master.o $deplibs $postdep_objects $compiler_flags -o $lib'
-+    output_verbose_link_cmd='$CC -dynamiclib $CFLAGS -v conftest.$objext 2>&1 | egrep "\-L"'
++    _LT_AC_TAGVAR(archive_cmds, $1)='$CC -r -keep_private_externs -nostdlib -o ${lib}-master.o $libobjs && $CC $(test .$module = .yes && echo -bundle || echo -dynamiclib) $predep_objects ${lib}-master.o $deplibs $postdep_objects $compiler_flags -o $lib $(test x$module != xyes && echo -install_name $rpath/$soname $verstring)'
++    output_verbose_link_cmd='$CC $(test .$module = .yes && echo -bundle || echo -dynamiclib) $CFLAGS -v conftest.$objext 2>&1 | egrep "\-L"'
 +    ;;
    dgux*)
      case $cc_basename in
        ec++)
-@@ -4750,7 +4752,9 @@
+@@ -4750,7 +4762,9 @@
  	_LT_AC_TAGVAR(allow_undefined_flag, $1)='-undefined suppress'
  	;;
        *) # Darwin 1.3 on
@@ -422,7 +479,7 @@ diff -u -u -r1.1.1.3 -r1.8
  	;;
        esac
  
-@@ -4758,7 +4762,7 @@
+@@ -4758,7 +4772,7 @@
        #        cross-compilation, but unfortunately the echo tests do not
        #        yet detect zsh echo's removal of \ escapes.  Also zsh mangles
        #	       `"' quotes if we put them in here... so don't!
@@ -432,9 +489,26 @@ diff -u -u -r1.1.1.3 -r1.8
        #_LT_AC_TAGVAR(archive_expsym_cmds, $1)="$_LT_AC_TAGVAR(archive_cmds, $1)"' && strip -s $export_symbols'
        _LT_AC_TAGVAR(hardcode_direct, $1)=yes
 ===================================================================
-diff -u -u -r1.1.1.2 -r1.4
---- admin/ltmain.sh	10 Jul 2002 02:47:39 -0000	1.1.1.2
-+++ admin/ltmain.sh	13 Jul 2002 04:33:25 -0000	1.4
+diff -u -u -r1.1.1.4 ltmain.sh
+--- admin/ltmain.sh	20 Nov 2002 00:45:14 -0000	1.1.1.4
++++ admin/ltmain.sh	24 Nov 2002 06:59:56 -0000
+@@ -2532,11 +2532,11 @@
+ 	eval libname=\"$libname_spec\"
+ 	;;
+       *)
+-	if test "$module" = no; then
+-	  $echo "$modename: libtool library \`$output' must begin with \`lib'" 1>&2
+-	  $echo "$help" 1>&2
+-	  exit 1
+-	fi
++#	if test "$module" = no; then
++#	  $echo "$modename: libtool library \`$output' must begin with \`lib'" 1>&2
++#	  $echo "$help" 1>&2
++#	  exit 1
++#	fi
+ 	if test "$need_lib_prefix" != no; then
+ 	  # Add the "lib" prefix for modules if required
+ 	  name=`$echo "X$outputname" | $Xsed -e 's/\.la$//'`
 @@ -3321,7 +3321,23 @@
  	if test -n "$export_symbols" && test -n "$archive_expsym_cmds"; then
  	  eval cmds=\"$archive_expsym_cmds\"
@@ -473,29 +547,41 @@ diff -u -u -r1.1.1.2 -r1.4
  	  fi
  
  	  # Append the command to remove the reloadable object files
-@@ -3632,6 +3653,14 @@
- 	compile_deplibs=`$echo "X $compile_deplibs" | $Xsed -e 's/ -lc / -framework System /'`
- 	finalize_deplibs=`$echo "X $finalize_deplibs" | $Xsed -e 's/ -lc / -framework System /'`
+@@ -3634,6 +3655,14 @@
  	;;
-+      esac
-+
+       esac
+ 
 +      case $host in
 +      *darwin*)
 +        # Don't allow lazy linking, it breaks C++ global constructors
-+        compile_command="$compile_command ${wl}-bind_at_load"
++        compile_command="$compile_command ${wl}-bind_at_load -undefined suppress -flat_namespace"
 +        finalize_command="$finalize_command ${wl}-bind_at_load"
 +        ;;
-       esac
- 
++      esac
++
        compile_command="$compile_command $compile_deplibs"
+       finalize_command="$finalize_command $finalize_deplibs"
+ 
+@@ -4024,9 +4053,10 @@
+ 	    # fast_install is set to needless
+ 	    relink_command=
+ 	  fi
++          relink_command=
+ 	else
+ 	  link_command="$compile_var$compile_command$compile_rpath"
+-	  relink_command="$finalize_var$finalize_command$finalize_rpath"
++	  #relink_command="$finalize_var$finalize_command$finalize_rpath"
+ 	fi
+       fi
+ 
 ===================================================================
 diff -u -u -r1.1.1.4 -r1.5
 ===================================================================
 diff -u -u -r1.1.1.3 -r1.5
 ===================================================================
-diff -u -u -r1.1.1.3 -r1.4
+diff -u -u -r1.1.1.3 -r1.5
 --- configure.in.in	29 Oct 2002 02:36:25 -0000	1.1.1.3
-+++ configure.in.in	29 Oct 2002 02:58:39 -0000	1.4
++++ configure.in.in	23 Nov 2002 03:50:33 -0000	1.5
 @@ -191,6 +191,18 @@
  AC_SUBST(LIB_KDEUI, '$(top_builddir)/kdeui/libkdeui.la')
  AC_SUBST(LIB_KIO, '$(top_builddir)/kio/libkio.la')
@@ -510,7 +596,7 @@ diff -u -u -r1.1.1.3 -r1.4
 +AC_SUBST(LIB_KDEFX, '$(top_builddir)/kdefx/libkdefx.la')
 +AC_SUBST(LIB_KSPELL, '$(top_builddir)/kspell/libkspell.la')
 +AC_SUBST(LIB_KDEPRINT, '$(top_builddir)/kdeprint/libkdeprint.la')
-+AC_SUBST(LIB_KDED, '$(top_builddir)/kded/kded.la')
++AC_SUBST(LIB_KDED, '$(top_builddir)/kded/libkded.la')
 +AC_SUBST(LIB_KDEFAKES, '$(top_builddir)/kdecore/libkdefakes.la')
  
  AC_SUBST(EXTRA_SUBDIRS)
@@ -518,27 +604,99 @@ diff -u -u -r1.1.1.3 -r1.4
 ===================================================================
 diff -u -u -r1.1.1.3 -r1.5
 ===================================================================
-diff -u -u -r1.1.1.2 -r1.6
+diff -u -u -r1.1.1.2 Makefile.am
 --- ./arts/knotify/Makefile.am	10 Jul 2002 04:41:09 -0000	1.1.1.2
-+++ ./arts/knotify/Makefile.am	15 Jul 2002 23:02:47 -0000	1.6
-@@ -7,7 +7,7 @@
++++ ./arts/knotify/Makefile.am	24 Nov 2002 07:05:29 -0000
+@@ -7,8 +7,8 @@
  lib_LTLIBRARIES = knotify.la
  
  knotify_la_SOURCES	= knotify.cpp knotify.skel
 -knotify_la_LIBADD	= -lsoundserver_idl -lqtmcop $(LIB_KDEUI)
-+knotify_la_LIBADD	= -lsoundserver_idl -lqtmcop $(LIB_KDEUI) $(LIB_KDECORE) -lartsflow -lkmedia2_idl -lartsflow_idl -lmcop
- knotify_la_LDFLAGS = $(all_libraries) -module -avoid-version
+-knotify_la_LDFLAGS = $(all_libraries) -module -avoid-version
++knotify_la_LIBADD	= -lsoundserver_idl -lqtmcop $(LIB_KDEUI) -lmcop -lkmedia2 -lartsflow_idl -lkmedia2_idl
++knotify_la_LDFLAGS = $(all_libraries) -avoid-version -multiply_defined suppress
  knotify_la_METASOURCES = AUTO
  
+ knotify_SOURCES = dummy.cpp
 ===================================================================
-diff -u -u -r1.1.1.5 -r1.5
---- ./kabc/Makefile.am	29 Oct 2002 02:36:40 -0000	1.1.1.5
-+++ ./kabc/Makefile.am	29 Oct 2002 02:58:39 -0000	1.5
-@@ -5,7 +5,7 @@
+diff -u -u -r1.1.1.4 Makefile.am
+--- ./dcop/Makefile.am	1 Oct 2002 03:04:42 -0000	1.1.1.4
++++ ./dcop/Makefile.am	24 Nov 2002 07:05:29 -0000
+@@ -45,9 +45,9 @@
+ # dcopstub needs to go first for --enable-final to work
+ libDCOP_la_SOURCES = dcopstub.cpp dcopref.cpp dcopobject.cpp dcopclient.cpp
+ 
+-dcopserver_la_LDFLAGS = -module -avoid-version $(all_libraries)
++dcopserver_la_LDFLAGS = -avoid-version $(all_libraries)
+ dcopserver_la_SOURCES = dcopserver.cpp dcopsignals.cpp
+-dcopserver_la_LIBADD   = libDCOP.la
++dcopserver_la_LIBADD  = libDCOP.la
+ 
+ dcopserver_LDFLAGS = $(KDE_RPATH) $(all_libraries)
+ dcopserver_SOURCES = dummy.cpp
+===================================================================
+diff -u -u -r1.1.1.1 Makefile.am
+--- ./interfaces/kmediaplayer/Makefile.am	10 Jul 2002 04:41:58 -0000	1.1.1.1
++++ ./interfaces/kmediaplayer/Makefile.am	24 Nov 2002 07:05:29 -0000
+@@ -3,7 +3,7 @@
+ lib_LTLIBRARIES = libkmediaplayer.la
+ 
+ libkmediaplayer_la_SOURCES = player.cpp playerdcopobject.skel view.cpp
+-libkmediaplayer_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -no-undefined
++libkmediaplayer_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -no-undefined -avoid-version
+ libkmediaplayer_la_LIBADD = $(LIB_KPARTS)
+ libkmediaplayer_la_METASOURCES = AUTO
+ 
+===================================================================
+diff -u -u -r1.1.1.2 Makefile.am
+--- ./interfaces/kscript/Makefile.am	10 Jul 2002 04:41:59 -0000	1.1.1.2
++++ ./interfaces/kscript/Makefile.am	24 Nov 2002 07:05:29 -0000
+@@ -9,7 +9,7 @@
+ #libkscriptloader_la_LIBADD = $(LIB_KPARTS)
+ 
+ libkscript_la_SOURCES = scriptmanager.cpp
+-libkscript_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -no-undefined
++libkscript_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -no-undefined -avoid-version
+ libkscript_la_LIBADD = $(LIB_KIO)
+ 
+ kscriptinclude_HEADERS = scriptinterface.h scriptclientinterface.h scriptmanager.h
+===================================================================
+diff -u -u -r1.1.1.1 Makefile.am
+--- ./interfaces/kscript/sample/Makefile.am	25 Jun 2002 02:46:54 -0000	1.1.1.1
++++ ./interfaces/kscript/sample/Makefile.am	24 Nov 2002 07:05:29 -0000
+@@ -3,7 +3,7 @@
+ lib_LTLIBRARIES = libshellscript.la
+ 
+ libshellscript_la_SOURCES = shellscript.cpp
+-libshellscript_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -no-undefined
++libshellscript_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -no-undefined -avoid-version
+ libshellscript_la_LIBADD = ../libkscript.la
+ 
+ 
+===================================================================
+diff -u -u -r1.1.1.3 Makefile.am
+--- ./interfaces/ktexteditor/Makefile.am	14 Aug 2002 14:00:12 -0000	1.1.1.3
++++ ./interfaces/ktexteditor/Makefile.am	24 Nov 2002 07:05:29 -0000
+@@ -21,7 +21,7 @@
+     viewstatusmsgdcopinterface.skel selectioninterfaceext.cpp selectionextdcopinterface.skel
+     
+     
+-libktexteditor_la_LDFLAGS = $(all_libraries) $(KDE_RPATH)
++libktexteditor_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -avoid-version
+ libktexteditor_la_LIBADD = $(LIB_KPARTS) $(top_builddir)/dcop/libDCOP.la
+ 
+ ktexteditorinclude_HEADERS = document.h view.h editor.h plugin.h editinterface.h undointerface.h \
+===================================================================
+diff -u -u -r1.1.1.6 Makefile.am
+--- ./kabc/Makefile.am	20 Nov 2002 00:54:01 -0000	1.1.1.6
++++ ./kabc/Makefile.am	24 Nov 2002 07:05:30 -0000
+@@ -4,8 +4,8 @@
+   -I$(top_srcdir)/kabc -I$(top_srcdir)/kab $(all_includes)
  
  lib_LTLIBRARIES   = libkabc.la
- libkabc_la_LDFLAGS = $(all_libraries) -no-undefined -version-info 2:0:1 -module
+-libkabc_la_LDFLAGS = $(all_libraries) -no-undefined -version-info 2:0:1 -module
 -libkabc_la_LIBADD  = vcard/libvcard.la ../kdeui/libkdeui.la ../kio/libkio.la
++libkabc_la_LDFLAGS = $(all_libraries) -no-undefined -version-info 2:0:1
 +libkabc_la_LIBADD  = $(top_builddir)/kabc/vcard/libvcard.la $(top_builddir)/kdeui/libkdeui.la $(top_builddir)/kio/libkio.la
  
  libkabc_la_SOURCES = \
@@ -668,17 +826,42 @@ diff -u -u -r1.1.1.2 -r1.2
  # let automoc handle all of the meta source files (moc)
  METASOURCES = AUTO
 ===================================================================
-diff -u -u -r1.1.1.2 -r1.3
+diff -u -u -r1.1.1.2 Makefile.am
 --- ./kabc/vcard/Makefile.am	10 Jul 2002 04:42:34 -0000	1.1.1.2
-+++ ./kabc/vcard/Makefile.am	10 Jul 2002 05:12:43 -0000	1.3
-@@ -6,7 +6,7 @@
- lib_LTLIBRARIES = libvcard.la
++++ ./kabc/vcard/Makefile.am	24 Nov 2002 07:05:30 -0000
+@@ -7,6 +7,7 @@
  
  libvcard_la_SOURCES = vCard-all.cpp
--libvcard_la_LIBADD = $(LIB_KDECORE)
-+libvcard_la_LIBADD = $(all_libraries) $(LIB_QT) $(LIB_KDECORE)
+ libvcard_la_LIBADD = $(LIB_KDECORE)
++libvcard_la_LDFLAGS = -avoid-version
  
  check_PROGRAMS = testwrite testread
+ 
+===================================================================
+diff -u -u -r1.1.1.2 Makefile.am
+--- ./kate/interfaces/Makefile.am	10 Jul 2002 04:42:56 -0000	1.1.1.2
++++ ./kate/interfaces/Makefile.am	24 Nov 2002 07:05:30 -0000
+@@ -4,7 +4,7 @@
+ 
+ libkatepartinterfaces_la_SOURCES = interfaces.cpp
+ libkatepartinterfaces_la_LIBADD   = $(top_builddir)/interfaces/ktexteditor/libktexteditor.la
+-libkatepartinterfaces_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -no-undefined
++libkatepartinterfaces_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -no-undefined -avoid-version
+ 
+ kateinclude_HEADERS = document.h view.h
+ kateincludedir = $(includedir)/kate
+===================================================================
+diff -u -u -r1.1.1.1 Makefile.am
+--- ./kconf_update/Makefile.am	25 Jun 2002 02:46:55 -0000	1.1.1.1
++++ ./kconf_update/Makefile.am	24 Nov 2002 07:05:30 -0000
+@@ -27,7 +27,7 @@
+ 
+ kconf_update_la_SOURCES = kconf_update.cpp
+ kconf_update_la_LIBADD = ../kdecore/libkdecore.la
+-kconf_update_la_LDFLAGS = $(all_libraries) -module -avoid-version
++kconf_update_la_LDFLAGS = $(all_libraries) -avoid-version
+ 
+ METASOURCES = AUTO
  
 ===================================================================
 diff -u -u -r1.1.1.4 -r1.2
@@ -715,10 +898,10 @@ diff -u -u -r1.1.1.3 -r1.4
      if ( (*s_trashPath)[0] != '/' )
        s_trashPath->prepend( QDir::homeDirPath() + "/" );
 ===================================================================
-diff -u -u -r1.1.1.7 -r1.3
---- ./kdecore/kiconloader.cpp	5 Nov 2002 00:03:29 -0000	1.1.1.7
-+++ ./kdecore/kiconloader.cpp	5 Nov 2002 00:16:44 -0000	1.3
-@@ -386,7 +386,7 @@
+diff -u -u -r1.1.1.8 -r1.4
+--- ./kdecore/kiconloader.cpp	20 Nov 2002 00:54:18 -0000	1.1.1.8
++++ ./kdecore/kiconloader.cpp	20 Nov 2002 01:07:12 -0000	1.4
+@@ -438,7 +438,7 @@
      return icon;
  }
  
@@ -728,9 +911,9 @@ diff -u -u -r1.1.1.7 -r1.3
      static const QString &str_unknown = KGlobal::staticQString("unknown");
  
 ===================================================================
-diff -u -u -r1.1.1.2 -r1.5
+diff -u -u -r1.1.1.2 klibloader.cpp
 --- ./kdecore/klibloader.cpp	10 Jul 2002 04:43:40 -0000	1.1.1.2
-+++ ./kdecore/klibloader.cpp	14 Nov 2002 21:41:20 -0000	1.5
++++ ./kdecore/klibloader.cpp	24 Nov 2002 07:05:30 -0000
 @@ -366,13 +366,8 @@
      else
      {
@@ -747,33 +930,78 @@ diff -u -u -r1.1.1.2 -r1.5
        if ( libfile.isEmpty() )
        {
 ===================================================================
-diff -u -u -r1.1.1.5 -r1.3
---- ./kdecore/Makefile.am	29 Oct 2002 02:37:02 -0000	1.1.1.5
-+++ ./kdecore/Makefile.am	29 Oct 2002 02:58:40 -0000	1.3
-@@ -54,7 +54,7 @@
- 	ksortablevaluelist.h kdebugclasses.h kclipboard.h
- 
- libkdefakes_la_SOURCES = fakes.c vsnprintf.c
--libkdefakes_la_LDFLAGS = -version-info 5:0:1
-+libkdefakes_la_LDFLAGS = -version-info 5:0:1 -no-undefined
- libkdefakes_la_LIBADD  = $(LIBSOCKET) ../kdefx/libkdefx.la
- 
- noinst_HEADERS = kaccelaction.h kaccelbase.h kaccelprivate.h kckey.h \
+diff -u -u -r1.1.1.6 -r1.4
+--- ./kdecore/Makefile.am	20 Nov 2002 00:54:24 -0000	1.1.1.6
++++ ./kdecore/Makefile.am	21 Nov 2002 21:28:35 -0000	1.4
+@@ -1,6 +1,6 @@
+ #    This file is part of the KDE libraries
+ #
+-#    $Id$
++#    $Id$
+ #
+ #    Copyright (C) 1996-1997 Matthias Kalle Dalheimer (kalle@kde.org)
+ #			  (C) 1997 Stephan Kulow (coolo@kde.org)
 ===================================================================
 diff -u -u -r1.1.1.1 -r1.3
 ===================================================================
-diff -u -u -r1.1.1.4 -r1.5
+diff -u -u -r1.1.1.2 Makefile.am
+--- ./kded/Makefile.am	10 Jul 2002 04:44:10 -0000	1.1.1.2
++++ ./kded/Makefile.am	24 Nov 2002 07:05:30 -0000
+@@ -21,13 +21,13 @@
+ 
+ lib_LTLIBRARIES = kded.la kbuildsycoca.la
+ 
+-kded_la_LDFLAGS = $(all_libraries) -module -avoid-version
++kded_la_LDFLAGS = $(all_libraries) -avoid-version
+ kded_la_LIBADD = $(LIB_KIO)
+ kded_la_SOURCES = kded.cpp kbuildservicetypefactory.cpp \
+ 			kbuildservicefactory.cpp \
+ 			kbuildservicegroupfactory.cpp kdedmodule.cpp
+ 
+-kbuildsycoca_la_LDFLAGS = $(all_libraries) -module -avoid-version
++kbuildsycoca_la_LDFLAGS = $(all_libraries) -avoid-version
+ kbuildsycoca_la_LIBADD = $(LIB_KIO)
+ kbuildsycoca_la_SOURCES = kbuildsycoca.cpp kbuildservicetypefactory.cpp \
+ 				kbuildservicefactory.cpp \
+===================================================================
+diff -u -u -r1.1.1.4 Makefile.am
 --- ./kdeprint/Makefile.am	1 Oct 2002 03:05:31 -0000	1.1.1.4
-+++ ./kdeprint/Makefile.am	1 Oct 2002 03:59:10 -0000	1.5
++++ ./kdeprint/Makefile.am	24 Nov 2002 07:05:30 -0000
 @@ -10,7 +10,7 @@
  kde_module_LTLIBRARIES = kded_kdeprintd.la
  
  kded_kdeprintd_la_SOURCES = kdeprintd.skel kdeprintd.cpp kprintprocess.cpp
 -kded_kdeprintd_la_LIBADD = $(LIB_KIO)
-+kded_kdeprintd_la_LIBADD = $(LIB_KDEUI) $(LIB_KDECORE) $(LIB_KIO) $(LIB_KFILE) $(LIB_KDED)
++kded_kdeprintd_la_LIBADD = $(LIB_KIO) $(top_builddir)/kded/kded.la
  kded_kdeprintd_la_LDFLAGS = $(all_libraries) -module -avoid-version
  #kded_kdeprintd_la_METASOURCES = AUTO
  
+===================================================================
+diff -u -u -r1.1.1.3 Makefile.am
+--- ./kdeprint/cups/cupsdconf2/Makefile.am	1 Oct 2002 03:05:37 -0000	1.1.1.3
++++ ./kdeprint/cups/cupsdconf2/Makefile.am	24 Nov 2002 07:05:30 -0000
+@@ -17,7 +17,7 @@
+ 			  locationdialog.cpp addressdialog.cpp cups-util.c \
+ 			  qdirmultilineedit.cpp sizewidget.cpp
+ libcupsdconf_la_METASOURCES = AUTO
+-libcupsdconf_la_LDFLAGS = $(all_libraries) -module -avoid-version -no-undefined
++libcupsdconf_la_LDFLAGS = $(all_libraries) -avoid-version -no-undefined
+ libcupsdconf_la_LIBADD = $(LIB_KIO) $(LIB_CUPS)
+ 
+ noinst_HEADERS = cupsdconf.h cupsdpage.h cupsddialog.h cupsdcomment.h cupsdsplash.h \
+===================================================================
+diff -u -u -r1.1.1.3 Makefile.am
+--- ./kdeprint/management/Makefile.am	14 Aug 2002 14:04:14 -0000	1.1.1.3
++++ ./kdeprint/management/Makefile.am	24 Nov 2002 07:05:30 -0000
+@@ -9,7 +9,7 @@
+ 
+ kaddprinterwizard_la_SOURCES = kaddprinterwizard.cpp
+ kaddprinterwizard_la_LIBADD = libkdeprint_management.la
+-kaddprinterwizard_la_LDFLAGS = -module -avoid-version $(all_libraries) $(KDE_RPATH)
++kaddprinterwizard_la_LDFLAGS = -avoid-version $(all_libraries) $(KDE_RPATH)
+ 
+ libkdeprint_management_la_SOURCES = \
+ 	kmdbcreator.cpp kmdriverdb.cpp kmdriverdbwidget.cpp \
 ===================================================================
 diff -u -u -r1.1.1.5 -r1.6
 --- ./kdeui/kedittoolbar.cpp	29 Oct 2002 02:37:31 -0000	1.1.1.5
@@ -818,47 +1046,48 @@ diff -u -u -r1.1.1.3 -r1.5
      ~KXMLGUIFactoryPrivate()
      {
 ===================================================================
-diff -u -u -r1.1.1.7 -r1.9
+diff -u -u -r1.1.1.4 -r1.2
+--- ./khtml/Makefile.am	1 Oct 2002 03:06:19 -0000	1.1.1.4
++++ ./khtml/Makefile.am	23 Nov 2002 03:50:36 -0000	1.2
+@@ -40,7 +40,7 @@
+ noinst_HEADERS = design.h testkhtml.h testrender.h test_regression.h khtml_ext.h \
+ 		 khtml_pagecache.h khtmlimage.h khtmlpart_p.h khtml_printsettings.h
+ 
+-libkhtml_la_LDFLAGS = -version-info 5:0:1 -module -no-undefined $(all_libraries)
++libkhtml_la_LDFLAGS = -version-info 5:0:1 -no-undefined $(all_libraries)
+ libkhtml_la_LIBADD = ./xml/libkhtmlxml.la ./html/libkhtmlhtml.la \
+ 	./rendering/libkhtmlrender.la ./css/libkhtmlcss.la \
+ 	./misc/libkhtmlmisc.la ./dom/libkhtmldom.la $(LIBKJAVA) \
+@@ -51,7 +51,7 @@
+ 
+ khtmlimagepart_la_SOURCES = khtmlimage.cpp
+ khtmlimagepart_la_LDFLAGS = -module $(KDE_PLUGIN) $(all_libraries)
+-khtmlimagepart_la_LIBADD = libkhtml.la
++khtmlimagepart_la_LIBADD = $(LIB_QT) $(LIB_KDEUI) $(LIB_KDECORE) $(LIB_KPARTS) libkhtml.la
+ 
+ INCLUDES = -I$(top_srcdir)/kjs -I$(top_srcdir)/kimgio \
+ 	-I$(srcdir)/java -I$(top_srcdir)/dcop -I$(srcdir)/misc \
 ===================================================================
-diff -u -u -r1.1.1.6 -r1.7
+diff -u -u -r1.1.1.8 -r1.10
+===================================================================
+diff -u -u -r1.1.1.7 -r1.8
 ===================================================================
 diff -u -u -r1.1.1.6 -r1.6
 ===================================================================
 diff -u -u -r1.1.1.4 -r1.5
 ===================================================================
-diff -u -u -r1.1.1.4 -r1.5
+diff -u -u -r1.1.1.4 -r1.7
 --- ./kimgio/Makefile.am	1 Oct 2002 03:06:44 -0000	1.1.1.4
-+++ ./kimgio/Makefile.am	1 Oct 2002 03:59:13 -0000	1.5
-@@ -11,23 +11,27 @@
++++ ./kimgio/Makefile.am	23 Nov 2002 03:50:36 -0000	1.7
+@@ -7,7 +7,7 @@
+ kde_module_LTLIBRARIES= kimg_eps.la kimg_xview.la kimg_krl.la \
+ 	         $(KIMGIO_TIFF_MODULES) kimg_ico.la
+ 
+-KIMGIO_PLUGIN = -avoid-version -export-symbols-regex 'kimgio_.*_(read|write)'
++KIMGIO_PLUGIN = -avoid-version -export-symbols-regex 'kimgio_.*_(read|write)' $(all_libraries) $(LIB_KDECORE) $(LIB_QT)
  
  kimg_tiff_la_SOURCES = tiffr.cpp
  kimg_tiff_la_LDFLAGS = -module $(USER_LDFLAGS) $(KIMGIO_PLUGIN)
--kimg_tiff_la_LIBADD = $(LIBTIFF) 
-+kimg_tiff_la_LIBADD = $(all_libraries) $(LIBTIFF) $(LIB_QT)
- 
- #kimg_g3_la_SOURCES = g3r.cpp
- #kimg_g3_la_LDFLAGS = -module $(USER_LDFLAGS) $(KIMGIO_PLUGIN)
--#kimg_g3_la_LIBADD = $(LIBTIFF)   
-+#kimg_g3_la_LIBADD = $(all_libraries) $(LIBTIFF) $(LIB_QT)
- 
- kimg_xview_la_SOURCES = xview.cpp
- kimg_xview_la_LDFLAGS = -module $(USER_LDFLAGS) $(KIMGIO_PLUGIN)
-+kimg_xview_la_LIBADD = $(all_libraries) $(LIB_QT)
- 
- kimg_krl_la_SOURCES = krl.cpp
- kimg_krl_la_LDFLAGS = -module $(USER_LDFLAGS) $(KIMGIO_PLUGIN)
-+kimg_krl_la_LIBADD = $(all_libraries) $(LIB_QT)
- 
- kimg_eps_la_SOURCES = eps.cpp
- kimg_eps_la_LDFLAGS = -module $(USER_LDFLAGS) $(KIMGIO_PLUGIN)
-+kimg_eps_la_LIBADD =  $(all_libraries) $(LIB_KDECORE) $(LIB_QT)
- 
- kimg_ico_la_SOURCES = ico.cpp
- kimg_ico_la_LDFLAGS = -module $(USER_LDFLAGS) $(KIMGIO_PLUGIN)
-+kimg_ico_la_LIBADD = $(all_libraries) $(LIB_QT)
- 
- noinst_HEADERS= xview.h eps.h tiffr.h krl.h g3r.h ico.h
- 
 ===================================================================
 diff -u -u -r1.1.1.4 -r1.5
 --- ./kinit/kinit.cpp	14 Aug 2002 14:03:15 -0000	1.1.1.4
@@ -871,6 +1100,19 @@ diff -u -u -r1.1.1.4 -r1.5
     KApplication::loadedByKdeinit = true;
  
     d.maxname = strlen(argv[0]);
+===================================================================
+diff -u -u -r1.1.1.2 Makefile.am
+--- ./kinit/Makefile.am	10 Jul 2002 04:49:13 -0000	1.1.1.2
++++ ./kinit/Makefile.am	24 Nov 2002 07:06:02 -0000
+@@ -49,7 +49,7 @@
+ kwrapper_SOURCES = kwrapper.c
+ kwrapper_LDADD = $(LIBSOCKET)
+ 
+-klauncher_la_LDFLAGS = $(all_libraries) -module -avoid-version
++klauncher_la_LDFLAGS = $(all_libraries) -avoid-version
+ klauncher_la_LIBADD = $(LIB_KIO)
+ klauncher_la_SOURCES = klauncher.cpp klauncher_main.cpp autostart.cpp
+ 
 ===================================================================
 diff -u -u -r1.1.1.2 -r1.3
 --- ./kinit/setproctitle.cpp	10 Jul 2002 04:49:13 -0000	1.1.1.2
@@ -891,9 +1133,9 @@ diff -u -u -r1.1.1.2 -r1.3
 ===================================================================
 diff -u -u -r1.1.1.2 -r1.3
 ===================================================================
-diff -u -u -r1.1.1.4 -r1.5
+diff -u -u -r1.1.1.4 -r1.7
 --- ./kio/Makefile.am	1 Oct 2002 03:06:46 -0000	1.1.1.4
-+++ ./kio/Makefile.am	1 Oct 2002 03:59:13 -0000	1.5
++++ ./kio/Makefile.am	23 Nov 2002 03:50:36 -0000	1.7
 @@ -20,7 +20,7 @@
  
  INCLUDES=  -I$(srcdir)/.. $(all_includes) $(SSL_INCLUDES)
@@ -906,14 +1148,15 @@ diff -u -u -r1.1.1.4 -r1.5
 ===================================================================
 diff -N ./kio/kded/Makefile
 --- /dev/null	1 Jan 1970 00:00:00 -0000
-+++ ./kio/kded/Makefile	25 Jun 2002 02:49:09 -0000	1.1
-@@ -0,0 +1,7 @@
++++ ./kio/kded/Makefile	23 Nov 2002 03:50:36 -0000	1.2
+@@ -0,0 +1,8 @@
 +# That's right!  OSX's linker is so anal, I had to totally
 +# mess with the link order to get things to build.  Scary, scary.
 +
 +all:
 +	pushd ../../kded; $(MAKE); popd
 +
++clean:
 +install:
 ===================================================================
 diff -u -u -r1.1.1.3 -r1.4
@@ -947,15 +1190,15 @@ diff -u -u -r1.1.1.2 -r1.3
  #include <kio/jobclasses.h>
  #include <qstring.h>
 ===================================================================
-diff -u -u -r1.1.1.2 -r1.3
+diff -u -u -r1.1.1.2 Makefile.am
 --- ./kio/kpasswdserver/Makefile.am	1 Oct 2002 03:07:02 -0000	1.1.1.2
-+++ ./kio/kpasswdserver/Makefile.am	1 Oct 2002 03:59:14 -0000	1.3
++++ ./kio/kpasswdserver/Makefile.am	24 Nov 2002 07:06:02 -0000
 @@ -10,4 +10,4 @@
  kded_kpasswdserver_la_SOURCES = kpasswdserver.cpp kpasswdserver.skel 
  kded_kpasswdserver_la_METASOURCES = AUTO
  kded_kpasswdserver_la_LDFLAGS = $(all_libraries) -module -avoid-version
 -kded_kpasswdserver_la_LIBADD = $(LIB_KIO)
-+kded_kpasswdserver_la_LIBADD = $(LIB_KIO) $(LIB_KDED)
++kded_kpasswdserver_la_LIBADD = $(LIB_KIO) $(top_builddir)/kded/kded.la
 ===================================================================
 diff -u -u -r1.1.1.4 -r1.5
 --- ./kio/kssl/kopenssl.cc	29 Oct 2002 02:38:36 -0000	1.1.1.4
@@ -987,6 +1230,19 @@ diff -u -u -r1.1.1.4 -r1.5
               << "libcrypto.so"
  	     << "libcrypto.so.0"
 ===================================================================
+diff -u -u -r1.1.1.3 Makefile.am
+--- ./kio/misc/Makefile.am	1 Oct 2002 03:07:07 -0000	1.1.1.3
++++ ./kio/misc/Makefile.am	24 Nov 2002 07:06:02 -0000
+@@ -31,7 +31,7 @@
+ 
+ kio_uiserver_la_SOURCES = uiserver.cpp uiserver.skel observer.stub
+ kio_uiserver_la_LIBADD = $(LIB_KIO)
+-kio_uiserver_la_LDFLAGS = $(all_libraries) -module -avoid-version
++kio_uiserver_la_LDFLAGS = $(all_libraries) -avoid-version
+ 
+ observer_DIR = $(top_srcdir)/kio/kio
+ 
+===================================================================
 diff -u -u -r1.1.1.2 -r1.3
 --- ./kio/misc/kpac/dhcp.h	10 Jul 2002 04:50:03 -0000	1.1.1.2
 +++ ./kio/misc/kpac/dhcp.h	10 Jul 2002 05:12:46 -0000	1.3
@@ -1014,22 +1270,44 @@ diff -u -u -r1.1.1.2 -r1.2
  
  #include <unistd.h>
 ===================================================================
-diff -u -u -r1.1.1.2 -r1.3
+diff -u -u -r1.1.1.2 Makefile.am
 --- ./kio/misc/kssld/Makefile.am	10 Jul 2002 04:50:08 -0000	1.1.1.2
-+++ ./kio/misc/kssld/Makefile.am	10 Jul 2002 05:12:46 -0000	1.3
++++ ./kio/misc/kssld/Makefile.am	24 Nov 2002 07:06:02 -0000
 @@ -21,7 +21,7 @@
  kde_module_LTLIBRARIES = kded_kssld.la
  
  kded_kssld_la_LDFLAGS = $(all_libraries) -module -avoid-version
 -kded_kssld_la_LIBADD = $(LIB_KIO)
-+kded_kssld_la_LIBADD = $(LIB_KIO) $(LIB_KSYCOCA) $(LIB_KDED)
++kded_kssld_la_LIBADD = $(LIB_KIO) $(top_builddir)/kded/kded.la
  kded_kssld_la_SOURCES = kssld.cpp kssld.skel
  
  METASOURCES = AUTO
 ===================================================================
-diff -u -u -r1.1.1.6 -r1.5
---- ./kioslave/http/http.cc	29 Oct 2002 02:38:43 -0000	1.1.1.6
-+++ ./kioslave/http/http.cc	29 Oct 2002 02:58:41 -0000	1.5
+diff -u -u -r1.1.1.7 -r1.2
+--- ./kioslave/ftp/ftp.cc	20 Nov 2002 00:56:00 -0000	1.1.1.7
++++ ./kioslave/ftp/ftp.cc	21 Nov 2002 00:35:49 -0000	1.2
+@@ -856,7 +856,7 @@
+   } sin;
+ 
+   struct linger lng = { 0, 0 };
+-  socklen_t l;
++  ksocklen_t l;
+   char buf[64];
+   int on = 1;
+ 
+@@ -947,7 +947,7 @@
+ {
+   struct sockaddr addr;
+   int sData;
+-  socklen_t l;
++  ksocklen_t l;
+   fd_set mask;
+ 
+   FD_ZERO(&mask);
+===================================================================
+diff -u -u -r1.1.1.7 -r1.6
+--- ./kioslave/http/http.cc	20 Nov 2002 00:56:01 -0000	1.1.1.7
++++ ./kioslave/http/http.cc	20 Nov 2002 01:07:12 -0000	1.6
 @@ -33,9 +33,9 @@
  #include <sys/socket.h>
  #include <netinet/tcp.h>
@@ -1042,26 +1320,52 @@ diff -u -u -r1.1.1.6 -r1.5
  #include <sys/wait.h>
  #include <netinet/in.h>
 ===================================================================
-diff -u -u -r1.1.1.3 -r1.3
+diff -u -u -r1.1.1.4 Makefile.am
+--- ./kioslave/http/Makefile.am	29 Oct 2002 02:38:44 -0000	1.1.1.4
++++ ./kioslave/http/Makefile.am	24 Nov 2002 07:06:02 -0000
+@@ -18,12 +18,12 @@
+ kio_http_la_LDFLAGS = $(all_libraries) -module $(KDE_PLUGIN)
+ 
+ kio_http_cache_cleaner_SOURCES = dummy.cpp
+-kio_http_cache_cleaner_LDADD   = kio_http_cache_cleaner.la
++kio_http_cache_cleaner_LDADD = kio_http_cache_cleaner.la
+ kio_http_cache_cleaner_LDFLAGS = $(KDE_RPATH)
+ 
+ kio_http_cache_cleaner_la_SOURCES = http_cache_cleaner.cpp
+ kio_http_cache_cleaner_la_LIBADD  = $(LIB_KIO)
+-kio_http_cache_cleaner_la_LDFLAGS = -module -avoid-version
++kio_http_cache_cleaner_la_LDFLAGS = -avoid-version
+ 
+ noinst_HEADERS = http.h
+ 
+===================================================================
+diff -u -u -r1.1.1.3 Makefile.am
 --- ./kioslave/http/kcookiejar/Makefile.am	1 Oct 2002 03:07:20 -0000	1.1.1.3
-+++ ./kioslave/http/kcookiejar/Makefile.am	1 Oct 2002 03:59:15 -0000	1.3
-@@ -17,7 +17,7 @@
++++ ./kioslave/http/kcookiejar/Makefile.am	24 Nov 2002 07:06:02 -0000
+@@ -11,13 +11,13 @@
+ 
+ kcookiejar_la_SOURCES = main.cpp
+ METASOURCES = AUTO
+-kcookiejar_la_LDFLAGS = $(all_libraries) -module -avoid-version
++kcookiejar_la_LDFLAGS = $(all_libraries) -avoid-version
+ kcookiejar_la_LIBADD = $(LIB_KDECORE)
+ 
  kded_kcookiejar_la_SOURCES = kcookiejar.cpp kcookieserver.cpp \
  			kcookieserver.skel kcookiewin.cpp 
  kded_kcookiejar_la_LDFLAGS = $(all_libraries) -module -avoid-version
 -kded_kcookiejar_la_LIBADD = $(LIB_KIO)
-+kded_kcookiejar_la_LIBADD = $(LIB_KIO) $(LIB_KDED)
++kded_kcookiejar_la_LIBADD = $(LIB_KIO) $(top_builddir)/kded/kded.la
  
  kcookiejar_SOURCES = dummy.cpp
  kcookiejar_LDADD = kcookiejar.la
 ===================================================================
-diff -u -u -r1.1.1.6 -r1.3
+diff -u -u -r1.1.1.7 -r1.4
 ===================================================================
 diff -u -u -r1.1.1.4 -r1.3
 ===================================================================
-diff -u -u -r1.1.1.5 -r1.4
---- ./kstyles/keramik/keramik.cpp	5 Nov 2002 00:05:43 -0000	1.1.1.5
-+++ ./kstyles/keramik/keramik.cpp	5 Nov 2002 00:16:44 -0000	1.4
+diff -u -u -r1.1.1.6 -r1.5
+--- ./kstyles/keramik/keramik.cpp	20 Nov 2002 00:56:16 -0000	1.1.1.6
++++ ./kstyles/keramik/keramik.cpp	20 Nov 2002 01:07:12 -0000	1.5
 @@ -30,7 +30,7 @@
     Boston, MA 02111-1307, USA.
  */
@@ -1098,22 +1402,15 @@ diff -u -u -r1.1.1.5 -r1.4
  #include <qapplication.h>
  #include <qbitmap.h>
 ===================================================================
-diff -N ./libkscreensaver/configure.in.in
---- /dev/null	1 Jan 1970 00:00:00 -0000
-+++ ./libkscreensaver/configure.in.in	7 Oct 2002 01:28:30 -0000	1.1
-@@ -0,0 +1 @@
-+DO_NOT_COMPILE="$DO_NOT_COMPILE libkscreensaver"
-===================================================================
-diff -u -u -r1.1.1.3 -r1.4
+diff -u -u -r1.1.1.3 -r1.6
 --- ./libkscreensaver/Makefile.am	14 Aug 2002 14:04:21 -0000	1.1.1.3
-+++ ./libkscreensaver/Makefile.am	14 Aug 2002 14:17:58 -0000	1.4
++++ ./libkscreensaver/Makefile.am	23 Nov 2002 03:50:37 -0000	1.6
 @@ -1,7 +1,7 @@
  lib_LTLIBRARIES = libkscreensaver.la
  libkscreensaver_la_SOURCES = main.cpp kscreensaver.cpp
--libkscreensaver_la_LIBADD  = $(LIB_KIO)
+ libkscreensaver_la_LIBADD  = $(LIB_KIO)
 -libkscreensaver_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -version-info 5:0:1
-+libkscreensaver_la_LIBADD  = $(LIB_KIO) $(LIB_KSYCOCA) $(LIB_X11) $(LIB_KDECORE) $(LIB_QT)
-+libkscreensaver_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -version-info 5:0:1 $(QT_LDFLAGS) -static
++libkscreensaver_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -version-info 5:0:1 -undefined suppress -flat_namespace
  
  include_HEADERS = kscreensaver.h kscreensaver_vroot.h
  
@@ -1180,3 +1477,13 @@ diff -u -u -r1.1.1.2 -r1.3
  	esac
  ])
  if test "$libltdl_cv_sys_dlopen_deplibs" != yes; then
+===================================================================
+diff -u -u -r1.1.1.6 Makefile.am
+--- ./pics/Makefile.am	20 Nov 2002 00:56:33 -0000	1.1.1.6
++++ ./pics/Makefile.am	24 Nov 2002 07:06:03 -0000
+@@ -17,4 +17,5 @@
+ 
+ install-data-local:
+ 	-rm -f $(DESTDIR)$(kde_icondir)/default.kde
++	$(INSTALL) -d $(DESTDIR)$(kde_icondir)
+ 	$(LN_S) crystalsvg $(DESTDIR)$(kde_icondir)/default.kde

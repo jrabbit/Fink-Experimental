@@ -1,17 +1,28 @@
 
 ===================================================================
-diff -u -u -r1.1.1.5 acinclude.m4.in
---- admin/acinclude.m4.in	29 Oct 2002 02:27:18 -0000	1.1.1.5
-+++ admin/acinclude.m4.in	14 Nov 2002 20:43:32 -0000
-@@ -31,6 +31,7 @@
+diff -u -u -r1.1.1.7 acinclude.m4.in
+--- admin/acinclude.m4.in	20 Nov 2002 00:45:10 -0000	1.1.1.7
++++ admin/acinclude.m4.in	24 Nov 2002 06:59:54 -0000
+@@ -31,6 +31,9 @@
  dnl thanks to Raja R Harinath.
  dnl ------------------------------------------------------------------------
  dnl
 +
++USER_LDFLAGS="-multiply_defined suppress $USER_LDFLAGS"
++
  ifdef([_AC_PATH_X_XMKMF],[],
     [AC_DEFUN([_AC_PATH_X_XMKMF],[AC_PATH_X_XMKMF])])
  ifdef([AC_OUTPUT_SUBDIRS],[],
-@@ -704,13 +705,10 @@
+@@ -366,7 +369,7 @@
+   fi
+ 
+ AC_MSG_CHECKING([for KDE libraries installed])
+-ac_link='$LIBTOOL_SHELL --silent --mode=link ${CXX-g++} -o conftest $CXXFLAGS $all_includes $CPPFLAGS $LDFLAGS $all_libraries conftest.$ac_ext $LIBS -lkdecore $LIBQT $KDE_TEST_RPATH 1>&5'
++ac_link='$LIBTOOL_SHELL --mode=link ${CXX-g++} -o conftest $CXXFLAGS $all_includes $CPPFLAGS $LDFLAGS $all_libraries conftest.$ac_ext $LIBS -lkdecore $LIBQT $KDE_TEST_RPATH 1>&5'
+ 
+ if AC_TRY_EVAL(ac_link) && test -s conftest; then
+   AC_MSG_RESULT(yes)
+@@ -704,13 +707,10 @@
       AC_CHECK_LIB(ipc, shmat, X_EXTRA_LIBS="$X_EXTRA_LIBS -lipc"))
     
     # darwin needs this to initialize the environment
@@ -27,7 +38,7 @@ diff -u -u -r1.1.1.5 acinclude.m4.in
     AC_CHECK_LIB(poll, poll, LIB_POLL="-lpoll")
  
     # CoreAudio framework
-@@ -719,11 +717,36 @@
+@@ -719,11 +719,36 @@
       FRAMEWORK_COREAUDIO="-framework CoreAudio"
     ])
  
@@ -65,7 +76,7 @@ diff -u -u -r1.1.1.5 acinclude.m4.in
     AC_SUBST(LIBRESOLV)
     AC_SUBST(X_EXTRA_LIBS)
     AC_CHECK_LIB(ucb, killpg, [LIBUCB="-lucb"]) dnl for Solaris2.4
-@@ -932,7 +955,7 @@
+@@ -932,7 +957,7 @@
  kde_ldflags_safe="$LDFLAGS"
  kde_libs_safe="$LIBS"
  
@@ -74,7 +85,7 @@ diff -u -u -r1.1.1.5 acinclude.m4.in
  LIBS="-lXext -lX11 $LIBSOCKET"
  
  AC_TRY_LINK([
-@@ -974,9 +997,9 @@
+@@ -974,9 +999,9 @@
  kde_save_LDFLAGS="$LDFLAGS"
  kde_save_CFLAGS="$CFLAGS"
  kde_save_LIBS="$LIBS"
@@ -86,51 +97,25 @@ diff -u -u -r1.1.1.5 acinclude.m4.in
  
  if test "x$no_xinerama" = "xno"; then
  
-@@ -1844,7 +1867,7 @@
+@@ -1844,7 +1869,7 @@
   kde_cxxflags_safe="$CXXFLAGS"
  
   LIBS="-lkde-qt-addon $LIBQT $LIBS"
 - CXXFLAGS="$CXXFLAGS -I$prefix/include -I$prefix/include/kde $all_includes"
-+ CXXFLAGS="$CXXFLAGS $all_includes"
++ CXXFLAGS="-isystem $prefix/include $CXXFLAGS $all_includes"
   LDFLAGS="$LDFLAGS $all_libraries $USER_LDFLAGS"
  
   AC_TRY_LINK([
-@@ -1907,15 +1930,29 @@
-    AC_REQUIRE([K_PATH_X])
- 
- if test $kde_qtver = 3; then
-+   AC_SUBST(LIB_ARTSKDE, "-lartskde")
-+   AC_SUBST(LIB_DCOP, "-lDCOP")
-+   AC_SUBST(LIB_KAB, "-lkab")
-+   AC_SUBST(LIB_KABC, "-lkabc")
-    AC_SUBST(LIB_KDECORE, "-lkdecore")
-+   AC_SUBST(LIB_KDED, "@PREFIX@/lib/kded.la")
-+   AC_SUBST(LIB_KDEFX, "-lkdefx")
-+   AC_SUBST(LIB_KDEPRINT, "-lkdeprint")
-+   AC_SUBST(LIB_KDESASL, "-lkdesasl")
-+   AC_SUBST(LIB_KDESU, "-lkdesu")
-    AC_SUBST(LIB_KDEUI, "-lkdeui")
--   AC_SUBST(LIB_KIO, "-lkio")
--   AC_SUBST(LIB_SMB, "-lsmb")
--   AC_SUBST(LIB_KAB, "-lkab")
+@@ -1916,7 +1941,7 @@
     AC_SUBST(LIB_KHTML, "-lkhtml")
--   AC_SUBST(LIB_KSPELL, "-lkspell")
-+   AC_SUBST(LIB_KIO, "-lkio")
+    AC_SUBST(LIB_KSPELL, "-lkspell")
     AC_SUBST(LIB_KPARTS, "-lkparts")
 -   AC_SUBST(LIB_KDEPRINT, "-lkdeprint")
-+   AC_SUBST(LIB_KJAVA, "-lkjava")
-+   AC_SUBST(LIB_KJS, "-lkjs")
-+   AC_SUBST(LIB_KMID, "-lkmid")
-+   AC_SUBST(LIB_KSCRIPT, "-lkscript")
-+   AC_SUBST(LIB_KSPELL, "-lkspell")
-+   AC_SUBST(LIB_KTEXTEDITOR, "-lktexteditor")
-+   AC_SUBST(LIB_SHELLSCRIPT, "-lshellscript")
-+   AC_SUBST(LIB_SMB, "-lsmb")
-+   AC_SUBST(LIB_VCARD, "-lvcard")
++   AC_SUBST(LIB_KDED, "@PREFIX@/lib/kded.la")
  # these are for backward compatibility
     AC_SUBST(LIB_KSYCOCA, "-lkio")
     AC_SUBST(LIB_KFILE, "-lkio")
-@@ -2646,10 +2683,10 @@
+@@ -2647,10 +2672,10 @@
        if test $kde_use_debug_code = "full"; then
          CFLAGS="-g3 $CFLAGS"
        else
@@ -143,7 +128,7 @@ diff -u -u -r1.1.1.5 acinclude.m4.in
      fi
    fi
  
-@@ -2679,7 +2716,7 @@
+@@ -2680,7 +2705,7 @@
          if test "$kde_use_debug_code" = "full"; then
            CXXFLAGS="-g3 $CXXFLAGS"
          else
@@ -152,7 +137,7 @@ diff -u -u -r1.1.1.5 acinclude.m4.in
          fi
        fi
        KDE_CHECK_COMPILER_FLAG(fno-builtin,[CXXFLAGS="-fno-builtin $CXXFLAGS"])
-@@ -2691,7 +2728,7 @@
+@@ -2692,7 +2717,7 @@
        if test "$CXX" = "KCC"; then
          CXXFLAGS="+K3 $CXXFLAGS"
        else
@@ -161,7 +146,25 @@ diff -u -u -r1.1.1.5 acinclude.m4.in
        fi  
      fi
    fi
-@@ -3188,9 +3225,9 @@
+@@ -2832,7 +2857,7 @@
+ AC_LIBTOOL_CXX
+ 
+ LIBTOOL_SHELL="/bin/sh ./libtool"
+-#  LIBTOOL="$LIBTOOL --silent"
++#  LIBTOOL="$LIBTOOL"
+ KDE_PLUGIN="-avoid-version -module -no-undefined \$(KDE_RPATH) \$(KDE_MT_LDFLAGS)"
+ AC_SUBST(KDE_PLUGIN)
+ 
+@@ -2888,7 +2913,7 @@
+ [
+ AC_CANONICAL_SYSTEM
+ AC_ARG_PROGRAM
+-AM_INIT_AUTOMAKE($1, $2)
++AM_INIT_AUTOMAKE($1, $2, [foreign])
+ AM_DISABLE_LIBRARIES
+ AC_PREFIX_DEFAULT(${KDEDIR:-/usr/local/kde})
+ AC_CHECK_COMPILERS
+@@ -3189,9 +3214,9 @@
      ac_save_ldflags="$LDFLAGS"
      ac_save_cflags="$CFLAGS"
      if test "x$kde_use_qt_emb" != "xyes"; then
@@ -173,8 +176,55 @@ diff -u -u -r1.1.1.5 acinclude.m4.in
      fi
      CFLAGS="$CFLAGS $X_INCLUDES $USER_INCLUDES"
      test -n "$XPM_INCLUDE" && CFLAGS="-I$XPM_INCLUDE $CFLAGS"
-@@ -4625,6 +4662,83 @@
- 	done
+@@ -3418,13 +3443,23 @@
+           AC_CHECK_LIB(pam, pam_start,
+             [ AC_CHECK_HEADER(security/pam_appl.h,
+                 [ use_pam=yes
+-                  pam_service=kde ]) 
++		  pam_header=security/pam_appl.h
++                  pam_service=kde ],
++		[ AC_CHECK_HEADER(pam/pam_appl.h,
++			[ use_pam=yes
++			  pam_header=pam/pam_appl.h
++			  pam_service=kde ])
++		]) 
+             ], , $LIBDL)
+           ac_cv_path_pam="use_pam=$use_pam pam_service=$pam_service"
+         ])
+     ])
+   eval "$ac_cv_path_pam"
+ 
++  if test "$pam_header" = "pam/pam_appl.h"; then
++    AC_DEFINE(PAM_HEADER_IN_PAM, 1, [Define if your pam headers are in pam/ instead of security/])
++  fi
++
+   AC_MSG_CHECKING(for PAM)
+   if test "x$use_pam" = xno; then
+     AC_MSG_RESULT(no)
+@@ -3434,17 +3469,18 @@
+     AC_DEFINE(HAVE_PAM, 1, [Defines if you have PAM (Pluggable Authentication Modules)])
+     PAMLIBS="$PAM_MISC_LIB -lpam $LIBDL"
+ 
++    AC_CHECK_HEADERS([pam/pam_appl.h])
++
+     dnl test whether struct pam_message is const (Linux) or not (Sun)
+     AC_MSG_CHECKING(for const pam_message)
+-    AC_EGREP_HEADER([struct pam_message], security/pam_appl.h,
+-      [ AC_EGREP_HEADER([const struct pam_message], security/pam_appl.h,
++    AC_EGREP_HEADER([struct pam_message], $pam_header,
++      [ AC_EGREP_HEADER([const struct pam_message], $pam_header,
+                         [AC_MSG_RESULT([const: Linux-type PAM])],
+                         [AC_MSG_RESULT([nonconst: Sun-type PAM])
+                         AC_DEFINE(PAM_MESSAGE_NONCONST, 1, [Define if your PAM support takes non-const arguments (Solaris)])]
+                         )],
+       [AC_MSG_RESULT([not found - assume const, Linux-type PAM])])
+   fi
+-
+   AC_SUBST(PAMLIBS)
+ ])
+ 
+@@ -4604,6 +4640,83 @@
+      LIBS="$kde_save_LIBS"
  ])
  
 +AC_DEFUN(KDE_CHECK_LDAP,
@@ -254,10 +304,10 @@ diff -u -u -r1.1.1.5 acinclude.m4.in
 +  fi
 +])
 +
- dnl KDE_CHEC_JAVA_DIR(onlyjre)
- AC_DEFUN(KDE_CHECK_JAVA_DIR,
+ AC_DEFUN(KDE_JAVA_PREFIX,
  [
-@@ -4659,6 +4773,7 @@
+ 	dir=`dirname "$1"`
+@@ -4660,6 +4773,7 @@
        KDE_JAVA_PREFIX(/usr/lib/IBMJava2*)
        KDE_JAVA_PREFIX(/usr/lib/IBMJava*)
        KDE_JAVA_PREFIX(/opt/java*)
@@ -265,7 +315,7 @@ diff -u -u -r1.1.1.5 acinclude.m4.in
      
        kde_cv_path="NONE"
        kde_save_IFS=$IFS
-@@ -4710,10 +4825,20 @@
+@@ -4711,10 +4825,20 @@
  dnl At this point kde_java_bindir and kde_java_includedir are either set or "no"
  if test "x$kde_java_bindir" != "xno"; then
  
@@ -287,7 +337,7 @@ diff -u -u -r1.1.1.5 acinclude.m4.in
  
    dnl Now check everything's fine under there
    dnl the include dir is our flag for having the JDK
-@@ -4742,19 +4867,31 @@
+@@ -4743,19 +4867,31 @@
      JAVAC=
      jni_includes=
    fi
@@ -324,7 +374,7 @@ diff -u -u -r1.1.1.5 acinclude.m4.in
    if test -n "$jni_includes"; then
      dnl Check for JNI version
      AC_LANG_SAVE
-@@ -5118,8 +5255,7 @@
+@@ -5119,8 +5255,7 @@
    LDFLAGS="$LDFLAGS -L$ssl_libdir $all_libraries"
    LIBS="$LIBS $LIBSSL -lRSAglue -lrsaref"
  
@@ -335,18 +385,33 @@ diff -u -u -r1.1.1.5 acinclude.m4.in
    ac_ssl_rsaref="no"
    )
 ===================================================================
-diff -u -u -r1.1.1.2 -r1.3
---- admin/detect-autoconf.sh	29 Oct 2002 02:27:20 -0000	1.1.1.2
-+++ admin/detect-autoconf.sh	29 Oct 2002 02:29:54 -0000	1.3
-@@ -42,12 +42,12 @@
+diff -u -u -r1.1.1.7 cvs.sh
+--- admin/cvs.sh	20 Nov 2002 00:45:12 -0000	1.1.1.7
++++ admin/cvs.sh	24 Nov 2002 06:59:54 -0000
+@@ -119,7 +119,7 @@
+ fi
+ 
+ echo "*** Creating Makefile templates"
+-$AUTOMAKE || exit 1
++$AUTOMAKE --foreign || exit 1
+ if test -z "$UNSERMAKE"; then
+   echo "*** Postprocessing Makefile templates"
+   perl -w admin/am_edit || exit 1
+===================================================================
+diff -u -u -r1.1.1.4 detect-autoconf.sh
+--- admin/detect-autoconf.sh	20 Nov 2002 00:45:12 -0000	1.1.1.4
++++ admin/detect-autoconf.sh	24 Nov 2002 06:59:54 -0000
+@@ -42,12 +42,15 @@
  checkAutomakeAclocal ()
  {
    if test -z "$UNSERMAKE"; then
 -    if test -x "`$WHICH automake-1.5`" ; then
 -      AUTOMAKE="`$WHICH automake-1.5`"
 -      ACLOCAL="`$WHICH aclocal-1.5`"
--    elif test -x "`$WHICH automake-1.6`" ; then
-+    if test -x "`$WHICH automake-1.6`" ; then
++    if test -x "`$WHICH automake-1.7`" ; then
++      AUTOMAKE="`$WHICH automake-1.7`"
++      ACLOCAL="`$WHICH aclocal-1.7`"
+     elif test -x "`$WHICH automake-1.6`" ; then
        AUTOMAKE="`$WHICH automake-1.6`"
        ACLOCAL="`$WHICH aclocal-1.6`"
 +    elif test -x "`$WHICH automake-1.5`" ; then
@@ -356,9 +421,18 @@ diff -u -u -r1.1.1.2 -r1.3
    else
       AUTOMAKE="$UNSERMAKE"
 ===================================================================
-diff -u -u -r1.1.1.3 -r1.8
---- admin/libtool.m4.in	14 Aug 2002 13:18:45 -0000	1.1.1.3
-+++ admin/libtool.m4.in	11 Nov 2002 20:56:47 -0000	1.8
+diff -u -u -r1.1.1.5 libtool.m4.in
+--- admin/libtool.m4.in	20 Nov 2002 00:45:13 -0000	1.1.1.5
++++ admin/libtool.m4.in	24 Nov 2002 06:59:55 -0000
+@@ -65,7 +65,7 @@
+ LIBTOOL_DEPS="$ac_aux_dir/ltmain.sh"
+ 
+ # Always use our own libtool.
+-LIBTOOL='$(SHELL) $(top_builddir)/libtool --silent'
++LIBTOOL='$(SHELL) $(top_builddir)/libtool'
+ AC_SUBST(LIBTOOL)dnl
+ 
+ # Prevent multiple expansion
 @@ -609,6 +609,12 @@
      lt_cv_sys_max_cmd_len=-1;
      ;;
@@ -372,46 +446,29 @@ diff -u -u -r1.1.1.3 -r1.8
    *)
      # If test is not a shell built-in, we'll probably end up computing a
      # maximum length that is only half of the actual maximum length, but
-@@ -1132,7 +1138,7 @@
- darwin* | rhapsody*)
-   dynamic_linker="$host_os dyld"
-   version_type=darwin
--  need_lib_prefix=no
-+  need_lib_prefix=yes
-   need_version=no
-   # FIXME: Relying on posixy $() will cause problems for
-   #        cross-compilation, but unfortunately the echo tests do not
-@@ -1901,16 +1907,7 @@
-   ;;
- 
- darwin* | rhapsody*)
--  lt_cv_deplibs_check_method='file_magic Mach-O dynamically linked shared library'
--  lt_cv_file_magic_cmd='/usr/bin/file -L'
--  case "$host_os" in
--  rhapsody* | darwin1.[[012]])
--    lt_cv_file_magic_test_file=`/System/Library/Frameworks/System.framework/System`
--    ;;
--  *) # Darwin 1.3 on
+@@ -1908,7 +1914,8 @@
+     lt_cv_file_magic_test_file=`/System/Library/Frameworks/System.framework/System`
+     ;;
+   *) # Darwin 1.3 on
 -    lt_cv_file_magic_test_file='/usr/lib/libSystem.dylib'
--    ;;
--  esac
-+  lt_cv_deplibs_check_method='pass_all'
++    lt_cv_deplibs_check_method='pass_all'
++    lt_cv_file_magic_cmd=''
+     ;;
+   esac
    ;;
- 
- freebsd*)
-@@ -2560,6 +2557,11 @@
+@@ -2560,6 +2567,11 @@
  	;;
      esac
      ;;
 +  darwin*)
 +    shared_flag='-dynamiclib'
-+    _LT_AC_TAGVAR(archive_cmds, $1)='$CC -r -keep_private_externs -nostdlib -o ${lib}-master.o $libobjs && $CC -dynamiclib -install_name $rpath/$soname $predep_objects ${lib}-master.o $deplibs $postdep_objects $compiler_flags -o $lib'
-+    output_verbose_link_cmd='$CC -dynamiclib $CFLAGS -v conftest.$objext 2>&1 | egrep "\-L"'
++    _LT_AC_TAGVAR(archive_cmds, $1)='$CC -r -keep_private_externs -nostdlib -o ${lib}-master.o $libobjs && $CC $(test .$module = .yes && echo -bundle || echo -dynamiclib) $predep_objects ${lib}-master.o $deplibs $postdep_objects $compiler_flags -o $lib $(test x$module != xyes && echo -install_name $rpath/$soname $verstring)'
++    output_verbose_link_cmd='$CC $(test .$module = .yes && echo -bundle || echo -dynamiclib) $CFLAGS -v conftest.$objext 2>&1 | egrep "\-L"'
 +    ;;
    dgux*)
      case $cc_basename in
        ec++)
-@@ -4750,7 +4752,9 @@
+@@ -4750,7 +4762,9 @@
  	_LT_AC_TAGVAR(allow_undefined_flag, $1)='-undefined suppress'
  	;;
        *) # Darwin 1.3 on
@@ -422,7 +479,7 @@ diff -u -u -r1.1.1.3 -r1.8
  	;;
        esac
  
-@@ -4758,7 +4762,7 @@
+@@ -4758,7 +4772,7 @@
        #        cross-compilation, but unfortunately the echo tests do not
        #        yet detect zsh echo's removal of \ escapes.  Also zsh mangles
        #	       `"' quotes if we put them in here... so don't!
@@ -432,9 +489,26 @@ diff -u -u -r1.1.1.3 -r1.8
        #_LT_AC_TAGVAR(archive_expsym_cmds, $1)="$_LT_AC_TAGVAR(archive_cmds, $1)"' && strip -s $export_symbols'
        _LT_AC_TAGVAR(hardcode_direct, $1)=yes
 ===================================================================
-diff -u -u -r1.1.1.2 -r1.4
---- admin/ltmain.sh	10 Jul 2002 02:47:39 -0000	1.1.1.2
-+++ admin/ltmain.sh	13 Jul 2002 04:33:25 -0000	1.4
+diff -u -u -r1.1.1.4 ltmain.sh
+--- admin/ltmain.sh	20 Nov 2002 00:45:14 -0000	1.1.1.4
++++ admin/ltmain.sh	24 Nov 2002 06:59:56 -0000
+@@ -2532,11 +2532,11 @@
+ 	eval libname=\"$libname_spec\"
+ 	;;
+       *)
+-	if test "$module" = no; then
+-	  $echo "$modename: libtool library \`$output' must begin with \`lib'" 1>&2
+-	  $echo "$help" 1>&2
+-	  exit 1
+-	fi
++#	if test "$module" = no; then
++#	  $echo "$modename: libtool library \`$output' must begin with \`lib'" 1>&2
++#	  $echo "$help" 1>&2
++#	  exit 1
++#	fi
+ 	if test "$need_lib_prefix" != no; then
+ 	  # Add the "lib" prefix for modules if required
+ 	  name=`$echo "X$outputname" | $Xsed -e 's/\.la$//'`
 @@ -3321,7 +3321,23 @@
  	if test -n "$export_symbols" && test -n "$archive_expsym_cmds"; then
  	  eval cmds=\"$archive_expsym_cmds\"
@@ -473,29 +547,41 @@ diff -u -u -r1.1.1.2 -r1.4
  	  fi
  
  	  # Append the command to remove the reloadable object files
-@@ -3632,6 +3653,14 @@
- 	compile_deplibs=`$echo "X $compile_deplibs" | $Xsed -e 's/ -lc / -framework System /'`
- 	finalize_deplibs=`$echo "X $finalize_deplibs" | $Xsed -e 's/ -lc / -framework System /'`
+@@ -3634,6 +3655,14 @@
  	;;
-+      esac
-+
+       esac
+ 
 +      case $host in
 +      *darwin*)
 +        # Don't allow lazy linking, it breaks C++ global constructors
-+        compile_command="$compile_command ${wl}-bind_at_load"
++        compile_command="$compile_command ${wl}-bind_at_load -undefined suppress -flat_namespace"
 +        finalize_command="$finalize_command ${wl}-bind_at_load"
 +        ;;
-       esac
- 
++      esac
++
        compile_command="$compile_command $compile_deplibs"
+       finalize_command="$finalize_command $finalize_deplibs"
+ 
+@@ -4024,9 +4053,10 @@
+ 	    # fast_install is set to needless
+ 	    relink_command=
+ 	  fi
++          relink_command=
+ 	else
+ 	  link_command="$compile_var$compile_command$compile_rpath"
+-	  relink_command="$finalize_var$finalize_command$finalize_rpath"
++	  #relink_command="$finalize_var$finalize_command$finalize_rpath"
+ 	fi
+       fi
+ 
 ===================================================================
 diff -u -u -r1.1.1.4 -r1.5
 ===================================================================
 diff -u -u -r1.1.1.3 -r1.5
 ===================================================================
-diff -u -u -r1.1.1.5 -r1.16
+diff -u -u -r1.1.1.5 -r1.18
 --- configure.in.in	29 Oct 2002 02:31:10 -0000	1.1.1.5
-+++ configure.in.in	8 Nov 2002 04:06:51 -0000	1.16
++++ configure.in.in	21 Nov 2002 21:28:34 -0000	1.18
 @@ -282,6 +282,19 @@
  fi
  ])
@@ -566,42 +652,565 @@ diff -u -u -r1.1.1.2 -r1.3
  
  dist-hook:
 ===================================================================
-diff -u -u -r1.1.1.3 -r1.6
---- ./artsc/Makefile.am	14 Aug 2002 13:21:23 -0000	1.1.1.3
-+++ ./artsc/Makefile.am	14 Aug 2002 14:05:27 -0000	1.6
-@@ -9,21 +9,26 @@
- bin_SCRIPTS = artsc-config artsdsp
- 
- libartsdsp_la_SOURCES = artsdsp.c
--libartsdsp_la_LDFLAGS = -no-undefined -module
-+libartsdsp_la_LDFLAGS = -no-undefined -version-info 1:7 -module
- libartsdsp_la_LIBADD = libartsc.la
- 
- libartsdsp_st_la_SOURCES = artsc.c artsdsp.c
--libartsdsp_st_la_LDFLAGS = -no-undefined -module
-+libartsdsp_st_la_LDFLAGS = -no-undefined -version-info 1:7 -module
- libartsdsp_st_la_LIBADD = $(top_builddir)/libltdl/libltdlc.la
- 
- libartsc_la_SOURCES = artsc.c
--libartsc_la_LDFLAGS = -no-undefined
-+libartsc_la_LDFLAGS = -no-undefined -version-info 1:7
- libartsc_la_LIBADD = $(top_builddir)/libltdl/libltdlc.la $(LIBPTHREAD) $(USE_THREADS)
- 
- libartscbackend_la_SOURCES = artscbackend.cc
--libartscbackend_la_LDFLAGS = -no-undefined -module $(KDE_RPATH)
--libartscbackend_la_LIBADD = $(FLOWLIBS) \
--    $(top_builddir)/soundserver/libsoundserver_idl.la
-+libartscbackend_la_LDFLAGS = -no-undefined -version-info 1:7 -module $(KDE_RPATH)
-+libartscbackend_la_LIBADD = \
-+    $(top_builddir)/mcop/libmcop.la \
-+    $(top_builddir)/flow/libartsflow.la \
-+    $(top_builddir)/flow/libartsflow_idl.la \
-+    $(top_builddir)/soundserver/libsoundserver_idl.la \
-+    $(top_builddir)/soundserver/libkmedia2.la \
-+    $(top_builddir)/soundserver/libkmedia2_idl.la
- 
- artscincludedir = $(includedir)/artsc
- artscinclude_HEADERS = artsc.h
+diff -u -u -r1.1.1.3 -r1.8
+===================================================================
+diff -N ./flow/audioiocoreaudio.cc
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ ./flow/audioiocoreaudio.cc	20 Nov 2002 13:24:00 -0000	1.6
+@@ -0,0 +1,553 @@
++    /*
++    
++    Copyright (C) 2001 Stefan Westerfeld
++                        stefan@space.twc.de
++    
++    This library is free software; you can redistribute it and/or
++    modify it under the terms of the GNU Library General Public
++    License as published by the Free Software Foundation; either
++    version 2 of the License, or (at your option) any later version.
++    
++    This library is distributed in the hope that it will be useful,
++    but WITHOUT ANY WARRANTY; without even the implied warranty of
++    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++    Library General Public License for more details.
++    
++    You should have received a copy of the GNU Library General Public License
++    along with this library; see the file COPYING.LIB.  If not, write to
++    the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
++    Boston, MA 02111-1307, USA.
++    
++    */
++/*
++    Modifications for ARTS -
++    
++       Ben Hines <bhines@alumni.ucsd.edu>
++       Ben Reed  <ranger@befunk.com>
++*/
++
++
++#ifdef HAVE_CONFIG_H
++#include <config.h>
++#endif
++
++#define DEBUG 1
++
++
++#include <stdio.h>
++#include <stdlib.h>
++#include <unistd.h>
++#include <pthread.h>
++#include <sys/socket.h>
++#include <sys/file.h>
++
++/* for useful debugging macros */
++#include <mach/error.h>
++
++#include <CoreAudio/CoreAudio.h>
++
++#include "debug.h"
++#include "audioio.h"
++#include "audiosubsys.h"
++
++#define NAME_LEN 256		/* max length of a device name */
++#define BUF_SIZE (4 * 1024)  /* from ESD */
++
++#define driverVersion "0.01 alpha"
++
++#ifdef BIG_ENDIAN
++#define defaultFormat 17
++#else
++#define defaultFormat 16
++#endif
++
++bool NotifyOnError (OSStatus inRetVal, const char * inStringDesc);
++
++    
++struct audio_queue {
++    float dataBuf[BUF_SIZE];
++    pthread_mutex_t mutex;
++    pthread_cond_t condition;
++    int numSamples;
++};
++
++static OSStatus PlaybackIOProc(AudioDeviceID inDevice,
++			const AudioTimeStamp *inNow,
++			const AudioBufferList *inInputData,
++			const AudioTimeStamp *inInputTime,
++			AudioBufferList *outOutputData,
++			const AudioTimeStamp *inOutputTime,
++			audio_queue *inClientData);
++
++static OSStatus RecordIOProc(AudioDeviceID inDevice,
++		      const AudioTimeStamp *inNow,
++		      const AudioBufferList *inInputData,
++		      const AudioTimeStamp *inInputTime,
++		      AudioBufferList *outOutputData,
++		      const AudioTimeStamp *inOutputTime,
++		      audio_queue *inClientData);
++                                              
++namespace Arts {
++
++class AudioIOCoreAudio : public AudioIO {
++
++protected:
++     /* From ESD */
++     AudioDeviceID gOutputDeviceID, gInputDeviceID;
++    
++     audio_queue input;
++     audio_queue output;    
++    
++     int audioPlaybackStarted, audioRecordStarted;
++     int coreaudio_has_output_device;
++     int coreaudio_has_input_device;
++     int coreaudio_init;
++     
++     /* Arts Specific */
++     int audio_fd;
++     int bytesPerSec;
++     timeval start;
++        
++public:
++	AudioIOCoreAudio();
++	bool supportsFormat(AudioDeviceID device, AudioStreamBasicDescription *format);
++	void setParam(AudioParam param, int& value);
++	int getParam(AudioParam param);
++
++	bool open();
++	void close();
++	int read(void *buffer, int size);
++	int write(void *buffer, int size);
++
++};
++
++REGISTER_AUDIO_IO(AudioIOCoreAudio, "coreaudio", "Apple CoreAudio");
++}; // end namespace Arts
++
++using namespace std;
++using namespace Arts;
++
++AudioIOCoreAudio::AudioIOCoreAudio() {
++        artsdebug("CoreAudio driver version %s", driverVersion);
++        /*
++            * default parameters
++            */
++        param(samplingRate) = 44100;
++        paramStr(deviceName) = "default";
++        param(fragmentSize) = 1024;
++        param(fragmentCount) = 7;
++        param(channels) = 2;
++        param(direction) = 2;
++        param(format) = defaultFormat;
++        
++        input.numSamples = output.numSamples = 0;
++    
++        audioPlaybackStarted = 0, audioRecordStarted = 0;
++        coreaudio_has_output_device = 0;
++        coreaudio_has_input_device = 0;
++        coreaudio_init = 0;
++}
++
++
++void
++AudioIOCoreAudio::close()
++{
++    OSStatus status;
++    
++    /* deactivate both of them */
++    if (coreaudio_has_output_device && audioPlaybackStarted) {
++        status = AudioDeviceStop(gOutputDeviceID, (AudioDeviceIOProc) PlaybackIOProc);
++        audioPlaybackStarted = 0;
++    }
++    
++    if (coreaudio_has_input_device && audioRecordStarted) {
++        status = AudioDeviceStop(gInputDeviceID, (AudioDeviceIOProc) RecordIOProc);
++        audioRecordStarted = 0;
++    }
++}
++
++ 
++int AudioIOCoreAudio::write(void *buffer, int buf_size) {
++  OSStatus status;
++  float scale = 1.0 / SHRT_MAX;
++  int remain_to_write = buf_size;
++
++  if (!coreaudio_has_output_device)
++    return -1;
++
++  if (!audioPlaybackStarted) {
++    status = AudioDeviceStart(gOutputDeviceID,(AudioDeviceIOProc)  PlaybackIOProc);
++    audioPlaybackStarted = 1;
++  }
++
++  while (remain_to_write)
++  {
++    pthread_mutex_lock(&output.mutex);
++
++    while(output.numSamples == BUF_SIZE)
++      pthread_cond_wait(&output.condition, &output.mutex);
++
++    {
++      short *src_data = (short *)buffer + (buf_size - remain_to_write) / sizeof(short);
++      float *dst_data = output.dataBuf + output.numSamples;
++      int src_samples = remain_to_write / sizeof(short);
++      int dst_samples = BUF_SIZE - output.numSamples;
++      int n = (dst_samples < src_samples) ? dst_samples : src_samples;
++      int i;
++
++      for (i = 0; i < n; i++)
++        dst_data[i] = scale * src_data[i];
++
++      output.numSamples += n;
++      remain_to_write -= n * sizeof(short);
++    }
++
++    pthread_mutex_unlock(&output.mutex);
++  }
++
++  return (buf_size);
++
++}
++
++int AudioIOCoreAudio::read(void *buffer, int buf_size) {
++  OSStatus status;
++  float scale = SHRT_MAX;
++  int remain_to_read = buf_size;
++
++  if (!coreaudio_has_input_device)
++    return -1;
++
++  if (!audioRecordStarted) {
++    status = AudioDeviceStart(gInputDeviceID,(AudioDeviceIOProc)  RecordIOProc);
++    audioRecordStarted = 1;
++  }
++
++  while (remain_to_read)
++  {
++    pthread_mutex_lock(&input.mutex);
++
++    while(input.numSamples == BUF_SIZE)
++      pthread_cond_wait(&input.condition, &input.mutex);
++
++    {
++      float *src_data = input.dataBuf + input.numSamples;
++      short *dst_data = (short *)buffer + (buf_size - remain_to_read) / sizeof(short);
++      int src_samples = BUF_SIZE - input.numSamples;
++      int dst_samples = remain_to_read / sizeof(short);
++      int n = (dst_samples < src_samples) ? dst_samples : src_samples;
++      int i;
++
++      for (i = 0; i < n; i++)
++        dst_data[i] = (short)(scale * src_data[i]);
++
++      input.numSamples += n;
++      remain_to_read -= n * sizeof(short);
++    }
++
++    pthread_mutex_unlock(&input.mutex);
++  }
++
++  return (buf_size);
++
++}
++
++
++bool
++AudioIOCoreAudio::open()//const void *flags)
++{
++        #define LEN_DEVICE_NAME 128
++        OSStatus status;
++        UInt32 propertySize, bufferByteCount;
++        char deviceName[LEN_DEVICE_NAME];
++        char fdName[LEN_DEVICE_NAME + 50];
++        struct AudioStreamBasicDescription streamDesc;
++        int rval;
++
++/***** Arts Specific ***/
++	fprintf(stderr, "info: requesting %s, %d channel sound at %d hz\n",
++            (param(direction) & directionWrite) ? "write" : "read", param(channels), param(samplingRate));
++
++        bytesPerSec = param(channels) * 2 * param(samplingRate);
++        gettimeofday(&start,0);
++	if (param(direction) & directionWrite) {
++
++            /* HACK - create the file descriptor?  */
++            sprintf(fdName, "/tmp/audioiocoreaudio");
++            fopen(fdName, "w+");
++           audio_fd = ::open(fdName,  O_RDWR | O_NDELAY, 0);
++            	/* Obtain a file descriptor for our "listening" socket */
++        //   audio_fd = socket(AF_INET, SOCK_STREAM, 0);
++
++            if(audio_fd == -1)
++            {
++                arts_warning("file descriptor can't be created, %s\n", strerror(errno));
++                return false;
++            }
++
++
++/***** End Arts Specific ***/
++
++/*  Stuff from ESD... */
++        /********************** playback section ***************************/
++        /* get default output device */
++        propertySize = sizeof(gOutputDeviceID);
++        status = AudioHardwareGetProperty(kAudioHardwarePropertyDefaultOutputDevice,
++                                            &propertySize,
++                                            &gOutputDeviceID);
++        if (status) {
++            fprintf(stderr, "get default output device failed, status = %d\n",
++                    (int)status);
++            return (-2);
++        }
++        
++        if (gOutputDeviceID != kAudioDeviceUnknown) {
++            /* got default output device */
++            coreaudio_has_output_device = 1;
++        
++            /* get output device name */
++            propertySize = sizeof(char)*LEN_DEVICE_NAME;
++            status = AudioDeviceGetProperty(gOutputDeviceID,
++                                            1,
++                                            0,
++                                            kAudioDevicePropertyDeviceName,
++                                            &propertySize,
++                                            deviceName);
++            if (status) {
++            fprintf(stderr, "get device name failed, status = %d\n",
++                    (int)status);
++            return (-2);
++            }
++        
++            /* get output format */
++            propertySize = sizeof(struct AudioStreamBasicDescription);
++            status = AudioDeviceGetProperty(gOutputDeviceID,
++                                            1,
++                                            0,
++                                            kAudioDevicePropertyStreamFormat,
++                                            &propertySize,
++                                            &streamDesc);
++            if (status) {
++            fprintf(stderr, "get device property failed, status = %d\n",
++                    (int)status);
++            return (-2);
++            }
++        
++            if ((streamDesc.mSampleRate != 44100.0) ||
++                (streamDesc.mFormatID != kAudioFormatLinearPCM) ||
++            !(streamDesc.mFormatFlags & kLinearPCMFormatFlagIsFloat) ||
++                (streamDesc.mChannelsPerFrame != 2))
++            {
++            fprintf (stderr, "unsupported device.\n");
++            return (-2);
++            }
++        
++            /* set buffer size */
++            bufferByteCount = BUF_SIZE * sizeof(float);
++            propertySize = sizeof(bufferByteCount);
++            status = AudioDeviceSetProperty(gOutputDeviceID,
++                                            0,
++                                            0,
++                                            0,
++                                            kAudioDevicePropertyBufferSize,
++                                            propertySize,
++                                            &bufferByteCount);
++            if (status) {
++            fprintf(stderr, "set device property failed, status = %d\n",
++                    (int)status);
++            }
++        
++            fprintf(stderr, "using device %s for output:\n", deviceName);
++            fprintf(stderr, "\twith sample rate %f, %ld channels and %ld-bit sample\n",
++                    streamDesc.mSampleRate,
++                    streamDesc.mChannelsPerFrame,
++                    streamDesc.mBitsPerChannel);
++        
++            rval = pthread_mutex_init(&output.mutex, NULL);
++            if (rval) {
++            fprintf(stderr, "mutex init failed\n");
++            return (-1);
++            }
++            rval = pthread_cond_init(&output.condition, NULL);
++            if (rval) {
++            fprintf(stderr, "condition init failed\n");
++            return (-1);
++            }
++
++            /* Registers PlaybackIOProc with the device without activating it. */
++            status = AudioDeviceAddIOProc(gOutputDeviceID, (AudioDeviceIOProc) PlaybackIOProc, (void *)&output);               
++        }
++        
++	} else if (param(direction) & directionRead) {
++		// not supported
++	} else {
++		arts_warning("something went horribly wrong, we're not reading or writing!!!!");
++		return false;
++	}                
++        
++	return true;
++}
++
++void AudioIOCoreAudio::setParam(AudioParam p, int& value) {
++	switch(p)
++	{
++		default:
++			param(p) = value;
++			break;
++	}
++}
++
++int AudioIOCoreAudio::getParam(AudioParam p) {
++	timeval now;
++	double delta;
++	int bytes;
++
++	switch(p)
++	{
++		case canRead:
++		case canWrite:
++			gettimeofday(&now,0);
++			delta = (double)now.tv_sec + (double)now.tv_usec/1000000.0;
++			delta -= (double)start.tv_sec + (double)start.tv_usec/1000000.0;
++			bytes = (int)( (delta * bytesPerSec) -  ((p == canRead)?input.numSamples:output.numSamples));
++               //         printf("%s %d bytes\n", ((p == canRead)?"canRead":"canWrite"), bytes);
++			return bytes;
++			break;
++
++		case autoDetect:
++			return 10;
++			break;
++                        
++		case selectReadFD:
++			return (param(direction) & directionRead)?audio_fd:-1;
++			break;
++
++		case selectWriteFD:
++			return (param(direction) & directionWrite)?audio_fd:-1;
++			break;
++                        
++		default:
++			return param(p);
++			break;
++	}
++}
++
++bool AudioIOCoreAudio::supportsFormat(AudioDeviceID device, AudioStreamBasicDescription *format) {
++
++	UInt32 formatSize;
++	OSStatus err;
++
++	formatSize = sizeof(*format);
++	err = AudioDeviceGetProperty(device, 0, false,
++		kAudioDevicePropertyStreamFormatSupported, &formatSize, format);
++	NotifyOnError(err, "supportsFormat");
++
++	if (err == noErr) {
++		return true;
++	} else {
++		return false;
++	}
++
++}
++
++
++static OSStatus PlaybackIOProc(AudioDeviceID inDevice,
++			const AudioTimeStamp *inNow,
++			const AudioBufferList *inInputData,
++			const AudioTimeStamp *inInputTime,
++			AudioBufferList *outOutputData,
++			const AudioTimeStamp *inOutputTime,
++			audio_queue *inClientData)
++{
++  float *bufPtr = (float *) outOutputData->mBuffers[0].mData;
++  int i;
++
++  pthread_mutex_lock(&inClientData->mutex);
++
++  for (i = 0; i < inClientData->numSamples; i++)
++    bufPtr[i] = inClientData->dataBuf[i];
++  for ( ; i < BUF_SIZE; i++)
++    bufPtr[i] = 0;
++  inClientData->numSamples = 0;
++
++  pthread_mutex_unlock(&inClientData->mutex);
++  pthread_cond_signal(&inClientData->condition);
++
++  return (kAudioHardwareNoError);
++}
++
++static OSStatus RecordIOProc(AudioDeviceID inDevice,
++		      const AudioTimeStamp *inNow,
++		      const AudioBufferList *inInputData,
++		      const AudioTimeStamp *inInputTime,
++		      AudioBufferList *outOutputData,
++		      const AudioTimeStamp *inOutputTime,
++		      audio_queue *inClientData)
++{
++  float *bufPtr = inInputData->mBuffers[0].mData;
++  int i;
++
++  pthread_mutex_lock(&inClientData->mutex);
++
++  for (i = 0; i < BUF_SIZE; i++)
++    inClientData->dataBuf[i] = bufPtr[i];
++  inClientData->numSamples = 0;
++
++  pthread_mutex_unlock(&inClientData->mutex);
++  pthread_cond_signal(&inClientData->condition);
++
++  return (kAudioHardwareNoError);
++}
++
++/* Utility */
++
++bool NotifyOnError (OSStatus inRetVal, const char * inStringDesc) {
++	if (inRetVal == noErr) {
++		return true;
++	} else {
++		switch(inRetVal) {
++			case kAudioHardwareNoError:
++				break;
++			case kAudioHardwareNotRunningError:
++				arts_warning("error: hardware not running in %s", inStringDesc);
++				break;
++			case kAudioHardwareUnspecifiedError:
++				arts_warning("error: unspecified error in %s", inStringDesc);
++				break;
++			case kAudioHardwareUnknownPropertyError:
++				arts_warning("error: unknown property in %s", inStringDesc);
++				break;
++			case kAudioHardwareBadPropertySizeError:
++				arts_warning("error: bad property size in %s", inStringDesc);
++				break;
++			case kAudioHardwareIllegalOperationError:
++				arts_warning("error: illegal operation in %s", inStringDesc);
++				break;
++			case kAudioHardwareBadDeviceError:
++				arts_warning("error: bad device in %s", inStringDesc);
++				break;
++			case kAudioHardwareBadStreamError:
++				arts_warning("error: bad stream in %s", inStringDesc);
++				break;
++			case kAudioDeviceUnsupportedFormatError:
++				arts_warning("error: unsupported format in %s", inStringDesc);
++				break;
++			case kAudioDevicePermissionsError:
++				arts_warning("error: bad device permissions in %s", inStringDesc);
++				break;
++			default:
++				arts_warning("error: unknown CoreAudio error in %s", inStringDesc);
++				break;
++		}
++			
++		arts_warning("  system: 0x%d", err_get_system(inRetVal));
++		arts_warning("  sub:    0x%d", err_get_sub(inRetVal));
++		arts_warning("  code:   0x%d", err_get_code(inRetVal));
++		return false;
++	}
++}
++
++void ExitOnError (OSStatus inRetVal, const char * inStringDesc) {
++	if ( NotifyOnError (inRetVal, inStringDesc) ) {
++		exit(1);
++	}
++}
 ===================================================================
 diff -N ./flow/audioioesd.cc
 --- /dev/null	1 Jan 1970 00:00:00 -0000
@@ -1122,10 +1731,10 @@ diff -u -u -r1.1.1.3 -r1.6
  
  	return result;
 ===================================================================
-diff -u -u -r1.1.1.3 -r1.12
+diff -u -u -r1.1.1.3 -r1.15
 --- ./flow/Makefile.am	1 Oct 2002 01:48:02 -0000	1.1.1.3
-+++ ./flow/Makefile.am	23 Oct 2002 02:45:02 -0000	1.12
-@@ -1,18 +1,20 @@
++++ ./flow/Makefile.am	21 Nov 2002 21:28:34 -0000	1.15
+@@ -1,6 +1,8 @@
 +AM_CFLAGS = -DGSL_WANT_GLIB_WRAPPER -DGSL_WANT_ARTS_THREADS
 +AM_CXXFLAGS = -DGSL_WANT_GLIB_WRAPPER -DGSL_WANT_ARTS_THREADS
  
@@ -1135,11 +1744,8 @@ diff -u -u -r1.1.1.3 -r1.12
  
  ####### Files
  
- lib_LTLIBRARIES = libartsflow_idl.la libartsflow.la
- 
- libartsflow_idl_la_SOURCES = artsflow.cc
--libartsflow_idl_la_LDFLAGS = -no-undefined -version-info 1:0
-+libartsflow_idl_la_LDFLAGS = -no-undefined -version-info 1:7
+@@ -10,9 +12,9 @@
+ libartsflow_idl_la_LDFLAGS = -no-undefined -version-info 1:0
  libartsflow_idl_la_LIBADD = $(top_builddir)/mcop/libmcop.la $(LIBPOSIX4)
  
 -libartsflow_la_LIBADD = $(top_builddir)/mcop/libmcop.la libartsflow_idl.la $(top_builddir)/flow/gslpp/libgslpp.la $(LIBAUDIOFILE) $(LIBASOUND) $(LIBAUDIOIO) $(LIBOSSAUDIO) $(LIBAUDIONAS) $(LIBCSL) $(SGILIBAUDIO) -lm \
@@ -1147,10 +1753,19 @@ diff -u -u -r1.1.1.3 -r1.12
 -libartsflow_la_LDFLAGS = -no-undefined -version-info 1:0
 +libartsflow_la_LIBADD = $(top_builddir)/mcop/libmcop.la libartsflow_idl.la $(top_builddir)/flow/gslpp/libgslpp.la $(LIBAUDIOFILE) $(LIBASOUND) $(LIBAUDIOIO) $(LIBOSSAUDIO) $(LIBOSS_LIBADD) $(LIBAUDIONAS) $(LIBCSL) $(SGILIBAUDIO) -lm \
 + $(top_builddir)/flow/gsl/libgsl.la $(LIB_POLL)
-+libartsflow_la_LDFLAGS = -no-undefined -version-info 1:7 $(LIBOSS_LDFLAGS)
++libartsflow_la_LDFLAGS = -no-undefined -version-info 1:0 $(LIBOSS_LDFLAGS) $(FRAMEWORK_COREAUDIO)
  libartsflow_la_COMPILE_FIRST = artsflow.h
  libartsflow_la_SOURCES =  synth_play_impl.cc \
    synthschedule.cc gslschedule.cc audiosubsys.cc \
+@@ -26,7 +28,7 @@
+   audioionull.cc audioiolibaudioio.cc \
+   audioiosun.cc audioioaix.cc audioionas.cc cpuinfo.cc \
+   audioioossthreaded.cc audiotobytestream_impl.cc audioiosgi.cc \
+-  audioiocsl.cc datahandle_impl.cc
++  audioiocsl.cc audioiocoreaudio.cc datahandle_impl.cc
+ 
+ artsincludedir = $(includedir)/arts
+ artsinclude_HEADERS = artsflow.h audiosubsys.h cache.h \
 ===================================================================
 diff -u -u -r1.1.1.3 -r1.3
 ===================================================================
@@ -1173,20 +1788,15 @@ diff -u -u -r1.1.1.2 -r1.3
 ===================================================================
 diff -u -u -r1.1.1.3 -r1.3
 ===================================================================
-diff -u -u -r1.1.1.5 -r1.9
+diff -u -u -r1.1.1.5 -r1.11
 --- ./flow/gsl/Makefile.am	29 Oct 2002 02:31:19 -0000	1.1.1.5
-+++ ./flow/gsl/Makefile.am	29 Oct 2002 02:33:27 -0000	1.9
++++ ./flow/gsl/Makefile.am	21 Nov 2002 21:28:34 -0000	1.11
 @@ -1,4 +1,3 @@
 -
  EXTRA_DIST =
  CLEANFILES =
  MAINTAINERCLEANFILES =
-@@ -15,11 +14,11 @@
- 
- libgsl_la_SOURCES = $(GSL_C_SRC) gslglib.c gslglibhash.cc gslartsthreads.cc gslfilehash.c
- libgsl_la_LIBADD = $(top_builddir)/mcop/libmcop.la -lm $(LIBPOSIX4) $(GSL_LIBS) $(LIB_POLL)
--libgsl_la_LDFLAGS = -no-undefined
-+libgsl_la_LDFLAGS = -no-undefined -version-info 1:7
+@@ -19,7 +18,7 @@
  
  noinst_PROGRAMS = $(GSL_NOINST_PROGS)
  
@@ -1196,7 +1806,7 @@ diff -u -u -r1.1.1.5 -r1.9
  $(srcdir)/dummy.cc: gslconfig.h
  
 ===================================================================
-diff -u -u -r1.1.1.3 -r1.4
+diff -u -u -r1.1.1.3 -r1.6
 ===================================================================
 diff -u -u -r1.1.1.2 -r1.4
 --- ./libltdl/ltdl.c	10 Jul 2002 02:52:29 -0000	1.1.1.2
@@ -1261,28 +1871,9 @@ diff -u -u -r1.1.1.2 -r1.3
  ])
  if test "$libltdl_cv_sys_dlopen_deplibs" != yes; then
 ===================================================================
-diff -u -u -r1.1.1.2 -r1.5
---- ./mcop/Makefile.am	10 Jul 2002 02:52:30 -0000	1.1.1.2
-+++ ./mcop/Makefile.am	14 Aug 2002 14:05:28 -0000	1.5
-@@ -17,7 +17,7 @@
- 	 delayedreturn.cc thread.cc dynamicskeleton.cc
- 
- libmcop_la_LIBADD = $(LIBSOCKET) $(top_builddir)/libltdl/libltdlc.la
--libmcop_la_LDFLAGS = -no-undefined -version-info 1:0
-+libmcop_la_LDFLAGS = -no-undefined -version-info 1:7
- 
- artsincludedir = $(includedir)/arts
- artsinclude_HEADERS = buffer.h common.h connection.h core.h dispatcher.h \
+diff -u -u -r1.1.1.2 -r1.7
 ===================================================================
-diff -u -u -r1.1.1.2 -r1.5
---- ./mcop_mt/Makefile.am	10 Jul 2002 02:52:31 -0000	1.1.1.2
-+++ ./mcop_mt/Makefile.am	14 Aug 2002 14:05:28 -0000	1.5
-@@ -4,4 +4,4 @@
- 
- libmcop_mt_la_SOURCES = threads_posix.cc
- libmcop_mt_la_LIBADD = $(top_builddir)/mcop/libmcop.la $(LIBPTHREAD) $(LIBPOSIX4)
--libmcop_mt_la_LDFLAGS = -no-undefined -version-info 1:0 $(USE_THREADS) 
-+libmcop_mt_la_LDFLAGS = -no-undefined -version-info 1:7 $(USE_THREADS) 
+diff -u -u -r1.1.1.2 -r1.7
 ===================================================================
 diff -u -u -r1.1.1.3 -r1.2
 --- ./mcopidl/Makefile.am	14 Aug 2002 13:21:26 -0000	1.1.1.3
@@ -1293,18 +1884,7 @@ diff -u -u -r1.1.1.3 -r1.2
  ####### Files
  
 ===================================================================
-diff -u -u -r1.1.1.1 -r1.5
---- ./qtmcop/Makefile.am	25 Jun 2002 01:45:59 -0000	1.1.1.1
-+++ ./qtmcop/Makefile.am	14 Aug 2002 14:05:28 -0000	1.5
-@@ -5,7 +5,7 @@
- 
- libqtmcop_la_SOURCES = qiomanager.cc
- libqtmcop_la_LIBADD = $(top_builddir)/mcop/libmcop.la $(LIB_QT)
--libqtmcop_la_LDFLAGS = -no-undefined -version-info 1:0 $(KDE_RPATH) $(KDE_MT_LDFLAGS) $(QT_LDFLAGS) \
-+libqtmcop_la_LDFLAGS = -no-undefined -version-info 1:7 $(KDE_RPATH) $(KDE_MT_LDFLAGS) $(QT_LDFLAGS) \
-   $(X_LDFLAGS) $(USER_LDFLAGS)
- 
- METASOURCES = qiomanager_p.moc
+diff -u -u -r1.1.1.1 -r1.7
 ===================================================================
 diff -u -u -r1.1.1.2 -r1.4
 --- ./soundserver/artsd.cc	10 Jul 2002 02:52:33 -0000	1.1.1.2
@@ -1375,49 +1955,7 @@ diff -u -u -r1.1.1.2 -r1.4
  	/* warn if there was a problem with artswrapper */
  	char *wrapper = getenv("STARTED_THROUGH_ARTSWRAPPER");
 ===================================================================
-diff -u -u -r1.1.1.4 -r1.7
---- ./soundserver/Makefile.am	14 Aug 2002 13:21:26 -0000	1.1.1.4
-+++ ./soundserver/Makefile.am	14 Aug 2002 14:05:29 -0000	1.7
-@@ -19,26 +19,29 @@
- lib_LTLIBRARIES = libkmedia2_idl.la libsoundserver_idl.la \
- 	libartsgslplayobject.la libartswavplayobject.la libkmedia2.la
- 
--libsoundserver_idl_la_LIBADD = libkmedia2_idl.la \
--                          $(top_builddir)/flow/libartsflow_idl.la
--libsoundserver_idl_la_LDFLAGS = -no-undefined -version-info 1:0
-+libsoundserver_idl_la_LIBADD = libkmedia2_idl.la $(top_builddir)/x11/libx11globalcomm.la \
-+                          $(top_builddir)/flow/libartsflow_idl.la $(top_builddir)/mcop/libmcop.la
-+libsoundserver_idl_la_LDFLAGS = -no-undefined -version-info 1:7
- libsoundserver_idl_la_SOURCES = soundserver.cc
- libsoundserver_idl_la_COMPILE_FIRST = soundserver.h
- 
- libkmedia2_idl_la_SOURCES = kmedia2.cc
- libkmedia2_idl_la_COMPILE_FIRST = kmedia2.h
--libkmedia2_idl_la_LIBADD  = $(top_builddir)/flow/libartsflow.la
--libkmedia2_idl_la_LDFLAGS = -no-undefined -version-info 1:0
-+libkmedia2_idl_la_LIBADD  = $(top_builddir)/flow/libartsflow.la $(top_builddir)/mcop/libmcop.la \
-+	$(top_builddir)/x11/libx11globalcomm.la $(top_builddir)/flow/libartsflow_idl.la
-+libkmedia2_idl_la_LDFLAGS = -no-undefined -version-info 1:7
- 
- libkmedia2_la_SOURCES = fileinputstream_impl.cc stdoutwriter_impl.cc
--libkmedia2_la_LIBADD  = libkmedia2_idl.la $(FLOWLIBS)
--libkmedia2_la_LDFLAGS = -no-undefined -version-info 1:0
-+libkmedia2_la_LIBADD  = libkmedia2_idl.la $(FLOWLIBS) $(top_builddir)/flow/libartsflow_idl.la \
-+	$(top_builddir)/mcop/libmcop.la $(top_builddir)/x11/libx11globalcomm.la
-+libkmedia2_la_LDFLAGS = -no-undefined -version-info 1:7
- libkmedia2_la_COMPILE_FIRST = kmedia2.h ../flow/artsflow.h
- 
- libartswavplayobject_la_SOURCES = wavplayobject_impl.cc
--libartswavplayobject_la_LIBADD  = $(top_builddir)/mcop/libmcop.la \
--                                  libsoundserver_idl.la $(FLOWLIBS)
--libartswavplayobject_la_LDFLAGS = -no-undefined -module
-+libartswavplayobject_la_LIBADD  = $(top_builddir)/mcop/libmcop.la $(top_builddir)/x11/libx11globalcomm.la \
-+                                  libsoundserver_idl.la $(FLOWLIBS) $(top_builddir)/flow/libartsflow_idl.la \
-+				  libkmedia2_idl.la
-+libartswavplayobject_la_LDFLAGS = -no-undefined -version-info 1:7 -module
- libartswavplayobject_la_COMPILE_FIRST = soundserver.h ../flow/artsflow.h
- 
- libartsgslplayobject_la_SOURCES = gslplayobject_impl.cc
+diff -u -u -r1.1.1.4 -r1.9
 ===================================================================
 diff -u -u -r1.1.1.1 -r1.2
 --- ./soundserver/soundserverv2_impl.cc	25 Jun 2002 01:45:59 -0000	1.1.1.1
@@ -1437,15 +1975,4 @@ diff -u -u -r1.1.1.1 -r1.2
  #ifndef __SUNPRO_CC
  /* See bottom of simplesoundserver_impl.cc for the reason this is here.  */
 ===================================================================
-diff -u -u -r1.1.1.2 -r1.5
---- ./x11/Makefile.am	10 Jul 2002 02:52:34 -0000	1.1.1.2
-+++ ./x11/Makefile.am	14 Aug 2002 14:05:29 -0000	1.5
-@@ -4,7 +4,7 @@
- 
- libx11globalcomm_la_SOURCES = x11globalcomm.cc x11globalcomm_impl.cc
- libx11globalcomm_la_LIBADD = $(top_builddir)/mcop/libmcop.la $(LIB_X11)
--libx11globalcomm_la_LDFLAGS = -no-undefined -module -version-info 1:0 $(X_LDFLAGS)
-+libx11globalcomm_la_LDFLAGS = -no-undefined -module -version-info 1:7 $(X_LDFLAGS)
- 
- DISTCLEANFILES = x11globalcomm.cc x11globalcomm.h \
-                  x11globalcomm.mcoptype x11globalcomm.mcopclass
+diff -u -u -r1.1.1.2 -r1.7
