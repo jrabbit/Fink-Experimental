@@ -1,0 +1,73 @@
+Package: finkcommander
+Version: 0.5cvs
+Revision: 2
+Type: NoSource
+#Source: mirror:sourceforge:%n/%n-%v-src.tgz
+#Source-MD5: b931d64fdccc9460ab54a845ee356e2f
+License: GPL
+Enhances: fink, dpkg
+Suggests: finkcommander (>= 0.4.3-1)
+Conflicts: finkcommander (>= 0.5.0-1)
+#touch %p/src/cvs/%n/FinkCommander/SBTreeFiles/English.lproj/Localizable.strings
+#touch %p/src/cvs/%n/FinkCommander/SBTreeFiles/German.lproj/Localizable.strings
+CompileScript: <<
+ [ -d %p/src/cvs/%n/CVS/ ] || mkdir -p %p/src/cvs/%n/CVS/
+ [ -f %p/src/cvs/%n/CVS/Root ] || echo ":pserver:anonymous@cvs.sourceforge.net:/cvsroot/%n" > %p/src/cvs/%n/CVS/Root
+ [ -f  %p/src/cvs/%n/CVS/Repository ] || echo "/cvsroot/%n" > %p/src/cvs/%n/CVS/Repository
+ [ -f %p/src/cvs/%n/CVS/Entries ] || echo "D/FinkCommander////" > %p/src/cvs/%n/CVS/Entries
+ [ -f %p/src/cvs/%n/.cvsignore ] || echo ".DS_Store .cvsignore commitinfo cvswrappers loginfo notify syncmail verifymsg checkoutlist config editinfo modules rcsinfo taginfo" > %p/src/cvs/%n/.cvsignore
+ cd %p/src/cvs/%n/; cvs up FinkCommander
+
+ cd %p/src/cvs/%n/FinkCommander/FinkCommander.pbproj/; pbxbuild -target	FinkCommander -buildstyle Deployment OPTIMIZATION_CFLAGS=-O3 DEBUGGING_SYMBOLS=NO CC=gcc3 OBJROOT=%b SYMROOT=%b SRCROOT=%p/src/cvs/%n/FinkCommander
+<<
+InstallScript: <<
+ cd %p/src/cvs/%n/FinkCommander/FinkCommander.pbproj/; pbxbuild install OBJROOT=%b SYMROOT=%b DSTROOT=%d INSTALL_PATH=%p/Applications productInstallPath=%p/Applications
+
+ mkdir -pm 775 %i/Library/Documentation/FinkCommander
+ cd %p/src/cvs/%n/FinkCommander/; install -m 664 LICENSE.txt RELEASE_STEPS.txt TODO.txt VERSION_HISTORY.html %i/Library/Documentation/FinkCommander/
+<<
+PostRmScript: <<
+ find %p/src/cvs/%n %p/Library/Documentation/FinkCommander -name .DS_Store -print -exec rm {} \;
+<<
+Description: GUI frontend to the Fink package manager
+DescDetail: <<
+ ****************************************************************************
+ This info file is NOT SUPPORTED OR SANCTIONED BY FINK and will not appear in
+ the unstable or stable trees. It should not cause any problems; however,
+ USE AT YOUR OWN RISK!
+ ****************************************************************************
+ FinkCommander is a graphical user interface for the Fink software packaging 
+ system for Mac OS X. It provides an intuitive front-end to the Fink 
+ command-line tools for downloading and installing Unix software.
+<<
+DescUsage:<<
+ FinkCommander will be installed in <fink base path>/Applications. From there
+ you can run it like any other OS X application or make a symlink or alias of it to elsewhere on your system.
+<<
+DescPackaging: <<
+ This package has been outlawed by the powers that be. 
+ It is still very useful, so I keep it around.
+
+ When the 0.5 final is released, the package name should be
+ finkcommander-0.5.0-1 in order for the version number to be regonized
+ by fink as the newer one.
+
+ We are using this odd method for CVS to avoid using "cvs co", which
+ is a waste when we later want to only do a "CVS up". Really some kind of DownloadScript field is needed in a future version of fink to allow custom download scripts to be used regularly.
+<<
+DescPort: <<
+ Use %b to build inside the fink dir (%b = %p/src/%n-%v-%r/) instead
+ of pbxbuild's default of compiling in the source dir.
+
+ Make sure to quote spaces inside flags with multiple arguments if you
+ use OTHER_CFLAGS: (yes, this looks quite strange)
+ e.g. OTHER_CFLAGS='-no-cpp-precomp" "-mcpu=7400" "-mmultiple" "-faltivec'
+ 
+ Note:
+ The current FinkCommander CVS build is broken due to two missing
+ files. These files are touched during CompileScript to work around it
+ until the problem is fixed.
+<<
+# Author: Steven J. Burr <sburr@mac.com>
+Maintainer: Carsten Klapp <carstenklapp@users.sourceforge.net>, Martin Costabel <costabel@wanadoo.fr>
+Homepage: http://finkcommander.sourceforge.net
