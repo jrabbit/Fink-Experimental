@@ -1,0 +1,2071 @@
+diff -Naur libgnomeui-2.4.0.1-old/config.h.in libgnomeui-2.4.0.1/config.h.in
+--- libgnomeui-2.4.0.1-old/config.h.in	Sun Aug 17 07:03:20 2003
++++ libgnomeui-2.4.0.1/config.h.in	Wed Oct 15 19:12:37 2003
+@@ -20,6 +20,10 @@
+ /* Define to 1 if you have the `bind_textdomain_codeset' function. */
+ #undef HAVE_BIND_TEXTDOMAIN_CODESET
+ 
++/* Define if you have the `strtok_r' function. */
++#undef HAVE_STRTOK_R
++
++
+ /* Define to 1 if you have the `dcgettext' function. */
+ #undef HAVE_DCGETTEXT
+ 
+diff -Naur libgnomeui-2.4.0.1-old/configure libgnomeui-2.4.0.1/configure
+--- libgnomeui-2.4.0.1-old/configure	Tue Sep  9 09:24:00 2003
++++ libgnomeui-2.4.0.1/configure	Wed Oct 15 19:04:59 2003
+@@ -19457,7 +19457,7 @@
+ 
+       if test "$gt_cv_func_dgettext_libc" = "yes" ; then
+ 
+-for ac_func in bind_textdomain_codeset
++for ac_func in bind_textdomain_codeset strtok_r
+ do
+ as_ac_var=`echo "ac_cv_func_$ac_func" | $as_tr_sh`
+ echo "$as_me:$LINENO: checking for $ac_func" >&5
+diff -Naur libgnomeui-2.4.0.1-old/doc/reference/Makefile.in libgnomeui-2.4.0.1/doc/reference/Makefile.in
+--- libgnomeui-2.4.0.1-old/doc/reference/Makefile.in	Tue Sep  9 09:31:18 2003
++++ libgnomeui-2.4.0.1/doc/reference/Makefile.in	Wed Oct 15 19:04:59 2003
+@@ -173,8 +173,8 @@
+ 
+ # CFLAGS and LDFLAGS for compiling scan program. Only needed if your app/lib
+ # contains GtkObjects/GObjects and you want to document signals and properties.
+-GTKDOC_CFLAGS = -I$(top_builddir) -I$(top_srcdir) $(LIBGNOMEUI_CFLAGS) $(CFLAGS)
+-GTKDOC_LIBS = $(top_builddir)/libgnomeui/libgnomeui-2.la $(LDFLAGS)
++GTKDOC_CFLAGS = -I$(top_builddir) -I$(top_srcdir) $(LIBGNOMEUI_CFLAGS) $(CFLAGS) $(CPPFLAGS)
++GTKDOC_LIBS = $(top_builddir)/libgnomeui/libgnomeui-2.la $(LIBGNOMEUI_LIBS) $(SM_LIBS) $(LDFLAGS)
+ 
+ GTKDOC_CC = $(LIBTOOL) --mode=compile $(CC)
+ GTKDOC_LD = $(LIBTOOL) --mode=link $(CC)
+diff -Naur libgnomeui-2.4.0.1-old/doc/reference/Makefile.in.orig libgnomeui-2.4.0.1/doc/reference/Makefile.in.orig
+--- libgnomeui-2.4.0.1-old/doc/reference/Makefile.in.orig	Wed Dec 31 19:00:00 1969
++++ libgnomeui-2.4.0.1/doc/reference/Makefile.in.orig	Tue Sep  9 09:31:18 2003
+@@ -0,0 +1,405 @@
++# Makefile.in generated automatically by automake 1.4-p6 from Makefile.am
++
++# Copyright (C) 1994, 1995-8, 1999, 2001 Free Software Foundation, Inc.
++# This Makefile.in is free software; the Free Software Foundation
++# gives unlimited permission to copy and/or distribute it,
++# with or without modifications, as long as this notice is preserved.
++
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY, to the extent permitted by law; without
++# even the implied warranty of MERCHANTABILITY or FITNESS FOR A
++# PARTICULAR PURPOSE.
++
++# The name of the module, e.g. 'glib'.
++
++
++SHELL = @SHELL@
++
++srcdir = @srcdir@
++top_srcdir = @top_srcdir@
++VPATH = @srcdir@
++prefix = @prefix@
++exec_prefix = @exec_prefix@
++
++bindir = @bindir@
++sbindir = @sbindir@
++libexecdir = @libexecdir@
++datadir = @datadir@
++sysconfdir = @sysconfdir@
++sharedstatedir = @sharedstatedir@
++localstatedir = @localstatedir@
++libdir = @libdir@
++infodir = @infodir@
++mandir = @mandir@
++includedir = @includedir@
++oldincludedir = /usr/include
++
++DESTDIR =
++
++pkgdatadir = $(datadir)/@PACKAGE@
++pkglibdir = $(libdir)/@PACKAGE@
++pkgincludedir = $(includedir)/@PACKAGE@
++
++top_builddir = ../..
++
++ACLOCAL = @ACLOCAL@
++AUTOCONF = @AUTOCONF@
++AUTOMAKE = @AUTOMAKE@
++AUTOHEADER = @AUTOHEADER@
++
++INSTALL = @INSTALL@
++INSTALL_PROGRAM = @INSTALL_PROGRAM@ $(AM_INSTALL_PROGRAM_FLAGS)
++INSTALL_DATA = @INSTALL_DATA@
++INSTALL_SCRIPT = @INSTALL_SCRIPT@
++transform = @program_transform_name@
++
++NORMAL_INSTALL = :
++PRE_INSTALL = :
++POST_INSTALL = :
++NORMAL_UNINSTALL = :
++PRE_UNINSTALL = :
++POST_UNINSTALL = :
++host_alias = @host_alias@
++host_triplet = @host@
++AR = @AR@
++AS = @AS@
++AWK = @AWK@
++CATALOGS = @CATALOGS@
++CATOBJEXT = @CATOBJEXT@
++CC = @CC@
++CFLAGS = @CFLAGS@
++CPPFLAGS = @CPPFLAGS@
++CXX = @CXX@
++CXXCPP = @CXXCPP@
++DATADIRNAME = @DATADIRNAME@
++DLLTOOL = @DLLTOOL@
++ECHO = @ECHO@
++EGREP = @EGREP@
++EXEEXT = @EXEEXT@
++F77 = @F77@
++GCJ = @GCJ@
++GCJFLAGS = @GCJFLAGS@
++GCONFTOOL = @GCONFTOOL@
++GCONF_CONFIG_SOURCE = @GCONF_CONFIG_SOURCE@
++GDK_PIXBUF_CSOURCE = @GDK_PIXBUF_CSOURCE@
++GETTEXT_PACKAGE = @GETTEXT_PACKAGE@
++GMOFILES = @GMOFILES@
++GMSGFMT = @GMSGFMT@
++GNOME_ACLOCAL_DIR = @GNOME_ACLOCAL_DIR@
++GNOME_ACLOCAL_FLAGS = @GNOME_ACLOCAL_FLAGS@
++GTKDOC = @GTKDOC@
++GTK_VERSION = @GTK_VERSION@
++HTML_DIR = @HTML_DIR@
++INSTALL_GCONF_CONFIG_SOURCE = @INSTALL_GCONF_CONFIG_SOURCE@
++INSTOBJEXT = @INSTOBJEXT@
++INTLLIBS = @INTLLIBS@
++LDFLAGS = @LDFLAGS@
++LIBGLADE_CONVERT = @LIBGLADE_CONVERT@
++LIBGNOMEUI_AGE = @LIBGNOMEUI_AGE@
++LIBGNOMEUI_CFLAGS = @LIBGNOMEUI_CFLAGS@
++LIBGNOMEUI_COMPONENTS_CFLAGS = @LIBGNOMEUI_COMPONENTS_CFLAGS@
++LIBGNOMEUI_COMPONENTS_LIBS = @LIBGNOMEUI_COMPONENTS_LIBS@
++LIBGNOMEUI_CURRENT = @LIBGNOMEUI_CURRENT@
++LIBGNOMEUI_DEMOS_CFLAGS = @LIBGNOMEUI_DEMOS_CFLAGS@
++LIBGNOMEUI_DEMOS_LIBS = @LIBGNOMEUI_DEMOS_LIBS@
++LIBGNOMEUI_GLADE_CFLAGS = @LIBGNOMEUI_GLADE_CFLAGS@
++LIBGNOMEUI_GLADE_LIBS = @LIBGNOMEUI_GLADE_LIBS@
++LIBGNOMEUI_LIBS = @LIBGNOMEUI_LIBS@
++LIBGNOMEUI_REVISION = @LIBGNOMEUI_REVISION@
++LIBJPEG = @LIBJPEG@
++LIBTOOL = @LIBTOOL@
++LN_S = @LN_S@
++MAINT = @MAINT@
++MAKEINFO = @MAKEINFO@
++MKINSTALLDIRS = @MKINSTALLDIRS@
++OBJDUMP = @OBJDUMP@
++OBJEXT = @OBJEXT@
++PACKAGE = @PACKAGE@
++PATH_TO_XRDB = @PATH_TO_XRDB@
++PERL = @PERL@
++PKG_CONFIG = @PKG_CONFIG@
++POFILES = @POFILES@
++POSUB = @POSUB@
++PO_IN_DATADIR_FALSE = @PO_IN_DATADIR_FALSE@
++PO_IN_DATADIR_TRUE = @PO_IN_DATADIR_TRUE@
++RANLIB = @RANLIB@
++RC = @RC@
++REBUILD = @REBUILD@
++SM_LIBS = @SM_LIBS@
++STRIP = @STRIP@
++USE_NLS = @USE_NLS@
++VERSION = @VERSION@
++WARN_CFLAGS = @WARN_CFLAGS@
++WARN_CXXFLAGS = @WARN_CXXFLAGS@
++YACC = @YACC@
++gnomelocaledir = @gnomelocaledir@
++
++DOC_MODULE = libgnomeui
++
++# The top-level SGML file. Change it if you want.
++DOC_MAIN_SGML_FILE = $(DOC_MODULE)-docs.sgml
++
++# The directory containing the source code. Relative to $(srcdir).
++# gtk-doc will search all .c & .h files beneath here for inline comments
++# documenting functions and macros.
++DOC_SOURCE_DIR = ../../libgnomeui
++
++# Extra options to supply to gtkdoc-scan.
++SCAN_OPTIONS = --deprecated-guards="GNOME_DISABLE_DEPRECATED"
++
++# Extra options to supply to gtkdoc-mkdb.
++MKDB_OPTIONS = --output-format=xml
++
++# Extra options to supply to gtkdoc-fixref.
++FIXXREF_OPTIONS = 
++
++# Used for dependencies.
++HFILE_GLOB = $(top_srcdir)/libgnomeui/*.h
++CFILE_GLOB = $(top_srcdir)/libgnomeui/*.c
++
++# Header files to ignore when scanning.
++IGNORE_HFILES =  	gnome-i18nP.h				libgnomeuiP.h				gnome-gconf-ui.h			libgnomeui-access.h
++
++
++# Images to copy into HTML directory.
++HTML_IMAGES =  	$(top_srcdir)/libgnomeui/pixmaps/stock_attach.png			$(top_srcdir)/libgnomeui/pixmaps/stock_book_blue.png			$(top_srcdir)/libgnomeui/pixmaps/stock_book_green.png			$(top_srcdir)/libgnomeui/pixmaps/stock_book_open.png			$(top_srcdir)/libgnomeui/pixmaps/stock_book_red.png			$(top_srcdir)/libgnomeui/pixmaps/stock_book_yellow.png			$(top_srcdir)/libgnomeui/pixmaps/stock_line_in.png			$(top_srcdir)/libgnomeui/pixmaps/stock_mail_compose.png			$(top_srcdir)/libgnomeui/pixmaps/stock_mail_forward.png			$(top_srcdir)/libgnomeui/pixmaps/stock_mail.png				$(top_srcdir)/libgnomeui/pixmaps/stock_mail_receive.png			$(top_srcdir)/libgnomeui/pixmaps/stock_mail_reply.png			$(top_srcdir)/libgnomeui/pixmaps/stock_mail_send.png			$(top_srcdir)/libgnomeui/pixmaps/stock_menu_about.png			$(top_srcdir)/libgnomeui/pixmaps/stock_menu_blank.png			$(top_srcdir)/libgnomeui/pixmaps/stock_mic.png				$(top_srcdir)/libgnomeui/pixmaps/stock_midi.png				$(top_srcdir)/libgnomeui/pixmaps/stock_multiple_file.png		$(top_srcdir)/libgnomeui/pixmaps/stock_not.png				$(top_srcdir)/libgnomeui/pixmaps/stock_scores.png			$(top_srcdir)/libgnomeui/pixmaps/stock_table_borders.png		$(top_srcdir)/libgnomeui/pixmaps/stock_table_fill.png			$(top_srcdir)/libgnomeui/pixmaps/stock_text_bulleted_list.png		$(top_srcdir)/libgnomeui/pixmaps/stock_text_indent.png			$(top_srcdir)/libgnomeui/pixmaps/stock_text_numbered_list.png		$(top_srcdir)/libgnomeui/pixmaps/stock_text_unindent.png		$(top_srcdir)/libgnomeui/pixmaps/stock_timer.png			$(top_srcdir)/libgnomeui/pixmaps/stock_timer_stopped.png		$(top_srcdir)/libgnomeui/pixmaps/stock_trash_full.png			$(top_srcdir)/libgnomeui/pixmaps/stock_trash.png			$(top_srcdir)/libgnomeui/pixmaps/stock_volume.png
++
++
++# Extra SGML files that are included by $(DOC_MAIN_SGML_FILE).
++content_files = 
++
++# Other files to distribute.
++extra_files = 
++
++# CFLAGS and LDFLAGS for compiling scan program. Only needed if your app/lib
++# contains GtkObjects/GObjects and you want to document signals and properties.
++GTKDOC_CFLAGS = -I$(top_builddir) -I$(top_srcdir) $(LIBGNOMEUI_CFLAGS) $(CFLAGS)
++GTKDOC_LIBS = $(top_builddir)/libgnomeui/libgnomeui-2.la $(LDFLAGS)
++
++GTKDOC_CC = $(LIBTOOL) --mode=compile $(CC)
++GTKDOC_LD = $(LIBTOOL) --mode=link $(CC)
++
++# If you need to override some of the declarations, place them in this file
++# and uncomment this line.
++#DOC_OVERRIDES = $(DOC_MODULE)-overrides.txt
++DOC_OVERRIDES = 
++
++###########################################################################
++# Everything below here is generic and you shouldn't need to change it.
++###########################################################################
++
++TARGET_DIR = $(HTML_DIR)/$(DOC_MODULE)
++
++EXTRA_DIST =  	$(content_files)			$(extra_files)				$(HTML_IMAGES)				$(DOC_MAIN_SGML_FILE)			$(DOC_MODULE).types			$(DOC_MODULE)-sections.txt		$(DOC_OVERRIDES)
++
++
++DOC_STAMPS = scan-build.stamp tmpl-build.stamp sgml-build.stamp html-build.stamp 	   $(srcdir)/tmpl.stamp $(srcdir)/sgml.stamp $(srcdir)/html.stamp
++
++
++SCANOBJ_FILES =  	$(DOC_MODULE).args 		$(DOC_MODULE).hierarchy 	$(DOC_MODULE).signals
++
++mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
++CONFIG_HEADER = ../../config.h
++CONFIG_CLEAN_FILES = 
++DIST_COMMON =  Makefile.am Makefile.in
++
++
++DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
++
++TAR = gtar
++GZIP_ENV = --best
++all: all-redirect
++.SUFFIXES:
++$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
++	cd $(top_srcdir) && $(AUTOMAKE) --gnu --include-deps doc/reference/Makefile
++
++Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status
++	cd $(top_builddir) \
++	  && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
++
++tags: TAGS
++TAGS:
++
++
++distdir = $(top_builddir)/$(PACKAGE)-$(VERSION)/$(subdir)
++
++subdir = doc/reference
++
++distdir: $(DISTFILES)
++	$(mkinstalldirs) $(distdir)/$(top_srcdir)/libgnomeui/pixmaps
++	@for file in $(DISTFILES); do \
++	  d=$(srcdir); \
++	  if test -d $$d/$$file; then \
++	    cp -pr $$d/$$file $(distdir)/$$file; \
++	  else \
++	    test -f $(distdir)/$$file \
++	    || ln $$d/$$file $(distdir)/$$file 2> /dev/null \
++	    || cp -p $$d/$$file $(distdir)/$$file || :; \
++	  fi; \
++	done
++	$(MAKE) $(AM_MAKEFLAGS) top_distdir="$(top_distdir)" distdir="$(distdir)" dist-hook
++info-am:
++info: info-am
++dvi-am:
++dvi: dvi-am
++check-am: all-am
++check: check-am
++installcheck-am:
++installcheck: installcheck-am
++install-exec-am:
++install-exec: install-exec-am
++
++install-data-am: install-data-local
++install-data: install-data-am
++
++install-am: all-am
++	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
++install: install-am
++uninstall-am:
++uninstall: uninstall-am
++all-am: Makefile all-local
++all-redirect: all-am
++install-strip:
++	$(MAKE) $(AM_MAKEFLAGS) AM_INSTALL_PROGRAM_FLAGS=-s install
++installdirs:
++
++
++mostlyclean-generic:
++
++clean-generic:
++
++distclean-generic:
++	-rm -f Makefile $(CONFIG_CLEAN_FILES)
++	-rm -f config.cache config.log stamp-h stamp-h[0-9]*
++
++maintainer-clean-generic:
++mostlyclean-am:  mostlyclean-generic
++
++mostlyclean: mostlyclean-am
++
++clean-am:  clean-generic mostlyclean-am clean-local
++
++clean: clean-am
++
++distclean-am:  distclean-generic clean-am
++	-rm -f libtool
++
++distclean: distclean-am
++
++maintainer-clean-am:  maintainer-clean-generic distclean-am \
++		maintainer-clean-local
++	@echo "This command is intended for maintainers to use;"
++	@echo "it deletes files that may require special tools to rebuild."
++
++maintainer-clean: maintainer-clean-am
++
++.PHONY: tags distdir info-am info dvi-am dvi check check-am \
++installcheck-am installcheck install-exec-am install-exec \
++install-data-local install-data-am install-data install-am install \
++uninstall-am uninstall all-local all-redirect all-am all installdirs \
++mostlyclean-generic distclean-generic clean-generic \
++maintainer-clean-generic clean mostlyclean distclean maintainer-clean
++
++
++@ENABLE_GTK_DOC_TRUE@all-local: html-build.stamp
++
++#### scan ####
++
++@ENABLE_GTK_DOC_TRUE@scan-build.stamp: $(HFILE_GLOB)
++@ENABLE_GTK_DOC_TRUE@	@echo '*** Scanning header files ***'
++@ENABLE_GTK_DOC_TRUE@	if grep -l '^..*$$' $(srcdir)/$(DOC_MODULE).types > /dev/null ; then \
++@ENABLE_GTK_DOC_TRUE@	    CC="$(GTKDOC_CC)" LD="$(GTKDOC_LD)" CFLAGS="$(GTKDOC_CFLAGS)" LDFLAGS="$(GTKDOC_LIBS)" gtkdoc-scangobj --module=$(DOC_MODULE) --output-dir=$(srcdir) ; \
++@ENABLE_GTK_DOC_TRUE@	else \
++@ENABLE_GTK_DOC_TRUE@	    cd $(srcdir) ; \
++@ENABLE_GTK_DOC_TRUE@	    for i in $(SCANOBJ_FILES) ; do \
++@ENABLE_GTK_DOC_TRUE@               test -f $$i || touch $$i ; \
++@ENABLE_GTK_DOC_TRUE@	    done \
++@ENABLE_GTK_DOC_TRUE@	fi
++@ENABLE_GTK_DOC_TRUE@	cd $(srcdir) && \
++@ENABLE_GTK_DOC_TRUE@	  gtkdoc-scan --module=$(DOC_MODULE) --source-dir=$(DOC_SOURCE_DIR) --ignore-headers="$(IGNORE_HFILES)" $(SCAN_OPTIONS) $(EXTRA_HFILES)
++@ENABLE_GTK_DOC_TRUE@	touch scan-build.stamp
++
++@ENABLE_GTK_DOC_TRUE@$(DOC_MODULE)-decl.txt $(SCANOBJ_FILES): scan-build.stamp
++@ENABLE_GTK_DOC_TRUE@	@true
++
++#### templates ####
++
++@ENABLE_GTK_DOC_TRUE@tmpl-build.stamp: $(DOC_MODULE)-decl.txt $(SCANOBJ_FILES) $(DOC_MODULE)-sections.txt $(DOC_OVERRIDES)
++@ENABLE_GTK_DOC_TRUE@	@echo '*** Rebuilding template files ***'
++@ENABLE_GTK_DOC_TRUE@	cd $(srcdir) && gtkdoc-mktmpl --module=$(DOC_MODULE)
++@ENABLE_GTK_DOC_TRUE@	touch tmpl-build.stamp
++
++@ENABLE_GTK_DOC_TRUE@tmpl.stamp: tmpl-build.stamp
++@ENABLE_GTK_DOC_TRUE@	@true
++
++#### sgml ####
++
++@ENABLE_GTK_DOC_TRUE@sgml-build.stamp: tmpl.stamp $(CFILE_GLOB) $(srcdir)/tmpl/*.sgml
++@ENABLE_GTK_DOC_TRUE@	@echo '*** Building SGML ***'
++@ENABLE_GTK_DOC_TRUE@	cd $(srcdir) && \
++@ENABLE_GTK_DOC_TRUE@	gtkdoc-mkdb --module=$(DOC_MODULE) --source-dir=$(DOC_SOURCE_DIR) --main-sgml-file=$(DOC_MAIN_SGML_FILE) $(MKDB_OPTIONS)
++@ENABLE_GTK_DOC_TRUE@	touch sgml-build.stamp
++
++@ENABLE_GTK_DOC_TRUE@sgml.stamp: sgml-build.stamp
++@ENABLE_GTK_DOC_TRUE@	@true
++
++#### html ####
++
++@ENABLE_GTK_DOC_TRUE@html-build.stamp: sgml.stamp $(DOC_MAIN_SGML_FILE) $(content_files)
++@ENABLE_GTK_DOC_TRUE@	@echo '*** Building HTML ***'
++@ENABLE_GTK_DOC_TRUE@	test -d $(srcdir)/html || mkdir $(srcdir)/html
++@ENABLE_GTK_DOC_TRUE@	cd $(srcdir)/html && gtkdoc-mkhtml $(DOC_MODULE) ../$(DOC_MAIN_SGML_FILE)
++@ENABLE_GTK_DOC_TRUE@	test "x$(HTML_IMAGES)" = "x" || ( cd $(srcdir) && cp $(HTML_IMAGES) html )
++@ENABLE_GTK_DOC_TRUE@	@echo '-- Fixing Crossreferences' 
++@ENABLE_GTK_DOC_TRUE@	cd $(srcdir) && gtkdoc-fixxref --module-dir=html --html-dir=$(HTML_DIR) $(FIXXREF_OPTIONS)
++@ENABLE_GTK_DOC_TRUE@	touch html-build.stamp
++
++##############
++
++clean-local:
++	rm -f *~ *.bak $(SCANOBJ_FILES) *-unused.txt $(DOC_STAMPS)
++
++maintainer-clean-local: clean
++	cd $(srcdir) && rm -rf xml html $(DOC_MODULE)-decl-list.txt $(DOC_MODULE)-decl.txt
++
++install-data-local:
++	$(mkinstalldirs) $(DESTDIR)$(TARGET_DIR)
++	(installfiles=`echo $(srcdir)/html/*.html`; \
++	if test "$$installfiles" = '$(srcdir)/html/*.html'; \
++	then echo '-- Nothing to install' ; \
++	else \
++	  for i in $$installfiles; do \
++	    echo '-- Installing '$$i ; \
++	    $(INSTALL_DATA) $$i $(DESTDIR)$(TARGET_DIR); \
++	  done; \
++	  echo '-- Installing $(srcdir)/html/index.sgml' ; \
++	  $(INSTALL_DATA) $(srcdir)/html/index.sgml $(DESTDIR)$(TARGET_DIR); \
++	fi)
++
++#
++# Require gtk-doc when making dist
++#
++@ENABLE_GTK_DOC_TRUE@dist-check-gtkdoc:
++@ENABLE_GTK_DOC_FALSE@dist-check-gtkdoc:
++@ENABLE_GTK_DOC_FALSE@	@echo "*** gtk-doc must be installed and enabled in order to make dist"
++@ENABLE_GTK_DOC_FALSE@	@false
++
++dist-hook: dist-check-gtkdoc dist-hook-local
++	mkdir $(distdir)/tmpl
++	mkdir $(distdir)/xml
++	mkdir $(distdir)/html
++	-cp $(srcdir)/tmpl/*.sgml $(distdir)/tmpl
++	-cp $(srcdir)/xml/*.xml $(distdir)/xml
++	-cp $(srcdir)/html/index.sgml $(distdir)/html
++	-cp $(srcdir)/html/*.html $(srcdir)/html/*.css $(distdir)/html
++
++	images=$(HTML_IMAGES) ;    	      \
++	for i in $$images ; do		      \
++	  cp $(srcdir)/$$i $(distdir)/html ;  \
++	done
++
++.PHONY : dist-hook-local
++
++# Tell versions [3.59,3.63) of GNU make to not export all variables.
++# Otherwise a system limit (for SysV at least) may be exceeded.
++.NOEXPORT:
+diff -Naur libgnomeui-2.4.0.1-old/libgnomeui/Makefile.in libgnomeui-2.4.0.1/libgnomeui/Makefile.in
+--- libgnomeui-2.4.0.1-old/libgnomeui/Makefile.in	Tue Sep  9 09:31:07 2003
++++ libgnomeui-2.4.0.1/libgnomeui/Makefile.in	Wed Oct 15 19:04:59 2003
+@@ -183,7 +183,7 @@
+ libgnomeui_2_la_LIBADD =  	$(LIBGNOMEUI_LIBS)				$(SM_LIBS)
+ 
+ 
+-LDADD =  	libgnomeui-2.la
++LDADD =  	libgnomeui-2.la $(LIBGNOMEUI_LIBS) $(SM_LIBS)
+ 
+ 
+ pkgconfigdir = $(libdir)/pkgconfig
+diff -Naur libgnomeui-2.4.0.1-old/libgnomeui/Makefile.in.orig libgnomeui-2.4.0.1/libgnomeui/Makefile.in.orig
+--- libgnomeui-2.4.0.1-old/libgnomeui/Makefile.in.orig	Wed Dec 31 19:00:00 1969
++++ libgnomeui-2.4.0.1/libgnomeui/Makefile.in.orig	Tue Sep  9 09:31:07 2003
+@@ -0,0 +1,900 @@
++# Makefile.in generated automatically by automake 1.4-p6 from Makefile.am
++
++# Copyright (C) 1994, 1995-8, 1999, 2001 Free Software Foundation, Inc.
++# This Makefile.in is free software; the Free Software Foundation
++# gives unlimited permission to copy and/or distribute it,
++# with or without modifications, as long as this notice is preserved.
++
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY, to the extent permitted by law; without
++# even the implied warranty of MERCHANTABILITY or FITNESS FOR A
++# PARTICULAR PURPOSE.
++
++
++SHELL = @SHELL@
++
++srcdir = @srcdir@
++top_srcdir = @top_srcdir@
++VPATH = @srcdir@
++prefix = @prefix@
++exec_prefix = @exec_prefix@
++
++bindir = @bindir@
++sbindir = @sbindir@
++libexecdir = @libexecdir@
++datadir = @datadir@
++sysconfdir = @sysconfdir@
++sharedstatedir = @sharedstatedir@
++localstatedir = @localstatedir@
++libdir = @libdir@
++infodir = @infodir@
++mandir = @mandir@
++includedir = @includedir@
++oldincludedir = /usr/include
++
++DESTDIR =
++
++pkgdatadir = $(datadir)/@PACKAGE@
++pkglibdir = $(libdir)/@PACKAGE@
++pkgincludedir = $(includedir)/@PACKAGE@
++
++top_builddir = ..
++
++ACLOCAL = @ACLOCAL@
++AUTOCONF = @AUTOCONF@
++AUTOMAKE = @AUTOMAKE@
++AUTOHEADER = @AUTOHEADER@
++
++INSTALL = @INSTALL@
++INSTALL_PROGRAM = @INSTALL_PROGRAM@ $(AM_INSTALL_PROGRAM_FLAGS)
++INSTALL_DATA = @INSTALL_DATA@
++INSTALL_SCRIPT = @INSTALL_SCRIPT@
++transform = @program_transform_name@
++
++NORMAL_INSTALL = :
++PRE_INSTALL = :
++POST_INSTALL = :
++NORMAL_UNINSTALL = :
++PRE_UNINSTALL = :
++POST_UNINSTALL = :
++host_alias = @host_alias@
++host_triplet = @host@
++AR = @AR@
++AS = @AS@
++AWK = @AWK@
++CATALOGS = @CATALOGS@
++CATOBJEXT = @CATOBJEXT@
++CC = @CC@
++CFLAGS = @CFLAGS@
++CPPFLAGS = @CPPFLAGS@
++CXX = @CXX@
++CXXCPP = @CXXCPP@
++DATADIRNAME = @DATADIRNAME@
++DLLTOOL = @DLLTOOL@
++ECHO = @ECHO@
++EGREP = @EGREP@
++EXEEXT = @EXEEXT@
++F77 = @F77@
++GCJ = @GCJ@
++GCJFLAGS = @GCJFLAGS@
++GCONFTOOL = @GCONFTOOL@
++GCONF_CONFIG_SOURCE = @GCONF_CONFIG_SOURCE@
++GDK_PIXBUF_CSOURCE = @GDK_PIXBUF_CSOURCE@
++GETTEXT_PACKAGE = @GETTEXT_PACKAGE@
++GMOFILES = @GMOFILES@
++GMSGFMT = @GMSGFMT@
++GNOME_ACLOCAL_DIR = @GNOME_ACLOCAL_DIR@
++GNOME_ACLOCAL_FLAGS = @GNOME_ACLOCAL_FLAGS@
++GTKDOC = @GTKDOC@
++GTK_VERSION = @GTK_VERSION@
++HTML_DIR = @HTML_DIR@
++INSTALL_GCONF_CONFIG_SOURCE = @INSTALL_GCONF_CONFIG_SOURCE@
++INSTOBJEXT = @INSTOBJEXT@
++INTLLIBS = @INTLLIBS@
++LDFLAGS = @LDFLAGS@
++LIBGLADE_CONVERT = @LIBGLADE_CONVERT@
++LIBGNOMEUI_AGE = @LIBGNOMEUI_AGE@
++LIBGNOMEUI_CFLAGS = @LIBGNOMEUI_CFLAGS@
++LIBGNOMEUI_COMPONENTS_CFLAGS = @LIBGNOMEUI_COMPONENTS_CFLAGS@
++LIBGNOMEUI_COMPONENTS_LIBS = @LIBGNOMEUI_COMPONENTS_LIBS@
++LIBGNOMEUI_CURRENT = @LIBGNOMEUI_CURRENT@
++LIBGNOMEUI_DEMOS_CFLAGS = @LIBGNOMEUI_DEMOS_CFLAGS@
++LIBGNOMEUI_DEMOS_LIBS = @LIBGNOMEUI_DEMOS_LIBS@
++LIBGNOMEUI_GLADE_CFLAGS = @LIBGNOMEUI_GLADE_CFLAGS@
++LIBGNOMEUI_GLADE_LIBS = @LIBGNOMEUI_GLADE_LIBS@
++LIBGNOMEUI_LIBS = @LIBGNOMEUI_LIBS@
++LIBGNOMEUI_REVISION = @LIBGNOMEUI_REVISION@
++LIBJPEG = @LIBJPEG@
++LIBTOOL = @LIBTOOL@
++LN_S = @LN_S@
++MAINT = @MAINT@
++MAKEINFO = @MAKEINFO@
++MKINSTALLDIRS = @MKINSTALLDIRS@
++OBJDUMP = @OBJDUMP@
++OBJEXT = @OBJEXT@
++PACKAGE = @PACKAGE@
++PATH_TO_XRDB = @PATH_TO_XRDB@
++PERL = @PERL@
++PKG_CONFIG = @PKG_CONFIG@
++POFILES = @POFILES@
++POSUB = @POSUB@
++PO_IN_DATADIR_FALSE = @PO_IN_DATADIR_FALSE@
++PO_IN_DATADIR_TRUE = @PO_IN_DATADIR_TRUE@
++RANLIB = @RANLIB@
++RC = @RC@
++REBUILD = @REBUILD@
++SM_LIBS = @SM_LIBS@
++STRIP = @STRIP@
++USE_NLS = @USE_NLS@
++VERSION = @VERSION@
++WARN_CFLAGS = @WARN_CFLAGS@
++WARN_CXXFLAGS = @WARN_CXXFLAGS@
++YACC = @YACC@
++gnomelocaledir = @gnomelocaledir@
++
++SUBDIRS = pixmaps
++
++#
++# The targets
++#
++libexec_PROGRAMS = gnome_segv2
++lib_LTLIBRARIES = libgnomeui-2.la
++
++gnomehdir = $(includedir)/libgnomeui-2.0
++gnomeh_HEADERS = gnome.h
++
++#
++# Install location for header files
++#
++libgnomeuiincludedir = $(includedir)/libgnomeui-2.0/libgnomeui
++
++INCLUDES =  	-I$(top_builddir)					-I$(top_srcdir)					        -DG_DISABLE_DEPRECATED				        -DGDK_DISABLE_DEPRECATED			        -DGDK_PIXBUF_DISABLE_DEPRECATED			        -DGNOMEUILIBDIR=\""$(libdir)"\" 		        -DGNOMEUIDATADIR=\""$(datadir)"\" 		        -DGNOMEUIPIXMAPDIR=\""$(datadir)/pixmaps"\"	        -DGNOMEUIICONDIR=\""$(datadir)/icons"\"	        -DGNOMEUISERVERDIR=\""$(libexecdir)"\" 			-DGNOMEUILOCALSTATEDIR=\""$(localstatedir)"\" 	        -DGNOMEUILOCALEDIR=\""$(gnomelocaledir)"\"		-DSYSCONFDIR=\""$(sysconfdir)"\"			-DG_LOG_DOMAIN=\"GnomeUI\"				$(WARN_CFLAGS)						$(LIBGNOMEUI_CFLAGS)
++
++
++EXTRA_HEADERS = 
++
++libgnomeui_2_la_SOURCES =  	libgnomeui-access.c			libgnomeui-access.h			gnometypebuiltins.h			gnometypebuiltins.c			gnome-about.c				gnome-app.c				gnome-app-helper.c			gnome-app-util.c			gnome-appbar.c				gnome-stock-icons.c			gnome-color-picker.c			gnome-dateedit.c			gnome-dialog.c				gnome-dialog-util.c			gnome-druid.c				gnome-druid-page.c			gnome-druid-page-edge.c			gnome-druid-page-standard.c		gnome-entry.c				gnome-file-entry.c			gnome-font-picker.c			gnome-gconf-ui.c			gnome-href.c				gnome-ice.c				gnome-marshal-main.c			gnome-messagebox.c			gnome-mdi.c				gnome-mdi-child.c			gnome-mdi-generic-child.c		gnome-mdi-session.c			gnome-pixmap.c				gnome-pixmap-entry.c			gnome-popup-menu.c			gnome-propertybox.c			gnome-scores.c				gnome-theme-parser.c			gnome-thumbnail.c			gnome-thumbnail-pixbuf-utils.c		gnome-ui-init.c				gnometypes.c				gnome-icon-entry.c			gnome-icon-item.c			gnome-icon-list.c			gnome-icon-lookup.c			gnome-icon-sel.c			gnome-icon-theme.c			gnome-vfs-util.c			gnome-window.c				gnome-window-icon.c			gnome-i18nP.h				gnome-gconf-ui.h			libgnomeuiP.h				gnome-password-dialog.c         	gnome-password-dialog.h         	gnome-authentication-manager.c  	gnome-authentication-manager.h  	gnome-client.c
++
++
++gnome_headers =  	gnome-about.h				gnome-app.h				gnome-app-helper.h			gnome-app-util.h			gnome-appbar.h				gnome-authentication-manager.h  	gnome-client.h				gnome-color-picker.h			gnome-dateedit.h			gnome-dialog.h				gnome-dialog-util.h			gnome-druid.h				gnome-druid-page.h			gnome-druid-page-edge.h			gnome-druid-page-standard.h		gnome-entry.h				gnome-file-entry.h			gnome-font-picker.h			gnome-href.h				gnome-ice.h				gnome-icon-entry.h			gnome-icon-item.h			gnome-icon-list.h			gnome-icon-lookup.h			gnome-icon-sel.h			gnome-icon-theme.h			gnome-messagebox.h			gnome-mdi.h				gnome-mdi-child.h			gnome-mdi-generic-child.h		gnome-mdi-session.h			gnome-password-dialog.h         	gnome-pixmap.h				gnome-pixmap-entry.h			gnome-popup-menu.h			gnome-propertybox.h			gnome-scores.h				gnome-ui-init.h				gnome-stock-icons.h			gnome-thumbnail.h			gnome-types.h				gnome-uidefs.h				gnome-vfs-util.h			gnome-window.h				gnome-window-icon.h			libgnomeui.h
++
++
++gnome_private_headers =  	gnome-theme-parser.h
++
++
++libgnomeuiinclude_HEADERS =  	$(gnome_headers)			$(gnome_private_headers)		gnometypebuiltins.h
++
++
++#######################
++
++gnome_segv2_SOURCES = gnome_segv.c
++
++# do not use BUILT_SOURCES because of weird semantics
++# i *think* these should actually be stamp-* files
++built_sources =  	gnome-marshal.h			gnome-marshal.c			gnometype_inits.c		gnometypebuiltins.h		gnometypebuiltins.c
++
++
++EXTRA_DIST =  	AUTHORS						gnome-marshal.list				gnome-boxed.defs				gnometype_inits.c				libgnomeui-2.0.pc.in
++
++
++libgnomeui_2_la_LDFLAGS =  	-version-info $(LIBGNOMEUI_CURRENT):$(LIBGNOMEUI_REVISION):$(LIBGNOMEUI_AGE) 	-no-undefined 	-export-symbols-regex "^[^_].*"
++
++
++libgnomeui_2_la_LIBADD =  	$(LIBGNOMEUI_LIBS)				$(SM_LIBS)
++
++
++LDADD =  	libgnomeui-2.la
++
++
++pkgconfigdir = $(libdir)/pkgconfig
++pkgconfig_DATA = libgnomeui-2.0.pc
++mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
++CONFIG_HEADER = ../config.h
++CONFIG_CLEAN_FILES =  libgnomeui-2.0.pc
++LTLIBRARIES =  $(lib_LTLIBRARIES)
++
++
++DEFS = @DEFS@ -I. -I$(srcdir) -I..
++LIBS = @LIBS@
++X_CFLAGS = @X_CFLAGS@
++X_LIBS = @X_LIBS@
++X_EXTRA_LIBS = @X_EXTRA_LIBS@
++X_PRE_LIBS = @X_PRE_LIBS@
++libgnomeui_2_la_DEPENDENCIES = 
++libgnomeui_2_la_OBJECTS =  libgnomeui-access.lo gnometypebuiltins.lo \
++gnome-about.lo gnome-app.lo gnome-app-helper.lo gnome-app-util.lo \
++gnome-appbar.lo gnome-stock-icons.lo gnome-color-picker.lo \
++gnome-dateedit.lo gnome-dialog.lo gnome-dialog-util.lo gnome-druid.lo \
++gnome-druid-page.lo gnome-druid-page-edge.lo \
++gnome-druid-page-standard.lo gnome-entry.lo gnome-file-entry.lo \
++gnome-font-picker.lo gnome-gconf-ui.lo gnome-href.lo gnome-ice.lo \
++gnome-marshal-main.lo gnome-messagebox.lo gnome-mdi.lo \
++gnome-mdi-child.lo gnome-mdi-generic-child.lo gnome-mdi-session.lo \
++gnome-pixmap.lo gnome-pixmap-entry.lo gnome-popup-menu.lo \
++gnome-propertybox.lo gnome-scores.lo gnome-theme-parser.lo \
++gnome-thumbnail.lo gnome-thumbnail-pixbuf-utils.lo gnome-ui-init.lo \
++gnometypes.lo gnome-icon-entry.lo gnome-icon-item.lo gnome-icon-list.lo \
++gnome-icon-lookup.lo gnome-icon-sel.lo gnome-icon-theme.lo \
++gnome-vfs-util.lo gnome-window.lo gnome-window-icon.lo \
++gnome-password-dialog.lo gnome-authentication-manager.lo \
++gnome-client.lo
++libexec_PROGRAMS =  gnome_segv2$(EXEEXT)
++PROGRAMS =  $(libexec_PROGRAMS)
++
++gnome_segv2_OBJECTS =  gnome_segv.$(OBJEXT)
++gnome_segv2_LDADD = $(LDADD)
++gnome_segv2_DEPENDENCIES =  libgnomeui-2.la
++gnome_segv2_LDFLAGS = 
++COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
++LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
++CCLD = $(CC)
++LINK = $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(LDFLAGS) -o $@
++DATA =  $(pkgconfig_DATA)
++
++HEADERS =  $(gnomeh_HEADERS) $(libgnomeuiinclude_HEADERS)
++
++DIST_COMMON =  AUTHORS Makefile.am Makefile.in libgnomeui-2.0.pc.in
++
++
++DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
++
++TAR = gtar
++GZIP_ENV = --best
++SOURCES = $(libgnomeui_2_la_SOURCES) $(gnome_segv2_SOURCES)
++OBJECTS = $(libgnomeui_2_la_OBJECTS) $(gnome_segv2_OBJECTS)
++
++all: all-redirect
++.SUFFIXES:
++.SUFFIXES: .S .c .lo .o .obj .s
++$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
++	cd $(top_srcdir) && $(AUTOMAKE) --gnu --include-deps libgnomeui/Makefile
++
++Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status
++	cd $(top_builddir) \
++	  && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
++
++libgnomeui-2.0.pc: $(top_builddir)/config.status libgnomeui-2.0.pc.in
++	cd $(top_builddir) && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
++
++mostlyclean-libLTLIBRARIES:
++
++clean-libLTLIBRARIES:
++	-test -z "$(lib_LTLIBRARIES)" || rm -f $(lib_LTLIBRARIES)
++
++distclean-libLTLIBRARIES:
++
++maintainer-clean-libLTLIBRARIES:
++
++install-libLTLIBRARIES: $(lib_LTLIBRARIES)
++	@$(NORMAL_INSTALL)
++	$(mkinstalldirs) $(DESTDIR)$(libdir)
++	@list='$(lib_LTLIBRARIES)'; for p in $$list; do \
++	  if test -f $$p; then \
++	    echo "$(LIBTOOL)  --mode=install $(INSTALL) $$p $(DESTDIR)$(libdir)/$$p"; \
++	    $(LIBTOOL)  --mode=install $(INSTALL) $$p $(DESTDIR)$(libdir)/$$p; \
++	  else :; fi; \
++	done
++
++uninstall-libLTLIBRARIES:
++	@$(NORMAL_UNINSTALL)
++	list='$(lib_LTLIBRARIES)'; for p in $$list; do \
++	  $(LIBTOOL)  --mode=uninstall rm -f $(DESTDIR)$(libdir)/$$p; \
++	done
++
++.c.o:
++	$(COMPILE) -c $<
++
++# FIXME: We should only use cygpath when building on Windows,
++# and only if it is available.
++.c.obj:
++	$(COMPILE) -c `cygpath -w $<`
++
++.s.o:
++	$(COMPILE) -c $<
++
++.S.o:
++	$(COMPILE) -c $<
++
++mostlyclean-compile:
++	-rm -f *.o core *.core
++	-rm -f *.$(OBJEXT)
++
++clean-compile:
++
++distclean-compile:
++	-rm -f *.tab.c
++
++maintainer-clean-compile:
++
++.c.lo:
++	$(LIBTOOL) --mode=compile $(COMPILE) -c $<
++
++.s.lo:
++	$(LIBTOOL) --mode=compile $(COMPILE) -c $<
++
++.S.lo:
++	$(LIBTOOL) --mode=compile $(COMPILE) -c $<
++
++mostlyclean-libtool:
++	-rm -f *.lo
++
++clean-libtool:
++	-rm -rf .libs _libs
++
++distclean-libtool:
++
++maintainer-clean-libtool:
++
++libgnomeui-2.la: $(libgnomeui_2_la_OBJECTS) $(libgnomeui_2_la_DEPENDENCIES)
++	$(LINK) -rpath $(libdir) $(libgnomeui_2_la_LDFLAGS) $(libgnomeui_2_la_OBJECTS) $(libgnomeui_2_la_LIBADD) $(LIBS)
++
++mostlyclean-libexecPROGRAMS:
++
++clean-libexecPROGRAMS:
++	-test -z "$(libexec_PROGRAMS)" || rm -f $(libexec_PROGRAMS)
++
++distclean-libexecPROGRAMS:
++
++maintainer-clean-libexecPROGRAMS:
++
++install-libexecPROGRAMS: $(libexec_PROGRAMS)
++	@$(NORMAL_INSTALL)
++	$(mkinstalldirs) $(DESTDIR)$(libexecdir)
++	@list='$(libexec_PROGRAMS)'; for p in $$list; do \
++	  if test -f $$p; then \
++	    echo " $(LIBTOOL)  --mode=install $(INSTALL_PROGRAM) $$p $(DESTDIR)$(libexecdir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`"; \
++	    $(LIBTOOL)  --mode=install $(INSTALL_PROGRAM) $$p $(DESTDIR)$(libexecdir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`; \
++	  else :; fi; \
++	done
++
++uninstall-libexecPROGRAMS:
++	@$(NORMAL_UNINSTALL)
++	list='$(libexec_PROGRAMS)'; for p in $$list; do \
++	  rm -f $(DESTDIR)$(libexecdir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`; \
++	done
++
++gnome_segv2$(EXEEXT): $(gnome_segv2_OBJECTS) $(gnome_segv2_DEPENDENCIES)
++	@rm -f gnome_segv2$(EXEEXT)
++	$(LINK) $(gnome_segv2_LDFLAGS) $(gnome_segv2_OBJECTS) $(gnome_segv2_LDADD) $(LIBS)
++
++install-pkgconfigDATA: $(pkgconfig_DATA)
++	@$(NORMAL_INSTALL)
++	$(mkinstalldirs) $(DESTDIR)$(pkgconfigdir)
++	@list='$(pkgconfig_DATA)'; for p in $$list; do \
++	  if test -f $(srcdir)/$$p; then \
++	    echo " $(INSTALL_DATA) $(srcdir)/$$p $(DESTDIR)$(pkgconfigdir)/$$p"; \
++	    $(INSTALL_DATA) $(srcdir)/$$p $(DESTDIR)$(pkgconfigdir)/$$p; \
++	  else if test -f $$p; then \
++	    echo " $(INSTALL_DATA) $$p $(DESTDIR)$(pkgconfigdir)/$$p"; \
++	    $(INSTALL_DATA) $$p $(DESTDIR)$(pkgconfigdir)/$$p; \
++	  fi; fi; \
++	done
++
++uninstall-pkgconfigDATA:
++	@$(NORMAL_UNINSTALL)
++	list='$(pkgconfig_DATA)'; for p in $$list; do \
++	  rm -f $(DESTDIR)$(pkgconfigdir)/$$p; \
++	done
++
++install-gnomehHEADERS: $(gnomeh_HEADERS)
++	@$(NORMAL_INSTALL)
++	$(mkinstalldirs) $(DESTDIR)$(gnomehdir)
++	@list='$(gnomeh_HEADERS)'; for p in $$list; do \
++	  if test -f "$$p"; then d= ; else d="$(srcdir)/"; fi; \
++	  echo " $(INSTALL_DATA) $$d$$p $(DESTDIR)$(gnomehdir)/$$p"; \
++	  $(INSTALL_DATA) $$d$$p $(DESTDIR)$(gnomehdir)/$$p; \
++	done
++
++uninstall-gnomehHEADERS:
++	@$(NORMAL_UNINSTALL)
++	list='$(gnomeh_HEADERS)'; for p in $$list; do \
++	  rm -f $(DESTDIR)$(gnomehdir)/$$p; \
++	done
++
++install-libgnomeuiincludeHEADERS: $(libgnomeuiinclude_HEADERS)
++	@$(NORMAL_INSTALL)
++	$(mkinstalldirs) $(DESTDIR)$(libgnomeuiincludedir)
++	@list='$(libgnomeuiinclude_HEADERS)'; for p in $$list; do \
++	  if test -f "$$p"; then d= ; else d="$(srcdir)/"; fi; \
++	  echo " $(INSTALL_DATA) $$d$$p $(DESTDIR)$(libgnomeuiincludedir)/$$p"; \
++	  $(INSTALL_DATA) $$d$$p $(DESTDIR)$(libgnomeuiincludedir)/$$p; \
++	done
++
++uninstall-libgnomeuiincludeHEADERS:
++	@$(NORMAL_UNINSTALL)
++	list='$(libgnomeuiinclude_HEADERS)'; for p in $$list; do \
++	  rm -f $(DESTDIR)$(libgnomeuiincludedir)/$$p; \
++	done
++
++# This directory's subdirectories are mostly independent; you can cd
++# into them and run `make' without going through this Makefile.
++# To change the values of `make' variables: instead of editing Makefiles,
++# (1) if the variable is set in `config.status', edit `config.status'
++#     (which will cause the Makefiles to be regenerated when you run `make');
++# (2) otherwise, pass the desired values on the `make' command line.
++
++@SET_MAKE@
++
++all-recursive install-data-recursive install-exec-recursive \
++installdirs-recursive install-recursive uninstall-recursive  \
++check-recursive installcheck-recursive info-recursive dvi-recursive:
++	@set fnord $(MAKEFLAGS); amf=$$2; \
++	dot_seen=no; \
++	target=`echo $@ | sed s/-recursive//`; \
++	list='$(SUBDIRS)'; for subdir in $$list; do \
++	  echo "Making $$target in $$subdir"; \
++	  if test "$$subdir" = "."; then \
++	    dot_seen=yes; \
++	    local_target="$$target-am"; \
++	  else \
++	    local_target="$$target"; \
++	  fi; \
++	  (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$local_target) \
++	   || case "$$amf" in *=*) exit 1;; *k*) fail=yes;; *) exit 1;; esac; \
++	done; \
++	if test "$$dot_seen" = "no"; then \
++	  $(MAKE) $(AM_MAKEFLAGS) "$$target-am" || exit 1; \
++	fi; test -z "$$fail"
++
++mostlyclean-recursive clean-recursive distclean-recursive \
++maintainer-clean-recursive:
++	@set fnord $(MAKEFLAGS); amf=$$2; \
++	dot_seen=no; \
++	rev=''; list='$(SUBDIRS)'; for subdir in $$list; do \
++	  rev="$$subdir $$rev"; \
++	  test "$$subdir" != "." || dot_seen=yes; \
++	done; \
++	test "$$dot_seen" = "no" && rev=". $$rev"; \
++	target=`echo $@ | sed s/-recursive//`; \
++	for subdir in $$rev; do \
++	  echo "Making $$target in $$subdir"; \
++	  if test "$$subdir" = "."; then \
++	    local_target="$$target-am"; \
++	  else \
++	    local_target="$$target"; \
++	  fi; \
++	  (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$local_target) \
++	   || case "$$amf" in *=*) exit 1;; *k*) fail=yes;; *) exit 1;; esac; \
++	done && test -z "$$fail"
++tags-recursive:
++	list='$(SUBDIRS)'; for subdir in $$list; do \
++	  test "$$subdir" = . || (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) tags); \
++	done
++
++tags: TAGS
++
++ID: $(HEADERS) $(SOURCES) $(LISP)
++	list='$(SOURCES) $(HEADERS)'; \
++	unique=`for i in $$list; do echo $$i; done | \
++	  awk '    { files[$$0] = 1; } \
++	       END { for (i in files) print i; }'`; \
++	here=`pwd` && cd $(srcdir) \
++	  && mkid -f$$here/ID $$unique $(LISP)
++
++TAGS: tags-recursive $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) $(LISP)
++	tags=; \
++	here=`pwd`; \
++	list='$(SUBDIRS)'; for subdir in $$list; do \
++   if test "$$subdir" = .; then :; else \
++	    test -f $$subdir/TAGS && tags="$$tags -i $$here/$$subdir/TAGS"; \
++   fi; \
++	done; \
++	list='$(SOURCES) $(HEADERS)'; \
++	unique=`for i in $$list; do echo $$i; done | \
++	  awk '    { files[$$0] = 1; } \
++	       END { for (i in files) print i; }'`; \
++	test -z "$(ETAGS_ARGS)$$unique$(LISP)$$tags" \
++	  || (cd $(srcdir) && etags $(ETAGS_ARGS) $$tags  $$unique $(LISP) -o $$here/TAGS)
++
++mostlyclean-tags:
++
++clean-tags:
++
++distclean-tags:
++	-rm -f TAGS ID
++
++maintainer-clean-tags:
++
++distdir = $(top_builddir)/$(PACKAGE)-$(VERSION)/$(subdir)
++
++subdir = libgnomeui
++
++distdir: $(DISTFILES)
++	@for file in $(DISTFILES); do \
++	  d=$(srcdir); \
++	  if test -d $$d/$$file; then \
++	    cp -pr $$d/$$file $(distdir)/$$file; \
++	  else \
++	    test -f $(distdir)/$$file \
++	    || ln $$d/$$file $(distdir)/$$file 2> /dev/null \
++	    || cp -p $$d/$$file $(distdir)/$$file || :; \
++	  fi; \
++	done
++	for subdir in $(SUBDIRS); do \
++	  if test "$$subdir" = .; then :; else \
++	    test -d $(distdir)/$$subdir \
++	    || mkdir $(distdir)/$$subdir \
++	    || exit 1; \
++	    chmod 777 $(distdir)/$$subdir; \
++	    (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) top_distdir=../$(top_distdir) distdir=../$(distdir)/$$subdir distdir) \
++	      || exit 1; \
++	  fi; \
++	done
++gnome-about.lo gnome-about.o : gnome-about.c ../config.h gnome-i18nP.h \
++	gnome-about.h gnome-stock-icons.h
++gnome-app-helper.lo gnome-app-helper.o : gnome-app-helper.c ../config.h \
++	gnome-app.h gnome-app-helper.h gnome-appbar.h gnome-types.h \
++	gnome-app.h gnome-uidefs.h gnome-stock-icons.h gnome-gconf-ui.h
++gnome-app-util.lo gnome-app-util.o : gnome-app-util.c ../config.h \
++	gnome-i18nP.h gnome-app-util.h gnome-app.h gnome-types.h \
++	gnome-dialog-util.h gnome-dialog.h gnome-uidefs.h \
++	gnome-appbar.h
++gnome-app.lo gnome-app.o : gnome-app.c ../config.h gnome-i18nP.h \
++	gnome-app-helper.h gnome-appbar.h gnome-types.h gnome-app.h \
++	gnome-uidefs.h gnome-gconf-ui.h gnome-window.h \
++	gnome-window-icon.h gnome-ui-init.h gnome-app.h
++gnome-appbar.lo gnome-appbar.o : gnome-appbar.c ../config.h \
++	gnome-appbar.h gnome-types.h gnome-gconf-ui.h gnome-uidefs.h \
++	gnometypebuiltins.h
++gnome-authentication-manager.lo gnome-authentication-manager.o : \
++	gnome-authentication-manager.c ../config.h \
++	gnome-authentication-manager.h gnome.h libgnomeui.h \
++	gnome-uidefs.h gnome-about.h gnome-app.h gnome-app-helper.h \
++	gnome-appbar.h gnome-types.h gnome-app-util.h \
++	gnome-authentication-manager.h gnome-color-picker.h \
++	gnome-entry.h gnome-file-entry.h gnome-font-picker.h \
++	gnome-icon-entry.h gnome-icon-item.h gnome-icon-list.h \
++	gnome-icon-sel.h gnome-ui-init.h gnome-icon-theme.h \
++	gnome-thumbnail.h gnome-icon-lookup.h gnome-stock-icons.h \
++	gnome-scores.h gnome-client.h gnome-dateedit.h \
++	gnometypebuiltins.h gnome-href.h gnome-dialog.h \
++	gnome-dialog-util.h gnome-druid.h gnome-druid-page.h \
++	gnome-druid-page-edge.h gnome-druid-page-standard.h \
++	gnome-messagebox.h gnome-mdi.h gnome-mdi-child.h \
++	gnome-mdi-generic-child.h gnome-mdi-session.h gnome-vfs-util.h \
++	gnome-pixmap.h gnome-pixmap-entry.h gnome-popup-menu.h \
++	gnome-propertybox.h gnome-window-icon.h gnome-password-dialog.h \
++	gnome-password-dialog.h
++gnome-client.lo gnome-client.o : gnome-client.c ../config.h \
++	gnome-i18nP.h gnome-client.h gnome-uidefs.h gnome-ui-init.h \
++	gnome-ice.h gnome-marshal.h libgnomeuiP.h gnometypebuiltins.h \
++	gnome-gconf-ui.h
++gnome-color-picker.lo gnome-color-picker.o : gnome-color-picker.c \
++	../config.h gnome-i18nP.h gnome-marshal.h gnome-color-picker.h \
++	libgnomeuiP.h gnometypebuiltins.h gnome-gconf-ui.h \
++	libgnomeui-access.h
++gnome-dateedit.lo gnome-dateedit.o : gnome-dateedit.c ../config.h \
++	gnome-i18nP.h gnome-dateedit.h gnometypebuiltins.h \
++	libgnomeui-access.h
++gnome-dialog-util.lo gnome-dialog-util.o : gnome-dialog-util.c \
++	../config.h gnome-i18nP.h gnome-dialog.h gnome-messagebox.h \
++	gnome-types.h gnome-uidefs.h gnome-dialog-util.h
++gnome-dialog.lo gnome-dialog.o : gnome-dialog.c ../config.h \
++	gnome-i18nP.h gnome-dialog.h gnome-uidefs.h gnome-dialog-util.h \
++	gnome-types.h gnome-marshal.h
++gnome-druid-page-edge.lo gnome-druid-page-edge.o : \
++	gnome-druid-page-edge.c ../config.h gnome-i18nP.h gnome-druid.h \
++	gnome-druid-page.h gnome-uidefs.h gnome-druid-page-edge.h
++gnome-druid-page-standard.lo gnome-druid-page-standard.o : \
++	gnome-druid-page-standard.c ../config.h gnome-i18nP.h \
++	gnome-druid.h gnome-druid-page.h gnome-uidefs.h \
++	gnome-druid-page-standard.h
++gnome-druid-page.lo gnome-druid-page.o : gnome-druid-page.c ../config.h \
++	gnome-druid-page.h gnome-marshal.h libgnomeuiP.h \
++	gnometypebuiltins.h gnome-gconf-ui.h
++gnome-druid.lo gnome-druid.o : gnome-druid.c ../config.h gnome-i18nP.h \
++	gnome-druid.h gnome-druid-page.h gnome-uidefs.h \
++	gnome-stock-icons.h
++gnome-entry.lo gnome-entry.o : gnome-entry.c ../config.h gnome-i18nP.h \
++	gnome-gconf-ui.h gnome-entry.h
++gnome-file-entry.lo gnome-file-entry.o : gnome-file-entry.c ../config.h \
++	gnome-i18nP.h libgnomeuiP.h gnometypebuiltins.h \
++	gnome-gconf-ui.h libgnomeui-access.h gnome-file-entry.h \
++	gnome-entry.h
++gnome-font-picker.lo gnome-font-picker.o : gnome-font-picker.c \
++	../config.h gnome-i18nP.h gnome-stock-icons.h \
++	gnometypebuiltins.h gnome-font-picker.h
++gnome-gconf-ui.lo gnome-gconf-ui.o : gnome-gconf-ui.c ../config.h \
++	gnome-i18nP.h gnome-gconf-ui.h
++gnome-href.lo gnome-href.o : gnome-href.c ../config.h gnome-i18nP.h \
++	gnome-href.h libgnomeui-access.h
++gnome-ice.lo gnome-ice.o : gnome-ice.c ../config.h gnome-ice.h
++gnome-icon-entry.lo gnome-icon-entry.o : gnome-icon-entry.c ../config.h \
++	gnome-i18nP.h gnome-file-entry.h gnome-entry.h \
++	gnome-icon-list.h gnome-icon-item.h gnome-icon-sel.h \
++	gnome-icon-entry.h gnome-file-entry.h libgnomeui-access.h
++gnome-icon-item.lo gnome-icon-item.o : gnome-icon-item.c ../config.h \
++	gnome-i18nP.h gnome-icon-item.h gnome-marshal.h
++gnome-icon-list.lo gnome-icon-list.o : gnome-icon-list.c ../config.h \
++	gnome-icon-list.h gnome-icon-item.h gnome-icon-item.h \
++	gnome-marshal.h libgnomeuiP.h gnometypebuiltins.h \
++	gnome-gconf-ui.h libgnomeui-access.h
++gnome-icon-lookup.lo gnome-icon-lookup.o : gnome-icon-lookup.c \
++	gnome-icon-lookup.h gnome-icon-theme.h gnome-thumbnail.h
++gnome-icon-sel.lo gnome-icon-sel.o : gnome-icon-sel.c ../config.h \
++	gnome-i18nP.h gnome-icon-list.h gnome-icon-item.h \
++	gnome-uidefs.h gnome-icon-sel.h libgnomeui-access.h
++gnome-icon-theme.lo gnome-icon-theme.o : gnome-icon-theme.c \
++	gnome-icon-theme.h gnome-theme-parser.h
++gnome-marshal-main.lo gnome-marshal-main.o : gnome-marshal-main.c \
++	gnome-marshal.h gnome-marshal.c
++gnome-mdi-child.lo gnome-mdi-child.o : gnome-mdi-child.c ../config.h \
++	gnome-i18nP.h gnome-app.h gnome-app-helper.h gnome-appbar.h \
++	gnome-types.h gnome-app.h gnome-mdi-child.h gnome-app-helper.h \
++	gnome-mdi.h
++gnome-mdi-generic-child.lo gnome-mdi-generic-child.o : \
++	gnome-mdi-generic-child.c ../config.h gnome-i18nP.h \
++	gnome-mdi-generic-child.h gnome-mdi-child.h gnome-app.h \
++	gnome-app-helper.h gnome-appbar.h gnome-types.h gnome-mdi.h \
++	gnome-app.h gnome-app-helper.h
++gnome-mdi-session.lo gnome-mdi-session.o : gnome-mdi-session.c \
++	../config.h gnome-i18nP.h gnome-mdi-session.h gnome-mdi.h \
++	gnome-app.h gnome-app-helper.h gnome-appbar.h gnome-types.h \
++	gnome-mdi-child.h
++gnome-mdi.lo gnome-mdi.o : gnome-mdi.c ../config.h gnome-i18nP.h \
++	gnome-marshal.h gnome-app.h gnome-app-helper.h gnome-appbar.h \
++	gnome-types.h gnome-app.h gnome-mdi.h gnome-mdi-child.h \
++	gnome-app-helper.h
++gnome-messagebox.lo gnome-messagebox.o : gnome-messagebox.c ../config.h \
++	gnome-i18nP.h gnome-messagebox.h gnome-dialog.h gnome-uidefs.h
++gnome-password-dialog.lo gnome-password-dialog.o : \
++	gnome-password-dialog.c ../config.h gnome-i18nP.h \
++	gnome-password-dialog.h gnome-stock-icons.h
++gnome-pixmap-entry.lo gnome-pixmap-entry.o : gnome-pixmap-entry.c \
++	../config.h gnome-i18nP.h gnome-file-entry.h gnome-entry.h \
++	gnome-pixmap-entry.h gnome-file-entry.h gnome-pixmap.h \
++	libgnomeui-access.h
++gnome-pixmap.lo gnome-pixmap.o : gnome-pixmap.c ../config.h \
++	gnome-pixmap.h
++gnome-popup-menu.lo gnome-popup-menu.o : gnome-popup-menu.c ../config.h \
++	gnome-popup-menu.h gnome-app.h gnome-app-helper.h \
++	gnome-appbar.h gnome-types.h
++gnome-propertybox.lo gnome-propertybox.o : gnome-propertybox.c \
++	../config.h gnome-i18nP.h gnome-propertybox.h gnome-dialog.h
++gnome-scores.lo gnome-scores.o : gnome-scores.c ../config.h \
++	gnome-i18nP.h gnome-scores.h
++gnome-stock-icons.lo gnome-stock-icons.o : gnome-stock-icons.c \
++	../config.h gnome-i18nP.h gnome-stock-icons.h \
++	pixmaps/gnome-stock-pixbufs.h
++gnome-theme-parser.lo gnome-theme-parser.o : gnome-theme-parser.c \
++	gnome-theme-parser.h
++gnome-thumbnail-pixbuf-utils.lo gnome-thumbnail-pixbuf-utils.o : \
++	gnome-thumbnail-pixbuf-utils.c ../config.h gnome-thumbnail.h
++gnome-thumbnail.lo gnome-thumbnail.o : gnome-thumbnail.c ../config.h \
++	gnome-vfs-util.h gnome-thumbnail.h gnome-gconf-ui.h
++gnome-ui-init.lo gnome-ui-init.o : gnome-ui-init.c ../config.h \
++	gnome-i18nP.h gnome-client.h gnome-gconf-ui.h gnome-ui-init.h \
++	gnome-stock-icons.h libgnomeuiP.h gnometypebuiltins.h
++gnome-vfs-util.lo gnome-vfs-util.o : gnome-vfs-util.c ../config.h \
++	gnome-vfs-util.h
++gnome-window-icon.lo gnome-window-icon.o : gnome-window-icon.c \
++	../config.h gnome-window-icon.h gnome-client.h
++gnome-window.lo gnome-window.o : gnome-window.c ../config.h \
++	gnome-window.h gnome-ui-init.h
++gnome_segv.o: gnome_segv.c ../config.h libgnomeui.h gnome-uidefs.h \
++	gnome-about.h gnome-app.h gnome-app-helper.h gnome-appbar.h \
++	gnome-types.h gnome-app-util.h gnome-authentication-manager.h \
++	gnome-color-picker.h gnome-entry.h gnome-file-entry.h \
++	gnome-font-picker.h gnome-icon-entry.h gnome-icon-item.h \
++	gnome-icon-list.h gnome-icon-sel.h gnome-ui-init.h \
++	gnome-icon-theme.h gnome-thumbnail.h gnome-icon-lookup.h \
++	gnome-stock-icons.h gnome-scores.h gnome-client.h \
++	gnome-dateedit.h gnometypebuiltins.h gnome-href.h \
++	gnome-dialog.h gnome-dialog-util.h gnome-druid.h \
++	gnome-druid-page.h gnome-druid-page-edge.h \
++	gnome-druid-page-standard.h gnome-messagebox.h gnome-mdi.h \
++	gnome-mdi-child.h gnome-mdi-generic-child.h gnome-mdi-session.h \
++	gnome-vfs-util.h gnome-pixmap.h gnome-pixmap-entry.h \
++	gnome-popup-menu.h gnome-propertybox.h gnome-window-icon.h \
++	gnome-password-dialog.h gnome-i18nP.h
++gnometypebuiltins.lo gnometypebuiltins.o : gnometypebuiltins.c \
++	libgnomeui.h gnome-uidefs.h gnome-about.h gnome-app.h \
++	gnome-app-helper.h gnome-appbar.h gnome-types.h \
++	gnome-app-util.h gnome-authentication-manager.h \
++	gnome-color-picker.h gnome-entry.h gnome-file-entry.h \
++	gnome-font-picker.h gnome-icon-entry.h gnome-icon-item.h \
++	gnome-icon-list.h gnome-icon-sel.h gnome-ui-init.h \
++	gnome-icon-theme.h gnome-thumbnail.h gnome-icon-lookup.h \
++	gnome-stock-icons.h gnome-scores.h gnome-client.h \
++	gnome-dateedit.h gnometypebuiltins.h gnome-href.h \
++	gnome-dialog.h gnome-dialog-util.h gnome-druid.h \
++	gnome-druid-page.h gnome-druid-page-edge.h \
++	gnome-druid-page-standard.h gnome-messagebox.h gnome-mdi.h \
++	gnome-mdi-child.h gnome-mdi-generic-child.h gnome-mdi-session.h \
++	gnome-vfs-util.h gnome-pixmap.h gnome-pixmap-entry.h \
++	gnome-popup-menu.h gnome-propertybox.h gnome-window-icon.h \
++	gnome-password-dialog.h gnometypebuiltins.h
++gnometypes.lo gnometypes.o : gnometypes.c ../config.h libgnomeui.h \
++	gnome-uidefs.h gnome-about.h gnome-app.h gnome-app-helper.h \
++	gnome-appbar.h gnome-types.h gnome-app-util.h \
++	gnome-authentication-manager.h gnome-color-picker.h \
++	gnome-entry.h gnome-file-entry.h gnome-font-picker.h \
++	gnome-icon-entry.h gnome-icon-item.h gnome-icon-list.h \
++	gnome-icon-sel.h gnome-ui-init.h gnome-icon-theme.h \
++	gnome-thumbnail.h gnome-icon-lookup.h gnome-stock-icons.h \
++	gnome-scores.h gnome-client.h gnome-dateedit.h \
++	gnometypebuiltins.h gnome-href.h gnome-dialog.h \
++	gnome-dialog-util.h gnome-druid.h gnome-druid-page.h \
++	gnome-druid-page-edge.h gnome-druid-page-standard.h \
++	gnome-messagebox.h gnome-mdi.h gnome-mdi-child.h \
++	gnome-mdi-generic-child.h gnome-mdi-session.h gnome-vfs-util.h \
++	gnome-pixmap.h gnome-pixmap-entry.h gnome-popup-menu.h \
++	gnome-propertybox.h gnome-window-icon.h gnome-password-dialog.h \
++	gnometype_inits.c
++libgnomeui-access.lo libgnomeui-access.o : libgnomeui-access.c \
++	../config.h libgnomeui-access.h
++
++info-am:
++info: info-recursive
++dvi-am:
++dvi: dvi-recursive
++check-am: all-am
++check: check-recursive
++installcheck-am:
++installcheck: installcheck-recursive
++install-exec-am: install-libLTLIBRARIES install-libexecPROGRAMS
++install-exec: install-exec-recursive
++
++install-data-am: install-pkgconfigDATA install-gnomehHEADERS \
++		install-libgnomeuiincludeHEADERS
++install-data: install-data-recursive
++
++install-am: all-am
++	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
++install: install-recursive
++uninstall-am: uninstall-libLTLIBRARIES uninstall-libexecPROGRAMS \
++		uninstall-pkgconfigDATA uninstall-gnomehHEADERS \
++		uninstall-libgnomeuiincludeHEADERS
++uninstall: uninstall-recursive
++all-am: Makefile $(LTLIBRARIES) $(PROGRAMS) $(DATA) $(HEADERS)
++all-redirect: all-recursive
++install-strip:
++	$(MAKE) $(AM_MAKEFLAGS) AM_INSTALL_PROGRAM_FLAGS=-s install
++installdirs: installdirs-recursive
++installdirs-am:
++	$(mkinstalldirs)  $(DESTDIR)$(libdir) $(DESTDIR)$(libexecdir) \
++		$(DESTDIR)$(pkgconfigdir) $(DESTDIR)$(gnomehdir) \
++		$(DESTDIR)$(libgnomeuiincludedir)
++
++
++mostlyclean-generic:
++
++clean-generic:
++
++distclean-generic:
++	-rm -f Makefile $(CONFIG_CLEAN_FILES)
++	-rm -f config.cache config.log stamp-h stamp-h[0-9]*
++
++maintainer-clean-generic:
++mostlyclean-am:  mostlyclean-libLTLIBRARIES mostlyclean-compile \
++		mostlyclean-libtool mostlyclean-libexecPROGRAMS \
++		mostlyclean-tags mostlyclean-generic
++
++mostlyclean: mostlyclean-recursive
++
++clean-am:  clean-libLTLIBRARIES clean-compile clean-libtool \
++		clean-libexecPROGRAMS clean-tags clean-generic \
++		mostlyclean-am
++
++clean: clean-recursive
++
++distclean-am:  distclean-libLTLIBRARIES distclean-compile \
++		distclean-libtool distclean-libexecPROGRAMS \
++		distclean-tags distclean-generic clean-am
++	-rm -f libtool
++
++distclean: distclean-recursive
++
++maintainer-clean-am:  maintainer-clean-libLTLIBRARIES \
++		maintainer-clean-compile maintainer-clean-libtool \
++		maintainer-clean-libexecPROGRAMS maintainer-clean-tags \
++		maintainer-clean-generic distclean-am
++	@echo "This command is intended for maintainers to use;"
++	@echo "it deletes files that may require special tools to rebuild."
++
++maintainer-clean: maintainer-clean-recursive
++
++.PHONY: mostlyclean-libLTLIBRARIES distclean-libLTLIBRARIES \
++clean-libLTLIBRARIES maintainer-clean-libLTLIBRARIES \
++uninstall-libLTLIBRARIES install-libLTLIBRARIES mostlyclean-compile \
++distclean-compile clean-compile maintainer-clean-compile \
++mostlyclean-libtool distclean-libtool clean-libtool \
++maintainer-clean-libtool mostlyclean-libexecPROGRAMS \
++distclean-libexecPROGRAMS clean-libexecPROGRAMS \
++maintainer-clean-libexecPROGRAMS uninstall-libexecPROGRAMS \
++install-libexecPROGRAMS uninstall-pkgconfigDATA install-pkgconfigDATA \
++uninstall-gnomehHEADERS install-gnomehHEADERS \
++uninstall-libgnomeuiincludeHEADERS install-libgnomeuiincludeHEADERS \
++install-data-recursive uninstall-data-recursive install-exec-recursive \
++uninstall-exec-recursive installdirs-recursive uninstalldirs-recursive \
++all-recursive check-recursive installcheck-recursive info-recursive \
++dvi-recursive mostlyclean-recursive distclean-recursive clean-recursive \
++maintainer-clean-recursive tags tags-recursive mostlyclean-tags \
++distclean-tags clean-tags maintainer-clean-tags distdir info-am info \
++dvi-am dvi check check-am installcheck-am installcheck install-exec-am \
++install-exec install-data-am install-data install-am install \
++uninstall-am uninstall all-redirect all-am all installdirs-am \
++installdirs mostlyclean-generic distclean-generic clean-generic \
++maintainer-clean-generic clean mostlyclean distclean maintainer-clean
++
++
++# all autogenerated files need to be generated in the srcdir,
++# so old versions get remade and are not confused with newer
++# versions in the build dir. thus a development setup requires
++# srcdir to be writable, passing --disable-rebuilds to
++# ../configure will supress all autogeneration rules.
++$(srcdir)/stamp-libgnomeui.defs: @REBUILD@ Makefile.am libgnomeui.defs libgnomeui-boxed.defs $(gnome_headers)
++	cd $(srcdir) \
++	&& glib-mkenums \
++			--comments ";; @comment@" \
++			--fprod "; enumerations from \"@filename@\"\n " \
++			--vhead "(define-@type@ @EnumName@" \
++			--vprod "   (@valuenick@ @VALUENAME@)" \
++			--vtail ")" \
++		$(gnome_headers) > xgen-gdef \
++	&& cat libgnomeui-boxed.defs >> xgen-gdef \
++	&& (cmp -s xgen-gdef libgnomeui.defs || cp xgen-gdef libgnomeui.defs) \
++	&& rm -f xgen-gdef \
++	&& echo timestamp > $(@F)
++
++$(srcdir)/gnometypebuiltins.c: @REBUILD@ Makefile.am $(gnome_headers) gnometypebuiltins.h
++	cd $(srcdir) \
++	&& glib-mkenums \
++			--fhead "#include \"libgnomeui.h\"\n\n" \
++			--fhead "#include \"gnometypebuiltins.h\"\n\n" \
++			--fprod "\n/* enumerations from \"@filename@\" */" \
++			--vhead "static const G@Type@Value _@enum_name@_values[] = {" \
++			--vprod "  { @VALUENAME@, \"@VALUENAME@\", \"@valuenick@\" }," \
++			--vtail "  { 0, NULL, NULL }\n};\n\n" \
++			--vtail "GType\n@enum_name@_get_type (void)\n{\n" \
++			--vtail "  static GType type = 0;\n\n" \
++			--vtail "  if (!type)\n" \
++			--vtail "    type = g_@type@_register_static (\"@EnumName@\", _@enum_name@_values);\n\n" \
++			--vtail "  return type;\n}\n\n" \
++		$(gnome_headers) > xgen-gtbec \
++	&& cp xgen-gtbec $(@F) \
++	&& rm -f xgen-gtbec
++
++$(srcdir)/gnometypebuiltins.h: @REBUILD@ Makefile.am $(gnome_headers)
++	cd $(srcdir) \
++	&& glib-mkenums \
++			--fhead "#ifndef __GNOMETYPEBUILTINS_H__\n" \
++			--fhead "#define __GNOMETYPEBUILTINS_H__ 1\n\n" \
++			--fhead "#include <glib-object.h>\n\n" \
++			--fhead "G_BEGIN_DECLS\n\n" \
++			--ftail "G_END_DECLS\n\n" \
++			--ftail "#endif /* __GNOMETYPEBUILTINS_H__ */\n" \
++			--fprod "\n/* --- @filename@ --- */" \
++			--eprod "#define GNOME_TYPE_@ENUMSHORT@ @enum_name@_get_type()\n" \
++			--eprod "GType @enum_name@_get_type (void);\n" \
++		$(gnome_headers) > xgen-gth \
++	&& cp xgen-gth $(@F) \
++	&& rm -f xgen-gth
++
++$(srcdir)/gnometype_inits.c: @REBUILD@ Makefile.am $(gnome_headers)
++	cd $(srcdir) \
++	&& glib-mkenums \
++			--fprod "\n/* enumerations from \"@filename@\" */" \
++			--vtail "    (void) @enum_name@_get_type ();\n" \
++		$(gnome_headers) > xgen-gtic \
++	&& cp xgen-gtic $(@F) \
++	&& rm -f xgen-gtic
++
++$(srcdir)/gnome-marshal.h: @REBUILD@ Makefile.am gnome-marshal.list
++	cd $(srcdir) \
++	&& glib-genmarshal --prefix=_gnome_marshal gnome-marshal.list --header >> xgen-gmh \
++	&& (cmp -s xgen-gmh gnome-marshal.h || cp xgen-gmh gnome-marshal.h) \
++	&& rm -f xgen-gmh xgen-gmh~
++
++$(srcdir)/gnome-marshal.c: @REBUILD@ Makefile.am gnome-marshal.list
++	cd $(srcdir) \
++	&& glib-genmarshal --prefix=_gnome_marshal gnome-marshal.list --body >> xgen-gmc \
++	&& cp xgen-gmc gnome-marshal.c \
++	&& rm -f xgen-gmc xgen-gmc~
++
++# an explicit dependency here so all generated files get built
++$(libgnomeui_2_la_OBJECTS): $(built_sources)
++
++# Tell versions [3.59,3.63) of GNU make to not export all variables.
++# Otherwise a system limit (for SysV at least) may be exceeded.
++.NOEXPORT:
+diff -Naur libgnomeui-2.4.0.1-old/libgnomeui/gnome-client.c.rej libgnomeui-2.4.0.1/libgnomeui/gnome-client.c.rej
+--- libgnomeui-2.4.0.1-old/libgnomeui/gnome-client.c.rej	Wed Dec 31 19:00:00 1969
++++ libgnomeui-2.4.0.1/libgnomeui/gnome-client.c.rej	Wed Oct 15 19:05:18 2003
+@@ -0,0 +1,17 @@
++***************
++*** 613,619 ****
++    gboolean ret;
++  
++    if (!client_grab_widget)
++-     client_grab_widget = gtk_widget_new (GTK_TYPE_WIDGET, NULL);
++  
++    /* The first SaveYourself after registering for the first time
++     * is a special case (SM specs 7.2).
++--- 613,619 ----
++    gboolean ret;
++  
++    if (!client_grab_widget)
+++     client_grab_widget = gtk_widget_new (GTK_TYPE_INVISIBLE, NULL);
++  
++    /* The first SaveYourself after registering for the first time
++     * is a special case (SM specs 7.2).
+diff -Naur libgnomeui-2.4.0.1-old/libgnomeui/gnome-dateedit.c libgnomeui-2.4.0.1/libgnomeui/gnome-dateedit.c
+--- libgnomeui-2.4.0.1-old/libgnomeui/gnome-dateedit.c	Thu May  1 12:31:04 2003
++++ libgnomeui-2.4.0.1/libgnomeui/gnome-dateedit.c	Wed Oct 15 19:05:18 2003
+@@ -101,6 +101,31 @@
+ /* to get around warnings */
+ static const char *strftime_date_format = "%x";
+ 
++#ifndef HAVE_STRTOK_R
++static char *
++strtok_r (char *s, const char *delim, char **save_ptr)
++{
++	char *token;
++
++	if (s == NULL)
++		s = *save_ptr;
++
++	s += strspn (s, delim);
++	if (*s == '\0')
++		return NULL;
++
++	token = s;
++	s = strpbrk (token, delim);
++	if (s == NULL) {
++		*save_ptr = strchr (token, '\0');
++	} else {
++		*s = '\0';
++		*save_ptr = s + 1;
++	}
++	return token;
++}
++#endif
++
+ /**
+  * gnome_date_edit_get_type:
+  *
+diff -Naur libgnomeui-2.4.0.1-old/libgnomeui/libgnomeui-access.c libgnomeui-2.4.0.1/libgnomeui/libgnomeui-access.c
+--- libgnomeui-2.4.0.1-old/libgnomeui/libgnomeui-access.c	Tue May 21 13:26:36 2002
++++ libgnomeui-2.4.0.1/libgnomeui/libgnomeui-access.c	Wed Oct 15 19:05:18 2003
+@@ -30,7 +30,7 @@
+ static gint is_gail_loaded (GtkWidget *widget);
+ 
+ /* variable that indicates whether GAIL is loaded or not */
+-gint gail_loaded = -1;
++static gint gail_loaded = -1;
+ 
+ /* Accessibility support routines for libgnomeui */
+ static gint
+diff -Naur libgnomeui-2.4.0.1-old/ltmain.sh libgnomeui-2.4.0.1/ltmain.sh
+--- libgnomeui-2.4.0.1-old/ltmain.sh	Sun Aug 17 04:30:36 2003
++++ libgnomeui-2.4.0.1/ltmain.sh	Wed Oct 15 19:10:31 2003
+@@ -3678,6 +3678,11 @@
+ 	if test -n "$export_symbols" && test -n "$archive_expsym_cmds"; then
+ 	  eval cmds=\"$archive_expsym_cmds\"
+ 	else
++	  if test "x$verstring" = "x0.0"; then
++	    tmp_verstring=
++	  else
++	    tmp_verstring="$verstring"
++	  fi
+ 	  eval cmds=\"$archive_cmds\"
+ 	  fi
+ 	fi
+@@ -5145,10 +5150,10 @@
+ 
+ # Directory that this library needs to be installed in:
+ libdir='$install_libdir'"
+-	  if test "$installed" = no && test "$need_relink" = yes; then
+-	    $echo >> $output "\
+-relink_command=\"$relink_command\""
+-	  fi
++#	  if test "$installed" = no && test "$need_relink" = yes; then
++#	    $echo >> $output "\
++#relink_command=\"$relink_command\""
++#	  fi
+ 	done
+       fi
+ 
+diff -Naur libgnomeui-2.4.0.1-old/test-gnome/Makefile.in libgnomeui-2.4.0.1/test-gnome/Makefile.in
+--- libgnomeui-2.4.0.1-old/test-gnome/Makefile.in	Tue Sep  9 09:31:15 2003
++++ libgnomeui-2.4.0.1/test-gnome/Makefile.in	Wed Oct 15 19:05:18 2003
+@@ -135,7 +135,7 @@
+ INCLUDES =  	-I$(top_builddir)					-I$(top_srcdir)						-I$(top_srcdir)/libgnomeui				$(WARN_CFLAGS)						$(LIBGNOMEUI_CFLAGS)					-DGNOMEUILIBDIR=\""$(libdir)"\"				-DGNOMEUIDATADIR=\""$(datadir)"\"			-DGNOMEUIUIDIR=\""$(datadir)/ui"\"			-DGNOMEUIPIXMAPDIR=\""$(datadir)/pixmaps"\"		-DGNOMEUIBINDIR=\""$(bindir)"\"				-DGNOMEUILOCALSTATEDIR=\""$(localstatedir)"\"		-DGNOMEUISRCDIR=\""$(srcdir)"\"				-DG_LOG_DOMAIN=\"GnomeUI\"
+ 
+ 
+-LDADD =  	$(top_builddir)/libgnomeui/libgnomeui-2.la 
++LDADD =  	$(top_builddir)/libgnomeui/libgnomeui-2.la $(LIBGNOMEUI_LIBS) $(SM_LIBS)
+ 
+ 
+ noinst_HEADERS =  	testgnome.h
+diff -Naur libgnomeui-2.4.0.1-old/test-gnome/Makefile.in.orig libgnomeui-2.4.0.1/test-gnome/Makefile.in.orig
+--- libgnomeui-2.4.0.1-old/test-gnome/Makefile.in.orig	Wed Dec 31 19:00:00 1969
++++ libgnomeui-2.4.0.1/test-gnome/Makefile.in.orig	Tue Sep  9 09:31:15 2003
+@@ -0,0 +1,592 @@
++# Makefile.in generated automatically by automake 1.4-p6 from Makefile.am
++
++# Copyright (C) 1994, 1995-8, 1999, 2001 Free Software Foundation, Inc.
++# This Makefile.in is free software; the Free Software Foundation
++# gives unlimited permission to copy and/or distribute it,
++# with or without modifications, as long as this notice is preserved.
++
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY, to the extent permitted by law; without
++# even the implied warranty of MERCHANTABILITY or FITNESS FOR A
++# PARTICULAR PURPOSE.
++
++
++SHELL = @SHELL@
++
++srcdir = @srcdir@
++top_srcdir = @top_srcdir@
++VPATH = @srcdir@
++prefix = @prefix@
++exec_prefix = @exec_prefix@
++
++bindir = @bindir@
++sbindir = @sbindir@
++libexecdir = @libexecdir@
++datadir = @datadir@
++sysconfdir = @sysconfdir@
++sharedstatedir = @sharedstatedir@
++localstatedir = @localstatedir@
++libdir = @libdir@
++infodir = @infodir@
++mandir = @mandir@
++includedir = @includedir@
++oldincludedir = /usr/include
++
++DESTDIR =
++
++pkgdatadir = $(datadir)/@PACKAGE@
++pkglibdir = $(libdir)/@PACKAGE@
++pkgincludedir = $(includedir)/@PACKAGE@
++
++top_builddir = ..
++
++ACLOCAL = @ACLOCAL@
++AUTOCONF = @AUTOCONF@
++AUTOMAKE = @AUTOMAKE@
++AUTOHEADER = @AUTOHEADER@
++
++INSTALL = @INSTALL@
++INSTALL_PROGRAM = @INSTALL_PROGRAM@ $(AM_INSTALL_PROGRAM_FLAGS)
++INSTALL_DATA = @INSTALL_DATA@
++INSTALL_SCRIPT = @INSTALL_SCRIPT@
++transform = @program_transform_name@
++
++NORMAL_INSTALL = :
++PRE_INSTALL = :
++POST_INSTALL = :
++NORMAL_UNINSTALL = :
++PRE_UNINSTALL = :
++POST_UNINSTALL = :
++host_alias = @host_alias@
++host_triplet = @host@
++AR = @AR@
++AS = @AS@
++AWK = @AWK@
++CATALOGS = @CATALOGS@
++CATOBJEXT = @CATOBJEXT@
++CC = @CC@
++CFLAGS = @CFLAGS@
++CPPFLAGS = @CPPFLAGS@
++CXX = @CXX@
++CXXCPP = @CXXCPP@
++DATADIRNAME = @DATADIRNAME@
++DLLTOOL = @DLLTOOL@
++ECHO = @ECHO@
++EGREP = @EGREP@
++EXEEXT = @EXEEXT@
++F77 = @F77@
++GCJ = @GCJ@
++GCJFLAGS = @GCJFLAGS@
++GCONFTOOL = @GCONFTOOL@
++GCONF_CONFIG_SOURCE = @GCONF_CONFIG_SOURCE@
++GDK_PIXBUF_CSOURCE = @GDK_PIXBUF_CSOURCE@
++GETTEXT_PACKAGE = @GETTEXT_PACKAGE@
++GMOFILES = @GMOFILES@
++GMSGFMT = @GMSGFMT@
++GNOME_ACLOCAL_DIR = @GNOME_ACLOCAL_DIR@
++GNOME_ACLOCAL_FLAGS = @GNOME_ACLOCAL_FLAGS@
++GTKDOC = @GTKDOC@
++GTK_VERSION = @GTK_VERSION@
++HTML_DIR = @HTML_DIR@
++INSTALL_GCONF_CONFIG_SOURCE = @INSTALL_GCONF_CONFIG_SOURCE@
++INSTOBJEXT = @INSTOBJEXT@
++INTLLIBS = @INTLLIBS@
++LDFLAGS = @LDFLAGS@
++LIBGLADE_CONVERT = @LIBGLADE_CONVERT@
++LIBGNOMEUI_AGE = @LIBGNOMEUI_AGE@
++LIBGNOMEUI_CFLAGS = @LIBGNOMEUI_CFLAGS@
++LIBGNOMEUI_COMPONENTS_CFLAGS = @LIBGNOMEUI_COMPONENTS_CFLAGS@
++LIBGNOMEUI_COMPONENTS_LIBS = @LIBGNOMEUI_COMPONENTS_LIBS@
++LIBGNOMEUI_CURRENT = @LIBGNOMEUI_CURRENT@
++LIBGNOMEUI_DEMOS_CFLAGS = @LIBGNOMEUI_DEMOS_CFLAGS@
++LIBGNOMEUI_DEMOS_LIBS = @LIBGNOMEUI_DEMOS_LIBS@
++LIBGNOMEUI_GLADE_CFLAGS = @LIBGNOMEUI_GLADE_CFLAGS@
++LIBGNOMEUI_GLADE_LIBS = @LIBGNOMEUI_GLADE_LIBS@
++LIBGNOMEUI_LIBS = @LIBGNOMEUI_LIBS@
++LIBGNOMEUI_REVISION = @LIBGNOMEUI_REVISION@
++LIBJPEG = @LIBJPEG@
++LIBTOOL = @LIBTOOL@
++LN_S = @LN_S@
++MAINT = @MAINT@
++MAKEINFO = @MAKEINFO@
++MKINSTALLDIRS = @MKINSTALLDIRS@
++OBJDUMP = @OBJDUMP@
++OBJEXT = @OBJEXT@
++PACKAGE = @PACKAGE@
++PATH_TO_XRDB = @PATH_TO_XRDB@
++PERL = @PERL@
++PKG_CONFIG = @PKG_CONFIG@
++POFILES = @POFILES@
++POSUB = @POSUB@
++PO_IN_DATADIR_FALSE = @PO_IN_DATADIR_FALSE@
++PO_IN_DATADIR_TRUE = @PO_IN_DATADIR_TRUE@
++RANLIB = @RANLIB@
++RC = @RC@
++REBUILD = @REBUILD@
++SM_LIBS = @SM_LIBS@
++STRIP = @STRIP@
++USE_NLS = @USE_NLS@
++VERSION = @VERSION@
++WARN_CFLAGS = @WARN_CFLAGS@
++WARN_CXXFLAGS = @WARN_CXXFLAGS@
++YACC = @YACC@
++gnomelocaledir = @gnomelocaledir@
++
++INCLUDES =  	-I$(top_builddir)					-I$(top_srcdir)						-I$(top_srcdir)/libgnomeui				$(WARN_CFLAGS)						$(LIBGNOMEUI_CFLAGS)					-DGNOMEUILIBDIR=\""$(libdir)"\"				-DGNOMEUIDATADIR=\""$(datadir)"\"			-DGNOMEUIUIDIR=\""$(datadir)/ui"\"			-DGNOMEUIPIXMAPDIR=\""$(datadir)/pixmaps"\"		-DGNOMEUIBINDIR=\""$(bindir)"\"				-DGNOMEUILOCALSTATEDIR=\""$(localstatedir)"\"		-DGNOMEUISRCDIR=\""$(srcdir)"\"				-DG_LOG_DOMAIN=\"GnomeUI\"
++
++
++LDADD =  	$(top_builddir)/libgnomeui/libgnomeui-2.la 
++
++
++noinst_HEADERS =  	testgnome.h
++
++
++noinst_PROGRAMS =  	test-gnome test-druid test-entry test-iconlist test-password-dialog
++
++
++test_gnome_SOURCES =  	testgnome.c			$(noinst_HEADERS)
++
++
++test_druid_SOURCES =  	testdruid.c
++
++
++test_password_dialog_SOURCES =  	test-password-dialog.c
++
++
++test_entry_SOURCES =  	testentry.c
++
++
++test_iconlist_SOURCES =  	testiconlist.c
++
++
++EXTRA_DIST =  	bomb.xpm		testgnome.xml
++
++mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
++CONFIG_HEADER = ../config.h
++CONFIG_CLEAN_FILES = 
++noinst_PROGRAMS =  test-gnome$(EXEEXT) test-druid$(EXEEXT) \
++test-entry$(EXEEXT) test-iconlist$(EXEEXT) \
++test-password-dialog$(EXEEXT)
++PROGRAMS =  $(noinst_PROGRAMS)
++
++
++DEFS = @DEFS@ -I. -I$(srcdir) -I..
++LIBS = @LIBS@
++X_CFLAGS = @X_CFLAGS@
++X_LIBS = @X_LIBS@
++X_EXTRA_LIBS = @X_EXTRA_LIBS@
++X_PRE_LIBS = @X_PRE_LIBS@
++test_gnome_OBJECTS =  testgnome.$(OBJEXT)
++test_gnome_LDADD = $(LDADD)
++test_gnome_DEPENDENCIES =  $(top_builddir)/libgnomeui/libgnomeui-2.la
++test_gnome_LDFLAGS = 
++test_druid_OBJECTS =  testdruid.$(OBJEXT)
++test_druid_LDADD = $(LDADD)
++test_druid_DEPENDENCIES =  $(top_builddir)/libgnomeui/libgnomeui-2.la
++test_druid_LDFLAGS = 
++test_entry_OBJECTS =  testentry.$(OBJEXT)
++test_entry_LDADD = $(LDADD)
++test_entry_DEPENDENCIES =  $(top_builddir)/libgnomeui/libgnomeui-2.la
++test_entry_LDFLAGS = 
++test_iconlist_OBJECTS =  testiconlist.$(OBJEXT)
++test_iconlist_LDADD = $(LDADD)
++test_iconlist_DEPENDENCIES =  $(top_builddir)/libgnomeui/libgnomeui-2.la
++test_iconlist_LDFLAGS = 
++test_password_dialog_OBJECTS =  test-password-dialog.$(OBJEXT)
++test_password_dialog_LDADD = $(LDADD)
++test_password_dialog_DEPENDENCIES =  \
++$(top_builddir)/libgnomeui/libgnomeui-2.la
++test_password_dialog_LDFLAGS = 
++COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
++LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
++CCLD = $(CC)
++LINK = $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(LDFLAGS) -o $@
++HEADERS =  $(noinst_HEADERS)
++
++DIST_COMMON =  Makefile.am Makefile.in
++
++
++DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
++
++TAR = gtar
++GZIP_ENV = --best
++SOURCES = $(test_gnome_SOURCES) $(test_druid_SOURCES) $(test_entry_SOURCES) $(test_iconlist_SOURCES) $(test_password_dialog_SOURCES)
++OBJECTS = $(test_gnome_OBJECTS) $(test_druid_OBJECTS) $(test_entry_OBJECTS) $(test_iconlist_OBJECTS) $(test_password_dialog_OBJECTS)
++
++all: all-redirect
++.SUFFIXES:
++.SUFFIXES: .S .c .lo .o .obj .s
++$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
++	cd $(top_srcdir) && $(AUTOMAKE) --gnu --include-deps test-gnome/Makefile
++
++Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status
++	cd $(top_builddir) \
++	  && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
++
++
++mostlyclean-noinstPROGRAMS:
++
++clean-noinstPROGRAMS:
++	-test -z "$(noinst_PROGRAMS)" || rm -f $(noinst_PROGRAMS)
++
++distclean-noinstPROGRAMS:
++
++maintainer-clean-noinstPROGRAMS:
++
++.c.o:
++	$(COMPILE) -c $<
++
++# FIXME: We should only use cygpath when building on Windows,
++# and only if it is available.
++.c.obj:
++	$(COMPILE) -c `cygpath -w $<`
++
++.s.o:
++	$(COMPILE) -c $<
++
++.S.o:
++	$(COMPILE) -c $<
++
++mostlyclean-compile:
++	-rm -f *.o core *.core
++	-rm -f *.$(OBJEXT)
++
++clean-compile:
++
++distclean-compile:
++	-rm -f *.tab.c
++
++maintainer-clean-compile:
++
++.c.lo:
++	$(LIBTOOL) --mode=compile $(COMPILE) -c $<
++
++.s.lo:
++	$(LIBTOOL) --mode=compile $(COMPILE) -c $<
++
++.S.lo:
++	$(LIBTOOL) --mode=compile $(COMPILE) -c $<
++
++mostlyclean-libtool:
++	-rm -f *.lo
++
++clean-libtool:
++	-rm -rf .libs _libs
++
++distclean-libtool:
++
++maintainer-clean-libtool:
++
++test-gnome$(EXEEXT): $(test_gnome_OBJECTS) $(test_gnome_DEPENDENCIES)
++	@rm -f test-gnome$(EXEEXT)
++	$(LINK) $(test_gnome_LDFLAGS) $(test_gnome_OBJECTS) $(test_gnome_LDADD) $(LIBS)
++
++test-druid$(EXEEXT): $(test_druid_OBJECTS) $(test_druid_DEPENDENCIES)
++	@rm -f test-druid$(EXEEXT)
++	$(LINK) $(test_druid_LDFLAGS) $(test_druid_OBJECTS) $(test_druid_LDADD) $(LIBS)
++
++test-entry$(EXEEXT): $(test_entry_OBJECTS) $(test_entry_DEPENDENCIES)
++	@rm -f test-entry$(EXEEXT)
++	$(LINK) $(test_entry_LDFLAGS) $(test_entry_OBJECTS) $(test_entry_LDADD) $(LIBS)
++
++test-iconlist$(EXEEXT): $(test_iconlist_OBJECTS) $(test_iconlist_DEPENDENCIES)
++	@rm -f test-iconlist$(EXEEXT)
++	$(LINK) $(test_iconlist_LDFLAGS) $(test_iconlist_OBJECTS) $(test_iconlist_LDADD) $(LIBS)
++
++test-password-dialog$(EXEEXT): $(test_password_dialog_OBJECTS) $(test_password_dialog_DEPENDENCIES)
++	@rm -f test-password-dialog$(EXEEXT)
++	$(LINK) $(test_password_dialog_LDFLAGS) $(test_password_dialog_OBJECTS) $(test_password_dialog_LDADD) $(LIBS)
++
++tags: TAGS
++
++ID: $(HEADERS) $(SOURCES) $(LISP)
++	list='$(SOURCES) $(HEADERS)'; \
++	unique=`for i in $$list; do echo $$i; done | \
++	  awk '    { files[$$0] = 1; } \
++	       END { for (i in files) print i; }'`; \
++	here=`pwd` && cd $(srcdir) \
++	  && mkid -f$$here/ID $$unique $(LISP)
++
++TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) $(LISP)
++	tags=; \
++	here=`pwd`; \
++	list='$(SOURCES) $(HEADERS)'; \
++	unique=`for i in $$list; do echo $$i; done | \
++	  awk '    { files[$$0] = 1; } \
++	       END { for (i in files) print i; }'`; \
++	test -z "$(ETAGS_ARGS)$$unique$(LISP)$$tags" \
++	  || (cd $(srcdir) && etags $(ETAGS_ARGS) $$tags  $$unique $(LISP) -o $$here/TAGS)
++
++mostlyclean-tags:
++
++clean-tags:
++
++distclean-tags:
++	-rm -f TAGS ID
++
++maintainer-clean-tags:
++
++distdir = $(top_builddir)/$(PACKAGE)-$(VERSION)/$(subdir)
++
++subdir = test-gnome
++
++distdir: $(DISTFILES)
++	@for file in $(DISTFILES); do \
++	  d=$(srcdir); \
++	  if test -d $$d/$$file; then \
++	    cp -pr $$d/$$file $(distdir)/$$file; \
++	  else \
++	    test -f $(distdir)/$$file \
++	    || ln $$d/$$file $(distdir)/$$file 2> /dev/null \
++	    || cp -p $$d/$$file $(distdir)/$$file || :; \
++	  fi; \
++	done
++test-password-dialog.o: test-password-dialog.c ../config.h \
++	../libgnomeui/libgnomeui.h ../libgnomeui/gnome-uidefs.h \
++	../libgnomeui/gnome-about.h ../libgnomeui/gnome-app.h \
++	../libgnomeui/gnome-app-helper.h ../libgnomeui/gnome-appbar.h \
++	../libgnomeui/gnome-types.h ../libgnomeui/gnome-app-util.h \
++	../libgnomeui/gnome-authentication-manager.h \
++	../libgnomeui/gnome-color-picker.h ../libgnomeui/gnome-entry.h \
++	../libgnomeui/gnome-file-entry.h \
++	../libgnomeui/gnome-font-picker.h \
++	../libgnomeui/gnome-icon-entry.h \
++	../libgnomeui/gnome-icon-item.h ../libgnomeui/gnome-icon-list.h \
++	../libgnomeui/gnome-icon-sel.h ../libgnomeui/gnome-ui-init.h \
++	../libgnomeui/gnome-icon-theme.h \
++	../libgnomeui/gnome-thumbnail.h \
++	../libgnomeui/gnome-icon-lookup.h \
++	../libgnomeui/gnome-stock-icons.h ../libgnomeui/gnome-scores.h \
++	../libgnomeui/gnome-client.h ../libgnomeui/gnome-dateedit.h \
++	../libgnomeui/gnometypebuiltins.h ../libgnomeui/gnome-href.h \
++	../libgnomeui/gnome-dialog.h ../libgnomeui/gnome-dialog-util.h \
++	../libgnomeui/gnome-druid.h ../libgnomeui/gnome-druid-page.h \
++	../libgnomeui/gnome-druid-page-edge.h \
++	../libgnomeui/gnome-druid-page-standard.h \
++	../libgnomeui/gnome-messagebox.h ../libgnomeui/gnome-mdi.h \
++	../libgnomeui/gnome-mdi-child.h \
++	../libgnomeui/gnome-mdi-generic-child.h \
++	../libgnomeui/gnome-mdi-session.h \
++	../libgnomeui/gnome-vfs-util.h ../libgnomeui/gnome-pixmap.h \
++	../libgnomeui/gnome-pixmap-entry.h \
++	../libgnomeui/gnome-popup-menu.h \
++	../libgnomeui/gnome-propertybox.h \
++	../libgnomeui/gnome-window-icon.h \
++	../libgnomeui/gnome-password-dialog.h
++testdruid.o: testdruid.c ../config.h ../libgnomeui/libgnomeui.h \
++	../libgnomeui/gnome-uidefs.h ../libgnomeui/gnome-about.h \
++	../libgnomeui/gnome-app.h ../libgnomeui/gnome-app-helper.h \
++	../libgnomeui/gnome-appbar.h ../libgnomeui/gnome-types.h \
++	../libgnomeui/gnome-app-util.h \
++	../libgnomeui/gnome-authentication-manager.h \
++	../libgnomeui/gnome-color-picker.h ../libgnomeui/gnome-entry.h \
++	../libgnomeui/gnome-file-entry.h \
++	../libgnomeui/gnome-font-picker.h \
++	../libgnomeui/gnome-icon-entry.h \
++	../libgnomeui/gnome-icon-item.h ../libgnomeui/gnome-icon-list.h \
++	../libgnomeui/gnome-icon-sel.h ../libgnomeui/gnome-ui-init.h \
++	../libgnomeui/gnome-icon-theme.h \
++	../libgnomeui/gnome-thumbnail.h \
++	../libgnomeui/gnome-icon-lookup.h \
++	../libgnomeui/gnome-stock-icons.h ../libgnomeui/gnome-scores.h \
++	../libgnomeui/gnome-client.h ../libgnomeui/gnome-dateedit.h \
++	../libgnomeui/gnometypebuiltins.h ../libgnomeui/gnome-href.h \
++	../libgnomeui/gnome-dialog.h ../libgnomeui/gnome-dialog-util.h \
++	../libgnomeui/gnome-druid.h ../libgnomeui/gnome-druid-page.h \
++	../libgnomeui/gnome-druid-page-edge.h \
++	../libgnomeui/gnome-druid-page-standard.h \
++	../libgnomeui/gnome-messagebox.h ../libgnomeui/gnome-mdi.h \
++	../libgnomeui/gnome-mdi-child.h \
++	../libgnomeui/gnome-mdi-generic-child.h \
++	../libgnomeui/gnome-mdi-session.h \
++	../libgnomeui/gnome-vfs-util.h ../libgnomeui/gnome-pixmap.h \
++	../libgnomeui/gnome-pixmap-entry.h \
++	../libgnomeui/gnome-popup-menu.h \
++	../libgnomeui/gnome-propertybox.h \
++	../libgnomeui/gnome-window-icon.h \
++	../libgnomeui/gnome-password-dialog.h
++testentry.o: testentry.c ../config.h ../libgnomeui/libgnomeui.h \
++	../libgnomeui/gnome-uidefs.h ../libgnomeui/gnome-about.h \
++	../libgnomeui/gnome-app.h ../libgnomeui/gnome-app-helper.h \
++	../libgnomeui/gnome-appbar.h ../libgnomeui/gnome-types.h \
++	../libgnomeui/gnome-app-util.h \
++	../libgnomeui/gnome-authentication-manager.h \
++	../libgnomeui/gnome-color-picker.h ../libgnomeui/gnome-entry.h \
++	../libgnomeui/gnome-file-entry.h \
++	../libgnomeui/gnome-font-picker.h \
++	../libgnomeui/gnome-icon-entry.h \
++	../libgnomeui/gnome-icon-item.h ../libgnomeui/gnome-icon-list.h \
++	../libgnomeui/gnome-icon-sel.h ../libgnomeui/gnome-ui-init.h \
++	../libgnomeui/gnome-icon-theme.h \
++	../libgnomeui/gnome-thumbnail.h \
++	../libgnomeui/gnome-icon-lookup.h \
++	../libgnomeui/gnome-stock-icons.h ../libgnomeui/gnome-scores.h \
++	../libgnomeui/gnome-client.h ../libgnomeui/gnome-dateedit.h \
++	../libgnomeui/gnometypebuiltins.h ../libgnomeui/gnome-href.h \
++	../libgnomeui/gnome-dialog.h ../libgnomeui/gnome-dialog-util.h \
++	../libgnomeui/gnome-druid.h ../libgnomeui/gnome-druid-page.h \
++	../libgnomeui/gnome-druid-page-edge.h \
++	../libgnomeui/gnome-druid-page-standard.h \
++	../libgnomeui/gnome-messagebox.h ../libgnomeui/gnome-mdi.h \
++	../libgnomeui/gnome-mdi-child.h \
++	../libgnomeui/gnome-mdi-generic-child.h \
++	../libgnomeui/gnome-mdi-session.h \
++	../libgnomeui/gnome-vfs-util.h ../libgnomeui/gnome-pixmap.h \
++	../libgnomeui/gnome-pixmap-entry.h \
++	../libgnomeui/gnome-popup-menu.h \
++	../libgnomeui/gnome-propertybox.h \
++	../libgnomeui/gnome-window-icon.h \
++	../libgnomeui/gnome-password-dialog.h
++testgnome.o: testgnome.c ../config.h ../libgnomeui/libgnomeui.h \
++	../libgnomeui/gnome-uidefs.h ../libgnomeui/gnome-about.h \
++	../libgnomeui/gnome-app.h ../libgnomeui/gnome-app-helper.h \
++	../libgnomeui/gnome-appbar.h ../libgnomeui/gnome-types.h \
++	../libgnomeui/gnome-app-util.h \
++	../libgnomeui/gnome-authentication-manager.h \
++	../libgnomeui/gnome-color-picker.h ../libgnomeui/gnome-entry.h \
++	../libgnomeui/gnome-file-entry.h \
++	../libgnomeui/gnome-font-picker.h \
++	../libgnomeui/gnome-icon-entry.h \
++	../libgnomeui/gnome-icon-item.h ../libgnomeui/gnome-icon-list.h \
++	../libgnomeui/gnome-icon-sel.h ../libgnomeui/gnome-ui-init.h \
++	../libgnomeui/gnome-icon-theme.h \
++	../libgnomeui/gnome-thumbnail.h \
++	../libgnomeui/gnome-icon-lookup.h \
++	../libgnomeui/gnome-stock-icons.h ../libgnomeui/gnome-scores.h \
++	../libgnomeui/gnome-client.h ../libgnomeui/gnome-dateedit.h \
++	../libgnomeui/gnometypebuiltins.h ../libgnomeui/gnome-href.h \
++	../libgnomeui/gnome-dialog.h ../libgnomeui/gnome-dialog-util.h \
++	../libgnomeui/gnome-druid.h ../libgnomeui/gnome-druid-page.h \
++	../libgnomeui/gnome-druid-page-edge.h \
++	../libgnomeui/gnome-druid-page-standard.h \
++	../libgnomeui/gnome-messagebox.h ../libgnomeui/gnome-mdi.h \
++	../libgnomeui/gnome-mdi-child.h \
++	../libgnomeui/gnome-mdi-generic-child.h \
++	../libgnomeui/gnome-mdi-session.h \
++	../libgnomeui/gnome-vfs-util.h ../libgnomeui/gnome-pixmap.h \
++	../libgnomeui/gnome-pixmap-entry.h \
++	../libgnomeui/gnome-popup-menu.h \
++	../libgnomeui/gnome-propertybox.h \
++	../libgnomeui/gnome-window-icon.h \
++	../libgnomeui/gnome-password-dialog.h \
++	../libgnomeui/gnome-window.h testgnome.h bomb.xpm
++testiconlist.o: testiconlist.c ../libgnomeui/libgnomeui.h \
++	../libgnomeui/gnome-uidefs.h ../libgnomeui/gnome-about.h \
++	../libgnomeui/gnome-app.h ../libgnomeui/gnome-app-helper.h \
++	../libgnomeui/gnome-appbar.h ../libgnomeui/gnome-types.h \
++	../libgnomeui/gnome-app-util.h \
++	../libgnomeui/gnome-authentication-manager.h \
++	../libgnomeui/gnome-color-picker.h ../libgnomeui/gnome-entry.h \
++	../libgnomeui/gnome-file-entry.h \
++	../libgnomeui/gnome-font-picker.h \
++	../libgnomeui/gnome-icon-entry.h \
++	../libgnomeui/gnome-icon-item.h ../libgnomeui/gnome-icon-list.h \
++	../libgnomeui/gnome-icon-sel.h ../libgnomeui/gnome-ui-init.h \
++	../libgnomeui/gnome-icon-theme.h \
++	../libgnomeui/gnome-thumbnail.h \
++	../libgnomeui/gnome-icon-lookup.h \
++	../libgnomeui/gnome-stock-icons.h ../libgnomeui/gnome-scores.h \
++	../libgnomeui/gnome-client.h ../libgnomeui/gnome-dateedit.h \
++	../libgnomeui/gnometypebuiltins.h ../libgnomeui/gnome-href.h \
++	../libgnomeui/gnome-dialog.h ../libgnomeui/gnome-dialog-util.h \
++	../libgnomeui/gnome-druid.h ../libgnomeui/gnome-druid-page.h \
++	../libgnomeui/gnome-druid-page-edge.h \
++	../libgnomeui/gnome-druid-page-standard.h \
++	../libgnomeui/gnome-messagebox.h ../libgnomeui/gnome-mdi.h \
++	../libgnomeui/gnome-mdi-child.h \
++	../libgnomeui/gnome-mdi-generic-child.h \
++	../libgnomeui/gnome-mdi-session.h \
++	../libgnomeui/gnome-vfs-util.h ../libgnomeui/gnome-pixmap.h \
++	../libgnomeui/gnome-pixmap-entry.h \
++	../libgnomeui/gnome-popup-menu.h \
++	../libgnomeui/gnome-propertybox.h \
++	../libgnomeui/gnome-window-icon.h \
++	../libgnomeui/gnome-password-dialog.h
++
++info-am:
++info: info-am
++dvi-am:
++dvi: dvi-am
++check-am: all-am
++check: check-am
++installcheck-am:
++installcheck: installcheck-am
++install-exec-am:
++install-exec: install-exec-am
++
++install-data-am:
++install-data: install-data-am
++
++install-am: all-am
++	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
++install: install-am
++uninstall-am:
++uninstall: uninstall-am
++all-am: Makefile $(PROGRAMS) $(HEADERS)
++all-redirect: all-am
++install-strip:
++	$(MAKE) $(AM_MAKEFLAGS) AM_INSTALL_PROGRAM_FLAGS=-s install
++installdirs:
++
++
++mostlyclean-generic:
++
++clean-generic:
++
++distclean-generic:
++	-rm -f Makefile $(CONFIG_CLEAN_FILES)
++	-rm -f config.cache config.log stamp-h stamp-h[0-9]*
++
++maintainer-clean-generic:
++mostlyclean-am:  mostlyclean-noinstPROGRAMS mostlyclean-compile \
++		mostlyclean-libtool mostlyclean-tags \
++		mostlyclean-generic
++
++mostlyclean: mostlyclean-am
++
++clean-am:  clean-noinstPROGRAMS clean-compile clean-libtool clean-tags \
++		clean-generic mostlyclean-am
++
++clean: clean-am
++
++distclean-am:  distclean-noinstPROGRAMS distclean-compile \
++		distclean-libtool distclean-tags distclean-generic \
++		clean-am
++	-rm -f libtool
++
++distclean: distclean-am
++
++maintainer-clean-am:  maintainer-clean-noinstPROGRAMS \
++		maintainer-clean-compile maintainer-clean-libtool \
++		maintainer-clean-tags maintainer-clean-generic \
++		distclean-am
++	@echo "This command is intended for maintainers to use;"
++	@echo "it deletes files that may require special tools to rebuild."
++
++maintainer-clean: maintainer-clean-am
++
++.PHONY: mostlyclean-noinstPROGRAMS distclean-noinstPROGRAMS \
++clean-noinstPROGRAMS maintainer-clean-noinstPROGRAMS \
++mostlyclean-compile distclean-compile clean-compile \
++maintainer-clean-compile mostlyclean-libtool distclean-libtool \
++clean-libtool maintainer-clean-libtool tags mostlyclean-tags \
++distclean-tags clean-tags maintainer-clean-tags distdir info-am info \
++dvi-am dvi check check-am installcheck-am installcheck install-exec-am \
++install-exec install-data-am install-data install-am install \
++uninstall-am uninstall all-redirect all-am all installdirs \
++mostlyclean-generic distclean-generic clean-generic \
++maintainer-clean-generic clean mostlyclean distclean maintainer-clean
++
++
++# the program has to be run from $srcdir to find its image files
++test: test-gnome
++	blddir=`pwd`; top_blddir=`cd $(top_builddir) && pwd`; cd $(srcdir); \
++	$(SHELL) $$top_blddir/libtool --mode=execute $$blddir/test-gnome
++
++test-debug: test-gnome
++	blddir=`pwd`; top_blddir=`cd $(top_builddir) && pwd`; cd $(srcdir); \
++	$(SHELL) $$top_blddir/libtool --mode=execute gdb $$blddir/test-gnome
++
++# Tell versions [3.59,3.63) of GNU make to not export all variables.
++# Otherwise a system limit (for SysV at least) may be exceeded.
++.NOEXPORT:
