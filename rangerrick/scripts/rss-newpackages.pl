@@ -2,6 +2,8 @@
 
 use File::Find;
 use XML::RSS;
+use Storable;
+
 #use utf8;
 use strict;
 
@@ -19,6 +21,8 @@ use vars qw(
 	$UNSTABLE_RSS
 	%STABLE_PACKAGES
 	%UNSTABLE_PACKAGES
+
+	$CACHE
 );
 
 $DAYS   = 1.5; # number of days to look back
@@ -28,20 +32,26 @@ $PREFIX = '/tmp/fink-rss';
 $SCP    = 1;
 $DOCVS  = 0;
 
+if (-f '/tmp/rss.cache') {
+	$CACHE = retrieve('/tmp/rss.cache');
+}
+
 $ENV{CVS_RSH} = '/Users/ranger/bin/ssh.sh';
 
 print "- updating cvs repository... ";
 `mkdir -p '$PREFIX'`;
-`cd $PREFIX; cvs -d :pserver:anonymous\@cvs.fink.sourceforge.net:/cvsroot/fink co dists packages >$PREFIX/cvs.log 2>&1`;
+#`cd $PREFIX; cvs -d :pserver:anonymous\@cvs.fink.sourceforge.net:/cvsroot/fink co dists packages >$PREFIX/cvs.log 2>&1`;
+`cd $PREFIX; cvs -d :ext:rangerrick\@cvs.fink.sourceforge.net:/cvsroot/fink co dists packages >$PREFIX/cvs.log 2>&1`;
 print "done\n";
 
 print "- searching for new info files...\n";
 find(\&find_infofiles, $PREFIX);
 
-print "- generating RSS... ";
+print "- generating RSS...\n";
 make_rss(\%STABLE_PACKAGES, 'Stable');
 make_rss(\%UNSTABLE_PACKAGES, 'Unstable');
-print "done\n";
+
+store($CACHE, '/tmp/rss.cache');
 
 if ($SCP) {
 	print "- copying feeds to the Fink website... ";
@@ -136,6 +146,13 @@ sub make_rss {
 	for my $package (sort { $packagehash->{$b}->{'date'} <=> $packagehash->{$a}->{'date'} } keys %{$packagehash}) {
 		$package = $packagehash->{$package};
 
+		#print "name = ", $package->{'package'}, ", version = ", $package->{'version'} . "-" . $package->{'revision'}, "\n";
+		#print "cache = ", $CACHE->{$tree}->{$package->{'package'}}, "\n";
+
+		next if ($CACHE->{$tree}->{$package->{'package'}} eq $package->{'version'} . '-' . $package->{'revision'});
+		$CACHE->{$tree}->{$package->{'package'}} = $package->{'version'} . '-' . $package->{'revision'};
+
+		print "  - ", $package->{'package'}, " ", $package->{'version'} . "-" . $package->{'revision'}, "\n";
 		if (not exists $package->{'descdetail'} or $package->{'descdetail'} =~ /^\s*$/gs) {
 			$description = $package->{'description'};
 		} else {
@@ -169,19 +186,19 @@ sub make_rss {
 
 sub find_infofiles {
 	return unless (/\.info$/);
+	return unless ($File::Find::name =~ /dists\/10\.2\//);
 
 	my @stat = stat($File::Find::name) or die "can't stat $_: $!\n";
 	return unless ($stat[9] >= $CUTOFF);
 
 	my $text;
 	open(FILEIN, $File::Find::name) or die "can't open $File::Find::name: $!\n";
-	print "  - $_\n";
 	{ local $/ = undef; $text = <FILEIN>; }
 	my $hash = parse_keys($text);
 	close(FILEIN);
 
 	next unless (exists $hash->{'package'});
-	$hash->{'date'}     = $stat[9];
+	$hash->{'date'} = $stat[9];
 	if ($DOCVS) {
 		($hash->{'cvsauthor'}, $hash->{'cvslog'}) = get_cvs_log($File::Find::dir, $File::Find::name);
 	}
