@@ -93,7 +93,7 @@ for my $i18n (@KOI18N) {
 		my $contents = <<END;
 Package: koffice-i18n-${normalized}
 Source: mirror:kde:${KODIRECTORY}${filename}
-SourceDirectory: koffice-i18n-${shortname}
+SourceDirectory: koffice-i18n-${shortname}-%v
 Description: KDE - KOffice language files for $MAPPINGS{$shortname}
 DescDetail: Language files for the KDE office suite: $MAPPINGS{$shortname}
 Source-MD5: $md5
