@@ -57,7 +57,7 @@
   <xsl:when test="boolean(headline)">
     <a>
       <xsl:attribute name="name">
-        <xsl:value-of select="date" /><xsl:text> </xsl:text><xsl:value-of select="headline" />
+        <xsl:value-of select="date" /><xsl:text> </xsl:text><xsl:value-of select="headline/@ref" />
       </xsl:attribute>
       <span class="news-date"><xsl:value-of select="date" /><xsl:text>: </xsl:text></span>
       <span class="news-headline"><xsl:value-of select="headline" /></span>

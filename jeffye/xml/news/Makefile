@@ -7,13 +7,14 @@ CURRDATE := `date '+%a, %d %b %Y %H:%M:%S %Z'`
 basedir = ..
 
 SOURCE = news.xml
-TARGET = index.php news.rdf
+TARGET = index.php
 #WANT_HTML = 1
+WANT_RDF = 1
 DESTDIR = news
 
 # Custom stylesheet
 STYLESHEET_WEBSITE = finknews.i18n.xsl
-STYLESHEET_RDF = finknews-rdf.xsl
+STYLESHEET_RDF = finknews-rdf.i18n.xsl
 
 LANGUAGES = en zh
 include $(basedir)/Makefile.i18n.common
@@ -23,16 +24,18 @@ include $(basedir)/Makefile.i18n.common
 #	xmllint --noout --valid news.xml
 #	xsltproc -o index.php.tmp $(STYLESHEET_WEBSITE) news.xml
 
-# Now, we only generate RDF from english version
-news.rdf: news.en.xml $(STYLESHEET_RDF)
-	xmllint --noout --valid news.en.xml
-	xsltproc --stringparam currdate "$(CURRDATE)" -o news.rdf $(STYLESHEET_RDF) news.en.xml
+
+# %.rdf: %.xml $(STYLESHEET_RDF)
+#	xmllint --noout --valid $<
+#	xsltproc --stringparam currdate "$(CURRDATE)" -o $@ $(STYLESHEET_RDF) $<
 
 #%.inc: %.inc.tmp $(PROCESS_WEBSITE)
 #	$(PROCESS_WEBSITE) <$< >$@
 
 install-hook:
-	@echo "Installing RDF file(s)..."
-	cp *.rdf $(basedir)/web/$(DESTDIR)/
+	@echo "Install inc files..."
+	cp *.inc $(basedir)/web/$(DESTDIR)/
+	@echo "Copy news.en.rdf to news.rdf"
+	cp news.en.rdf $(basedir)/web/$(DESTDIR)/news.rdf
 
 # eof

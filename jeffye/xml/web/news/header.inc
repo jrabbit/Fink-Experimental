@@ -1,14 +1,8 @@
-<?
-/* $Id$ */
-
-$fsroot = $root = "../";
-include $fsroot."header.inc";
+<? include_once "../phpLang.inc.php";
+    $lang_code = 'en'; 
+    if ((phpLang_current)) $lang_code=phpLang_current; 
+    if (is_readable ("header." . $lang_code . ".inc")) 
+        include_once "header." . $lang_code . ".inc"; 
+    else 
+        include_once "header.en.inc"; 
 ?>
-
-<p>
-Fink RSS News Feeds:
-[<a href="news.rdf">These Headlines</a>]
-[<a href="fink-stable.rdf">New Packages in Stable</a>]
-[<a href="fink-unstable.rdf">New Packages in Unstable</a>]
-</p>
-
