@@ -6,7 +6,64 @@ License: GPL/LGPL
 Maintainer: Benjamin Reed <ranger@befunk.com>
 
 Depends: flashkard (>= %v-%r), kalzium (>= %v-%r), kbruch (>= %v-%r), keduca (>= %v-%r), khangman (>= %v-%r), kig (>= %v-%r), kiten (>= %v-%r), klettres (>= %v-%r), kmessedwords (>= %v-%r), kmplot (>= %v-%r), kpercentage (>= %v-%r), kstars (>= %v-%r), ktouch (>= %v-%r), kverbos (>= %v-%r), kvoctrain (>= %v-%r), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), %N-base (>= %v-%r)
-BuildDepends: arts-dev (>= 1.2.0-1), autoconf2.5 (>= 2.58-1), automake1.8, cctools (>= 446-1) | cctools-single-module, dlcompat-dev (>= 20030629-5), fink (>= 0.14.0-1), kdelibs3-ssl-dev (>= %v-1) | kdelibs3-dev (>= %v-1), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), pcre-shlibs, qt3-shlibs (>= 3.2.3-1), x11, %N-base (>= %v-%r)
+BuildDepends: arts-dev (>= 1.2.0-1), autoconf2.5 (>= 2.58-1), automake1.8, cctools (>= 446-1) | cctools-single-module, dlcompat-dev (>= 20030629-5), fink (>= 0.14.0-1), kdelibs3-ssl-dev (>= %v-1) | kdelibs3-dev (>= %v-1), libart2, libjpeg, libpng3 (>= 1.2.5-4), libtool14, pcre, qt3 (>= 3.2.3-1), x11-dev
+Replaces: %N-dev (<< %v-%r), %N-shlibs (<< %v-%r)
+GCC: 3.3
+
+Source: mirror:kde:unstable/%v/src/kdeedu-%v.tar.bz2
+Source-MD5: a0a59713a19fb01dd62b13b92f222d08
+Source2: mirror:custom:kde-admindir-20040126.tar.bz2
+Source2-MD5: e746e3ab59cc70a6368ac85c0a31a238
+Source2ExtractDir: kdeedu-%v
+
+PatchScript: <<
+  perl -pi -e 's,-O2,-Os,' admin/acinclude.m4.in
+  perl -pi -e 's,doc/HTML,doc/kde,g' admin/acinclude.m4.in
+<<
+
+SetCPPFLAGS: -fno-common -no-cpp-precomp -I/usr/X11R6/include/freetype2 -I/usr/X11R6/include -I%p/include
+SetLIBS: -L%p/lib
+NoSetLDFLAGS: true
+SetMACOSX_DEPLOYMENT_TARGET: 10.2
+ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --disable-final --with-distribution='Fink/Mac OS X'
+CompileScript: <<
+#!/bin/sh -e
+  mkdir -p /tmp/kde-build
+
+# breaks a lot of plugins on 10.2, enable this again on 10.3
+#  export LD_TWOLEVEL_NAMESPACE=true
+  export PATH="/usr/X11R6/bin:$PATH"
+
+  date > /tmp/kde-build/%N-%v-%r.cvs
+  make -f admin/Makefile.common cvs 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.cvs
+  date > /tmp/kde-build/%N-%v-%r.configure
+  FREETYPE_CONFIG=/usr/X11R6/bin/freetype-config sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure
+  date > /tmp/kde-build/%N-%v-%r.make
+  make all 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.make
+<<
+
+InstallScript: <<
+#!/bin/sh -e
+  mkdir -p /tmp/kde-build
+  mkdir -p %i/share/doc/kde-installed-packages
+  touch %i/share/doc/kde-installed-packages/%N
+  touch %i/share/doc/kde-installed-packages/%N-base
+
+  date > /tmp/kde-build/%N-%v-%r.install
+  make -j1 install DESTDIR=%d 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.install
+  rm -rf %i/share/doc/kde/en/kmathtool
+
+  # FIXME: this works around an initialization error in kstars, this should
+  # get fixed for real!
+  install -d -m 755 %i/share/config
+  touch %i/share/config/kstarsrc
+<<
+
+DocFiles: COPYING INSTALL README
+SplitOff: <<
+  Package: flashkard
+  Description: KDE - vocabulary studying tool
+  Depends: dlcompat-shlibs (>= 20030629-5), %N-common (>= %v-%r), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), pcre-shlibs, qt3-shlibs (>= 3.2.3-1), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-shlibs (<< %v-%r)
   Recommends: %N (>= %v-%r)
   Files: <<
@@ -32,8 +89,8 @@ SplitOff2: <<
     share/doc/kde/en/kalzium
     share/icons/crystalsvg/16x16/apps/kalzium.png
     share/icons/crystalsvg/32x32/apps/kalzium.png
-    share/icons/crystalsvg/48x48/apps/kalzium.png
-    share/icons/crystalsvg/128x128/apps/kalzium.png
+    share/icons/locolor/16x16/apps/kalzium.png
+    share/icons/locolor/32x32/apps/kalzium.png
   <<
 <<
 SplitOff3: <<
@@ -86,8 +143,8 @@ SplitOff5: <<
     share/doc/kde/en/khangman
     share/icons/crystalsvg/16x16/apps/khangman.png
     share/icons/crystalsvg/32x32/apps/khangman.png
-    share/icons/crystalsvg/48x48/apps/khangman.png
-    share/icons/crystalsvg/128x128/apps/khangman.png
+    share/icons/locolor/16x16/apps/khangman.png
+    share/icons/locolor/32x32/apps/khangman.png
   <<
 <<
 SplitOff6: <<
@@ -105,6 +162,15 @@ SplitOff6: <<
     share/doc/kde/en/kig
     share/icons/crystalsvg/16x16/apps/kig.png
     share/icons/crystalsvg/32x32/apps/kig.png
+    share/icons/hicolor/48x48/apps/*_acute.png
+    share/icons/hicolor/48x48/apps/*_cedil.png
+    share/icons/hicolor/48x48/apps/*_circ*.png
+    share/icons/hicolor/48x48/apps/*_cross.png
+    share/icons/hicolor/48x48/apps/*_grave.png
+    share/icons/hicolor/48x48/apps/*_lig.png
+    share/icons/hicolor/48x48/apps/*_tilde.png
+    share/icons/hicolor/48x48/apps/*_umlaut.png
+    share/icons/hicolor/48x48/apps/*_withe.png
     share/icons/locolor/16x16/apps/kig.png
     share/icons/locolor/32x32/apps/kig.png
     share/mimelnk/application/x-kgeo.desktop
@@ -150,8 +216,8 @@ SplitOff8: <<
     share/icons/hicolor/48x48/apps/menubar.png
     share/icons/crystalsvg/16x16/apps/klettres.png
     share/icons/crystalsvg/32x32/apps/klettres.png
-    share/icons/crystalsvg/48x48/apps/klettres.png
-    share/icons/crystalsvg/128x128/apps/klettres.png
+    share/icons/locolor/16x16/apps/klettres.png
+    share/icons/locolor/32x32/apps/klettres.png
   <<
 <<
 SplitOff9: <<
@@ -279,7 +345,7 @@ SplitOff16: <<
   Description: KDE - kdeedu common shared libraries
   Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.3-1), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-shlibs (<< %v-%r)
-  Recommends: %N (>= %v-%r), kdebase3-ssl (>= %v-1) | kdebase3 (>= %v-1)
+  Recommends: %N (>= %v-%r)
   Files: <<
     bin/langen2kvtml
     bin/spotlight2kvtml
