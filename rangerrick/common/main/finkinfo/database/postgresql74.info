@@ -80,6 +80,7 @@ CompileScript: <<
   ./configure %c && \
   make includedir=%p/include/postgresql includedir_internal=%p/include/postgresql/internal includedir_server=%p/include/postgresql && \
   make install install-all-headers includedir=%p/include/postgresql includedir_internal=%p/include/postgresql/internal includedir_server=%p/include/postgresql DESTDIR=%d INSTALLSITEMAN3DIR=%i/share/man/man3 || exit 1
+  make -C contrib
 
   export PATH="%i/bin:$PATH"
   export DYLD_LIBRARY_PATH="%i/lib:$DYLD_LIBRARY_PATH"
@@ -146,9 +147,8 @@ InstallScript: <<
   # postgresql
   make install install-all-headers includedir=%p/include/postgresql includedir_internal=%p/include/postgresql/internal includedir_server=%p/include/postgresql DESTDIR=%d INSTALLSITEMAN3DIR=%i/share/man/man3 || exit 10
 
-  pushd contrib
-  make install includedir=%p/include/postgresql includedir_internal=%p/include/postgresql/internal includedir_server=%p/include/postgresql DESTDIR=%d INSTALLSITEMAN3DIR=%i/share/man/man3
-  popd
+  make -C contrib install includedir=%p/include/postgresql includedir_internal=%p/include/postgresql/internal includedir_server=%p/include/postgresql DESTDIR=%d INSTALLSITEMAN3DIR=%i/share/man/man3
+  install -m 755 contrib/adddepend/adddepend %i/bin/adddepend
 
   find %i/share -ls > /tmp/sharefiles-postgresql.txt
   mv %i/share/doc/postgresql-7.4 %i/share/doc/%N >/dev/null 2>&1
@@ -196,7 +196,7 @@ InstallScript: <<
   ranlib %i/lib/*.a
 
   install -d -m 755 %i/share/doc/%N
-  cp -R contrib %i/share/doc/%N/contrib
+  find contrib -name README.* -exec cp {} %i/share/doc/%N/ \;
 
   install -d -m 755 %i/bin
   install -c -m 755 pgsql.sh %i/bin/
@@ -518,8 +518,7 @@ dependency information on certain types of constraints.
 
 It is recommended that when you have completed this postgresql
 install, you install the dbd-pg-pm or dbd-pg-pm-ssl package and then
-run the script in %p/share/doc/%N/contrib/adddepend/ on each
-of your databases.
+run the 'adddepend' script on each of your databases.
 END
   fi
 else
