@@ -1,0 +1,60 @@
+Package: whereis
+Version: 1.8
+Revision: 1
+Description: Search for binaries, man pages and source directories
+DescDetail: <<
+ The whereis command appeared in 3.0BSD. This version re-implements
+ the historical functionality that was lost in 4.4BSD, and was
+ rewritten from scratch for FreeBSD after the 4.3BSD manual page.
+
+ bash users may appreciate this updated 'whereis' command more than
+ tcsh users, tcsh already has a relatively functional 'where' command
+ built into the shell. (The original whereis command is limited to
+ searching the path defined in `sysctl user.cs_path`, a read-only
+ sysctl value which requires a kernel recompilation to change).
+
+ The whereis utility checks the standard binary, manual page, and
+ source directories for the specified programs, printing out the paths
+ of any it finds. The supplied names are first stripped of leading
+ path name components, any single trailing extension added by gzip(1)
+ or compress(1), and the leading 's.' or trailing ',v' from a source
+ code control system.
+
+ The default path searched is the string returned by the sysctl(8)
+ utility for the "user.cs_path" string, with /usr/libexec and the
+ current user's $PATH appended. Manual pages are searched by default
+ along the $MANPATH. Program sources are located in a list of known
+ standard places, including all the subdirectories of /usr/src and
+ /usr/ports.
+<<
+Source: ftp://ftp2.FreeBSD.org/pub/FreeBSD/FreeBSD-stable/src/usr.bin/%n/%n.pl
+Source2: ftp://ftp2.FreeBSD.org/pub/FreeBSD/FreeBSD-stable/src/usr.bin/%n/%n.1
+#Source: ftp://ftp.FreeBSD.org/pub/FreeBSD/FreeBSD-stable/src/usr.bin/%n/%n.pl
+#Source2: ftp://ftp.FreeBSD.org/pub/FreeBSD/FreeBSD-stable/src/usr.bin/%n/%n.1
+SourceRename: %n-%v.pl
+Source2Rename: %n-%v.man
+SourceDirectory: .
+Source-MD5: e23ce7ef35025d87570f9a2eff18dcd1
+Source2-MD5: 689f2cc4a996e143d545360939cc929c
+CompileScript: echo "Nothing to compile."
+InstallScript: <<
+ mkdir -p %i/bin %i/share/man/man1
+ install -m 755 %n-%v.pl %i/bin/%n
+ install -m 644 %n-%v.man %i/share/man/man1/%n.1
+ head -32 %n-%v.pl | tail -31 > LICENSE
+<<
+DocFiles: LICENSE
+License: BSD
+DescPackaging: main FreeBSD site is slow, find some mirrors.
+DescPort: <<
+ FreeBSD-current (i.e. unstable) is testing a new whereis based on
+ this perl script but rewritten in C. It does not compile properly on Mac OS X
+ 10.2.6, but hack it like this (disables reading of sysctl user.cs_path):
+ /*
+ if (sysctlbyname("user.cs_path"
+ ...
+ err(EX_OSERR
+ */
+ See http://www.freebsd.org/cgi/cvsweb.cgi/src/usr.bin/whereis/
+<<
+Maintainer: Carsten Klapp <carstenklapp@users.sourceforge.net>
