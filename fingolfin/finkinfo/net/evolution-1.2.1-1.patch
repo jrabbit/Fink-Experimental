@@ -159,7 +159,7 @@ diff -ruN evolution-1.2.1/libical/ltmain.sh evolution-1.2.1-patched/libical/ltma
  	    *) pic_flag_for_symtable=" $pic_flag -DPIC -DFREEBSD_WORKAROUND";;
 diff -ruN evolution-1.2.1/ltmain.sh evolution-1.2.1-patched/ltmain.sh
 --- evolution-1.2.1/ltmain.sh	2002-12-05 20:01:28.000000000 +0100
-+++ evolution-1.2.1-patched/ltmain.sh	2003-01-19 15:16:35.000000000 +0100
++++ evolution-1.2.1-patched/ltmain.sh	2003-01-24 23:36:08.000000000 +0100
 @@ -1001,6 +1001,10 @@
  	continue
  	;;
@@ -208,13 +208,43 @@ diff -ruN evolution-1.2.1/ltmain.sh evolution-1.2.1-patched/ltmain.sh
  		;;
  	      *) continue ;;
  	      esac
-+	      if test "$path" = "@PREFIX@/lib"; then
++	      if test "$path" = "-L@PREFIX@/lib"; then
 +	        continue
 +	      fi
  	      case " $deplibs " in
  	      *" $path "*) ;;
  	      *) deplibs="$deplibs $path" ;;
-@@ -2952,7 +2962,23 @@
+@@ -2136,6 +2146,7 @@
+ 	  tmp_libs=
+ 	  for deplib in $new_libs; do
+ 	    case $deplib in
++	    -L@PREFIX@/lib) continue ;;
+ 	    -L*)
+ 	      case " $tmp_libs " in
+ 	      *" $deplib "*) ;;
+@@ -2657,7 +2668,9 @@
+ 	      fi
+ 	    else
+ 	      # Add a -L argument.
+-	      newdeplibs="$newdeplibs $a_deplib"
++	      if test "$a_deplib" != "@PREFIX@/lib"; then
++		newdeplibs="$newdeplibs $a_deplib"
++	      fi
+ 	    fi
+ 	  done # Gone through all deplibs.
+ 	  ;;
+@@ -2691,7 +2704,9 @@
+ 	      fi
+ 	    else
+ 	      # Add a -L argument.
+-	      newdeplibs="$newdeplibs $a_deplib"
++	      if test "$a_deplib" != "@PREFIX@/lib"; then
++		newdeplibs="$newdeplibs $a_deplib"
++	      fi
+ 	    fi
+ 	  done # Gone through all deplibs.
+ 	  ;;
+@@ -2952,7 +2967,23 @@
  	if test -n "$export_symbols" && test -n "$archive_expsym_cmds"; then
  	  eval cmds=\"$archive_expsym_cmds\"
  	else
