@@ -1,0 +1,71 @@
+Package: system-xft2
+Version: 2.0
+Revision: 1
+Provides: xft2
+Depends: system-xfree86, expat-shlibs
+Type: bundle
+Shlibs: <<
+  /usr/X11R6/lib/libXft.1.dylib 1.2.0 system-xft2 (>= 2.0-1) | xfree86-shlibs (>= 4.3.0-1) | xfree86-base-shlibs (>= 4.2.1.1-1) | system-free86 (>= 4.2-1)
+  /usr/X11R6/lib/libXft.2.dylib 2.0.0 system-xft2 (>= 2.0-1) | xfree86-shlibs (>= 4.3.0-1)
+  /usr/X11R6/lib/libXrender.1.dylib 1.1.0 system-xft2 (>= 2.0-1) | xfree86-shlibs (>= 4.3.0-1) | xfree86-base-shlibs (>= 4.2.1.1-1) | system-free86 (>= 4.2-1)
+  /usr/X11R6/lib/libfontconfig.1.dylib 1.0.0 system-xft2 (>= 2.0-1) | xfree86-shlibs (>= 4.3.0-1)
+<<
+PreInstScript: <<
+
+mcount=0
+for file in bin/fontconfig-config \
+	    lib/libXft.2.dylib \
+	    lib/libfontconfig.1.dylib \
+	    include/X11/Xft/Xft.h \
+	    include/fontconfig/fontconfig.h \
+	    lib/pkgconfig/fontconfig.pc \
+	    lib/pkgconfig/xft.pc ; do
+  if [ ! -f "/usr/X11R6/$file" ]; then
+    mcount=$(($mcount+1))
+    echo "- missing /usr/X11R6/$file"
+  else
+    echo "- found /usr/X11R6/$file"
+  fi
+done
+
+if [ "$mcount" -ge 1 ]; then
+  cat <<END
+
+You seems to have X11 installed, but Xft2 installation is missing or
+incomplete. This means you have XFree86 4.2 or equivalent installed.
+
+This package requires Xft2, which is part of XFree86 4.3. You can install
+Xft2 over XFree86 4.2. Please make sure you have an Xft2 installed and retry
+the installation of the system-xft2 package.
+
+The following Xft2 software is compatible with system-xft2:
+
+  XFree86 4.3:
+    http://www.xfree86.org
+
+  pre-built Xft2 binaries for Fink:
+    (somewhere on the web)
+
+  Fontconfig 2.1:
+    http://fontconfig.org
+
+Press a key to continue.
+END
+  read -n1 -s
+  echo ""
+  exit 1
+fi
+
+echo "Valid Xft2 installation detected."
+echo ""
+<<
+Description: Placeholder package for manually installed Xft2
+DescDetail: <<
+Install this package if you have XFree86 4.3.x or Xft2 with XFree86 4.2.x
+installed manually.  It will check whether the installation is okay and
+provide the 'xft2' virtual package.
+<<
+DescPackaging: <<
+I think this package can be merged into system-xfree86 package.
+<<
+Maintainer: Masanori Sekino <msek@users.sourceforge.net>
