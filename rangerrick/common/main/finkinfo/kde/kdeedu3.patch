@@ -1,33 +1,107 @@
-diff -uNr kdeedu-3.2.92/kstars/kstars/Makefile.am kdeedu-3.2.92-new/kstars/kstars/Makefile.am
---- kdeedu-3.2.92/kstars/kstars/Makefile.am	2004-07-17 13:52:56.000000000 -0400
-+++ kdeedu-3.2.92-new/kstars/kstars/Makefile.am	2004-07-26 09:31:46.000000000 -0400
-@@ -1,3 +1,5 @@
-+KDE_OPTIONS = nofinal
-+
- bin_PROGRAMS = kstars
- 
- kstars_SOURCES = Options.kcfgc kspluto.cpp addcatdialog.cpp addlinkdialog.cpp colorscheme.cpp detaildialog.cpp dmsbox.cpp dms.cpp filesource.cpp finddialog.cpp focusdialog.cpp geolocation.cpp imageviewer.cpp indidevice.cpp indidriver.cpp indimenu.cpp infobox.cpp infoboxes.cpp jupitermoons.cpp ksasteroid.cpp kscomet.cpp ksfilereader.cpp ksmoon.cpp ksnewstuff.cpp ksnumbers.cpp ksplanetbase.cpp ksplanet.cpp kspopupmenu.cpp kssun.cpp kstarsactions.cpp kstars.cpp kstarsdata.cpp kstarsdatetime.cpp kstarsdcop.cpp kstarsinit.cpp kstarssplash.cpp ksutils.cpp locationdialog.cpp magnitudespinbox.cpp main.cpp mapcanvas.cpp objectnamelist.cpp planetcatalog.cpp simclock.cpp skymap.cpp skymapdraw.cpp skymapevents.cpp skyobject.cpp skyobjectname.cpp skypoint.cpp stardatasink.cpp starobject.cpp starpixmap.cpp telescopewizardprocess.cpp timebox.cpp timedialog.cpp timespinbox.cpp timestepbox.cpp timeunitbox.cpp timezonerule.cpp toggleaction.cpp deepskyobject.cpp fovdialog.cpp fov.cpp indigroup.cpp indiproperty.cpp indielement.cpp devicemanager.cpp indistd.cpp kswizard.cpp csegment.cpp fitsviewer.cpp conbridlg.cpp fitsimage.cpp fitsprocess.cpp imagereductiondlg.cpp opsadvanced.cpp opscatalog.cpp opscolors.cpp fitshistogram.cpp kstarsinterface.skel simclockinterface.skel addcatdialogui.ui devmanager.ui focusdialogdlg.ui indiconf.ui indihostconf.ui opsadvancedui.ui opscatalogui.ui opscolorsui.ui opsguides.ui opssolarsystem.ui telescopewizard.ui fovdialogui.ui newfovui.ui kswizardui.ui contrastbrightnessgui.ui imagereductionui.ui histdialog.ui statform.ui fitsheaderdialog.ui streamformui.ui streamwg.cpp indifitsconf.cpp imgsequencedlgui.ui imagesequence.cpp
-diff -uNr kdeedu-3.2.92/kwordquiz/src/Makefile.am kdeedu-3.2.92-new/kwordquiz/src/Makefile.am
---- kdeedu-3.2.92/kwordquiz/src/Makefile.am	2004-06-25 05:10:05.000000000 -0400
-+++ kdeedu-3.2.92-new/kwordquiz/src/Makefile.am	2004-07-26 09:33:00.000000000 -0400
-@@ -16,14 +16,14 @@
- EXTRA_DIST = main.cpp kwordquiz.cpp kwordquiz.h kwordquizdoc.cpp kwordquizdoc.h kwordquizview.cpp kwordquizview.h kwordquizui.rc kwordquiz.desktop kwordquizprefs.cpp kwordquizprefs.h
- 
- install-data-local:
--	$(mkinstalldirs) $(kde_mimedir)/application
--	$(INSTALL_DATA) $(srcdir)/x-kwordquiz.desktop $(kde_mimedir)/application/x-kwordquiz.desktop
--	$(mkinstalldirs) $(kde_appsdir)/Edutainment/Miscellaneous/
--	$(INSTALL_DATA) $(srcdir)/kwordquiz.desktop $(kde_appsdir)/Edutainment/Miscellaneous/kwordquiz.desktop
-+	$(mkinstalldirs) $(DESTDIR)$(kde_mimedir)/application
-+	$(INSTALL_DATA) $(srcdir)/x-kwordquiz.desktop $(DATADIR)$(kde_mimedir)/application/x-kwordquiz.desktop
-+	$(mkinstalldirs) $(DESTDIR)$(kde_appsdir)/Edutainment/Miscellaneous/
-+	$(INSTALL_DATA) $(srcdir)/kwordquiz.desktop $(DESTDIR)$(kde_appsdir)/Edutainment/Miscellaneous/kwordquiz.desktop
- 
- uninstall-local:
--	-rm -f $(kde_mimedir)/application/x-kwordquiz.desktop
--	-rm -f $(kde_appsdir)/Applications/kwordquiz.desktop
-+	-rm -f $(DESTDIR)$(kde_mimedir)/application/x-kwordquiz.desktop
-+	-rm -f $(DESTDIR)$(kde_appsdir)/Applications/kwordquiz.desktop
- 
- 
- ####### kdevelop will overwrite this part!!! (end)############
+diff -uNr kdeedu-3.3.0/configure kdeedu-3.3.0-new/configure
+--- kdeedu-3.3.0/configure	Fri Aug 13 19:50:45 2004
++++ kdeedu-3.3.0-new/configure	Sun Aug 29 09:40:23 2004
+@@ -9616,10 +9616,21 @@
+       archive_cmds_need_lc=no
+       case "$host_os" in
+       rhapsody* | darwin1.[012])
+-	allow_undefined_flag='-undefined suppress'
++	allow_undefined_flag='-Wl,-undefined -Wl,suppress'
+ 	;;
+       *) # Darwin 1.3 on
+-	test -z ${LD_TWOLEVEL_NAMESPACE} && allow_undefined_flag='-flat_namespace -undefined suppress'
++	if test -z ${MACOSX_DEPLOYMENT_TARGET} ; then
++	  allow_undefined_flag='-Wl,-flat_namespace -Wl,-undefined -Wl,suppress'
++	else
++	  case ${MACOSX_DEPLOYMENT_TARGET} in
++	    10.[012])
++	      allow_undefined_flag='-Wl,-flat_namespace -Wl,-undefined -Wl,suppress'
++	      ;;
++	    10.*)
++	      allow_undefined_flag='-Wl,-undefined -Wl,dynamic_lookup'
++	      ;;
++	  esac
++	fi
+ 	;;
+       esac
+     	lt_int_apple_cc_single_mod=no
+@@ -11469,7 +11480,18 @@
+       allow_undefined_flag='-undefined suppress'
+       ;;
+     *) # Darwin 1.3 on
+-      test -z ${LD_TWOLEVEL_NAMESPACE} && allow_undefined_flag='-flat_namespace -undefined suppress'
++	if test -z ${MACOSX_DEPLOYMENT_TARGET} ; then
++	  allow_undefined_flag='-Wl,-flat_namespace -Wl,-undefined -Wl,suppress'
++	else
++	  case ${MACOSX_DEPLOYMENT_TARGET} in
++	    10.[012])
++	      allow_undefined_flag='-Wl,-flat_namespace -Wl,-undefined -Wl,suppress'
++	      ;;
++	    10.*)
++	      allow_undefined_flag='-Wl,-undefined -Wl,dynamic_lookup'
++	      ;;
++	  esac
++	fi
+       ;;
+     esac
+     output_verbose_link_cmd='echo'
+@@ -12520,7 +12542,18 @@
+       allow_undefined_flag_CXX='-undefined suppress'
+       ;;
+     *) # Darwin 1.3 on
+-      test -z ${LD_TWOLEVEL_NAMESPACE} && allow_undefined_flag_CXX='-flat_namespace -undefined suppress'
++	if test -z ${MACOSX_DEPLOYMENT_TARGET} ; then
++	  allow_undefined_flag_CXX='-Wl,-flat_namespace -Wl,-undefined -Wl,suppress'
++	else
++	  case ${MACOSX_DEPLOYMENT_TARGET} in
++	    10.[012])
++	      allow_undefined_flag_CXX='-Wl,-flat_namespace -Wl,-undefined -Wl,suppress'
++	      ;;
++	    10.*)
++	      allow_undefined_flag_CXX='-Wl,-undefined -Wl,dynamic_lookup'
++	      ;;
++	  esac
++	fi
+       ;;
+     esac
+     lt_int_apple_cc_single_mod=no
+@@ -16343,7 +16376,18 @@
+ 	allow_undefined_flag_F77='-undefined suppress'
+ 	;;
+       *) # Darwin 1.3 on
+-	test -z ${LD_TWOLEVEL_NAMESPACE} && allow_undefined_flag_F77='-flat_namespace -undefined suppress'
++	if test -z ${MACOSX_DEPLOYMENT_TARGET} ; then
++	  allow_undefined_flag_F77='-Wl,-flat_namespace -Wl,-undefined -Wl,suppress'
++	else
++	  case ${MACOSX_DEPLOYMENT_TARGET} in
++	    10.[012])
++	      allow_undefined_flag_F77='-Wl,-flat_namespace -Wl,-undefined -Wl,suppress'
++	      ;;
++	    10.*)
++	      allow_undefined_flag_F77='-Wl,-undefined -Wl,dynamic_lookup'
++	      ;;
++	  esac
++	fi
+ 	;;
+       esac
+     	lt_int_apple_cc_single_mod=no
+@@ -18625,7 +18669,18 @@
+ 	allow_undefined_flag_GCJ='-undefined suppress'
+ 	;;
+       *) # Darwin 1.3 on
+-	test -z ${LD_TWOLEVEL_NAMESPACE} && allow_undefined_flag_GCJ='-flat_namespace -undefined suppress'
++	if test -z ${MACOSX_DEPLOYMENT_TARGET} ; then
++	  allow_undefined_flag_GCJ='-Wl,-flat_namespace -Wl,-undefined -Wl,suppress'
++	else
++	  case ${MACOSX_DEPLOYMENT_TARGET} in
++	    10.[012])
++	      allow_undefined_flag_GCJ='-Wl,-flat_namespace -Wl,-undefined -Wl,suppress'
++	      ;;
++	    10.*)
++	      allow_undefined_flag_GCJ='-Wl,-undefined -Wl,dynamic_lookup'
++	      ;;
++	  esac
++	fi
+ 	;;
+       esac
+     	lt_int_apple_cc_single_mod=no
