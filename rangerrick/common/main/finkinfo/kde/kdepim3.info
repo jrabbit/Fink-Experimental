@@ -5,7 +5,7 @@ Description: KDE - tools for managing personal information management
 License: GPL/LGPL
 Maintainer: Benjamin Reed <kdepim3@fink.racoonfink.com>
 
-Depends: kaddressbook (>= %v-%r), kalarm (>= %v-%r), kandy (>= %v-%r), karm (>= %v-%r), kmail (>= %v-%r), knode (>= %v-%r), knotes (>= %v-%r), kontact (>= %v-%r), korganizer (>= %v-%r), korn (>= %v-%r), kpilot (>= %v-%r), ksync (>= %v-%r), ktnef (>= %v-%r)
+Depends: %N-ioslaves (>= %v-%r), %N-kfile-plugins (>= %v-%r), %N-wizards (>= %v-%r), akregator (>= %v-%r), certmanager (>= %v-%r), kaddressbook (>= %v-%r), kalarm (>= %v-%r), kandy (>= %v-%r), karm (>= %v-%r), kitchensync (>= %v-%r), kmail (>= %v-%r), knode (>= %v-%r), knotes (>= %v-%r), konsolekalendar (>= %v-%r), kontact (>= %v-%r), korganizer (>= %v-%r), korn (>= %v-%r), kpilot (>= %v-%r), ksync (>= %v-%r), ktnef (>= %v-%r)
 BuildDepends: arts-dev (>= 1.3.91-1), audiofile, cctools (>= 446-1) | cctools-single-module, dlcompat-dev (>= 20030629-5), fink (>= 0.20.2.1-1), freetype2 (>= 2.1.3-23) | freetype2-hinting (>= 2.1.3-23), gtk+ (>= 1.2.10-12), glib (>= 1.2.10-8), kdelibs3-ssl-dev (>= %v-1) | kdelibs3-dev (>= %v-1), libart2, libiconv-dev, libidn, libjpeg, libmal10, libpng3 (>= 1.2.5-4), libncurses5, pcre, pilot-link9 (>= 0.11.7-12), readline, qt3 (>= 3.3.3-7), x11-dev
 Replaces: %N-dev (<< %v-1)
 GCC: 3.3
@@ -44,7 +44,7 @@ CompileScript: <<
   perl -pi.bak -e 's,yytext_ptr,libical_ptr,g' libical/src/libical/icallexer.c
   perl -pi.bak -e 's,yytext_ptr,libicalss_ptr,g' libical/src/libicalss/icalsslexer.c
   perl -pi.bak -e 's,#include <malloc.h>,,g' libkcal/versit/vcc*
-  perl -pi.bak -e 's, holidays , ,g' korganizer/plugins/Makefile
+#  perl -pi.bak -e 's, holidays , ,g' korganizer/plugins/Makefile
 
   ./build-helper.sh make      %N %v %r make all all_libraries="$ALL_LIBRARIES"
 <<
@@ -60,11 +60,6 @@ InstallScript: <<
   mkdir -p %i/share/doc/installed-packages
   touch %i/share/doc/installed-packages/%N
   touch %i/share/doc/installed-packages/%N-base
-
-  find %i -name \*knewstuff\* -exec rm -rf {} \; || :
-  rm -rf %i/bin/ghns
-  rm -rf %i/bin/khotnewstuff
-  rm -rf %i/share/config/khotnewstuffrc
 <<
 
 DocFiles: README*
@@ -78,32 +73,40 @@ SplitOff: <<
   Files: <<
     include
     lib/*.la
-    lib/libkcal.dylib
-    lib/libkdenetwork.dylib
-    lib/libkdepim.dylib
-    lib/libkgantt.dylib
+    lib/libakregatorprivate.dylib
     lib/libgpgme++.dylib
-    lib/libkabc_imap.dylib
+    lib/libkabc_groupwise.dylib
     lib/libkabc_slox.dylib
     lib/libkabc_xmlrpc.dylib
+    lib/libkabckolab.dylib
     lib/libkabinterfaces.dylib
     lib/libkaddressbook.dylib
-    lib/libkalarmd.dylib
-    lib/libkcal_imap.dylib
+    lib/libkcal.dylib
+    lib/libkcal_groupwise.dylib
+    lib/libkcal_resourcefeatureplan.dylib
     lib/libkcal_resourceremote.dylib
     lib/libkcal_slox.dylib
     lib/libkcal_xmlrpc.dylib
+    lib/libkcalkolab.dylib
+    lib/libkdepim.dylib
+    lib/libkgantt.dylib
+    lib/libkholidays.dylib
     lib/libkitchensyncui.dylib
     lib/libkleopatra.dylib
     lib/libkmailprivate.dylib
+    lib/libkmime.dylib
     lib/libknodecommon.dylib
-    lib/libknotes_imap.dylib
     lib/libknotes_xmlrpc.dylib
+    lib/libknoteskolab.dylib
+    lib/libkocorehelper.dylib
+    lib/libkode.dylib
     lib/libkonnector.dylib
     lib/libkontact.dylib
+    lib/libkorg_stdprinting.dylib
     lib/libkorganizer.dylib
     lib/libkorganizer_calendar.dylib
     lib/libkorganizer_eventviewer.dylib
+    lib/libkpgp.dylib
     lib/libkpilot.dylib
     lib/libkpimexchange.dylib
     lib/libkpimidentities.dylib
@@ -112,25 +115,88 @@ SplitOff: <<
     lib/libksieve.dylib
     lib/libkslox.dylib
     lib/libksync.dylib
-    lib/libksync2.dylib
     lib/libktnef.dylib
     lib/libmimelib.dylib
+    lib/libmultisynk.dylib
     lib/libqgpgme.dylib
+    lib/libegroupwarewizard.dylib
+    lib/libgroupwisewizard.dylib
+    lib/libkolabwizard.dylib
+    lib/libsloxwizard.dylib
   <<
 <<
 SplitOff2: <<
+  Package: akregator
+  Description: KDE - 
+  Depends: %N-base (>= %v-%r), %N-common (>= %v-%r)
+  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-common
+  Recommends: %N (>= %v-%r)
+  Files: <<
+    bin/akregator
+    lib/kde3/libakregatorpart*
+    lib/libakregatorprivate.*.dylib
+    share/applnk/Internet/akregator.desktop
+    share/apps/akregator
+    share/config.kcfg/akregator*
+    share/icons/crystalsvg/128x128/apps/akregator*
+    share/icons/crystalsvg/16x16/apps/akregator*
+    share/icons/crystalsvg/16x16/apps/akregator_empty*
+    share/icons/crystalsvg/22x22/apps/akregator*
+    share/icons/crystalsvg/32x32/apps/akregator*
+    share/icons/crystalsvg/48x48/apps/akregator*
+    share/icons/crystalsvg/64x64/apps/akregator*
+    share/icons/crystalsvg/scalable/apps/akregator*
+    share/services/akregator*
+    share/services/feed.protocol
+  <<
+<<
+SplitOff3: <<
+  Package: certmanager
+  Description: KDE - 
+  Depends: %N-base (>= %v-%r), %N-common (>= %v-%r)
+  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-common
+  Recommends: %N (>= %v-%r)
+  Files: <<
+    bin/kleopatra
+    bin/kwatchgnupg
+    lib/kde3/kcm_kleopatra*
+    lib/libkleopatra.*.dylib
+    share/applications/kde/kleopatra*
+    share/apps/*kleopatra*
+    share/apps/kwatchgnupg
+    share/config/*kleopatra*
+    share/doc/kde/en/kdepim-apidocs/common
+    share/icons/crystalsvg/16x16/apps/gpg*
+    share/icons/crystalsvg/22x22/apps/gpg*
+    share/icons/crystalsvg/32x32/apps/gpg*
+    share/services/*kleopatra*
+  <<
+<<
+SplitOff4: <<
   Package: kaddressbook
-  Description: KDE - address book manager
+  Description: KDE - 
   Depends: %N-base (>= %v-%r), %N-common (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-common
   Recommends: %N (>= %v-%r)
   Files: <<
     bin/kabc2mutt
     bin/kaddressbook
-    lib/kde3/*kaddressbook*
-    share/applications/kde/kaddressbook.desktop
+    lib/kde3/kcm_kabconfig.la
+    lib/kde3/kcm_kabconfig.so
+    lib/kde3/kcm_kabcustomfields.la
+    lib/kde3/kcm_kabcustomfields.so
+    lib/kde3/kcm_kabldapconfig.la
+    lib/kde3/kcm_kabldapconfig.so
+    lib/kde3/ldifvcardthumbnail.la
+    lib/kde3/ldifvcardthumbnail.so
+    lib/kde3/libkaddrbk_*
+    lib/kde3/libkaddressbook*
+    lib/libkabinterfaces.*.dylib
+    lib/libkabinterfaces.dylib
+    lib/libkaddressbook.*.dylib
+    lib/libkaddressbook.dylib
+    share/applications/kde/kaddressbook*
     share/apps/kaddressbook
-    share/doc/kde/en/kaddressbook
     share/icons/crystalsvg/128x128/apps/kaddressbook*
     share/icons/crystalsvg/16x16/apps/kaddressbook*
     share/icons/crystalsvg/32x32/apps/kaddressbook*
@@ -138,27 +204,23 @@ SplitOff2: <<
     share/icons/crystalsvg/64x64/apps/kaddressbook*
     share/services/kab*
     share/services/kaddressbook
-    share/services/kresources/kabc
-    share/services/ldifvcardthumbnail.desktop
-    share/servicetypes/dcopaddressbook.desktop
-    share/servicetypes/kaddressbook*
+    share/services/ldifvcard*
+    share/servicetypes/*addressbook*
   <<
 <<
-SplitOff3: <<
+SplitOff5: <<
   Package: kalarm
-  Description: KDE - reminder notifications
+  Description: KDE - 
   Depends: %N-base (>= %v-%r), %N-common (>= %v-%r)
-  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r)
+  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-common
   Recommends: %N (>= %v-%r)
   Files: <<
     bin/kalarm*
-    share/applications/kde/kalarm.desktop
-    share/applnk/.hidden/kalarmd.desktop
-    share/applnk/Applications/kalarm.desktop
-    share/apps/kalarm*
+    share/applications/kde/kalarm*
+    share/applnk/.hidden/kalarm*
+    share/applnk/Applications/kalarm*
+    share/apps/kalarm
     share/autostart/kalarm*
-    share/doc/kde/en/kalarm
-    share/doc/kde/en/kcontrol/kalarmd
     share/icons/crystalsvg/16x16/actions/kalarm*
     share/icons/crystalsvg/16x16/apps/kalarm*
     share/icons/crystalsvg/22x22/actions/kalarm*
@@ -166,35 +228,31 @@ SplitOff3: <<
     share/icons/crystalsvg/48x48/apps/kalarm*
   <<
 <<
-SplitOff4: <<
+SplitOff6: <<
   Package: kandy
-  Description: KDE - mobile phone synchronization
+  Description: KDE - 
   Depends: %N-base (>= %v-%r), %N-common (>= %v-%r)
-  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r)
+  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-common
   Recommends: %N (>= %v-%r)
   Files: <<
-    bin/kandy
-    bin/kandy_client
-    share/applications/kde/kandy.desktop
-    share/applnk/Utilities/kandy.desktop
+    bin/kandy*
+    share/applications/kde/kandy*
+    share/applnk/Utilities/kandy*
     share/apps/kandy
     share/config.kcfg/kandy*
-    share/doc/kde/en/kandy
-    share/mimelnk/kdedevice/cellphone*
   <<
 <<
-SplitOff5: <<
+SplitOff7: <<
   Package: karm
-  Description: KDE - time tracker
+  Description: KDE - 
   Depends: %N-base (>= %v-%r), %N-common (>= %v-%r)
-  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r)
+  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-common
   Recommends: %N (>= %v-%r)
   Files: <<
     bin/karm
-    share/applications/kde/karm.desktop
-    share/applnk/Utilities/karm.desktop
+    share/applications/kde/karm*
+    share/applnk/Utilities/karm*
     share/apps/karm
-    share/doc/kde/en/karm
     share/icons/crystalsvg/128x128/apps/karm*
     share/icons/crystalsvg/16x16/apps/karm*
     share/icons/crystalsvg/32x32/apps/karm*
@@ -202,96 +260,196 @@ SplitOff5: <<
     share/icons/crystalsvg/64x64/apps/karm*
   <<
 <<
-SplitOff6: <<
+SplitOff8: <<
+  Package: %N-kfile-plugins
+  Description: KDE - 
+  Depends: %N-base (>= %v-%r), %N-common (>= %v-%r)
+  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-common
+  Recommends: %N (>= %v-%r)
+  Files: <<
+    lib/kde3/kfile_ics*
+    lib/kde3/kfile_palm*
+    lib/kde3/kfile_vcf*
+    share/services/kfile_ics*
+    share/services/kfile_palm*
+    share/services/kfile_vcf*
+  <<
+<<
+SplitOff9: <<
+  Package: %N-ioslaves
+  Description: KDE - 
+  Depends: %N-base (>= %v-%r), %N-common (>= %v-%r)
+  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-common
+  Recommends: %N (>= %v-%r)
+  Files: <<
+    lib/kde3/kio_imap4*
+    lib/kde3/kio_mbox*
+    lib/kde3/kio_sieve*
+    share/services/imap4*
+    share/services/imaps*
+    share/services/mbox*
+    share/services/sieve*
+  <<
+<<
+SplitOff10: <<
+  Package: kitchensync
+  Description: KDE - 
+  Depends: %N-base (>= %v-%r), %N-common (>= %v-%r)
+  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-common
+  Recommends: %N (>= %v-%r)
+  Files: <<
+    bin/kitchensync
+    bin/multisynk
+    lib/kde3/libkded_ksharedfile*
+    lib/kde3/libkitchensyncpart*
+    lib/kde3/libksync_*
+    lib/kde3/libmultisynkpart*
+    lib/kde3/liboverviewpart*
+    lib/libkabckonnector*
+    lib/libkcalkonnector*
+    lib/libkitchensyncui.*.dylib
+    lib/libkonnector.*.dylib
+    lib/libksharedfile.*.dylib
+    lib/libksync2.*.dylib
+    lib/liblocalkonnector*
+    lib/libmultisynk.*.dylib
+    lib/libqtopiakonnector*
+    lib/libremotekonnector*
+    share/applications/kde/multisynk*
+    share/apps/kitchensync
+    share/apps/konqueror/servicemenus/kitchensync-*
+    share/apps/multisynk
+    share/icons/crystalsvg/16x16/apps/multisynk*
+    share/icons/crystalsvg/22x22/apps/multisynk*
+    share/icons/crystalsvg/32x32/apps/multisynk*
+    share/icons/crystalsvg/48x48/apps/multisynk*
+    share/mimelnk/kdedevice/cellphone*
+    share/mimelnk/kdedevice/pda.*
+    share/services/kded/ksharedfile.*
+    share/services/kitchensync
+    share/services/kresources/konnector/kabckonnector*
+    share/services/kresources/konnector/kcalkonnector*
+    share/services/kresources/konnector/localkonnector*
+    share/services/kresources/konnector/qtopia*
+    share/services/kresources/konnector/remotekonnector*
+    share/services/kresources/konnector_manager*
+    share/services/overview*
+    share/servicetypes/filter*
+    share/servicetypes/kitchensync*
+    share/servicetypes/konnector*
+  <<
+<<
+SplitOff11: <<
   Package: kmail
-  Description: KDE - e-mail client
-  Depends: %N-base (>= %v-%r), %N-common (>= %v-%r), kdebase3-ssl-shlibs (>= %v-1) | kdebase3-shlibs (>= %v-1)
-  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), kdenetwork3-common, %N-common (<< %v-%r), korganizer (<< %v-%r)
+  Description: KDE - 
+  Depends: %N-base (>= %v-%r), %N-common (>= %v-%r)
+  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-common
   Recommends: %N (>= %v-%r)
   Files: <<
     bin/kmail*
-    lib/libkmailprivate*.dylib
+    lib/kde3/kcm_kmail*
+    lib/kde3/libkmail*
+    lib/libkmailprivate.*.dylib
     share/applications/kde/KMail*
     share/applications/kde/kmail*
-    share/applnk/Utilities/kmailcvt.desktop
+    share/applnk/Utilities/kmail*
     share/apps/kconf_update/kmail*
-    share/apps/kconf_update/kpgp*
-    share/apps/kconf_update/upgrade*
-    share/apps/kmail*
+    share/apps/kconf_update/upgrade-signature.pl
+    share/apps/kconf_update/upgrade-transport.pl
+    share/apps/kmail
+    share/apps/kmailcvt
+    share/config.kcfg/custommimeheader*
     share/config.kcfg/kmail*
+    share/config.kcfg/replyphrases*
     share/config/kmail*
-    share/doc/kde/en/kmail*
     share/icons/crystalsvg/128x128/apps/kmail*
     share/icons/crystalsvg/16x16/apps/kmail*
     share/icons/crystalsvg/22x22/apps/kmail*
     share/icons/crystalsvg/32x32/apps/kmail*
     share/icons/crystalsvg/48x48/apps/kmail*
     share/icons/crystalsvg/64x64/apps/kmail*
+    share/icons/crystalsvg/scalable/apps/kmail*
     share/services/kmail*
-    share/services/*imap*.protocol
-    share/services/sieve.protocol
-    share/servicetypes/*mail*.desktop
-    share/servicetypes/dcopcalendar.desktop
-    share/servicetypes/dcopimap.desktop
-  <<
-  Shlibs: <<
-    %p/lib/libkmailprivate.0.dylib 1.0.0 %n (>= 3.3.1-1)
+    share/servicetypes/dcopimap*
+    share/servicetypes/dcopmail*
   <<
 <<
-SplitOff7: <<
+SplitOff12: <<
   Package: knode
-  Description: KDE - usenet news reader
+  Description: KDE - 
   Depends: %N-base (>= %v-%r), %N-common (>= %v-%r)
-  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r)
+  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-common
   Recommends: %N (>= %v-%r)
   Files: <<
     bin/knode
-    share/applications/kde/KNode.desktop
+    lib/kde3/kcm_knode*
+    lib/kde3/libknodepart*
+    lib/libknodecommon.*.dylib
+    share/applications/kde/KNode*
     share/apps/knode
-    share/doc/kde/en/knode
     share/icons/crystalsvg/128x128/apps/knode*
     share/icons/crystalsvg/16x16/apps/knode*
     share/icons/crystalsvg/32x32/apps/knode*
     share/icons/crystalsvg/48x48/apps/knode*
     share/icons/crystalsvg/64x64/apps/knode*
-    share/services/knewsservice.protocol
+    share/services/knewsservice*
     share/services/knode*
   <<
 <<
-SplitOff8: <<
+SplitOff13: <<
   Package: knotes
-  Description: KDE - sticky notes
-  Depends: %N-base (>= %v-%r), %N-common (>= %v-%r), libncurses5-shlibs, pilot-link9-shlibs, readline-shlibs
-  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r)
+  Description: KDE - 
+  Depends: %N-base (>= %v-%r), %N-common (>= %v-%r)
+  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-common
   Recommends: %N (>= %v-%r)
   Files: <<
     bin/knotes
-    lib/kde3/*knotes*
-    share/applications/kde/knotes.desktop
+    lib/kde3/knotes*
+    share/applications/kde/knotes*
     share/apps/knotes
-    share/config.kcfg/knoteconfig*
-    share/config.kcfg/knotesglobalconfig*
-    share/doc/kde/en/knotes
+    share/config.kcfg/knote*
     share/icons/crystalsvg/128x128/apps/knotes*
     share/icons/crystalsvg/16x16/apps/knotes*
     share/icons/crystalsvg/22x22/apps/knotes*
     share/icons/crystalsvg/32x32/apps/knotes*
     share/icons/crystalsvg/48x48/apps/knotes*
     share/icons/crystalsvg/64x64/apps/knotes*
+    share/services/kresources/knotes*
   <<
 <<
-SplitOff9: <<
+SplitOff14: <<
+  Package: konsolekalendar
+  Description: KDE - 
+  Depends: %N-base (>= %v-%r), %N-common (>= %v-%r)
+  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-common
+  Recommends: %N (>= %v-%r)
+  Files: <<
+    bin/konsolekalendar
+    share/applications/kde/konsolekalendar.desktop
+    share/icons/crystalsvg/16x16/apps/konsolekalendar*
+    share/icons/crystalsvg/22x22/apps/konsolekalendar*
+    share/icons/crystalsvg/32x32/apps/konsolekalendar*
+  <<
+<<
+SplitOff15: <<
   Package: kontact
-  Description: KDE - groupware
-  Depends: %N-base (>= %v-%r), %N-common (>= %v-%r), kaddressbook (>= %v-%r), kmail (>= %v-%r), korganizer (>= %v-%r)
-  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r)
+  Description: KDE - 
+  Depends: %N-base (>= %v-%r), %N-common (>= %v-%r)
+  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-common
   Recommends: %N (>= %v-%r)
   Files: <<
     bin/kontact
-    share/applications/kde/Kontact.desktop
+    lib/kde3/kcm_kabsummary*
+    lib/kde3/kcm_kmailsummary*
+    lib/kde3/kcm_kontact*
+    lib/kde3/kcm_korgsummary*
+    lib/kde3/kcm_sdsummary*
+    lib/kde3/libkontact*
+    lib/libkontact.*.dylib
+    lib/libkpinterfaces.*.dylib
+    share/applications/kde/Kontact*
     share/apps/kontact*
     share/config.kcfg/kontact*
-    share/doc/kde/en/kontact
     share/icons/crystalsvg/128x128/apps/kontact*
     share/icons/crystalsvg/16x16/actions/kontact*
     share/icons/crystalsvg/16x16/apps/kontact*
@@ -301,204 +459,247 @@ SplitOff9: <<
     share/icons/crystalsvg/48x48/apps/kontact*
     share/icons/crystalsvg/64x64/actions/kontact*
     share/icons/crystalsvg/64x64/apps/kontact*
-    share/services/kcmkontactknt.desktop
-    share/services/kcm*summary*
-    share/services/kontact*
+    share/services/kcmkabsummary*
+    share/services/kcmkmailsummary*
+    share/services/kcmkontact*
+    share/services/kcmkorgsummary*
+    share/services/kcmsdsummary*
+    share/services/kontact
     share/servicetypes/kontact*
   <<
 <<
-SplitOff10: <<
+SplitOff16: <<
   Package: korganizer
-  Description: KDE - calendar and scheduling
+  Description: KDE - 
   Depends: %N-base (>= %v-%r), %N-common (>= %v-%r)
-  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), kmail (<< %v-%r), %N-common (<< %v-%r)
+  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-common
   Recommends: %N (>= %v-%r)
   Files: <<
-    bin/korg*
-    lib/kde3/*korg*
-    share/applications/kde/korganizer.desktop
-    share/apps/korganizer
+    bin/ical2vcal
+    bin/korgac
+    bin/korganizer*
+    lib/kde3/kcm_korganizer*
+    lib/kde3/libkorg*
+    lib/libkocorehelper.*.dylib
+    lib/libkorg_stdprinting.*.dylib
+    lib/libkorganizer.*.dylib
+    lib/libkorganizer_calendar.*.dylib
+    lib/libkorganizer_eventviewer.*.dylib
+    share/applications/kde/korganizer*
+    share/apps/kconf_update/korganizer*
     share/apps/korgac
-    share/autostart/korgac.desktop
+    share/apps/korganizer
+    share/autostart/korgac*
     share/config.kcfg/korganizer*
-    share/doc/kde/en/korganizer
     share/icons/crystalsvg/128x128/apps/korganizer*
     share/icons/crystalsvg/16x16/apps/korganizer*
     share/icons/crystalsvg/32x32/apps/korganizer*
     share/icons/crystalsvg/48x48/apps/korganizer*
     share/icons/crystalsvg/64x64/apps/korganizer*
-    share/services/korganizer*
-    share/services/kresources/kcal
-    share/servicetypes/korganizerpart.desktop
+    share/services/korganizer
+    share/services/webcal.*
+    share/servicetypes/calendar*
+    share/servicetypes/dcopcalendar*
+    share/servicetypes/korganizer*
+    share/servicetypes/korgprintplugin*
   <<
 <<
-SplitOff11: <<
+SplitOff17: <<
   Package: korn
-  Description: KDE - e-mail monitoring
+  Description: KDE - 
   Depends: %N-base (>= %v-%r), %N-common (>= %v-%r)
-  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r)
+  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-common
   Recommends: %N (>= %v-%r)
   Files: <<
     bin/korn
-    share/applications/kde/KOrn.desktop
-    share/doc/kde/en/korn
+    lib/kconf_update_bin/korn*
+    share/applications/kde/KOrn*
+    share/apps/kconf_update/korn*
     share/icons/crystalsvg/16x16/apps/korn*
     share/icons/crystalsvg/32x32/apps/korn*
     share/icons/crystalsvg/48x48/apps/korn*
   <<
 <<
-SplitOff12: <<
+SplitOff18: <<
   Package: kpilot
-  Description: KDE - desktop software for handhelds
-  Depends: %N-base (>= %v-%r), %N-common (>= %v-%r), libmal10-shlibs, pilot-link9-shlibs, readline-shlibs
-  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r)
+  Description: KDE - 
+  Depends: %N-base (>= %v-%r), %N-common (>= %v-%r)
+  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-common
   Recommends: %N (>= %v-%r)
   Files: <<
     bin/kpalmdoc
     bin/kpilot*
-    lib/kde3/*conduit*
-    share/applications/kde/kpalmdoc.desktop
-    share/applications/kde/kpilot*.desktop
-    share/apps/kconf_update/kpalmdoc.upd
-    share/apps/kconf_update/kpilot.upd
+    lib/kde3/conduit_*
+    lib/kde3/kcm_kpilot*
+    lib/libkpilot.*.dylib
+    share/applications/kde/kpalmdoc*
+    share/applications/kde/kpilot*
+    share/apps/kaddressbook/contacteditorpages/KPilotCustomFieldEditor.ui
+    share/apps/kconf_update/kpalmdoc*
+    share/apps/kconf_update/kpilot*
     share/apps/kpilot
-    share/config.kcfg/*conduit*
+    share/config.kcfg/abbrowserconduit*
+    share/config.kcfg/docconduit*
+    share/config.kcfg/knotesconduit*
     share/config.kcfg/kpalmdoc*
     share/config.kcfg/kpilot*
+    share/config.kcfg/malconduit*
+    share/config.kcfg/memofileconduit*
     share/config.kcfg/popmail*
-    share/doc/kde/en/kpilot
+    share/config.kcfg/sysinfoconduit*
+    share/config.kcfg/timeconduit*
+    share/config.kcfg/vcalconduit*
     share/icons/crystalsvg/16x16/apps/kpalmdoc*
-    share/icons/crystalsvg/22x22/apps/kpalmdoc*
-    share/icons/crystalsvg/32x32/apps/kpalmdoc*
-    share/icons/crystalsvg/48x48/apps/kpalmdoc*
     share/icons/crystalsvg/16x16/apps/kpilot*
+    share/icons/crystalsvg/22x22/apps/kpalmdoc*
     share/icons/crystalsvg/22x22/apps/kpilot*
+    share/icons/crystalsvg/32x32/apps/kpalmdoc*
     share/icons/crystalsvg/32x32/apps/kpilot*
+    share/icons/crystalsvg/48x48/apps/kpalmdoc*
     share/icons/crystalsvg/48x48/apps/kpilot*
     share/icons/locolor/16x16/apps/kpilot*
-    share/mimelnk/kdedevice/pda*
-    share/services/*conduit*
-    share/services/kfile_palm*
+    share/services/abbrowser_conduit*
+    share/services/doc_conduit*
+    share/services/knotes-conduit*
     share/services/kpilot*
-    share/servicetypes/*conduit*
+    share/services/mal_conduit*
+    share/services/memofile-conduit*
+    share/services/notepad-conduit*
+    share/services/popmail-conduit*
+    share/services/sysinfo_conduit*
+    share/services/time_conduit*
+    share/services/todo-conduit*
+    share/services/vcal-conduit*
+    share/servicetypes/kpilot*
   <<
 <<
-SplitOff13: <<
+SplitOff19: <<
   Package: ksync
-  Description: KDE - PIM data synchronization tools
+  Description: KDE - 
   Depends: %N-base (>= %v-%r), %N-common (>= %v-%r)
-  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r)
+  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-common
   Recommends: %N (>= %v-%r)
   Files: <<
-    bin/kitchensync
     bin/ksync
-    lib/kde3/libksync*
-    share/apps/kitchensync
+    lib/libksync.*.dylib
     share/apps/ksync
-    share/services/kded/ksharedfile.desktop
-    share/services/kitchensync*
-    share/services/overview*
-    share/servicetypes/kitchensync*
-    share/servicetypes/konnector*
   <<
 <<
-SplitOff14: <<
+SplitOff20: <<
   Package: ktnef
-  Description: KDE - TNEF viewer/converter
+  Description: KDE - 
   Depends: %N-base (>= %v-%r), %N-common (>= %v-%r)
-  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r)
+  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-common
   Recommends: %N (>= %v-%r)
   Files: <<
     bin/ktnef
-    share/applications/kde/ktnef.desktop
+    lib/libktnef.*.dylib
+    share/applications/kde/ktnef*
     share/apps/ktnef
-    share/doc/kde/en/ktnef
     share/icons/hicolor/48x48/apps/ktnef*
     share/icons/locolor/16x16/apps/ktnef*
     share/icons/locolor/32x32/apps/ktnef*
-    share/mimelnk/application/ms-tnef.desktop
+    share/mimelnk/application/ms-tnef*
   <<
 <<
-SplitOff15: <<
+SplitOff21: <<
+  Package: %N-wizards
+  Description: KDE - 
+  Depends: %N-base (>= %v-%r), %N-common (>= %v-%r)
+  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-common
+  Recommends: %N (>= %v-%r)
+  Files: <<
+    bin/*wizard
+    lib/libegroupwarewizard.*.dylib
+    lib/libgroupwisewizard.*.dylib
+    lib/libkolabwizard.*.dylib
+    lib/libsloxwizard.*.dylib
+    share/config.kcfg/egroupware*
+    share/config.kcfg/groupwise*
+    share/config.kcfg/kolab*
+    share/config.kcfg/slox*
+  <<
+<<
+SplitOff22: <<
   Package: %N-common
   Description: KDE - kdepim common files
-  Depends: %N-base (>= %v-%r), libncurses5-shlibs, pilot-link9-shlibs, readline-shlibs
+  Depends: %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), kdenetwork3-common, kdenetwork3-dev (<< %v-1)
   Recommends: %N (>= %v-%r)
   Files: <<
-    bin/*wizard*
-    bin/ical2vcal
-    bin/kleopatra
-    bin/konsolekalendar
-    bin/kwatchgnupg
-    lib
-    share/applications/kde/konsolekalendar.desktop
-    share/applications/kde/kleopatra_import.desktop
+    lib/kde3/kabc_groupwise*
+    lib/kde3/kabc_kolab*
+    lib/kde3/kabc_slox*
+    lib/kde3/kabc_xmlrpc*
+    lib/kde3/kcal_groupwise*
+    lib/kde3/kcal_kabc*
+    lib/kde3/kcal_kolab*
+    lib/kde3/kcal_local*
+    lib/kde3/kcal_remote*
+    lib/kde3/kcal_resourcefeatureplan*
+    lib/kde3/kcal_slox*
+    lib/kde3/kcal_xmlrpc*
+    lib/kde3/kio_groupwise*
+    lib/kde3/knotes_kolab*
+    lib/kde3/knotes_xmlrpc*
+    lib/kde3/plugins/designer/kdepimwidgets*
+    lib/kde3/resourcecalendarexchange*
+    lib/libgpgme++.*.dylib
+    lib/libkabc_groupwise.*.dylib
+    lib/libkabc_slox.*.dylib
+    lib/libkabc_xmlrpc.*.dylib
+    lib/libkabckolab.*.dylib
+    lib/libkcal.*.dylib
+    lib/libkcal_groupwise.*.dylib
+    lib/libkcal_resourcefeatureplan.*.dylib
+    lib/libkcal_resourceremote.*.dylib
+    lib/libkcal_slox.*.dylib
+    lib/libkcal_xmlrpc.*.dylib
+    lib/libkcalkolab.*.dylib
+    lib/libkdepim.*.dylib
+    lib/libkgantt.*.dylib
+    lib/libkholidays.*.dylib
+    lib/libkmime.*.dylib
+    lib/libknotes_xmlrpc.*.dylib
+    lib/libknoteskolab.*.dylib
+    lib/libkpgp.*.dylib
+    lib/libkpimexchange.*.dylib
+    lib/libkpimidentities.*.dylib
+    lib/libksieve.*.dylib
+    lib/libkslox.*.dylib
+    lib/libmimelib.*.dylib
+    lib/libqgpgme.*.dylib
+    share/apps/kconf_update/kpgp*
+    share/apps/kdepimwidgets
     share/apps/kgantt
-    share/apps/kleopatra
-    share/apps/kwatchgnupg
-    share/apps/libkleopatra
-    share/config.kcfg/egroupware*
-    share/config.kcfg/kolab*
-    share/config.kcfg/slox*
-    share/config/libkleopatrarc
-    share/doc/kde/en/kleopatra
-    share/doc/kde/en/konsolekalendar
-    share/doc/kde/en/kwatchgnupg
-    share/icons/crystalsvg/16x16/apps/gpg*
-    share/icons/crystalsvg/22x22/apps/gpg*
-    share/icons/crystalsvg/32x32/apps/gpg*
-    share/icons/crystalsvg/16x16/apps/konsolekalendar*
-    share/icons/crystalsvg/22x22/apps/konsolekalendar*
-    share/icons/crystalsvg/32x32/apps/konsolekalendar*
-    share/services/kfile_vcf*
-    share/services/kleopatra*
-    share/services/kresources*
-    share/services/webcal.protocol
-    share/servicetypes/calendar*
+    share/apps/kmail/pics/key*
+    share/apps/knode/pics/key*
+    share/apps/libkholidays
+    share/services/groupwise*
+    share/services/kresources/kabc/imap*
+    share/services/kresources/kabc/kabc_groupwise*
+    share/services/kresources/kabc/kabc_slox*
+    share/services/kresources/kabc/kabc_xmlrpc*
+    share/services/kresources/kabc/kolab*
+    share/services/kresources/kcal/exchange*
+    share/services/kresources/kcal/imap*
+    share/services/kresources/kcal/kabc*
+    share/services/kresources/kcal/kcal_groupwise*
+    share/services/kresources/kcal/kcal_resourcefeatureplan*
+    share/services/kresources/kcal/kcal_slox*
+    share/services/kresources/kcal/kcal_xmlrpc*
+    share/services/kresources/kcal/kolab*
+    share/services/kresources/kcal/local*
+    share/services/kresources/kcal/remote*
+    share/services/kresources/kcal_manager*
+    share/services/kresources/knotes/imap*
+    share/services/kresources/knotes/knotes_xmlrpc*
+    share/services/kresources/knotes/kolabresource*
   <<
   Shlibs: <<
-    %p/lib/libgpgme++.0.dylib 1.0.0 %n (>= 3.3.1-1)
-    %p/lib/libkabc_imap.0.dylib 1.0.0 %n (>= 3.3.1-1)
-    %p/lib/libkabc_slox.0.dylib 1.0.0 %n (>= 3.3.1-1)
-    %p/lib/libkabc_xmlrpc.1.dylib 2.0.0 %n (>= 3.3.1-1)
-    %p/lib/libkabinterfaces.1.dylib 2.0.0 %n (>= 3.3.1-1)
-    %p/lib/libkaddressbook.0.dylib 1.0.0 %n (>= 3.3.1-1)
-    %p/lib/libkalarmd.0.dylib 1.0.0 %n (>= 3.2.0-1)
-    %p/lib/libkcal.2.dylib 3.0.0 %n (>= 3.2.0-1)
-    %p/lib/libkcalsystem.0.dylib 1.0.0 %n (>= 3.2.0-1)
-    %p/lib/libkcal_imap.1.dylib 2.0.0 %n (>= 3.3.1-1)
-    %p/lib/libkcal_resourceremote.1.dylib 2.0.0 %n (>= 3.3.1-1)
-    %p/lib/libkcal_slox.0.dylib 1.0.0 %n (>= 3.3.1-1)
-    %p/lib/libkcal_xmlrpc.1.dylib 2.0.0 %n (>= 3.3.1-1)
-    %p/lib/libkdenetwork.2.dylib 5.0.0 %n (>= 3.3.1-1)
-    %p/lib/libkdepim.1.dylib 2.0.0 %n (>= 3.2.0-1)
-    %p/lib/libkgantt.0.dylib 1.0.0 %n (>= 3.2.0-1)
-    %p/lib/libkitchensyncui.0.dylib 1.0.0 %n (>= 3.3.1-1)
-    %p/lib/libkleopatra.0.dylib 1.0.0 %n (>= 3.3.1-1)
-    %p/lib/libknodecommon.0.dylib 1.0.0 %n (>= 3.3.1-1)
-    %p/lib/libknotes_imap.0.dylib 1.0.0 %n (>= 3.3.1-1)
-    %p/lib/libknotes_xmlrpc.1.dylib 2.0.0 %n (>= 3.3.1-1)
-    %p/lib/libkonnector.0.dylib 1.0.0 %n (>= 3.3.1-1)
-    %p/lib/libkontact.1.dylib 2.0.0 %n (>= 3.3.1-1)
-    %p/lib/libkorganizer.1.dylib 2.0.0 %n (>= 3.2.0-1)
-    %p/lib/libkorganizer_calendar.1.dylib 2.0.0 %n (>= 3.3.1-1)
-    %p/lib/libkorganizer_eventviewer.1.dylib 2.0.0 %n (>= 3.3.1-1)
-    %p/lib/libkpilot.0.dylib 1.0.0 %n (>= 3.2.0-1)
-    %p/lib/libkpimexchange.1.dylib 2.0.0 %n (>= 3.2.0-1)
-    %p/lib/libkpimidentities.1.dylib 2.0.0 %n (>= 3.3.1-1)
-    %p/lib/libkpinterfaces.1.dylib 2.0.0 %n (>= 3.3.1-1)
-    %p/lib/libksharedfile.0.dylib 1.0.0 %n (>= 3.3.1-1)
-    %p/lib/libksieve.0.dylib 1.0.0 %n (>= 3.3.1-1)
-    %p/lib/libkslox.0.dylib 1.0.0 %n (>= 3.3.1-1)
-    %p/lib/libksync.1.dylib 2.0.0 %n (>= 3.2.0-1)
-    %p/lib/libksync2.0.dylib 1.0.0 %n (>= 3.3.1-1)
-    %p/lib/libktnef.1.dylib 2.0.0 %n (>= 3.3.1-1)
-    %p/lib/libmimelib.1.dylib 2.0.0 %n (>= 3.3.1-1)
-    %p/lib/libqgpgme.0.dylib 1.0.0 %n (>= 3.3.1-1)
   <<
 <<
-SplitOff16: <<
+SplitOff23: <<
   Package: %N-base
   Description: KDE - kdepim base package
   Depends: kdebase3-ssl (>= %v-1) | kdebase3 (>= %v-1)
