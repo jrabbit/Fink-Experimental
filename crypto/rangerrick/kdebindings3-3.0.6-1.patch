@@ -1,111 +1,35 @@
 Index: admin/Makefile.common
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/admin/Makefile.common,v
-retrieving revision 1.1.1.2
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.2 -r1.3
---- admin/Makefile.common	25 Jun 2002 03:35:55 -0000	1.1.1.2
-+++ admin/Makefile.common	25 Jun 2002 03:36:46 -0000	1.3
-@@ -1,24 +1,12 @@
- 
- SHELL=/bin/sh
- 
-+ACLOCAL=aclocal-1.5
-+AUTOMAKE=automake-1.5
-+AUTOCONF=autoconf
-+
- cvs:
--	if test -x /usr/bin/autoconf2.50 ; then \
--	   AUTOCONF="/usr/bin/autoconf2.50" ;\
--	else \
--	   AUTOCONF="autoconf" ;\
--	fi; \
--	AUTOCONF_VERSION=`$$AUTOCONF --version` ;\
--	if test "x$$AUTOCONF_VERSION" = "xAutoconf version 2.13"; then \
--	   echo "*** YOU'RE USING AUTOCONF 2.13. We suggest updating." ;\
--	   echo "*** autoconf 2.5x works best for now, we will drop" ;\
--	   echo "*** support for autoconf 2.13 soon."; \
--	   test ! -f admin/libtool.m4.in || mv admin/libtool.m4.in admin/new-libtool.m4.in ;\
--	   test ! -f admin/ltmain.sh || mv admin/ltmain.sh admin/new-ltmain.sh ;\
--	   for file in libtool.m4.in ltcf-c.sh ltcf-cxx.sh ltcf-gcj.sh ltconfig ltmain.sh; do \
--		rm -f admin/$$file ;\
--		ln -s old-$$file admin/$$file ;\
--	   done ;\
--	fi 
-+	@chmod a+x admin/*
- 	@if grep '$$(top_srcdir)/acinclude.m4:' Makefile.am >/dev/null; then \
- 	  echo "*** Creating acinclude.m4" ;\
- 	  rm -f acinclude.m4 configure.files ;\
-@@ -34,7 +22,7 @@
- 	  $(MAKE) -f Makefile.am top_srcdir=. configure.in ;\
- 	fi
- 	@echo "*** Creating aclocal.m4"
--	@aclocal
-+	@$(ACLOCAL)
- 	@echo "*** Creating configure"
- 	@autoconf
- 	@if test -r configure.in.in ; then \
-@@ -52,7 +40,7 @@
- 		autoheader ;\
- 	fi
- 	@echo "*** Creating Makefile templates"
--	@automake
-+	@$(AUTOMAKE)
- 	@echo "*** Postprocessing Makefile templates"
- 	@perl admin/am_edit
- 	@if egrep "^cvs-local:" Makefile.am >/dev/null; then \
-@@ -71,9 +59,9 @@
- 	@if test -r configure.in.in; then \
- 	  $(MAKE) -f Makefile.am top_srcdir=. subdirs configure.in; \
- 	fi ;\
--	aclocal; \
-+	$(ACLOCAL); \
- 	autoheader; \
--	automake --foreign --include-deps; \
-+	$(AUTOMAKE) --foreign --include-deps; \
- 	perl admin/am_edit; \
- 	autoconf; \
- 	if test -r configure.in.in ; then \
-@@ -281,7 +269,9 @@
- 	done ;\
- 	rm -f _SUBDIRS ;\
- 	for i in $$dirs; do \
-+	if [ $$i != "kdm" ]; then \
- 	echo $$i >> ./_SUBDIRS; \
-+        fi \
- 	done
- 	@if test -r subdirs && diff subdirs _SUBDIRS > /dev/null; then \
- 	  rm -f _SUBDIRS; \
+retrieving revision 1.1.1.3
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.3 -r1.4
 Index: admin/acinclude.m4.in
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/admin/acinclude.m4.in,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- admin/acinclude.m4.in	25 Jun 2002 03:34:27 -0000	1.1.1.1
-+++ admin/acinclude.m4.in	25 Jun 2002 03:35:36 -0000	1.2
-@@ -693,6 +693,19 @@
-    AC_CHECK_FUNC(shmat, ,
+retrieving revision 1.1.1.2
+retrieving revision 1.6
+diff -u -b -u -r1.1.1.2 -r1.6
+--- admin/acinclude.m4.in	10 Jul 2002 02:47:38 -0000	1.1.1.2
++++ admin/acinclude.m4.in	11 Jul 2002 12:08:01 -0000	1.6
+@@ -699,13 +699,10 @@
       AC_CHECK_LIB(ipc, shmat, X_EXTRA_LIBS="$X_EXTRA_LIBS -lipc"))
     
-+   # darwin needs this to initialize the environment
+    # darwin needs this to initialize the environment
+-   AC_CHECK_HEADERS(crt_externs.h)
 +   AC_CHECK_HEADERS([crt_externs.h sys/types.h])
-+   AC_CHECK_FUNC(_NSGetEnviron, [AC_DEFINE(HAVE_NSGETENVIRON, 1, [Define if your system needs _NSGetEnviron to set up the environment])])
-+
+    AC_CHECK_FUNC(_NSGetEnviron, [AC_DEFINE(HAVE_NSGETENVIRON, 1, [Define if your system needs _NSGetEnviron to set up the environment])])
+  
+-   # more headers that need to be explicitly included on darwin
+-   AC_CHECK_HEADERS(sys/types.h stdint.h)
+-
+-   # darwin requires a poll emulation library
 +   # darwin requires a poll.h emulation library
-+   AC_CHECK_LIB(poll, poll, LIB_POLL="-lpoll")
-+
-+   # CoreAudio framework
-+   AC_CHECK_HEADER(CoreAudio/CoreAudio.h, [
-+     AC_DEFINE(HAVE_COREAUDIO, 1, [Define if you have the CoreAudio API])
-+     FRAMEWORK_COREAUDIO="-framework CoreAudio"
-+   ])
-+
-    # Solaris 2.6 and others need -lresolv for res_init
-    AC_CHECK_FUNCS(res_init, , [
-      kde_libs_safe="$LIBS"
-@@ -713,6 +726,8 @@
+    AC_CHECK_LIB(poll, poll, LIB_POLL="-lpoll")
  
+    # CoreAudio framework
+@@ -736,6 +733,8 @@
+    AC_SUBST(FRAMEWORK_COREAUDIO)
     LIBSOCKET="$X_EXTRA_LIBS"
     AC_SUBST(LIBSOCKET)
 +   AC_SUBST(FRAMEWORK_COREAUDIO)
@@ -113,49 +37,51 @@ diff -u -b -u -r1.1.1.1 -r1.2
     AC_SUBST(LIBRESOLV)
     AC_SUBST(X_EXTRA_LIBS)
     AC_CHECK_LIB(ucb, killpg, [LIBUCB="-lucb"]) dnl for Solaris2.4
-@@ -1826,6 +1841,32 @@
+@@ -949,7 +948,7 @@
+ kde_save_LIBS="$LIBS"
+ LDFLAGS="$LDFLAGS $X_LDFLAGS $USER_LDFLAGS"
+ CFLAGS="$CFLAGS -I$x_includes"
+-LIBS="-lXinerama -lXext"
++LIBS="-lXinerama -lXext -lX11"
+ 
+ if test "x$no_xinerama" = "xno"; then
+ 
+@@ -1846,15 +1845,29 @@
+    AC_REQUIRE([K_PATH_X])
+ 
  if test $kde_qtver = 3; then
-    LIB_KDECORE='-lkdecore'
-    AC_SUBST(LIB_KDECORE)
-+   LIB_KDEFX='-lkdefx'
-+   AC_SUBST(LIB_KDEFX)
-+   LIB_ARTSKDE='-lartskde'
-+   AC_SUBST(LIB_ARTSKDE)
-+   LIB_KABC='-lkabc'
-+   AC_SUBST(LIB_KABC)
-+   LIB_KDESASL='-lkdesasl'
-+   AC_SUBST(LIB_KDESASL)
-+   LIB_KDESU='-lkdesu'
-+   AC_SUBST(LIB_KDESU)
-+   LIB_KJAVA='-lkjava'
-+   AC_SUBST(LIB_KJAVA)
-+   LIB_KJS='-lkjs'
-+   AC_SUBST(LIB_KJS)
-+   LIB_KMID='-lkmid'
-+   AC_SUBST(LIB_KMID)
-+   LIB_KSCRIPT='-lkscript'
-+   AC_SUBST(LIB_KSCRIPT)
-+   LIB_KTEXTEDITOR='-lktexteditor'
-+   AC_SUBST(LIB_KTEXTEDITOR)
-+   LIB_SHELLSCRIPT='-lshellscript'
-+   AC_SUBST(LIB_SHELLSCRIPT)
-+   LIB_VCARD='-lvcard'
-+   AC_SUBST(LIB_VCARD)
-+   LIB_DCOP='-lDCOP'
-+   AC_SUBST(LIB_DCOP)
-    LIB_KDEUI='-lkdeui'
-    AC_SUBST(LIB_KDEUI)
-    LIB_KIO='-lkio'
-@@ -1842,6 +1883,8 @@
-    AC_SUBST(LIB_KPARTS)
-    LIB_KDEPRINT='-lkdeprint'
-    AC_SUBST(LIB_KDEPRINT)
-+   LIB_KDED='@PREFIX@/lib/kded.la'
-+   AC_SUBST(LIB_KDED)
++   AC_SUBST(LIB_ARTSKDE, "-lartskde")
++   AC_SUBST(LIB_DCOP, "-lDCOP")
++   AC_SUBST(LIB_KAB, "-lkab")
++   AC_SUBST(LIB_KABC, "-lkabc")
+    AC_SUBST(LIB_KDECORE, "-lkdecore")
++   AC_SUBST(LIB_KDED, "@PREFIX@/lib/kded.la")
++   AC_SUBST(LIB_KDEFX, "-lkdefx")
++   AC_SUBST(LIB_KDEPRINT, "-lkdeprint")
++   AC_SUBST(LIB_KDESASL, "-lkdesasl")
++   AC_SUBST(LIB_KDESU, "-lkdesu")
+    AC_SUBST(LIB_KDEUI, "-lkdeui")
+-   AC_SUBST(LIB_KIO, "-lkio")
+-   AC_SUBST(LIB_SMB, "-lsmb")
+-   AC_SUBST(LIB_KAB, "-lkab")
+    AC_SUBST(LIB_KHTML, "-lkhtml")
+-   AC_SUBST(LIB_KSPELL, "-lkspell")
++   AC_SUBST(LIB_KIO, "-lkio")
+    AC_SUBST(LIB_KPARTS, "-lkparts")
+-   AC_SUBST(LIB_KDEPRINT, "-lkdeprint")
++   AC_SUBST(LIB_KJAVA, "-lkjava")
++   AC_SUBST(LIB_KJS, "-lkjs")
++   AC_SUBST(LIB_KMID, "-lkmid")
++   AC_SUBST(LIB_KSCRIPT, "-lkscript")
++   AC_SUBST(LIB_KSPELL, "-lkspell")
++   AC_SUBST(LIB_KTEXTEDITOR, "-lktexteditor")
++   AC_SUBST(LIB_SHELLSCRIPT, "-lshellscript")
++   AC_SUBST(LIB_SMB, "-lsmb")
++   AC_SUBST(LIB_VCARD, "-lvcard")
  # these are for backward compatibility
-    LIB_KSYCOCA='-lkio'
-    AC_SUBST(LIB_KSYCOCA)
-@@ -4158,7 +4201,7 @@
+    AC_SUBST(LIB_KSYCOCA, "-lkio")
+    AC_SUBST(LIB_KFILE, "-lkio")
+@@ -4117,7 +4130,7 @@
  AC_DEFUN(KDE_CREATE_SUBDIRSLIST,
  [
  
@@ -164,53 +90,40 @@ diff -u -b -u -r1.1.1.1 -r1.2
  
  if test ! -s $srcdir/subdirs; then
    dnl Note: Makefile.common creates subdirs, so this is just a fallback
-@@ -4530,9 +4573,12 @@
-            [initgroups may exist but not its prototype (e.g. AIX<4.3.3:8)])
- ])
- 
--
- AC_DEFUN(KDE_CHECK_JAVA_DIR,
- [
-+
-+# needed by the MacOS X JVM in certain circumstances
-+AC_CHECK_HEADERS([TargetConditionals.h])
-+
- AC_MSG_CHECKING([for Java directory])
- 
- AC_ARG_WITH(java,
-@@ -4541,6 +4587,7 @@
- ], ac_java_dir=""
- )
- 
-+
- dnl at this point ac_java_dir is either a dir, 'no' to disable, or '' to say look in $PATH
- if test "x$ac_java_dir" = "xno"; then
-    kde_cv_java_bindir=no
-@@ -4572,10 +4619,20 @@
- dnl At this point kde_cv_java_bindir and kde_cv_java_includedir are either set or "no"
- if test "x$kde_cv_java_bindir" != "xno"; then
+@@ -4570,6 +4583,7 @@
+       KDE_JAVA_PREFIX(/usr/lib/IBMJava2*)
+       KDE_JAVA_PREFIX(/usr/lib/IBMJava*)
+       KDE_JAVA_PREFIX(/opt/java*)
++      KDE_JAVA_PREFIX(/Library/Java/Home)
+     
+       kde_cv_path="NONE"
+       kde_save_IFS=$IFS
+@@ -4621,10 +4635,20 @@
+ dnl At this point kde_java_bindir and kde_java_includedir are either set or "no"
+ if test "x$kde_java_bindir" != "xno"; then
  
 +  case $host_os in
 +    darwin*)
 +      dnl Look for libjvm.dylib
-+      kde_java_libjvmdir=`find /System/Library/Frameworks/JavaVM.framework/ -name libjvm.dylib | sed 's,libjvm.dylib,,'|head -n 1`
++      kde_java_libjvmdir=`find $kde_java_bindir/.. -name libjvm.dylib | sed 's,libjvm.dylib,,'|head -n 1`
 +      kd_java_libhpidir=''
 +      dnl Darwin doesn't have libhpi
 +      ;;
 +    *)
    dnl Look for libjvm.so
-   kde_java_libjvmdir=`find $kde_cv_java_bindir/.. -name libjvm.so | sed 's,libjvm.so,,'|head -n 1`
+   kde_java_libjvmdir=`find $kde_java_bindir/.. -name libjvm.so | sed 's,libjvm.so,,'|head -n 1`
    dnl Look for libhpi.so and avoid green threads
-   kde_java_libhpidir=`find $kde_cv_java_bindir/.. -name libhpi.so | grep -v green | sed 's,libhpi.so,,'`
+   kde_java_libhpidir=`find $kde_java_bindir/.. -name libhpi.so | grep -v green | sed 's,libhpi.so,,' | tail -n 1`
 +      ;;
 +  esac
  
    dnl Now check everything's fine under there
- 
-@@ -4591,12 +4648,26 @@
-   if test ! -r "$kde_cv_java_includedir/jni.h"; then
-     AC_MSG_ERROR([jni.h not found under $kde_cv_java_includedir. Use --with-java or --without-java.])
+   dnl the include dir is our flag for having the JDK
+@@ -4652,17 +4676,29 @@
+     JAVAC=
+     jni_includes=
    fi
+-
 +  case $host_os in
 +    darwin*)
 +      if test ! -r "$kde_java_libjvmdir/libjvm.dylib"; then
@@ -222,36 +135,34 @@ diff -u -b -u -r1.1.1.1 -r1.2
 +      ;;
 +    *)
    if test ! -r "$kde_java_libjvmdir/libjvm.so"; then
-     AC_MSG_ERROR([libjvm.so not found under $kde_java_libjvmdir. Use --without-java.])
-   fi
+      AC_MSG_ERROR([libjvm.so not found under $kde_java_libjvmdir. Use --without-java.])
+   fi 
 +      LIB_JVM="-L$kde_java_libjvmdir -ljvm"
-   if test ! -r "$kde_java_libhpidir/libhpi.so"; then
-     AC_MSG_ERROR([libhpi.so not found under $kde_java_libhpidir. Use --without-java.])
-   fi
++      if test ! -r "$kde_java_libhpidir/libhpi.so"; then
++        AC_MSG_ERROR([libhpi.so not found under $kde_java_libhpidir. Use --without-java.])
++      fi
 +      LIB_HPI="-L$kde_java_libhpidir -lhpi"
 +      ;;
 +  esac
  
-   jni_includes="-I$kde_cv_java_includedir"
-   dnl Strange thing, jni.h requires jni_md.h which is under genunix here..
-@@ -4643,7 +4714,7 @@
-   JAR=$kde_cv_java_bindir/jar
-   AC_SUBST(JAR)
-   AC_SUBST(jni_includes)
--  JVMLIBS="-L$kde_java_libjvmdir -ljvm -L$kde_java_libhpidir -lhpi"
-+  JVMLIBS="$LIB_JVM $LIB_HPI"
-   AC_SUBST(JVMLIBS)
- fi
- ])
+   if test ! -x "$kde_java_bindir/java"; then
+       AC_MSG_ERROR([java not found under $kde_java_bindir. javac was found though! Use --with-java or --without-java.])
+-  fi
+-
+-  if test ! -r "$kde_java_libhpidir/libhpi.so"; then
+-    AC_MSG_ERROR([libhpi.so not found under $kde_java_libhpidir. Use --without-java.])
+   fi
+ 
+   if test -n "$jni_includes"; then
 Index: admin/libtool.m4.in
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/admin/libtool.m4.in,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- admin/libtool.m4.in	25 Jun 2002 03:34:27 -0000	1.1.1.1
-+++ admin/libtool.m4.in	25 Jun 2002 03:35:36 -0000	1.2
-@@ -593,6 +593,12 @@
+retrieving revision 1.1.1.2
+retrieving revision 1.5
+diff -u -b -u -r1.1.1.2 -r1.5
+--- admin/libtool.m4.in	10 Jul 2002 02:47:38 -0000	1.1.1.2
++++ admin/libtool.m4.in	13 Jul 2002 06:36:31 -0000	1.5
+@@ -609,6 +609,12 @@
      lt_cv_sys_max_cmd_len=-1;
      ;;
  
@@ -264,7 +175,7 @@ diff -u -b -u -r1.1.1.1 -r1.2
    *)
      # If test is not a shell built-in, we'll probably end up computing a
      # maximum length that is only half of the actual maximum length, but
-@@ -1876,16 +1882,7 @@
+@@ -1901,16 +1907,7 @@
    ;;
  
  darwin* | rhapsody*)
@@ -282,7 +193,7 @@ diff -u -b -u -r1.1.1.1 -r1.2
    ;;
  
  freebsd*)
-@@ -2535,6 +2532,11 @@
+@@ -2560,6 +2557,11 @@
  	;;
      esac
      ;;
@@ -294,7 +205,7 @@ diff -u -b -u -r1.1.1.1 -r1.2
    dgux*)
      case $cc_basename in
        ec++)
-@@ -4725,7 +4727,9 @@
+@@ -4750,7 +4752,9 @@
  	_LT_AC_TAGVAR(allow_undefined_flag, $1)='-undefined suppress'
  	;;
        *) # Darwin 1.3 on
@@ -305,27 +216,43 @@ diff -u -b -u -r1.1.1.1 -r1.2
  	;;
        esac
  
-@@ -4733,7 +4737,7 @@
+@@ -4758,7 +4762,7 @@
        #        cross-compilation, but unfortunately the echo tests do not
        #        yet detect zsh echo's removal of \ escapes.  Also zsh mangles
        #	       `"' quotes if we put them in here... so don't!
 -      _LT_AC_TAGVAR(archive_cmds, $1)='$CC $(test .$module = .yes && echo -bundle || echo -dynamiclib) $allow_undefined_flag -o $lib $libobjs $deplibs$linker_flags -install_name $rpath/$soname $verstring'
-+      _LT_AC_TAGVAR(archive_cmds, $1)='$CC -r -keep_private_externs -nostdlib -o ${lib}-master.o $libobjs && $CC $(test .$module = .yes && echo -bundle || echo -dynamiclib) -install_name $rpath/$soname $allow_undefined_flag -o $lib ${lib}-master.o $deplibs $linker_flags $verstring'
++      _LT_AC_TAGVAR(archive_cmds, $1)='$CC -r -keep_private_externs -nostdlib -o ${lib}-master.o $libobjs && $CC $(test .$module = .yes && echo -bundle || echo -dynamiclib) $allow_undefined_flag -o $lib ${lib}-master.o $deplibs $linker_flags $(test x$module != xyes && echo -install_name $rpath/$soname $verstring)'
        # We need to add '_' to the symbols in $export_symbols first
        #_LT_AC_TAGVAR(archive_expsym_cmds, $1)="$_LT_AC_TAGVAR(archive_cmds, $1)"' && strip -s $export_symbols'
        _LT_AC_TAGVAR(hardcode_direct, $1)=yes
+Index: admin/ltconfig
+===================================================================
+RCS file: admin/ltconfig
+diff -N admin/ltconfig
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ admin/ltconfig	25 Jun 2002 03:34:27 -0000	1.1.1.1
+@@ -0,0 +1,4 @@
++#! /bin/sh
++# Written by <matz@kde.org> and placed into the public domain ;-)
++echo "This file shouldn't be called.  It exists solely for the purpose"
++echo "to make automake 1.4 cope with newer libtools."
 Index: admin/ltmain.sh
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/admin/ltmain.sh,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- admin/ltmain.sh	25 Jun 2002 03:34:27 -0000	1.1.1.1
-+++ admin/ltmain.sh	25 Jun 2002 03:35:36 -0000	1.2
-@@ -3324,7 +3324,18 @@
+retrieving revision 1.1.1.2
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.2 -r1.4
+--- admin/ltmain.sh	10 Jul 2002 02:47:39 -0000	1.1.1.2
++++ admin/ltmain.sh	13 Jul 2002 04:33:25 -0000	1.4
+@@ -3321,7 +3321,23 @@
  	if test -n "$export_symbols" && test -n "$archive_expsym_cmds"; then
  	  eval cmds=\"$archive_expsym_cmds\"
  	else
++          if test "x$verstring" = "x0.0"; then
++                tmp_verstring=
++          else
++                tmp_verstring="$verstring"
++          fi
 + 	  save_deplibs="$deplibs"
 + 	  for conv in $convenience; do
 +            tmp_deplibs=
@@ -341,7 +268,20 @@ diff -u -b -u -r1.1.1.1 -r1.2
  	fi
  
  	if len=`expr "X$cmds" : ".*"` &&
-@@ -3635,6 +3646,14 @@
+@@ -3419,7 +3435,12 @@
+ 	  if test -n "$export_symbols" && test -n "$archive_expsym_cmds"; then
+ 	    eval cmds=\"$archive_expsym_cmds\"
+ 	  else
++            save_deplibs="$deplibs"
++            for conv in $convenience; do
++              deplibs="${deplibs%$conv*} ${deplibs#*$conv}"
++            done
+ 	    eval cmds=\"$archive_cmds\"
++            deplibs="$save_deplibs"
+ 	  fi
+ 
+ 	  # Append the command to remove the reloadable object files
+@@ -3632,6 +3653,14 @@
  	compile_deplibs=`$echo "X $compile_deplibs" | $Xsed -e 's/ -lc / -framework System /'`
  	finalize_deplibs=`$echo "X $finalize_deplibs" | $Xsed -e 's/ -lc / -framework System /'`
  	;;
@@ -359,12 +299,12 @@ diff -u -b -u -r1.1.1.1 -r1.2
 Index: admin/missing
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/admin/missing,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- admin/missing	25 Jun 2002 03:34:27 -0000	1.1.1.1
-+++ admin/missing	25 Jun 2002 03:35:36 -0000	1.2
-@@ -87,7 +87,7 @@
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- admin/missing	10 Jul 2002 02:47:39 -0000	1.1.1.2
++++ admin/missing	10 Jul 2002 02:50:11 -0000	1.3
+@@ -106,7 +106,7 @@
      exit 1
      ;;
  
@@ -373,7 +313,7 @@ diff -u -b -u -r1.1.1.1 -r1.2
      echo 1>&2 "\
  WARNING: \`$1' is missing on your system.  You should only need it if
           you modified \`acinclude.m4' or \`${configure_ac}'.  You might want
-@@ -124,7 +124,7 @@
+@@ -143,7 +143,7 @@
      touch $touch_files
      ;;
  
@@ -385,14 +325,13 @@ diff -u -b -u -r1.1.1.1 -r1.2
 Index: kdec/clib/Makefile.am
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/kdebindings/kdec/clib/Makefile.am,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- kdec/clib/Makefile.am	25 Jun 2002 02:16:09 -0000	1.1.1.1
-+++ kdec/clib/Makefile.am	25 Jun 2002 02:19:08 -0000	1.2
-@@ -1,7 +1,7 @@
- ####### kdevelop will overwrite this part!!! (begin)##########
- #bin_PROGRAMS = clib
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- kdec/clib/Makefile.am	10 Jul 2002 03:43:55 -0000	1.1.1.2
++++ kdec/clib/Makefile.am	10 Jul 2002 12:20:43 -0000	1.3
+@@ -1,6 +1,6 @@
+ bin_PROGRAMS = clib
  clib_SOURCES = main.cpp 
 -clib_LDADD   = ./kdec/libkdec.la -lqtc  $(LIB_KHTML) $(LIB_KSPELL) -lkparts -lkmid  $(LIB_KIO) $(LIB_KDEUI) -lkscript $(LIB_QT) -lXext -lX11 $(LIBSOCKET)
 +clib_LDADD   = ./kdec/libkdec.la $(top_builddir)/qtc/clib/qtc/libqtc.la $(LIB_KHTML) $(LIB_KSPELL) -lkparts -lkmid  $(LIB_KIO) $(LIB_KDEUI) -lkscript $(LIB_QT) -lXext -lX11 $(LIBSOCKET)
