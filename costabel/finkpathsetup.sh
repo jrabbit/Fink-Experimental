@@ -41,11 +41,11 @@ else
 	fi
 	case $RC in
 	new)
+	    RC=.cshrc
 	    echo 
-	    echo I will create a file named .tcshrc in your
+	    echo I will create a file named $RC in your
 	    echo home directory, containing one line
 	    echo \"source /sw/bin/init.csh\"
-	    RC=.tcshrc
 	    ;;
 	*)
 	    echo
@@ -64,7 +64,24 @@ else
 	    answer=`echo $answer | sed 's/^[yY].*$/y/'`
 	    if [ -z "$answer" -o "x$answer" = "xy" ]; then
 		echo "source /sw/bin/init.csh" >> $HOME/$RC
-		echo Done.
+		echo Verifying...
+# Start another login session to see whether the 
+# PATH is now set up for Fink.
+#
+/usr/bin/login -f $USER >$TMPFILE <<EOF
+/usr/bin/printenv PATH
+exit
+EOF
+if grep sw/sbin $TMPFILE >/dev/null 2>&1 ; then
+    echo ... OK. You should be fine now.
+else
+    echo Hmm. I tried my best, but it still doesn\'t work.
+    echo Please check your $LOGINSHELL startup scripts. 
+    echo The code I put into $RC has no effect.
+    echo Perhaps there is some other file like ~/.login
+    echo that resets the PATH after $RC is executed.
+    echo Bye.
+fi
 		echo
 	    else
 		echo OK, you are on your own. Bye.
