@@ -1,6 +1,6 @@
 Package: applesystemfonts
 Version: 1.0
-Revision: 1
+Revision: 2
 Depends: xfontpath
 BuildDepends: fondu, ttfmkfontdir, xfontpath
 BuildDependsOnly: true
@@ -37,8 +37,10 @@ PostInstScript: <<
 	if test -x %p/bin/xfontpath; then
 		%p/bin/xfontpath --silent install applettf
 	fi
-	if grep -v -q `%p/bin/xfontpath basedir`/applettf /etc/X11/XftConfig; then
-		echo dir \"`%p/bin/xfontpath basedir`/applettf\" >> /etc/X11/XftConfig
+	if test -f /etc/X11/XftConfig; then
+		if grep -v -q `%p/bin/xfontpath basedir`/applettf /etc/X11/XftConfig; then
+			echo dir \"`%p/bin/xfontpath basedir`/applettf\" >> /etc/X11/XftConfig
+		fi
 	fi
 	echo "All done.  You may need to restart X to get antialiased fonts"
 	echo "in some applications."
@@ -48,11 +50,13 @@ PostRmScript: <<
 	if test -x %p/bin/xfontpath; then
 		%p/bin/xfontpath --silent remove applettf
 	fi
-	if grep -q `%p/bin/xfontpath basedir`/applettf /etc/X11/XftConfig; then
-		if grep -v `%p/bin/xfontpath basedir`/applettf /etc/X11/XftConfig > /etc/X11/XftConfig.tmp; then
-			mv /etc/X11/XftConfig.tmp /etc/X11/XftConfig
-		else
-			echo "an error occurred removing your font settings from /etc/X11/XftConfig"
+	if test -f /etc/X11/XftConfig; then
+		if grep -q `%p/bin/xfontpath basedir`/applettf /etc/X11/XftConfig; then
+			if grep -v `%p/bin/xfontpath basedir`/applettf /etc/X11/XftConfig > /etc/X11/XftConfig.tmp; then
+				mv /etc/X11/XftConfig.tmp /etc/X11/XftConfig
+			else
+				echo "an error occurred removing your font settings from /etc/X11/XftConfig"
+			fi
 		fi
 	fi
 <<
