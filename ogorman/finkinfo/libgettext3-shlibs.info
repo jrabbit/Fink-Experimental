@@ -1,0 +1,78 @@
+Package: libgettext3-shlibs
+Version: 0.14.2
+Revision: 10
+Source: mirror:gnu:gettext/gettext-%v.tar.gz
+Source-MD5: 197a6ed4c86d60379a0acdc2633b9a64
+Essential: yes
+Depends: libiconv, libiconv-bin, base-files
+BuildDepends: libiconv-dev, fink (>= 0.13.6), fink-prebinding
+Conflicts: gettext-bin (<< 0.14-1)
+Replaces: gettext-bin (<< 0.14-1)
+ConfigureParams: --infodir='%p/share/info' --mandir='%p/share/man' --with-included-gettext --disable-csharp
+
+CompileScript: <<
+cd gettext-runtime && env F77=no ./configure %c
+echo "all:" > gettext-runtime/intl-java/Makefile
+echo "install:" >> gettext-runtime/intl-java/Makefile
+cd gettext-tools && env F77=no GCJ=no ./configure %c --disable-shared
+cd gettext-runtime && make
+cd gettext-tools && make
+<<
+
+InstallScript: <<
+cd gettext-runtime && make install DESTDIR=%d
+cd gettext-tools && make install DESTDIR=%d
+rm %i/lib/charset.alias
+<<
+
+Shlibs: <<
+%p/lib/libintl.3.dylib 8.0.0 %N (>= 0.14.2-10)
+%p/lib/libasprintf.0.dylib 1.0.0 %N (>= 0.14.2-10)
+<<
+
+DocFiles: README* AUTHORS gettext-runtime/BUGS COPYING* NEWS THANKS gettext-tools/TODO ChangeLog* 
+Description: GNU Internationalization utilities (Shared Libraries)
+
+Splitoff: <<
+  Package: libgettext3-dev
+  Conflicts: gettext-dev
+  Replaces: gettext-dev
+  Suggests: gettext-doc
+  Depends: %N (= %v-%r), gettext-bin (>= 0.14-1)
+  DocFiles: README* AUTHORS gettext-runtime/BUGS COPYING* NEWS THANKS gettext-tools/TODO ChangeLog*
+  Description: GNU Internationalization utilities (Development Files)
+  Files: bin/a* bin/gettextize bin/m* bin/x* include lib/gettext lib/*.a lib/*.la lib/libintl.dylib lib/libasprintf.dylib share/aclocal share/gettext share/info/a* share/man/man1/a* share/man/man1/gettextize* share/man/man1/m* share/man/man1/x*
+<<
+
+Splitoff2: <<
+  Package: gettext-doc
+  DocFiles: README* AUTHORS gettext-runtime/BUGS COPYING* NEWS THANKS gettext-tools/TODO ChangeLog*
+  Description: GNU Internationalization utilities (Documentation)
+  InstallScript: <<
+    mkdir -p %i/share/doc/gettext-doc
+    mv %I/share/doc/libasprintf/autosprintf.html %i/share/doc/gettext-doc/
+    rm -rf %I/share/doc/libasprintf
+    mv %I/share/doc/gettext/* %i/share/doc/gettext-doc/
+    rm -rf %I/share/doc/gettext
+    rm -rf %I/share/emacs/*/*elc
+  <<
+<<
+
+Splitoff3: <<
+  Package: gettext-bin
+  DocFiles: README* AUTHORS gettext-runtime/BUGS COPYING* NEWS THANKS gettext-tools/TODO ChangeLog*
+  Description: GNU Internationalization utilities
+  Files: bin share/man
+<<
+
+DescDetail: <<
+  The gettext packages provides some of the i18n and l10n support used by
+  many GNU programs but missing from the Darwin C library.
+<<
+DescPort: <<
+  po-mode.elc is deleted to comply with fink's emacs policy.  Better
+  compliance must wait for a further revision.
+<<
+License: GPL/LGPL
+Maintainer: Fink Core Group <fink-core@lists.sourceforge.net>
+Homepage: http://www.gnu.org/software/gettext/
