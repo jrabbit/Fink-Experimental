@@ -1,0 +1,177 @@
+diff -uNbr libxml2-2.5.6/Makefile.in libxml2-2.5.6-new/Makefile.in
+--- libxml2-2.5.6/Makefile.in	Tue Apr  1 06:14:10 2003
++++ libxml2-2.5.6-new/Makefile.in	Mon May 26 03:13:54 2003
+@@ -283,7 +283,7 @@
+ 
+ DEFS = @DEFS@ -I. -I$(srcdir) -I.
+ CPPFLAGS = @CPPFLAGS@
+-LDFLAGS = @LDFLAGS@
++LDFLAGS = 
+ LIBS = @LIBS@
+ libxml2_la_DEPENDENCIES = 
+ @WITH_TRIO_SOURCES_FALSE@libxml2_la_OBJECTS =  SAX.lo entities.lo \
+diff -uNbr libxml2-2.5.6/catalog.c libxml2-2.5.6-new/catalog.c
+--- libxml2-2.5.6/catalog.c	Fri Mar 21 11:54:58 2003
++++ libxml2-2.5.6-new/catalog.c	Mon May 26 03:13:54 2003
+@@ -56,10 +56,10 @@
+ #define XML_URN_PUBID "urn:publicid:"
+ #define XML_CATAL_BREAK ((xmlChar *) -1)
+ #ifndef XML_XML_DEFAULT_CATALOG
+-#define XML_XML_DEFAULT_CATALOG "file:///etc/xml/catalog"
++#define XML_XML_DEFAULT_CATALOG "file://@PREFIX@/etc/xml/catalog"
+ #endif
+ #ifndef XML_SGML_DEFAULT_CATALOG
+-#define XML_SGML_DEFAULT_CATALOG "file:///etc/sgml/catalog"
++#define XML_SGML_DEFAULT_CATALOG "file://@PREFIX@/etc/sgml/catalog"
+ #endif
+ 
+ static int xmlExpandCatalog(xmlCatalogPtr catal, const char *filename);
+diff -uNbr libxml2-2.5.6/configure libxml2-2.5.6-new/configure
+--- libxml2-2.5.6/configure	Tue Apr  1 06:13:38 2003
++++ libxml2-2.5.6-new/configure	Mon May 26 03:13:54 2003
+@@ -5519,7 +5519,7 @@
+     # FIXME: Relying on posixy $() will cause problems for
+     #        cross-compilation, but unfortunately the echo tests do not
+     #        yet detect zsh echo's removal of \ escapes.
+-    archive_cmds='$nonopt $(test "x$module" = xyes && echo -bundle || echo -dynamiclib) $allow_undefined_flag -o $lib $libobjs $deplibs$linker_flags -install_name $rpath/$soname $verstring'
++    archive_cmds='$nonopt $(test .$module = .yes && echo -bundle || echo -dynamiclib) $allow_undefined_flag -o $lib $libobjs $deplibs$linker_flags $(test .$module != .yes && echo -install_name $rpath/$soname $tmp_verstring)'
+     # We need to add '_' to the symbols in $export_symbols first
+     #archive_expsym_cmds="$archive_cmds"' && strip -s $export_symbols'
+     hardcode_direct=yes
+diff -uNbr libxml2-2.5.6/doc/xmllint.1 libxml2-2.5.6-new/doc/xmllint.1
+--- libxml2-2.5.6/doc/xmllint.1	Tue Mar 25 10:09:26 2003
++++ libxml2-2.5.6-new/doc/xmllint.1	Mon May 26 03:13:54 2003
+@@ -150,7 +150,7 @@
+ 
+ .TP
+ \fB--catalogs\fR
+-Use the catalogs from $SGML_CATALOG_FILES\&. Otherwise /etc/xml/catalog is used by default\&.
++Use the catalogs from $SGML_CATALOG_FILES\&. Otherwise @PREFIX@/etc/xml/catalog is used by default\&.
+ 
+ .TP
+ \fB--nocatalogs\fR
+diff -uNbr libxml2-2.5.6/ltmain.sh libxml2-2.5.6-new/ltmain.sh
+--- libxml2-2.5.6/ltmain.sh	Tue Apr  1 06:13:27 2003
++++ libxml2-2.5.6-new/ltmain.sh	Mon May 26 03:13:54 2003
+@@ -1777,7 +1777,7 @@
+ 
+ 	  if test "$installed" = no; then
+ 	    notinst_deplibs="$notinst_deplibs $lib"
+-	    need_relink=yes
++	    need_relink=no
+ 	  fi
+ 
+ 	  if test -n "$old_archive_from_expsyms_cmds"; then
+@@ -2952,6 +2952,11 @@
+ 	if test -n "$export_symbols" && test -n "$archive_expsym_cmds"; then
+ 	  eval cmds=\"$archive_expsym_cmds\"
+ 	else
++	  if test "x$verstring" = "x0.0"; then
++		tmp_verstring=
++	  else
++		tmp_verstring="$verstring"
++	  fi
+ 	  eval cmds=\"$archive_cmds\"
+ 	fi
+ 	save_ifs="$IFS"; IFS='~'
+diff -uNbr libxml2-2.5.6/python/Makefile.in libxml2-2.5.6-new/python/Makefile.in
+--- libxml2-2.5.6/python/Makefile.in	Tue Apr  1 06:15:14 2003
++++ libxml2-2.5.6-new/python/Makefile.in	Mon May 26 03:14:16 2003
+@@ -165,7 +165,7 @@
+ 	$(DOCS)
+ 
+ 
+-libxml2mod_la_LDFLAGS = -module -avoid-version -L$(top_builddir)/.libs
++libxml2mod_la_LDFLAGS = -module -avoid-version -L$(top_builddir)/.libs -Wl,-undefined -Wl,suppress -Wl,-flat_namespace
+ 
+ @WITH_PYTHON_TRUE@mylibs = @WITH_PYTHON_TRUE@\
+ @WITH_PYTHON_TRUE@	$(top_builddir)/libxml2.la
+diff -uNbr libxml2-2.5.6/update-sgml-catalog libxml2-2.5.6-new/update-sgml-catalog
+--- libxml2-2.5.6/update-sgml-catalog	Wed Dec 31 19:00:00 1969
++++ libxml2-2.5.6-new/update-sgml-catalog	Mon May 26 03:13:54 2003
+@@ -0,0 +1,28 @@
++#!/bin/sh -e
++#
++# update-sgml-catalog
++# see DescPackaging field of libxml2 .info file for usage.
++#
++
++CATALOG=@PREFIX@/etc/sgml/catalog
++CATALOG_D=@PREFIX@/etc/sgml/catalog.d
++
++mkdir -p ${CATALOG_D}
++
++TMPFILE=`tempfile`
++
++if [ "`echo ${CATALOG_D}/*`" != "${CATALOG_D}/*" ]; then
++  cat ${CATALOG_D}/* | sed 's/#.*$//g' | {
++    while read cat; do
++      if [ -z "${cat}" ]; then
++        continue
++      fi
++      echo CATALOG ${cat} >>${TMPFILE}
++    done
++  }
++fi
++
++mv -f ${TMPFILE} ${CATALOG}
++chmod 0644 ${CATALOG}
++
++exit 0
+diff -uNbr libxml2-2.5.6/update-xml-catalog libxml2-2.5.6-new/update-xml-catalog
+--- libxml2-2.5.6/update-xml-catalog	Wed Dec 31 19:00:00 1969
++++ libxml2-2.5.6-new/update-xml-catalog	Mon May 26 03:13:54 2003
+@@ -0,0 +1,29 @@
++#!/bin/sh -e
++#
++# update-xml-catalog
++# see DescPackaging field of libxml2 .info file for usage.
++#
++
++CATALOG=@PREFIX@/etc/xml/catalog
++CATALOG_D=@PREFIX@/etc/xml/catalog.d
++
++mkdir -p ${CATALOG_D}
++
++TMPFILE=`tempfile`
++xmlcatalog --create >>${TMPFILE}
++
++if [ "`echo ${CATALOG_D}/*`" != "${CATALOG_D}/*" ]; then
++  cat ${CATALOG_D}/* | sed 's/#.*$//g' | {
++    while read type orig replace; do
++      if [ -z "${type}" -o -z "${orig}" -o -z "${replace}" ]; then
++        continue
++      fi
++      eval xmlcatalog --noout --add ${type} ${orig} ${replace} ${TMPFILE}
++    done
++  }
++fi
++
++mv -f ${TMPFILE} ${CATALOG}
++chmod 0644 ${CATALOG}
++
++exit 0
+diff -uNbr libxml2-2.5.6/xmlcatalog.c libxml2-2.5.6-new/xmlcatalog.c
+--- libxml2-2.5.6/xmlcatalog.c	Sun Jan 26 14:45:48 2003
++++ libxml2-2.5.6-new/xmlcatalog.c	Mon May 26 03:13:54 2003
+@@ -42,7 +42,7 @@
+ #ifdef LIBXML_CATALOG_ENABLED
+ 
+ #ifndef XML_SGML_DEFAULT_CATALOG
+-#define XML_SGML_DEFAULT_CATALOG "/etc/sgml/catalog"
++#define XML_SGML_DEFAULT_CATALOG "@PREFIX@/etc/sgml/catalog"
+ #endif
+ 
+ /************************************************************************
+diff -uNbr libxml2-2.5.6/xmllint.c libxml2-2.5.6-new/xmllint.c
+--- libxml2-2.5.6/xmllint.c	Sat Mar 22 07:41:46 2003
++++ libxml2-2.5.6-new/xmllint.c	Mon May 26 03:13:54 2003
+@@ -89,7 +89,7 @@
+ #endif
+ 
+ #ifndef XML_XML_DEFAULT_CATALOG
+-#define XML_XML_DEFAULT_CATALOG "file:///etc/xml/catalog"
++#define XML_XML_DEFAULT_CATALOG "file://@PREFIX@/etc/xml/catalog"
+ #endif
+ 
+ #ifdef LIBXML_DEBUG_ENABLED
