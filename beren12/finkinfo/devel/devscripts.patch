@@ -1,0 +1,829 @@
+diff -ruN devscripts-2.8.5/Makefile devscripts-2.8.5.new/Makefile
+--- devscripts-2.8.5/Makefile	Mon Aug 16 23:47:45 2004
++++ devscripts-2.8.5.new/Makefile	Tue Nov 23 01:51:14 2004
+@@ -8,7 +8,7 @@
+ 	debrsign.sh debsign.sh dpkg-genbuilddeps.sh mergechanges.sh \
+ 	tagpending.sh uscan.sh uupdate.sh wnpp-alert.sh
+ 
+-LIBS = libvfork.so.0
++#LIBS = libvfork.so.0
+ 
+ PERL_MODULES = Devscripts
+ 
+@@ -22,14 +22,14 @@
+ GEN_MAN1S = bts.1
+ MAN5S = devscripts.conf.5
+ 
+-BINDIR = /usr/bin
+-LIBDIR = /usr/lib/devscripts
+-EXAMPLES_DIR = /usr/share/devscripts
+-PERLMOD_DIR = /usr/share/devscripts
+-BIN_LIBDIR = /usr/lib/devscripts
+-MAN1DIR = /usr/share/man/man1
+-MAN1_FR_DIR = /usr/share/man/fr/man1
+-MAN5DIR = /usr/share/man/man5
++BINDIR = @FINKPREFIX@/bin
++LIBDIR = @FINKPREFIX@/lib/devscripts
++EXAMPLES_DIR = @FINKPREFIX@/share/devscripts
++PERLMOD_DIR = @FINKPREFIX@/share/devscripts
++BIN_LIBDIR = @FINKPREFIX@/lib/devscripts
++MAN1DIR = @FINKPREFIX@/share/man/man1
++MAN1_FR_DIR = @FINKPREFIX@/share/man/fr/man1
++MAN5DIR = @FINKPREFIX@/share/man/man5
+ 
+ all: $(SCRIPTS) $(GEN_MAN1S) $(EXAMPLES) $(LIBS) $(CWRAPPERS)
+ 
+@@ -58,11 +58,11 @@
+ bts.1: bts.pl
+ 	pod2man --center=" " --release="Debian Utilities" $< > $@
+ 
+-libvfork.o: libvfork.c
+-	$(CC) -fPIC -D_REENTRANT $(CFLAGS) -c $<
++#libvfork.o: libvfork.c
++#	$(CC) -fPIC -D_REENTRANT $(CFLAGS) -c $<
+ 
+-libvfork.so.0: libvfork.o
+-	$(CC) -shared $< -ldl -lc -Wl,-soname -Wl,libvfork.so.0 -o $@
++#libvfork.so.0: libvfork.o
++#	$(CC) -shared $< -ldl -lc -Wl,-soname -Wl,libvfork.so.0 -o $@
+ 
+ clean:
+ 	rm -f version conf.default $(SCRIPTS) $(GEN_MAN1S) $(SCRIPT_LIBS) \
+diff -ruN devscripts-2.8.5/README devscripts-2.8.5.new/README
+--- devscripts-2.8.5/README	Thu Jul 29 18:21:56 2004
++++ devscripts-2.8.5.new/README	Tue Nov 23 01:51:14 2004
+@@ -138,7 +138,7 @@
+ - wnpp-alert [wget]: list installed packages which are orphaned or up
+   for adoption
+ 
+-- /usr/share/doc/devscripts/examples: This directory contains examples of
++- @FINKPREFIX@/share/doc/devscripts/examples: This directory contains examples of
+   procmail and exim scripts for sorting mail arriving to Debian
+   mailing lists.
+ 
+@@ -200,7 +200,7 @@
+     and which won't ever ask you for a password!)  If you choose this
+     method, it can be done by issuing the following command:
+ 
+-      dpkg-statoverride --update --add root root_group 4754 /usr/bin/debpkg
++      dpkg-statoverride --update --add root root_group 4754 @FINKPREFIX@/bin/debpkg
+ 
+     once (and similarly for debuild if you really need it).  This will
+     enable access to debpkg for all users who are members of the group
+diff -ruN devscripts-2.8.5/bts.pl devscripts-2.8.5.new/bts.pl
+--- devscripts-2.8.5/bts.pl	Fri Sep 24 05:02:10 2004
++++ devscripts-2.8.5.new/bts.pl	Tue Nov 23 01:51:14 2004
+@@ -5,8 +5,10 @@
+ #
+ # Written by Joey Hess <joeyh@debian.org>
+ # Modifications by Julian Gilbey <jdg@debian.org>
++# More modifications by Chris Zubrzycki <devscripts@zubrzycki.org>
+ # Copyright 2001-2003 Joey Hess <joeyh@debian.org>
+ # Modifications Copyright 2001-2003 Julian Gilbey <jdg@debian.org>
++# Modifications Copyright 2004 Chris Zubrzycki <devscripts@zubrzycki.org>
+ #
+ # This program is free software; you can redistribute it and/or modify
+ # it under the terms of the GNU General Public License as published by
+@@ -35,7 +37,7 @@
+ use File::Spec;
+ use File::Temp qw/tempfile/;
+ use IO::Handle;
+-use lib '/usr/share/devscripts';
++use lib '@FINKPREFIX@/share/devscripts';
+ use Devscripts::DB_File_Lock;
+ use Fcntl qw(O_RDWR O_RDONLY O_CREAT F_SETFD);
+ 
+@@ -71,7 +73,7 @@
+ my $version='###VERSION###';
+ my $debug = (exists $ENV{'DEBUG'} and $ENV{'DEBUG'}) ? 1 : 0;
+ 
+-# The official list is found at master.debian.org:/etc/debbugs/config
++# The official list is found at bugs.finkproject.org:/etc/debbugs/config
+ # in the variable @gTags; we copy it verbatim here.
+ our (@gTags, @valid_tags, %valid_tags);
+ @gTags = ( "patch", "wontfix", "moreinfo", "unreproducible", "fixed",
+@@ -87,9 +89,9 @@
+ 			serious grave critical);
+ 
+ my $browser;  # Will set if necessary
+-my $btsurl='http://bugs.debian.org/';
+-my $btscgiurl='http://bugs.debian.org/cgi-bin/';
+-my $btsemail='control@bugs.debian.org';
++my $btsurl='http://bugs.finkproject.org/';
++my $btscgiurl='http://bugs.finkproject.org/cgi-bin/';
++my $btsemail='control@bugs.finkproject.org';
+ 
+ my $cachedir=$ENV{'HOME'}."/.devscripts_cache/bts/";
+ my $timestampdb=$cachedir."bts_timestamps.db";
+@@ -121,7 +123,7 @@
+ you.
+ 
+ In general, the command line interface is the same as what you would write
+-in a mail to control@bugs.debian.org, just prefixed with "bts". For
++in a mail to control@bugs.finkproject.org, just prefixed with "bts". For
+ example:
+ 
+  % bts close 85942
+@@ -310,7 +312,7 @@
+ =item (none)
+ 
+ If nothing is specified, bts bugs will display your bugs, assuming
+-that either DEBEMAIL or EMAIL (examined in that order) is set to the
++that either FINKEMAIL or EMAIL (examined in that order) is set to the
+ appropriate email address.
+ 
+ =item <package>
+@@ -341,7 +343,7 @@
+ 
+ Details of the bug tracking system itself, along with a bug-request
+ page with more options than this script, can be found on
+-http://bugs.debian.org/.  This page itself will be opened if the
++http://bugs.finkproject.org/.  This page itself will be opened if the
+ command 'bts bugs :' is used.
+ 
+ =back
+@@ -354,13 +356,13 @@
+ sub bts_bugs {
+     my $url = shift;
+     if (! $url) {
+-	if (defined $ENV{'DEBEMAIL'}) {
+-	    $url=$ENV{'DEBEMAIL'};
++	if (defined $ENV{'FINKEMAIL'}) {
++	    $url=$ENV{'FINKEMAIL'};
+ 	} else {
+ 	    if (defined $ENV{'EMAIL'}) {
+ 		$url=$ENV{'EMAIL'};
+ 	    } else {
+-		die "bts bugs: Please set DEBEMAIL or EMAIL to your Debian email address.\n";
++		die "bts bugs: Please set FINKEMAIL or EMAIL to your Fink email address.\n";
+ 	    }
+ 	}
+     }
+@@ -390,7 +392,7 @@
+ # =item close <bug>
+ # 
+ # Close a bug. Remember that using this to close a bug is often bad manners,
+-# sending an informative mail to nnnnn-done@bugs.debian.org is much better.
++# sending an informative mail to nnnnn-done@bugs.finkproject.org is much better.
+ # 
+ # =cut
+ 
+@@ -400,9 +402,9 @@
+     warn <<"EOT";
+ bts: Closing $bug as you requested.
+ Please note that the "bts close" command is deprecated!
+-It is usually better to email nnnnnn-done\@bugs.debian.org with
++It is usually better to email nnnnnn-done\@bugs.finkproject.org with
+ an informative mail.
+-Please remember to email $bug-submitter\@bugs.debian.org with
++Please remember to email $bug-submitter\@bugs.finkproject.org with
+ an explanation of why you have closed this bug.  Thank you!
+ EOT
+ }
+@@ -632,8 +634,8 @@
+ 
+ Generate or update a cache of bug reports for the given email address
+ or package. By default it downloads all bugs belonging to the email
+-address in the DEBEMAIL environment variable (or the EMAIL environment
+-variable if DEBEMAIL is unset). This command may be repeated to cache
++address in the FINKEMAIL environment variable (or the EMAIL environment
++variable if FINKEMAIL is unset). This command may be repeated to cache
+ bugs belonging to several people or packages. The cached bugs are
+ stored in ~/.devscripts_cache/bts/
+ 
+@@ -678,7 +680,7 @@
+     else { $tocache=''; }
+     
+     if (! length $tocache) {
+-	$tocache=$ENV{'DEBEMAIL'} || $ENV{'EMAIL'};
++	$tocache=$ENV{'FINKEMAIL'} || $ENV{'EMAIL'};
+ 	if ($tocache =~ /^.*\s+<(.*)>$/) { $tocache = $1; }
+     }
+     if (! length $tocache) {
+@@ -723,7 +725,7 @@
+ "ALL" is specified. This is useful if you are going to have permanent
+ network access or if the database has become corrupted for some
+ reason.  Note that for safety, this command does not default to the
+-value of DEBEMAIL or EMAIL.
++value of FINKEMAIL or EMAIL.
+ 
+ =cut
+ 
+@@ -853,11 +855,11 @@
+     my $subject=shift;
+     my $body=shift;
+ 
+-    if ($ENV{'DEBEMAIL'} || $ENV{'EMAIL'}) {
++    if ($ENV{'FINKEMAIL'} || $ENV{'EMAIL'}) {
+ 	# We need to fake the From: line
+ 	my ($email, $name);
+-	if (exists $ENV{'DEBFULLNAME'}) { $name = $ENV{'DEBFULLNAME'}; }
+-	if (exists $ENV{'DEBEMAIL'}) { $email = $ENV{'DEBEMAIL'}; }
++	if (exists $ENV{'FINKFULLNAME'}) { $name = $ENV{'FINKFULLNAME'}; }
++	if (exists $ENV{'FINKEMAIL'}) { $email = $ENV{'FINKEMAIL'}; }
+ 	if (exists $ENV{'EMAIL'}) {
+ 	    if ($ENV{'EMAIL'} =~ /^(.*)\s+<(.*)>$/) {
+ 		$name ||= $1;
+@@ -904,9 +906,9 @@
+ 	    }
+ 	}
+     }
+-    else {  # No DEBEMAIL
++    else {  # No FINKEMAIL
+ 	unless (system("command -v mail >/dev/null 2>&1") == 0) {
+-	    die "bts: You need to either set DEBEMAIL or have the mailx package to do this!\n";
++	    die "bts: You need to either set FINKEMAIL or have the mailx package to do this!\n";
+ 	}
+ 	my $pid = open(MAIL, "|-");
+ 	if ($pid) {
+@@ -979,11 +981,11 @@
+ 	while ($data =~ s!(href=\"[^\"]*)\%2b!$1+!ig) { };
+ 	my $time=localtime($timestamp);
+ 	$data =~ s%(<BODY.*>)%$1<p><em>[Locally cached on $time]</em></p>%i;
+-	$data =~ s%<a href="[^\"]*(bugreport\.cgi(?:/[^\?]*)?\?bug=(\d+)&amp;msg=[^\"]*)">(.+?)</a>%$3 (<a href="http://bugs.debian.org/cgi-bin/$1">online</a>)%ig;
+-	$data =~ s%<a href="[^\"]*(bugreport\.cgi\?bug=(\d+)(?!\d|&amp;msg=)[^\"]*)">(.+?)</a>%<a href="$2.html">$3</a> (<a href="http://bugs.debian.org/cgi-bin/$1">online</a>)%ig;
+-	$data =~ s%<a href="[^\"]*(pkgreport\.cgi\?(?:pkg|maint)=([^\"&]+)[^\"]*)">(.+?)</a>%<a href="$2.html">$3</a> (<a href="http://bugs.debian.org/cgi-bin/$1">online</a>)%ig;
+-	$data =~ s%<a href="[^\"]*(pkgreport\.cgi\?src=([^\"&]+)[^\"]*)">(.+?)</a>%<a href="src_$2.html">$3</a> (<a href="http://bugs.debian.org/cgi-bin/$1">online</a>)%ig;
+-	$data =~ s%<a href="[^\"]*(pkgreport\.cgi\?submitter=([^\"\&]+)[^\"]*)">(.+?)</a>%<a href="from_$2.html">$3</a> (<a href="http://bugs.debian.org/cgi-bin/$1">online</a>)%ig;
++	$data =~ s%<a href="[^\"]*(bugreport\.cgi(?:/[^\?]*)?\?bug=(\d+)&amp;msg=[^\"]*)">(.+?)</a>%$3 (<a href="http://bugs.finkproject.org/cgi-bin/$1">online</a>)%ig;
++	$data =~ s%<a href="[^\"]*(bugreport\.cgi\?bug=(\d+)(?!\d|&amp;msg=)[^\"]*)">(.+?)</a>%<a href="$2.html">$3</a> (<a href="http://bugs.finkproject.org/cgi-bin/$1">online</a>)%ig;
++	$data =~ s%<a href="[^\"]*(pkgreport\.cgi\?(?:pkg|maint)=([^\"&]+)[^\"]*)">(.+?)</a>%<a href="$2.html">$3</a> (<a href="http://bugs.finkproject.org/cgi-bin/$1">online</a>)%ig;
++	$data =~ s%<a href="[^\"]*(pkgreport\.cgi\?src=([^\"&]+)[^\"]*)">(.+?)</a>%<a href="src_$2.html">$3</a> (<a href="http://bugs.finkproject.org/cgi-bin/$1">online</a>)%ig;
++	$data =~ s%<a href="[^\"]*(pkgreport\.cgi\?submitter=([^\"\&]+)[^\"]*)">(.+?)</a>%<a href="from_$2.html">$3</a> (<a href="http://bugs.finkproject.org/cgi-bin/$1">online</a>)%ig;
+ 	print OUT_CACHE $data;
+ 	close OUT_CACHE or die "bts: problems writing to $cachefile: $!";
+ 
+@@ -1410,7 +1412,7 @@
+ }
+ 
+ # We would love to use LWP::Simple::mirror in this script.
+-# Unfortunately, bugs.debian.org does not respect the
++# Unfortunately, bugs.finkproject.org does not respect the
+ # If-Modified-Since header.  For single bug reports, however,
+ # bugreport.cgi will return a Last-Modified header if sent a HEAD
+ # request.  So this is a hack, based on code from the LWP modules.  :-(
+@@ -1485,7 +1487,7 @@
+ 
+ =over 4
+ 
+-=item DEBEMAIL
++=item FINKEMAIL
+ 
+ If this is set, the From: line in the email will be set to use this email
+ address instead of your normal email address (as would be determined by
+@@ -1495,9 +1497,9 @@
+ 
+ =over 4
+ 
+-=item DEBFULLNAME
++=item FINKFULLNAME
+ 
+-If DEBEMAIL is set, DEBFULLNAME is examined to determine the full name
++If FINKEMAIL is set, FINKFULLNAME is examined to determine the full name
+ to use; if this is not set, B<bts> attempts to determine a name from
+ your passwd entry.
+ 
+diff -ruN devscripts-2.8.5/debc.1 devscripts-2.8.5.new/debc.1
+--- devscripts-2.8.5/debc.1	Thu Jul 29 18:21:56 2004
++++ devscripts-2.8.5.new/debc.1	Tue Nov 23 01:51:15 2004
+@@ -83,7 +83,7 @@
+ \fB\-\-help\fR, \fB\-\-version\fR
+ Show help message and version information respectively.
+ .SH "CONFIGURATION VARIABLES"
+-The two configuration files \fI/etc/devscripts.conf\fR and
++The two configuration files \fI@\fR and
+ \fI~/.devscripts\fR are sourced in that order to set configuration
+ variables.  Command line options can be used to override configuration
+ file settings.  Environment variable settings are ignored for this
+diff -ruN devscripts-2.8.5/debchange.1 devscripts-2.8.5.new/debchange.1
+--- devscripts-2.8.5/debchange.1	Thu Jul 29 18:21:56 2004
++++ devscripts-2.8.5.new/debchange.1	Tue Nov 23 01:51:15 2004
+@@ -178,7 +178,7 @@
+ .B \-\-version
+ Display version and copyright information and exit successfully.
+ .SH "CONFIGURATION VARIABLES"
+-The two configuration files \fI/etc/devscripts.conf\fR and
++The two configuration files \fI@\fR and
+ \fI~/.devscripts\fR are sourced in that order to set configuration
+ variables.  Command line options can be used to override configuration
+ file settings.  Environment variable settings are ignored for this
+diff -ruN devscripts-2.8.5/debchange.pl devscripts-2.8.5.new/debchange.pl
+--- devscripts-2.8.5/debchange.pl	Sat Sep 25 12:30:39 2004
++++ devscripts-2.8.5.new/debchange.pl	Tue Nov 23 01:51:15 2004
+@@ -157,7 +157,7 @@
+     $modified_conf_msg = "  (no configuration files read)";
+     shift;
+ } else {
+-    my @config_files = ('/etc/devscripts.conf', '~/.devscripts');
++    my @config_files = ('@', '~/.devscripts');
+     my %config_vars = (
+ 		       'DEBCHANGE_PRESERVE' => 'no',
+ 		       'DEBCHANGE_QUERY_BTS' => 'yes',
+diff -ruN devscripts-2.8.5/debclean.1 devscripts-2.8.5.new/debclean.1
+--- devscripts-2.8.5/debclean.1	Thu Jul 29 18:21:56 2004
++++ devscripts-2.8.5.new/debclean.1	Tue Nov 23 01:51:15 2004
+@@ -85,7 +85,7 @@
+ .B \-\-version
+ Display version and copyright information and exit successfully.
+ .SH "CONFIGURATION VARIABLES"
+-The two configuration files \fI/etc/devscripts.conf\fR and
++The two configuration files \fI@\fR and
+ \fI~/.devscripts\fR are sourced in that order to set configuration
+ variables.  Command line options can be used to override configuration
+ file settings.  Environment variable settings are ignored for this
+diff -ruN devscripts-2.8.5/debclean.fr.1 devscripts-2.8.5.new/debclean.fr.1
+--- devscripts-2.8.5/debclean.fr.1	Thu Jul 29 18:21:56 2004
++++ devscripts-2.8.5.new/debclean.fr.1	Tue Nov 23 01:51:15 2004
+@@ -22,7 +22,7 @@
+ .PP
+ \fBdebclean\fR utilises \fBdebuild\fR(1) pour nettoyer l'arborescence source.
+ .SH "VARIABLES DE CONFIGURATION"
+-Les deux fichiers de configuration \fI/etc/devscripts.conf\fR et
++Les deux fichiers de configuration \fI@\fR et
+ \fI~/.devscripts\fR sont évalués dans cet ordre pour placer les variables 
+ de configuration. Des options de ligne de commande peuvent être utilisées pour neutraliser les 
+ paramètres des fichiers de configuration. Les paramètres des variables d'environnement sont ignorés 
+diff -ruN devscripts-2.8.5/debclean.sh devscripts-2.8.5.new/debclean.sh
+--- devscripts-2.8.5/debclean.sh	Thu Jul 29 18:21:56 2004
++++ devscripts-2.8.5.new/debclean.sh	Tue Nov 23 01:51:15 2004
+@@ -75,7 +75,7 @@
+ 	    eval "$var=\$DEFAULT_$var"
+ 	done
+ 
+-	for file in /etc/devscripts.conf ~/.devscripts
++	for file in @ ~/.devscripts
+ 	  do
+ 	  [ -r $file ] && . $file
+ 	done
+diff -ruN devscripts-2.8.5/debdiff.1 devscripts-2.8.5.new/debdiff.1
+--- devscripts-2.8.5/debdiff.1	Thu Jul 29 18:21:56 2004
++++ devscripts-2.8.5.new/debdiff.1	Tue Nov 23 01:51:15 2004
+@@ -112,7 +112,7 @@
+ .BR \-\-version ", " \-v
+ Show version and copyright information.
+ .SH "CONFIGURATION VARIABLES"
+-The two configuration files \fI/etc/devscripts.conf\fR and
++The two configuration files \fI@\fR and
+ \fI~/.devscripts\fR are sourced by a shell in that order to set
+ configuration variables.  Command line options can be used to override
+ configuration file settings.  Environment variable settings are
+diff -ruN devscripts-2.8.5/debdiff.pl devscripts-2.8.5.new/debdiff.pl
+--- devscripts-2.8.5/debdiff.pl	Thu Jul 29 18:21:56 2004
++++ devscripts-2.8.5.new/debdiff.pl	Tue Nov 23 01:51:15 2004
+@@ -91,7 +91,7 @@
+     $modified_conf_msg = "  (no configuration files read)";
+     shift;
+ } else {
+-    my @config_files = ('/etc/devscripts.conf', '~/.devscripts');
++    my @config_files = ('@', '~/.devscripts');
+     my %config_vars = (
+ 		       'DEBDIFF_DIRS' => 'no',
+ 		       'DEBDIFF_CONTROL' => 'yes',
+@@ -155,7 +155,7 @@
+ 
+ 	# Ensure from and to values all begin with a slash
+ 	# From potato onward, dpkg -c gives filenames such as:
+-	#  ./usr/lib/filename
++	#  .@FINKPREFIX@/lib/filename
+ 	my $from = shift;
+ 	my $to   = shift;
+ 	$from =~ s%^\./%/%;
+@@ -532,7 +532,7 @@
+ exit 0 unless defined $singledeb[1] and defined $singledeb[2]
+     and $compare_control;
+ 
+-if (! -x "/usr/bin/wdiff") {
++if (! -x "@FINKPREFIX@/bin/wdiff") {
+     warn "Can't compare control files; wdiff package not installed\n";
+     exit 0;
+ }
+diff -ruN devscripts-2.8.5/debi.1 devscripts-2.8.5.new/debi.1
+--- devscripts-2.8.5/debi.1	Thu Jul 29 18:21:56 2004
++++ devscripts-2.8.5.new/debi.1	Tue Nov 23 01:51:15 2004
+@@ -85,7 +85,7 @@
+ \fB\-\-help\fR, \fB\-\-version\fR
+ Show help message and version information respectively.
+ .SH "CONFIGURATION VARIABLES"
+-The two configuration files \fI/etc/devscripts.conf\fR and
++The two configuration files \fI@\fR and
+ \fI~/.devscripts\fR are sourced in that order to set configuration
+ variables.  Command line options can be used to override configuration
+ file settings.  Environment variable settings are ignored for this
+diff -ruN devscripts-2.8.5/debi.pl devscripts-2.8.5.new/debi.pl
+--- devscripts-2.8.5/debi.pl	Mon Aug 16 23:47:45 2004
++++ devscripts-2.8.5.new/debi.pl	Tue Nov 23 01:51:15 2004
+@@ -115,7 +115,7 @@
+     $modified_conf_msg = "  (no configuration files read)";
+     shift;
+ } else {
+-    my @config_files = ('/etc/devscripts.conf', '~/.devscripts');
++    my @config_files = ('@', '~/.devscripts');
+     my %config_vars = (
+ 		       'DEVSCRIPTS_CHECK_DIRNAME_LEVEL' => 1,
+ 		       'DEVSCRIPTS_CHECK_DIRNAME_REGEX' => 'PACKAGE(-.*)?',
+diff -ruN devscripts-2.8.5/debpkg-wrapper.c devscripts-2.8.5.new/debpkg-wrapper.c
+--- devscripts-2.8.5/debpkg-wrapper.c	Thu Jul 29 18:21:56 2004
++++ devscripts-2.8.5.new/debpkg-wrapper.c	Tue Nov 23 01:51:15 2004
+@@ -6,7 +6,7 @@
+ #include <errno.h>
+ #include <string.h>
+ 
+-#define REAL_PATH "/usr/share/devscripts/debpkg"
++#define REAL_PATH "@FINKPREFIX@/share/devscripts/debpkg"
+ 
+ int main(int ac, char **av)
+ {
+diff -ruN devscripts-2.8.5/debpkg.pl devscripts-2.8.5.new/debpkg.pl
+--- devscripts-2.8.5/debpkg.pl	Thu Jul 29 18:21:56 2004
++++ devscripts-2.8.5.new/debpkg.pl	Tue Nov 23 01:51:15 2004
+@@ -67,7 +67,7 @@
+ 			$var =~ /^LC_[A-Z]+$/;
+ }
+ 
+-$ENV{'PATH'} = "/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11";
++$ENV{'PATH'} = "/sw/bin:/sw/sbin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11";
+ # $ENV{'PATH'} = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11";
+ $ENV{'TERM'}='dumb' unless defined $ENV{'TERM'};
+ 
+diff -ruN devscripts-2.8.5/debrelease.1 devscripts-2.8.5.new/debrelease.1
+--- devscripts-2.8.5/debrelease.1	Thu Jul 29 18:21:56 2004
++++ devscripts-2.8.5.new/debrelease.1	Tue Nov 23 01:51:15 2004
+@@ -91,7 +91,7 @@
+ .B \-\-version
+ Display version and copyright information and exit successfully.
+ .SH "CONFIGURATION VARIABLES"
+-The two configuration files \fI/etc/devscripts.conf\fR and
++The two configuration files \fI@\fR and
+ \fI~/.devscripts\fR are sourced in that order to set configuration
+ variables.  Command line options can be used to override configuration
+ file settings.  Environment variable settings are ignored for this
+diff -ruN devscripts-2.8.5/debrelease.sh devscripts-2.8.5.new/debrelease.sh
+--- devscripts-2.8.5/debrelease.sh	Thu Jul 29 18:21:56 2004
++++ devscripts-2.8.5.new/debrelease.sh	Tue Nov 23 01:51:15 2004
+@@ -101,7 +101,7 @@
+ 	    eval "$var=\$DEFAULT_$var"
+ 	done
+ 
+-	for file in /etc/devscripts.conf ~/.devscripts
++	for file in @ ~/.devscripts
+ 	  do
+ 	  [ -r $file ] && . $file
+ 	done
+diff -ruN devscripts-2.8.5/debrsign.1 devscripts-2.8.5.new/debrsign.1
+--- devscripts-2.8.5/debrsign.1	Fri Jul 30 16:19:42 2004
++++ devscripts-2.8.5.new/debrsign.1	Tue Nov 23 01:51:15 2004
+@@ -48,7 +48,7 @@
+ All other options are passed on to \fBdebsign\fR on the remote
+ machine.
+ .SH "CONFIGURATION VARIABLES"
+-The two configuration files \fI/etc/devscripts.conf\fR and
++The two configuration files \fI@\fR and
+ \fI~/.devscripts\fR are sourced in that order to set configuration
+ variables.  Command line options can be used to override configuration
+ file settings.  Environment variable settings are ignored for this
+diff -ruN devscripts-2.8.5/debrsign.sh devscripts-2.8.5.new/debrsign.sh
+--- devscripts-2.8.5/debrsign.sh	Fri Sep  3 02:26:27 2004
++++ devscripts-2.8.5.new/debrsign.sh	Tue Nov 23 01:51:15 2004
+@@ -97,7 +97,7 @@
+ # I guess maintainers will have to be careful, and there's no way around
+ # this in a shell script.
+ unset IFS
+-PATH=/usr/local/bin:/usr/bin:/bin
++PATH=/sw/bin:/sw/sbin:/usr/local/bin:/usr/bin:/bin
+ umask `perl -e 'printf "%03o\n", umask | 022'`
+ 
+ eval $(
+@@ -105,7 +105,7 @@
+     for var in $VARS; do
+         eval "$var=\$DEFAULT_$var"
+     done
+-    for file in /etc/devscripts.conf ~/.devscripts; do
++    for file in @ ~/.devscripts; do
+       [ -r $file ] && . $file
+     done
+ 
+diff -ruN devscripts-2.8.5/debsign.1 devscripts-2.8.5.new/debsign.1
+--- devscripts-2.8.5/debsign.1	Thu Jul 29 18:21:56 2004
++++ devscripts-2.8.5.new/debsign.1	Tue Nov 23 01:51:15 2004
+@@ -86,7 +86,7 @@
+ .B \-\-version
+ Display version and copyright information and exit successfully.
+ .SH "CONFIGURATION VARIABLES"
+-The two configuration files \fI/etc/devscripts.conf\fR and
++The two configuration files \fI@\fR and
+ \fI~/.devscripts\fR are sourced in that order to set configuration
+ variables.  Command line options can be used to override configuration
+ file settings.  Environment variable settings are ignored for this
+diff -ruN devscripts-2.8.5/debsign.sh devscripts-2.8.5.new/debsign.sh
+--- devscripts-2.8.5/debsign.sh	Mon Sep  6 17:30:38 2004
++++ devscripts-2.8.5.new/debsign.sh	Tue Nov 23 01:51:15 2004
+@@ -177,7 +177,7 @@
+ 	    eval "$var=\$DEFAULT_$var"
+ 	done
+ 
+-	for file in /etc/devscripts.conf ~/.devscripts
++	for file in @ ~/.devscripts
+ 	  do
+ 	  [ -r $file ] && . $file
+ 	done
+diff -ruN devscripts-2.8.5/debuild.1 devscripts-2.8.5.new/debuild.1
+--- devscripts-2.8.5/debuild.1	Thu Jul 29 18:21:56 2004
++++ devscripts-2.8.5.new/debuild.1	Tue Nov 23 01:51:15 2004
+@@ -189,7 +189,7 @@
+ \fB\-D\fR
+ Run \fBdpkg-checkbuilddeps\fR to check build dependencies.
+ .SH "CONFIGURATION VARIABLES"
+-The two configuration files \fI/etc/devscripts.conf\fR and
++The two configuration files \fI@\fR and
+ \fI~/.devscripts\fR are sourced by a shell in that order to set
+ configuration variables.  Command line options can be used to override
+ some of these configuration file settings, otherwise the
+diff -ruN devscripts-2.8.5/debuild.pl devscripts-2.8.5.new/debuild.pl
+--- devscripts-2.8.5/debuild.pl	Fri Sep  3 02:26:27 2004
++++ devscripts-2.8.5.new/debuild.pl	Tue Nov 23 01:51:15 2004
+@@ -205,7 +205,7 @@
+     $modified_conf_msg = "  (no configuration files read)";
+     shift;
+ } else {
+-    my @config_files = ('/etc/devscripts.conf', '~/.devscripts');
++    my @config_files = ('@', '~/.devscripts');
+     my %config_vars = (
+ 		       'DEBUILD_PRESERVE_ENV' => 'no',
+ 		       'DEBUILD_PRESERVE_ENVVARS' => '',
+@@ -494,7 +494,7 @@
+     $ENV{'PATH'} =~ /^(.*)$/;
+     $ENV{'PATH'} = $1;
+ } else {
+-    $ENV{'PATH'} = "/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11"
++    $ENV{'PATH'} = "/sw/bin:/sw/sbin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11"
+ }
+ $save_vars{'PATH'}=1;
+ $ENV{'TERM'}='dumb' unless exists $ENV{'TERM'};
+@@ -823,7 +823,7 @@
+ 	    warn <<EOT;
+ You do not appear to have all build dependencies properly met.
+ If you have the pbuilder package installed, you can run
+-/usr/lib/pbuilder/pbuilder-satisfydepends as root to install the
++@FINKPREFIX@/lib/pbuilder/pbuilder-satisfydepends as root to install the
+ required packages, or you can do it manually using dpkg or apt using
+ the error messages just above this message.
+ EOT
+diff -ruN devscripts-2.8.5/devscripts.1 devscripts-2.8.5.new/devscripts.1
+--- devscripts-2.8.5/devscripts.1	Thu Jul 29 18:21:56 2004
++++ devscripts-2.8.5.new/devscripts.1	Tue Nov 23 01:51:15 2004
+@@ -5,11 +5,11 @@
+ The \fBdevscripts\fR package provides a collection of scripts which
+ may be of use to Debian developers and others wishing to build Debian
+ packages.  For a summary of the available scripts, please see the file
+-\fI/usr/share/doc/devscripts/README.gz\fR, and for full details, please
++\fI@FINKPREFIX@/share/doc/devscripts/README.gz\fR, and for full details, please
+ see the individual manpages.  They are contributed by multiple
+ developers; for details of the authors, please see the code or
+ manpages.
+ 
+-Also, the directory \fI/usr/share/doc/devscripts/examples\fR contains
++Also, the directory \fI@FINKPREFIX@/share/doc/devscripts/examples\fR contains
+ examples of \fBprocmail\fR and \fBexim\fR scripts for sorting mail
+ arriving to Debian mailing lists.
+diff -ruN devscripts-2.8.5/devscripts.conf.5 devscripts-2.8.5.new/devscripts.conf.5
+--- devscripts-2.8.5/devscripts.conf.5	Thu Jul 29 18:21:56 2004
++++ devscripts-2.8.5.new/devscripts.conf.5	Tue Nov 23 01:51:15 2004
+@@ -10,10 +10,10 @@
+ Every script in the \fBdevscripts\fR package which makes use of values
+ from these configuration files describes the specific settings
+ recognised in its own manpage.  (For a list of the scripts, either see
+-\fI/usr/share/doc/devscripts/README.gz\fR or look at the output of
+-\fIdpkg -L devscripts | grep /usr/bin\fR.)
++\fI@FINKPREFIX@/share/doc/devscripts/README.gz\fR or look at the output of
++\fIdpkg -L devscripts | grep @FINKPREFIX@/bin\fR.)
+ .PP
+-The two configuration files are \fI/etc/devscripts.conf\fR for
++The two configuration files are \fI@\fR for
+ system-wide defaults and \fI~/.devscripts\fR for per-user settings.
+ They are written with \fBbash\fR(1) syntax, but should only have
+ comments and simple variable assignments in them; they are both
+@@ -28,11 +28,11 @@
+ .PP
+ For a list of all of the available options variables, along with their
+ default settings, see the example configuration file
+-\fI/usr/share/doc/devscripts/devscripts.conf.ex\fR.  This is copied to
+-\fI/etc/devscripts.conf\fR when the \fBdevscripts\fR package is first
++\fI@FINKPREFIX@/share/doc/devscripts/devscripts.conf.ex\fR.  This is copied to
++\fI@\fR when the \fBdevscripts\fR package is first
+ installed.  Information about configuration options introduced in
+ newer versions of the package will be appended to
+-\fI/etc/devscripts.conf\fR when the package is upgraded.
++\fI@\fR when the package is upgraded.
+ .PP
+ Every script which reads the configuration files can be forced to
+ ignore them by using \fB\-\-no-conf\fR as the \fIfirst\fR command-line
+@@ -54,7 +54,7 @@
+ .SH "SEE ALSO"
+ .BR devscripts (1)
+ and
+-.IR /usr/share/doc/devscripts/README.gz.
++.IR @FINKPREFIX@/share/doc/devscripts/README.gz.
+ .SH AUTHOR
+ This manpage was written for the \fBdevscripts\fR package by the
+ package maintainer Julian Gilbey <jdg@debian.org>.
+diff -ruN devscripts-2.8.5/dpkg-depcheck.1 devscripts-2.8.5.new/dpkg-depcheck.1
+--- devscripts-2.8.5/dpkg-depcheck.1	Thu Jul 29 18:21:56 2004
++++ devscripts-2.8.5.new/dpkg-depcheck.1	Tue Nov 23 01:51:15 2004
+@@ -100,7 +100,7 @@
+ .BR \-v ", " \-\-version
+ Display version and copyright information and exit.
+ .SH "CONFIGURATION VARIABLES"
+-The two configuration files \fI/etc/devscripts.conf\fR and
++The two configuration files \fI@\fR and
+ \fI~/.devscripts\fR are sourced in that order to set configuration
+ variables.  Command line options can be used to override configuration
+ file settings.  Environment variable settings are ignored for this
+diff -ruN devscripts-2.8.5/dpkg-depcheck.pl devscripts-2.8.5.new/dpkg-depcheck.pl
+--- devscripts-2.8.5/dpkg-depcheck.pl	Tue Aug 24 21:41:50 2004
++++ devscripts-2.8.5.new/dpkg-depcheck.pl	Tue Nov 23 01:51:15 2004
+@@ -23,7 +23,7 @@
+ use File::Basename;
+ use Getopt::Long;
+ 
+-use lib '/usr/share/devscripts';
++use lib '@FINKPREFIX@/share/devscripts';
+ use Devscripts::Set;
+ use Devscripts::Packages;
+ use Devscripts::Symlinks;
+@@ -39,12 +39,12 @@
+ 
+ # libvfork is taken from dpkg-genbuilddeps, written by
+ # Ben Collins <bcollins@debian.org>
+-our $vforklib = "/usr/lib/devscripts/libvfork.so.0";
++our $vforklib = "@FINKPREFIX@/lib/devscripts/libvfork.so.0";
+ 
+ # A list of files that do not belong to a Debian package but are known
+ # to never create a dependency
+ our @known_files = ($vforklib, "/etc/ld.so.cache", "/etc/dpkg/shlibs.default",
+-		    "/etc/dpkg/dpkg.cfg", "/etc/devscripts.conf");
++		    "/etc/dpkg/dpkg.cfg", "@");
+ 
+ # This will be given information about features later on
+ our (%feature, %default_feature);
+@@ -146,7 +146,7 @@
+     $modified_conf_msg = "  (no configuration files read)";
+     shift;
+ } else {
+-    my @config_files = ('/etc/devscripts.conf', '~/.devscripts');
++    my @config_files = ('@', '~/.devscripts');
+     my %config_vars = (
+ 		       'DPKG_DEPCHECK_OPTIONS' => '',
+ 		       );
+diff -ruN devscripts-2.8.5/dscverify.1 devscripts-2.8.5.new/dscverify.1
+--- devscripts-2.8.5/dscverify.1	Thu Jul 29 18:21:56 2004
++++ devscripts-2.8.5.new/dscverify.1	Tue Nov 23 01:51:15 2004
+@@ -27,7 +27,7 @@
+ .B \-\-version
+ Display version and copyright information and exit successfully.
+ .SH "CONFIGURATION VARIABLES"
+-The two configuration files \fI/etc/devscripts.conf\fR and
++The two configuration files \fI@\fR and
+ \fI~/.devscripts\fR are sourced by a shell in that order to set
+ configuration variables.  Environment variable settings are ignored
+ for this purpose.  If the first command line option given is
+diff -ruN devscripts-2.8.5/dscverify.pl devscripts-2.8.5.new/dscverify.pl
+--- devscripts-2.8.5/dscverify.pl	Thu Jul 29 18:21:56 2004
++++ devscripts-2.8.5.new/dscverify.pl	Tue Nov 23 01:51:15 2004
+@@ -89,9 +89,9 @@
+ sub get_rings {
+     my @rings = @_;
+     for (qw(/org/keyring.debian.org/keyrings/debian-keyring.gpg
+-	    /usr/share/keyrings/debian-keyring.gpg
++	    @FINKPREFIX@/share/keyrings/debian-keyring.gpg
+ 	    /org/keyring.debian.org/keyrings/debian-keyring.pgp
+-	    /usr/share/keyrings/debian-keyring.pgp)) {
++	    @FINKPREFIX@/share/keyrings/debian-keyring.pgp)) {
+ 	push @rings, $_ if -r;
+     }
+     return @rings if @rings;
+@@ -223,7 +223,7 @@
+ 	$modified_conf_msg = "  (no configuration files read)";
+ 	shift @ARGV;
+     } else {
+-	my @config_files = ('/etc/devscripts.conf', '~/.devscripts');
++	my @config_files = ('@', '~/.devscripts');
+ 	my %config_vars = (
+ 			   'DSCVERIFY_KEYRINGS' => '',
+ 			   );
+diff -ruN devscripts-2.8.5/grep-excuses.1 devscripts-2.8.5.new/grep-excuses.1
+--- devscripts-2.8.5/grep-excuses.1	Thu Jul 29 18:21:56 2004
++++ devscripts-2.8.5.new/grep-excuses.1	Tue Nov 23 01:51:15 2004
+@@ -22,7 +22,7 @@
+ .B \-\-version
+ Show version and copyright information.
+ .SH "CONFIGURATION VARIABLES"
+-The two configuration files \fI/etc/devscripts.conf\fR and
++The two configuration files \fI@\fR and
+ \fI~/.devscripts\fR are sourced in that order to set configuration
+ variables.  Command line options can be used to override configuration
+ file settings.  Environment variable settings are ignored for this
+diff -ruN devscripts-2.8.5/grep-excuses.pl devscripts-2.8.5.new/grep-excuses.pl
+--- devscripts-2.8.5/grep-excuses.pl	Thu Jul 29 18:21:56 2004
++++ devscripts-2.8.5.new/grep-excuses.pl	Tue Nov 23 01:51:15 2004
+@@ -67,7 +67,7 @@
+     $modified_conf_msg = "  (no configuration files read)";
+     shift;
+ } else {
+-    my @config_files = ('/etc/devscripts.conf', '~/.devscripts');
++    my @config_files = ('@', '~/.devscripts');
+     my %config_vars = (
+ 		       'GREP_EXCUSES_MAINTAINER' => '',
+ 		       );
+diff -ruN devscripts-2.8.5/plotchangelog.1 devscripts-2.8.5.new/plotchangelog.1
+--- devscripts-2.8.5/plotchangelog.1	Thu Jul 29 18:21:56 2004
++++ devscripts-2.8.5.new/plotchangelog.1	Tue Nov 23 01:51:15 2004
+@@ -104,7 +104,7 @@
+ be display on the same graph. The files may be compressed with gzip. Any
+ text in them that is not in Debian changelog format will be ignored.
+ .SH "CONFIGURATION VARIABLES"
+-The two configuration files \fI/etc/devscripts.conf\fR and
++The two configuration files \fI@\fR and
+ \fI~/.devscripts\fR are sourced by a shell in that order to set
+ configuration variables.  The \fB\-\-no\-conf\fR option can be used to
+ prevent reading these files.  Environment variable settings are
+diff -ruN devscripts-2.8.5/plotchangelog.pl devscripts-2.8.5.new/plotchangelog.pl
+--- devscripts-2.8.5/plotchangelog.pl	Thu Jul 29 18:21:56 2004
++++ devscripts-2.8.5.new/plotchangelog.pl	Tue Nov 23 01:51:15 2004
+@@ -98,7 +98,7 @@
+     $modified_conf_msg = "  (no configuration files read)";
+     shift;
+ } else {
+-    my @config_files = ('/etc/devscripts.conf', '~/.devscripts');
++    my @config_files = ('@', '~/.devscripts');
+     my %config_vars = (
+ 		       'PLOTCHANGELOG_OPTIONS' => '',
+ 		       'PLOTCHANGELOG_GNUPLOT' => '',
+diff -ruN devscripts-2.8.5/rc-alert.pl devscripts-2.8.5.new/rc-alert.pl
+--- devscripts-2.8.5/rc-alert.pl	Thu Jul 29 18:21:56 2004
++++ devscripts-2.8.5.new/rc-alert.pl	Tue Nov 23 01:51:15 2004
+@@ -19,7 +19,7 @@
+ # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ 
+ use strict;
+-use lib '/usr/share/devscripts';
++use lib '@FINKPREFIX@/share/devscripts';
+ use Devscripts::Packages;
+ use File::Basename;
+ 
+diff -ruN devscripts-2.8.5/uscan.1 devscripts-2.8.5.new/uscan.1
+--- devscripts-2.8.5/uscan.1	Fri Jul 30 20:01:12 2004
++++ devscripts-2.8.5.new/uscan.1	Tue Nov 23 01:51:15 2004
+@@ -240,7 +240,7 @@
+ .B \-\-version
+ Display version information.
+ .SH "CONFIGURATION VARIABLES"
+-The two configuration files \fI/etc/devscripts.conf\fR and
++The two configuration files \fI@\fR and
+ \fI~/.devscripts\fR are sourced by a shell in that order to set
+ configuration variables.  These may be overridden by command line
+ options.  Environment variable settings are ignored for this purpose.
+diff -ruN devscripts-2.8.5/uscan.pl devscripts-2.8.5.new/uscan.pl
+--- devscripts-2.8.5/uscan.pl	Tue Aug 24 21:41:50 2004
++++ devscripts-2.8.5.new/uscan.pl	Tue Nov 23 01:51:15 2004
+@@ -28,7 +28,7 @@
+ use Cwd;
+ use File::Basename;
+ use Getopt::Long;
+-use lib '/usr/share/devscripts';
++use lib '@FINKPREFIX@/share/devscripts';
+ use Devscripts::Versort;
+ BEGIN {
+     eval { require LWP::UserAgent; };
+@@ -117,7 +117,7 @@
+     $modified_conf_msg = "  (no configuration files read)";
+     shift;
+ } else {
+-    my @config_files = ('/etc/devscripts.conf', '~/.devscripts');
++    my @config_files = ('@', '~/.devscripts');
+     my %config_vars = (
+ 		       'USCAN_DOWNLOAD' => 'yes',
+ 		       'USCAN_PASV' => 'default',
+diff -ruN devscripts-2.8.5/uupdate.1 devscripts-2.8.5.new/uupdate.1
+--- devscripts-2.8.5/uupdate.1	Thu Jul 29 18:21:56 2004
++++ devscripts-2.8.5.new/uupdate.1	Tue Nov 23 01:51:15 2004
+@@ -83,7 +83,7 @@
+ .B \-\-version
+ Display version and copyright information and exit successfully.
+ .SH "CONFIGURATION VARIABLES"
+-The two configuration files \fI/etc/devscripts.conf\fR and
++The two configuration files \fI@\fR and
+ \fI~/.devscripts\fR are sourced in that order to set configuration
+ variables.  Command line options can be used to override configuration
+ file settings.  Environment variable settings are ignored for this
+diff -ruN devscripts-2.8.5/uupdate.sh devscripts-2.8.5.new/uupdate.sh
+--- devscripts-2.8.5/uupdate.sh	Thu Jul 29 18:21:56 2004
++++ devscripts-2.8.5.new/uupdate.sh	Tue Nov 23 01:51:15 2004
+@@ -126,7 +126,7 @@
+ 	    eval "$var=\$DEFAULT_$var"
+ 	done
+ 
+-	for file in /etc/devscripts.conf ~/.devscripts
++	for file in @ ~/.devscripts
+ 	  do
+ 	  [ -r $file ] && . $file
+ 	done
