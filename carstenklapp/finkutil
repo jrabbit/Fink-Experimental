@@ -3,76 +3,122 @@
 # and perform some basic cleanup tasks within the dists
 # subdirectories.
 #
-# Put this file in /sw/fink/dists then cd /sw/fink/dists
-# or cd /sw/fink/dists/experimental/carstenklapp
+# Put this file into /sw/fink/dists/experimental/carstenklapp
+# or run `cd /sw/fink/dists; cvs co experimentnal`
+# `./finkinfo install` makes a symlink in %p/sw/sbin
 # Type './finkutil' for usage information.
 
-p=/sw
+# Change this to reflect a nonstandard fink installation.
+p="`grep 'Basepath: ' -I /sw/etc/fink.conf | sed -e 's@Basepath: @@g'`"
+#p=/usr/local
+
 DISTS=${p}/fink/dists
-me=${p}/fink/dists/experimental/carstenklapp/finkutil
+me=${DISTS}/experimental/carstenklapp/finkutil
 
-FINK=${p}/bin/fink
-FINK_COMMAND=check
-# trap grep errors for no matches
-#FILTER_COMMAND=| grep -v "Description ends with" | grep	\
-# "^Warning\|Error" || true
-FILTER_COMMAND=| grep "^Warning\|Error" || true
-
+# List of branches to scan
 BRANCHES=unstable stable
 
+# List of subdirs to scan (Automatic way to read these into this Makefile, make dep?)
 CHECKDIRS=base database devel editors games gnome graphics kde		\
  languages libs libs/perlmods net sci shells sound text utils web x11	\
  x11-system x11-wm
-#CHECKDIRS=games x11-wm
 
-usage :
+# just comment out all FILTER_COMMANDs if you want to see the verbose output of finkutil check.
+# The '|| TRUE' traps grep errors for no matches
+FILTER_COMMAND=| grep "^Warning\|^Error" || true
+#FILTER_COMMAND=| grep "^Error" || true
+#FILTER_COMMAND=| grep -v "Description ends with" | grep "^Warning\|Error" || true
+
+# NO USER-SERVEICABLE PARTS BELOW
+FINK_COMMAND=${p}/bin/fink check
+DEBS=${p}/fink/debs
+APTCACHE=${p}/var/cache/apt/archives/
+
+# Docs
+h usage : copyright
+	@$(MAKE) -f ${me} description
+	@echo "USAGE:"
+	@echo " "
+	@echo "finkutil [-j1] check   validate all fink info files in ${DISTS}"
+	@echo "finkutil fixdebs       rebuild soft links in ${DEBS}"
+	@echo " "
+	@echo "finkutil cleancvs      delete all cvs temp & emacs temp files (.#*) in ${p}"
+	@echo "finkutil clean         delete all .DS_Store files in ${p}"
+	@echo "finkutil clean~        delete all backup files (*.info~ and *.patch~) in ${p}"
+	@echo "finkutil cleanall      do all three clean actions"
+	@echo "finkutil all           do all clean, check and fix actions"
+	@echo " "
+	@echo "finkutil [h|usage]     displays this message"
+	@echo "finkutil help          displays all help messages"
+	@echo "finkutil V|version     displays all help messages"
+	@echo " "
+	@echo "finkutil install       link finkutil to ${p}/sbin"
+	@echo "finkutil remove        unlink finkutil from ${p}/sbin"
+	@echo " "
+
+help : copyright
+	@$(MAKE) -f ${me} usage
+	@echo "INSTALLATION:"
+	@echo " "
+	@echo "Preparation:"
+	@echo "Put this file into '/sw/fink/dists/experimental/carstenklapp'"
+	@echo "or 'cd /sw/fink/dists; cvs co experimentnal'"
+	@echo " "
+	@echo "Installation:"
+	@echo "finkutil i|install"
+	#echo "    Adds a symlink to your ${p}/sbin directory."
+	@echo " "
+	@echo "Uninstallation:"
+	@echo "finkutil remove|uninstall"
+	@echo "    Removes the finkutil symlink from your ${p}/sbin directory."
+	@echo " "
+
+V version :
+	@echo "\$$Id$$"
+	@echo " "
+
+licence copyright :
 	@echo " "
 	@echo "Copyright 2002,"
 	@echo "Carsten Klapp <carstenklapp@users.sourceforge.net>"
 	@echo " "
-	@echo "This file is an unsupported part of Fink."
+	@echo "This file is not a supported part of Fink."
 	@echo " "
-	@echo "Fink is free software; you can redistribute it and/or modify"
+	@echo "Finkutil is free software; you can redistribute it and/or modify"
 	@echo "it under the terms of the GNU General Public License as published by"
 	@echo "the Free Software Foundation; either version 2 of the License, or"
 	@echo "(at your option) any later version."
 	@echo " "
-	@echo "Fink is distributed in the hope that it will be useful,"
+	@echo "Finkutil is distributed in the hope that it will be useful,"
 	@echo "but WITHOUT ANY WARRANTY; without even the implied warranty of"
 	@echo "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the"
 	@echo "GNU General Public License for more details."
 	@echo " "
 	@echo "You should have received a copy of the GNU General Public License"
-	@echo "along with Fink; if not, write to the Free Software"
+	@echo "along with Finkutil; if not, write to the Free Software"
 	@echo "Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA"
 	@echo " "
-	@echo "\$$Id$$"
-	@echo " "
+
+describe description :
+	@$(MAKE) -f ${me} version
 	@echo "Fink maintainer's utility to automatically validate fink info files"
 	@echo "and perform some basic cleanup tasks within the dists"
 	@echo "subdirectories."
 	@echo " "
-	@echo "Usage:"
-	@echo " "
-	@echo "finkutil [-j1]] check    validate all fink info files"
-	@echo " "
-	@echo "finkutil cleancvs        delete all cvs temp & emacs temp files (.#*) in ${p}"
-	@echo "finkutil clean           delete all .DS_Store files in ${p}"
-	@echo "finkutil clean~          delete all backup files (*.info~ and *.patch~) in ${p}"
-	@echo "finkutil cleanall        do all three clean actions"
-	@echo " "
 
-$(CHECKDIRS) :
-	@echo " "
-	@cd $(DISTS)/$(DIST)/main/finkinfo/$@/ && pwd && $(FINK) $(FINK_COMMAND) *.info $(FILTER_COMMAND)
+i install :
+	@echo "Making a link to finkutil in ${p}/sbin..."
+	-@sudo ln -s ${me} ${p}/sbin
+	@echo "Done."
 
-$(BRANCHES) :
-	@echo "validating branch $@..."
-	@echo " "
-	@cd $(DISTS)/$@/crypto/finkinfo/ && pwd && $(FINK) $(FINK_COMMAND) *.info $(FILTER_COMMAND)
-	@$(MAKE) -f ${me} $(CHECKDIRS) DIST=$@
-	@echo "done branch $@."
-	@echo " "
+remove uninstall :
+	@echo "Removing link to finkutil from ${p}/sbin..."
+	-@sudo rm -f ${p}/sbin/finkutil
+	@echo "Done."
+
+# primary goals
+all : cleanall fixdebs
+	@$(MAKE) -f ${me} -j1 check
 
 check : $(BRANCHES)
 
@@ -94,3 +140,22 @@ clean~ :
 
 cleanall : clean cleancvs clean~
 
+fixdebs :
+#	The extra / is needed to cross the symlink from dists->10.2
+#	Avoid partially downloaded apt-get debs using maxdepth.
+	cd ${DEBS} && rm *
+	cd ${DEBS} && find ${DISTS}/ -name "*.deb" -print -exec ln -s {} \;
+	cd ${DEBS} && find ${APTCACHE} -name "*.deb" -maxdepth 1 -print -exec ln -s {} \;
+
+# these subgoals are used internally by the above main goals, don't try to run them directly
+$(CHECKDIRS) :
+	@echo " "
+	@cd $(DISTS)/$(DIST)/main/finkinfo/$@/ && pwd && $(FINK_COMMAND) *.info $(FILTER_COMMAND)
+
+$(BRANCHES) :
+	@echo "validating branch $@..."
+	@echo " "
+	@cd $(DISTS)/$@/crypto/finkinfo/ && pwd && $(FINK_COMMAND) *.info $(FILTER_COMMAND)
+	@$(MAKE) -f ${me} $(CHECKDIRS) DIST=$@
+	@echo "done branch $@."
+	@echo " "
