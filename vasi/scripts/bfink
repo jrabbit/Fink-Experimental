@@ -3,44 +3,68 @@
 use strict;
 use English;
 
-if ($EUID != 0) {
-  # We need root
-  exec('/usr/bin/sudo', '-H', $0, @ARGV)
-    or die "$0: exec '/usr/bin/sudo -H $0 @ARGV' failed: $!";
+our $keepers = "/sw/var/lib/debfoster/keepers";
+
+sub ensure_root {
+	if ($EUID != 0) {
+		# We need root
+		exec('/usr/bin/sudo', '-H', $0, @ARGV)
+		or die "$0: exec '/usr/bin/sudo -H $0 @ARGV' failed: $!";
+	}
 }
 
-my $keepers = "/sw/var/lib/debfoster/keepers";
+sub write_keepers {
+	my %keepers = @_;
+	my $temp_keepers = "$keepers.tmp";
+	
+	open KEEP2, ">", $temp_keepers
+		or die "$0: cannot open '$temp_keepers' for writing: $!";
+		
+	for (sort keys %keepers) {
+		print KEEP2 "$keepers{$_}$_\n";
+	}
+	
+	close KEEP2
+		or die "$0: cannot close '$temp_keepers' for writing: $!";
+	rename($temp_keepers, $keepers)
+		or die "$0: cannot rename '$temp_keepers' to 'keepers': $!\n";
+}
+
+
+ensure_root();
 
 system('/sw/bin/fink', @ARGV) == 0
-  or exit($? >> 8);
+	or exit($? >> 8);
 
+my %keepers;
 my $cmd = shift @ARGV;
+
 if ( grep { $cmd eq $_ } qw/install remove purge/ ) {
-  open KEEP, "<", $keepers
-    or die "$0: cannot open '$keepers' for reading: $!";
-  my %keepers = map { chomp; $_ => 1 } <KEEP>;
-  close KEEP
-    or die "$0: error in closing '$keepers' for reading: $!";
+	open KEEP, "<", $keepers
+		or die "$0: cannot open '$keepers' for reading: $!";
+	while (<KEEP>) {
+		if ( m,^(-?)(\S+), ) {
+			die "Inconsistent keepers file: duplicate $2"
+				if exists($keepers{$2});
+			$keepers{$2} = $1;
+		}
+	}
+	close KEEP
+		or die "$0: error in closing '$keepers' for reading: $!";
 
   if ( $cmd eq "install" ) {
-    @keepers{@ARGV} = (1) x @ARGV;
+    @keepers{@ARGV} = ("") x @ARGV;
   } else {
     delete @keepers{@ARGV};
   }
-
-  my $temp_keepers = "$keepers.tmp";
-  open KEEP2, ">", $temp_keepers
-    or die "$0: cannot open '$temp_keepers' for writing: $!";
-  for (sort keys %keepers) {
-    print KEEP2 "$_\n";
-  }
-  close KEEP2
-    or die "$0: cannot close '$temp_keepers' for writing: $!";
-
-  rename($temp_keepers, $keepers)
-    or die "$0: cannot rename '$temp_keepers' to 'keepers': $!\n";
+  
+  write_keepers(%keepers);
 }
 
 print "\nRemoved the following orphan packages:\n";
 system('rmorphans2') == 0 or
-  die "$0: system('rmorphans2') failed.\n";
+	die "$0: system('rmorphans2') failed.\n";
+
+# Don't keep negatives from rmorphans
+write_keepers(%keepers);
+
