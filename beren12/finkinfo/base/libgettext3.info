@@ -17,22 +17,32 @@ Splitoff: <<
   Conflicts: gettext-dev
   Replaces: gettext-dev
   Suggests: gettext-doc
-  Depends: %N (= %v-%r), gettext-bin (>= 0.14-1)
+  Depends: %N (= %v-%r), gettext-bin (>= 0.14-1), gettext-tools
   DocFiles: README* AUTHORS gettext-runtime/BUGS COPYING* NEWS THANKS gettext-tools/TODO ChangeLog*
   Description: GNU Internationalization utilities (Development Files)
-  Files: bin/a* bin/gettextize bin/m* bin/x* include lib/gettext lib/*.a lib/*.la lib/libintl.dylib lib/libgettextsrc.dylib lib/libgettextpo.dylib lib/libgettextlib.dylib lib/libasprintf.dylib share/aclocal share/gettext share/info/a* share/man/man1/a* share/man/man1/gettextize* share/man/man1/m* share/man/man1/x*
+  Files: include lib/*.a lib/*.la lib/libintl.dylib lib/libgettextsrc.dylib lib/libgettextpo.dylib lib/libgettextlib.dylib lib/libasprintf.dylib 
+<<
+
+Splitoff2: <<
+  Package: gettext-tools
+  Conflicts: gettext-dev
+  Replaces: gettext-dev
+  Suggests: gettext-doc
+  Depends: libgettext3
+  DocFiles: README* AUTHORS gettext-runtime/BUGS COPYING* NEWS THANKS gettext-tools/TODO ChangeLog*
+  Description: GNU Internationalization utilities (Development Tools)
+  Files: bin/a* bin/gettextize bin/m* bin/x* lib/gettext share/aclocal share/gettext share/info/a* share/man/man1/a* share/man/man1/gettextize* share/man/man1/m* share/man/man1/x*
   InstallScript: <<
     #!/bin/sh -e
     for local in $(ls %I/share/locale | grep -v alias); do
       mkdir -p %i/share/locale/$local/LC_MESSAGES
       if [ -e "%I/share/locale/$local/LC_MESSAGES/gettext-tools.mo" ]; then
-	mv  "%I/share/locale/$local/LC_MESSAGES/gettext-tools.mo" "%i/share/locale/$local/LC_MESSAGES/gettext-tools.mo"
+        mv  "%I/share/locale/$local/LC_MESSAGES/gettext-tools.mo" "%i/share/locale/$local/LC_MESSAGES/gettext-tools.mo"
       fi
     done
-  <<
+  << 
 <<
-
-Splitoff2: <<
+Splitoff3: <<
   Package: gettext-doc
   DocFiles: README* AUTHORS gettext-runtime/BUGS COPYING* NEWS THANKS gettext-tools/TODO ChangeLog*
   Description: GNU Internationalization utilities (Documentation)
@@ -42,11 +52,11 @@ Splitoff2: <<
     rm -rf %I/share/doc/libasprintf
     mv %I/share/doc/gettext/* %i/share/doc/gettext-doc/
     rm -rf %I/share/doc/gettext
-    rm -rf %I/share/emacs/*/*elc
+    rm -rf %I/share/emacs
   <<
 <<
 
-Splitoff3: <<
+Splitoff4: <<
   Package: gettext-bin
   DocFiles: README* AUTHORS gettext-runtime/BUGS COPYING* NEWS THANKS gettext-tools/TODO ChangeLog*
   Description: GNU Internationalization utilities
@@ -57,10 +67,13 @@ DescDetail: <<
   The gettext packages provides some of the i18n and l10n support used by
   many GNU programs but missing from the Darwin C library.
 <<
-DescPort: <<
-  po-mode.elc is deleted to comply with fink's emacs policy.  Better
-  compliance must wait for a further revision.
+
+Shlibs: <<
+  %p/lib/libgettextpo.0.dylib 2.0.0 %n (>= 0.14-1)
+  %p/lib/libasprintf.0.dylib 1.0.0 %n (>= 0.14-1)
+  %p/lib/libintl.3.dylib 8.0.0 %n (>= 0.14-1)
 <<
+
 License: GPL/LGPL
 Maintainer: Fink Core Group <fink-core@lists.sourceforge.net>
 Homepage: http://www.gnu.org/software/gettext/
