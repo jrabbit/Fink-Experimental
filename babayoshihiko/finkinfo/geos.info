@@ -13,7 +13,7 @@ geos-config
 <<
 
 # Dependencies.
-Depends: %N-shlibs (= %v-%r)
+Depends: %N-shlibs (= %v-%r), %N-dev (= %v-%r)
 BuildDepends: 
 
 # Unpack Phase.
@@ -25,14 +25,16 @@ Primary: http://geos.refractions.net/
 
 # Compile Phase.
 GCC: 3.3
-ConfigureParams: --with-libs=%p/lib
-CompileScript: ./configure; make
+ConfigureParams:
+CompileScript: <<
+	./configure; make
+	cd doc; make doxygen-html
+<<
 
 # Install Phase.
 InstallScript: <<
   make install prefix=%i/share
   mv %i/share/bin %i
-  cd doc; make doxygen-html
 <<
 DocFiles: AUTHORS ChangeLog COPYING README TODO
 
@@ -40,8 +42,8 @@ DocFiles: AUTHORS ChangeLog COPYING README TODO
 SplitOff: <<
 	Package: %N-shlibs
 	Replaces: %N (<< 2.1.0)
-	Files: lib/libgeos.2.1.0.dylib
-	Shlibs: %p/lib/libgeos.2.1.0.dylib
+	Files: lib/libgeos.2.1.0.dylib lib/libgeos.2.dylib
+	Shlibs: %p/lib/libgeos.2.dylib 2.2.0 %n (>= 2.0.0-1)
 	DocFiles: AUTHORS ChangeLog COPYING README TODO
 <<
 
