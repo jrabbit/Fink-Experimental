@@ -79,7 +79,7 @@ RCS file: /projects/cvsroot/pgsql/src/Makefile.shlib,v
 retrieving revision 1.56
 diff -u -b -u -b -r1.56 Makefile.shlib
 --- src/Makefile.shlib	2001/11/11 19:20:53	1.56
-+++ src/Makefile.shlib	2002/07/06 05:21:27
++++ src/Makefile.shlib	2002/07/06 07:52:15
 @@ -112,8 +112,9 @@
  endif
  
@@ -118,13 +118,83 @@ diff -u -b -u -b -r1.56 Makefile.shlib
  endif
  ifneq ($(shlib), lib$(NAME)$(DLSUFFIX))
  	cd $(DESTDIR)$(libdir) && \
+Index: src/backend/utils/misc/guc.c
+===================================================================
+RCS file: /projects/cvsroot/pgsql/src/backend/utils/misc/guc.c,v
+retrieving revision 1.58
+diff -u -b -u -b -r1.58 guc.c
+--- src/backend/utils/misc/guc.c	2001/10/30 05:38:56	1.58
++++ src/backend/utils/misc/guc.c	2002/07/06 07:52:15
+@@ -576,12 +576,12 @@
+ 
+ 	{
+ 		"unix_socket_group", PGC_POSTMASTER, &Unix_socket_group,
+-		"", NULL, NULL
++		"pgsql", NULL, NULL
+ 	},
+ 
+ 	{
+ 		"unix_socket_directory", PGC_POSTMASTER, &UnixSocketDir,
+-		"", NULL, NULL
++		"/tmp", NULL, NULL
+ 	},
+ 
+ 	{
+Index: src/backend/utils/misc/postgresql.conf.sample
+===================================================================
+RCS file: /projects/cvsroot/pgsql/src/backend/utils/misc/postgresql.conf.sample,v
+retrieving revision 1.28
+diff -u -b -u -b -r1.28 postgresql.conf.sample
+--- src/backend/utils/misc/postgresql.conf.sample	2002/01/04 05:50:25	1.28
++++ src/backend/utils/misc/postgresql.conf.sample	2002/07/06 07:52:15
+@@ -23,17 +23,17 @@
+ #
+ #	Connection Parameters
+ #
+-#tcpip_socket = false
+-#ssl = false
++tcpip_socket = true
++ssl = false
+ 
+-#max_connections = 32
++max_connections = 32
+ 
+ #port = 5432 
+ #hostname_lookup = false
+ #show_source_port = false
+ 
+-#unix_socket_directory = ''
+-#unix_socket_group = ''
++unix_socket_directory = '/tmp'
++unix_socket_group = 'pgsql'
+ #unix_socket_permissions = 0777
+ 
+ #virtual_host = ''
+Index: src/bin/pg_ctl/pg_ctl.sh
+===================================================================
+RCS file: /projects/cvsroot/pgsql/src/bin/pg_ctl/pg_ctl.sh,v
+retrieving revision 1.25
+diff -u -b -u -b -r1.25 pg_ctl.sh
+--- src/bin/pg_ctl/pg_ctl.sh	2001/09/29 03:09:32	1.25
++++ src/bin/pg_ctl/pg_ctl.sh	2002/07/06 07:52:16
+@@ -14,6 +14,10 @@
+ 
+ CMDNAME=`basename $0`
+ 
++ulimit -d 24000
++ulimit -n 512
++ulimit -s 4096
++
+ help="\
+ $CMDNAME is a utility to start, stop, restart, reload configuration files,
+ or report the status of a PostgreSQL server.
 Index: src/interfaces/ecpg/lib/Makefile
 ===================================================================
 RCS file: /projects/cvsroot/pgsql/src/interfaces/ecpg/lib/Makefile,v
 retrieving revision 1.15
 diff -u -b -u -b -r1.15 Makefile
 --- src/interfaces/ecpg/lib/Makefile	2002/01/08 20:41:26	1.15
-+++ src/interfaces/ecpg/lib/Makefile	2002/07/06 05:21:28
++++ src/interfaces/ecpg/lib/Makefile	2002/07/06 07:52:16
 @@ -17,7 +17,7 @@
  SO_MINOR_VERSION= 3.0
  
@@ -140,7 +210,7 @@ RCS file: /projects/cvsroot/pgsql/src/interfaces/libpgeasy/Makefile,v
 retrieving revision 1.7
 diff -u -b -u -b -r1.7 Makefile
 --- src/interfaces/libpgeasy/Makefile	2001/05/11 01:46:33	1.7
-+++ src/interfaces/libpgeasy/Makefile	2002/07/06 05:21:28
++++ src/interfaces/libpgeasy/Makefile	2002/07/06 07:52:16
 @@ -17,6 +17,7 @@
  SO_MINOR_VERSION= 2
  
@@ -155,7 +225,7 @@ RCS file: /projects/cvsroot/pgsql/src/interfaces/libpgtcl/Makefile,v
 retrieving revision 1.26
 diff -u -b -u -b -r1.26 Makefile
 --- src/interfaces/libpgtcl/Makefile	2001/05/11 01:46:33	1.26
-+++ src/interfaces/libpgtcl/Makefile	2002/07/06 05:21:28
++++ src/interfaces/libpgtcl/Makefile	2002/07/06 07:52:16
 @@ -17,6 +17,7 @@
  SO_MINOR_VERSION= 2
  
@@ -170,7 +240,7 @@ RCS file: /projects/cvsroot/pgsql/src/interfaces/libpq++/Makefile,v
 retrieving revision 1.30
 diff -u -b -u -b -r1.30 Makefile
 --- src/interfaces/libpq++/Makefile	2001/05/22 11:24:28	1.30
-+++ src/interfaces/libpq++/Makefile	2002/07/06 05:21:28
++++ src/interfaces/libpq++/Makefile	2002/07/06 07:52:16
 @@ -17,6 +17,7 @@
  SO_MINOR_VERSION= 0
  
@@ -185,7 +255,7 @@ RCS file: /projects/cvsroot/pgsql/src/interfaces/perl5/GNUmakefile,v
 retrieving revision 1.6
 diff -u -b -u -b -r1.6 GNUmakefile
 --- src/interfaces/perl5/GNUmakefile	2001/08/26 22:28:04	1.6
-+++ src/interfaces/perl5/GNUmakefile	2002/07/06 05:21:28
++++ src/interfaces/perl5/GNUmakefile	2002/07/06 07:52:16
 @@ -12,14 +12,9 @@
  
  .NOTPARALLEL:
@@ -210,7 +280,7 @@ RCS file: /projects/cvsroot/pgsql/src/interfaces/python/GNUmakefile,v
 retrieving revision 1.13
 diff -u -b -u -b -r1.13 GNUmakefile
 --- src/interfaces/python/GNUmakefile	2001/12/13 18:39:04	1.13
-+++ src/interfaces/python/GNUmakefile	2002/07/06 05:21:28
++++ src/interfaces/python/GNUmakefile	2002/07/06 07:52:16
 @@ -18,6 +18,7 @@
  include $(top_srcdir)/src/Makefile.shlib
  
@@ -225,7 +295,7 @@ RCS file: /projects/cvsroot/pgsql/src/pl/plpython/Makefile,v
 retrieving revision 1.10
 diff -u -b -u -b -r1.10 Makefile
 --- src/pl/plpython/Makefile	2001/09/16 16:11:11	1.10
-+++ src/pl/plpython/Makefile	2002/07/06 05:21:28
++++ src/pl/plpython/Makefile	2002/07/06 07:52:16
 @@ -8,7 +8,7 @@
  # On some platforms we can only build PL/Python if libpython is a
  # shared library.  Since there is no official way to determine this,
