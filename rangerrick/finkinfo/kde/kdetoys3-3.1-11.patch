@@ -1,0 +1,170 @@
+
+--- kweather/weatherservice.cpp	4 Oct 2002 02:46:59 -0000	1.1.1.3
++++ /dev/null	1 Jan 1970 00:00:00 -0000
+@@ -1,166 +0,0 @@
+-/* $Id$ */
+-#include <kdebug.h>
+-#include <kapplication.h>
+-#include <kconfig.h>
+-#include <kstandarddirs.h>
+-
+-#include "weatherlib.h"
+-#include "weatherservice.h"
+-
+-WeatherService::WeatherService() : QObject (0,"WeatherService"),  DCOPObject("WeatherService")
+-{
+-	kdDebug(12004) << "Starting new service... " << endl;
+-	m_weatherLib = new WeatherLib;
+-	connect(m_weatherLib, SIGNAL(fileUpdateing( const QString&)), 
+-			SLOT(updateing( const QString&)));
+-	connect(m_weatherLib, SIGNAL(fileUpdate( const QString&)), 
+-			SLOT(updated( const QString&)));
+-
+-	KConfig *conf = kapp->config();
+-	
+-	conf->setGroup("WEATHERSTATIONS");
+-	QStringList stations =conf->readListEntry("stations");
+-	for ( QStringList::Iterator it = stations.begin (); it != stations.end(); ++it )
+-		m_weatherLib->update(*it);
+-	//kapp->config()->setGroup("Weather Service Options");
+-	//reportLocation = kapp->config()->readEntry("report_location", "none");
+-	//kapp->config()->sync();
+-}
+-
+-WeatherService::~WeatherService()
+-{
+-	kdDebug(12004) << "Going away... " << endl;
+-	KConfig *conf = kapp->config();
+-	conf->setGroup("WEATHERSTATIONS");
+-	conf->writeEntry( "stations", m_weatherLib->stations());
+-	conf->sync();
+-}
+-
+-void WeatherService::updated(const QString &stationID)
+-{
+-	kdDebug(12004) << "Sending update for " << stationID << endl;
+-	fileUpdate( stationID );	
+-}
+-
+-void WeatherService::updateing(const QString &stationID)
+-{
+-	kdDebug(12004) << "Sending updateing for " << stationID << endl;
+-	fileUpdateing( stationID );	
+-}
+-
+-
+-QString WeatherService::temperature(QString stationID)
+-{
+-	kdDebug () << "Returning " << stationID << endl;
+-	return m_weatherLib->temperature(stationID);
+-}
+-
+-QString WeatherService::dewPoint(QString stationID)
+-{
+-	return m_weatherLib->dewPoint(stationID);
+-}
+-
+-QString WeatherService::relitiveHumidity(QString stationID)
+-{
+-	return m_weatherLib->relHumidity(stationID);
+-}
+-
+-QString WeatherService::heatIndex(QString stationID)
+-{
+-	return m_weatherLib->heatIndex(stationID);
+-}
+-
+-QString WeatherService::windChill(QString stationID)
+-{
+-	return m_weatherLib->windChill(stationID);
+-}
+-
+-QString WeatherService::wind(QString stationID)
+-{
+-	return m_weatherLib->wind(stationID);
+-}
+-
+-QString WeatherService::pressure(QString stationID)
+-{
+-	return m_weatherLib->pressure(stationID);
+-}
+-
+-QPixmap WeatherService::currentIcon(QString stationID)
+-{
+-	kdDebug(12004) << "Get the current weather icon.." << endl;
+-	QString icon  = m_weatherLib->currentIcon(stationID);
+-	QString theImage = "kweather/" + icon + ".png";
+-	kdDebug(12004) << "Icon: " << theImage << endl;
+-	QPixmap theIcon = QPixmap(locate("data", theImage));
+-	return theIcon;
+-}
+-
+-QString WeatherService::currentIconString(QString stationID)
+-{
+-	return m_weatherLib->currentIcon(stationID);
+-}
+-
+-QString WeatherService::date(QString stationID)
+-{
+-	return m_weatherLib->date(stationID);
+-}
+-
+-QString WeatherService::visability(QString stationID)
+-{
+-	return m_weatherLib->visibility(stationID);
+-}
+-
+-QStringList WeatherService::cover(QString stationID)
+-{
+-	return m_weatherLib->cover(stationID);
+-}
+-
+-QStringList WeatherService::weather(QString stationID)
+-{
+-	return m_weatherLib->weather(stationID);
+-}
+-void WeatherService::update(QString stationID)
+-{
+-	m_weatherLib->update(stationID);
+-}
+-
+-bool WeatherService::forceUpdate(QString stationID)
+-{
+-	m_weatherLib->blockingUpdate(stationID);
+-}
+-
+-void WeatherService::removeStation(QString stationID)
+-{
+-	return m_weatherLib->remove(stationID);
+-}
+-
+-bool WeatherService::addStation(QString stationID)
+-{
+-	m_weatherLib->update(stationID);
+-}
+-
+-void WeatherService::setMaxAge(int age)
+-{
+-
+-}
+-
+-int WeatherService::maxAge()
+-{
+-
+-}
+-
+-void WeatherService::exit()
+-{
+-	KConfig *conf = kapp->config();
+-	conf->setGroup("WEATHERSTATIONS");
+-	conf->writeEntry( "stations", m_weatherLib->stations());
+-	conf->sync();
+-	kapp->quit();
+-}
+-
+-QStringList WeatherService::listStations()
+-{
+-	return m_weatherLib->stations();
+-}
+-
+-#include "weatherservice.moc"

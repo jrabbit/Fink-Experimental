@@ -1,0 +1,327 @@
+Package: kdemultimedia3
+Version: 3.1
+Revision: 11
+Description: KDE - multimedia
+License: GPL/LGPL
+Maintainer: Benjamin Reed <ranger@befunk.com>
+
+Depends: aktion (>= %v-%r), arts-tools (>= %v-%r), kaboodle (>= %v-%r), kmid (>= %v-%r), kmidi (>= %v-%r), kmix (>= %v-%r), krec (>= %v-%r), noatun (>= %v-%r), kde-extra-multimedia-plugins (>= %v-%r), kdebase3-ssl (>= %v-11) | kdebase3 (>= %v-11), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), %N-base (>= %v-%r)
+BuildDepends: arts-dev (>= 1.1.0-11), audiofile (>= 0.2.3), dlcompat-dev (>= 20021117), kdelibs3-ssl-dev (>= %v-11) | kdelibs3-dev (>= %v-11), kdebase3-ssl-dev (>= %v-11) | kdebase3-dev (>= %v-11), libart2 (>= 2.3.9), libogg (>= 1.0.0), libpng3 (>= 1.2.4), libpoll (>= 1.1), libvorbis0 (>= 1.0), libxine (>= 0.9.13), mad (>= 0.4.12b), qt3 (>= 3.1.0), x11, automake (>= 1.6), autoconf2.5, libtool14
+GCC: 3.1
+
+CustomMirror: <<
+  nam-US: http://ranger.befunk.com/fink
+  nam-CA: http://www.southofheaven.net/befunk
+<<
+Source: mirror:kde:stable/3.1/src/kdemultimedia-%v.tar.bz2
+Source-MD5: c418c435b14ab5bcb51247c2d182b80d
+Source2: mirror:custom:kde-admindir-20030119.tar.bz2
+Source2-MD5: 9682e199f48424878f17c4792a3664fa
+Source2ExtractDir: kdemultimedia-%v
+
+PatchScript: sed 's|@PREFIX@|%p|g' <%a/%f.patch | patch -p0
+
+SetCFLAGS: -fno-common
+SetCPPFLAGS: -no-cpp-precomp -isystem %p/include -I%p/include
+SetLIBS: -L%p/lib
+SetMACOSX_DEPLOYMENT_TARGET: 10.2
+ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --enable-ncurses --enable-gtk --with-lame=%p --with-vorbis=%p --with-esd-prefix=%p --with-glib-prefix=%p --with-gtk-prefix=%p --with-xine-prefix=%p --without-midi --enable-final --disable-dependency-tracking
+CompileScript: <<
+#!/bin/sh
+  export KDEDIR=%p
+  make -f Makefile.cvs
+  [ $? = 0 ] && sh ./configure %c
+  [ $? = 0 ] && make -j2
+<<
+
+InstallScript: <<
+  make install DESTDIR=%d
+  rm -rf %i/share/doc/HTML/en/kscd
+  rm -rf %i/share/applnk/Multimedia/More/arts*
+  mkdir -p %i/share/doc/kde-installed-packages
+  touch %i/share/doc/kde-installed-packages/%N
+  touch %i/share/doc/kde-installed-packages/%N-base
+<<
+DocFiles: AUTHORS COPYING ChangeLog INSTALL README
+SplitOff: <<
+  Package: %N-dev
+  Description: KDE - multimedia development libraries and headers
+  Depends: %N (>= %v-%r), %N-base (>= %v-%r)
+  Replaces: %N (<< %v-%r)
+  BuildDependsOnly: true
+  Files: <<
+    include
+  <<
+<<
+SplitOff2: <<
+  Package: aktion
+  Description: KDE - video player based on XAnim
+  Depends: dlcompat-shlibs (>= 20021117), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs (>= 2.3.9), libpng3-shlibs (>= 1.2.4), qt3-shlibs (>= 3.1.0), x11, %N-base (>= %v-%r)
+  Replaces: %N (<< %v-%r)
+  Recommends: kdebase3-ssl (>= %v-11) | kdebase3 (>= %v-11)
+  BuildDependsOnly: true
+  Files: <<
+    bin/aktion
+    lib/*aktion*
+    share/applnk/Multimedia/More/aktion.desktop
+    share/apps/aktion
+    share/config/aktionrc
+    share/doc/HTML/en/aktion
+    share/icons/crystalsvg/16x16/apps/aktion.png
+    share/icons/crystalsvg/32x32/apps/aktion.png
+  <<
+<<
+SplitOff3: <<
+  Package: arts-tools
+  Description: KDE - audio tools and plugins for aRts
+  Depends: arts (>= 1.1.0-11), audiofile-shlibs (>= 0.2.3), dlcompat-shlibs (>= 20021117), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs (>= 2.3.9), libogg-shlibs (>= 1.0.0), libpng3-shlibs (>= 1.2.4), libpoll-shlibs (>= 1.1), libvorbis0-shlibs (>= 1.0), libxine-shlibs (>= 0.9.13), mad-shlibs (>= 0.4.12b), qt3-shlibs (>= 3.1.0), x11, %N-base (>= %v-%r)
+  Replaces: %N (<< %v-%r)
+  Recommends: kdebase3-ssl (>= %v-11) | kdebase3 (>= %v-11)
+  BuildDependsOnly: true
+  Files: <<
+    bin/arts*
+    bin/midisend
+    lib/libarts*
+    lib/libaudiofilearts*
+    lib/libmpg123*
+    lib/liboggarts*
+    lib/mcop/Arts
+    lib/mcop/arts*
+    lib/mcop/audiofilearts*
+    lib/mcop/mpg123arts*
+    lib/mcop/oggarts*
+    lib/mcop/xine*
+    share/applnk/Multimedia/arts*
+    share/apps/arts*
+    share/doc/HTML/en/arts*
+    share/icons/crystalsvg/16x16/actions/artsbuilderexecute.png
+    share/icons/crystalsvg/16x16/apps/artsbuilder.png
+    share/icons/crystalsvg/16x16/apps/artscontrol.png
+    share/icons/crystalsvg/22x22/actions/artsbuilderexecute.png
+    share/mimelnk/application/x-artsbuilder.desktop
+  <<
+<<
+SplitOff4: <<
+  Package: kaboodle
+  Description: KDE - simple media player
+  Depends: arts (>= 1.1.0-11), audiofile-shlibs (>= 0.2.3), dlcompat-shlibs (>= 20021117), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs (>= 2.3.9), libogg-shlibs (>= 1.0.0), libpng3-shlibs (>= 1.2.4), libpoll-shlibs (>= 1.1), libvorbis0-shlibs (>= 1.0), mad-shlibs (>= 0.4.12b), qt3-shlibs (>= 3.1.0), x11, %N-base (>= %v-%r)
+  Replaces: %N (<< %v-%r)
+  Recommends: kdebase3-ssl (>= %v-11) | kdebase3 (>= %v-11)
+  BuildDependsOnly: true
+  Files: <<
+    bin/kaboodle
+    lib/kaboodle*
+    lib/libkaboodle*
+    share/applnk/Multimedia/More/kaboodle.desktop
+    share/applnk/Multimedia/kaboodle.desktop
+    share/apps/kaboodle
+    share/doc/HTML/en/kaboodle
+    share/icons/crystalsvg/16x16/apps/kaboodle.png
+    share/icons/crystalsvg/22x22/apps/kaboodle.png
+    share/icons/crystalsvg/32x32/apps/kaboodle.png
+    share/icons/crystalsvg/48x48/apps/kaboodle.png
+    share/icons/crystalsvg/64x64/apps/kaboodle.png
+    share/icons/crystalsvg/128x128/apps/kaboodle.png
+    share/services/kaboodle_component.desktop
+  <<
+<<
+SplitOff5: <<
+  Package: kmid
+  Description: KDE - midi player with karaoke support
+  Depends: dlcompat-shlibs (>= 20021117), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs (>= 2.3.9), libpng3-shlibs (>= 1.2.4), qt3-shlibs (>= 3.1.0), x11, %N-base (>= %v-%r)
+  Replaces: %N (<< %v-%r)
+  Recommends: kdebase3-ssl (>= %v-11) | kdebase3 (>= %v-11)
+  BuildDependsOnly: true
+  Files: <<
+    bin/kmid
+    lib/kde3/*kmidpart*
+    lib/kde3/kmid.*
+    share/applnk/Multimedia/More/kmid.desktop
+    share/applnk/Multimedia/kmid.desktop
+    share/apps/kmid
+    share/doc/HTML/en/kmid
+    share/icons/crystalsvg/16x16/apps/kmid.png
+    share/icons/crystalsvg/32x32/apps/kmid.png
+    share/icons/crystalsvg/48x48/apps/kmid.png
+    share/mimelnk/audio/x-karaoke.desktop
+    share/servicetypes/audiomidi.desktop
+  <<
+<<
+SplitOff6: <<
+  Package: kmidi
+  Description: KDE - software midi player
+  Depends: arts (>= 1.1.0-11), dlcompat-shlibs (>= 20021117), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs (>= 2.3.9), libpng3-shlibs (>= 1.2.4), qt3-shlibs (>= 3.1.0), x11, %N-base (>= %v-%r)
+  Replaces: %N (<< %v-%r)
+  Recommends: kdebase3-ssl (>= %v-11) | kdebase3 (>= %v-11)
+  BuildDependsOnly: true
+  Files: <<
+    bin/kmidi
+    bin/sf2cfg
+    bin/timidity
+    share/applnk/Multimedia/More/kmidi.desktop
+    share/applnk/Multimedia/kmidi.desktop
+    share/applnk/Multimedia/More/timidity.desktop
+    share/applnk/Multimedia/timidity.desktop
+    share/apps/kmidi
+    share/doc/HTML/en/kmidi
+    share/icons/crystalsvg/16x16/apps/kmidi.png
+    share/icons/crystalsvg/32x32/apps/kmidi.png
+    share/icons/crystalsvg/48x48/apps/kmidi.png
+  <<
+<<
+SplitOff7: <<
+  Package: kmix
+  Description: KDE - sound card mixer controls
+  Depends: dlcompat-shlibs (>= 20021117), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs (>= 2.3.9), libpng3-shlibs (>= 1.2.4), qt3-shlibs (>= 3.1.0), x11, %N-base (>= %v-%r)
+  Replaces: %N (<< %v-%r)
+  Recommends: kdebase3-ssl (>= %v-11) | kdebase3 (>= %v-11)
+  BuildDependsOnly: true
+  Files: <<
+    bin/kmix
+    bin/kmixctrl
+    lib/kde3/*kcm_kmix*
+    lib/kde3/*kmix_*
+    lib/*kmix*
+    share/applnk/Multimedia/kmix.desktop
+    share/applnk/.hidden/kmixcfg.desktop
+    share/apps/kicker/applets/kmixapplet.desktop
+    share/apps/kmix
+    share/doc/HTML/en/kmix
+    share/doc/HTML/en/kcontrol/kmixcfg
+    share/icons/crystalsvg/16x16/apps/kmix.png
+    share/icons/crystalsvg/32x32/apps/kmix.png
+    share/icons/crystalsvg/48x48/apps/kmix.png
+    share/icons/crystalsvg/64x64/apps/kmix.png
+    share/icons/crystalsvg/128x128/apps/kmix.png
+    share/services/kmixctrl_restore.desktop
+  <<
+<<
+SplitOff8: <<
+  Package: krec
+  Description: KDE - sound recorder
+  Depends: arts (>= 1.1.0-11), arts-tools (>= 1.1.0-8), audiofile-shlibs (>= 0.2.3), dlcompat-shlibs (>= 20021117), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs (>= 2.3.9), libogg-shlibs (>= 1.0.0), libpng3-shlibs (>= 1.2.4), libpoll-shlibs (>= 1.1), libvorbis0-shlibs (>= 1.0), mad-shlibs (>= 0.4.12b), qt3-shlibs (>= 3.1.0), x11, %N-base (>= %v-%r)
+  Replaces: %N (<< %v-%r)
+  Recommends: kdebase3-ssl (>= %v-11) | kdebase3 (>= %v-11)
+  BuildDependsOnly: true
+  Files: <<
+    bin/krec
+    lib/*krec*
+    share/applnk/Multimedia/krec.desktop
+    share/apps/krec
+    share/doc/HTML/en/krec
+    share/icons/crystalsvg/48x48/apps/krec.png
+  <<
+<<
+SplitOff9: <<
+  Package: noatun
+  Description: KDE - media player
+  Depends: arts (>= 1.1.0-11), arts-tools (>= 1.1.0-8), audiofile-shlibs (>= 0.2.3), dlcompat-shlibs (>= 20021117), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs (>= 2.3.9), libogg-shlibs (>= 1.0.0), libpng3-shlibs (>= 1.2.4), libpoll-shlibs (>= 1.1), libvorbis0-shlibs (>= 1.0), mad-shlibs (>= 0.4.12b), noatun, qt3-shlibs (>= 3.1.0), x11, %N-base (>= %v-%r)
+  Replaces: %N (<< %v-%r)
+  Recommends: kdebase3-ssl (>= %v-11) | kdebase3 (>= %v-11)
+  BuildDependsOnly: true
+  Files: <<
+    bin/noatun
+    lib/kde3/*noatun*
+    lib/*noatun*
+    lib/libwinskin*
+    lib/mcop/ExtraStereo*
+    lib/mcop/Noatun
+    lib/mcop/RawWriter.*
+    lib/mcop/VoiceRemoval.*
+    lib/mcop/noatun*
+    lib/mcop/winskinvis.*
+    share/applnk/Multimedia/noatun.desktop
+    share/apps/kconf_update/noatun.upd
+    share/apps/kconf_update/noatun20update
+    share/apps/noatun
+    share/doc/HTML/en/noatun
+    share/icons/crystalsvg/16x16/apps/noatun.png
+    share/icons/crystalsvg/22x22/apps/noatun.png
+    share/icons/crystalsvg/32x32/apps/noatun.png
+    share/icons/crystalsvg/48x48/apps/noatun.png
+    share/icons/crystalsvg/64x64/apps/noatun.png
+    share/icons/crystalsvg/128x128/apps/noatun.png
+    share/mimelnk/interface/x-winamp-skin.desktop
+  <<
+<<
+SplitOff10: <<
+  Package: kde-extra-multimedia-plugins
+  Description: KDE - additional multimedia plugins
+  Depends: arts (>= 1.1.0-11), audiofile-shlibs (>= 0.2.3), dlcompat-shlibs (>= 20021117), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs (>= 2.3.9), libogg-shlibs (>= 1.0.0), libpng3-shlibs (>= 1.2.4), libpoll-shlibs (>= 1.1), libvorbis0-shlibs (>= 1.0), mad-shlibs (>= 0.4.12b), qt3-shlibs (>= 3.1.0), x11, %N-base (>= %v-%r)
+  Replaces: %N (<< %v-%r)
+  BuildDependsOnly: true
+  Files: <<
+    lib/kde3/*kfile*
+    lib/kde3/*videothumb*
+    share/apps/videothumbnail
+    share/services/kfile*
+    share/services/videothumbnail*
+  <<
+<<
+SplitOff11: <<
+  Package: %N-base
+  Description: KDE - kdemultimedia base package
+  Replaces: %N (<< %v-%r)
+  BuildDependsOnly: true
+  Depends: arts (>= 1.1.0-11), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), kdebase3-ssl (>= %v-11) | kdebase3 (>= %v-11)
+  Files: <<
+    share/doc/kde-installed-packages/%N-base
+  <<
+<<
+
+DescDetail: <<
+Extra multimedia applications for KDE.
+
+Install the kdemultimedia3 package if you want to install all of the
+kdemultimedia packages.  kdemultimedia3 contains:
+
+  aktion
+  arts-tools
+  kaboodle
+  kde-extra-multimedia-plugins
+  kmid
+  kmidi
+  kmix
+  krec
+  noatun
+<<
+DescUsage: <<
+---[ Installation ]---------------------------------------------------
+
+To install all of the official KDE packages, install "bundle-kde" or
+"bundle-kde-ssl" (depending on whether crypotgraphic laws permit
+downloading strong cryptography).
+
+---[ Configuration ]--------------------------------------------------
+
+To use KDE as your windowing system in XDarwin, create a file called
+".xinitrc" in your home directory, with the following commands (it is
+safe to cut and paste these):
+
+  echo "source /sw/bin/init.sh" > ~/.xinitrc
+  echo "/sw/bin/startkde >/tmp/kde.log 2>&1" >> ~/.xinitrc
+
+Note that this will overwrite an existing .xinitrc file!
+
+---[ Startup ]--------------------------------------------------------
+
+Once you have created an ~/.xinitrc file, you should be able to start
+KDE by clicking on the "XDarwin" icon in your Applications folder.  
+   
+NOTE: If you plan on running in rootless mode, you will likely want to
+disable desktop icons, or else the root window desktop will cover up
+your Aqua destkop.  You can do this by starting the KDE control
+center, expanding the "Desktop" list, click "Behavior", and uncheck   
+the "Enable icons on desktop" checkbox.
+   
+---[ Removal ]--------------------------------------------------------
+   
+To remove all of the official KDE packages, you can remove aRts and
+anything that depends on it, by running (in a terminal):
+   
+  sudo apt-get remove arts
+
+To remove just the kdemultimedia packages, run:
+
+  sudo apt-get remove kdemultimedia3-base
+<<

@@ -1,13 +1,13 @@
 #!/usr/bin/perl
 
 my $KDEVERSION   = '3.1';
-my $KDEDIRECTORY = 'unstable/kde-3.1-rc5/src/';
-my $KDERELNUM    = 10;
-my $KDEARTSVER   = '1.1.0-10';
+my $KDEDIRECTORY = 'stable/3.1/src/';
+my $KDERELNUM    = 11;
+my $KDEARTSVER   = '1.1.0-11';
 my $KOVERSION    = '1.2.1';
 my $KODIRECTORY  = 'stable/koffice-1.2.1/src/';
-my $KORELNUM     = 1;
-my $KOARTSVER    = '1.1.0-8';
+my $KORELNUM     = 2;
+my $KOARTSVER    = '1.1.0-11';
 my $VERBOSE      = 0;
 my $DRYRUN       = 0;
 
