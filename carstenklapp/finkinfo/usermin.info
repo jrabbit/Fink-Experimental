@@ -1,5 +1,5 @@
 Package: usermin
-Version: 0.970
+Version: 1.020
 Revision: 1
 Description: Web-based interface for users to perform unix tasks
 License: BSD
@@ -23,20 +23,40 @@ Enhances: webmin
 Maintainer: Carsten Klapp <carstenklapp@users.sourceforge.net>
 Homepage: http://usermin.com/
 Source: mirror:sourceforge:webadmin/%n-%v.tar.gz
-Source-MD5: 8f346c57358101a050da4d9d9ff59d77
+Source-MD5: b6719e07bde8d3016ebd79640f693839
 SourceDirectory: .
 PatchScript: <<
  echo "Deleting files not applicable to Darwin / Mac OS X..." 
  for incompatible_config in -linux aix cobalt-linux corel-linux debian-linux -freebsd generic-linux gentoo-linux hpux irix mandrake-linux msc-linux netbsd open-linux openbsd openserver osf1 redhat-linux slackware-linux solaris suse-linux turbo-linux united-linux unixware ; do find . -name "*${incompatible_config}*" -print -exec rm {} \; ; done
  echo "Done."
 
- sed 's|@PREFIX@|%p|g' <%a/%f.patch | patch -p1
+ sed 's|@PREFIX@|%p|g' <%a/%n.patch | patch -p1
 <<
 CompileScript: <<
  echo "Inserting path to perl into scripts..."
  (find . -name '*.cgi' -print ; find . -name '*.pl' -print) | /usr/bin/perl "./%n-%v/perlpath.pl" /usr/bin/perl -
  echo "Done."
- 
+
+ echo "Creating module splitoff config files..."
+ for module_splitoff in at chfn commands cshrc fetchmail file forward gnupg htaccess mscstyle3 plan procmail quota shell ssh telnet theme tunnel usermount ; do mkdir -p etc/%n/${module_splitoff} ; cp %n-%v/${module_splitoff}/config etc/%n/${module_splitoff}/ ; touch etc/%n/${module_splitoff}/admin.acl ; done
+
+ for macos_module_splitoff in changepass cron mailbox man proc ; do mkdir -p etc/%n/${macos_module_splitoff} ; cp %n-%v/${macos_module_splitoff}/config-macos etc/%n/${macos_module_splitoff}/config ; touch etc/%n/${macos_module_splitoff}/admin.acl ; done
+ echo "Done."
+
+ echo "Preparing usermin config files..."
+ cp %n-%v/miniserv.pem etc/%n/miniserv.pem
+ touch etc/%n/module.infos.cache
+ echo "/usr/bin/perl" > etc/%n/perl-path
+ echo "%p/var/%n" > etc/%n/var-path
+ echo "%v" > etc/%n/version
+ mkdir -p var/%n
+ touch var/%n/sessiondb.pag
+ touch var/%n/miniserv.error
+ touch var/%n/miniserv.log
+ touch var/%n/webmin.log
+ touch var/%n/sessiondb.dir
+ touch var/%n/miniserv.pid
+
  echo "Preparing DocFiles..."
  ln %n-%v/LICENCE LICENCE
  ln %n-%v/LICENCE.ja LICENCE.ja
@@ -62,7 +82,7 @@ ConfFiles: <<
 <<
 InstallScript: <<
  mkdir -p %i/lib
- mv %n-%v %i/lib/%n0.9
+ mv %n-%v %i/lib/%n1.0
 <<
 DocFiles: LICENCE LICENCE.ja README
 PostInstScript: <<
@@ -81,7 +101,7 @@ PostInstScript: <<
  port='20000' ; \
  host=`hostname` ; \
  export config_dir var_dir perl port host; \
- %p/lib/%n0.9/setup.sh
+ %p/lib/%n1.0/setup.sh
 <<
 DescPort: <<
  Add fink's bin / sbin directories into usermin's search path
@@ -93,19 +113,19 @@ DescPackaging: <<
  setup.sh script also patched to default to the fink installation dir
  for manual reinstallation.
 <<
-SplitOff: <<
- Package: %N-mysql
- Description: Usermin module: MySQL Database Server
- DescDetail: <<
-  Setup databases, tables and permissions in your MySQL database
-  server.
- <<
- Homepage: http://www.usermin.com/standard.html
- Depends: %N (= %v-%r)
- Enhances: %N (= %v-%r), mysql
- Recommends: mysql
- Files: lib/%N0.9/mysql etc/%N/mysql/
- ConfFiles: %p/etc/%N/mysql/config %p/etc/%N/mysql/admin.acl
- DocFiles: LICENCE LICENCE.ja
- PostInstScript: %p/lib/%N0.9/fink-newmodule-postinstall
-<<
+#SplitOff: <<
+# Package: %N-mysql
+# Description: Usermin module: MySQL Database Server
+# DescDetail: <<
+#  Setup databases, tables and permissions in your MySQL database
+#  server.
+# <<
+# Homepage: http://www.usermin.com/standard.html
+# Depends: %N (= %v-%r)
+# Enhances: %N (= %v-%r), mysql
+# Recommends: mysql
+# Files: lib/%N1.0/mysql etc/%N/mysql/
+# ConfFiles: %p/etc/%N/mysql/config %p/etc/%N/mysql/admin.acl
+# DocFiles: LICENCE LICENCE.ja
+# PostInstScript: %p/lib/%N1.0/fink-newmodule-postinstall
+#<<
