@@ -1,6 +1,6 @@
 #!/bin/sh
-
-for foo in `cat $1/var/lib/dpkg/info/*.list`
+fink_path=`which dpkg | sed -e 's:/bin/dpkg::'`
+for foo in `cat $fink_path/var/lib/dpkg/info/*.list`
 do
 if (! test -e "$foo")
 then
