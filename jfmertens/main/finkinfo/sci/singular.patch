@@ -22,10 +22,10 @@ sed -ri.bak '/\.dl_o :/,+1s/ \$\{CXXFLAGS\}//' Singular/Makefile.in
 # (the first series is there just because it wasn't clear they were included in -O3 in Apple's version)
 # -fsched-spec-load gave very bad performance _ maybe removing the others too ? First try -fno-sched-spec_ was worse
 xtrflags="-fschedule-insns -fschedule-insns2 -fsched-interblock -fstrict-aliasing -fregmove -freorder-blocks"
-ntlflags="$xtrflags -floop-transpose --param max-gcse-passes=3 -ffast-math -faltivec"
-xtrflags="$ntlflags -malign-natural"
-if ${noopt} ; then flags=$nooptflags; sflags="-fPIC $flags"; ntlflags=$flags
-  else ntlflags="-mdynamic-no-pic -O3 $ntlflags"; flags="$ntlflags -malign-natural"; sflags="-fPIC -O3 $xtrflags"
+ipflags="$xtrflags -floop-transpose --param max-gcse-passes=3 -ffast-math -faltivec"
+xtrflags="$ipflags -malign-natural"
+if ${noopt} ; then flags=$nooptflags; sflags="-fPIC $flags"; ipflags=$flags
+  else ipflags="-mdynamic-no-pic -O3 $ipflags"; flags="$ipflags -malign-natural"; sflags="-fPIC -O3 $xtrflags"
 fi
 if ! ${dyn} ; then sflags=$flags; fi
 ##
@@ -170,6 +170,7 @@ perl -pi -e "s/\-O(3|)/$flags $mflags $warnflags/g" omalloc/Makefile.in
 # We need -fPIC, hence $sflags, in MP (maybe just in MP/MP ??
 #  msg was ".../libMP.a(MP_Put.o) has local relocation entries in non-writable section (__TEXT,__text)")
 perl -pi -e "s/\-O3 \-w/$sflags $mflags $warnflags/g" MP/configure.in
+perl -pi.bak -e 's/\@CFLAGS\@/\@CFLAGS\@ -fno-rtti -fno-exceptions/g' MP/MPT/Makefile.in
 perl -pi.bak -e "s/\t\-w/\t $warnflags/g" factory/GNUmakefile.in
 perl -pi.bak -e "s/\-O2/$flags $mflags/g" factory/configure.in
 perl -pi.bak -e "s/\-O3/$flags $mflags $warnflags/g" libfac/configure.in
@@ -177,7 +178,7 @@ sed -ri -e 's/CFLAGS=\"\-O3 \-w/CFLAGS=\"\-fast/' -e "s/\-fast/$flags $mflags $w
 perl -pi -e "s/\-O3 \-w /$flags $mflags $warnflags /g" Singular/configure.in
 sed -ri -e "s/\-O2 *([$])/$flags $mflags $warnflags \1/g" Singular/Makefile.in
 # -malign-natural causes runtime errors, thus :
-perl -pi -e "s/\@CXXFLAGS\@/$ntlflags $mflags $warnflags/g" IntegerProgramming/Makefile.in
+perl -pi -e "s/\@CXXFLAGS\@/$ipflags $mflags --no-rtti --no-exceptions $warnflags/g" IntegerProgramming/Makefile.in
 ####
 
 ### hdegree.cc _ apparently ~ line 651, corresponding to offset 0x74 in hZeroMult _
