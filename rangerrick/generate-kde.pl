@@ -10,7 +10,7 @@ my $path = abs_path(dirname($0));
 my %files;
 
 find(sub {
-	return unless ($File::Find::name =~ /kde/ or $File::Find::name =~ /qt3/ or $File::Find::name =~ /(postgres|libpq|libpg)/);
+	return unless ($File::Find::name =~ /kde/ or $File::Find::name =~ /qt3/ or $File::Find::name =~ /(postgres|libpq|libpg|wv2)/);
 	return if ($File::Find::name =~ /notready/);
 	$files{$File::Find::name}++ if ($File::Find::name =~ /\.(info|patch)$/);
 }, $path . '/common');
@@ -67,7 +67,13 @@ for my $file (sort keys %files) {
 									}
 									$line = $newline;
 								}
-								if ($tree eq '10.3') {
+								if ($tree =~ /^10\.2/) {
+									$line =~ s/freetype2(-hinting)?-dev(\s+\([^\)]+\))?\s*\|\s*freetype2(-hinting)?-dev(\s+\([^\)]+\))?\s*[\,\s]*//g;
+									$line =~ s/^\#10.2\s+(.*)$/$1/;
+									$line =~ s/libgsf-dev/libgsf/g;
+									$line =~ s/gstreamer\S*?(\s+\([^\)]+\))?\s*[\,\s]*//g;
+									$line =~ s/((imagemagick.*?)-dev)/$2/g;
+								} else {
 									#$line =~ s,\'?-I/usr/X11R6/include/freetype2\s*\'?\s*,,g;
 									$line =~ s/^\#(\s*export\s+LD_TWOLEVEL_NAMESPACE.*)$/$1/;
 									$line =~ s/freetype2(\S*)(\s+\([^\)]+\))?\s*\|\s*freetype2(\S*)(\s+\([^\)]+\))?\s*[\,\s]*//g unless ($line =~ m#-I/usr/X11R6/include#);
@@ -79,11 +85,6 @@ for my $file (sort keys %files) {
 									$line =~ s/--disable-(ada|haskell|pascal) *//g;
 									$line =~ s/^\#10.3\s+(.*)$/$1/;
 									next if ($line =~ /^\s*Depends: libgnugetopt-shlibs$/);
-								} else {
-									$line =~ s/freetype2(-hinting)?-dev(\s+\([^\)]+\))?\s*\|\s*freetype2(-hinting)?-dev(\s+\([^\)]+\))?\s*[\,\s]*//g;
-									$line =~ s/^\#10.2\s+(.*)$/$1/;
-									$line =~ s/libgsf-dev/libgsf/g;
-									$line =~ s/gstreamer\S*?(\s+\([^\)]+\))?\s*[\,\s]*//g;
 								}
 								print FILEOUT $line;
 							}
