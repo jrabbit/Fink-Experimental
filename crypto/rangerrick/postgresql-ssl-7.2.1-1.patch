@@ -1,0 +1,84 @@
+Index: src/Makefile.shlib
+===================================================================
+RCS file: /projects/cvsroot/pgsql/src/Makefile.shlib,v
+retrieving revision 1.56
+diff -u -b -r1.56 Makefile.shlib
+--- src/Makefile.shlib	2001/11/11 19:20:53	1.56
++++ src/Makefile.shlib	2002/07/05 20:12:56
+@@ -112,7 +112,7 @@
+ endif
+ 
+ ifeq ($(PORTNAME), darwin)
+-  shlib			:= lib$(NAME)$(DLSUFFIX).$(SO_MAJOR_VERSION).$(SO_MINOR_VERSION)
++  shlib			:= lib$(NAME).$(SO_MAJOR_VERSION).$(SO_MINOR_VERSION)$(DLSUFFIX)
+   LINK.shared		= $(COMPILER) $(DARWIN_NAMESPACE_SPEC) -bundle -undefined suppress
+ endif
+ 
+@@ -305,9 +305,9 @@
+ $(shlib): $(OBJS)
+ 	$(LINK.shared) $(OBJS) $(SHLIB_LINK) -o $@
+ # If we're using major and minor versions, then make a symlink to major-version-only.
+-ifneq ($(shlib), lib$(NAME)$(DLSUFFIX).$(SO_MAJOR_VERSION))
+-	rm -f lib$(NAME)$(DLSUFFIX).$(SO_MAJOR_VERSION)
+-	$(LN_S) $(shlib) lib$(NAME)$(DLSUFFIX).$(SO_MAJOR_VERSION)
++ifneq ($(shlib), lib$(NAME).$(SO_MAJOR_VERSION)$(DLSUFFIX))
++	rm -f lib$(NAME).$(SO_MAJOR_VERSION)$(DLSUFFIX)
++	$(LN_S) $(shlib) lib$(NAME).$(SO_MAJOR_VERSION)$(DLSUFFIX)
+ endif
+ # Make sure we have a link to a name without any version numbers
+ ifneq ($(shlib), lib$(NAME)$(DLSUFFIX))
+@@ -363,10 +363,10 @@
+ install-lib-shared: $(shlib)
+ 	$(INSTALL_SHLIB) $< $(DESTDIR)$(libdir)/$(shlib)
+ ifneq ($(PORTNAME), win)
+-ifneq ($(shlib), lib$(NAME)$(DLSUFFIX).$(SO_MAJOR_VERSION))
++ifneq ($(shlib), lib$(NAME).$(SO_MAJOR_VERSION)$(DLSUFFIX))
+ 	cd $(DESTDIR)$(libdir) && \
+-	rm -f lib$(NAME)$(DLSUFFIX).$(SO_MAJOR_VERSION) && \
+-	$(LN_S) $(shlib) lib$(NAME)$(DLSUFFIX).$(SO_MAJOR_VERSION)
++	rm -f lib$(NAME).$(SO_MAJOR_VERSION)$(DLSUFFIX) && \
++	$(LN_S) $(shlib) lib$(NAME).$(SO_MAJOR_VERSION)$(DLSUFFIX)
+ endif
+ ifneq ($(shlib), lib$(NAME)$(DLSUFFIX))
+ 	cd $(DESTDIR)$(libdir) && \
+Index: src/interfaces/perl5/GNUmakefile
+===================================================================
+RCS file: /projects/cvsroot/pgsql/src/interfaces/perl5/GNUmakefile,v
+retrieving revision 1.6
+diff -u -b -r1.6 GNUmakefile
+--- src/interfaces/perl5/GNUmakefile	2001/08/26 22:28:04	1.6
++++ src/interfaces/perl5/GNUmakefile	2002/07/05 20:12:56
+@@ -12,14 +12,9 @@
+ 
+ .NOTPARALLEL:
+ 
+-# This would allow a non-root install of the Perl module, but it's not
+-# quite implemented yet.
+-ifeq ($(mysterious_feature),yes)
+-perl_installsitearch	= $(pkglibdir)
+-perl_installsitelib	= $(pkglibdir)
+-perl_installman3dir	= $(mandir)/man3
+-endif
+-
++perl_installsitearch	= $(prefix)/lib/perl5/darwin
++perl_installsitelib	= $(prefix)/lib/perl5
++perl_installman3dir	= $(prefix)/share/man/man3
+ 
+ all: Makefile libpq-all
+ 	$(MAKE) -f $< all VPATH=$(VPATH)
+Index: src/pl/plpython/Makefile
+===================================================================
+RCS file: /projects/cvsroot/pgsql/src/pl/plpython/Makefile,v
+retrieving revision 1.10
+diff -u -b -r1.10 Makefile
+--- src/pl/plpython/Makefile	2001/09/16 16:11:11	1.10
++++ src/pl/plpython/Makefile	2002/07/05 20:12:56
+@@ -8,7 +8,7 @@
+ # On some platforms we can only build PL/Python if libpython is a
+ # shared library.  Since there is no official way to determine this,
+ # we see if there is a file that is named like a shared library.
+-ifneq (,$(wildcard $(python_configdir)/libpython*$(DLSUFFIX)*))
++ifneq (,$(wildcard $(python_configdir)/libpython*.dylib*))
+ shared_libpython = yes
+ endif
+ 
