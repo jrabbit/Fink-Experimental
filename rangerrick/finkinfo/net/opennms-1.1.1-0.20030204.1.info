@@ -1,18 +1,18 @@
 Package: opennms
 Version: 1.1.1
-Revision: 0.20030202.1
+Revision: 0.20030204.1
 
 CustomMirror: <<
   nam-US: ftp://ftp.opennms.org/pub/development/snapshots
   nam-US: http://ranger.befunk.com/fink
   nam-CA: http://www.southofheaven.net/befunk
 <<
-Source: mirror:custom:opennms-20030202.tar.bz2
-Source-MD5: d21b6190ac33cae47591a04ab8dac8a8
+Source: mirror:custom:opennms-20030204.tar.bz2
+Source-MD5: b5c673258965feb571434fa065c9fdba
 SourceDirectory: %n
 
 BuildDepends: ant (>= 1.5), postgresql-dev (>= 7.3.1) | postgresql-ssl-dev (>= 7.3.1), tomcat (>= 4.1.18-4), commons-logging (>= 1.0.3), rrdtool (>= 1.0.40-2), passwd (>= 20030202-1)
-Depends: postgresql (>= 7.3.1), tomcat (>= 4.1.18-4), commons-logging (>= 1.0.3), rrdtool (>= 1.0.40-2), daemonic, passwd (>= 20030202-1), dbd-pg-pm (>= 1.21)
+Depends: postgresql (>= 7.3.1), tomcat (>= 4.1.18-4), commons-logging (>= 1.0.3), rrdtool (>= 1.0.40-2), daemonic, passwd (>= 20030202-1), dbd-pg-pm (>= 1.21), getopt-mixed-pm
 ConfFiles: <<
   %p/var/opennms/etc/actiond-configuration.xml
   %p/var/opennms/etc/capsd-configuration.xml
@@ -90,7 +90,10 @@ CompileScript: <<
     exit 1
   fi
 
-  ./build.sh compile
+  # opennms will find it's own stuff
+  export CLASSPATH=""
+  rm -rf work dist
+  ./build.sh -v compile
 <<
 InstallScript: <<
 #!/bin/sh
@@ -126,7 +129,7 @@ END
   # fix ownership so tomcat can write to log dirs
   chown -R opennms:tomcat %i/var/opennms %i/var/log/opennms %i/var/tomcat4/webapps/opennms %i/var/tomcat4/conf/*
   chmod -R g+w %i/var/opennms/etc %i/var/log/opennms %i/var/tomcat4/conf/*
-  chmod g+s %i/var/log/opennms
+  chmod g+s %i/var/log/opennms %i/var/opennms/etc
 
 <<
 DaemonicFile: <<
