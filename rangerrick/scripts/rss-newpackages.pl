@@ -8,6 +8,7 @@ use strict;
 use vars qw(
 	$CUTOFF
 	$DAYS
+	$DOCVS
 	$NOW
 	$PREFIX
 	$SCP
@@ -25,6 +26,7 @@ $NOW    = time;
 $CUTOFF = ($NOW - (60 * 60 * 24 * $DAYS));
 $PREFIX = '/tmp/fink-rss';
 $SCP    = 1;
+$DOCVS  = 0;
 
 $ENV{CVS_RSH} = '/Users/ranger/bin/ssh.sh';
 
@@ -77,6 +79,36 @@ sub iso_date {
 	return sprintf('%s, %02d %s %04d %02d:%02d:%02d EST', $days[$time[6]], $time[3], $months[$time[4]], $time[5], $time[2], $time[1], $time[0]);
 }
 
+sub get_cvs_log {
+	my $path = shift;
+	my $file = shift;
+
+	$path =~ s/'/\\'/g;
+	$file =~ s/'/\\'/g;
+
+	# get the revision from status
+	chomp(my $status = `cd '$path' && cvs status '$file' 2>/dev/null | grep 'Working revision'`);
+	(undef, $status) = split(/\s*:\s*/, $status);
+
+	my ($author, $logentry);
+	my $indesc = 0;
+
+	# now find the log for that revision
+	open(CVSLOG, "cd '$path' && cvs log -r $status '$file' 2>/dev/null |") or die "can't get a log for $file: $!\n";
+	while (my $line = <CVSLOG>) {
+		if ($line =~ /date:.* author:\s*(\S+)\;/) {
+			$author = $1;
+			$indesc = 1;
+		} elsif ($indesc) {
+			$logentry .= $line;
+		}
+	}
+	close(CVSLOG);
+	$logentry =~ s/[\r\n=]+//gsi;
+
+	return ($author, $logentry);
+}
+
 sub make_rss {
 	my $packagehash = shift;
 	my $tree        = shift;
@@ -103,16 +135,26 @@ sub make_rss {
 	my $description;
 	for my $package (sort { $packagehash->{$b}->{'date'} <=> $packagehash->{$a}->{'date'} } keys %{$packagehash}) {
 		$package = $packagehash->{$package};
+
 		if (not exists $package->{'descdetail'} or $package->{'descdetail'} =~ /^\s*$/gs) {
 			$description = $package->{'description'};
 		} else {
 			$description = $package->{'descdetail'};
 		}
-		$description =~ s/!\p{IsASCII}//gs; $description =~ s/[\s\n\r]+/ /gs;
-		$description =~ s/^\s+//; $description =~ s/\s+$//;
+
+		$description =~ s/!\p{IsASCII}//gs;
+		$description =~ s/^[\r\n]+//; $description =~ s/[\r\n\s]+$//;
+		($description) = encode_entities($description);
+		$package->{'cvslog'} =~ s/!\p{IsASCII}//gs;
+		if ($DOCVS) {
+			$description = '<![CDATA[<pre>' . $description . "\n\ncommit log from " .
+				$package->{'cvsauthor'} . ":\n" .
+				$package->{'cvslog'} . "</pre>]]>";
+		}
+
 		$rss->add_item(
 			title       => encode_entities($package->{'package'} . ' ' . $package->{'version'} . '-' . $package->{'revision'} . ' (' . $package->{'description'} . ')'),
-			description => encode_entities($description),
+			description => $description,
 			link        => encode_entities('http://fink.sourceforge.net/pdb/package.php/' . $package->{'package'}),
 			dc          => {
 				date => w3c_date($package->{'date'}),
@@ -139,7 +181,10 @@ sub find_infofiles {
 	close(FILEIN);
 
 	next unless (exists $hash->{'package'});
-	$hash->{'date'} = $stat[9];
+	$hash->{'date'}     = $stat[9];
+	if ($DOCVS) {
+		($hash->{'cvsauthor'}, $hash->{'cvslog'}) = get_cvs_log($File::Find::dir, $File::Find::name);
+	}
 
 	if ($File::Find::name =~ m#/stable/#) {
 		$STABLE_PACKAGES{$hash->{'package'}} = $hash;

@@ -25,8 +25,9 @@ dpkg --get-selections | \
 	grep -v '^mime-base64-pm[[:space:]]' | \
 	grep -v '^uri-pm[[:space:]]' | \
 	grep -v '^xml-parser-pm[[:space:]]' | \
+	grep -v '^expat-shlibs[[:space:]]' | \
 	awk '{ print $1 }' | \
-	xargs sudo dpkg -r
+	xargs sudo dpkg -r --force-depends
 
 dpkg --get-selections | \
 	grep -E '[[:space:]]install$' | \
@@ -53,6 +54,7 @@ dpkg --get-selections | \
 	grep -v '^mime-base64-pm[[:space:]]' | \
 	grep -v '^uri-pm[[:space:]]' | \
 	grep -v '^xml-parser-pm[[:space:]]' | \
+	grep -v '^expat-shlibs[[:space:]]' | \
 	awk '{ print $1 }' | \
 	xargs sudo dpkg --purge
 
