@@ -1,21 +1,22 @@
 Package: tomcat4
 Version: 4.1.30
-Revision: 1
+Revision: 2
+Type: java(1.4)
 
 CustomMirror: <<
   nam-US: http://ranger.befunk.com/fink
   nam-US: http://astrange.ithinksw.net/ranger-fink
   nam-CA: http://www.southofheaven.net/befunk
 <<
-Source: http://www.apache.org/dist/jakarta/tomcat-4/v%v/src/jakarta-tomcat-%v-src.tar.gz
+Source: mirror:apache:jakarta/tomcat-4/v%v/src/jakarta-tomcat-%v-src.tar.gz
 Source-MD5: 4d623370268c34e9853b9b69b84d7858
 SourceDirectory: jakarta-tomcat-%v-src
-Source2: http://www.apache.org/dist/jakarta/tomcat-4/v%v/src/jakarta-tomcat-connectors-%v-src.tar.gz
+Source2: mirror:apache:jakarta/tomcat-4/v%v/src/jakarta-tomcat-connectors-%v-src.tar.gz
 Source2-MD5: d8df80f1249349eede5ec02394613c89
 Source3: mirror:custom:jakarta-tomcat-jasper-20040718.tar.bz2
 Source3-MD5: 120ab3fad7c841e8a5d03f9f16b60195
 
-BuildDepends: ant (>= 1.6.1-2), xalan-j (>= 2.6.0-1), xerces-j (>= 2.6.2-1), jaf (>= 1.0.2-3), jakarta-servletapi (>= 4.1-1), javamail (>= 1.3-2), jdbc-optional, jndi (>= 1.2.1-4), jndi-ldap (>= 1.2.1-4), jta-spec (>= 1.0.1-2), tyrex (>= 1.0-2), passwd (>= 20020106), daemonic, commons-beanutils (>= 1.6.1-2), commons-collections (>= 3.1-2), commons-daemon (>= 1.0-1), commons-dbcp (>= 1.2.1-1), commons-digester (>= 1.5-2), commons-logging (>= 1.0.4-1), commons-modeler (>= 1.1-2), commons-pool (>= 1.2-1), mx4j (>= 2.0.1-2), struts (>= 1.1-2), jakarta-regexp (>= 1.3-1), system-java14-dev
+BuildDepends: ant (>= 1.6.1-2), fink (>= 0.22.2-1), fink-mirrors (>= 0.22.1.1-1), xalan-j (>= 2.6.0-1), xerces-j (>= 2.6.2-1), jaf (>= 1.0.2-3), jakarta-servletapi (>= 4.1-1), javamail (>= 1.3-2), jdbc-optional, jndi (>= 1.2.1-4), jndi-ldap (>= 1.2.1-4), jta-spec (>= 1.0.1-2), tyrex (>= 1.0-2), passwd (>= 20020106), daemonic, commons-beanutils (>= 1.6.1-2), commons-collections (>= 3.1-2), commons-daemon (>= 1.0-1), commons-dbcp (>= 1.2.1-1), commons-digester (>= 1.5-2), commons-logging (>= 1.0.4-1), commons-modeler (>= 1.1-2), commons-pool (>= 1.2-1), mx4j (>= 2.0.1-2), struts (>= 1.1-2), jakarta-regexp (>= 1.3-1), system-java14-dev
 Depends: xalan-j (>= 2.6.0-1), xerces-j (>= 2.6.2-1), jaf (>= 1.0.2-3), jakarta-servletapi (>= 4.1-1), javamail (>= 1.3-2), jdbc-optional, jndi (>= 1.2.1-4), jndi-ldap (>= 1.2.1-4), jta-spec (>= 1.0.1-2), tyrex (>= 1.0-2), passwd (>= 20020106), daemonic, commons-beanutils (>= 1.6.1-2), commons-collections (>= 3.1-2), commons-daemon (>= 1.0-1), commons-dbcp (>= 1.2.1-1), commons-digester (>= 1.5-2), commons-logging (>= 1.0.4-1), commons-modeler (>= 1.1-2), commons-pool (>= 1.2-1), mx4j (>= 2.0.1-2), struts (>= 1.1-2), jakarta-regexp (>= 1.3-1), system-java14 | system-java15
 ConfFiles: <<
   %p/etc/%N/tomcat.conf
@@ -31,42 +32,37 @@ Replaces: tomcat (<< 4.1.30-1)
 Provides: tomcat
 PatchScript: sed 's:@PREFIX@:%p:g' <%a/%n.patch | patch -p1
 CompileScript: <<
-#!/bin/sh
-
-  JAVAVER=`find /System/Library/Frameworks/JavaVM.framework/Versions -name include 2>/dev/null | perl -p -e 's,.*Versions/(.*?)/.*,$1,g' | grep -E '^1.4' | tail -1`
-  export JAVA_HOME=/System/Library/Frameworks/JavaVM.framework/Versions/$JAVAVER/Home
-  export PATH="$JAVA_HOME/bin:$PATH"
-
+#!/bin/sh -ex
   pushd ..
   ln -s jakarta-tomcat-connectors-%v-src jakarta-tomcat-connectors
   popd
   ant detect dist -Dcopy.jdbc20ext.jar=false
 <<
 InstallScript: <<
-#!/bin/sh
- mkdir -p %i/var/%N
+#!/bin/sh -ex
+ install -d -m 755 %i/var/%N
  cp -R dist/* %i/var/%N/
  find %i/var/%N -type d -exec chmod 755 {} \;
  find %i/var/%N -type f -exec chmod 644 {} \;
  chmod 755 %i/var/%N/bin/*.sh
  rm -rf %i/var/%N/bin/*.bat
- mkdir -p %i/share/doc/%N
+ install -d -m 755 %i/share/doc/%N
  mv %i/var/%N/*.txt %i/var/%N/LICENSE %i/share/doc/%N/
  chown -R tomcat:tomcat %i/var/%N
- mkdir -p %i/bin
+ install -d -m 755 %i/bin
  cp tomcat %i/bin/%N
  chmod 755 %i/bin/%N
- mkdir -p %i/var/log
+ install -d -m 755 %i/var/log
  chown tomcat:tomcat %i/var/log
  dhmod 2775 %i/var/log
  ln -sf %p/var/%N/logs %i/var/log/%N
- mkdir -p %i/share/webapps
+ install -d -m 755 %i/share/webapps
  mv %i/var/%N/webapps/* %i/share/webapps/
  rmdir %i/var/%N/webapps
  pushd %i/var/%N
  ln -sf ../../share/webapps webapps
  popd
- mkdir -p %i/etc
+ install -d -m 755 %i/etc
  pushd %i/etc
  ln -sf ../var/%N/conf tomcat
  popd
