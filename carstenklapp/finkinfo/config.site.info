@@ -7,18 +7,21 @@ CompileScript: echo "Nothing to compile."
 InstallScript: <<
 #!/bin/sh
  dir=%i/var/cache
+ sitef=%i/etc/config.site
  cachef=${dir}/config.cache
  mkdir -p ${dir}
+ mkdir -p %i/etc
  touch ${cachef}
- chown -R root:staff ${dir}
+ cat %a/%n.patch | sed s,@PREFIX@,%p, > ${sitef}
+ chown root:staff ${dir} ${cachef}
  chmod 775 ${dir}
- chmod 664 ${cachef}
- mkdir -p %i/share
- cat %a/%n.patch | sed s,@PREFIX@,%p, > %i/share/config.site
+ chmod 664 ${cachef} ${sitef}
+ mkdir -p %i/bin
+ ln -sf %p/var/lib/dpkg/info/%n.postinst %i/bin/%n
 <<
-ConfFiles: %p/var/cache/config.cache
-RuntimeVars: CONFIG_SITE: %p/share/config.site
-Description: Site config.cache for automake configure results
+ConfFiles: %p/var/cache/config.cache %p/etc/config.site
+RuntimeVars: CONFIG_SITE: %p/etc/config.site
+Description: Site config.cache for automake configure cache
 DescDetail: <<
  By default, configure uses ./config.cache as the cache file, creating
  it if it does not exist already. You can give configure the
@@ -31,16 +34,17 @@ DescDetail: <<
  give it the --recheck option to rerun configure.
 <<
 DescUsage: <<
-After installation, CACHE_SITE will be active in new terminal windows.
+After installation, CONFIG_SITE will be active in new terminal windows.
 
 Some Suggestions If You Have Any ./configure Errors:
 
 Not all configure scripts look for a config.site.
 
-Try 'fink reinstall %n'. This will filter some cache entries known to
-be problematic with fink.
+Try 'sudo %p/bin/config.site', 'sudo %p/var/lib/dpkg/info/%n.postinst'
+or 'fink reinstall %n'. This will filter some cache entries known to be
+problematic with fink.
 
-Try 'unsetenv CACHE_SITE' and build again.
+Try 'unsetenv CONFIG_SITE' and build again.
 
 Failing that:
 - manually edit /sw/var/cache/config.cache
@@ -55,30 +59,48 @@ Failing that:
 Finally, uninstall via: sudo fink purge %n
 <<
 PostInstScript: <<
-#!/bin/sh
  dir=%p/var/cache
+ sitef=%p/etc/config.site
  cachef=${dir}/config.cache
  bak=${cachef}-bak
- echo "*"
+ echo " "
  echo "* Checking: ${cachef}"
  [ -f ${cachef} ] && echo "* Backing up to: ${bak}"; mv ${cachef} ${bak}
- [ -f ${bak} ] && echo "* Filtering: ${cachef}"; grep -v ac_cv_env_CFLAGS_set ${bak} | grep -v ac_cv_env_CFLAGS_value > ${cachef}
- echo "* Setting permissions g+rw for staff on: ${dir}/*"
- chown -R root:staff ${dir}
+ [ -f ${bak} ] && echo "* Filtering out any \"harmful\" cached env vars that snuck into: ${cachef}"; grep -v ac_cv_env_ ${bak} > ${cachef}
+ echo "* Setting permissions g+rw for staff on: ${dir} ${cachef} ${bak}"
+ chown root:staff ${dir} ${cachef} ${bak} ${sitef}
  chmod 775 ${dir}
- chmod 664 ${cachef}
+ chmod 664 ${cachef} ${bak} ${sitef}
+ echo " "
+ echo "*************************************************************"
+ echo "* WARNING: Read the DescUsage for troubleshooting any cache *"
+ echo "*          problems of ./configure.                         *"
+ echo "*************************************************************"
+ echo " "
  echo "*"
- echo "*** To completely remove this package"
- echo "    along with the site cache ${cachef}:"
+ echo "*** To completely remove this package along with the"
+ echo "    site cache ${cachef}"
+ echo "    and site config ${sitef} files:"
  echo " "
- echo "  sudo fink purge %n"
+ echo "  sudo fink purge %n; sudo rm ${bak}"
  echo " "
- echo "*** Site config.cache will be active in new terminal windows."
+ echo "*"
+ echo "*** To refilter ac_cv_env_ entries from the site cache again"
+ echo "    later, invoke:"
  echo " "
- echo "***************************************************"
- echo "* WARNING: Read the DescUsage for troubleshooting *"
- echo "*          any cache problems of ./configure.     *"
- echo "***************************************************"
+ echo "  sudo %p/var/lib/dpkg/info/%n.postinst"
+ echo " "
+ echo "*"
+ test $CONFIG_SITE || echo "*** Site config.cache will be active in new terminal windows."
+ test $CONFIG_SITE && echo "*** Site config.cache is active."
+ echo " "
+<<
+PostRmScript: <<
+ echo " "
+ echo "*** The following config files were not removed:"
+ ls -alF %p/var/cache/config.cache %p/etc/config.site %p/var/cache/config.cache-bak
+ echo "Consider running \`sudo fink purge %n; sudo rm %p/var/cache/config.cache-bak\`."
+ echo " "
 <<
 License: GPL
 Maintainer: Carsten Klapp <carstenklapp@users.sourceforge.net>
