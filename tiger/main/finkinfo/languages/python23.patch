@@ -1,6 +1,5 @@
-diff -uNr Python-2.3.4/Lib/distutils/util.py Python-2.3.4-new/Lib/distutils/util.py
---- Python-2.3.4/Lib/distutils/util.py	2003-01-06 08:28:12.000000000 -0500
-+++ Python-2.3.4-new/Lib/distutils/util.py	2004-11-09 09:50:56.000000000 -0500
+--- Python-2.3/Lib/distutils/util.py.orig	Thu Feb 20 06:07:01 2003
++++ Python-2.3/Lib/distutils/util.py	Thu Feb 20 06:07:37 2003
 @@ -39,6 +39,12 @@
      # Try to distinguish various flavours of Unix
  
@@ -14,94 +13,8 @@ diff -uNr Python-2.3.4/Lib/distutils/util.py Python-2.3.4-new/Lib/distutils/util
  
      # Convert the OS name to lowercase, remove '/' characters
      # (to accommodate BSD/OS), and translate spaces (for "Power Macintosh")
-diff -uNr Python-2.3.4/Lib/idlelib/EditorWindow.py Python-2.3.4-new/Lib/idlelib/EditorWindow.py
---- Python-2.3.4/Lib/idlelib/EditorWindow.py	2003-09-22 10:56:11.000000000 -0400
-+++ Python-2.3.4-new/Lib/idlelib/EditorWindow.py	2004-11-09 09:50:57.000000000 -0500
-@@ -60,7 +60,7 @@
-                     basepath = '/usr/share/doc/'  # standard location
-                     dochome = os.path.join(basepath, pyver,
-                                            'Doc', 'index.html')
--            elif sys.platform.count('win') or sys.platform.count('nt'):
-+            elif sys.platform.count('nt'):
-                 # Try the HTMLHelp file
-                 chmpath = os.path.join(sys.prefix, 'Doc',
-                                        'Python%d%d.chm' % sys.version_info[:2])
-@@ -311,20 +311,11 @@
-         textView.TextViewer(self.top,'Help',fn)
- 
-     def python_docs(self, event=None):
--        if sys.platform.count('win') or sys.platform.count('nt'):
--            os.startfile(self.help_url)
--            return "break"
--        else:
--            webbrowser.open(self.help_url)
--            return "break"
-+        webbrowser.open(self.help_url)
-+        return "break"
- 
-     def display_docs(self, url):
--        if not (url.startswith('www') or url.startswith('http')):
--            url = os.path.normpath(url)
--        if sys.platform.count('win') or sys.platform.count('nt'):
--            os.startfile(url)
--        else:
--            webbrowser.open(url)
-+        webbrowser.open(url)
- 
-     def cut(self,event):
-         self.text.event_generate("<<Cut>>")
-diff -uNr Python-2.3.4/Lib/idlelib/configHelpSourceEdit.py Python-2.3.4-new/Lib/idlelib/configHelpSourceEdit.py
---- Python-2.3.4/Lib/idlelib/configHelpSourceEdit.py	2003-01-26 21:36:18.000000000 -0500
-+++ Python-2.3.4-new/Lib/idlelib/configHelpSourceEdit.py	2004-11-09 09:50:57.000000000 -0500
-@@ -1,6 +1,7 @@
- "Dialog to specify or edit the parameters for a user configured help source."
- 
- import os
-+import sys
- 
- from Tkinter import *
- import tkMessageBox
-@@ -84,7 +85,7 @@
-             dir, base = os.path.split(path)
-         else:
-             base = None
--            if sys.platform.count('win') or sys.platform.count('nt'):
-+            if sys.platform.count('nt'):
-                 dir = os.path.join(os.path.dirname(sys.executable), 'Doc')
-                 if not os.path.isdir(dir):
-                     dir = os.getcwd()
-@@ -128,6 +129,15 @@
-             pathOk = False
-         elif path.startswith('www.') or path.startswith('http'):
-             pathOk = True
-+        elif path.startswith('file:'):
-+            if os.path.exists( path[5:]):
-+                pathOk = True
-+            else:
-+                tkMessageBox.showerror(title='File Path Error',
-+                                   message='Help file path does not exist.',
-+                                   parent=self)
-+                self.entryPath.focus_set()
-+                pathOk = False
-         elif not os.path.exists(path):
-             tkMessageBox.showerror(title='File Path Error',
-                                    message='Help file path does not exist.',
-@@ -140,6 +150,12 @@
-         if self.MenuOk() and self.PathOk():
-             self.result = (self.menu.get().strip(),
-                            self.path.get().strip())
-+            if sys.platform == 'darwin' and not (
-+	                self.result[1].startswith('www') 
-+	    		or self.result[1].startswith('file')
-+                        or self.result[1].startswith('http')):
-+		# Mac Safari insists on using the URI form for local files.
-+                self.result = (self.result[0], "file://" + self.result[1])
-             self.destroy()
- 
-     def Cancel(self, event=None):
-diff -uNr Python-2.3.4/Makefile.pre.in Python-2.3.4-new/Makefile.pre.in
---- Python-2.3.4/Makefile.pre.in	2003-11-18 14:54:00.000000000 -0500
-+++ Python-2.3.4-new/Makefile.pre.in	2004-11-09 09:50:56.000000000 -0500
+--- Python-2.3/Makefile.pre.in.orig	Thu Feb 20 06:07:50 2003
++++ Python-2.3/Makefile.pre.in	Thu Feb 20 06:08:33 2003
 @@ -56,7 +56,7 @@
  OPT=		@OPT@
  BASECFLAGS=	@BASECFLAGS@
@@ -111,9 +24,8 @@ diff -uNr Python-2.3.4/Makefile.pre.in Python-2.3.4-new/Makefile.pre.in
  LDFLAGS=	@LDFLAGS@
  LDLAST=		@LDLAST@
  SGI_ABI=	@SGI_ABI@
-diff -uNr Python-2.3.4/Misc/setuid-prog.c Python-2.3.4-new/Misc/setuid-prog.c
---- Python-2.3.4/Misc/setuid-prog.c	1998-09-10 16:18:09.000000000 -0400
-+++ Python-2.3.4-new/Misc/setuid-prog.c	2004-11-09 09:50:56.000000000 -0500
+--- Python-2.3/Misc/setuid-prog.c.orig	Thu Feb 20 06:08:53 2003
++++ Python-2.3/Misc/setuid-prog.c	Thu Feb 20 06:09:50 2003
 @@ -70,6 +70,12 @@
  #define environ _environ
  #endif
@@ -127,11 +39,9 @@ diff -uNr Python-2.3.4/Misc/setuid-prog.c Python-2.3.4-new/Misc/setuid-prog.c
  /* don't change def_IFS */
  char def_IFS[] = "IFS= \t\n";
  /* you may want to change def_PATH, but you should really change it in */
-Binary files Python-2.3.4/Modules/.nismodule.c.swp and Python-2.3.4-new/Modules/.nismodule.c.swp differ
-diff -uNr Python-2.3.4/Modules/posixmodule.c Python-2.3.4-new/Modules/posixmodule.c
---- Python-2.3.4/Modules/posixmodule.c	2004-05-04 04:07:49.000000000 -0400
-+++ Python-2.3.4-new/Modules/posixmodule.c	2004-11-09 09:50:56.000000000 -0500
-@@ -304,7 +304,7 @@
+--- Python-2.3/Modules/posixmodule.c.orig	Thu Feb 20 06:10:18 2003
++++ Python-2.3/Modules/posixmodule.c	Thu Feb 20 06:10:39 2003
+@@ -325,7 +325,7 @@
  #endif
  
  /* Return a dictionary corresponding to the POSIX environment table */
@@ -140,7 +50,7 @@ diff -uNr Python-2.3.4/Modules/posixmodule.c Python-2.3.4-new/Modules/posixmodul
  /* On Darwin/MacOSX a shared library or framework has no access to
  ** environ directly, we must obtain it with _NSGetEnviron().
  */
-@@ -322,7 +322,7 @@
+@@ -535,7 +535,7 @@
  	d = PyDict_New();
  	if (d == NULL)
  		return NULL;
@@ -149,20 +59,9 @@ diff -uNr Python-2.3.4/Modules/posixmodule.c Python-2.3.4-new/Modules/posixmodul
  	if (environ == NULL)
  		environ = *_NSGetEnviron();
  #endif
-diff -uNr Python-2.3.4/configure Python-2.3.4-new/configure
---- Python-2.3.4/configure	2004-05-07 15:13:40.000000000 -0400
-+++ Python-2.3.4-new/configure	2004-11-09 09:52:57.000000000 -0500
-@@ -1457,7 +1457,8 @@
-   # it craps out if _XOPEN_EXTENDED_SOURCE is defined. Apparently,
-   # this is fixed in 10.3, which identifies itself as Darwin/7.*
-   # This should hopefully be fixed in FreeBSD 4.9
--  FreeBSD/4.8* | Darwin/6* )
-+  # Darwin/8.* does freaky things if the POSIX_C stuff exists
-+  FreeBSD/4.8* | Darwin/6* | Darwin/* )
-     define_xopen_source=no;;
-   # On AIX 4, mbstate_t is defined only when _XOPEN_SOURCE == 500 but used in
-   # wcsnrtombs() and mbsnrtowcs() even if _XOPEN_SOURCE is not defined or
-@@ -4021,7 +4022,7 @@
+--- Python-2.3/configure.orig	Thu Feb 20 06:13:05 2003
++++ Python-2.3/configure	Thu Feb 20 06:13:59 2003
+@@ -3695,7 +3695,7 @@
  	    ;;
  	# is there any other compiler on Darwin besides gcc?
  	Darwin*)
@@ -171,7 +70,7 @@ diff -uNr Python-2.3.4/configure Python-2.3.4-new/configure
  	    ;;
      esac
      ;;
-@@ -10082,7 +10083,7 @@
+@@ -9627,7 +9627,7 @@
  			LDSHARED="$LDSHARED "'-framework $(PYTHONFRAMEWORK)'
  		else
  			# No framework. Ignore undefined symbols, assuming they come from Python
@@ -180,7 +79,7 @@ diff -uNr Python-2.3.4/configure Python-2.3.4-new/configure
  		fi ;;
  	Darwin/*)
  		LDSHARED='$(CC) $(LDFLAGS) -bundle'
-@@ -10091,8 +10092,8 @@
+@@ -9636,8 +9636,8 @@
  			LDSHARED="$LDSHARED "'-framework $(PYTHONFRAMEWORK)'
  		else
  			# No framework, use the Python app as bundle-loader
@@ -191,9 +90,8 @@ diff -uNr Python-2.3.4/configure Python-2.3.4-new/configure
  		fi ;;
  	Linux*|GNU*) LDSHARED='$(CC) -shared';;
  	dgux*) LDSHARED="ld -G";;
-diff -uNr Python-2.3.4/setup.py Python-2.3.4-new/setup.py
---- Python-2.3.4/setup.py	2003-10-21 16:01:21.000000000 -0400
-+++ Python-2.3.4-new/setup.py	2004-11-09 09:50:57.000000000 -0500
+--- Python-2.3/setup.py.orig	Thu Feb 20 06:11:12 2003
++++ Python-2.3/setup.py	Thu Feb 20 06:12:47 2003
 @@ -244,11 +244,11 @@
          add_dir_to_list(self.compiler.library_dirs, '/usr/local/lib')
          add_dir_to_list(self.compiler.include_dirs, '/usr/local/include')
@@ -253,7 +151,7 @@ diff -uNr Python-2.3.4/setup.py Python-2.3.4-new/setup.py
                                  '/usr/include/db3',
                                  )},
              }
-@@ -942,9 +942,9 @@
+@@ -937,9 +937,9 @@
          # AquaTk is a separate method. Only one Tkinter will be built on
          # Darwin - either AquaTk, if it is found, or X11 based Tk.
          platform = self.get_platform()
@@ -266,3 +164,39 @@ diff -uNr Python-2.3.4/setup.py Python-2.3.4-new/setup.py
  
          # Assume we haven't found any of the libraries or include files
          # The versions with dots are used on Unix, and the versions without
+--- Python/Doc/Makefile.orig	Sun Dec 12 14:15:49 2004
++++ Python/Doc/Makefile	Sun Dec 12 13:41:47 2004
+@@ -94,8 +94,8 @@
+ # using the second version.  The standard documentation is typically
+ # built using the second flavor, where the preferred version is from
+ # the Python CVS trunk.
+-#MKHOWTO=   TEXINPUTS=$(TEXINPUTS) $(PYTHON) $(PWD)/tools/mkhowto
+-MKHOWTO=   TEXINPUTS=$(TEXINPUTS) mkhowto
++MKHOWTO=   TEXINPUTS=$(TEXINPUTS) $(PYTHON) $(PWD)/tools/mkhowto
++#MKHOWTO=   TEXINPUTS=$(TEXINPUTS) mkhowto
+ 
+ MKDVI=	   $(MKHOWTO) --paper=$(PAPER) --dvi
+ MKHTML=	   $(MKHOWTO) --html --about html/stdabout.dat \
+--- Python-2.3.4/Lib/pydoc.py.orig	Mon Dec 13 12:07:30 2004
++++ Python-2.3.4/Lib/pydoc.py	Mon Dec 13 12:08:20 2004
+@@ -1522,19 +1522,7 @@
+     def __init__(self, input, output):
+         self.input = input
+         self.output = output
+-        self.docdir = None
+-        execdir = os.path.dirname(sys.executable)
+-        homedir = os.environ.get('PYTHONHOME')
+-        for dir in [os.environ.get('PYTHONDOCS'),
+-                    homedir and os.path.join(homedir, 'doc'),
+-                    os.path.join(execdir, 'doc'),
+-                    '/usr/doc/python-docs-' + split(sys.version)[0],
+-                    '/usr/doc/python-' + split(sys.version)[0],
+-                    '/usr/doc/python-docs-' + sys.version[:3],
+-                    '/usr/doc/python-' + sys.version[:3],
+-                    os.path.join(sys.prefix, 'Resources/English.lproj/Documentation')]:
+-            if dir and os.path.isdir(os.path.join(dir, 'lib')):
+-                self.docdir = dir
++        self.docdir = os.path.join(sys.prefix, 'share','doc','python'+sys.version[0]+sys.version[2],'html')
+ 
+     def __repr__(self):
+         if inspect.stack()[1][3] == '?':
