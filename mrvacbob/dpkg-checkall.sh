@@ -1,5 +1,6 @@
 #!/bin/sh
-for foo in `cat /sw/var/lib/dpkg/info/*.list`
+
+for foo in `cat $1/var/lib/dpkg/info/*.list`
 do
 if (! test -e "$foo")
 then
