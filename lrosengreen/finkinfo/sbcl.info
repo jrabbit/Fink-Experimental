@@ -1,13 +1,9 @@
-#### NOT FOR UNSTABLE ####
 Package: sbcl
-Epoch: 2
 Version: 0.8.15
-Revision: 1
+Revision: 10
 Description: ANSI Common Lisp implementation
 License: BSD
 Maintainer: Lars Rosengreen <lars@margay.org>
-
-Type: cl-impl
 
 # NOTE: The version of the bootstrap binary does not automatically
 # change when the version field is updated!  CompileScript and Source2
@@ -24,7 +20,10 @@ Source2-MD5: bd718395906e536bc9c8da6fad37daa7
 
 SourceDirectory: %n-%v
 
-PatchScript: sed -e 's|@PREFIX@|%p|g' <%a/%n.patch | patch -p1
+PatchScript: <<
+  patch -p1 < %a/%n.patch
+  echo '(pushnew #P"%p/lib/common-lisp/sbcl/systems/" *central-registry*)' >> contrib/asdf/asdf.lisp
+<<
 
 CompileScript: <<
   unset LD_PREBIND ; sh make.sh "../%n-0.8.15-powerpc-darwin/src/runtime/sbcl --core ../%n-0.8.15-powerpc-darwin/output/sbcl.core --disable-debugger --sysinit /dev/null --userinit /dev/null"
