@@ -5,12 +5,7 @@ Description: ANSI Common Lisp implementation
 License: BSD
 Maintainer: Lars Rosengreen <lars@margay.org>
 
-# NOTE: The version of the bootstrap binary does not automatically
-# change when the version field is updated!  CompileScript and Source2
-# need to be updated by hand when moving to a new version of the
-# bootstap binary
-
-Depends: fink-lisp-manager, gnupg | gnupg-idea | gnupg-testing
+Depends: gnupg | gnupg-idea | gnupg-testing
 BuildDepends: texinfo (>= 4.6)
 
 Source: mirror:sourceforge:%n/%n-%v-source.tar.bz2
@@ -19,6 +14,10 @@ Source-MD5: ab8e0ccc6a85bc189a51b9f8b79b8f00
 Source2-MD5: 834b261a27f769475e036300de7112d2
 
 SourceDirectory: %n-%v
+
+PatchScript: <<
+  echo '(pushnew #P"%p/lib/common-lisp/%n/systems/" asdf:*central-registry*)' >> contrib/asdf/asdf.lisp
+<<
 
 CompileScript: <<
   unset LD_PREBIND ; sh make.sh "../%n-0.8.14-powerpc-darwin/src/runtime/sbcl --core ../%n-0.8.14-powerpc-darwin/output/sbcl.core --disable-debugger --sysinit /dev/null --userinit /dev/null"
@@ -36,8 +35,6 @@ InstallScript: <<
   rm doc/manual/%n.info
   unset SBCL_HOME ; INSTALL_ROOT=%i sh install.sh
   
-  echo '(pushnew #P"%p/lib/common-lisp/%n/systems/" asdf:*central-registry*)' >> %i/lib/%n/sbclrc  
-
   mv %i/bin/%n %i/lib/%n/%n.bin
   echo '#! /bin/sh' > %i/bin/%n
   echo 'SBCL_HOME=%p/lib/%n/ exec %p/lib/%n/%n.bin $@' >> %i/bin/%n
@@ -47,8 +44,6 @@ InstallScript: <<
 InfoDocs: %n.info
 
 DocFiles: BUGS COPYING CREDITS NEWS README
-
-PostInstScript: %p/lib/common-lisp/scripts/recompile-all sbcl
 
 Homepage: http://www.sbcl.org/
 
@@ -63,6 +58,4 @@ extensions, such as a foreign function interface, and support for Unix
 DescPort: << 
 Uses a binary version of SBCL for bootstrapping.  gnupg is needed to
 validate common lisp packages downloaded with asdf-install.
-
-With support for fink-lisp-manager
 <<

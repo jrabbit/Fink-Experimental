@@ -1,0 +1,509 @@
+diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x _darcs fink-cl.old/LICENSE fink-cl/LICENSE
+--- fink-cl.old/LICENSE	1969-12-31 16:00:00.000000000 -0800
++++ fink-cl/LICENSE	2004-09-22 13:07:06.000000000 -0700
+@@ -0,0 +1,19 @@
++Copyright (c) 2004 Lars Rosengreen
++
++Permission is hereby granted, free of charge, to any person obtaining a
++copy of this software and associated documentation files (the "Software"),
++to deal in the Software without restriction, including without limitation
++the rights to use, copy, modify, merge, publish, distribute, sublicense,
++and/or sell copies of the Software, and to permit persons to whom the
++Software is furnished to do so, subject to the following conditions: 
++
++The above copyright notice and this permission notice shall be included in
++all copies or substantial portions of the Software. 
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
++THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
++DEALINGS IN THE SOFTWARE. 
+diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x _darcs fink-cl.old/VERSION fink-cl/VERSION
+--- fink-cl.old/VERSION	1969-12-31 16:00:00.000000000 -0800
++++ fink-cl/VERSION	2004-09-28 00:22:07.000000000 -0700
+@@ -0,0 +1 @@
++0.0.1
+diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x _darcs fink-cl.old/lisp/compile.lisp fink-cl/lisp/compile.lisp
+--- fink-cl.old/lisp/compile.lisp	1969-12-31 16:00:00.000000000 -0800
++++ fink-cl/lisp/compile.lisp	2004-09-27 18:52:48.000000000 -0700
+@@ -0,0 +1,38 @@
++(defpackage #:fink
++  (:use #:cl)
++  #+sbcl (:import-from #:sb-ext #:quit)
++  #+cmu (:import-from #:ext #:quit)
++  #+allegro (:import-from #:excl #:exit)
++  #+lispworks (:import-from #:lw #:quit)
++  #+clisp (:import-from #:ext #:quit)
++  #+:mcl (:import-from #:ccl #:quit))
++
++(in-package #:fink)
++
++(defparameter *fink-cl-home* (directory-namestring *load-truename*))
++
++(load (merge-pathnames *fink-cl-home* "/get-env-var.lisp"))
++(load (merge-pathnames *fink-cl-home* "/split-sequence.lisp"))
++
++(defparameter *wd* (format nil "~A/" (get-env-var "PWD")))
++(defparameter *prefix* (get-env-var "PREFIX"))
++(defparameter *systems* (get-env-var "SYSTEMS"))
++
++;; not currently used, but may be useful in the future
++(defparameter *lisp-flavor*
++  #+sbcl "sbcl"
++  #+openmcl "openmcl"
++  #+cmu "cmucl"
++  #+clisp "clisp"
++  #+allegro "acl"
++  #+lispworks "lw")
++
++#-sbcl (require "asdf")
++
++(pushnew (parse-namestring *wd*) asdf:*central-registry*)
++
++(dolist (system (split-sequence #\space *systems*))
++  (asdf:oos 'asdf:compile-op system))
++
++#-allegro (quit)
++#+allegro (exit)
+diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x _darcs fink-cl.old/lisp/get-env-var.lisp fink-cl/lisp/get-env-var.lisp
+--- fink-cl.old/lisp/get-env-var.lisp	1969-12-31 16:00:00.000000000 -0800
++++ fink-cl/lisp/get-env-var.lisp	2004-09-26 21:58:00.000000000 -0700
+@@ -0,0 +1,13 @@
++;;; Useful utilities
++
++(in-package #:fink)
++
++(defun get-env-var (name)
++  #+:sbcl (sb-ext:posix-getenv name)
++  #+:cmu (cdr (assoc (intern (substitute #\- #\_ name)
++                            :keyword)
++                    ext:*environment-list*))
++  #+:allegro (sys:getenv name)
++  #+:lispworks (lw:environment-variable name)
++  #+:clisp (ext:getenv name)
++  #+:mcl (ccl::getenv name))
+diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x _darcs fink-cl.old/lisp/split-sequence.lisp fink-cl/lisp/split-sequence.lisp
+--- fink-cl.old/lisp/split-sequence.lisp	1969-12-31 16:00:00.000000000 -0800
++++ fink-cl/lisp/split-sequence.lisp	2004-09-27 20:27:07.000000000 -0700
+@@ -0,0 +1,236 @@
++;;;; SPLIT-SEQUENCE
++;;;
++;;; This code was based on Arthur Lemmens' in
++;;; <URL:http://groups.google.com/groups?as_umsgid=39F36F1A.B8F19D20%40simplex.nl>;
++;;;
++;;; changes include:
++;;;
++;;; * altering the behaviour of the :from-end keyword argument to
++;;; return the subsequences in original order, for consistency with
++;;; CL:REMOVE, CL:SUBSTITUTE et al. (:from-end being non-NIL only
++;;; affects the answer if :count is less than the number of
++;;; subsequences, by analogy with the above-referenced functions).
++;;;   
++;;; * changing the :maximum keyword argument to :count, by analogy
++;;; with CL:REMOVE, CL:SUBSTITUTE, and so on.
++;;;
++;;; * naming the function SPLIT-SEQUENCE rather than PARTITION rather
++;;; than SPLIT.
++;;;
++;;; * adding SPLIT-SEQUENCE-IF and SPLIT-SEQUENCE-IF-NOT.
++;;;
++;;; * The second return value is now an index rather than a copy of a
++;;; portion of the sequence; this index is the `right' one to feed to
++;;; CL:SUBSEQ for continued processing.
++
++;;; There's a certain amount of code duplication here, which is kept
++;;; to illustrate the relationship between the SPLIT-SEQUENCE
++;;; functions and the CL:POSITION functions.
++
++;;; Examples:
++;;;
++;;; * (split-sequence #\; "a;;b;c")
++;;; -> ("a" "" "b" "c"), 6
++;;;
++;;; * (split-sequence #\; "a;;b;c" :from-end t)
++;;; -> ("a" "" "b" "c"), 0
++;;;
++;;; * (split-sequence #\; "a;;b;c" :from-end t :count 1)
++;;; -> ("c"), 4
++;;;
++;;; * (split-sequence #\; "a;;b;c" :remove-empty-subseqs t)
++;;; -> ("a" "b" "c"), 6
++;;;
++;;; * (split-sequence-if (lambda (x) (member x '(#\a #\b))) "abracadabra")
++;;; -> ("" "" "r" "c" "d" "" "r" ""), 11
++;;;
++;;; * (split-sequence-if-not (lambda (x) (member x '(#\a #\b))) "abracadabra")
++;;; -> ("ab" "a" "a" "ab" "a"), 11 
++;;;
++;;; * (split-sequence #\; ";oo;bar;ba;" :start 1 :end 9)
++;;; -> ("oo" "bar" "b"), 9
++
++(in-package #:fink)
++
++(defun split-sequence (delimiter seq &key (count nil) (remove-empty-subseqs nil) (from-end nil) (start 0) (end nil) (test nil test-supplied) (test-not nil test-not-supplied) (key nil key-supplied))
++  "Return a list of subsequences in seq delimited by delimiter.
++
++If :remove-empty-subseqs is NIL, empty subsequences will be included
++in the result; otherwise they will be discarded.  All other keywords
++work analogously to those for CL:SUBSTITUTE.  In particular, the
++behaviour of :from-end is possibly different from other versions of
++this function; :from-end values of NIL and T are equivalent unless
++:count is supplied. The second return value is an index suitable as an
++argument to CL:SUBSEQ into the sequence indicating where processing
++stopped."
++  (let ((len (length seq))
++        (other-keys (nconc (when test-supplied 
++                             (list :test test))
++                           (when test-not-supplied 
++                             (list :test-not test-not))
++                           (when key-supplied 
++                             (list :key key)))))
++    (unless end (setq end len))
++    (if from-end
++        (loop for right = end then left
++              for left = (max (or (apply #'position delimiter seq 
++					 :end right
++					 :from-end t
++					 other-keys)
++				  -1)
++			      (1- start))
++              unless (and (= right (1+ left))
++                          remove-empty-subseqs) ; empty subseq we don't want
++              if (and count (>= nr-elts count))
++              ;; We can't take any more. Return now.
++              return (values (nreverse subseqs) right)
++              else 
++              collect (subseq seq (1+ left) right) into subseqs
++              and sum 1 into nr-elts
++              until (< left start)
++              finally (return (values (nreverse subseqs) (1+ left))))
++      (loop for left = start then (+ right 1)
++            for right = (min (or (apply #'position delimiter seq 
++					:start left
++					other-keys)
++				 len)
++			     end)
++            unless (and (= right left) 
++                        remove-empty-subseqs) ; empty subseq we don't want
++            if (and count (>= nr-elts count))
++            ;; We can't take any more. Return now.
++            return (values subseqs left)
++            else
++            collect (subseq seq left right) into subseqs
++            and sum 1 into nr-elts
++            until (>= right end)
++            finally (return (values subseqs right))))))
++
++(defun split-sequence-if (predicate seq &key (count nil) (remove-empty-subseqs nil) (from-end nil) (start 0) (end nil) (key nil key-supplied))
++  "Return a list of subsequences in seq delimited by items satisfying
++predicate.
++
++If :remove-empty-subseqs is NIL, empty subsequences will be included
++in the result; otherwise they will be discarded.  All other keywords
++work analogously to those for CL:SUBSTITUTE-IF.  In particular, the
++behaviour of :from-end is possibly different from other versions of
++this function; :from-end values of NIL and T are equivalent unless
++:count is supplied. The second return value is an index suitable as an
++argument to CL:SUBSEQ into the sequence indicating where processing
++stopped."
++  (let ((len (length seq))
++        (other-keys (when key-supplied 
++		      (list :key key))))
++    (unless end (setq end len))
++    (if from-end
++        (loop for right = end then left
++              for left = (max (or (apply #'position-if predicate seq 
++					 :end right
++					 :from-end t
++					 other-keys)
++				  -1)
++			      (1- start))
++              unless (and (= right (1+ left))
++                          remove-empty-subseqs) ; empty subseq we don't want
++              if (and count (>= nr-elts count))
++              ;; We can't take any more. Return now.
++              return (values (nreverse subseqs) right)
++              else 
++              collect (subseq seq (1+ left) right) into subseqs
++              and sum 1 into nr-elts
++              until (< left start)
++              finally (return (values (nreverse subseqs) (1+ left))))
++      (loop for left = start then (+ right 1)
++            for right = (min (or (apply #'position-if predicate seq 
++					:start left
++					other-keys)
++				 len)
++			     end)
++            unless (and (= right left) 
++                        remove-empty-subseqs) ; empty subseq we don't want
++            if (and count (>= nr-elts count))
++            ;; We can't take any more. Return now.
++            return (values subseqs left)
++            else
++            collect (subseq seq left right) into subseqs
++            and sum 1 into nr-elts
++            until (>= right end)
++            finally (return (values subseqs right))))))
++
++(defun split-sequence-if-not (predicate seq &key (count nil) (remove-empty-subseqs nil) (from-end nil) (start 0) (end nil) (key nil key-supplied))
++  "Return a list of subsequences in seq delimited by items satisfying
++(CL:COMPLEMENT predicate).
++
++If :remove-empty-subseqs is NIL, empty subsequences will be included
++in the result; otherwise they will be discarded.  All other keywords
++work analogously to those for CL:SUBSTITUTE-IF-NOT.  In particular,
++the behaviour of :from-end is possibly different from other versions
++of this function; :from-end values of NIL and T are equivalent unless
++:count is supplied. The second return value is an index suitable as an
++argument to CL:SUBSEQ into the sequence indicating where processing
++stopped."
++  (let ((len (length seq))
++	(other-keys (when key-supplied 
++		      (list :key key))))
++    (unless end (setq end len))
++    (if from-end
++        (loop for right = end then left
++              for left = (max (or (apply #'position-if-not predicate seq 
++					 :end right
++					 :from-end t
++					 other-keys)
++				  -1)
++			      (1- start))
++              unless (and (= right (1+ left))
++                          remove-empty-subseqs) ; empty subseq we don't want
++              if (and count (>= nr-elts count))
++              ;; We can't take any more. Return now.
++              return (values (nreverse subseqs) right)
++              else 
++              collect (subseq seq (1+ left) right) into subseqs
++              and sum 1 into nr-elts
++              until (< left start)
++              finally (return (values (nreverse subseqs) (1+ left))))
++      (loop for left = start then (+ right 1)
++            for right = (min (or (apply #'position-if-not predicate seq 
++					:start left
++					other-keys)
++				 len)
++			     end)
++            unless (and (= right left) 
++                        remove-empty-subseqs) ; empty subseq we don't want
++            if (and count (>= nr-elts count))
++            ;; We can't take any more. Return now.
++            return (values subseqs left)
++            else
++            collect (subseq seq left right) into subseqs
++            and sum 1 into nr-elts
++            until (>= right end)
++            finally (return (values subseqs right))))))
++
++;;; clean deprecation
++
++(defun partition (&rest args)
++  (apply #'split-sequence args))
++
++(defun partition-if (&rest args)
++  (apply #'split-sequence-if args))
++
++(defun partition-if-not (&rest args)
++  (apply #'split-sequence-if-not args))
++
++(define-compiler-macro partition (&whole form &rest args)
++  (declare (ignore args))
++  (warn "PARTITION is deprecated; use SPLIT-SEQUENCE instead.")
++  form)
++
++(define-compiler-macro partition-if (&whole form &rest args)
++  (declare (ignore args))
++  (warn "PARTITION-IF is deprecated; use SPLIT-SEQUENCE-IF instead.")
++  form)
++
++(define-compiler-macro partition-if-not (&whole form &rest args)
++  (declare (ignore args))
++  (warn "PARTITION-IF-NOT is deprecated; use SPLIT-SEQUENCE-IF-NOT instead")
++  form)
++
+diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x _darcs fink-cl.old/scripts/compile-cl fink-cl/scripts/compile-cl
+--- fink-cl.old/scripts/compile-cl	1969-12-31 16:00:00.000000000 -0800
++++ fink-cl/scripts/compile-cl	2004-09-27 18:47:32.000000000 -0700
+@@ -0,0 +1,55 @@
++#! /bin/sh
++
++usage_help()
++{
++  echo "usage: $0 <systems>"
++  echo "where <systems> is a list of systems to compile"
++  exit 1
++}
++
++find_flavor()
++{
++  case $PWD in
++  
++    *openmcl* )
++      FLAVOR="openmcl"
++      EXEC="@PREFIX@/bin/${FLAVOR} --load"
++      ;;
++
++    *sbcl* )
++      FLAVOR="sbcl"
++      EXEC="@PREFIX@/bin/$FLAVOR --load"
++      ;;
++
++    *)
++      echo "Problem: can't determine lisp flavor"
++      exit 1
++      ;;
++
++  esac
++}
++
++find_compile()
++{
++  if [ -f $PWD/fink/compile.lisp ]; then 
++    COMPILE="$PWD/fink/compile.lisp"
++  fi
++}
++
++
++
++export COMPILE="@PREFIX@/lib/fink-cl/compile.lisp"
++find_compile
++export PREFIX=@PREFIX@
++export SYSTEMS=$@
++find_flavor
++export FLAVOR
++
++if [ $# -eq 0 ]; then
++  usage_help
++else
++  echo
++  echo "Compiling `echo $SYSTEMS | tr "[a-z]" "[A-Z]"` for `echo $FLAVOR | tr "[a-z]" "[A-Z]"` using $COMPILE"
++  echo
++  $EXEC $COMPILE
++fi
+diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x _darcs fink-cl.old/scripts/package-cl fink-cl/scripts/package-cl
+--- fink-cl.old/scripts/package-cl	1969-12-31 16:00:00.000000000 -0800
++++ fink-cl/scripts/package-cl	2004-09-28 13:45:28.000000000 -0700
+@@ -0,0 +1,93 @@
++#! /bin/sh
++
++
++usage_help()
++{
++  echo "usage: $0 <systems>"
++  echo "where <systems> is a list of systems to install"
++}
++
++
++find_flavor()
++{
++  case $PWD in
++    *openmcl* )
++      FLAVOR="openmcl"
++      ;;
++    *sbcl* )
++      FLAVOR="sbcl"
++      ;;
++    *)
++      echo "Problem: can't determine lisp flavor"
++      exit 1
++      ;;
++  esac
++}
++
++decruft_files()
++{
++  find . -name CVS -type d -exec rm -rf {} \;
++  find . -name .cvsignore -type f -exec rm -f {} \;
++}
++
++package_files()
++{
++  DEST=$STAGING@PREFIX@/lib/common-lisp/$FLAVOR/fasls/$PACKAGE
++  install -m 755 -d $DEST
++
++  ( find . -name "*.lisp" -print
++    find . -name "*.cl" -print
++    find . -name "*.asd" -print
++    find . -name "*.dfsl" -print
++    find . -name "*.fasl" -print
++    find . -name "*.fas" -print
++    find . -name "*.lib" -print
++    find . -name "*.ppcf" -print ) | sed -e 's/^\.\///' | cpio -pvdum $DEST
++}
++
++
++package_links()
++{
++  DEST=$STAGING@PREFIX@/lib/common-lisp/$FLAVOR/systems
++  install -m 755 -d $DEST
++
++  for system in $SYSTEMS; do
++    ln -s @PREFIX@/lib/common-lisp/$FLAVOR/fasls/$PACKAGE/$system.asd \
++          $DEST/$system.asd
++  done
++}
++
++
++export SYSTEMS="$@"
++
++find_flavor
++export FLAVOR
++
++if [ -z $STAGING ]; then
++  STAGING=`cd ..;dirname $PWD`/root-`cd ..;basename $PWD`
++fi
++if [ ! -d $STAGING ]; then
++  echo "Problem: can't find staging directory (looked here: $STAGING)"
++  exit 1
++fi
++export STAGING
++
++export PACKAGE=`basename $PWD`  
++
++if [ $# -eq 0 ]; then
++  usage_help
++  exit 1
++else
++  echo
++  echo "Packaging `echo $SYSTEMS | tr "[a-z]" "[A-Z]"` for `echo $FLAVOR | tr "[a-z]" "[A-Z]"`"
++  echo
++
++  if [ -f $PWD/fink/package.sh ]; then 
++    sh $PWD/fink/package.sh
++  else
++    decruft_files
++    package_files
++    package_links
++  fi
++
++fi
+diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x _darcs fink-cl.old/scripts/rebuild-all-cl fink-cl/scripts/rebuild-all-cl
+--- fink-cl.old/scripts/rebuild-all-cl	1969-12-31 16:00:00.000000000 -0800
++++ fink-cl/scripts/rebuild-all-cl	2004-09-26 22:41:31.000000000 -0700
+@@ -0,0 +1,9 @@
++#! /bin/sh
++
++if [ $# -gt 0 -a \( "$1" = "sbcl" -o "$1" = "openmcl" \) ] ; then
++  fink rebuild `fink list -i '*-'$1 | awk 'BEGIN{ORS = " "} /-'$1'/{ print $2 }'`;
++else 
++  echo "usage:" `basename $0` "<lisp>"
++  echo "where <lisp> is sbcl or openmcl"
++  exit 1
++fi
+diff -Naur -x .DS_Store -x 'mk*' -x finkinfo -x _darcs fink-cl.old/scripts/remove-all-cl fink-cl/scripts/remove-all-cl
+--- fink-cl.old/scripts/remove-all-cl	1969-12-31 16:00:00.000000000 -0800
++++ fink-cl/scripts/remove-all-cl	2004-09-28 00:41:14.000000000 -0700
+@@ -0,0 +1,9 @@
++#! /bin/sh
++
++if [ $# -gt 0 -a \( "$1" = "sbcl" -o "$1" = "openmcl" \) ] ; then
++  fink remove `fink list -i '*-'$1 | awk 'BEGIN{ORS = " "} /-'$1'/{ print $2 }'`;
++else 
++  echo "usage:" `basename $0` "<lisp>"
++  echo "where <lisp> is sbcl or openmcl"
++  exit 1
++fi
