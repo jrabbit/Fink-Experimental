@@ -1,0 +1,134 @@
+#!/usr/bin/perl -w
+
+#    fix-ncurses5
+#
+#    Copyright 2002 Max Horn and David R. Morrison
+#    Copyright 2003 Chris Zubrzycki
+# 
+#    This program is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation; either version 2 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program; if not, write to the Free Software
+#    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+
+# Depends: fink, dpkg, dlocate, Find::File
+use strict;
+use lib "/sw/lib/perl5";
+use Fink::Services "&prompt_boolean";
+
+
+my $version="0.2";
+
+my $answer;
+
+print <<"EOF";
+Welcome to fix-ncurses version $version.
+
+This program will check your fink libraries and apps for problems which
+are caused by a bug in earlier versions of ncurses; there were incorrect
+version numbers in the libs.
+
+At the moment, this program only checks for one thing: whether your dynamic
+libraries and binaries in <finkroot>/bin have a corrent compatability version.
+Do you
+EOF
+$answer=&prompt_boolean("wish to perform this check?");
+print "\n";
+
+if ($answer) {&check_libVers} ;
+
+print "Thank you for using fix-ncurses.\n";
+
+sub check_libVers {
+
+my @badlibs;
+    print "Examining your dynamic libraries and apps with otool";
+#    my @badlibs = grep { &otool_it("$_") } @dylibs;
+    print "\n\n";
+
+    print "Examining your apps with otool";
+    my @badapps = grep { &otool_it("$_") } @apps;
+    print "\n\n";
+
+    my @badlist = (@badlibs,@badapps);
+
+    if (! @badlist) { print "Your dynamic libraries are OK.\n\n"; return}
+
+    print "Using dpkg to determine the list of packages to rebuild\n";
+    my %dpkghash;
+
+    foreach my $test (@badlibs) {
+    my $package = `/sw/bin/dlocate -S "/sw/lib/$test"`; # dpkg returns one item
+    print "$package\n";
+    $package =~ s/:.*\n// ; # get rid of everything after :, including \n
+    $dpkghash{$package}=1;
+    print "$package\n"; # let users see that something is happening
+};
+
+    foreach my $test (@badapps) {
+    print "$test\n";
+    my $package = `/sw/bin/dlocate -S "/sw/bin/$test" | grep "$test\$"`; # dpkg returns one item
+    print "$package";
+    $package =~ s/:.*\n// ; # get rid of everything after :, including \n
+    $dpkghash{$package}=1;
+    print "$package\n\n"; # let users see that something is happening
+};
+
+
+    print "\n\n";
+
+    my @sortedkeys = sort keys %dpkghash;
+
+    print <<"EOF";
+Some of your installed packages were linked against a incorrect version
+of ncurses (version 5.3), and should be rebuilt.  The list of affected
+packages is:
+
+EOF
+    print "@sortedkeys\n\n";
+    print <<"EOF";
+You can rebuild these by issuing the command "fink rebuild" followed by the
+EOF
+    $answer=&prompt_boolean("package names.  Do you wish to do this now (automatically)?");
+    print "\n";
+    if ($answer) {
+	print <<"EOF";
+If fink gets interrupted during this process, you can always call fink 
+directly at a later time to rebuild these yourself.
+
+EOF
+	system "/sw/bin/fink", "rebuild", @sortedkeys;
+	print "\n";
+} else {
+    print <<"EOF";
+You can call fink directly to rebuild these yourself, or rerun fix-ncurses
+to rebuild them automatically at a later date.
+
+EOF
+}
+}
+
+sub otool_it {
+    my ($test) = @_;
+    my @answer  = grep { /(ncurses|menu|panelform)\.5\.dylib\ \(compatibility\ version\ 6/ } `/usr/bin/otool -L "$test"`;
+    print "."; # let users see that something is happening
+    @answer;
+}
+
+sub bins {
+    my ($dev,$ino,$mode,$nlink,$uid,$gid);
+    (($dev,$ino,$mode,$nlink,$uid,$gid) = lstat($_)) &&
+    -f _;
+
+  push(my @apps, $_);
+  return @apps;
+}
