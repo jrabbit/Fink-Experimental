@@ -30,65 +30,6 @@ diff -u -u -r1.76 kglobalsettings.cpp
      *s_trashPath = config->readPathEntry( "Trash" , *s_trashPath);
      if ( !s_trashPath->startsWith("/") )
        s_trashPath->prepend( QDir::homeDirPath() + "/" );
-Index: kdecore/kgrantpty.c
-===================================================================
-RCS file: /home/kde/kdelibs/kdecore/kgrantpty.c,v
-retrieving revision 1.9
-diff -u -u -r1.9 kgrantpty.c
---- kdecore/kgrantpty.c	20 Jan 2003 21:23:19 -0000	1.9
-+++ kdecore/kgrantpty.c	20 Nov 2003 00:43:49 -0000
-@@ -88,28 +88,31 @@
- 
-   /* get slave pty name from master pty file handle in PTY_FILENO *********/
- 
-+  /* Check that PTY_FILENO is a valid master pseudo terminal.  */
-+  pty = ttyname(PTY_FILENO);          /* posix */
-+
- #if defined(BSD_PTY_HACK)
-+  if (pty == NULL)
-+  {
-   /*
--    Hack to make kgrantpty work on FreeBSD (and possibly other systems).
--    ttyname(3) does not work on FreeBSD with a file descriptor opened on a
--    /dev/pty?? device.
-+    Hack to make kgrantpty work on some versions of FreeBSD (and possibly
-+    other systems): ttyname(3) does not work with a file descriptor opened
-+    on a /dev/pty?? device.
- 
-     Instead, this code looks through all the devices in /dev for a device
-     which has the same inode as our PTY_FILENO descriptor... if found, we
-     have the name for our pty.
-   */
- 
--  if (uid == 0) {
--    p = getgrnam("wheel");
--    gid = p ? p->gr_gid : getgid();
--  }
--
--  pty = NULL;
--  {
-     struct dirent *dirp;
-     DIR *dp;
-     struct stat dsb;
- 
-+    if (uid == 0) {
-+      p = getgrnam("wheel");
-+      gid = p ? p->gr_gid : getgid();
-+    }
-+
-     if (fstat(PTY_FILENO, &dsb) != -1) {
-       if ((dp = opendir(_PATH_DEV)) != NULL) {
-         while ((dirp = readdir(dp))) {
-@@ -130,9 +133,6 @@
-       }
-     }
-   }
--#else
--  /* Check that PTY_FILENO is a valid master pseudo terminal.  */
--  pty = ttyname(PTY_FILENO);          /* posix */
- #endif
- 
-   if (pty == NULL)
 Index: kdecore/kpty.cpp
 ===================================================================
 RCS file: /home/kde/kdelibs/kdecore/kpty.cpp,v
@@ -100,7 +41,7 @@ diff -u -u -r1.9 kpty.cpp
        struct group* p = getgrnam(TTY_GROUP);    /* posix */
        gid_t gid = p ? p->gr_gid : getgid ();    /* posix */
  
-+#if !defined(__APPLE__) && !defined(BSD_PTY_HACK)
++#if !defined(__APPLE__)
        if (fchown(d->slaveFd, (uid_t) -1, gid) < 0)
        {
           int e = errno;
