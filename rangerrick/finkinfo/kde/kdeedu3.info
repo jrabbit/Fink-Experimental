@@ -1,68 +1,67 @@
 Package: kdeedu3
-Version: 3.1.4
-Revision: 12
+Version: 3.1.93
+Revision: 1
 Description: KDE - educational software
 License: GPL/LGPL
 Maintainer: Benjamin Reed <ranger@befunk.com>
 
-Depends: flashkard (>= %v-%r), kalzium (>= %v-%r), keduca (>= %v-%r), kgeo (>= %v-%r), khangman (>= %v-%r), kiten (>= %v-%r), klettres (>= %v-%r), kmathtool (>= %v-%r), kmessedwords (>= %v-%r), kmplot (>= %v-%r), kpercentage (>= %v-%r), kstars (>= %v-%r), ktouch (>= %v-%r), kverbos (>= %v-%r), kvoctrain (>= %v-%r), kdebase3-ssl (>= %v-11) | kdebase3 (>= %v-11), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), %N-base (>= %v-%r)
-BuildDepends: arts-dev (>= 1.1.4-11), autoconf2.54, automake1.6, cctools (>= 446-1) | cctools-single-module, dlcompat-dev (>= 20030629-5), fink (>= 0.14.0-1), kdelibs3-ssl-dev (>= %v-11) | kdelibs3-dev (>= %v-11), kdebase3-ssl-dev (>= %v-11) | kdebase3-dev (>= %v-11), libart2, libjpeg, libpng3 (>= 1.2.5-4), libtool14, pcre, qt3 (>= 3.2.1-11), x11
+Depends: flashkard (>= %v-%r), kalzium (>= %v-%r), kbruch (>= %v-%r), keduca (>= %v-%r), khangman (>= %v-%r), kig (>= %v-%r), kiten (>= %v-%r), klettres (>= %v-%r), kmessedwords (>= %v-%r), kmplot (>= %v-%r), kpercentage (>= %v-%r), kstars (>= %v-%r), ktouch (>= %v-%r), kverbos (>= %v-%r), kvoctrain (>= %v-%r), kdebase3-ssl (>= %v-1) | kdebase3 (>= %v-1), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), %N-base (>= %v-%r)
+BuildDepends: arts-dev (>= 1.1.93-1), autoconf2.54, automake1.6, cctools (>= 446-1) | cctools-single-module, dlcompat-dev (>= 20030629-5), fink (>= 0.14.0-1), kdelibs3-ssl-dev (>= %v-1) | kdelibs3-dev (>= %v-1), kdebase3-ssl-dev (>= %v-1) | kdebase3-dev (>= %v-1), libart2, libjpeg, libpng3 (>= 1.2.5-4), libtool14, pcre, qt3 (>= 3.2.1-11), x11
 Replaces: %N-dev (<< %v-%r), %N-shlibs (<< %v-%r)
 GCC: 3.3
 
-CustomMirror: <<
-  nam-US: http://ranger.befunk.com/fink
-  nam-US: http://astrange.ithinksw.net/~astrange/ranger-fink
-  nam-CA: http://www.southofheaven.net/befunk
-<<
 Source: mirror:kde:stable/%v/src/kdeedu-%v.tar.bz2
-Source-MD5: e710e5840b2f33e9c96b9b49d3914d5b
-Source2: mirror:custom:kde-admindir-20030916.tar.bz2
-Source2-MD5: 95d67207a2fd4e40c3c51f9c30f41e52
-Source2ExtractDir: kdeedu-%v
+Source-MD5: da93dc2ea5e6c9e6728788b9927306ce
 
-PatchScript: sed 's|@PREFIX@|%p|g' <%a/%n.patch | patch -p0
+PatchScript: <<
+  perl -pi -e 's,-O2,-Os,' admin/acinclude.m4.in
+  perl -pi -e 's,doc/HTML,doc/kde,g' admin/acinclude.m4.in
+<<
 
-SetCFLAGS: -fno-common
-SetCPPFLAGS: -no-cpp-precomp -I%p/include
+SetCPPFLAGS: -fno-common -no-cpp-precomp -I/usr/X11R6/include/freetype2 -I/usr/X11R6/include -I%p/include
 SetLIBS: -L%p/lib
 NoSetLDFLAGS: true
 SetMACOSX_DEPLOYMENT_TARGET: 10.2
 ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --disable-final
 CompileScript: <<
-#!/bin/sh
-  export KDEDIR=%p
+#!/bin/sh -e
   mkdir -p /tmp/kde-build
 
-  date > /tmp/kde-build/%N-%v-%r.cvs && \
-  (make -f admin/Makefile.common cvs 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.cvs) && \
-  date > /tmp/kde-build/%N-%v-%r.configure && \
-  (sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure) && \
-  date > /tmp/kde-build/%N-%v-%r.make && \
-  (make all 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.make)
+# breaks a lot of plugins on 10.2, enable this again on 10.3
+#  export LD_TWOLEVEL_NAMESPACE=true
+  export PATH="/usr/X11R6/bin:$PATH"
+
+  date > /tmp/kde-build/%N-%v-%r.cvs
+  make -f admin/Makefile.common cvs 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.cvs
+  date > /tmp/kde-build/%N-%v-%r.configure
+  FREETYPE_CONFIG=/usr/X11R6/bin/freetype-config sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure
+  date > /tmp/kde-build/%N-%v-%r.make
+  make all 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.make
 <<
 
 InstallScript: <<
-#!/bin/sh
+#!/bin/sh -e
   mkdir -p /tmp/kde-build
   mkdir -p %i/share/doc/kde-installed-packages
   touch %i/share/doc/kde-installed-packages/%N
   touch %i/share/doc/kde-installed-packages/%N-base
 
-  date > /tmp/kde-build/%N-%v-%r.install && \
-  (make install DESTDIR=%d 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.install)
+  date > /tmp/kde-build/%N-%v-%r.install
+  make -j1 install DESTDIR=%d 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.install
+  rm -rf %i/share/doc/kde/en/kmathtool
 <<
+
 DocFiles: COPYING INSTALL README
 SplitOff: <<
   Package: flashkard
   Description: KDE - vocabulary studying tool
-  Depends: dlcompat-shlibs (>= 20030629-5), %N-common (>= %v-%r), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), pcre-shlibs, qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), %N-common (>= %v-%r), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), pcre-shlibs, qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-shlibs (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
   Files: <<
     bin/flashkard
-    share/applnk/Edutainment/Miscellaneous/flashkard.desktop
+    share/applications/kde/flashkard.desktop
     share/apps/flashkard
     share/doc/kde/en/flashkard
     share/icons/crystalsvg/16x16/apps/flashkard.png
@@ -73,13 +72,13 @@ SplitOff: <<
 SplitOff2: <<
   Package: kalzium
   Description: KDE - periodic table
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-shlibs (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
   Files: <<
     bin/kalzium
-    share/applnk/Edutainment/Science/kalzium.desktop
+    share/applications/kde/kalzium.desktop
     share/apps/kalzium
     share/doc/kde/en/kalzium
     share/icons/crystalsvg/16x16/apps/kalzium.png
@@ -89,52 +88,54 @@ SplitOff2: <<
   <<
 <<
 SplitOff3: <<
+  Package: kbruch
+  Description: KDE - generate tasks with fractions
+  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-common (>= %v-%r), %N-base (>= %v-%r)
+  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-shlibs (<< %v-%r)
+  Recommends: %N (>= %v-%r)
+  BuildDependsOnly: true
+  Files: <<
+    bin/kbruch
+    share/applications/kde/kbruch.desktop
+    share/apps/kbruch/kbruchui.rc
+    share/doc/kde/en/kbruch
+    share/icons/hicolor/16x16/apps/kbruch.png
+    share/icons/hicolor/32x32/apps/kbruch.png
+    share/icons/locolor/16x16/apps/kbruch.png
+    share/icons/locolor/32x32/apps/kbruch.png
+  <<
+<<
+SplitOff4: <<
   Package: keduca
   Description: KDE - create and revise form-based exams
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-shlibs (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
   Files: <<
     bin/keduca
-    share/applnk/Edutainment/Tools/keduca.desktop
-    share/applnk/Edutainment/Tools/keducaeditor.desktop
+    bin/keducabuilder
+    share/applications/kde/keduca.desktop
+    share/applications/kde/keducabuilder.desktop
     share/apps/keduca
     share/doc/kde/en/keduca
     share/icons/crystalsvg/16x16/apps/keduca.png
     share/icons/crystalsvg/32x32/apps/keduca.png
     share/icons/crystalsvg/48x48/apps/keduca.png
     share/mimelnk/application/x-edu.desktop
-  <<
-<<
-SplitOff4: <<
-  Package: kgeo
-  Description: KDE - interactive geometry
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
-  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-shlibs (<< %v-%r)
-  Recommends: %N (>= %v-%r)
-  BuildDependsOnly: true
-  Files: <<
-    bin/kgeo
-    share/applnk/Edutainment/Mathematics/kgeo.desktop
-    share/apps/kgeo
-    share/doc/kde/en/kgeo
-    share/icons/locolor/16x16/apps/kgeo.png
-    share/icons/locolor/32x32/apps/kgeo.png
-    share/icons/crystalsvg/16x16/apps/kgeo.png
-    share/icons/crystalsvg/32x32/apps/kgeo.png
+    share/mimelnk/application/x-edugallery.desktop
   <<
 <<
 SplitOff5: <<
   Package: khangman
   Description: KDE - hangman word game
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-shlibs (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
   Files: <<
     bin/khangman
-    share/applnk/Edutainment/Languages/khangman.desktop
+    share/applications/kde/khangman.desktop
     share/apps/khangman
     share/doc/kde/en/khangman
     share/icons/crystalsvg/16x16/apps/khangman.png
@@ -144,17 +145,50 @@ SplitOff5: <<
   <<
 <<
 SplitOff6: <<
+  Package: kig
+  Description: KDE - explore geometric constructions
+  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-shlibs (<< %v-%r)
+  Recommends: %N (>= %v-%r)
+  BuildDependsOnly: true
+  Files: <<
+    bin/kig
+    lib/kde3/libkig*
+    share/applications/kde/kig.desktop
+    share/apps/kig/builtin-macros/*.kigt
+    share/apps/kig
+    share/apps/kigpart
+    share/doc/kde/en/kig
+    share/icons/crystalsvg/16x16/apps/kig.png
+    share/icons/crystalsvg/32x32/apps/kig.png
+    share/icons/hicolor/48x48/apps/*_acute.png
+    share/icons/hicolor/48x48/apps/*_cedil.png
+    share/icons/hicolor/48x48/apps/*_circ*.png
+    share/icons/hicolor/48x48/apps/*_cross.png
+    share/icons/hicolor/48x48/apps/*_grave.png
+    share/icons/hicolor/48x48/apps/*_lig.png
+    share/icons/hicolor/48x48/apps/*_tilde.png
+    share/icons/hicolor/48x48/apps/*_umlaut.png
+    share/icons/hicolor/48x48/apps/*_withe.png
+    share/icons/locolor/16x16/apps/kig.png
+    share/icons/locolor/32x32/apps/kig.png
+    share/mimelnk/application/x-kgeo.desktop
+    share/mimelnk/application/x-kig.desktop
+    share/mimelnk/application/x-kseg.desktop
+    share/services/kig_part.desktop
+  <<
+<<
+SplitOff7: <<
   Package: kiten
   Description: KDE - Japanese reference and learning tool
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-shlibs (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
   Files: <<
     bin/kiten
     bin/kitengen
-    lib/*kiten*
-    share/applnk/Edutainment/Languages/kiten.desktop
+    share/applications/kde/kiten.desktop
     share/apps/kiten
     share/doc/kde/en/kiten
     share/icons/crystalsvg/16x16/apps/kiten.png
@@ -166,55 +200,37 @@ SplitOff6: <<
     share/icons/locolor/16x16/actions/edit_remove.png
   <<
 <<
-SplitOff7: <<
+SplitOff8: <<
   Package: klettres
   Description: KDE - multi-language alphabet learning aid
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-shlibs (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
   Files: <<
     bin/klettres
-    share/applnk/Edutainment/Languages/klettres.desktop
+    share/applications/kde/klettres.desktop
     share/apps/klettres
     share/doc/kde/en/klettres
-    share/icons/crystalsvg/48x48/apps/grownup.png
-    share/icons/crystalsvg/48x48/apps/kids.png
-    share/icons/crystalsvg/48x48/apps/menubar.png
+    share/icons/hicolor/48x48/apps/grownup.png
+    share/icons/hicolor/48x48/apps/kids.png
+    share/icons/hicolor/48x48/apps/menubar.png
     share/icons/crystalsvg/16x16/apps/klettres.png
     share/icons/crystalsvg/32x32/apps/klettres.png
     share/icons/locolor/16x16/apps/klettres.png
     share/icons/locolor/32x32/apps/klettres.png
   <<
 <<
-SplitOff8: <<
-  Package: kmathtool
-  Description: KDE - mathematics learning tool
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
-  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-shlibs (<< %v-%r)
-  Recommends: %N (>= %v-%r)
-  BuildDependsOnly: true
-  Files: <<
-    bin/kmathtool
-    share/applnk/Edutainment/Mathematics/kmathtool.desktop
-    share/apps/kmathtool
-    share/doc/kde/en/kmathtool
-    share/icons/crystalsvg/16x16/apps/kmathtool.png
-    share/icons/crystalsvg/32x32/apps/kmathtool.png
-    share/icons/locolor/16x16/apps/kmathtool.png
-    share/icons/locolor/32x32/apps/kmathtool.png
-  <<
-<<
 SplitOff9: <<
   Package: kmessedwords
   Description: KDE - mind-training word game
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-shlibs (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
   Files: <<
     bin/kmessedwords
-    share/applnk/Edutainment/Languages/kmessedwords.desktop
+    share/applications/kde/kmessedwords.desktop
     share/apps/kmessedwords
     share/doc/kde/en/kmessedwords
     share/icons/crystalsvg/16x16/apps/kmessedwords.png
@@ -226,13 +242,13 @@ SplitOff9: <<
 SplitOff10: <<
   Package: kmplot
   Description: KDE - mathematical function plotter
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-shlibs (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
   Files: <<
     bin/kmplot
-    share/applnk/Edutainment/Mathematics/kmplot.desktop
+    share/applications/kde/kmplot.desktop
     share/apps/kmplot
     share/doc/kde/en/kmplot
     share/icons/crystalsvg/16x16/apps/kmplot.png
@@ -244,13 +260,13 @@ SplitOff10: <<
 SplitOff11: <<
   Package: kpercentage
   Description: KDE - practice calculating percentages
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-shlibs (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
   Files: <<
     bin/kpercentage
-    share/applnk/Edutainment/Mathematics/kpercentage.desktop
+    share/applications/kde/kpercentage.desktop
     share/apps/kpercentage
     share/doc/kde/en/kpercentage
     share/icons/crystalsvg/16x16/apps/kpercentage.png
@@ -262,15 +278,18 @@ SplitOff11: <<
 SplitOff12: <<
   Package: kstars
   Description: KDE - desktop planetarium
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-shlibs (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
   Files: <<
+    bin/celestrongps
+    bin/indiserver
     bin/kstars
+    bin/lx200*
     include/kstarsinterface.h
     include/simclockinterface.h
-    share/applnk/Edutainment/Science/kstars.desktop
+    share/applications/kde/kstars.desktop
     share/apps/kstars
     share/doc/kde/en/kstars
     share/icons/crystalsvg/16x16/apps/kstars.png
@@ -278,35 +297,33 @@ SplitOff12: <<
     share/icons/crystalsvg/48x48/apps/kstars.png
     share/icons/locolor/16x16/apps/kstars.png
     share/icons/locolor/32x32/apps/kstars.png
-    share/icons/locolor/48x48/apps/kstars.png
   <<
 <<
 SplitOff13: <<
   Package: ktouch
   Description: KDE - touch-typing tutor
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-shlibs (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
   Files: <<
     bin/ktouch
-    share/applnk/Edutainment/Miscellaneous/ktouch.desktop
+    share/applications/kde/ktouch.desktop
     share/apps/ktouch
     share/doc/kde/en/ktouch
-    share/icons/crystalsvg/16x16/apps/ktouch.png
-    share/icons/crystalsvg/32x32/apps/ktouch.png
+    share/icons/ktouch/*-app-ktouch.png
   <<
 <<
 SplitOff14: <<
   Package: kverbos
   Description: KDE - spanish verb form study aid
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-shlibs (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
   Files: <<
     bin/kverbos
-    share/applnk/Edutainment/Languages/kverbos.desktop
+    share/applications/kde/kverbos.desktop
     share/apps/kverbos
     share/doc/kde/en/kverbos
     share/icons/crystalsvg/16x16/actions/kverbosuser.png
@@ -316,26 +333,25 @@ SplitOff14: <<
 SplitOff15: <<
   Package: kvoctrain
   Description: KDE - vocabulary training tool
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-common (>= %v-%r), %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-common (>= %v-%r), %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-shlibs (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
   Files: <<
     bin/kvoctrain
-    share/applnk/Edutainment/Languages/kvoctrain.desktop
+    share/applications/kde/kvoctrain.desktop
     share/apps/kvoctrain
     share/doc/kde/en/kvoctrain
-    share/icons/crystalsvg/22x22/apps/kvoctrain.xpm
-    share/icons/crystalsvg/32x32/apps/kvoctrain.xpm
-    share/icons/crystalsvg/48x48/apps/kvoctrain.xpm
-    share/icons/kvoctrain.xpm
-    share/icons/locolor/16x16/apps/kvoctrain.xpm
+    share/icons/hicolor/16x16/apps/kvoctrain.png
+    share/icons/hicolor/22x22/apps/kvoctrain.png
+    share/icons/hicolor/32x32/apps/kvoctrain.png
+    share/icons/hicolor/48x48/apps/kvoctrain.png
   <<
 <<
 SplitOff16: <<
   Package: %N-common
   Description: KDE - kdeedu common shared libraries
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-dev (<< %v-%r), %N-shlibs (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
@@ -343,27 +359,32 @@ SplitOff16: <<
     bin/langen2kvtml
     bin/spotlight2kvtml
     lib/libkdeeducore.1*.dylib
+    lib/libkdeeduplot.1*.dylib
+    lib/libkdeeduui.1*.dylib
   <<
   Shlibs: <<
-    %p/lib/libkdeeducore.1.dylib 2.0.0 %N-common (>= 3.1.4-11)
+    %p/lib/libkdeeducore.1.dylib 4.0.0 %N-common (>= 3.1.93-1)
+    %p/lib/libkdeeduplot.1.dylib 4.0.0 %N-common (>= 3.1.93-1)
+    %p/lib/libkdeeduui.1.dylib 4.0.0 %N-common (>= 3.1.93-1)
   <<
 <<
 SplitOff17: <<
   Package: %N-dev
   Description: KDE - kdeedu development headers and libraries
-  Depends: %N (>= %v-%r), arts (>= 1.1.4-11), dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), kdebase3-ssl (>= %v-11) | kdebase3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11
-  Recommends: arts-dev (>= 1.1.4-11), autoconf2.54, automake1.6, dlcompat-dev (>= 20030629-5), kdelibs3-ssl-dev (>= %v-11) | kdelibs3-dev (>= %v-11), kdebase3-ssl-dev (>= %v-11) | kdebase3-dev (>= %v-11), libart2, libpng3 (>= 1.2.5-4), libtool14, qt3 (>= 3.2.1-11), x11
+  Depends: %N (>= %v-%r), arts (>= 1.1.93-1), dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), kdebase3-ssl (>= %v-1) | kdebase3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11
+  Recommends: arts-dev (>= 1.1.93-1), autoconf2.54, automake1.6, dlcompat-dev (>= 20030629-5), kdelibs3-ssl-dev (>= %v-1) | kdelibs3-dev (>= %v-1), kdebase3-ssl-dev (>= %v-1) | kdebase3-dev (>= %v-1), libart2, libpng3 (>= 1.2.5-4), libtool14, qt3 (>= 3.2.1-11), x11
   Replaces: %N (<< %v-%r), %N-shlibs (<< %v-%r)
   BuildDependsOnly: true
   Files: <<
     include
-    lib/libkdeeducore.dylib
+    lib/*.la
+    lib/*.dylib
   <<
 <<
 SplitOff18: <<
   Package: %N-base
   Description: KDE - kdeedu base package
-  Depends: arts (>= 1.1.4-11), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), kdebase3-ssl (>= %v-11) | kdebase3 (>= %v-11)
+  Depends: arts (>= 1.1.93-1), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), kdebase3-ssl (>= %v-1) | kdebase3 (>= %v-1)
   Replaces: %N (<< %v-%r), %N-shlibs (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
@@ -378,12 +399,12 @@ packages.  kdeedu3 contains:
 
   flashkard
   kalzium
+  kbruch
   keduca
-  kgeo
   khangman
+  kig
   kiten
   klettres
-  kmathtool
   kmessedwords
   kmplot
   kpercentage

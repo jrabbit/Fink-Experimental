@@ -1,0 +1,32 @@
+diff -uNr flex-2.5.31/filter.c flex-2.5.31-patched/filter.c
+--- flex-2.5.31/filter.c	Tue Mar 25 11:39:08 2003
++++ flex-2.5.31-patched/filter.c	Thu Nov  6 19:47:50 2003
+@@ -22,6 +22,7 @@
+ /*  PURPOSE. */
+ 
+ #include "flexdef.h"
++#define ap_fdopen(d,m) fdopen((d), (char *)(m))
+ 
+ /** global chain. */
+ struct filter *output_chain = NULL;
+@@ -158,9 +159,9 @@
+ 			int     r;
+ 
+ 			/* setup streams again */
+-			if ((stdin = fdopen (0, "r")) == NULL)
++			if ((fdopen(0, "r")) == NULL)
+ 				flexfatal (_("fdopen(0) failed"));
+-			if ((stdout = fdopen (1, "w")) == NULL)
++			if ((fdopen(1, "w")) == NULL)
+ 				flexfatal (_("fdopen(1) failed"));
+ 
+ 			if ((r = chain->filter_func (chain)) == -1)
+@@ -181,7 +182,7 @@
+ 	if (dup2 (pipes[1], 1) == -1)
+ 		flexfatal (_("dup2(pipes[1],1)"));
+ 	close (pipes[1]);
+-	if ((stdout = fdopen (1, "w")) == NULL)
++	if ((fdopen(1, "w")) == NULL)
+ 		flexfatal (_("fdopen(1) failed"));
+ 
+ 	return true;

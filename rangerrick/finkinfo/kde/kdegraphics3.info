@@ -1,93 +1,107 @@
 Package: kdegraphics3
-Version: 3.1.4
-Revision: 11
+Version: 3.1.93
+Revision: 1
 Description: KDE - graphics
 License: GPL/LGPL
 Maintainer: Benjamin Reed <ranger@befunk.com>
 
-Depends: kcoloredit (>= %v-%r), kde-kfile-image-plugins (>= %v-%r), kdvi (>= %v-%r), kfax (>= %v-%r), kghostview (>= %v-%r), kiconedit (>= %v-%r), kmrml (>= %v-%r), kpaint (>= %v-%r), kpovmodeler (>= %v-%r), kruler (>= %v-%r), ksnapshot (>= %v-%r), kuickshow (>= %v-%r), kview (>= %v-%r), kdebase3-ssl (>= %v-11) | kdebase3 (>= %v-11), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), %N-base (>= %v-%r)
-BuildDepends: arts-dev (>= 1.1.4-11), autoconf2.54, automake1.6, cctools (>= 446-1) | cctools-single-module, fink (>= 0.14.0-1), freetype2 | freetype2-hinting, giflib | libungif, glut (>= 3.7-13), imlib (>= 1.9.14-2), kdelibs3-ssl-dev (>= %v-11) | kdelibs3-dev (>= %v-11), kdebase3-ssl-dev (>= %v-11) | kdebase3-dev (>= %v-11), libart2, libjpeg, libpng3 (>= 1.2.5-4), libtiff, libtool14, xpdf, qt3 (>= 3.2.1-11)
+Depends: kcoloredit (>= %v-%r), kde-kfile-image-plugins (>= %v-%r), kdvi (>= %v-%r), kfax (>= %v-%r), kghostview (>= %v-%r), kiconedit (>= %v-%r), kmrml (>= %v-%r), kpaint (>= %v-%r), kpdf (>= %v-%r), kpovmodeler (>= %v-%r), kruler (>= %v-%r), ksnapshot (>= %v-%r), ksvg (>= %v-%r), kuickshow (>= %v-%r), kview (>= %v-%r), kdebase3-ssl (>= %v-1) | kdebase3 (>= %v-1), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), %N-base (>= %v-%r)
+BuildDepends: arts-dev (>= 1.1.93-1), autoconf2.54, automake1.6, cctools (>= 446-1) | cctools-single-module, fink (>= 0.14.0-1), freetype2 | freetype2-hinting, fribidi (>= 0.10.4-1), fribidi-dev (>= 0.10.4-1), giflib | libungif, glut (>= 3.7-13), imlib (>= 1.9.14-2), kdelibs3-ssl-dev (>= %v-1) | kdelibs3-dev (>= %v-1), kdebase3-ssl-dev (>= %v-1) | kdebase3-dev (>= %v-1), libart2, libjpeg, libpng3 (>= 1.2.5-4), libtiff, libtool14, xpdf, qt3 (>= 3.2.1-11)
 Conflicts: %N (<< %v-%r)
 GCC: 3.3
 
-CustomMirror: <<
-  nam-US: http://ranger.befunk.com/fink
-  nam-US: http://astrange.ithinksw.net/~astrange/ranger-fink
-  nam-CA: http://www.southofheaven.net/befunk
-<<
 Source: mirror:kde:stable/%v/src/kdegraphics-%v.tar.bz2
-Source-MD5: c695c8574efca207c445dcef0bb4ae43
-Source2: mirror:custom:kde-admindir-20030916.tar.bz2
-Source2-MD5: 95d67207a2fd4e40c3c51f9c30f41e52
-Source2ExtractDir: kdegraphics-%v
+Source-MD5: c1640d40db69ff18df64f814f03b116e
 
-PatchScript: sed 's|@PREFIX@|%p|g' <%a/%n.patch | patch -p0
+PatchScript: <<
+  patch -p0 < %a/%n.patch
+  perl -pi -e 's,-O2,-Os,' admin/acinclude.m4.in
+  perl -pi -e 's,doc/HTML,doc/kde,g' admin/acinclude.m4.in
+<<
 
-SetCFLAGS: -fno-common
-SetCPPFLAGS: -no-cpp-precomp -I%p/include
+SetCPPFLAGS: -fno-common -no-cpp-precomp -I/usr/X11R6/include/freetype2 -I/usr/X11R6/include -I%p/include
 SetLIBS: -L%p/lib
 NoSetLDFLAGS: true
 SetMACOSX_DEPLOYMENT_TARGET: 10.2
 ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --without-kamera --with-imlib-config=%p/bin --disable-final
 CompileScript: <<
-#!/bin/sh
-  export KDEDIR=%p
+#!/bin/sh -e
   mkdir -p /tmp/kde-build
 
-  date > /tmp/kde-build/%N-%v-%r.cvs && \
-  (make -f admin/Makefile.common cvs 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.cvs) && \
-  date > /tmp/kde-build/%N-%v-%r.configure && \
-  (sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure) && \
-  date > /tmp/kde-build/%N-%v-%r.make && \
-  (make all 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.make)
+# breaks a lot of plugins on 10.2, enable this again on 10.3
+#  export LD_TWOLEVEL_NAMESPACE=true
+  export PATH="/usr/X11R6/bin:$PATH"
+
+  date > /tmp/kde-build/%N-%v-%r.cvs
+  make -f admin/Makefile.common cvs 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.cvs
+  date > /tmp/kde-build/%N-%v-%r.configure
+  FREETYPE_CONFIG=/usr/X11R6/bin/freetype-config sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure
+  date > /tmp/kde-build/%N-%v-%r.make
+  make all 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.make
 <<
 
 InstallScript: <<
-#!/bin/sh
+#!/bin/sh -e
   mkdir -p /tmp/kde-build
   mkdir -p %i/share/doc/kde-installed-packages
   touch %i/share/doc/kde-installed-packages/%N
   touch %i/share/doc/kde-installed-packages/%N-base
 
-  date > /tmp/kde-build/%N-%v-%r.install && \
-  (make install DESTDIR=%d 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.install)
+  date > /tmp/kde-build/%N-%v-%r.install
+  make -j1 install DESTDIR=%d 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.install
 
-  # put these back when we have SANE playing nice
   rm -rf %i/share/doc/kde/en/kamera
   rm -rf %i/share/doc/kde/en/kooka
 <<
+
 DocFiles: AUTHORS COPYING ChangeLog INSTALL README
 SplitOff: <<
+  Package: %N-dev
+  Description: KDE - development headers and libraries
+  Depends: %N (>= %v-%r)
+  BuildDependsOnly: true
+  Files: <<
+    include
+    lib/*.la
+    lib/libkimageviewer.dylib
+    lib/libkmultipage.dylib
+    lib/libksvg.dylib
+    lib/libtext2path.dylib
+  <<
+<<
+SplitOff2: <<
   Package: kcoloredit
   Description: KDE - color palette editor
-  Depends: dlcompat-shlibs (>= 20030629-5), kde-kfile-image-plugins (>= %v-%r), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kde-kfile-image-plugins (>= %v-%r), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
   Files: <<
     bin/kcolorchooser
     bin/kcoloredit
-    share/applnk/Graphics/More/kcolorchooser.desktop
-    share/applnk/Graphics/More/kcoloredit.desktop
+    share/applications/kde/kcolorchooser.desktop
+    share/applications/kde/kcoloredit.desktop
     share/apps/kcoloredit
     share/doc/kde/en/kcoloredit
     share/icons/crystalsvg/16x16/apps/kcoloredit.png
+    share/icons/crystalsvg/16x16/apps/kcolorchooser.png
     share/icons/crystalsvg/32x32/apps/kcoloredit.png
+    share/icons/crystalsvg/22x22/apps/kcolorchooser.png
     share/icons/locolor/16x16/apps/kcoloredit.png
     share/icons/locolor/32x32/apps/kcoloredit.png
   <<
 <<
-SplitOff2: <<
+SplitOff3: <<
   Package: kdvi
   Description: KDE - DVI print file previewer
-  Depends: dlcompat-shlibs (>= 20030629-5), kde-kfile-image-plugins (>= %v-%r), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), kview (>= %v-%r), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kde-kfile-image-plugins (>= %v-%r), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), kview (>= %v-%r), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
   Files: <<
     bin/kdvi
     lib/kde3/*kdvi*
-    share/applnk/Graphics/kdvi.desktop
+    share/applications/kde/kdvi.desktop
     share/apps/kdvi
     share/doc/kde/en/kdvi
     share/icons/crystalsvg/16x16/apps/kdvi.png
@@ -95,27 +109,44 @@ SplitOff2: <<
     share/icons/crystalsvg/48x48/apps/kdvi.png
   <<
 <<
-SplitOff3: <<
+SplitOff4: <<
   Package: kfax
   Description: KDE - fax file viewer
-  Depends: dlcompat-shlibs (>= 20030629-5), kde-kfile-image-plugins (>= %v-%r), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), kview (>= %v-%r), libart2-shlibs, libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4), libtiff-shlibs, qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kde-kfile-image-plugins (>= %v-%r), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), kview (>= %v-%r), libart2-shlibs, libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4), libtiff-shlibs, qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
   Files: <<
     bin/kfax
     lib/kde3/*kfax*
-    share/applnk/Graphics/kfax.desktop
+    share/applications/kde/kfax.desktop
     share/apps/kfax
     share/icons/crystalsvg/16x16/apps/kfax.png
     share/icons/crystalsvg/32x32/apps/kfax.png
     share/icons/crystalsvg/48x48/apps/kfax.png
   <<
 <<
-SplitOff4: <<
+SplitOff5: <<
+  Package: kgamma
+  Description: KDE - monitor calibration tool
+  Depends: dlcompat-shlibs (>= 20030629-5), kde-kfile-image-plugins (>= %v-%r), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), kview (>= %v-%r), libart2-shlibs, libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4), libtiff-shlibs, qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Replaces: %N (<< %v-%r)
+  Recommends: %N (>= %v-%r)
+  BuildDependsOnly: true
+  Files: <<
+    bin/xf86gammacfg
+    lib/kde3/*kgamma*
+    share/applnk/.hidden/kgamma.desktop
+    share/apps/kgamma
+    share/icons/hicolor/16x16/apps/kgamma.png
+    share/icons/hicolor/32x32/apps/kgamma.png
+    share/icons/hicolor/48x48/apps/kgamma.png
+  <<
+<<
+SplitOff6: <<
   Package: kghostview
   Description: KDE - postscript viewer
-  Depends: dlcompat-shlibs (>= 20030629-5), ghostscript, kde-kfile-image-plugins (>= %v-%r), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), ghostscript, kde-kfile-image-plugins (>= %v-%r), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
@@ -123,7 +154,7 @@ SplitOff4: <<
     bin/kghostview
     lib/kde3/*kghostview*
     lib/*kghostview*
-    share/applnk/Graphics/kghostview.desktop
+    share/applications/kde/kghostview.desktop
     share/apps/kghostview
     share/doc/kde/en/kghostview
     share/icons/crystalsvg/16x16/apps/kghostview.png
@@ -133,17 +164,16 @@ SplitOff4: <<
     share/icons/crystalsvg/128x128/apps/kghostview.png
   <<
 <<
-SplitOff5: <<
+SplitOff7: <<
   Package: kiconedit
   Description: KDE - icon editor
-  Depends: dlcompat-shlibs (>= 20030629-5), kde-kfile-image-plugins (>= %v-%r), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kde-kfile-image-plugins (>= %v-%r), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
   Files: <<
     bin/kiconedit
-    share/applnk/Graphics/More/kiconedit.desktop
-    share/applnk/Graphics/kiconedit.desktop
+    share/applications/kde/kiconedit.desktop
     share/apps/kiconedit
     share/doc/kde/en/kiconedit
     share/icons/crystalsvg/16x16/apps/kiconedit.png
@@ -151,16 +181,16 @@ SplitOff5: <<
     share/icons/crystalsvg/48x48/apps/kiconedit.png
   <<
 <<
-SplitOff6: <<
+SplitOff8: <<
   Package: kpaint
   Description: KDE - graphic editor
-  Depends: dlcompat-shlibs (>= 20030629-5), kde-kfile-image-plugins (>= %v-%r), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kde-kfile-image-plugins (>= %v-%r), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
   Files: <<
     bin/kpaint
-    share/applnk/Graphics/kpaint.desktop
+    share/applications/kde/kpaint.desktop
     share/apps/kpaint
     share/doc/kde/en/kpaint
     share/icons/crystalsvg/16x16/apps/kpaint.png
@@ -168,17 +198,36 @@ SplitOff6: <<
     share/icons/crystalsvg/48x48/apps/kpaint.png
   <<
 <<
-SplitOff7: <<
+SplitOff9: <<
+  Package: kpdf
+  Description: KDE - pdf document viewer
+  Depends: dlcompat-shlibs (>= 20030629-5), freetype2-shlibs | freetype2-hinting-shlibs, glut-shlibs (>= 3.7-13), kde-kfile-image-plugins (>= %v-%r), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Replaces: %N (<< %v-%r)
+  Recommends: %N (>= %v-%r)
+  BuildDependsOnly: true
+  Files: <<
+    bin/kpdf
+    lib/*kpdf*
+    share/applications/kde/kpdf.desktop
+    share/apps/kpdf*
+    share/doc/kde/en/kpdf
+    share/icons/hicolor/16x16/apps/kpdf.png
+    share/icons/hicolor/32x32/apps/kpdf.png
+    share/icons/hicolor/48x48/apps/kpdf.png
+    share/services/kpdf_part.desktop
+  <<
+<<
+SplitOff10: <<
   Package: kpovmodeler
   Description: KDE - 3D modeler and composer
-  Depends: dlcompat-shlibs (>= 20030629-5), freetype2-shlibs | freetype2-hinting-shlibs, glut-shlibs (>= 3.7-13), kde-kfile-image-plugins (>= %v-%r), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), freetype2-shlibs | freetype2-hinting-shlibs, glut-shlibs (>= 3.7-13), kde-kfile-image-plugins (>= %v-%r), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r)
   Recommends: %N (>= %v-%r), povray
   BuildDependsOnly: true
   Files: <<
     bin/kpovmodeler
     lib/kde3/*kpovmodeler*
-    share/applnk/Graphics/kpovmodeler.desktop
+    share/applications/kde/kpovmodeler.desktop
     share/apps/kpovmodeler
     share/doc/kde/en/kpovmodeler
     share/icons/crystalsvg/16x16/apps/kpovmodeler.png
@@ -189,16 +238,17 @@ SplitOff7: <<
     share/icons/locolor/32x32/apps/kpovmodeler.png
   <<
 <<
-SplitOff8: <<
+SplitOff11: <<
   Package: kruler
   Description: KDE - distance and color measurement
-  Depends: dlcompat-shlibs (>= 20030629-5), kde-kfile-image-plugins (>= %v-%r), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kde-kfile-image-plugins (>= %v-%r), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
   Files: <<
     bin/kruler
-    share/applnk/Graphics/More/kruler.desktop
+    share/applications/kde/kruler.desktop
+    share/applnk/Graphics/kruler.desktop
     share/apps/kruler
     share/doc/kde/en/kruler
     share/icons/crystalsvg/16x16/apps/kruler.png
@@ -206,33 +256,52 @@ SplitOff8: <<
     share/icons/crystalsvg/48x48/apps/kruler.png
   <<
 <<
-SplitOff9: <<
+SplitOff12: <<
   Package: ksnapshot
   Description: KDE - screenshot utility
-  Depends: dlcompat-shlibs (>= 20030629-5), kde-kfile-image-plugins (>= %v-%r), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kde-kfile-image-plugins (>= %v-%r), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
   Files: <<
     bin/ksnapshot
-    share/applnk/Graphics/More/ksnapshot.desktop
+    share/applications/kde/ksnapshot.desktop
     share/doc/kde/en/ksnapshot
     share/icons/crystalsvg/16x16/apps/ksnapshot.png
     share/icons/crystalsvg/32x32/apps/ksnapshot.png
     share/icons/crystalsvg/48x48/apps/ksnapshot.png
   <<
 <<
-SplitOff10: <<
+SplitOff13: <<
+  Package: ksvg
+  Description: KDE - vector graphics
+  Depends: dlcompat-shlibs (>= 20030629-5), kde-kfile-image-plugins (>= %v-%r), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Replaces: %N (<< %v-%r)
+  Recommends: %N (>= %v-%r)
+  BuildDependsOnly: true
+  Files: <<
+    bin/printnodetest
+    bin/svgdisplay
+    lib/*svg*
+    lib/libksvg.0*.dylib
+    lib/libtext2path.0*.dylib
+    share/apps/ksvg/ksvgplugin.rc
+    share/services/*svg*
+    share/servicetypes/ksvgrenderer.desktop
+  <<
+<<
+SplitOff14: <<
   Package: kuickshow
   Description: KDE - slideshow application
-  Depends: dlcompat-shlibs (>= 20030629-5), imlib-shlibs (>= 1.9.14-2), kde-kfile-image-plugins (>= %v-%r), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4), libtiff-shlibs, giflib-shlibs | libungif-shlibs, qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), imlib-shlibs (>= 1.9.14-2), kde-kfile-image-plugins (>= %v-%r), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4), libtiff-shlibs, giflib-shlibs | libungif-shlibs, qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
   Files: <<
     bin/kuickshow
     lib/*kuickshow*
-    share/applnk/Graphics/kuickshow.desktop
+    lib/kde3/*kuickshow*
+    share/applications/kde/kuickshow.desktop
     share/apps/kuickshow
     share/doc/kde/en/kuickshow
     share/icons/crystalsvg/16x16/apps/kuickshow.png
@@ -241,22 +310,21 @@ SplitOff10: <<
     share/icons/locolor/32x32/apps/kuickshow.png
   <<
 <<
-SplitOff11: <<
+SplitOff15: <<
   Package: kview
   Description: KDE - image viewer
-  Depends: dlcompat-shlibs (>= 20030629-5), kde-kfile-image-plugins (>= %v-%r), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kde-kfile-image-plugins (>= %v-%r), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
   Files: <<
     bin/kview
     bin/kviewshell
-    include/kmultipageInterface.h
     lib/kde3/*kview*
     lib/*kview*
-    lib/*kpagetest*
-    lib/*multipage*
-    share/applnk/Graphics/kview.desktop
+    lib/libkmultipage.*.dylib
+    lib/libkimageviewer.*.dylib
+    share/applications/kde/kview.desktop
     share/apps/kview
     share/apps/kviewerpart
     share/apps/kviewshell
@@ -268,19 +336,19 @@ SplitOff11: <<
     share/icons/crystalsvg/32x32/apps/kviewshell.png
     share/icons/crystalsvg/48x48/apps/kview.png
     share/icons/crystalsvg/48x48/apps/kviewshell.png
+    share/services/kconfiguredialog/kview*
     share/services/kviewcanvas.desktop
     share/services/kviewviewer.desktop
     share/servicetypes/kimageviewer*.desktop
   <<
   Shlibs: <<
-    %p/lib/libkmultipage.dylib 0.0.0 kview (>= 3.1.4-11)
-    %p/lib/libkviewsupport.dylib 0.0.0 kview (>= 3.1.4-11)
+    %p/lib/libkmultipage.dylib 0.0.0 kview (>= 3.1.93-11)
   <<
 <<
-SplitOff12: <<
+SplitOff16: <<
   Package: kde-kfile-image-plugins
   Description: KDE - plugins for graphics file I/O
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4), libtiff-shlibs, qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4), libtiff-shlibs, qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
@@ -289,10 +357,10 @@ SplitOff12: <<
     share/services/kfile*
   <<
 <<
-SplitOff13: <<
+SplitOff17: <<
   Package: kmrml
   Description: KDE - konqueror plugin for searching pictures
-  Depends: dlcompat-shlibs (>= 20030629-5), kde-kfile-image-plugins (>= %v-%r), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kde-kfile-image-plugins (>= %v-%r), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
@@ -301,17 +369,17 @@ SplitOff13: <<
     lib/kde3/*daemonwatcher*
     lib/kde3/*mrml*
     lib/*mrml*
-    share/applnk/Settings/System/kcmkmrml.desktop
+    share/applications/kde/kcmkmrml.desktop
     share/apps/konqueror/servicemenus/mrml-servicemenu.desktop
     share/mimelnk/text/mrml.desktop
     share/services/kded/daemonwatcher.desktop
     share/services/*mrml*
   <<
 <<
-SplitOff14: <<
+SplitOff18: <<
   Package: %N-base
   Description: KDE - kdegraphics base package
-  Depends: arts (>= 1.1.4-11), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), kdebase3-ssl (>= %v-11) | kdebase3 (>= %v-11)
+  Depends: arts (>= 1.1.93-1), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), kdebase3-ssl (>= %v-1) | kdebase3 (>= %v-1)
   Replaces: %N (<< %v-%r), %N-dev (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true

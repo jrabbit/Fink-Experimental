@@ -1,79 +1,105 @@
 Package: kdenetwork3
-Version: 3.1.4
-Revision: 11
+Version: 3.1.93
+Revision: 1
 Description: KDE - networking
 License: GPL/LGPL
 Maintainer: Benjamin Reed <ranger@befunk.com>
 
-Depends: ksirc (>= %v-%r), %N-misc (>= %v-%r), kget (>= %v-%r), kit (>= %v-%r), kmail (>= %v-%r), knewsticker (>= %v-%r), knode (>= %v-%r), korn (>= %v-%r), kpf (>= %v-%r), krdc (>= %v-%r), krfb (>= %v-%r), ktalk (>= %v-%r), kxmlrpcd (>= %v-%r), lisa (>= %v-%r), kde-extra-kfile-plugins (>= %v-%r), %N-common (>= %v-%r), kdebase3-ssl (>= %v-11) | kdebase3 (>= %v-11), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), %N-base (>= %v-%r)
-BuildDepends: arts-dev (>= 1.1.4-11), autoconf2.54, automake1.6, cctools (>= 446-1) | cctools-single-module, dlcompat-dev (>= 20030629-5), fink (>= 0.14.0-1), kdelibs3-ssl-dev (>= %v-11) | kdelibs3-dev (>= %v-11), kdebase3-ssl-dev (>= %v-11) | kdebase3-dev (>= %v-11), libart2, libjpeg, libpng3 (>= 1.2.5-4), libpoll (>= 1.1-1), libtool14, openslp-ssl-dev | openslp-dev, qt3 (>= 3.2.1-11)
+Depends: %N-misc (>= %v-%r), dcoprss (>= %v-%r), kget (>= %v-%r), knewsticker (>= %v-%r), kopete (>= %v-%r), kpf (>= %v-%r), krdc (>= %v-%r), krfb (>= %v-%r), ksirc (>= %v-%r), ktalk (>= %v-%r), lisa (>= %v-%r), kdebase3-ssl (>= %v-1) | kdebase3 (>= %v-1), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), %N-base (>= %v-%r)
+BuildDepends: arts-dev (>= 1.1.93-1), autoconf2.54, automake1.6, cctools (>= 446-1) | cctools-single-module, dlcompat-dev (>= 20030629-5), ekg (>= 1.4-0) | ekg-ssl (>= 1.4-0), fink (>= 0.14.0-1), kdelibs3-ssl-dev (>= %v-1) | kdelibs3-dev (>= %v-1), kdebase3-ssl-dev (>= %v-1) | kdebase3-dev (>= %v-1), libart2, libjpeg, libpng3 (>= 1.2.5-4), libpoll (>= 1.1-1), libtool14, openslp-ssl-dev | openslp-dev, qt3 (>= 3.2.1-11), xmms (>= 1.2.0-1)
 Replaces: %N-common (<< %v-%r), %N-dev (<< %v-%r)
 GCC: 3.3
 
-CustomMirror: <<
-  nam-US: http://ranger.befunk.com/fink
-  nam-US: http://astrange.ithinksw.net/~astrange/ranger-fink
-  nam-CA: http://www.southofheaven.net/befunk
-<<
 Source: mirror:kde:stable/%v/src/kdenetwork-%v.tar.bz2
-Source-MD5: 83d69ab3be7b4b10b898b250eb2d9046
-Source2: mirror:custom:kde-admindir-20030916.tar.bz2
-Source2-MD5: 95d67207a2fd4e40c3c51f9c30f41e52
-Source2ExtractDir: kdenetwork-%v
+Source-MD5: b3dc9eafc07053da1ed006ba80c5570a
 
-PatchScript: sed 's|@PREFIX@|%p|g' <%a/%n.patch | patch -p0
+PatchScript: <<
+  patch -p0 < %a/%n.patch
+  perl -pi -e 's,-O2,-Os,' admin/acinclude.m4.in
+  perl -pi -e 's,doc/HTML,doc/kde,g' admin/acinclude.m4.in
+<<
 
-SetCFLAGS: -fno-common
-SetCPPFLAGS: -no-cpp-precomp -I%p/include
+SetCPPFLAGS: -fno-common -no-cpp-precomp -I/usr/X11R6/include/freetype2 -I/usr/X11R6/include -I%p/include
 SetLIBS: -L%p/lib
 NoSetLDFLAGS: true
 SetMACOSX_DEPLOYMENT_TARGET: 10.2
-ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --disable-final
+ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --disable-final --with-libgadu-libs=/sw/lib --with-libgadu-includes=/sw/include
 CompileScript: <<
-#!/bin/sh
-  export KDEDIR=%p
+#!/bin/sh -e
   mkdir -p /tmp/kde-build
 
-  date > /tmp/kde-build/%N-%v-%r.cvs && \
-  (make -f admin/Makefile.common cvs 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.cvs) && \
-  date > /tmp/kde-build/%N-%v-%r.configure && \
-  (sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure) && \
-  perl -pi -e 's,-Os,-O0,g' libkdenetwork/Makefile && \
-  date > /tmp/kde-build/%N-%v-%r.make && \
-  (make all 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.make)
+# breaks a lot of plugins on 10.2, enable this again on 10.3
+#  export LD_TWOLEVEL_NAMESPACE=true
+  export PATH="/usr/X11R6/bin:$PATH"
+ 
+  date > /tmp/kde-build/%N-%v-%r.cvs
+  make -f admin/Makefile.common cvs 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.cvs
+  date > /tmp/kde-build/%N-%v-%r.configure
+  FREETYPE_CONFIG=/usr/X11R6/bin/freetype-config sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure
+  date > /tmp/kde-build/%N-%v-%r.make
+  make all 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.make
 <<
 
 InstallScript: <<
-#!/bin/sh
+#!/bin/sh -e
   mkdir -p /tmp/kde-build
   mkdir -p %i/share/doc/kde-installed-packages
   touch %i/share/doc/kde-installed-packages/%N
   touch %i/share/doc/kde-installed-packages/%N-base
 
-  date > /tmp/kde-build/%N-%v-%r.install && \
-  (make install DESTDIR=%d 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.install)
+  date > /tmp/kde-build/%N-%v-%r.install
+  make -j1 install DESTDIR=%d 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.install
 
-  # disabled on MacOSX
+  rm -rf %i/share/doc/kde/en/kcontrol/kxmlrpcd
   rm -rf %i/share/doc/kde/en/kppp
+  rm -rf %i/share/doc/kde/en/kwifimanager
 <<
+
 DocFiles: AUTHORS COPYING INSTALL README
 SplitOff: <<
   Package: %N-dev
   Description: network development libraries and headers
   Depends: %N (>= %v-%r), %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-common (<< %v-%r)
-  Recommends: arts-dev (>= 1.1.4-11), autoconf2.54, automake1.6, dlcompat-dev (>= 20030629-5), fink (>= 0.14.0-1), kdelibs3-ssl-dev (>= %v-11) | kdelibs3-dev (>= %v-11), kdebase3-ssl-dev (>= %v-11) | kdebase3-dev (>= %v-11), libart2, libjpeg, libpng3 (>= 1.2.5-4), libpoll (>= 1.1-1), libtool14, openslp-ssl-dev | openslp-dev, qt3 (>= 3.2.1-11)
+  Recommends: arts-dev (>= 1.1.93-1), autoconf2.54, automake1.6, dlcompat-dev (>= 20030629-5), fink (>= 0.14.0-1), kdelibs3-ssl-dev (>= %v-1) | kdelibs3-dev (>= %v-1), kdebase3-ssl-dev (>= %v-1) | kdebase3-dev (>= %v-1), libart2, libjpeg, libpng3 (>= 1.2.5-4), libpoll (>= 1.1-1), libtool14, openslp-ssl-dev | openslp-dev, qt3 (>= 3.2.1-11)
   BuildDependsOnly: true
   Files: <<
     include
-    lib/libkdenetwork.dylib
-    lib/libmimelib.dylib
+    lib/*.la
+    lib/libkopete.dylib
+    lib/libkopete_msn_shared.dylib
+    lib/libkopete_oscar.dylib
+    lib/librss.dylib
+    share/apps/kopete
+    share/doc/kde/en/kopete
+    share/icons/crystalsvg/128x128/apps/kopete.png
+    share/icons/crystalsvg/16x16/apps/kopete.png
+    share/icons/crystalsvg/22x22/apps/kopete.png
+    share/icons/crystalsvg/32x32/apps/kopete.png
+    share/icons/crystalsvg/48x48/apps/kopete.png
+    share/icons/crystalsvg/64x64/apps/kopete.png
+    share/services/rssservice.desktop
+    share/servicetypes/kopete*
+    share/sounds/Kopete
   <<
 <<
 SplitOff2: <<
+  Package: dcoprss
+  Description: KDE - RSS tools
+  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Replaces: %N (<< %v-%r), %N-common (<< %v-%r), %N-dev (<< %v-%r)
+  Recommends: %N (>= %v-%r)
+  BuildDependsOnly: true
+  Files: <<
+    bin/feedbrowser
+    bin/rss*
+    lib/librss*
+  <<
+<<
+SplitOff3: <<
   Package: ksirc
   Description: KDE - graphical IRC client
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-common (<< %v-%r), %N-dev (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
@@ -81,21 +107,20 @@ SplitOff2: <<
     bin/dsirc
     bin/ksirc
     lib/*ksirc*
-    share/applnk/Internet/ksirc.desktop
+    lib/kde3/*ksirc*
+    share/applications/kde/ksirc.desktop
     share/apps/ksirc
     share/config/ksircrc
     share/doc/kde/en/ksirc
     share/icons/crystalsvg/16x16/apps/ksirc.png
     share/icons/crystalsvg/32x32/apps/ksirc.png
     share/icons/crystalsvg/48x48/apps/ksirc.png
-    share/icons/locolor/16x16/apps/ksirc.png
-    share/icons/locolor/32x32/apps/ksirc.png
   <<
 <<
-SplitOff3: <<
+SplitOff4: <<
   Package: %N-misc
   Description: KDE - other miscellaneous network applications
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r), %N-common (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-common (<< %v-%r), %N-dev (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
@@ -103,9 +128,9 @@ SplitOff3: <<
     bin/kdict
     bin/mail.local
     lib/kde3/*kdict_panelapplet*
-    share/applnk/Utilities/kdict.desktop
-    share/apps/kdict
+    share/applications/kde/kdict.desktop
     share/apps/kicker/applets/kdictapplet.desktop
+    share/apps/kdict
     share/doc/kde/en/kdict
     share/icons/crystalsvg/16x16/apps/kdict.png
     share/icons/crystalsvg/32x32/apps/kdict.png
@@ -114,17 +139,17 @@ SplitOff3: <<
     share/icons/crystalsvg/128x128/apps/kdict.png
   <<
 <<
-SplitOff4: <<
+SplitOff5: <<
   Package: kget
   Description: KDE - download manager
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-common (<< %v-%r), %N-dev (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
   Files: <<
     bin/kget
     lib/kde3/*khtml_kget.*
-    share/applnk/Internet/kget.desktop
+    share/applications/kde/kget.desktop
     share/apps/kget
     share/apps/khtml/kpartplugins/kget_plug_in.rc
     share/icons/crystalsvg/22x22/actions/khtml_kget.png
@@ -133,70 +158,19 @@ SplitOff4: <<
     share/mimelnk/application/x-kgetlist.desktop
   <<
 <<
-SplitOff5: <<
-  Package: kit
-  Description: KDE - AIM chat client
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
-  Replaces: %N (<< %v-%r), %N-common (<< %v-%r), %N-dev (<< %v-%r)
-  Recommends: %N (>= %v-%r)
-  BuildDependsOnly: true
-  Files: <<
-    bin/kit
-    share/applnk/Internet/kit.desktop
-    share/apps/kit
-    share/doc/kde/en/kit
-    share/icons/crystalsvg/16x16/apps/kit.png
-    share/icons/crystalsvg/32x32/apps/kit.png
-    share/icons/crystalsvg/48x48/apps/kit.png
-  <<
-<<
 SplitOff6: <<
-  Package: kmail
-  Description: KDE - mail client
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), %N-common (>= %v-%r), libart2-shlibs, libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4), libpoll-shlibs (>= 1.1-1), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
-  Replaces: %N (<< %v-%r), %N-common (<< %v-%r), %N-dev (<< %v-%r)
-  Recommends: %N (>= %v-%r)
-  BuildDependsOnly: true
-  Files: <<
-    bin/kgpgcertmanager
-    bin/kmail
-    bin/kmailcvt
-    share/applnk/Internet/KMail.desktop
-    share/applnk/Utilities/kmailcvt.desktop
-    share/apps/kconf_update/kmail*
-    share/apps/kconf_update/kpgp*
-    share/apps/kconf_update/upgrade-signature.pl
-    share/apps/kconf_update/upgrade-transport.pl
-    share/apps/kgpgcertmanager
-    share/apps/kmail
-    share/doc/kde/en/kgpgcertmanager
-    share/doc/kde/en/kmail
-    share/icons/crystalsvg/16x16/apps/kmail.png
-    share/icons/crystalsvg/16x16/apps/kmailcvt.png
-    share/icons/crystalsvg/32x32/apps/kmail.png
-    share/icons/crystalsvg/32x32/apps/kmailcvt.png
-    share/icons/crystalsvg/48x48/apps/kmail.png
-    share/icons/crystalsvg/48x48/apps/kmailcvt.png
-    share/icons/crystalsvg/64x64/apps/kmail.png
-    share/icons/crystalsvg/128x128/apps/kmail.png
-  <<
-<<
-SplitOff7: <<
   Package: knewsticker
   Description: KDE - news ticker
-  Depends: dlcompat-shlibs (>= 20030629-5), %N-common (>= %v-%r), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-common (<< %v-%r), %N-dev (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
   Files: <<
     bin/knewstickerstub
     lib/kde3/*newsticker*
-    lib/*kntsrcfile*
-    share/applnk/.hidden/kcmnewsticker.desktop
+    lib/kde3/libknt*
+    share/applications/kde/knewsticker-standalone.desktop
     share/applnk/.hidden/knewstickerstub.desktop
-    share/applnk/Internet/knewsticker-standalone.desktop
-    share/applnk/Internet/More/knewsticker-standalone.desktop
-    share/applnk/Settings/Personalization/kcmnewsticker.desktop
     share/apps/kconf_update/knewsticker.upd
     share/apps/kconf_update/knt-0.1-0.2.pl
     share/apps/kicker/applets/knewsticker.desktop
@@ -208,45 +182,33 @@ SplitOff7: <<
     share/services/kntsrcfilepropsdlg.desktop
   <<
 <<
+SplitOff7: <<
+  Package: kopete
+  Description: KDE - multi-protocol IM client
+  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Replaces: %N (<< %v-%r), %N-common (<< %v-%r), %N-dev (<< %v-%r)
+  Recommends: %N (>= %v-%r)
+  BuildDependsOnly: true
+  Files: <<
+    bin/kopete
+    bin/kconf_update_bin/kopete*
+    bin/winpopup*
+    lib/kde3/*kopete*
+    lib/kde3/libkrichtextedit*
+    lib/libkopete*
+    share/applnk/Internet/kopete.desktop
+    share/apps/kconf_update/kopete*
+    share/services/chatwindow.desktop
+    share/services/kconfiguredialog/kopete*
+    share/services/kopete*
+    share/services/nowlistening.desktop
+    
+  <<
+<<
 SplitOff8: <<
-  Package: knode
-  Description: KDE - nntp news reader
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), %N-common (>= %v-%r), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), libpoll-shlibs (>= 1.1-1), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
-  Replaces: %N (<< %v-%r), %N-common (<< %v-%r), %N-dev (<< %v-%r)
-  Recommends: %N (>= %v-%r)
-  BuildDependsOnly: true
-  Files: <<
-    bin/knode
-    share/applnk/Internet/KNode.desktop
-    share/apps/knode
-    share/doc/kde/en/knode
-    share/icons/crystalsvg/16x16/apps/knode.png
-    share/icons/crystalsvg/32x32/apps/knode.png
-    share/icons/crystalsvg/48x48/apps/knode.png
-    share/services/knewsservice.protocol
-  <<
-<<
-SplitOff9: <<
-  Package: korn
-  Description: KDE - new mail notification
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), %N-common (>= %v-%r), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
-  Replaces: %N (<< %v-%r), %N-common (<< %v-%r), %N-dev (<< %v-%r)
-  Recommends: %N (>= %v-%r)
-  BuildDependsOnly: true
-  Files: <<
-    bin/korn
-    share/applnk/Internet/KOrn.desktop
-    share/applnk/Internet/More/KOrn.desktop
-    share/doc/kde/en/korn
-    share/icons/crystalsvg/16x16/apps/korn.png
-    share/icons/crystalsvg/32x32/apps/korn.png
-    share/icons/crystalsvg/48x48/apps/korn.png
-  <<
-<<
-SplitOff10: <<
   Package: kpf
   Description: KDE - personal fileserver
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-common (<< %v-%r), %N-dev (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
@@ -257,38 +219,42 @@ SplitOff10: <<
     share/icons/crystalsvg/16x16/apps/kpf.png
     share/icons/crystalsvg/32x32/apps/kpf.png
     share/icons/crystalsvg/48x48/apps/kpf.png
-    share/services/kpfpropertiesdialogplugin.desktop
+    share/services/kpf*
   <<
 <<
-SplitOff11: <<
+SplitOff9: <<
   Package: krdc
   Description: KDE - remote desktop client (VNC)
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4), openslp-ssl-shlibs | openslp-shlibs, qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4), openslp-ssl-shlibs | openslp-shlibs, qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-common (<< %v-%r), %N-dev (<< %v-%r)
   Recommends: krfb (>= %v-%r)
   BuildDependsOnly: true
   Files: <<
     bin/krdc
-    share/applnk/Internet/krdc.desktop
+    share/applications/kde/krdc.desktop
     share/apps/krdc
+    share/doc/kde/en/krdc
     share/icons/crystalsvg/32x32/apps/krdc.png
     share/icons/crystalsvg/48x48/apps/krdc.png
     share/services/vnc.protocol
+    share/services/rdp.protocol
+    share/servicetypes/kinetdmodule.desktop
   <<
 <<
-SplitOff12: <<
+SplitOff10: <<
   Package: krfb
   Description: KDE - remote desktop server (VNC)
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4), openslp-ssl-shlibs | openslp-shlibs, qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4), openslp-ssl-shlibs | openslp-shlibs, qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-common (<< %v-%r), %N-dev (<< %v-%r)
   Recommends: krdc (>= %v-%r)
   BuildDependsOnly: true
   Files: <<
     bin/krfb
+    bin/krfb_httpd
     lib/kde3/*krfb*
     lib/kde3/*kinetd*
-    share/applnk/Settings/Network/kcmkrfb.desktop
-    share/applnk/System/krfb.desktop
+    share/applications/kde/kcmkrfb.desktop
+    share/applications/kde/krfb.desktop
     share/apps/krfb
     share/doc/kde/en/krfb
     share/icons/crystalsvg/32x32/apps/krfb.png
@@ -296,14 +262,13 @@ SplitOff12: <<
     share/icons/locolor/16x16/apps/krfb.png
     share/icons/locolor/32x32/apps/krfb.png
     share/services/kded/kinetd.desktop
-    share/services/kinetd_krfb.desktop
-    share/servicetypes/kinetdmodule.desktop
+    share/services/kinetd_krfb*
   <<
 <<
-SplitOff13: <<
+SplitOff11: <<
   Package: ktalk
   Description: KDE - UNIX chat client and server
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-common (<< %v-%r), %N-dev (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
@@ -311,7 +276,7 @@ SplitOff13: <<
     bin/ktalkd
     bin/ktalkdlg
     lib/kde3/*ktalkd*
-    share/applnk/Settings/Network/kcmktalkd.desktop
+    share/applications/kde/kcmktalkd.desktop
     share/config/ktalkdrc
     share/doc/kde/en/ktalkd
     share/doc/kde/en/kcontrol/kcmtalkd
@@ -321,25 +286,10 @@ SplitOff13: <<
     share/sounds/ktalkd.wav
   <<
 <<
-SplitOff14: <<
-  Package: kxmlrpcd
-  Description: KDE - inter-process communcation server
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
-  Replaces: %N (<< %v-%r), %N-common (<< %v-%r), %N-dev (<< %v-%r)
-  Recommends: %N (>= %v-%r)
-  BuildDependsOnly: true
-  Files: <<
-    bin/kxmlrpcd
-    lib/kde3/*xmlrpcd*
-    lib/*xmlrpcd*
-    share/doc/kde/en/kcontrol/kxmlrpcd
-    share/services/kxmlrpcd.desktop
-  <<
-<<
-SplitOff15: <<
+SplitOff12: <<
   Package: lisa
   Description: KDE - network neighborhood browser
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-common (<< %v-%r), %N-dev (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
@@ -349,8 +299,7 @@ SplitOff15: <<
     lib/kde3/*kio_lan*
     lib/kde3/*lanbrowser*
     share/applnk/.hidden/kcmkiolan.desktop
-    share/applnk/.hidden/kcmlisa.desktop
-    share/applnk/.hidden/kcmreslisa.desktop
+    share/applnk/.hidden/kcm*lisa.desktop
     share/apps/konqueror/dirtree/remote/lan.desktop
     share/apps/lisa
     share/doc/kde/en/kcontrol/lanbrowser
@@ -359,38 +308,10 @@ SplitOff15: <<
     share/services/rlan.protocol
   <<
 <<
-SplitOff16: <<
-  Package: kde-extra-kfile-plugins
-  Description: KDE - extra file I/O plugins
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
-  Replaces: %N (<< %v-%r), %N-common (<< %v-%r), %N-dev (<< %v-%r)
-  Recommends: %N (>= %v-%r)
-  BuildDependsOnly: true
-  Files: <<
-    lib/kde3/*kfile_rfc822*
-    share/services/kfile_rfc822.desktop
-  <<
-<<
-SplitOff17: <<
-  Package: %N-common
-  Description: KDE - kdenetwork common files
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), libpoll-shlibs (>= 1.1-1), qt3-shlibs (>= 3.2.1-11), x11, %N-base (>= %v-%r)
-  Replaces: %N (<< %v-%r), %N-common (<< %v-%r), %N-dev (<< %v-%r)
-  Recommends: %N (>= %v-%r)
-  BuildDependsOnly: true
-  Files: <<
-    lib/libkdenetwork*
-    lib/libmimelib*
-  <<
-  Shlibs: <<
-    %p/lib/libkdenetwork.2.dylib 3.0.0 %N-common (>= 3.1.4-11)
-    %p/lib/libmimelib.1.dylib 2.0.0 %N-common (>= 3.1.4-11)
-  <<
-<<
-SplitOff18: <<
+SplitOff13: <<
   Package: %N-base
   Description: KDE - kdenetwork base package
-  Depends: arts (>= 1.1.4-11), kdelibs3-ssl (>= %v-11) | kdelibs3 (>= %v-11), kdebase3-ssl (>= %v-11) | kdebase3 (>= %v-11)
+  Depends: arts (>= 1.1.93-1), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), kdebase3-ssl (>= %v-1) | kdebase3 (>= %v-1)
   Replaces: %N (<< %v-%r), %N-common (<< %v-%r), %N-dev (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
@@ -403,22 +324,7 @@ DescDetail: <<
 KDE network applications.
 
 Install the kdenetwork3 package if you want to install all of the
-kdenetwork packages.  kdenetwork3 contains:
-
-  kde-extra-kfile-plugins
-  kget
-  kit
-  kmail
-  knewsticker
-  knode
-  korn
-  kpf
-  krdc
-  krfb
-  ksirc
-  ktalk
-  kxmlrpcd
-  lisa
+kdenetwork packages.
 <<
 DescUsage: <<
 ---[ Installation ]---------------------------------------------------

@@ -20,12 +20,13 @@ Source: mirror:kde:stable/%v/src/kdebase-%v.tar.bz2
 Source-MD5: 42608047862bcc6e0592fa1be77a3f89
 
 PatchScript: <<
-  perl -pi -e 's,-O2,-Os,' admin/acinclude.m4.in
-  perl -pi -e 's, nfs , ,' kioslave/Makefile.am
   patch -p1 < %a/%n.patch
+  perl -pi -e 's,-O2,-Os,' admin/acinclude.m4.in
+  perl -pi -e 's,doc/HTML,doc/kde,g' admin/acinclude.m4.in
+  perl -pi -e 's, nfs , ,' kioslave/Makefile.am
 <<
 
-SetCPPFLAGS: -no-cpp-precomp -fno-common -I%p/include
+SetCPPFLAGS: -fno-common -no-cpp-precomp -I/usr/X11R6/include/freetype2 -I/usr/X11R6/include -I%p/include
 SetLIBS: -L%p/lib
 NoSetLDFLAGS: true
 SetMACOSX_DEPLOYMENT_TARGET: 10.2
@@ -36,11 +37,12 @@ CompileScript: <<
 
 # breaks a lot of plugins on 10.2, enable this again on 10.3
 #  export LD_TWOLEVEL_NAMESPACE=true
+  export PATH="/usr/X11R6/bin:$PATH"
 
   date > /tmp/kde-build/%N-%v-%r.cvs
   make -f admin/Makefile.common cvs 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.cvs
   date > /tmp/kde-build/%N-%v-%r.configure
-  sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure
+  FREETYPE_CONFIG=/usr/X11R6/bin/freetype-config sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure
   date > /tmp/kde-build/%N-%v-%r.make
   make all 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.make
 <<
@@ -92,7 +94,11 @@ SplitOff: <<
   BuildDependsOnly: true
   Files: <<
     include
+    lib/*.la
+    lib/libkdecorations.dylib
     lib/libkonq.dylib
+    lib/libksgrd.dylib
+    lib/libksplashthemes.dylib
     lib/libtaskbar.dylib
     lib/libtaskmanager.dylib
   <<
@@ -107,16 +113,21 @@ SplitOff2: <<
   BuildDependsOnly: true
   Files: <<
     lib/kde3/*.so
-    lib/libkdeinit_kicker.dylib
+    lib/libkdecorations.1*.dylib
     lib/libkickermain.1*.dylib
     lib/libkonq.4*.dylib
+    lib/libksgrd.1*.dylib
+    lib/libksplashthemes.0*.dylib
     lib/libtaskbar.1*.dylib
     lib/libtaskmanager.1*.dylib
   <<
   Shlibs: <<
+    %p/lib/libkdecorations.1.dylib 2.0.0 %N-shlibs (>= 3.1.93-1)
     %p/lib/libkickermain.1.dylib 2.0.0 %N-shlibs (>= 3.1.93-1)
-    %p/lib/libkonq.4.dylib 6.0.0 %N-shlibs (>= 3.1.93-1)
-    %p/lib/libtaskbar.1.dylib 3.0.0 %N-shlibs (>= 3.1.93-1)
+    %p/lib/libkonq.4.dylib 7.0.0 %N-shlibs (>= 3.1.93-1)
+    %p/lib/libksgrd.1.dylib 4.0.0 %N-shlibs (>= 3.1.93-1)
+    %p/lib/libksplashthemes.0.dylib 1.0.0 %N-shlibs (>= 3.1.93-1)
+    %p/lib/libtaskbar.1.dylib 4.0.0 %N-shlibs (>= 3.1.93-1)
     %p/lib/libtaskmanager.1.dylib 2.0.0 %N-shlibs (>= 3.1.93-1)
   <<
 <<
