@@ -1,25 +1,15 @@
-Index: ChangeLog
-===================================================================
-RCS file: /cvsroot/fink/fink/ChangeLog,v
-retrieving revision 1.234
-diff -u -r1.234 ChangeLog
---- ChangeLog	22 Jun 2004 14:52:32 -0000	1.234
-+++ ChangeLog	24 Jun 2004 02:08:36 -0000
+--- ChangeLog	1 Jul 2004 14:25:17 -0000	1.237
++++ ChangeLog	1 Jul 2004 14:26:51 -0000
 @@ -1,3 +1,7 @@
-+2004-06-23  Benjamin Reed  <rangerrick@users.sourceforge.net>
++2004-06-30  Benjamin Reed  <rangerrick@users.sourceforge.net>
 +
 +	* install.sh: install Fink/Package/*.pm as well
 +
- 2004-06-22  Dave Morrison  <dmrrsn@users.sourceforge.net>
+ 2004-06-30  Daniel Macks  <dmacks@netspace.org>
  
- 	* VERSION: Bumped package manager version to 0.20.5, a release
-Index: install.sh
-===================================================================
-RCS file: /cvsroot/fink/fink/install.sh,v
-retrieving revision 1.19
-diff -u -r1.19 install.sh
---- install.sh	17 Mar 2004 01:34:27 -0000	1.19
-+++ install.sh	24 Jun 2004 02:08:36 -0000
+ 	* bootstrap.pl: remove redundancy in perl version checking.
+--- install.sh	1 Jul 2004 14:25:17 -0000	1.21
++++ install.sh	1 Jul 2004 14:26:51 -0000
 @@ -38,7 +38,7 @@
  chmod 755 "$basepath"
  
@@ -42,29 +32,22 @@ diff -u -r1.19 install.sh
  for file in update/config.guess update/config.sub update/ltconfig ; do
    install -c -p -m 755 $file "$basepath/lib/fink/update/"
  done
-Index: perlmod/Fink/ChangeLog
-===================================================================
-RCS file: /cvsroot/fink/fink/perlmod/Fink/ChangeLog,v
-retrieving revision 1.642
-diff -u -r1.642 ChangeLog
---- perlmod/Fink/ChangeLog	23 Jun 2004 20:04:34 -0000	1.642
-+++ perlmod/Fink/ChangeLog	24 Jun 2004 02:08:37 -0000
-@@ -1,3 +1,8 @@
-+2004-06-23  Benjamin Reed  <rangerrick@users.sourceforge.net>
+--- perlmod/Fink/ChangeLog	1 Jul 2004 14:25:17 -0000	1.652
++++ perlmod/Fink/ChangeLog	1 Jul 2004 14:26:52 -0000
+@@ -2,6 +2,11 @@
+ 
+ 	* VirtPackage.pm: Just a little rearranging to make things easier.
+ 
++2004-06-30  Benjamin Reed  <rangerrick@users.sourceforge.net>
 +
 +	* Engine.pm, Package.pm, Package/Mini.pm: Create a mini package index
 +	used (currently) only for 'fink list' operations.
 +
- 2004-06-23  Daniel Macks  <dmacks@netspace.org>
+ 2004-06-29  Daniel Macks  <dmacks@netspace.org>
  
- 	* Validation.pm: Very strict check of Shlibs formatting.
-Index: perlmod/Fink/Engine.pm
-===================================================================
-RCS file: /cvsroot/fink/fink/perlmod/Fink/Engine.pm,v
-retrieving revision 1.178
-diff -u -r1.178 Engine.pm
---- perlmod/Fink/Engine.pm	22 Jun 2004 04:49:04 -0000	1.178
-+++ perlmod/Fink/Engine.pm	24 Jun 2004 02:08:37 -0000
+ 	* PkgVersion.pm: Mention which SourceN failed if missing SourceN-MD5.
+--- perlmod/Fink/Engine.pm	1 Jul 2004 14:25:17 -0000	1.182
++++ perlmod/Fink/Engine.pm	1 Jul 2004 14:26:52 -0000
 @@ -26,6 +26,7 @@
  use Fink::Services qw(&latest_version &sort_versions &execute &file_MD5_checksum &get_arch &expand_percent);
  use Fink::CLI qw(&print_breaking &prompt_boolean &prompt_selection_new &get_term_width &parse_cmd_options);
@@ -168,13 +151,8 @@ diff -u -r1.178 Engine.pm
  	}
  }
  
-Index: perlmod/Fink/Package.pm
-===================================================================
-RCS file: /cvsroot/fink/fink/perlmod/Fink/Package.pm,v
-retrieving revision 1.74
-diff -u -r1.74 Package.pm
---- perlmod/Fink/Package.pm	24 Mar 2004 02:43:59 -0000	1.74
-+++ perlmod/Fink/Package.pm	24 Jun 2004 02:08:37 -0000
+--- perlmod/Fink/Package.pm	1 Jul 2004 14:25:17 -0000	1.76
++++ perlmod/Fink/Package.pm	1 Jul 2004 14:26:53 -0000
 @@ -31,6 +31,7 @@
  use Fink::PkgVersion;
  use Fink::FinkVersion;
@@ -222,12 +200,8 @@ diff -u -r1.74 Package.pm
  }
  
  ### scan one tree for package desccriptions
-Index: perlmod/Fink/Package/Mini.pm
-===================================================================
-RCS file: perlmod/Fink/Package/Mini.pm
-diff -N perlmod/Fink/Package/Mini.pm
 --- /dev/null	1 Jan 1970 00:00:00 -0000
-+++ perlmod/Fink/Package/Mini.pm	24 Jun 2004 02:08:37 -0000
++++ perlmod/Fink/Package/Mini.pm	1 Jul 2004 14:26:53 -0000
 @@ -0,0 +1,256 @@
 +# -*- mode: Perl; tab-width: 4; -*-
 +#
@@ -373,7 +347,7 @@ diff -N perlmod/Fink/Package/Mini.pm
 +	Fink::Package::Mini->forget_packages();
 +	
 +	# If we have the Storable perl module, try to use the package index
-+	if (-e "$basepath/var/db/fink-mini.db") {
++	if (-e "$basepath/var/db/fink-list.db") {
 +		eval {
 +			require Storable; 
 +
@@ -384,7 +358,7 @@ diff -N perlmod/Fink/Package/Mini.pm
 +			# the index based on its modification date and that of the package descs.
 +			if (not $config->param_boolean("NoAutoIndex")) {
 +				$db_mtime = (stat("$basepath/var/db/fink.db"))[9];
-+				$dbmini_mtime = (stat("$basepath/var/db/fink-mini.db"))[9];
++				$dbmini_mtime = (stat("$basepath/var/db/fink-list.db"))[9];
 +				if (((lstat("$basepath/etc/fink.conf"))[9] > $dbmini_mtime)
 +					or ((stat("$basepath/etc/fink.conf"))[9] > $dbmini_mtime)) {
 +					$db_outdated = 1;
@@ -397,7 +371,7 @@ diff -N perlmod/Fink/Package/Mini.pm
 +			
 +			# If the index is not outdated, we can use it, and thus safe a lot of time
 +			 if (not $db_outdated) {
-+				$packages_mini = Storable::retrieve("$basepath/var/db/fink-mini.db") if (-f "$basepath/var/db/fink-mini.db");
++				$packages_mini = Storable::retrieve("$basepath/var/db/fink-list.db") if (-f "$basepath/var/db/fink-list.db");
 +			 }
 +		}
 +	}
@@ -419,7 +393,7 @@ diff -N perlmod/Fink/Package/Mini.pm
 +	# Using find is much faster than doing it in Perl
 +	return
 +	  (grep !m{/(CVS|binary-$debarch)/},
-+	   `/usr/bin/find $path \\( -type f -or -type l \\) -and -name '*.info' -newer $basepath/var/db/fink-mini.db`)
++	   `/usr/bin/find $path \\( -type f -or -type l \\) -and -name '*.info' -newer $basepath/var/db/fink-list.db`)
 +		 ? 1 : 0;
 +}
 +
@@ -473,8 +447,8 @@ diff -N perlmod/Fink/Package/Mini.pm
 +			unless (-d "$basepath/var/db") {
 +				mkdir("$basepath/var/db", 0755) || die "Error: Could not create directory $basepath/var/db";
 +			}
-+			Storable::lock_store ($packages_mini, "$basepath/var/db/fink-mini.db.tmp") or die "couldn't store: $!\n";
-+			rename "$basepath/var/db/fink-mini.db.tmp", "$basepath/var/db/fink-mini.db";
++			Storable::lock_store ($packages_mini, "$basepath/var/db/fink-list.db.tmp") or die "couldn't store: $!\n";
++			rename "$basepath/var/db/fink-list.db.tmp", "$basepath/var/db/fink-list.db";
 +			if (&get_term_width) {
 +				print STDERR "done.\n";
 +			}
