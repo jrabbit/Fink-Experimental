@@ -1,6 +1,6 @@
-diff -Naur libgtop-2.5.2/Makefile.in libgtop-2.5.2-new/Makefile.in
---- libgtop-2.5.2/Makefile.in	Thu Mar 11 10:51:36 2004
-+++ libgtop-2.5.2-new/Makefile.in	Fri Apr  9 14:38:37 2004
+diff -Naur libgtop-2.8.0-old/Makefile.in libgtop-2.8.0/Makefile.in
+--- libgtop-2.8.0-old/Makefile.in	Mon Sep 13 10:42:14 2004
++++ libgtop-2.8.0/Makefile.in	Sun Oct 10 12:09:08 2004
 @@ -145,7 +145,7 @@
  sysdeps_dir = @sysdeps_dir@
  sysdeps_suid_lib = @sysdeps_suid_lib@
@@ -10,10 +10,10 @@ diff -Naur libgtop-2.5.2/Makefile.in libgtop-2.5.2-new/Makefile.in
  
  libgtopinclude_HEADERS = glibtop.h
  libgtopincludedir = $(includedir)/libgtop-2.0
-diff -Naur libgtop-2.5.2/configure libgtop-2.5.2-new/configure
---- libgtop-2.5.2/configure	Thu Mar 11 10:50:29 2004
-+++ libgtop-2.5.2-new/configure	Fri Apr  9 12:34:33 2004
-@@ -20505,6 +20505,12 @@
+diff -Naur libgtop-2.8.0-old/configure libgtop-2.8.0/configure
+--- libgtop-2.8.0-old/configure	Mon Sep 13 10:39:35 2004
++++ libgtop-2.8.0/configure	Sun Oct 10 12:09:08 2004
+@@ -20401,6 +20401,12 @@
  	      libgtop_use_machine_h=yes
  	      libgtop_need_server=yes
  	      ;;
@@ -26,7 +26,7 @@ diff -Naur libgtop-2.5.2/configure libgtop-2.5.2-new/configure
  	    *)
  	      libgtop_sysdeps_dir=stub
  	      libgtop_use_machine_h=no
-@@ -30885,7 +30891,7 @@
+@@ -30850,7 +30856,7 @@
  
  
  
@@ -35,7 +35,7 @@ diff -Naur libgtop-2.5.2/configure libgtop-2.5.2-new/configure
  cat >confcache <<\_ACEOF
  # This file is a shell script that caches the results of configure
  # tests run on this system so they can be shared between configure
-@@ -31439,6 +31445,7 @@
+@@ -31404,6 +31410,7 @@
    "sysdeps/kernel/Makefile" ) CONFIG_FILES="$CONFIG_FILES sysdeps/kernel/Makefile" ;;
    "sysdeps/freebsd/Makefile" ) CONFIG_FILES="$CONFIG_FILES sysdeps/freebsd/Makefile" ;;
    "sysdeps/solaris/Makefile" ) CONFIG_FILES="$CONFIG_FILES sysdeps/solaris/Makefile" ;;
@@ -43,34 +43,10 @@ diff -Naur libgtop-2.5.2/configure libgtop-2.5.2-new/configure
    "sysdeps/aix/Makefile" ) CONFIG_FILES="$CONFIG_FILES sysdeps/aix/Makefile" ;;
    "src/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
    "src/daemon/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/daemon/Makefile" ;;
-diff -Naur libgtop-2.5.2/lib/read.c libgtop-2.5.2-new/lib/read.c
---- libgtop-2.5.2/lib/read.c	Fri Mar  5 10:59:23 2004
-+++ libgtop-2.5.2-new/lib/read.c	Fri Apr  9 12:34:33 2004
-@@ -60,6 +60,7 @@
- void
- glibtop_read_l (glibtop *server, size_t size, void *buf)
- {
-+	size_t done = 0;
- 	int ret = 0;
- 
- 	glibtop_init_r (&server, 0, 0);
-@@ -71,7 +72,11 @@
- 	if (server->socket) {
- 		do_read (server->socket, buf, size);
- 	} else {
--		ret = read (server->input [0], buf, size);
-+		while (ret >= 0 && done < size) {
-+			ret = read (server->input [0], (char*)buf + done, size - done);
-+			if (ret > 0)
-+				done += ret;
-+		}
- 	}
- 
- 	if (ret < 0)
-diff -Naur libgtop-2.5.2/ltmain.sh libgtop-2.5.2-new/ltmain.sh
---- libgtop-2.5.2/ltmain.sh	Tue Feb 17 14:55:01 2004
-+++ libgtop-2.5.2-new/ltmain.sh	Fri Apr  9 12:34:33 2004
-@@ -2264,7 +2264,7 @@
+diff -Naur libgtop-2.8.0-old/ltmain.sh libgtop-2.8.0/ltmain.sh
+--- libgtop-2.8.0-old/ltmain.sh	Mon Sep 13 10:39:10 2004
++++ libgtop-2.8.0/ltmain.sh	Sun Oct 10 12:09:08 2004
+@@ -2276,7 +2276,7 @@
  	   { test "$prefer_static_libs" = no || test -z "$old_library"; }; then
  	  if test "$installed" = no; then
  	    notinst_deplibs="$notinst_deplibs $lib"
@@ -78,8 +54,8 @@ diff -Naur libgtop-2.5.2/ltmain.sh libgtop-2.5.2-new/ltmain.sh
 +	    need_relink=no
  	  fi
  	  # This is a shared library
- 	
-@@ -3745,8 +3745,24 @@
+ 
+@@ -3768,8 +3768,24 @@
  	  eval test_cmds=\"$archive_expsym_cmds\"
  	  cmds=$archive_expsym_cmds
  	else
@@ -104,9 +80,9 @@ diff -Naur libgtop-2.5.2/ltmain.sh libgtop-2.5.2-new/ltmain.sh
  	  fi
  	fi
  
-diff -Naur libgtop-2.5.2/sysdeps/darwin/Makefile.am libgtop-2.5.2-new/sysdeps/darwin/Makefile.am
---- libgtop-2.5.2/sysdeps/darwin/Makefile.am	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/Makefile.am	Fri Apr  9 14:31:19 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/Makefile.am libgtop-2.8.0/sysdeps/darwin/Makefile.am
+--- libgtop-2.8.0-old/sysdeps/darwin/Makefile.am	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/Makefile.am	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,23 @@
 +LINK				= $(LIBTOOL) --mode=link $(CC) $(CFLAGS) $(LDFLAGS) -o $@
 +
@@ -131,9 +107,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/Makefile.am libgtop-2.5.2-new/sysdeps/da
 +libgtopincludedir		= $(includedir)/libgtop-1.0
 +
 +noinst_HEADERS			= glibtop_suid.h
-diff -Naur libgtop-2.5.2/sysdeps/darwin/Makefile.in libgtop-2.5.2-new/sysdeps/darwin/Makefile.in
---- libgtop-2.5.2/sysdeps/darwin/Makefile.in	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/Makefile.in	Fri Apr  9 14:32:27 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/Makefile.in libgtop-2.8.0/sysdeps/darwin/Makefile.in
+--- libgtop-2.8.0-old/sysdeps/darwin/Makefile.in	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/Makefile.in	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,412 @@
 +# Makefile.in generated automatically by automake 1.4-p1 from Makefile.am
 +
@@ -547,9 +523,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/Makefile.in libgtop-2.5.2-new/sysdeps/da
 +# Tell versions [3.59,3.63) of GNU make to not export all variables.
 +# Otherwise a system limit (for SysV at least) may be exceeded.
 +.NOEXPORT:
-diff -Naur libgtop-2.5.2/sysdeps/darwin/close.c libgtop-2.5.2-new/sysdeps/darwin/close.c
---- libgtop-2.5.2/sysdeps/darwin/close.c	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/close.c	Fri Apr  9 12:34:33 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/close.c libgtop-2.8.0/sysdeps/darwin/close.c
+--- libgtop-2.8.0-old/sysdeps/darwin/close.c	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/close.c	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,7 @@
 +#include <glibtop/close.h>
 +
@@ -558,9 +534,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/close.c libgtop-2.5.2-new/sysdeps/darwin
 +void
 +glibtop_close_p (glibtop *server)
 +{ }
-diff -Naur libgtop-2.5.2/sysdeps/darwin/close_suid.c libgtop-2.5.2-new/sysdeps/darwin/close_suid.c
---- libgtop-2.5.2/sysdeps/darwin/close_suid.c	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/close_suid.c	Fri Apr  9 12:34:33 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/close_suid.c libgtop-2.8.0/sysdeps/darwin/close_suid.c
+--- libgtop-2.8.0-old/sysdeps/darwin/close_suid.c	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/close_suid.c	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,30 @@
 +/* $Id$ */
 +
@@ -592,9 +568,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/close_suid.c libgtop-2.5.2-new/sysdeps/d
 +void
 +glibtop_close_p (glibtop *server)
 +{ }
-diff -Naur libgtop-2.5.2/sysdeps/darwin/cpu.c libgtop-2.5.2-new/sysdeps/darwin/cpu.c
---- libgtop-2.5.2/sysdeps/darwin/cpu.c	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/cpu.c	Fri Apr  9 12:34:33 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/cpu.c libgtop-2.8.0/sysdeps/darwin/cpu.c
+--- libgtop-2.8.0-old/sysdeps/darwin/cpu.c	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/cpu.c	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,68 @@
 +#include <glibtop.h>
 +#include <glibtop/error.h>
@@ -664,9 +640,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/cpu.c libgtop-2.5.2-new/sysdeps/darwin/c
 +	buf->flags = _glibtop_sysdeps_cpu;
 +}
 +
-diff -Naur libgtop-2.5.2/sysdeps/darwin/glibtop_machine.h libgtop-2.5.2-new/sysdeps/darwin/glibtop_machine.h
---- libgtop-2.5.2/sysdeps/darwin/glibtop_machine.h	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/glibtop_machine.h	Fri Apr  9 12:49:20 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/glibtop_machine.h libgtop-2.8.0/sysdeps/darwin/glibtop_machine.h
+--- libgtop-2.8.0-old/sysdeps/darwin/glibtop_machine.h	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/glibtop_machine.h	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,16 @@
 +#ifndef __GLIBTOP_MACHINE_H__
 +#define __GLIBTOP_MACHINE_H__
@@ -684,9 +660,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/glibtop_machine.h libgtop-2.5.2-new/sysd
 +G_END_DECLS
 +
 +#endif
-diff -Naur libgtop-2.5.2/sysdeps/darwin/glibtop_server.h libgtop-2.5.2-new/sysdeps/darwin/glibtop_server.h
---- libgtop-2.5.2/sysdeps/darwin/glibtop_server.h	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/glibtop_server.h	Fri Apr  9 12:49:56 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/glibtop_server.h libgtop-2.8.0/sysdeps/darwin/glibtop_server.h
+--- libgtop-2.8.0-old/sysdeps/darwin/glibtop_server.h	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/glibtop_server.h	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,52 @@
 +/* $Id$ */
 +
@@ -740,9 +716,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/glibtop_server.h libgtop-2.5.2-new/sysde
 +G_END_DECLS
 +
 +#endif
-diff -Naur libgtop-2.5.2/sysdeps/darwin/glibtop_suid.h libgtop-2.5.2-new/sysdeps/darwin/glibtop_suid.h
---- libgtop-2.5.2/sysdeps/darwin/glibtop_suid.h	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/glibtop_suid.h	Fri Apr  9 12:50:26 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/glibtop_suid.h libgtop-2.8.0/sysdeps/darwin/glibtop_suid.h
+--- libgtop-2.8.0-old/sysdeps/darwin/glibtop_suid.h	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/glibtop_suid.h	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,48 @@
 +/* $Id$ */
 +
@@ -792,9 +768,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/glibtop_suid.h libgtop-2.5.2-new/sysdeps
 +G_END_DECLS
 +
 +#endif
-diff -Naur libgtop-2.5.2/sysdeps/darwin/loadavg.c libgtop-2.5.2-new/sysdeps/darwin/loadavg.c
---- libgtop-2.5.2/sysdeps/darwin/loadavg.c	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/loadavg.c	Fri Apr  9 12:34:33 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/loadavg.c libgtop-2.8.0/sysdeps/darwin/loadavg.c
+--- libgtop-2.8.0-old/sysdeps/darwin/loadavg.c	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/loadavg.c	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,43 @@
 +#include <glibtop.h>
 +#include <glibtop/error.h>
@@ -839,9 +815,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/loadavg.c libgtop-2.5.2-new/sysdeps/darw
 +	}
 +}
 +
-diff -Naur libgtop-2.5.2/sysdeps/darwin/mem.c libgtop-2.5.2-new/sysdeps/darwin/mem.c
---- libgtop-2.5.2/sysdeps/darwin/mem.c	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/mem.c	Fri Apr  9 12:34:33 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/mem.c libgtop-2.8.0/sysdeps/darwin/mem.c
+--- libgtop-2.8.0-old/sysdeps/darwin/mem.c	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/mem.c	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,48 @@
 +#include <glibtop.h>
 +#include <glibtop/error.h>
@@ -891,9 +867,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/mem.c libgtop-2.5.2-new/sysdeps/darwin/m
 +	buf->flags = _glibtop_sysdeps_mem;
 +}
 +
-diff -Naur libgtop-2.5.2/sysdeps/darwin/msg_limits.c libgtop-2.5.2-new/sysdeps/darwin/msg_limits.c
---- libgtop-2.5.2/sysdeps/darwin/msg_limits.c	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/msg_limits.c	Fri Apr  9 12:34:33 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/msg_limits.c libgtop-2.8.0/sysdeps/darwin/msg_limits.c
+--- libgtop-2.8.0-old/sysdeps/darwin/msg_limits.c	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/msg_limits.c	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,25 @@
 +#include <glibtop.h>
 +#include <glibtop/error.h>
@@ -920,9 +896,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/msg_limits.c libgtop-2.5.2-new/sysdeps/d
 +
 +	memset (buf, 0, sizeof (glibtop_msg_limits));
 +}
-diff -Naur libgtop-2.5.2/sysdeps/darwin/netload.c libgtop-2.5.2-new/sysdeps/darwin/netload.c
---- libgtop-2.5.2/sysdeps/darwin/netload.c	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/netload.c	Fri Apr  9 12:59:00 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/netload.c libgtop-2.8.0/sysdeps/darwin/netload.c
+--- libgtop-2.8.0-old/sysdeps/darwin/netload.c	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/netload.c	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,143 @@
 +#include <glibtop.h>
 +#include <glibtop/error.h>
@@ -1067,9 +1043,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/netload.c libgtop-2.5.2-new/sysdeps/darw
 +	buf->flags		= _glibtop_sysdeps_netload;
 +	g_free (buf);
 +}
-diff -Naur libgtop-2.5.2/sysdeps/darwin/nosuid.c libgtop-2.5.2-new/sysdeps/darwin/nosuid.c
---- libgtop-2.5.2/sysdeps/darwin/nosuid.c	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/nosuid.c	Fri Apr  9 12:34:33 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/nosuid.c libgtop-2.8.0/sysdeps/darwin/nosuid.c
+--- libgtop-2.8.0-old/sysdeps/darwin/nosuid.c	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/nosuid.c	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,31 @@
 +#include <glibtop.h>
 +#include <glibtop/cpu.h>
@@ -1102,9 +1078,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/nosuid.c libgtop-2.5.2-new/sysdeps/darwi
 +void
 +glibtop_close_s (glibtop *server)
 +{ }
-diff -Naur libgtop-2.5.2/sysdeps/darwin/open.c libgtop-2.5.2-new/sysdeps/darwin/open.c
---- libgtop-2.5.2/sysdeps/darwin/open.c	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/open.c	Fri Apr  9 12:34:33 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/open.c libgtop-2.8.0/sysdeps/darwin/open.c
+--- libgtop-2.8.0-old/sysdeps/darwin/open.c	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/open.c	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,72 @@
 +#include <glibtop.h>
 +#include <glibtop/cpu.h>
@@ -1178,9 +1154,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/open.c libgtop-2.5.2-new/sysdeps/darwin/
 +		processor_count : GLIBTOP_NCPU;
 +	vm_deallocate (mach_task_self (), (vm_address_t) pinfo, info_count);
 +}
-diff -Naur libgtop-2.5.2/sysdeps/darwin/ppp.c libgtop-2.5.2-new/sysdeps/darwin/ppp.c
---- libgtop-2.5.2/sysdeps/darwin/ppp.c	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/ppp.c	Fri Apr  9 12:34:33 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/ppp.c libgtop-2.8.0/sysdeps/darwin/ppp.c
+--- libgtop-2.8.0-old/sysdeps/darwin/ppp.c	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/ppp.c	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,25 @@
 +#include <glibtop.h>
 +#include <glibtop/error.h>
@@ -1207,9 +1183,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/ppp.c libgtop-2.5.2-new/sysdeps/darwin/p
 +
 +	memset (buf, 0, sizeof (glibtop_ppp));
 +}
-diff -Naur libgtop-2.5.2/sysdeps/darwin/procargs.c libgtop-2.5.2-new/sysdeps/darwin/procargs.c
---- libgtop-2.5.2/sysdeps/darwin/procargs.c	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/procargs.c	Fri Apr  9 12:42:47 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/procargs.c libgtop-2.8.0/sysdeps/darwin/procargs.c
+--- libgtop-2.8.0-old/sysdeps/darwin/procargs.c	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/procargs.c	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,107 @@
 +#include <glibtop.h>
 +#include <glibtop/error.h>
@@ -1318,9 +1294,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/procargs.c libgtop-2.5.2-new/sysdeps/dar
 +
 +	return args;
 +}
-diff -Naur libgtop-2.5.2/sysdeps/darwin/prockernel.c libgtop-2.5.2-new/sysdeps/darwin/prockernel.c
---- libgtop-2.5.2/sysdeps/darwin/prockernel.c	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/prockernel.c	Fri Apr  9 12:34:33 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/prockernel.c libgtop-2.8.0/sysdeps/darwin/prockernel.c
+--- libgtop-2.8.0-old/sysdeps/darwin/prockernel.c	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/prockernel.c	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,26 @@
 +#include <glibtop.h>
 +#include <glibtop/error.h>
@@ -1348,9 +1324,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/prockernel.c libgtop-2.5.2-new/sysdeps/d
 +	
 +	memset (buf, 0, sizeof (glibtop_proc_kernel));
 +}
-diff -Naur libgtop-2.5.2/sysdeps/darwin/proclist.c libgtop-2.5.2-new/sysdeps/darwin/proclist.c
---- libgtop-2.5.2/sysdeps/darwin/proclist.c	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/proclist.c	Fri Apr  9 12:59:50 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/proclist.c libgtop-2.8.0/sysdeps/darwin/proclist.c
+--- libgtop-2.8.0-old/sysdeps/darwin/proclist.c	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/proclist.c	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,82 @@
 +#include <glibtop.h>
 +#include <glibtop/error.h>
@@ -1434,9 +1410,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/proclist.c libgtop-2.5.2-new/sysdeps/dar
 +	return pids_chain;
 +}
 +
-diff -Naur libgtop-2.5.2/sysdeps/darwin/procmap.c libgtop-2.5.2-new/sysdeps/darwin/procmap.c
---- libgtop-2.5.2/sysdeps/darwin/procmap.c	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/procmap.c	Fri Apr  9 12:45:34 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/procmap.c libgtop-2.8.0/sysdeps/darwin/procmap.c
+--- libgtop-2.8.0-old/sysdeps/darwin/procmap.c	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/procmap.c	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,112 @@
 +#include <glibtop.h>
 +#include <glibtop/error.h>
@@ -1550,9 +1526,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/procmap.c libgtop-2.5.2-new/sysdeps/darw
 +
 +	return maps;
 +}
-diff -Naur libgtop-2.5.2/sysdeps/darwin/procmem.c libgtop-2.5.2-new/sysdeps/darwin/procmem.c
---- libgtop-2.5.2/sysdeps/darwin/procmem.c	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/procmem.c	Fri Apr  9 13:00:16 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/procmem.c libgtop-2.8.0/sysdeps/darwin/procmem.c
+--- libgtop-2.8.0-old/sysdeps/darwin/procmem.c	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/procmem.c	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,223 @@
 +#include <glibtop.h>
 +#include <glibtop/error.h>
@@ -1777,9 +1753,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/procmem.c libgtop-2.5.2-new/sysdeps/darw
 +	buf->rss      = private;
 +	buf->flags    = _glibtop_sysdeps_proc_mem;
 +}
-diff -Naur libgtop-2.5.2/sysdeps/darwin/procsegment.c libgtop-2.5.2-new/sysdeps/darwin/procsegment.c
---- libgtop-2.5.2/sysdeps/darwin/procsegment.c	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/procsegment.c	Fri Apr  9 12:34:33 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/procsegment.c libgtop-2.8.0/sysdeps/darwin/procsegment.c
+--- libgtop-2.8.0-old/sysdeps/darwin/procsegment.c	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/procsegment.c	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,26 @@
 +#include <glibtop.h>
 +#include <glibtop/error.h>
@@ -1807,9 +1783,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/procsegment.c libgtop-2.5.2-new/sysdeps/
 +	
 +	memset (buf, 0, sizeof (glibtop_proc_segment));
 +}
-diff -Naur libgtop-2.5.2/sysdeps/darwin/procsignal.c libgtop-2.5.2-new/sysdeps/darwin/procsignal.c
---- libgtop-2.5.2/sysdeps/darwin/procsignal.c	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/procsignal.c	Fri Apr  9 12:34:33 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/procsignal.c libgtop-2.8.0/sysdeps/darwin/procsignal.c
+--- libgtop-2.8.0-old/sysdeps/darwin/procsignal.c	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/procsignal.c	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,54 @@
 +#include <glibtop.h>
 +#include <glibtop/error.h>
@@ -1865,9 +1841,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/procsignal.c libgtop-2.5.2-new/sysdeps/d
 +	buf->sigcatch[0]  = kinfo.kp_proc.p_sigcatch;
 +	buf->flags = _glibtop_sysdeps_proc_signal;
 +}
-diff -Naur libgtop-2.5.2/sysdeps/darwin/procstate.c libgtop-2.5.2-new/sysdeps/darwin/procstate.c
---- libgtop-2.5.2/sysdeps/darwin/procstate.c	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/procstate.c	Fri Apr  9 12:34:33 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/procstate.c libgtop-2.8.0/sysdeps/darwin/procstate.c
+--- libgtop-2.8.0-old/sysdeps/darwin/procstate.c	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/procstate.c	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,72 @@
 +#include <glibtop.h>
 +#include <glibtop/error.h>
@@ -1941,9 +1917,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/procstate.c libgtop-2.5.2-new/sysdeps/da
 +	buf->flags = _glibtop_sysdeps_proc_state;
 +}
 +
-diff -Naur libgtop-2.5.2/sysdeps/darwin/proctime.c libgtop-2.5.2-new/sysdeps/darwin/proctime.c
---- libgtop-2.5.2/sysdeps/darwin/proctime.c	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/proctime.c	Fri Apr  9 12:34:33 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/proctime.c libgtop-2.8.0/sysdeps/darwin/proctime.c
+--- libgtop-2.8.0-old/sysdeps/darwin/proctime.c	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/proctime.c	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,96 @@
 +#include <glibtop.h>
 +#include <glibtop/error.h>
@@ -2041,9 +2017,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/proctime.c libgtop-2.5.2-new/sysdeps/dar
 +
 +	buf->flags  = _glibtop_sysdeps_proc_time;
 +}
-diff -Naur libgtop-2.5.2/sysdeps/darwin/procuid.c libgtop-2.5.2-new/sysdeps/darwin/procuid.c
---- libgtop-2.5.2/sysdeps/darwin/procuid.c	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/procuid.c	Fri Apr  9 12:34:33 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/procuid.c libgtop-2.8.0/sysdeps/darwin/procuid.c
+--- libgtop-2.8.0-old/sysdeps/darwin/procuid.c	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/procuid.c	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,61 @@
 +#include <glibtop.h>
 +#include <glibtop/error.h>
@@ -2106,9 +2082,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/procuid.c libgtop-2.5.2-new/sysdeps/darw
 +
 +	buf->flags    = _glibtop_sysdeps_proc_uid;
 +}
-diff -Naur libgtop-2.5.2/sysdeps/darwin/sem_limits.c libgtop-2.5.2-new/sysdeps/darwin/sem_limits.c
---- libgtop-2.5.2/sysdeps/darwin/sem_limits.c	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/sem_limits.c	Fri Apr  9 12:34:33 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/sem_limits.c libgtop-2.8.0/sysdeps/darwin/sem_limits.c
+--- libgtop-2.8.0-old/sysdeps/darwin/sem_limits.c	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/sem_limits.c	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,25 @@
 +#include <glibtop.h>
 +#include <glibtop/error.h>
@@ -2135,9 +2111,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/sem_limits.c libgtop-2.5.2-new/sysdeps/d
 +	
 +	memset (buf, 0, sizeof (glibtop_sem_limits));
 +}
-diff -Naur libgtop-2.5.2/sysdeps/darwin/shm_limits.c libgtop-2.5.2-new/sysdeps/darwin/shm_limits.c
---- libgtop-2.5.2/sysdeps/darwin/shm_limits.c	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/shm_limits.c	Fri Apr  9 12:34:33 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/shm_limits.c libgtop-2.8.0/sysdeps/darwin/shm_limits.c
+--- libgtop-2.8.0-old/sysdeps/darwin/shm_limits.c	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/shm_limits.c	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,25 @@
 +#include <glibtop.h>
 +#include <glibtop/error.h>
@@ -2164,9 +2140,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/shm_limits.c libgtop-2.5.2-new/sysdeps/d
 +	
 +	memset (buf, 0, sizeof (glibtop_shm_limits));
 +}
-diff -Naur libgtop-2.5.2/sysdeps/darwin/siglist.c libgtop-2.5.2-new/sysdeps/darwin/siglist.c
---- libgtop-2.5.2/sysdeps/darwin/siglist.c	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/siglist.c	Fri Apr  9 14:13:28 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/siglist.c libgtop-2.8.0/sysdeps/darwin/siglist.c
+--- libgtop-2.8.0-old/sysdeps/darwin/siglist.c	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/siglist.c	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,38 @@
 +#include <glibtop.h>
 +#include <glibtop/signal.h>
@@ -2206,9 +2182,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/siglist.c libgtop-2.5.2-new/sysdeps/darw
 +  {  0, NULL,        NULL }
 +};
 +
-diff -Naur libgtop-2.5.2/sysdeps/darwin/swap.c libgtop-2.5.2-new/sysdeps/darwin/swap.c
---- libgtop-2.5.2/sysdeps/darwin/swap.c	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/swap.c	Fri Apr  9 12:34:33 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/swap.c libgtop-2.8.0/sysdeps/darwin/swap.c
+--- libgtop-2.8.0-old/sysdeps/darwin/swap.c	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/swap.c	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,111 @@
 +/* $Id$ */
 +
@@ -2321,9 +2297,9 @@ diff -Naur libgtop-2.5.2/sysdeps/darwin/swap.c libgtop-2.5.2-new/sysdeps/darwin/
 +	buf->flags    = _glibtop_sysdeps_swap;
 +}
 +
-diff -Naur libgtop-2.5.2/sysdeps/darwin/uptime.c libgtop-2.5.2-new/sysdeps/darwin/uptime.c
---- libgtop-2.5.2/sysdeps/darwin/uptime.c	Wed Dec 31 19:00:00 1969
-+++ libgtop-2.5.2-new/sysdeps/darwin/uptime.c	Fri Apr  9 12:34:33 2004
+diff -Naur libgtop-2.8.0-old/sysdeps/darwin/uptime.c libgtop-2.8.0/sysdeps/darwin/uptime.c
+--- libgtop-2.8.0-old/sysdeps/darwin/uptime.c	Wed Dec 31 19:00:00 1969
++++ libgtop-2.8.0/sysdeps/darwin/uptime.c	Sun Oct 10 12:09:08 2004
 @@ -0,0 +1,44 @@
 +#include <glibtop.h>
 +#include <glibtop/error.h>
