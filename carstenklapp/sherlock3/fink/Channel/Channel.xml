@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Copyright (c) 2002, Apple Computer, Inc. -->
+<!-- All rights reserved.                     -->
+
+
+<!--
+
+	NOTE:	In order to see the debug messages printed in Console,
+			the SHERLOCK_DEBUG_CHANNELS environment variable must
+			be set to 1.
+-->
+
+
+
+<channel>
+
+  <initialize language="JavaScript">
+	
+	debug("----- Initializing the data store -----");
+	
+	/* Set the channel's minimum size */
+ 	DataStore.Set("Internet.minViewSize", "{width=310; height=260}");
+
+	/* Update the data store representation of the search field as the
+		user types into it. This way, if they click the search button
+		before hitting return, the data store will reflect the latest
+		changes made by the user.
+	*/
+	DataStore.Set("Internet.MainQueryField.updateValueOnTextChanged", true);
+		
+	/* Customize the NSTableView a bit */
+	{-- DataStore.Set("Internet.SearchResultsTable.columns.relevance.dataCellType", "RankCell"); --}
+	DataStore.Set("Internet.SearchResultsTable.pasteboardTypes.NSStringPboardType", "RankCell");
+        DataStore.Set("Internet.SearchResultsTable.pasteboardTypes.NSStringPboardType", "description.URL.objectValue");
+	DataStore.Set("Internet.SearchResultsTable.pasteboardTypes.NSURLPboardType", "doubleClickURL");
+	DataStore.Set("Internet.SearchResultsTable.visibleDragColumns", "description");
+
+	/* Initialize this with an empty document, so it fills in with white */
+	DataStore.Set("Internet.DetailHTMLView.HTMLData", "");
+ </initialize>
+
+<triggers>
+
+
+<trigger path="Internet.didInstall" language="JavaScript">
+
+	debug("----- Channel did install -----");
+
+	/* Set a default value in the search field */
+	DataStore.Set("Internet.MainQueryField.objectValue", "upclient");
+</trigger> 
+
+
+<trigger path="Internet.SearchButton.action" language="JavaScript">
+
+	debug("----- User clicked the search button -----");
+
+	/* Clear out the previous results */
+	DataStore.Set("Internet.SearchResultsTable.dataValue", null);
+	
+	/* Indicate that a search is about to take place */
+	DataStore.Set("Internet.NetworkArrows.animating", true);
+
+
+	/* Kick off the search. Searches are usually done in XQuery, since
+		it has better data parsing/manipulating characteristics than
+		JavaScript.
+	*/
+	DataStore.Notify("DATA.action.performSearch");
+</trigger> 
+
+ 
+<trigger path="DATA.action.performSearch" language="XQuery"
+	inputs="query=Internet.MainQueryField.objectValue">
+
+	let $log := msg("----- Performing the search -----")
+	let $log := msg("----- Query: ", $query)
+
+	{-- In this example, the "search" will be to go to the apple.com web site,
+		and return all links as "results"
+	--}
+	
+	let $httpRequest := http-request(string-combine(("http://fink.sourceforge.net/pdb/search.php?s=", $query),""))
+	let $html := http-request-value($httpRequest, "DATA")
+	let $baseURL := http-request-value($httpRequest, "ACTUAL_URL") {-- used below... --}
+	
+	{-- Since XQuery is case-sensitive, we need to look for all upper and
+		lower case anchor tags (both a and A).
+	--}
+	let $anchors := ($html//a, $html//A)
+	{-- grab only links that are fink packages --}
+        let $anchors := for $item in $anchors where (contains($item/@href, "package.php"))
+            return $item
+	
+	{-- Create a list of search results. Each result is a dictionary with a few
+		entries:
+					description - title shown to user
+					relevance - a relevance shown to the user
+					doubleClickURL - url opened when the user double-clicks on a result
+									 (also used to display HTML when the user selects a result)
+		
+		Note that the keys in the dictionary match the columns identifiers (as set in
+		Interface Builder) as appropriate.
+	--}
+        
+        let $j := count($anchors)
+        let $i := to(1,count($anchors))
+        
+	{--let $results := for $item in $anchors--}
+	let $results := for $num in $i
+
+		{-- Result name is the anchor title --}
+		let $description := string-combine($anchors[$num]//text()/convert-html(.), "")
+		
+		{-- Note that the href can also be upper or lower case; need to test for either --}
+		let $href := $anchors[$num]/@href
+		let $href := if ($href) then $href else $item/@HREF
+		{-- Create a URL from from the anchor href and the base-URL of the actual document.
+			We could just assume that the base URL is www.apple.com, but it's safer to
+			get the actual URL in case of a redirect. If we were not interested in this
+			information, and only wanted the contents of the HTML document, we could have
+			used   'let $html := document("http://www.apple.com")'   instead.
+		--}
+		let $url := url-with-base($href, $baseURL)
+		
+		{-- Compute a fake relevance using the item's index --}
+		{-- let $relevance := 100-rank() --}
+
+                let $relevance := string-combine($anchors[$num]//text()/convert-html(.), "")
+                let $relevance := string-separate($relevance, "- ")[2]
+
+		return dictionary(
+			("relevance", $relevance),
+			("description", $description),
+			("doubleClickURL", $url))
+
+
+	{-- Filter out any results which don't have a title (image links, for example) --}
+	let $results := for $item in $results where ($item/description)
+		return $item
+
+	{-- From the trigger, return a dictionary with key/value pairs representing
+		data store locations and their values.
+	--}
+	return dictionary(
+		("Internet.SearchResultsTable.dataValue", $results),
+		("Internet.SearchResultsTable.selectedRows", null()),
+		("Internet.NetworkArrows.animating", false()) )
+ </trigger>
+
+
+<trigger path="Internet.SearchResultsTable" language="XQuery"
+   inputs="tableRows=Internet.SearchResultsTable.dataValue, selectedRows=Internet.SearchResultsTable.selectedRows" 
+   output="Internet.DetailHTMLView.url" task="true">
+	{-- If any aspect of the results table changes (.dataValue, or .selectedRows) --}
+	{-- we want to trigger an update of the detail view.                          --}
+
+	let $selectedItem := if (exists($selectedRows)) then
+		$tableRows[1+$selectedRows]
+	else
+		null()
+
+	return $selectedItem/doubleClickURL
+ </trigger>
+
+
+</triggers>
+
+</channel>
+
