@@ -1,0 +1,36 @@
+Package: gphoto2
+Version: 2.1.0
+Revision: 1
+Maintainer: Peter O'Gorman <peter@pogma.com> 
+Depends: libjpeg-shlibs, libusb-shlibs
+BuildDepends: libjpeg, libusb
+Source: mirror:sourceforge:/gphoto/%n-%v.tar.bz2
+Patch: %f.patch 
+NoSetLDFlags: true
+NoSetCPPFlags: true
+Configureparams: --with-jpeg-prefix=%p --mandir=%p/share/man --disable-dependency-tracking
+CompileScript: <<
+#!/bin/sh
+# Just bacuase this is the way I have been building it
+DYLD_LIBRARY_PATH=%p/lib
+LIBRARY_PATH=%p/lib
+CPATH=%p/include
+export DYLD_LIBRARY_PATH
+export LIBRARY_PATH
+export CPATH
+./configure %c
+make
+<<
+Installscript: <<
+make install DESTDIR=%d
+mv %i/bin/gphoto2-config %i/bin/gphoto2-config.old
+sed -e 's|"-L${exec_prefix}/lib"||g' -e 's| "-I${prefix}/include"||g' -e 's| -lm||g'< %i/bin/gphoto2-config.old > %i/bin/gphoto2-config
+rm -f %i/bin/gphoto2-config.old
+chmod +x %i/bin/gphoto2-config
+<<
+SetCPPFlags: -no-cpp-precomp
+DocFiles: README HACKING COPYING
+Description: Library that can be used to access digital cameras
+Descport: Usual fixes
+Homepage: http://gphoto2.sf.net
+License: GPL
