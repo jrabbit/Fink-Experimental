@@ -1,0 +1,323 @@
+diff -ruN menu-2.1.5/install-menu/hints.cc menu-2.1.5.new/install-menu/hints.cc
+--- menu-2.1.5/install-menu/hints.cc	Mon Jul  5 16:12:49 1999
++++ menu-2.1.5.new/install-menu/hints.cc	Tue Aug 20 16:45:11 2002
+@@ -124,8 +124,8 @@
+   // raw_input_count[i]: records frequency of hint_input[i].
+ 
+   unsigned int i,j;
+-  vector <const StrVec>::iterator k;
+-  cStrVec::iterator m,l;
++  vector <StrVec>::const_iterator k;
++  StrVec::const_iterator m,l;
+   map <String, int, less<String> >::iterator hi;
+   multimap <int, String, more<int> > fh;
+   multimap <int, String, more<int> >::iterator fhi;
+@@ -253,7 +253,7 @@
+   }
+ }
+ ostream& operator<<(ostream &o, const StrVec &s){
+-  vector <const String>::iterator i;
++  vector <String>::const_iterator i;
+   
+   for(i=s.begin(); i!=s.end(); i++)
+     o<<"["<<(*i)<<"]";
+@@ -293,7 +293,7 @@
+ void hints::calc_tree(const vector <StrVec > &hint_input,
+ 		      vector <StrVec > &hint_output){
+ 
+-  vector <const vector<String> >::iterator i;
++  vector <vector<String> >::const_iterator i;
+ 
+   raw_count=vector <int> (hint_input.size(), 1);
+   hint_list=hint_input;
+@@ -395,7 +395,7 @@
+       d.push_back(t);
+     } 
+     if(debugopt){
+-      vector<const unsigned int>::iterator j;
++      vector<unsigned int>::const_iterator j;
+       DEBUGGING(cout<<"itt="<<itteration<<" ";)
+       cout<<"Adding Division h, p="<<penalty<<" dl.s()= "
+ 	  <<division_list.size()<<", h=";
+@@ -545,7 +545,7 @@
+ 			int already_used){
+   //try with heuristics to reduce the thinking time
+   int raw_total;
+-  vector <const int>::iterator i;
++  vector <int>::const_iterator i;
+   
+   raw_total=0;
+   for(i=raw_input_count.begin(); i!=raw_input_count.end(); i++)
+@@ -648,10 +648,10 @@
+       // to (recursively) make a tree from that.
+       for(j=0; j<hint_input.size(); j++)
+ 	if(!stored[j]){
+-	  cStrVec::iterator 
++	  StrVec::const_iterator 
+ 	    b=hint_input[j].begin(),
+ 	    e=hint_input[j].end(),
+-	    f=NULL;
++	    f=e;
+ 	  f=find(b, e, key);
+ 	  if(f!=e){
+ 	    StrVec tmphint;
+@@ -696,7 +696,7 @@
+ void hints::search_hint(hint_tree &t,
+ 			const StrVec &hint_in,
+ 			StrVec &hint_out){
+-  vector <const String>::iterator j, e,b;
++  vector <String>::const_iterator j, e,b;
+   vector <hint_tree>::iterator c;
+   DEBUGGING(bool found=false;)
+ 
+diff -ruN menu-2.1.5/install-menu/hints.h menu-2.1.5.new/install-menu/hints.h
+--- menu-2.1.5/install-menu/hints.h	Thu Oct  7 16:50:05 1999
++++ menu-2.1.5.new/install-menu/hints.h	Tue Aug 20 16:45:11 2002
+@@ -15,6 +15,8 @@
+ #define DEBUGGING(a)    a
+ #define CDEBUGGING(a)   ,a
+ 
++using std::set;
++using std::map;
+ 
+ extern bool operator< (const set<String> &left,
+ 		const set<String> &right);
+diff -ruN menu-2.1.5/install-menu/menu-tree.cc menu-2.1.5.new/install-menu/menu-tree.cc
+--- menu-2.1.5/install-menu/menu-tree.cc	Fri Jul 28 17:53:45 2000
++++ menu-2.1.5.new/install-menu/menu-tree.cc	Tue Aug 20 16:45:11 2002
+@@ -5,8 +5,10 @@
+ #include <list>
+ #include <set>
+ 
++using namespace std;
++
+ bool operator< (const StrVec &left, const StrVec &right){
+-  cStrVec::iterator i,j;
++  StrVec::const_iterator i,j;
+ 
+   for(i=left.begin(), j=right.begin();
+       (i!=left.end()) && (j!=right.end());
+@@ -43,7 +45,7 @@
+   map <String, String, less<String> >::iterator vj;
+   StrVec subs;
+   StrVec firstsec;
+-  cStrVec::iterator i;
++  StrVec::iterator i;
+   bool use_forced=false;
+   
+   //there are two ways to store the menuentries in the `tree'
+@@ -121,7 +123,7 @@
+ 				  menuentry *m){
+   submenu_container::iterator f;
+   StrVec subs,firstsec;
+-  cStrVec::iterator i;
++  StrVec::iterator i;
+ 
+   if(s.size()>1){
+     for(i=s.begin()+1;i!=s.end(); i++)
+@@ -207,7 +209,7 @@
+      that one.
+   */
+   submenu_container::iterator i,j;
+-  cStrVec::iterator k;
++  StrVec::iterator k;
+   unsigned int l;
+ 
+   // Make sure menuhints are empty:
+@@ -239,8 +241,8 @@
+ 
+ void menuentry::process_hints(const StrVec &pref){
+   vector <StrVec> hint_list, hint_out;
+-  vector <const StrVec>::iterator k,m;
+-  cStrVec::iterator l;
++  vector <StrVec>::iterator k,m;
++  StrVec::const_iterator l;
+   submenu_container::iterator i;
+   submenu_container oldsubmenus;
+   hints h;
+@@ -249,7 +251,7 @@
+   for(i=submenus.begin(); i!=submenus.end(); i++){
+     if(((*i).second->vars[COMMAND_VAR]).size()==0){
+       StrVec v(pref);
+-      cStrVec::iterator j;
++      StrVec::const_iterator j;
+       for(j=(*i).first.begin(); j!=(*i).first.end(); j++)
+ 	v.push_back((*j));
+       (*i).second->process_hints(v);
+@@ -325,7 +327,7 @@
+       i!=submenus.end(); 
+       index++){
+     String title;
+-    cStrVec::iterator j;
++    StrVec::const_iterator j;
+     
+     i_next=i;
+     i_next++;
+diff -ruN menu-2.1.5/update-menus/adstring.cc menu-2.1.5.new/update-menus/adstring.cc
+--- menu-2.1.5/update-menus/adstring.cc	Mon Apr  3 06:18:52 2000
++++ menu-2.1.5.new/update-menus/adstring.cc	Tue Aug 20 16:45:11 2002
+@@ -251,7 +251,7 @@
+     if(pos){
+       pos--;
+       // buffer.at(pos,1)=String(c);
+-      buffer.replace(pos,1,c);
++      buffer.replace(pos,1,1,c);
+     } else
+       buffer=c+buffer;
+     
+@@ -524,7 +524,7 @@
+   string::size_type i;
+   for(i=0;i!=s.length();i++)
+     if(s[i]==match)
+-      s.replace(i,i+1,replace);
++      s.replace(i,i+1,1,replace);
+   return s;
+ }
+ String sort_hotkey(String str){
+diff -ruN menu-2.1.5/update-menus/adstring.h menu-2.1.5.new/update-menus/adstring.h
+--- menu-2.1.5/update-menus/adstring.h	Fri Jul 28 17:54:15 2000
++++ menu-2.1.5.new/update-menus/adstring.h	Tue Aug 20 16:45:11 2002
+@@ -19,6 +19,7 @@
+ 
+ #define MAX_LINE 10240  
+ 
++using std::string;
+ 
+ // ************* String.h replacement code:
+ class Regex;
+diff -ruN menu-2.1.5/update-menus/lprocbuf.cc menu-2.1.5.new/update-menus/lprocbuf.cc
+--- menu-2.1.5/update-menus/lprocbuf.cc	Wed Dec 31 19:00:00 1969
++++ menu-2.1.5.new/update-menus/lprocbuf.cc	Tue Aug 20 16:45:11 2002
+@@ -0,0 +1,13 @@
++#include "lprocbuf.h"
++#include <stdio.h>
++
++lprocbuf::lprocbuf(const char *command, std::ios::openmode mode)
++	: std::filebuf((fp = popen(command, (mode & std::ios::in) ? "r" : "w")), mode)
++{
++}
++
++void lprocbuf::close()
++{ 
++	pclose(fp);
++}
++
+diff -ruN menu-2.1.5/update-menus/lprocbuf.h menu-2.1.5.new/update-menus/lprocbuf.h
+--- menu-2.1.5/update-menus/lprocbuf.h	Wed Dec 31 19:00:00 1969
++++ menu-2.1.5.new/update-menus/lprocbuf.h	Tue Aug 20 16:45:11 2002
+@@ -0,0 +1,20 @@
++#ifndef _LPROCBUF_H
++#define _LPROCBUF_H
++
++#include <streambuf.h>
++#include <fstream>
++
++extern "C++" {
++class lprocbuf : public std::filebuf {
++private:
++	FILE *fp;
++
++public:
++	lprocbuf() : std::filebuf() {};
++	lprocbuf(const char *command, std::ios::openmode mode);
++	void close();
++	virtual ~lprocbuf() { close(); }
++};
++} // extern "C++"
++
++#endif /* !_LPROCBUF_H */
+diff -ruN menu-2.1.5/update-menus/procbuf.h menu-2.1.5.new/update-menus/procbuf.h
+--- menu-2.1.5/update-menus/procbuf.h	Wed Dec 31 19:00:00 1969
++++ menu-2.1.5.new/update-menus/procbuf.h	Tue Aug 20 16:45:11 2002
+@@ -0,0 +1,14 @@
++#ifndef MENU_PROCBUF_H
++#define MENU_PROCBUF_H
++
++#include <fstream>
++
++class procbuf : public std::streambuf {
++public:
++	void open(const char *, ios::openmode);
++	void close();
++
++
++};
++
++#endif
+diff -ruN menu-2.1.5/update-menus/update-menus.cc menu-2.1.5.new/update-menus/update-menus.cc
+--- menu-2.1.5/update-menus/update-menus.cc	Sun Jul 29 09:32:08 2001
++++ menu-2.1.5.new/update-menus/update-menus.cc	Tue Aug 20 16:45:11 2002
+@@ -21,7 +21,9 @@
+ #include <signal.h>
+ #include <syslog.h>
+ #include <errno.h>
+-#include <procbuf.h>
++#include "lprocbuf.h"
++
++using namespace std;
+ 
+ int debug=0, verbose=0;
+ set <String, less<String> > installed_packages;
+@@ -475,7 +477,6 @@
+ 		   vector<String> &menudata){
+   bool wrote_filename=false;
+   parsestream *i;
+-  procbuf pr;
+   istream *pipe_istr=NULL;
+   int linenr=1;
+ 
+@@ -483,7 +484,7 @@
+ 		configinfo::report_debug);
+   try{
+     if(executable(filename)){
+-      pr.open(filename.c_str(),ios::in);
++      lprocbuf pr(filename.c_str(),ios::in);
+       pipe_istr=new istream(&pr);
+       try{
+ 	i=new parsestream(*pipe_istr);
+@@ -529,7 +530,6 @@
+     if(executable(filename)){
+       if(pipe_istr)
+ 	delete pipe_istr;
+-      pr.close();
+     }
+     delete i;
+   }
+@@ -543,7 +543,7 @@
+   int r;
+   String name;
+   String dummy;
+-  cStrVec::iterator method_i;
++  StrVec::iterator method_i;
+   String dirname;
+ 
+   for(method_i=config.menufilesdir.begin();
+@@ -680,6 +680,7 @@
+ int create_lock(){
+   // return lock fd if succesful, false if unsuccesfull.
+   int fd=true;
++  char pid[20];
+   
+   if(!getuid()){
+     fd=open(UPMEN_LOCKFILE,O_WRONLY|O_CREAT,00644);
+@@ -698,15 +699,17 @@
+ 	
+     }
+ 
+-    ofstream of(fd);
+-    of<<getpid();
+-    if(!of.good()){
++    snprintf(pid, sizeof(pid), "%lu", (unsigned long)getpid());
++
++    if (0 > write(fd, pid, strlen(pid))) {
++      close(fd);
+       config.report("cannot write to lockfile "
+ 		    UPMEN_LOCKFILE". Aborting.",
+ 		    configinfo::report_quiet);
+       return false;
+     }
+   }
++  close(fd);
+   return fd;
+ }
+ 
