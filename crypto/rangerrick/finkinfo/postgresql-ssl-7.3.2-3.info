@@ -1,6 +1,6 @@
-Package: postgresql
+Package: postgresql-ssl
 Version: 7.3.2
-Revision: 2
+Revision: 3
 GCC: 3.1
 Source: http://www.postgresql.org/ftpsite/source/v%v/postgresql-%v.tar.gz
 Source-MD5: 23d2762571e8c5bb21eee08aab968ccb
@@ -12,12 +12,14 @@ Source4: ftp://gborg.postgresql.org/pub/libpqxx/stable/libpqxx-1.3.6.tar.gz
 Source4-MD5: c7ab2910087118c775ccd61346cebb7b
 Source5: ftp://gborg.postgresql.org/pub/pgeasy/stable/pgeasy-3.0.1.tar.gz
 Source5-MD5: 6a50fac1231aad1a32215664ca186552
-BuildDepends: readline, autoconf25, libgnugetopt
-Conflicts: postgresql-ssl
-Depends: postgresql73 (>= %v-%r), postgresql73-shlibs (>= %v-%r)
-Description: PostgreSQL open-source database
+Depends: postgresql73-ssl (>= %v-%r), postgresql73-ssl-shlibs (>= %v-%r)
+BuildDepends: readline, openssl097-dev, autoconf25, libgnugetopt
+Depends: openssl097-shlibs, readline-shlibs (>= 4.3-5), passwd (>= 20030330-1), daemonic (>= 20010902-1), postgresql73-ssl-shlibs (>= %v-%r), libgnugetopt-shlibs
+Conflicts: postgresql
+Replaces: postgresql, postgresql-python (<< 7.3), postgresql-ssl-python (<< 7.3), postgresql-perl (<< 7.3), postgresql-ssl-perl (<< 7.3)
+Description: PostgreSQL open-source database (with SSL)
 PatchScript: sed 's|@PREFIX@|%p|g' < %a/%f.patch | patch -p1
-ConfigureParams: --prefix=%p --docdir=%p/share/doc --mandir=%p/share/man --enable-multibyte --enable-recode --with-CXX --without-perl --without-python --without-openssl --with-libraries=%p/lib --with-includes=%p/include --without-tcl --without-java --enable-odbc --with-pam
+ConfigureParams: --prefix=%p --docdir=%p/share/doc --mandir=%p/share/man --enable-multibyte --enable-recode --with-CXX --without-perl --without-python --with-openssl --with-libraries=%p/lib --with-includes=%p/include --without-tcl --without-java --enable-odbc --with-pam
 CompileScript: <<
 #!/bin/sh
 
@@ -32,7 +34,7 @@ CompileScript: <<
 
   # libpq++
   pushd ../libpq++-4.0
-  patch -p1 < %a/%N-libpqpp-%v-%r.patch
+  sed 's|@PREFIX@|%p|g' < %a/%N-libpqpp-%v-%r.patch | patch -p1
   make DESTDIR=%d || exit 2
   popd
 
@@ -44,7 +46,7 @@ CompileScript: <<
 
   # pgeasy
   pushd ../pgeasy-3.0.1
-  patch -p1 < %a/%N-libpgeasy-%v-%r.patch
+  sed 's|@PREFIX@|%p|g' < %a/%N-libpgeasy-%v-%r.patch | patch -p1
   make DESTDIR=%d || exit 4
   popd
 
@@ -87,40 +89,43 @@ InstallScript: <<
 
   install -d -m 755 %i/share/doc/%n
   cp -R contrib %i/share/doc/%n/contrib
+
+  install -d -m 755 %i/bin
+  install -c -m 755 pgsql.sh %i/bin/
 <<
 SplitOff: <<
-  Description: PostgreSQL development headers and libraries
-  Package: postgresql73-dev
-  Depends: postgresql73 (>= %v-%r)
-  Conflicts: postgresql73-ssl-dev
-  Replaces: postgresql (<< %v), postgresql-dev (<< %v), postgresql-ssl-dev
+  Description: PostgreSQL development headers and libraries (with SSL)
+  Package: postgresql73-ssl-dev
+  Depends: postgresql73-ssl (>= %v-%r)
+  Conflicts: postgresql73-dev
+  Replaces: postgresql-ssl (<< %v), postgresql-ssl-dev (<< %v), postgresql-dev
   BuildDependsOnly: true
   Files: bin/pg_config include lib/*.a lib/libecpg.dylib lib/libpgeasy.dylib lib/libpq.dylib lib/libpq++.dylib lib/libpqxx.dylib lib/*.la
 <<
 SplitOff2: <<
-  Description: PostgreSQL shared libraries
-  Package: postgresql73-shlibs
-  Conflicts: postgresql-ssl73-shlibs
+  Description: PostgreSQL shared libraries (with SSL)
+  Package: postgresql73-ssl-shlibs
+  Conflicts: postgresql73-shlibs
   Depends: libgnugetopt-shlibs
-  Replaces: postgresql (<< %v), postgresql-shlibs, postgresql-ssl-shlibs, postgresql-ssl73-shlibs
+  Replaces: postgresql-ssl (<< %v), postgresql-shlibs, postgresql-ssl-shlibs, postgresql73-shlibs, postgresql-ssl73-shlibs
   BuildDependsOnly: true
   Files: lib/*.dylib
 <<
-SplitOff3: <<
-  Description: PostgreSQL open-source database
-  Package: postgresql73
-  Conflicts: postgresql73-ssl
-  Depends: readline-shlibs (>= 4.3-5), passwd, daemonic (>= 20010902-1), postgresql73-shlibs (>= %v-%r)
-  Replaces: postgresql (<< %v), postgresql-shlibs, postgresql-ssl-shlibs, postgresql-ssl, postgresql-python (<< 7.3), postgresql-ssl-python (<< 7.3), postgresql-perl (<< 7.3), postgresql-ssl-perl (<< 7.3)
+Splitoff3: <<
+  Description: PostgreSQL open-source database (with SSL)
+  Package: postgresql73-ssl
+  Conflicts: postgresql73
+  Depends: readline-shlibs (>= 4.3-5), passwd, daemonic (>= 20010902-1), postgresql73-ssl-shlibs (>= %v-%r)
+  Replaces: postgresql-ssl (<< %v), postgresql-ssl73-shlibs, postgresql73-shlibs, postgresql-shlibs, postgresql73, postgresql-python (<< 7.3), postgresql-ssl-python (<< 7.3), postgresql-perl (<< 7.3), postgresql-ssl-perl (<< 7.3)
   Files: *
   DaemonicFile: <<
     <service>
     <description>PostgreSQL database server</description>
     <message> PostgreSQL database server</message>
     
-    <daemon name="postgresql73">
+    <daemon name="postgresql73-ssl">
     <executable background="no">/usr/bin/sudo</executable>
-    <parameters>-u pgsql %p/bin/pg_ctl -D %p/var/postgresql/data start -l %p/var/log/postgresql/logfile</parameters>
+    <parameters>-u postgres %p/bin/pgsql.sh</parameters>
     </daemon>
     
     </service>
@@ -144,6 +149,13 @@ if [ "$1" = "upgrade" ] && [ -d "%p/var/postgresql/data" ]; then
   chmod 1777 '%p/var/tmp'
   echo "ok"
   echo ""
+
+  if test `ls -ln /sw/var/ | awk '{ print $3 }' | grep -c '^252$'` -ge 1; then
+    sudo -u pgsql %p/bin/pg_ctl start -D %p/var/postgresql/data >/dev/null 2>&1 || true
+    echo "ok"+
+    %p/bin/createuser -U pgsql -a -d -e -i 2 postgres >/dev/null 2>&1 || true
+    chown -R postgres %p/var/postgresql %p/var/log/postgresql
+  fi
 
   OLDMAJOR=`cat '%p/var/postgresql/data/PG_VERSION' 2>/dev/null | cut -d. -f1`
   OLDMINOR=`cat '%p/var/postgresql/data/PG_VERSION' 2>/dev/null | cut -d. -f2`
@@ -189,24 +201,24 @@ END
     echo "automatic" > "%p/var/tmp/pg_upgradetype"
 
     echo -e "- starting postgresql (just to be sure): \c"
-    sudo -u pgsql %p/bin/pg_ctl -D %p/var/postgresql/data start -l %p/var/log/postgresql/logfile >/dev/null 2>&1 || true
+    sudo -u postgres %p/bin/pg_ctl start -D %p/var/postgresql/data >/dev/null 2>&1 || true
     echo "ok"
 
     echo -e "- vacuuming tables (to be sure logs have been played out): \c"
-    %p/bin/vacuumdb -U pgsql -a >/dev/null 2>&1 || die "vacuumdb failed!"
+    %p/bin/vacuumdb -U postgres -a >/dev/null 2>&1 || die "vacuumdb failed!"
     echo -e "ok"
 
     echo -e "- dumping the database for upgrade: \c"
-    sudo -u pgsql %p/bin/pg_dumpall -c -d > "%p/var/tmp/pgdb-${OLDVERSION}.pgsql" 2>&1 || die "couldn't dump database"
+    sudo -u postgres %p/bin/pg_dumpall -c -d > "%p/var/tmp/pgdb-${OLDVERSION}.pgsql" 2>&1 || die "couldn't dump database"
     echo "pgdb-${OLDVERSION}.pgsql"
 
     echo -e "- stopping postgresql: \c"
-    sudo -u pgsql %p/bin/pg_ctl -D %p/var/postgresql/data stop -l %p/var/log/postgresql/logfile >/dev/null 2>&1 || true
+    sudo -u postgres %p/bin/pg_ctl stop %p/var/postgresql/data >/dev/null 2>&1 || true
     echo "ok"
 
     echo -e "- backing up the %p/var/postgresql directory: \c"
     pushd "%p/var" >/dev/null 2>&1
-    sudo -u pgsql tar -czf "%p/var/tmp/pgdb-${OLDVERSION}.tar.gz" postgresql >/dev/null 2>&1 || die "couldn't tar up postgresql directory"
+    sudo -u postgres tar -czf "%p/var/tmp/pgdb-${OLDVERSION}.tar.gz" postgresql >/dev/null 2>&1 || die "couldn't tar up postgresql directory"
     popd >/dev/null 2>&1
     echo "pgdb-${OLDVERSION}.tar.gz"
 
@@ -214,7 +226,6 @@ END
   fi
 fi
   <<
-  
   PostInstScript: <<
 INSTALL_PHASE="$1"
 
@@ -233,16 +244,17 @@ pg_createdb () {
 
   echo -e "- making postgresql directories: \c"
   mkdir -p %p/var/postgresql/data %p/var/log/postgresql
-  chown -R pgsql %p/var/postgresql %p/var/log/postgresql
+  chown -R postgres %p/var/postgresql %p/var/log/postgresql
   chmod 700 %p/var/postgresql
   echo "ok"
 
   echo -e "- initializing database in %p/var/postgresql/data: \c"
-  sudo -u pgsql %p/bin/initdb -D %p/var/postgresql/data >/dev/null 2>&1 || die "couldn't initialize database"
+  sudo -u postgres %p/bin/initdb -D %p/var/postgresql/data >/dev/null 2>&1 || die "couldn't initialize database"
   echo "ok"
 }
 
 if [ -d %p/var/postgresql/data ]; then
+  chown -R postgres %p/var/postgresql %p/var/log/postgresql
   OLDMAJOR=`cat '%p/var/postgresql/data/PG_VERSION' 2>/dev/null | cut -d. -f1`
   OLDMINOR=`cat '%p/var/postgresql/data/PG_VERSION' 2>/dev/null | cut -d. -f2`
   OLDVERSION="${OLDMAJOR}.${OLDMINOR}"
@@ -267,23 +279,23 @@ else
 fi
 
 # update daemonic init script if necessary
-daemonic install postgresql73
+daemonic install postgresql73-ssl
   <<
   PreRmScript: <<
 # clean up
 if [ $1 != "upgrade" ]; then
-  daemonic remove postgresql73
+  daemonic remove postgresql73-ssl
 fi
   <<
 <<
 DocFiles: COPYRIGHT HISTORY INSTALL README register.txt
 DescUsage: <<
-The package runs initdb on installation as the user 'pgsql'.
+The package runs initdb on installation as the user 'postgres'.
 
-You can start the PostgreSQL server manually using 'postmaster' as pgsql
-(since pgsql has a shell of /dev/null by default, you must run it as
-sudo -u pgsql postmaster) or you can run 'daemonic enable postgresql' as
-root to create a StartupItem for it.
+You can start the PostgreSQL server manually using 'postmaster' as
+postgres (since postgres has a shell of /dev/null by default, you must
+run it as sudo -u postgres postmaster) or you can run
+'daemonic enable postgresql' as root to create a StartupItem for it.
 
 Also note that installation of this package is interactive, because
 upgrades can make irrevocable changes to your database.

@@ -32,7 +32,7 @@ CompileScript: <<
 
   # libpq++
   pushd ../libpq++-4.0
-  patch -p1 < %a/%N-libpqpp-%v-%r.patch
+  sed 's|@PREFIX@|%p|g' %a/%N-libpqpp-%v-%r.patch | patch -p1
   make DESTDIR=%d || exit 2
   popd
 
@@ -44,7 +44,7 @@ CompileScript: <<
 
   # pgeasy
   pushd ../pgeasy-3.0.1
-  patch -p1 < %a/%N-libpgeasy-%v-%r.patch
+  sed 's|@PREFIX@|%p|g' %a/%N-libpgeasy-%v-%r.patch | patch -p1
   make DESTDIR=%d || exit 4
   popd
 
@@ -87,6 +87,9 @@ InstallScript: <<
 
   install -d -m 755 %i/share/doc/%n
   cp -R contrib %i/share/doc/%n/contrib
+
+  install -d -m 755 %i/bin
+  install -c -m 755 pgsql.sh %i/bin/
 <<
 SplitOff: <<
   Description: PostgreSQL development headers and libraries
@@ -150,7 +153,7 @@ if [ "$1" = "upgrade" ] && [ -d "%p/var/postgresql/data" ]; then
     sudo -u pgsql %p/bin/pg_ctl start -D %p/var/postgresql/data >/dev/null 2>&1 || true
     echo "ok"
 
-    %p/bin/createuser -U pgsql -a -d -e -i 2 postgres || true
+    %p/bin/createuser -U pgsql -a -d -e -i 2 postgres >/dev/null 2>&1 || true
     chown -R postgres %p/var/postgresql %p/var/log/postgresql
   fi
 
