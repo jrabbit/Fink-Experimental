@@ -1,0 +1,198 @@
+diff -uNr mono-0.30/configure.in mono-0.30-patched/configure.in
+--- mono-0.30/configure.in	Sat Jan 17 13:55:29 2004
++++ mono-0.30-patched/configure.in	Mon Jan 26 10:56:35 2004
+@@ -141,6 +141,11 @@
+ AC_SUBST(HOST_CC)
+ AC_SUBST(BUILD_EXEEXT)
+ 
++# check for GNU LD
++AC_PROG_LD
++AC_PROG_LD_GNU
++AM_CONDITIONAL(LD_GNU, test x$lt_cv_prog_gnu_ld = xyes)
++
+ # Set STDC_HEADERS
+ AC_HEADER_STDC
+ AC_LIBTOOL_WIN32_DLL
+@@ -351,6 +356,38 @@
+ 	dnl *** Checks for libsocket  ***
+ 	dnl *****************************
+ 	AC_CHECK_LIB(socket, socket, LIBS="$LIBS -lsocket")
++
++	dnl ****************************
++	dnl *** Checks for socklen_t ***
++	dnl ****************************
++
++ 	AC_MSG_CHECKING([for socklen_t])
++	ac_cv_socklen_t=""
++	AC_TRY_COMPILE([
++#include <sys/types.h>
++#include <sys/socket.h>
++	],[
++socklen_t a=0;
++getsockname(0,(struct sockaddr*)0, &a);
++	],
++		ac_cv_socklen_t="socklen_t",
++		AC_TRY_COMPILE([
++#include <sys/types.h>
++#include <sys/socket.h>
++		],[
++int a=0;
++getsockname(0,(struct sockaddr*)0, &a);
++		],
++			ac_cv_socklen_t="int",
++			ac_cv_socklen_t="size_t"
++		)
++	)
++
++	AC_MSG_RESULT($ac_cv_socklen_t)
++	if test "$ac_cv_socklen_t" != "socklen_t"; then
++		AC_DEFINE_UNQUOTED(socklen_t, $ac_cv_socklen_t,
++			[Define the real type of socklen_t])
++	fi
+ 
+ 	dnl *******************************
+ 	dnl *** Checks for MSG_NOSIGNAL ***
+diff -uNr mono-0.30/mono/interpreter/main.c mono-0.30-patched/mono/interpreter/main.c
+--- mono-0.30/mono/interpreter/main.c	Fri Dec 19 15:19:37 2003
++++ mono-0.30-patched/mono/interpreter/main.c	Mon Jan 26 11:40:09 2004
+@@ -1,3 +1,4 @@
++#include <config.h>
+ #include "interp.h"
+ #include "embed.h"
+ 
+diff -uNr mono-0.30/mono/io-layer/sockets.h mono-0.30-patched/mono/io-layer/sockets.h
+--- mono-0.30/mono/io-layer/sockets.h	Fri Nov 21 11:56:00 2003
++++ mono-0.30-patched/mono/io-layer/sockets.h	Mon Jan 26 10:27:39 2004
+@@ -23,10 +23,6 @@
+ #define WSADESCRIPTION_LEN 256
+ #define WSASYS_STATUS_LEN 128
+ 
+-#ifdef __APPLE__
+-typedef unsigned int socklen_t;
+-#endif
+-
+ typedef struct 
+ {
+ 	guint16 wVersion;
+diff -uNr mono-0.30/mono/metadata/debug-helpers.c mono-0.30-patched/mono/metadata/debug-helpers.c
+--- mono-0.30/mono/metadata/debug-helpers.c	Mon Nov 24 22:07:26 2003
++++ mono-0.30-patched/mono/metadata/debug-helpers.c	Mon Jan 26 11:39:37 2004
+@@ -1,4 +1,4 @@
+-
++#include <config.h>
+ #include <string.h>
+ #include "mono/metadata/tokentype.h"
+ #include "mono/metadata/opcodes.h"
+diff -uNr mono-0.30/mono/metadata/decimal.c mono-0.30-patched/mono/metadata/decimal.c
+--- mono-0.30/mono/metadata/decimal.c	Fri Oct  3 13:02:34 2003
++++ mono-0.30-patched/mono/metadata/decimal.c	Mon Jan 26 11:39:37 2004
+@@ -13,6 +13,7 @@
+  * CSharp value type System.Decimal
+  */
+ 
++#include <config.h>
+ #include <mono/metadata/exception.h>
+ #include <stdio.h>
+ #include <memory.h>
+diff -uNr mono-0.30/mono/metadata/exception.c mono-0.30-patched/mono/metadata/exception.c
+--- mono-0.30/mono/metadata/exception.c	Mon Jan 19 15:02:30 2004
++++ mono-0.30-patched/mono/metadata/exception.c	Mon Jan 26 11:39:37 2004
+@@ -10,6 +10,7 @@
+  * (C) 2001, 2002 Ximian, Inc.
+  */
+ 
++#include <config.h>
+ #include <mono/metadata/exception.h>
+ #include <mono/metadata/class.h>
+ #include <mono/metadata/appdomain.h>
+diff -uNr mono-0.30/mono/metadata/monosn.c mono-0.30-patched/mono/metadata/monosn.c
+--- mono-0.30/mono/metadata/monosn.c	Thu Sep  4 15:46:43 2003
++++ mono-0.30-patched/mono/metadata/monosn.c	Mon Jan 26 11:39:37 2004
+@@ -7,6 +7,7 @@
+  * (C) 2002 Ximian, Inc.
+  *
+  */
++#include <config.h>
+ #include <mono/metadata/class.h>
+ #include <mono/metadata/debug-helpers.h>
+ #include <mono/metadata/tokentype.h>
+diff -uNr mono-0.30/mono/metadata/profiler.c mono-0.30-patched/mono/metadata/profiler.c
+--- mono-0.30/mono/metadata/profiler.c	Fri Jan  2 09:47:10 2004
++++ mono-0.30-patched/mono/metadata/profiler.c	Mon Jan 26 11:39:37 2004
+@@ -1,4 +1,4 @@
+-
++#include <config.h>
+ #include "mono/metadata/profiler-private.h"
+ #include "mono/metadata/debug-helpers.h"
+ #include "mono/metadata/mono-debug.h"
+diff -uNr mono-0.30/mono/metadata/verify.c mono-0.30-patched/mono/metadata/verify.c
+--- mono-0.30/mono/metadata/verify.c	Mon Jan 19 15:02:31 2004
++++ mono-0.30-patched/mono/metadata/verify.c	Mon Jan 26 11:23:44 2004
+@@ -1,4 +1,4 @@
+-
++#include <config.h>
+ #include <mono/metadata/object.h>
+ #include <mono/metadata/verify.h>
+ #include <mono/metadata/opcodes.h>
+diff -uNr mono-0.30/mono/mini/Makefile.am mono-0.30-patched/mono/mini/Makefile.am
+--- mono-0.30/mono/mini/Makefile.am	Fri Dec  5 02:21:43 2003
++++ mono-0.30-patched/mono/mini/Makefile.am	Mon Jan 26 10:51:08 2004
+@@ -28,7 +28,9 @@
+ # hack for automake to have the same source file in a library and a bin
+ genmdesc_CFLAGS = $(AM_CFLAGS)
+ 
++if LD_GNU
+ libmono_la_LDFLAGS=-Wl,-version-script=$(srcdir)/ldscript
++endif
+ 
+ if JIT_SUPPORTED
+ bin_PROGRAMS = mono
+diff -uNr mono-0.30/mono/mini/dominators.c mono-0.30-patched/mono/mini/dominators.c
+--- mono-0.30/mono/mini/dominators.c	Sat Apr  5 14:21:32 2003
++++ mono-0.30-patched/mono/mini/dominators.c	Mon Jan 26 11:40:47 2004
+@@ -7,6 +7,7 @@
+  *
+  * (C) 2003 Ximian, Inc.
+  */
++#include <config.h>
+ #include <string.h>
+ #include <mono/metadata/debug-helpers.h>
+ 
+diff -uNr mono-0.30/mono/mini/graph.c mono-0.30-patched/mono/mini/graph.c
+--- mono-0.30/mono/mini/graph.c	Mon Sep  1 12:09:40 2003
++++ mono-0.30-patched/mono/mini/graph.c	Mon Jan 26 11:40:47 2004
+@@ -6,6 +6,7 @@
+  *
+  * (C) 2003 Ximian, Inc.
+  */
++#include <config.h>
+ #include <string.h>
+ #include <mono/metadata/debug-helpers.h>
+ 
+diff -uNr mono-0.30/mono/mini/ssa.c mono-0.30-patched/mono/mini/ssa.c
+--- mono-0.30/mono/mini/ssa.c	Sat Jan  3 20:08:38 2004
++++ mono-0.30-patched/mono/mini/ssa.c	Mon Jan 26 11:40:47 2004
+@@ -6,6 +6,7 @@
+  *
+  * (C) 2003 Ximian, Inc.
+  */
++#include <config.h>
+ #include <string.h>
+ #include <mono/metadata/debug-helpers.h>
+ 
+diff -uNr mono-0.30/mono/monograph/monograph.c mono-0.30-patched/mono/monograph/monograph.c
+--- mono-0.30/mono/monograph/monograph.c	Wed Nov 12 13:49:11 2003
++++ mono-0.30-patched/mono/monograph/monograph.c	Mon Jan 26 11:39:47 2004
+@@ -1,3 +1,4 @@
++#include <config.h>
+ #include <glib.h>
+ #include <string.h>
+ #include "mono/metadata/class.h"
+diff -uNr mono-0.30/mono/profiler/mono-cov.c mono-0.30-patched/mono/profiler/mono-cov.c
+--- mono-0.30/mono/profiler/mono-cov.c	Wed Nov 12 13:49:11 2003
++++ mono-0.30-patched/mono/profiler/mono-cov.c	Mon Jan 26 11:40:59 2004
+@@ -1,3 +1,4 @@
++#include <config.h>
+ #include <mono/metadata/profiler.h>
+ #include <mono/metadata/tokentype.h>
+ #include <mono/metadata/tabledefs.h>
