@@ -8,6 +8,7 @@ Maintainer: Benjamin Reed <ranger@befunk.com>
 Depends: flashkard (>= %v-%r), kalzium (>= %v-%r), kbruch (>= %v-%r), keduca (>= %v-%r), khangman (>= %v-%r), kig (>= %v-%r), kiten (>= %v-%r), klettres (>= %v-%r), kmessedwords (>= %v-%r), kmplot (>= %v-%r), kpercentage (>= %v-%r), kstars (>= %v-%r), ktouch (>= %v-%r), kverbos (>= %v-%r), kvoctrain (>= %v-%r)
 BuildDepends: arts-dev (>= 1.2.92-1), autoconf2.5 (>= 2.58-1), automake1.8, cctools (>= 446-1) | cctools-single-module, dlcompat-dev (>= 20030629-5), fink (>= 0.20.2.1-1), freetype2 | freetype2-hinting, kdelibs3-ssl-dev (>= %v-1) | kdelibs3-dev (>= %v-1), libart2, libjpeg, libpng3 (>= 1.2.5-4), pcre, qt3 (>= 3.3.2-1), x11-dev
 Replaces: %N-dev (<< %v-%r), %N-shlibs (<< %v-%r)
+# FIXME: add boost1.31 and python23 | python23-nox when STL works
 GCC: 3.3
 
 CustomMirror: <<
@@ -25,12 +26,12 @@ Source2ExtractDir: kdeedu-%v
 PatchScript: <<
   perl -pi -e 's,-O2,-Os,' admin/acinclude.m4.in
   perl -pi -e 's,doc/HTML,doc/kde,g' admin/acinclude.m4.in
-#  sed -e 's,@PREFIX@,%p,g' %a/%n.patch | patch -p1
 <<
 
 NoSetCPPFLAGS: true
 NoSetLDFLAGS: true
-ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --disable-final --with-distribution='Fink/Mac OS X'
+ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --disable-final --with-distribution='Fink/Mac OS X' --disable-kig-python-scripting
+# FIXME: remove --disable-kig-python-scripting when we get the STL junk worked out
 
 CompileScript: <<
 #!/bin/sh -e
@@ -38,6 +39,7 @@ CompileScript: <<
   export HOME=/tmp
   export PREFIX="%p"
   . ./environment-helper.sh
+  export LDFLAGS="-L%p/lib/python2.3/config"
 
   ./build-helper.sh cvs       %N %v %r make -f admin/Makefile.common cvs
   ./build-helper.sh configure %N %v %r ./configure %c
