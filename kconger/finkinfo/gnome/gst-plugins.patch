@@ -1,6 +1,6 @@
 diff -Naur gst-plugins-0.6.4-old/configure gst-plugins-0.6.4/configure
---- gst-plugins-0.6.4-old/configure	Mon Nov  3 12:23:39 2003
-+++ gst-plugins-0.6.4/configure	Mon Nov  3 12:24:31 2003
+--- gst-plugins-0.6.4-old/configure	Tue Nov  4 13:04:10 2003
++++ gst-plugins-0.6.4/configure	Tue Nov  4 13:04:42 2003
 @@ -12605,7 +12605,7 @@
          intfloat law level\
          median mixmatrix mpeg1enc mpeg1sys mpeg1videoparse mpeg2enc mpeg2sub\
@@ -28,8 +28,8 @@ diff -Naur gst-plugins-0.6.4-old/configure gst-plugins-0.6.4/configure
    "gst/rtjpeg/Makefile" ) CONFIG_FILES="$CONFIG_FILES gst/rtjpeg/Makefile" ;;
    "gst/silence/Makefile" ) CONFIG_FILES="$CONFIG_FILES gst/silence/Makefile" ;;
 diff -Naur gst-plugins-0.6.4-old/configure.ac gst-plugins-0.6.4/configure.ac
---- gst-plugins-0.6.4-old/configure.ac	Mon Nov  3 12:23:39 2003
-+++ gst-plugins-0.6.4/configure.ac	Mon Nov  3 12:24:31 2003
+--- gst-plugins-0.6.4-old/configure.ac	Tue Nov  4 13:04:10 2003
++++ gst-plugins-0.6.4/configure.ac	Tue Nov  4 13:04:42 2003
 @@ -243,7 +243,7 @@
          intfloat law level\
          median mixmatrix mpeg1enc mpeg1sys mpeg1videoparse mpeg2enc mpeg2sub\
@@ -47,9 +47,24 @@ diff -Naur gst-plugins-0.6.4-old/configure.ac gst-plugins-0.6.4/configure.ac
  gst/qtdemux/Makefile
  gst/rtjpeg/Makefile
  gst/silence/Makefile
+diff -Naur gst-plugins-0.6.4-old/ext/flac/gstflacdec.c gst-plugins-0.6.4/ext/flac/gstflacdec.c
+--- gst-plugins-0.6.4-old/ext/flac/gstflacdec.c	Tue Nov  4 13:04:11 2003
++++ gst-plugins-0.6.4/ext/flac/gstflacdec.c	Tue Nov  4 13:06:14 2003
+@@ -18,7 +18,11 @@
+  */
+ 
+ #include <string.h>
++#if defined(__APPLE__) && (__GNUC__)
++#include <liboss/soundcard.h>
++#else
+ #include <sys/soundcard.h>
++#endif /* Darwin liboss */
+ 
+ /*#define DEBUG_ENABLED */
+ #include "gstflacdec.h"
 diff -Naur gst-plugins-0.6.4-old/ext/libpng/gstpngenc.h gst-plugins-0.6.4/ext/libpng/gstpngenc.h
---- gst-plugins-0.6.4-old/ext/libpng/gstpngenc.h	Mon Nov  3 12:23:34 2003
-+++ gst-plugins-0.6.4/ext/libpng/gstpngenc.h	Mon Nov  3 12:25:07 2003
+--- gst-plugins-0.6.4-old/ext/libpng/gstpngenc.h	Tue Nov  4 13:04:11 2003
++++ gst-plugins-0.6.4/ext/libpng/gstpngenc.h	Tue Nov  4 13:04:42 2003
 @@ -38,7 +38,7 @@
  typedef struct _GstPngEnc GstPngEnc;
  typedef struct _GstPngEncClass GstPngEncClass;
@@ -59,9 +74,29 @@ diff -Naur gst-plugins-0.6.4-old/ext/libpng/gstpngenc.h gst-plugins-0.6.4/ext/li
  
  struct _GstPngEnc
  {
+diff -Naur gst-plugins-0.6.4-old/ext/mikmod/gstmikmod.h gst-plugins-0.6.4/ext/mikmod/gstmikmod.h
+--- gst-plugins-0.6.4-old/ext/mikmod/gstmikmod.h	Tue Nov  4 13:04:11 2003
++++ gst-plugins-0.6.4/ext/mikmod/gstmikmod.h	Tue Nov  4 13:04:42 2003
+@@ -73,11 +73,11 @@
+ typedef struct _GstMikMod GstMikMod;
+ typedef struct _GstMikModClass GstMikModClass;
+ 
+-MODULE *module;
+-MREADER *reader;
+-GstPad *srcpad;
+-gint64 timestamp;
+-int need_sync;
++extern MODULE *module;
++extern MREADER *reader;
++extern GstPad *srcpad;
++extern gint64 timestamp;
++extern int need_sync;
+ 
+ GType gst_mikmod_get_type(void);
+ 
 diff -Naur gst-plugins-0.6.4-old/gst-libs/ext/ffmpeg/ffmpeg/vhook/Makefile gst-plugins-0.6.4/gst-libs/ext/ffmpeg/ffmpeg/vhook/Makefile
---- gst-plugins-0.6.4-old/gst-libs/ext/ffmpeg/ffmpeg/vhook/Makefile	Mon Nov  3 12:23:38 2003
-+++ gst-plugins-0.6.4/gst-libs/ext/ffmpeg/ffmpeg/vhook/Makefile	Mon Nov  3 12:24:31 2003
+--- gst-plugins-0.6.4-old/gst-libs/ext/ffmpeg/ffmpeg/vhook/Makefile	Tue Nov  4 13:04:15 2003
++++ gst-plugins-0.6.4/gst-libs/ext/ffmpeg/ffmpeg/vhook/Makefile	Tue Nov  4 13:04:42 2003
 @@ -5,7 +5,7 @@
  CFLAGS=-fPIC $(OPTFLAGS) -g -Wall -I.. -I$(SRC_PATH) -I$(SRC_PATH)/libavformat -I$(SRC_PATH)/libavcodec -DHAVE_AV_CONFIG_H
  
@@ -72,8 +107,8 @@ diff -Naur gst-plugins-0.6.4-old/gst-libs/ext/ffmpeg/ffmpeg/vhook/Makefile gst-p
  HOOKS=null.so fish.so
  
 diff -Naur gst-plugins-0.6.4-old/gst-libs/gst/Makefile.in gst-plugins-0.6.4/gst-libs/gst/Makefile.in
---- gst-plugins-0.6.4-old/gst-libs/gst/Makefile.in	Mon Nov  3 12:23:38 2003
-+++ gst-plugins-0.6.4/gst-libs/gst/Makefile.in	Mon Nov  3 12:24:31 2003
+--- gst-plugins-0.6.4-old/gst-libs/gst/Makefile.in	Tue Nov  4 13:04:15 2003
++++ gst-plugins-0.6.4/gst-libs/gst/Makefile.in	Tue Nov  4 13:04:42 2003
 @@ -212,7 +212,7 @@
  @USE_GCONF_TRUE@GCONF_DIR = gconf
  @USE_GCONF_FALSE@GCONF_DIR = 
