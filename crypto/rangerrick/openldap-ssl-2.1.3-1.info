@@ -3,16 +3,16 @@ Version: 2.1.3
 Revision: 1
 Source: ftp://ftp.OpenLDAP.org/pub/OpenLDAP/openldap-release/openldap-%v.tgz
 Patch: %f.patch
-Depends: readline, openssl, sasl, %N-shlibs (= %v-%r), libtool14-shlibs
-BuildDepends: openssl-dev, libtool14
+Depends: readline, openssl, cyrus-sasl (>= 1.5.27-4), %N-shlibs (= %v-%r), libtool14-shlibs, daemonic, db4-shlibs
+BuildDepends: openssl-dev, cyrus-sasl (>= 1.5.27-4), libtool14, db4
 Provides: openldap
 Conflicts: openldap
 Replaces: openldap
-SetCFLAGS: -I%b/include -I%p/include -fno-common
-SetCPPFLAGS: -no-cpp-precomp
+SetCFLAGS: -fno-common
+SetCPPFLAGS: -I%b/include -I%p/include -I%p/include/db4 -no-cpp-precomp
 SetLDFLAGS: -L%b/libraries/libavl -L%b/libraries/liblber -L%b/libraries/libldap -L%b/libraries/libldap_r -L%b/libraries/libldbm -L%b/libraries/libldif -L%b/libraries/liblunicode -L%b/libraries/liblutil -L%b/libraries/librewrite -L%i/lib -L%p/lib
 UpdateConfigGuessInDirs: build
-ConfigureParams: --prefix=%p --libexecdir=%p/sbin --mandir=%p/share/man --infodir=%p/share/info/%n --enable-modules --with-pic --includedir=%p/include --disable-bdb --enable-crypt --enable-kpasswd --enable-spasswd --enable-rewrite --enable-dnssrv --enable-ldap --with-ldap-module=dynamic --enable-ldbm --with-ldbm-module=dynamic --enable-meta --with-meta-module=dynamic --enable-monitor --with-monitor-module=dynamic --enable-null --with-null-module=dynamic --enable-perl --with-perl-module=dynamic --enable-shell --with-shell-module=dynamic --enable-slurpd
+ConfigureParams: --prefix=%p --libexecdir=%p/sbin --mandir=%p/share/man --infodir=%p/share/info/%n --enable-modules --with-pic --includedir=%p/include --enable-bdb --enable-crypt --enable-kpasswd --enable-spasswd --enable-rewrite --enable-dnssrv --enable-ldap --with-ldap-module=static --enable-ldbm --with-ldbm-module=static --enable-meta --with-meta-module=static --enable-monitor --with-monitor-module=static --enable-null --with-null-module=static --enable-perl --with-perl-module=static --enable-shell --with-shell-module=static --enable-slurpd --enable-ssl
 CompileScript: <<
   (unset DYLD_LIBRARY_PATH; ./configure %c)
   (unset DYLD_LIBRARY_PATH; make)
@@ -34,6 +34,28 @@ ConfFiles: <<
   %p/etc/openldap/schema/nis.schema
   %p/etc/openldap/schema/openldap.schema
   %p/etc/openldap/slapd.conf
+<<
+DaemonicFile: <<
+<service>
+<description>OpenLDAP Server</description>
+<message>OpenLDAP Server</message>
+
+<daemon name="openldap-ssl">
+<executable checkexit="true">%p/sbin/slapd</executable>
+<configfile>%p/etc/openldap/ldap.conf</configfile>
+</daemon>
+
+</service>
+<<
+PostInstScript: <<
+# update daemonic init script if necessary
+daemonic install %N
+<<
+PreRmScript: <<
+# clean up
+if [ $1 != "upgrade" ]; then
+  daemonic remove %N
+fi
 <<
 SplitOff: <<
   Package: %N-shlibs
