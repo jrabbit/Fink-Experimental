@@ -1,0 +1,72 @@
+diff -Naur gnome-vfs-2.4.1-old/Makefile.in gnome-vfs-2.4.1/Makefile.in
+--- gnome-vfs-2.4.1-old/Makefile.in	Sun Oct 12 08:14:54 2003
++++ gnome-vfs-2.4.1/Makefile.in	Mon Nov 17 14:42:33 2003
+@@ -188,7 +188,7 @@
+ 
+ SUBDIRS_GNOME = monikers doc schemas
+ 
+-SUBDIRS =  	libgnomevfs					modules						schemas						devel-docs					doc						programs					test						monikers					po
++SUBDIRS =  	libgnomevfs					modules						schemas						devel-docs					doc						programs					monikers					po
+ 
+ 
+ EXTRA_DIST =  	HACKING						TODO						autogen.sh					gnome-vfs.spec					gnome-vfs-2.0.pc.in				gnome-vfs-module-2.0.pc.in			intltool-extract.in				intltool-merge.in				intltool-update.in
+diff -Naur gnome-vfs-2.4.1-old/libgnomevfs/gnome-vfs-configuration.c gnome-vfs-2.4.1/libgnomevfs/gnome-vfs-configuration.c
+--- gnome-vfs-2.4.1-old/libgnomevfs/gnome-vfs-configuration.c	Mon Mar 31 03:15:50 2003
++++ gnome-vfs-2.4.1/libgnomevfs/gnome-vfs-configuration.c	Mon Nov 17 14:39:09 2003
+@@ -24,6 +24,7 @@
+ #include <config.h>
+ #include "gnome-vfs-configuration.h"
+ 
++#include <sys/types.h>
+ #include <dirent.h>
+ #include <errno.h>
+ #include <glib/ghash.h>
+diff -Naur gnome-vfs-2.4.1-old/ltmain.sh gnome-vfs-2.4.1/ltmain.sh
+--- gnome-vfs-2.4.1-old/ltmain.sh	Thu Jun 26 14:27:25 2003
++++ gnome-vfs-2.4.1/ltmain.sh	Mon Nov 17 14:50:04 2003
+@@ -5145,10 +5145,10 @@
+ 
+ # Directory that this library needs to be installed in:
+ libdir='$install_libdir'"
+-	  if test "$installed" = no && test "$need_relink" = yes; then
+-	    $echo >> $output "\
+-relink_command=\"$relink_command\""
+-	  fi
++#	  if test "$installed" = no && test "$need_relink" = yes; then
++#	    $echo >> $output "\
++#relink_command=\"$relink_command\""
++#	  fi
+ 	done
+       fi
+ 
+diff -Naur gnome-vfs-2.4.1-old/modules/file-method.c gnome-vfs-2.4.1/modules/file-method.c
+--- gnome-vfs-2.4.1-old/modules/file-method.c	Sat Sep 27 11:42:52 2003
++++ gnome-vfs-2.4.1/modules/file-method.c	Mon Nov 17 14:39:09 2003
+@@ -36,6 +36,7 @@
+ #include <libgnomevfs/gnome-vfs-utils.h>
+ #include <libgnomevfs/gnome-vfs-mime.h>
+ #include <libgnomevfs/gnome-vfs-monitor-private.h>
++#include <sys/types.h>
+ #include <dirent.h>
+ #include <errno.h>
+ #include <fcntl.h>
+@@ -46,7 +47,6 @@
+ #include <stdlib.h>
+ #include <string.h>
+ #include <sys/stat.h>
+-#include <sys/types.h>
+ #include <unistd.h>
+ #include <utime.h>
+ #include <string.h>
+diff -Naur gnome-vfs-2.4.1-old/modules/fstype.c gnome-vfs-2.4.1/modules/fstype.c
+--- gnome-vfs-2.4.1-old/modules/fstype.c	Sat Sep 27 11:42:52 2003
++++ gnome-vfs-2.4.1/modules/fstype.c	Mon Nov 17 14:39:09 2003
+@@ -360,7 +360,7 @@
+   char *p;
+ 
+   if (S_ISLNK (statp->st_mode))
+-    p = dirname (relpath);
++    p = g_path_get_dirname (relpath);
+   else
+     p = relpath;
+ 
