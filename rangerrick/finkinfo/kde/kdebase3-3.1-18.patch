@@ -684,25 +684,39 @@ diff -N kcontrol/kcontrol/stub_main.cpp
  #if !defined KFI_THUMBNAIL && !defined KFI_METAINFO
  #include "KfiGlobal.h"
 --- kdeprint/kjobviewer/Makefile.am	25 Jun 2002 02:03:49 -0000	1.1.1.1
-+++ kdeprint/kjobviewer/Makefile.am	26 Nov 2002 21:00:51 -0000	1.5
-@@ -4,13 +4,13 @@
- lib_LTLIBRARIES = kjobviewer.la
++++ kdeprint/kjobviewer/Makefile.am	21 Feb 2003 21:42:06 -0000	1.6
+@@ -1,16 +1,23 @@
+ INCLUDES = $(all_includes)
  
- kjobviewer_SOURCES = dummy.cpp
+ bin_PROGRAMS = kjobviewer
+-lib_LTLIBRARIES = kjobviewer.la
++lib_LTLIBRARIES = kjobviewer.la libkjobviewer_main.la
+ 
+-kjobviewer_SOURCES = dummy.cpp
 -kjobviewer_LDADD = kjobviewer.la
-+kjobviewer_LDADD = -lkdeprint_management $(LIB_KDEUI) $(LIB_QT) -lkdecore -lDCOP -lkdeprint
++libkjobviewer_main_la_SOURCES = kjobviewer.cpp
++libkjobviewer_main_la_LIBADD  = -lkdeprint_management $(LIB_KDEUI) $(LIB_QT) -lkdecore -lDCOP -lkdeprint
++libkjobviewer_main_la_LDFLAGS = $(KDE_RPATH) $(all_libraries)
++libkjobviewer_main_la_METASOURCES = AUTO
++
++kjobviewer_SOURCES = main.cpp
++kjobviewer_LDADD   = libkjobviewer_main.la
  kjobviewer_LDFLAGS = $(KDE_RPATH) $(all_libraries)
  
- kjobviewer_la_SOURCES = kjobviewer.cpp main.cpp
- kjobviewer_la_METASOURCES = AUTO
+-kjobviewer_la_SOURCES = kjobviewer.cpp main.cpp
+-kjobviewer_la_METASOURCES = AUTO
 -kjobviewer_la_LIBADD = -lkdeprint_management $(LIB_KDEUI)
 -kjobviewer_la_LDFLAGS = -module -avoid-version $(all_libraries) $(KDE_RPATH)
-+kjobviewer_la_LIBADD = -lkdeprint_management $(LIB_KDEUI) $(LIB_QT) -lkdecore -lDCOP -lkdeprint
++kjobviewer_la_SOURCES = main_la.cpp
++kjobviewer_la_LIBADD  = libkjobviewer_main.la
 +kjobviewer_la_LDFLAGS = -avoid-version $(all_libraries) $(KDE_RPATH) -module
++
++main_la.cpp: main.cpp
++	cat main.cpp > main_la.cpp
  
  noinst_HEADERS = kjobviewer.h
  
-@@ -22,8 +22,8 @@
+@@ -22,8 +29,8 @@
  desktop_DATA = kjobviewer.desktop
  desktopdir = $(kde_appsdir)/Utilities
  
@@ -714,24 +728,38 @@ diff -N kcontrol/kcontrol/stub_main.cpp
  messages: rc.cpp
  	$(XGETTEXT) *.cpp -o $(podir)/kjobviewer.pot
 --- kdeprint/kprinter/Makefile.am	10 Jul 2002 03:20:23 -0000	1.1.1.2
-+++ kdeprint/kprinter/Makefile.am	26 Nov 2002 21:00:51 -0000	1.5
-@@ -4,12 +4,12 @@
- lib_LTLIBRARIES = kprinter.la
++++ kdeprint/kprinter/Makefile.am	21 Feb 2003 21:42:06 -0000	1.6
+@@ -1,21 +1,28 @@
+ INCLUDES = $(all_includes)
  
- kprinter_SOURCES = dummy.cpp
+ bin_PROGRAMS = kprinter
+-lib_LTLIBRARIES = kprinter.la
++lib_LTLIBRARIES = kprinter.la libkprinter_main.la
+ 
+-kprinter_SOURCES = dummy.cpp
 -kprinter_LDADD = kprinter.la
-+kprinter_LDADD = -lkdeprint $(LIB_QT) -lkdecore -lDCOP -lkdeui -lkio
++libkprinter_main_la_SOURCES = printwrapper.cpp
++libkprinter_main_la_LIBADD  = -lkdeprint $(LIB_QT) -lkdecore -lDCOP -lkdeui -lkio
++libkprinter_main_la_LDFLAGS = -avoid-version $(all_libraries) $(KDE_RPATH)
++libkprinter_main_la_METASOURCES = AUTO
++
++kprinter_SOURCES = main.cpp
++kprinter_LDADD   = libkprinter_main.la
  kprinter_LDFLAGS = $(KDE_RPATH) $(all_libraries)
  
- kprinter_la_SOURCES = main.cpp printwrapper.cpp
+-kprinter_la_SOURCES = main.cpp printwrapper.cpp
 -kprinter_la_LIBADD = -lkdeprint
 -kprinter_la_LDFLAGS = -module -avoid-version $(all_libraries) $(KDE_RPATH)
-+kprinter_la_LIBADD = -lkdeprint $(LIB_QT) -lkdecore -lDCOP -lkdeui -lkio
+-kprinter_METASOURCES = AUTO
++kprinter_la_SOURCES = main_la.cpp
++kprinter_la_LIBADD  = libkprinter_main.la
 +kprinter_la_LDFLAGS = -avoid-version $(all_libraries) $(KDE_RPATH) -module
- kprinter_METASOURCES = AUTO
++
++main_la.cpp: main.cpp
++	cat main.cpp > main_la.cpp
  
  noinst_HEADERS = printwrapper.h
-@@ -17,5 +17,5 @@
+ 
  messages:
  	$(XGETTEXT) *.cpp -o $(podir)/kprinter.pot
  
@@ -1260,7 +1288,7 @@ diff -N kicker/proxy/stub_main.cpp
  METASOURCES = AUTO
  
 --- kioslave/ldap/configure.in.in	14 Jan 2003 20:11:09 -0000	1.1.1.3
-+++ kioslave/ldap/configure.in.in	9 Feb 2003 17:00:15 -0000	1.8
++++ kioslave/ldap/configure.in.in	21 Feb 2003 21:42:07 -0000	1.9
 @@ -19,7 +19,7 @@
    fi
    if test $with_ldap = FOUND ; then
@@ -1275,7 +1303,7 @@ diff -N kicker/proxy/stub_main.cpp
  case "$with_ldap" in
  no) AC_MSG_RESULT(no) ;;
 +framework)
-+  LDAP_LIBS="-framework LDAP"
++  LDAP_LIBS="-Xlinker -framework -Xlinker LDAP"
 +  AC_DEFINE_UNQUOTED(HAVE_LIBLDAP, 1, [Define if you have LDAP libraries])
 +  LDAP_SUBDIR="ldap"
 +  AC_MSG_RESULT(Apple framework)

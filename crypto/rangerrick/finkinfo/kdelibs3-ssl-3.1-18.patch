@@ -332,6 +332,17 @@ diff -N dcop/dcopserver_main.cpp
  libktexteditor_la_LIBADD = $(LIB_KPARTS) $(top_builddir)/dcop/libDCOP.la
  
  ktexteditorinclude_HEADERS = document.h view.h editor.h plugin.h editinterface.h undointerface.h \
+--- kab/Makefile.am	14 Aug 2002 13:59:39 -0000	1.1.1.3
++++ kab/Makefile.am	21 Feb 2003 20:44:04 -0000	1.2
+@@ -9,7 +9,7 @@
+ 	addressbook.cc \
+ 	qconfigDB.cc 
+ 
+-libkab_la_LDFLAGS = $(KDE_MT_LDFLAGS) -version-info 5:0:1 -no-undefined
++libkab_la_LDFLAGS = $(KDE_MT_LDFLAGS) -version-info 5:0:1 -no-undefined $(all_libraries)
+ libkab_la_LIBADD = ../kdeui/libkdeui.la
+ 
+ libkab_la_METASOURCES = AUTO
 --- kabc/Makefile.am	20 Nov 2002 00:54:01 -0000	1.1.1.6
 +++ kabc/Makefile.am	23 Nov 2002 03:50:34 -0000	1.7
 @@ -4,8 +4,8 @@
@@ -346,7 +357,7 @@ diff -N dcop/dcopserver_main.cpp
  libkabc_la_SOURCES = \
    address.cpp addressbook.cpp addressee.cpp addresseedialog.cpp agent.cpp \
 --- kabc/plugins/ldap/configure.in.in	14 Jan 2003 19:45:52 -0000	1.1.1.3
-+++ kabc/plugins/ldap/configure.in.in	9 Feb 2003 17:00:14 -0000	1.8
++++ kabc/plugins/ldap/configure.in.in	21 Feb 2003 21:42:06 -0000	1.9
 @@ -19,7 +19,7 @@
    fi
    if test $with_ldap = FOUND ; then
@@ -361,7 +372,7 @@ diff -N dcop/dcopserver_main.cpp
  no) AC_MSG_RESULT(no) ;;
  NOTFOUND) AC_MSG_RESULT(searched but not found) ;;
 +framework)
-+  LDAP_LIBS="-framework LDAP"
++  LDAP_LIBS="-Xlinker -framework -Xlinker LDAP"
 +  AC_DEFINE_UNQUOTED(HAVE_LIBLDAP, 1, [Define if you have LDAP libraries])
 +  LDAP_SUBDIR="ldap"
 +  AC_MSG_RESULT(Apple framework)
@@ -476,7 +487,7 @@ diff -N kconf_update/kconf_update_main.cpp
 +        return kdemain(argc, argv);
 +}
 --- kdecore/Makefile.am	20 Nov 2002 00:54:24 -0000	1.1.1.6
-+++ kdecore/Makefile.am	21 Nov 2002 21:28:35 -0000	1.4
++++ kdecore/Makefile.am	21 Feb 2003 20:44:05 -0000	1.5
 @@ -1,6 +1,6 @@
  #    This file is part of the KDE libraries
  #
@@ -485,6 +496,24 @@ diff -N kconf_update/kconf_update_main.cpp
  #
  #    Copyright (C) 1996-1997 Matthias Kalle Dalheimer (kalle@kde.org)
  #			  (C) 1997 Stephan Kulow (coolo@kde.org)
+@@ -54,7 +54,7 @@
+ 	ksortablevaluelist.h kdebugclasses.h kclipboard.h
+ 
+ libkdefakes_la_SOURCES = fakes.c vsnprintf.c
+-libkdefakes_la_LDFLAGS = -version-info 5:0:1
++libkdefakes_la_LDFLAGS = -version-info 5:0:1 $(all_libraries)
+ libkdefakes_la_LIBADD  = $(LIBSOCKET)
+ 
+ noinst_HEADERS = kaccelaction.h kaccelbase.h kaccelprivate.h kckey.h \
+@@ -89,7 +89,7 @@
+ 	kappdcopiface.skel kclipboard.cpp kcheckaccelerators.cpp \
+ 	kdeversion.cpp
+ 
+-libkdecore_la_LDFLAGS = $(QT_LDFLAGS) $(KDE_RPATH) $(KDE_MT_LDFLAGS) $(X_LDFLAGS) $(USER_LDFLAGS) -version-info 5:0:1 -no-undefined
++libkdecore_la_LDFLAGS = $(QT_LDFLAGS) $(KDE_RPATH) $(KDE_MT_LDFLAGS) $(X_LDFLAGS) $(USER_LDFLAGS) -version-info 5:0:1 -no-undefined $(all_libraries)
+ libkdecore_la_LIBADD = malloc/libklmalloc.la $(SVGICON_LIB) ../dcop/libDCOP.la ../libltdl/libltdlc.la $(LIB_XEXT) $(LIBRESOLV) $(LIBXINERAMA) $(LIB_DMALLOC) $(LIBART_LIBS) ../kdefx/libkdefx.la
+ 
+ libkdecore_la_METASOURCES = AUTO
 --- kdecore/fakes.c	4 Jan 2003 04:28:21 -0000	1.1.1.5
 +++ kdecore/fakes.c	4 Jan 2003 04:43:31 -0000	1.3
 @@ -19,6 +19,7 @@
@@ -700,19 +729,6 @@ diff -N kded/kded_main.cpp
 +{
 +        return kdemain(argc, argv);
 +}
---- kdeprint/Makefile.am	1 Oct 2002 03:05:31 -0000	1.1.1.4
-+++ kdeprint/Makefile.am	26 Nov 2002 21:00:49 -0000	1.9
-@@ -10,9 +10,8 @@
- kde_module_LTLIBRARIES = kded_kdeprintd.la
- 
- kded_kdeprintd_la_SOURCES = kdeprintd.skel kdeprintd.cpp kprintprocess.cpp
--kded_kdeprintd_la_LIBADD = $(LIB_KIO)
-+kded_kdeprintd_la_LIBADD = $(LIB_KIO) $(top_builddir)/kded/libkded_main.la
- kded_kdeprintd_la_LDFLAGS = $(all_libraries) -module -avoid-version
--#kded_kdeprintd_la_METASOURCES = AUTO
- 
- lib_LTLIBRARIES = libkdeprint.la
- 
 --- kdeprint/cups/cupsdconf2/Makefile.am	1 Oct 2002 03:05:37 -0000	1.1.1.3
 +++ kdeprint/cups/cupsdconf2/Makefile.am	26 Nov 2002 21:00:49 -0000	1.4
 @@ -3,22 +3,32 @@
@@ -803,8 +819,8 @@ diff -N kdeprint/cups/cupsdconf2/stub_main.cpp
 +}
 +
 --- kdeprint/management/Makefile.am	14 Aug 2002 14:04:14 -0000	1.1.1.3
-+++ kdeprint/management/Makefile.am	26 Nov 2002 21:00:49 -0000	1.4
-@@ -3,13 +3,16 @@
++++ kdeprint/management/Makefile.am	21 Feb 2003 21:10:10 -0000	1.5
+@@ -3,10 +3,13 @@
  lib_LTLIBRARIES = libkdeprint_management.la kaddprinterwizard.la
  bin_PROGRAMS = kaddprinterwizard
  
@@ -819,11 +835,7 @@ diff -N kdeprint/cups/cupsdconf2/stub_main.cpp
 +
  kaddprinterwizard_la_SOURCES = kaddprinterwizard.cpp
  kaddprinterwizard_la_LIBADD = libkdeprint_management.la
--kaddprinterwizard_la_LDFLAGS = -module -avoid-version $(all_libraries) $(KDE_RPATH)
-+kaddprinterwizard_la_LDFLAGS = -avoid-version $(all_libraries) $(KDE_RPATH) -module
- 
- libkdeprint_management_la_SOURCES = \
- 	kmdbcreator.cpp kmdriverdb.cpp kmdriverdbwidget.cpp \
+ kaddprinterwizard_la_LDFLAGS = -module -avoid-version $(all_libraries) $(KDE_RPATH)
 @@ -45,7 +48,4 @@
  
  dataicon_DATA = tileup.png tiledown.png side.png
@@ -831,6 +843,17 @@ diff -N kdeprint/cups/cupsdconf2/stub_main.cpp
 -
 -dummy.cpp:
 -	echo > dummy.cpp
+ 
+--- kdeui/Makefile.am	29 Oct 2002 02:37:39 -0000	1.1.1.4
++++ kdeui/Makefile.am	21 Feb 2003 20:44:05 -0000	1.2
+@@ -23,7 +23,7 @@
+ INCLUDES= -I$(top_srcdir)/kdefx -I$(top_srcdir)/interfaces $(all_includes)
+ 
+ lib_LTLIBRARIES = libkdeui.la
+-libkdeui_la_LDFLAGS = $(KDE_MT_LDFLAGS) -no-undefined -version-info 5:0:1
++libkdeui_la_LDFLAGS = $(KDE_MT_LDFLAGS) -no-undefined -version-info 5:0:1 $(all_libraries)
+ # we should get this to work when libtool 1.3 is released
+ libkdeui_la_LIBADD = ../kdecore/libkdecore.la
  
 --- kdeui/kedittoolbar.cpp	10 Dec 2002 16:19:22 -0000	1.1.1.6
 +++ kdeui/kedittoolbar.cpp	10 Dec 2002 16:37:43 -0000	1.7
@@ -999,30 +1022,6 @@ diff -N kdeprint/cups/cupsdconf2/stub_main.cpp
  #if SPT_TYPE != SPT_NONE && SPT_TYPE != SPT_BUILTIN
  
  # if SPT_TYPE == SPT_PSTAT
---- kio/Makefile.am	1 Oct 2002 03:06:46 -0000	1.1.1.4
-+++ kio/Makefile.am	23 Nov 2002 03:50:36 -0000	1.7
-@@ -20,7 +20,7 @@
- 
- INCLUDES=  -I$(srcdir)/.. $(all_includes) $(SSL_INCLUDES)
- 
--SUBDIRS = kssl kio bookmarks kfile . kpasswdserver misc pics tests
-+SUBDIRS = kssl kio bookmarks kfile . kded kpasswdserver misc pics tests
- 
- lib_LTLIBRARIES = libkio.la
- 
-RCS file: kio/kded/Makefile
-diff -N kio/kded/Makefile
---- /dev/null	1 Jan 1970 00:00:00 -0000
-+++ kio/kded/Makefile	23 Nov 2002 03:50:36 -0000	1.2
-@@ -0,0 +1,8 @@
-+# That's right!  OSX's linker is so anal, I had to totally
-+# mess with the link order to get things to build.  Scary, scary.
-+
-+all:
-+	pushd ../../kded; $(MAKE); popd
-+
-+clean:
-+install:
 --- kio/kio/kurlcompletion.cpp	1 Oct 2002 03:06:59 -0000	1.1.1.3
 +++ kio/kio/kurlcompletion.cpp	1 Oct 2002 03:59:13 -0000	1.4
 @@ -740,6 +740,11 @@
@@ -1050,14 +1049,6 @@ diff -N kio/kded/Makefile
  #include <kcompletion.h>
  #include <kio/jobclasses.h>
  #include <qstring.h>
---- kio/kpasswdserver/Makefile.am	1 Oct 2002 03:07:02 -0000	1.1.1.2
-+++ kio/kpasswdserver/Makefile.am	26 Nov 2002 21:00:49 -0000	1.7
-@@ -10,4 +10,4 @@
- kded_kpasswdserver_la_SOURCES = kpasswdserver.cpp kpasswdserver.skel 
- kded_kpasswdserver_la_METASOURCES = AUTO
- kded_kpasswdserver_la_LDFLAGS = $(all_libraries) -module -avoid-version
--kded_kpasswdserver_la_LIBADD = $(LIB_KIO)
-+kded_kpasswdserver_la_LIBADD = $(LIB_KIO) $(top_builddir)/kded/libkded_main.la
 --- kio/kssl/kopenssl.cc	4 Jan 2003 04:31:42 -0000	1.1.1.5
 +++ kio/kssl/kopenssl.cc	4 Jan 2003 04:43:31 -0000	1.6
 @@ -251,6 +251,9 @@
@@ -1196,17 +1187,6 @@ diff -N kio/misc/kio_uiserver_main.cpp
  #include <grp.h>
  
  #include <unistd.h>
---- kio/misc/kssld/Makefile.am	4 Jan 2003 04:31:50 -0000	1.1.1.3
-+++ kio/misc/kssld/Makefile.am	4 Jan 2003 04:43:32 -0000	1.8
-@@ -21,7 +21,7 @@
- kde_module_LTLIBRARIES = kded_kssld.la
- 
- kded_kssld_la_LDFLAGS = $(all_libraries) -module -avoid-version
--kded_kssld_la_LIBADD = $(LIB_KIO)
-+kded_kssld_la_LIBADD = $(LIB_KIO) $(top_builddir)/kded/libkded_main.la
- kded_kssld_la_SOURCES = kssld.cpp kssld.skel
- 
- METASOURCES = AUTO
 --- kioslave/http/Makefile.am	29 Oct 2002 02:38:44 -0000	1.1.1.4
 +++ kioslave/http/Makefile.am	26 Nov 2002 21:00:50 -0000	1.4
 @@ -9,7 +9,7 @@
@@ -1313,8 +1293,8 @@ diff -N kioslave/http/stub_main.cpp
 +}
 +
 --- kioslave/http/kcookiejar/Makefile.am	1 Oct 2002 03:07:20 -0000	1.1.1.3
-+++ kioslave/http/kcookiejar/Makefile.am	26 Nov 2002 21:00:50 -0000	1.7
-@@ -9,25 +9,25 @@
++++ kioslave/http/kcookiejar/Makefile.am	21 Feb 2003 20:44:06 -0000	1.8
+@@ -9,8 +9,8 @@
  lib_LTLIBRARIES = kcookiejar.la
  kde_module_LTLIBRARIES = kded_kcookiejar.la
  
@@ -1324,11 +1304,9 @@ diff -N kioslave/http/stub_main.cpp
  kcookiejar_la_LDFLAGS = $(all_libraries) -module -avoid-version
  kcookiejar_la_LIBADD = $(LIB_KDECORE)
  
- kded_kcookiejar_la_SOURCES = kcookiejar.cpp kcookieserver.cpp \
- 			kcookieserver.skel kcookiewin.cpp 
+@@ -19,15 +19,15 @@
  kded_kcookiejar_la_LDFLAGS = $(all_libraries) -module -avoid-version
--kded_kcookiejar_la_LIBADD = $(LIB_KIO)
-+kded_kcookiejar_la_LIBADD = $(LIB_KIO) $(top_builddir)/kded/libkded_main.la
+ kded_kcookiejar_la_LIBADD = $(LIB_KIO)
  
 -kcookiejar_SOURCES = dummy.cpp
 -kcookiejar_LDADD = kcookiejar.la
@@ -1347,6 +1325,17 @@ diff -N kioslave/http/stub_main.cpp
 -
 -dummy.cpp:
 -	echo > dummy.cpp
+--- kparts/Makefile.am	14 Aug 2002 14:04:18 -0000	1.1.1.3
++++ kparts/Makefile.am	21 Feb 2003 20:44:06 -0000	1.2
+@@ -2,7 +2,7 @@
+ 
+ INCLUDES= -I$(srcdir)/../ -I$(top_srcdir)/kio/ -I$(top_srcdir)/libltdl \
+ 	-I$(top_srcdir)/kfile $(all_includes)
+-libkparts_la_LDFLAGS = $(KDE_MT_LDFLAGS) -version-info 3:0:1 -no-undefined
++libkparts_la_LDFLAGS = $(KDE_MT_LDFLAGS) -version-info 3:0:1 -no-undefined $(all_libraries)
+ libkparts_la_LIBADD  = $(LIB_KIO)
+ 
+ check-local:
 --- libkscreensaver/Makefile.am	14 Aug 2002 14:04:21 -0000	1.1.1.3
 +++ libkscreensaver/Makefile.am	23 Nov 2002 03:50:37 -0000	1.6
 @@ -1,7 +1,7 @@

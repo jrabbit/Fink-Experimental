@@ -6,7 +6,7 @@
  
  AUTOMAKE_OPTIONS = foreign 1.5
 -COMPILE_FIRST = libltdl mcop mcopidl flow mcop_mt soundserver artsc examples tests doc 
-+COMPILE_FIRST = libltdl mcop mcopidl flow mcop_mt x11 soundserver artsc examples tests doc 
++COMPILE_FIRST = libltdl mcop mcopidl flow mcop_mt soundserver artsc examples tests doc 
  EXTRA_DIST = admin
  
  dist-hook:
@@ -108,8 +108,8 @@
 --- flow/Makefile.am	1 Oct 2002 01:48:02 -0000	1.1.1.3
 +++ flow/Makefile.am	21 Nov 2002 21:28:34 -0000	1.15
 @@ -1,6 +1,8 @@
-+AM_CFLAGS = -DGSL_WANT_GLIB_WRAPPER -DGSL_WANT_ARTS_THREADS
-+AM_CXXFLAGS = -DGSL_WANT_GLIB_WRAPPER -DGSL_WANT_ARTS_THREADS
++#AM_CFLAGS = -DGSL_WANT_GLIB_WRAPPER -DGSL_WANT_ARTS_THREADS
++#AM_CXXFLAGS = -DGSL_WANT_GLIB_WRAPPER -DGSL_WANT_ARTS_THREADS
  
  SUBDIRS = mcopclass gsl gslpp
 -INCLUDES = -I$(top_srcdir)/mcop $(all_includes)
@@ -142,8 +142,8 @@
 RCS file: flow/audioiocoreaudio.cc
 diff -N flow/audioiocoreaudio.cc
 --- /dev/null	1 Jan 1970 00:00:00 -0000
-+++ flow/audioiocoreaudio.cc	17 Dec 2002 04:34:10 -0000	1.10
-@@ -0,0 +1,690 @@
++++ flow/audioiocoreaudio.cc	19 Feb 2003 02:20:59 -0000	1.11
+@@ -0,0 +1,689 @@
 +    /*
 +    
 +    Copyright (C) 2001 Stefan Westerfeld
@@ -450,8 +450,8 @@ diff -N flow/audioiocoreaudio.cc
 +        struct AudioStreamBasicDescription streamDesc;
 +
 +        /***** Arts Specific ***/
-+	arts_warning("info: requesting %s, %d channel sound at %d hz\n",
-+            (param(direction) & directionWrite) ? "write" : "read", param(channels), param(samplingRate));
++	arts_warning("info: requesting %d, %d channel sound at %d hz\n",
++            param(direction), param(channels), param(samplingRate));
 +
 +        bytesPerSec = param(channels) * 2 * param(samplingRate);
 +        gettimeofday(&start,0);
@@ -548,7 +548,9 @@ diff -N flow/audioiocoreaudio.cc
 +                PropertyListenerProc, this),
 +                 "AudioHardwareAddPropertyListener (PropertyListenerProc)");
 +                
-+	} else if (param(direction) & directionRead) {
++	}
++
++        if (param(direction) & directionRead) {
 +            /********************** record section ***************************/
 +            if(coreaudio_has_input_device)
 +            {
@@ -621,7 +623,7 @@ diff -N flow/audioiocoreaudio.cc
 +            /* Registers PlaybackIOProc with the device without activating it. */
 +            NotifyOnError(AudioDeviceAddIOProc(gInputDeviceID, 
 +                                (AudioDeviceIOProc) RecordIOProc, 
-+                                                (void *)&output),
++                                                (void *)&input),
 +                            "AudioDeviceAddIOProc (RecordIOProc)");
 +                                                                                        
 +            NotifyOnError(AudioHardwareAddPropertyListener(
@@ -629,10 +631,7 @@ diff -N flow/audioiocoreaudio.cc
 +                PropertyListenerProc, this),
 +                 "AudioHardwareAddPropertyListener (PropertyListenerProc)");
 +
-+	} else {
-+		arts_warning("something went horribly wrong, we're not reading or writing!!!!");
-+		return false;
-+	}                
++	}
 +        
 +	return true;
 +}
@@ -1076,7 +1075,24 @@ diff -N flow/audioiocoreaudio.cc
  ####### Files
  
 --- soundserver/Makefile.am	14 Aug 2002 13:21:26 -0000	1.1.1.4
-+++ soundserver/Makefile.am	29 Nov 2002 18:19:36 -0000	1.10
++++ soundserver/Makefile.am	21 Feb 2003 21:43:47 -0000
+@@ -20,14 +20,14 @@
+ 	libartsgslplayobject.la libartswavplayobject.la libkmedia2.la
+ 
+ libsoundserver_idl_la_LIBADD = libkmedia2_idl.la \
+-                          $(top_builddir)/flow/libartsflow_idl.la
++                          $(top_builddir)/flow/libartsflow_idl.la $(top_builddir)/mcop/libmcop.la
+ libsoundserver_idl_la_LDFLAGS = -no-undefined -version-info 1:0
+ libsoundserver_idl_la_SOURCES = soundserver.cc
+ libsoundserver_idl_la_COMPILE_FIRST = soundserver.h
+ 
+ libkmedia2_idl_la_SOURCES = kmedia2.cc
+ libkmedia2_idl_la_COMPILE_FIRST = kmedia2.h
+-libkmedia2_idl_la_LIBADD  = $(top_builddir)/flow/libartsflow.la
++libkmedia2_idl_la_LIBADD  = $(top_builddir)/flow/libartsflow.la $(top_builddir)/flow/libartsflow_idl.la $(top_builddir)/mcop/libmcop.la
+ libkmedia2_idl_la_LDFLAGS = -no-undefined -version-info 1:0
+ 
+ libkmedia2_la_SOURCES = fileinputstream_impl.cc stdoutwriter_impl.cc
 @@ -38,13 +38,13 @@
  libartswavplayobject_la_SOURCES = wavplayobject_impl.cc
  libartswavplayobject_la_LIBADD  = $(top_builddir)/mcop/libmcop.la \

@@ -1,0 +1,47 @@
+Package: mosfet-imagepart
+Version: 0.2.1
+Revision: 1
+Depends: dlcompat-shlibs (>= 20021117), kdelibs3-ssl | kdelibs3, libart2-shlibs, libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-3), qt3-shlibs (>= 3.1.0), x11
+BuildDepends: dlcompat-dev (>= 200201117), kdelibs3-ssl-dev | kdelibs3-dev, libart2, libjpeg, libpng3 (>= 1.2.5-3), qt3 (>= 3.1.0), x11
+Maintainer: Benjamin Reed <ranger@befunk.com>
+
+CustomMirror: <<
+  nam-US: http://ranger.befunk.com/fink
+  nam-US: http://astrange.ithinksw.net/ranger-fink
+  nam-CA: http://www.southofheaven.net/befunk
+<<
+Source: http://www.mosfet.org/%n/%n-%v.tar.gz
+Source-MD5: bad62081abec0d1279ac2577fdc95a61
+Source2: mirror:custom:kde-admindir-20030209.tar.bz2
+Source2-MD5: 180fee362e27703bd9a062912c8a54cd
+Source2ExtractDir: %n-%v
+
+PatchScript: sed 's|@PREFIX@|%p|g' <%a/%f.patch | patch -p1
+DocFiles: AUTHORS LICENSE
+SetLIBS: -L%p/lib
+SetCPPFLAGS: -no-cpp-precomp
+SetCFLAGS: -I%p/include
+ConfigureParams: --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --disable-final --disable-dependency-tracking
+CompileScript: <<
+#!/bin/sh
+ export KDEDIR=%p
+ export QTDIR=%p
+ make -f Makefile.cvs
+ ./configure %c
+ make -j2 LIB_DCOP=-lDCOP
+<<
+InstallScript: <<
+ make install DESTDIR=%d
+<<
+Description: KDE - replacement image handling for KDE
+DescDetail: <<
+MosfetImagePart replaces the Konqueror component for viewing images.  It
+doesn't change how inline HTML images appear but replaces the part that
+displays images when you click on an URL that points to one or click on
+an image in the file browser. 
+
+It is meant to be small, fast, and handles incremental image loading of
+PNG, (some) BMP, GIF, and JPEG files.  It also has features PixiePlus
+users will enjoy although PixiePlus is not  required. 
+<<
+License: GPL
