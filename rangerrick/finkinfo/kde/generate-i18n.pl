@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 my $KDEVERSION   = '3.1';
-my $KDEDIRECTORY = 'stable/3.1/src/';
+my $KDEDIRECTORY = 'unstable/kde-3.1-rc5/src/';
 my $KOVERSION    = '1.2.1';
 my $KODIRECTORY  = 'stable/koffice-1.2.1/src/';
 my $ARTSVER      = '1.1.0-8';
@@ -34,7 +34,7 @@ while (my $line = <MAPPING>) {
 close(MAPPING);
 
 for my $i18n (@KDEI18N) {
-	my ($shortname) = $i18n =~ /kde-i18n-(.+)-${KDEVERSION}.tar.(gz|bz2)/;
+	my ($shortname) = $i18n =~ /kde-i18n-(.+)-${KDEVERSION}.*.tar.(gz|bz2)/;
 	if (exists $MAPPINGS{$shortname}) {
 		chomp(my $md5 = `md5 /sw/src/$i18n`);
 		$md5 =~ s/^.*\s*=\s*//;
@@ -53,7 +53,7 @@ Source-MD5: $md5
 Version: ${KDEVERSION}
 Revision: 1
 Depends: kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), arts (>= ${ARTSVER}), xfonts-intl
-BuildDepends: kdebase3-ssl (>= %v-1) | kdebase3 (>= %v-1), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), arts-dev (>= ${ARTSVER})
+BuildDepends: kdebase3-ssl (>= %v-1) | kdebase3 (>= %v-1), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), arts-dev (>= ${ARTSVER}), libxml2, xfonts-intl
 Maintainer: Benjamin Reed <ranger\@befunk.com>
 CompileScript: (export KDEDIR=%p; sh configure %c; make -j8)
 InstallScript: make -j8 install DESTDIR=%d
@@ -72,7 +72,7 @@ END
 }
 
 for my $i18n (@KOI18N) {
-	my ($shortname) = $i18n =~ /koffice-i18n-(.+)-${KOVERSION}.tar.(gz|bz2)/;
+	my ($shortname) = $i18n =~ /koffice-i18n-(.+)-${KOVERSION}.*.tar.(gz|bz2)/;
 	if (exists $MAPPINGS{$shortname}) {
 		chomp(my $md5 = `md5 /sw/src/$i18n`);
 		$md5 =~ s/^.*\s*=\s*//;
@@ -90,8 +90,8 @@ DescDetail: Language files for the KDE office suite: $MAPPINGS{$shortname}
 Source-MD5: $md5
 Version: ${KOVERSION}
 Revision: 1
-Depends: kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), arts (>= ${ARTSVER}), xfonts-intl, koffice (>= ${KOVERSION})
-BuildDepends: kdebase3-ssl (>= %v-1) | kdebase3 (>= %v-1), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), arts-dev (>= ${ARTSVER}), koffice-dev (>= ${KOVERSION})
+Depends: kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), arts (>= ${ARTSVER}), xfonts-intl, koffice-base (>= ${KOVERSION})
+BuildDepends: kdebase3-ssl (>= %v-1) | kdebase3 (>= %v-1), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), arts-dev (>= ${ARTSVER}), koffice-dev (>= ${KOVERSION}), libxml2, xfonts-intl
 Maintainer: Benjamin Reed <ranger\@befunk.com>
 CompileScript: (export KDEDIR=%p; sh configure %c; make -j8)
 InstallScript: make -j8 install DESTDIR=%d
