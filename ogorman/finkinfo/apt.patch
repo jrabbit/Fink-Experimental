@@ -1,0 +1,1578 @@
+diff -urN apt-0.5.4.orig/apt-inst/makefile apt-0.5.4/apt-inst/makefile
+--- apt-0.5.4.orig/apt-inst/makefile	Tue Feb 27 13:16:05 2001
++++ apt-0.5.4/apt-inst/makefile	Sun Nov  9 14:29:40 2003
+@@ -10,6 +10,7 @@
+ include ../buildlib/defaults.mak
+ 
+ # The library name
++LDFLAGS += -L../apt-pkg -lapt-pkg
+ LIBRARY=apt-inst
+ LIBEXT=$(GLIBC_VER)$(LIBSTDCPP_VER)
+ MAJOR=1.0
+diff -urN apt-0.5.4.orig/apt-pkg/contrib/mmap.cc apt-0.5.4/apt-pkg/contrib/mmap.cc
+--- apt-0.5.4.orig/apt-pkg/contrib/mmap.cc	Sun May 27 14:19:30 2001
++++ apt-0.5.4/apt-pkg/contrib/mmap.cc	Sun Nov  9 14:29:40 2003
+@@ -41,7 +41,7 @@
+ // ---------------------------------------------------------------------
+ /* */
+ MMap::MMap(FileFd &F,unsigned long Flags) : Flags(Flags), iSize(0),
+-                     Base(0)
++                     Base(0), iFd(0)
+ {
+    if ((Flags & NoImmMap) != NoImmMap)
+       Map(F);
+@@ -51,7 +51,7 @@
+ // ---------------------------------------------------------------------
+ /* */
+ MMap::MMap(unsigned long Flags) : Flags(Flags), iSize(0),
+-                     Base(0)
++                     Base(0), iFd(0)
+ {
+ }
+ 									/*}}}*/
+@@ -68,6 +68,7 @@
+ /* */
+ bool MMap::Map(FileFd &Fd)
+ {
++   iFd = &Fd;
+    iSize = Fd.Size();
+    
+    // Set the permissions.
+@@ -81,10 +82,19 @@
+    if (iSize == 0)
+       return _error->Error(_("Can't mmap an empty file"));
+    
++#ifndef EMULATE_MMAP
+    // Map it.
+    Base = mmap(0,iSize,Prot,Map,Fd.Fd(),0);
+    if (Base == (void *)-1)
+       return _error->Errno("mmap",_("Couldn't make mmap of %lu bytes"),iSize);
++#else
++   Base = new unsigned char[iSize];
++   if (Base == NULL)
++      return _error->Errno("mmap",_("Couldn't allocate %lu bytes to emulate mmap"),iSize);
++
++   Fd.Seek(0);
++   Fd.Read(Base, iSize, true);
++#endif
+ 
+    return true;
+ }
+@@ -100,8 +110,16 @@
+    if (DoSync == true)
+       Sync();
+    
++#ifndef EMULATE_MMAP   
+    if (munmap((char *)Base,iSize) != 0)
+       _error->Warning("Unable to munmap");
++#else
++   if ((Flags & ReadOnly) != ReadOnly && iFd != 0) {
++      iFd->Seek(0);
++      iFd->Write(Base, iSize);
++   }
++   delete [] (unsigned char *)Base;
++#endif
+    
+    iSize = 0;
+    Base = 0;
+@@ -117,11 +135,13 @@
+    if ((Flags & UnMapped) == UnMapped)
+       return true;
+    
++#ifndef EMULATE_MMAP
+ #ifdef _POSIX_SYNCHRONIZED_IO   
+    if ((Flags & ReadOnly) != ReadOnly)
+       if (msync((char *)Base,iSize,MS_SYNC) != 0)
+ 	 return _error->Errno("msync","Unable to write mmap");
+ #endif   
++#endif
+    return true;
+ }
+ 									/*}}}*/
+@@ -133,11 +153,13 @@
+    if ((Flags & UnMapped) == UnMapped)
+       return true;
+    
++#ifndef EMULATE_MMAP
+ #ifdef _POSIX_SYNCHRONIZED_IO
+    unsigned long PSize = sysconf(_SC_PAGESIZE);
+    if ((Flags & ReadOnly) != ReadOnly)
+       if (msync((char *)Base+(int)(Start/PSize)*PSize,Stop - Start,MS_SYNC) != 0)
+ 	 return _error->Errno("msync","Unable to write mmap");
++#endif   
+ #endif   
+    return true;
+ }
+diff -urN apt-0.5.4.orig/apt-pkg/contrib/mmap.h apt-0.5.4/apt-pkg/contrib/mmap.h
+--- apt-0.5.4.orig/apt-pkg/contrib/mmap.h	Mon May 14 14:16:43 2001
++++ apt-0.5.4/apt-pkg/contrib/mmap.h	Sun Nov  9 14:29:40 2003
+@@ -46,6 +46,7 @@
+    unsigned long Flags;
+    unsigned long iSize;
+    void *Base;
++   FileFd *iFd;
+ 
+    bool Map(FileFd &Fd);
+    bool Close(bool DoSync = true);
+diff -urN apt-0.5.4.orig/apt-pkg/deb/debindexfile.cc apt-0.5.4/apt-pkg/deb/debindexfile.cc
+--- apt-0.5.4.orig/apt-pkg/deb/debindexfile.cc	Sun Apr 29 14:13:51 2001
++++ apt-0.5.4/apt-pkg/deb/debindexfile.cc	Sun Nov  9 14:29:40 2003
+@@ -505,3 +505,11 @@
+ }
+ 
+ 									/*}}}*/
++void init_deb2()
++{
++  (void)_apt_DebType;
++  (void)_apt_DebSrcType;
++  (void)_apt_Src;
++  (void)_apt_Pkg;
++  (void)_apt_Status;
++}
+diff -urN apt-0.5.4.orig/apt-pkg/deb/debsystem.cc apt-0.5.4/apt-pkg/deb/debsystem.cc
+--- apt-0.5.4.orig/apt-pkg/deb/debsystem.cc	Sun Apr 29 14:13:51 2001
++++ apt-0.5.4/apt-pkg/deb/debsystem.cc	Sun Nov  9 22:02:58 2003
+@@ -27,6 +27,108 @@
+ #include <dirent.h>
+ #include <errno.h>
+ 									/*}}}*/
++/* FINK LOCAL begin */
++#include <sys/utsname.h>
++#include <CoreFoundation/CoreFoundation.h>
++#include <fstream>
++#include <sys/stat.h>
++
++extern void init_deb2();
++extern void init_deb3();
++
++#define FINKSTATUSFILE "/tmp/finkaptstatus"
++
++struct versionrevision {
++  unsigned long epoch;
++  const char *version;
++  const char *revision;
++};  
++
++struct versionrevision darwin_version = {0,NULL,NULL};
++struct versionrevision macosx_version = {0,NULL,NULL};
++
++static void finkinit()
++{
++  Boolean status;
++  SInt32 errorCode;
++  CFURLRef fileURL = NULL;
++  CFDataRef resourceData = NULL;
++  CFPropertyListRef propertyList = NULL;
++  CFStringRef string;
++  static char buffer[256];	// This is static, to ensure the buffer stays around
++
++  static struct utsname ver;	// This is static, to ensure the buffer stays around
++  
++  /* Determine system version */
++  /* TODO - should maybe check if this is really Darwin? */
++  if (!uname(&ver)) {
++    darwin_version.version = ver.release;
++  }
++
++  /* Check whether this is Mac OS X, and which version of it */
++
++  fileURL = CFURLCreateWithFileSystemPath( NULL, 	
++		CFSTR("/System/Library/CoreServices/SystemVersion.plist"),
++		kCFURLPOSIXPathStyle,				
++		false );
++  if (!fileURL)
++    goto BAIL;
++  
++  /* Read the XML */
++  status = CFURLCreateDataAndPropertiesFromResource(
++		NULL,
++		fileURL,
++		&resourceData,
++		NULL,		
++		NULL,
++		&errorCode);
++  if (!status || errorCode != 0)
++    goto BAIL;
++  
++  /* Reconstitute the dictionary using the XML data. */
++  propertyList = CFPropertyListCreateFromXMLData( NULL,
++		resourceData,
++		kCFPropertyListImmutable,
++		&string);
++  if (!propertyList)
++    goto BAIL;
++  
++  /* Try to read the system version from it. */
++  status = CFDictionaryGetValueIfPresent( propertyList,
++		CFSTR("ProductVersion"),
++		(void*)&string);
++  if (!status)
++    goto BAIL;
++  
++  /* Convert into a C string */
++  status = CFStringGetCString( string,
++		buffer,
++		sizeof(buffer),
++		kCFStringEncodingISOLatin1);
++  if (!status)
++    goto BAIL;
++  
++  /* Finally link the buffer into the macosx_version struct. */
++  macosx_version.version = buffer;
++  
++BAIL:
++  // Release all of the CF objects we're responsible for.
++  if (fileURL)
++    CFRelease(fileURL);
++  if (resourceData)
++    CFRelease(resourceData);
++  if (propertyList)
++    CFRelease(propertyList);
++}
++
++void initDebSystem()
++{
++  finkinit();
++  (void)debSys;
++  init_deb2();
++  init_deb3();
++}
++/* FINK LOCAL end */
+ 
+ debSystem debSys;
+ 
+@@ -48,6 +150,8 @@
+ debSystem::~debSystem()
+ {
+    delete StatusFile;
++   delete FinkStatusFile;
++   unlink(FINKSTATUSFILE);
+ }
+ 									/*}}}*/
+ // System::Lock - Get the lock						/*{{{*/
+@@ -161,8 +265,8 @@
+       which is yet to be determined. The functions in pkgcachegen should
+       be the only users of these */
+    Cnf.CndSet("Dir::State::userstatus","status.user"); // Defunct
+-   Cnf.CndSet("Dir::State::status","/var/lib/dpkg/status");
+-   Cnf.CndSet("Dir::Bin::dpkg","/usr/bin/dpkg");
++   Cnf.CndSet("Dir::State::status","@PREFIX@/var/lib/dpkg/status");
++   Cnf.CndSet("Dir::Bin::dpkg","@PREFIX@/bin/dpkg");
+    
+    return true;
+ }
+@@ -185,9 +289,9 @@
+ signed debSystem::Score(Configuration const &Cnf)
+ {
+    signed Score = 0;
+-   if (FileExists(Cnf.FindFile("Dir::State::status","/var/lib/dpkg/status")) == true)
++   if (FileExists(Cnf.FindFile("Dir::State::status","@PREFIX@/var/lib/dpkg/status")) == true)
+        Score += 10;
+-   if (FileExists(Cnf.FindFile("Dir::Bin::dpkg","/usr/bin/dpkg")) == true)
++   if (FileExists(Cnf.FindFile("Dir::Bin::dpkg","@PREFIX@/bin/dpkg")) == true)
+       Score += 10;
+    if (FileExists("/etc/debian_version") == true)
+       Score += 10;
+@@ -202,6 +306,44 @@
+    if (StatusFile == 0)
+       StatusFile = new debStatusIndex(_config->FindFile("Dir::State::status"));
+    List.push_back(StatusFile);
++/* FINK LOCAL begin */
++
++   if (FinkStatusFile == 0) {
++      struct stat unused_sbuf;
++      int sys_ok=0;
++      unlink(FINKSTATUSFILE);
++      if ( 0 == stat("@PREFIX@/bin/fink-virtual-pkgs",&unused_sbuf)) {
++          if ( 0 == system("@PREFIX@/bin/fink-virtual-pkgs --apt")) sys_ok=1;
++      }    
++      if (stat(FINKSTATUSFILE, &unused_sbuf) || !sys_ok) {
++	  std::ofstream finkstatus(FINKSTATUSFILE);
++      if(macosx_version.version != 0)
++      {
++        finkstatus << "Package: macosx" << endl;
++        finkstatus << "Status: install ok installed" << endl;      
++        finkstatus << "Priority: optional" << endl;
++        finkstatus << "Section: base" << endl;
++        finkstatus << "Maintainer: None" << endl;
++        finkstatus << "Source: macosx" << endl;
++        finkstatus << "Version: " << macosx_version.version << endl;
++        finkstatus << "Description: Pseudo package representing Mac OS X" << endl;
++        finkstatus << " Pseudo package representing Mac OS X" << endl << endl;
++      }
++      finkstatus << "Package: darwin" << endl;
++      finkstatus << "Status: install ok installed" << endl;
++      finkstatus << "Priority: optional" << endl;
++      finkstatus << "Section: base" << endl;
++      finkstatus << "Maintainer: None" << endl;
++      finkstatus << "Source: darwin" << endl;
++      finkstatus << "Version: " << darwin_version.version  << endl;
++      finkstatus << "Description: Pseudo package representing Darwin" << endl;
++      finkstatus << " Pseudo package representing Darwin" << endl << endl;
++      finkstatus.close();
++      }		
++      FinkStatusFile = new debStatusIndex(FINKSTATUSFILE);
++   }
++   List.push_back(FinkStatusFile);
++/* FINK LOCAL end */
+    return true;
+ }
+ 									/*}}}*/
+@@ -216,6 +358,10 @@
+    if (StatusFile->FindInCache(*File.Cache()) == File)
+    {
+       Found = StatusFile;
++      return true;
++   }  else if ((FinkStatusFile != 0) && (FinkStatusFile->FindInCache(*File.Cache()) == File))
++   {
++      Found = FinkStatusFile;
+       return true;
+    }
+    
+diff -urN apt-0.5.4.orig/apt-pkg/deb/debsystem.cc~ apt-0.5.4/apt-pkg/deb/debsystem.cc~
+--- apt-0.5.4.orig/apt-pkg/deb/debsystem.cc~	Thu Jan  1 09:00:00 1970
++++ apt-0.5.4/apt-pkg/deb/debsystem.cc~	Sun Nov  9 14:29:40 2003
+@@ -0,0 +1,367 @@
++// -*- mode: cpp; mode: fold -*-
++// Description								/*{{{*/
++// $Id$
++/* ######################################################################
++
++   System - Abstraction for running on different systems.
++
++   Basic general structure..
++   
++   ##################################################################### */
++									/*}}}*/
++// Include Files							/*{{{*/
++#ifdef __GNUG__
++#pragma implementation "apt-pkg/debsystem.h"
++#endif
++
++#include <apt-pkg/debsystem.h>
++#include <apt-pkg/debversion.h>
++#include <apt-pkg/debindexfile.h>
++#include <apt-pkg/dpkgpm.h>
++#include <apt-pkg/configuration.h>
++#include <apt-pkg/error.h>
++#include <apt-pkg/fileutl.h>
++    
++#include <sys/types.h>
++#include <unistd.h>
++#include <dirent.h>
++#include <errno.h>
++									/*}}}*/
++/* FINK LOCAL begin */
++#include <sys/utsname.h>
++#include <CoreFoundation/CoreFoundation.h>
++#include <fstream>
++#include <sys/stat.h>
++
++extern void init_deb2();
++extern void init_deb3();
++
++struct versionrevision {
++  unsigned long epoch;
++  const char *version;
++  const char *revision;
++};  
++
++struct versionrevision darwin_version = {0,NULL,NULL};
++struct versionrevision macosx_version = {0,NULL,NULL};
++
++static void finkinit()
++{
++  Boolean status;
++  SInt32 errorCode;
++  CFURLRef fileURL = NULL;
++  CFDataRef resourceData = NULL;
++  CFPropertyListRef propertyList = NULL;
++  CFStringRef string;
++  static char buffer[256];	// This is static, to ensure the buffer stays around
++
++  static struct utsname ver;	// This is static, to ensure the buffer stays around
++  
++  /* Determine system version */
++  /* TODO - should maybe check if this is really Darwin? */
++  if (!uname(&ver)) {
++    darwin_version.version = ver.release;
++  }
++
++  /* Check whether this is Mac OS X, and which version of it */
++
++  fileURL = CFURLCreateWithFileSystemPath( NULL, 	
++		CFSTR("/System/Library/CoreServices/SystemVersion.plist"),
++		kCFURLPOSIXPathStyle,				
++		false );
++  if (!fileURL)
++    goto BAIL;
++  
++  /* Read the XML */
++  status = CFURLCreateDataAndPropertiesFromResource(
++		NULL,
++		fileURL,
++		&resourceData,
++		NULL,		
++		NULL,
++		&errorCode);
++  if (!status || errorCode != 0)
++    goto BAIL;
++  
++  /* Reconstitute the dictionary using the XML data. */
++  propertyList = CFPropertyListCreateFromXMLData( NULL,
++		resourceData,
++		kCFPropertyListImmutable,
++		&string);
++  if (!propertyList)
++    goto BAIL;
++  
++  /* Try to read the system version from it. */
++  status = CFDictionaryGetValueIfPresent( propertyList,
++		CFSTR("ProductVersion"),
++		(void*)&string);
++  if (!status)
++    goto BAIL;
++  
++  /* Convert into a C string */
++  status = CFStringGetCString( string,
++		buffer,
++		sizeof(buffer),
++		kCFStringEncodingISOLatin1);
++  if (!status)
++    goto BAIL;
++  
++  /* Finally link the buffer into the macosx_version struct. */
++  macosx_version.version = buffer;
++  
++BAIL:
++  // Release all of the CF objects we're responsible for.
++  if (fileURL)
++    CFRelease(fileURL);
++  if (resourceData)
++    CFRelease(resourceData);
++  if (propertyList)
++    CFRelease(propertyList);
++}
++
++void initDebSystem()
++{
++  finkinit();
++  (void)debSys;
++  init_deb2();
++  init_deb3();
++}
++/* FINK LOCAL end */
++
++debSystem debSys;
++
++// System::debSystem - Constructor					/*{{{*/
++// ---------------------------------------------------------------------
++/* */
++debSystem::debSystem()
++{
++   LockFD = -1;
++   LockCount = 0;
++   
++   Label = "Debian dpkg interface";
++   VS = &debVS;
++}
++									/*}}}*/
++// System::~debSystem - Destructor					/*{{{*/
++// ---------------------------------------------------------------------
++/* */
++debSystem::~debSystem()
++{
++   delete StatusFile;
++   delete FinkStatusFile;
++}
++									/*}}}*/
++// System::Lock - Get the lock						/*{{{*/
++// ---------------------------------------------------------------------
++/* This mirrors the operations dpkg does when it starts up. Note the
++   checking of the updates directory. */
++bool debSystem::Lock()
++{
++   // Disable file locking
++   if (_config->FindB("Debug::NoLocking",false) == true || LockCount > 1)
++   {
++      LockCount++;
++      return true;
++   }
++
++   // Create the lockfile
++   string AdminDir = flNotFile(_config->Find("Dir::State::status"));
++   LockFD = GetLock(AdminDir + "lock");
++   if (LockFD == -1)
++   {
++      if (errno == EACCES || errno == EAGAIN)
++	 return _error->Error("Unable to lock the administration directory (%s), "
++			      "is another process using it?",AdminDir.c_str());
++      else
++	 return _error->Error("Unable to lock the administration directory (%s), "
++			      "are you root?",AdminDir.c_str());
++   }
++   
++   // See if we need to abort with a dirty journal
++   if (CheckUpdates() == true)
++   {
++      close(LockFD);
++      LockFD = -1;
++      return _error->Error("dpkg was interrupted, you must manually "
++			   "run 'dpkg --configure -a' to correct the problem. ");
++   }
++
++	 LockCount++;
++      
++   return true;
++}
++									/*}}}*/
++// System::UnLock - Drop a lock						/*{{{*/
++// ---------------------------------------------------------------------
++/* */
++bool debSystem::UnLock(bool NoErrors)
++{
++   if (LockCount == 0 && NoErrors == true)
++      return false;
++   
++   if (LockCount < 1)
++      return _error->Error("Not locked");
++   if (--LockCount == 0)
++   {
++      close(LockFD);
++      LockCount = 0;
++   }
++   
++   return true;
++}
++									/*}}}*/
++// System::CheckUpdates - Check if the updates dir is dirty		/*{{{*/
++// ---------------------------------------------------------------------
++/* This does a check of the updates directory (dpkg journal) to see if it has 
++   any entries in it. */
++bool debSystem::CheckUpdates()
++{
++   // Check for updates.. (dirty)
++   string File = flNotFile(_config->Find("Dir::State::status")) + "updates/";
++   DIR *DirP = opendir(File.c_str());
++   if (DirP == 0)
++      return false;
++   
++   /* We ignore any files that are not all digits, this skips .,.. and 
++      some tmp files dpkg will leave behind.. */
++   bool Damaged = false;
++   for (struct dirent *Ent = readdir(DirP); Ent != 0; Ent = readdir(DirP))
++   {
++      Damaged = true;
++      for (unsigned int I = 0; Ent->d_name[I] != 0; I++)
++      {
++	 // Check if its not a digit..
++	 if (isdigit(Ent->d_name[I]) == 0)
++	 {
++	    Damaged = false;
++	    break;
++	 }
++      }
++      if (Damaged == true)
++	 break;
++   }
++   closedir(DirP);
++
++   return Damaged;
++}
++									/*}}}*/
++// System::CreatePM - Create the underlying package manager		/*{{{*/
++// ---------------------------------------------------------------------
++/* */
++pkgPackageManager *debSystem::CreatePM(pkgDepCache *Cache) const
++{
++   return new pkgDPkgPM(Cache);
++}
++									/*}}}*/
++// System::Initialize - Setup the configuration space..			/*{{{*/
++// ---------------------------------------------------------------------
++/* These are the Debian specific configuration variables.. */
++bool debSystem::Initialize(Configuration &Cnf)
++{
++   /* These really should be jammed into a generic 'Local Database' engine
++      which is yet to be determined. The functions in pkgcachegen should
++      be the only users of these */
++   Cnf.CndSet("Dir::State::userstatus","status.user"); // Defunct
++   Cnf.CndSet("Dir::State::status","@PREFIX@/var/lib/dpkg/status");
++   Cnf.CndSet("Dir::Bin::dpkg","@PREFIX@/bin/dpkg");
++   
++   return true;
++}
++									/*}}}*/
++// System::ArchiveSupported - Is a file format supported		/*{{{*/
++// ---------------------------------------------------------------------
++/* The standard name for a deb is 'deb'.. There are no seperate versions
++   of .deb to worry about.. */
++bool debSystem::ArchiveSupported(const char *Type)
++{
++   if (strcmp(Type,"deb") == 0)
++      return true;
++   return false;
++}
++									/*}}}*/
++// System::Score - Determine how 'Debiany' this sys is..		/*{{{*/
++// ---------------------------------------------------------------------
++/* We check some files that are sure tell signs of this being a Debian
++   System.. */
++signed debSystem::Score(Configuration const &Cnf)
++{
++   signed Score = 0;
++   if (FileExists(Cnf.FindFile("Dir::State::status","@PREFIX@/var/lib/dpkg/status")) == true)
++       Score += 10;
++   if (FileExists(Cnf.FindFile("Dir::Bin::dpkg","@PREFIX@/bin/dpkg")) == true)
++      Score += 10;
++   if (FileExists("/etc/debian_version") == true)
++      Score += 10;
++   return Score;
++}
++									/*}}}*/
++// System::AddStatusFiles - Register the status files			/*{{{*/
++// ---------------------------------------------------------------------
++/* */
++bool debSystem::AddStatusFiles(vector<pkgIndexFile *> &List)
++{
++   if (StatusFile == 0)
++      StatusFile = new debStatusIndex(_config->FindFile("Dir::State::status"));
++   List.push_back(StatusFile);
++/* FINK LOCAL begin */
++#define FINKSTATUSFILE "/tmp/finkaptstatus"
++   if (FinkStatusFile == 0) {
++      struct stat unused_sbuf;
++      int sys_ok=0;
++      unlink(FINKSTATUSFILE);
++      if ( 0 == stat("@PREFIX@/bin/fink-virtual-pkgs",&unused_sbuf)) {
++          if ( 0 == system("@PREFIX@/bin/fink-virtual-pkgs --apt")) sys_ok=1;
++      }    
++      if (stat(FINKSTATUSFILE, &unused_sbuf) || !sys_ok) {
++	  std::ofstream finkstatus(FINKSTATUSFILE);
++      if(macosx_version.version != 0)
++      {
++        finkstatus << "Package: macosx" << endl;
++        finkstatus << "Status: install ok installed" << endl;      
++        finkstatus << "Priority: optional" << endl;
++        finkstatus << "Section: base" << endl;
++        finkstatus << "Maintainer: None" << endl;
++        finkstatus << "Source: macosx" << endl;
++        finkstatus << "Version: " << macosx_version.version << endl;
++        finkstatus << "Description: Pseudo package representing Mac OS X" << endl;
++        finkstatus << " Pseudo package representing Mac OS X" << endl << endl;
++      }
++      finkstatus << "Package: darwin" << endl;
++      finkstatus << "Status: install ok installed" << endl;
++      finkstatus << "Priority: optional" << endl;
++      finkstatus << "Section: base" << endl;
++      finkstatus << "Maintainer: None" << endl;
++      finkstatus << "Source: darwin" << endl;
++      finkstatus << "Version: " << darwin_version.version  << endl;
++      finkstatus << "Description: Pseudo package representing Darwin" << endl;
++      finkstatus << " Pseudo package representing Darwin" << endl << endl;
++      finkstatus.close();
++      }		
++      FinkStatusFile = new debStatusIndex(FINKSTATUSFILE);
++   }
++   List.push_back(FinkStatusFile);
++/* FINK LOCAL end */
++   return true;
++}
++									/*}}}*/
++// System::FindIndex - Get an index file for status files		/*{{{*/
++// ---------------------------------------------------------------------
++/* */
++bool debSystem::FindIndex(pkgCache::PkgFileIterator File,
++			  pkgIndexFile *&Found) const
++{
++   if (StatusFile == 0)
++      return false;
++   if (StatusFile->FindInCache(*File.Cache()) == File)
++   {
++      Found = StatusFile;
++      return true;
++   }  else if ((FinkStatusFile != 0) && (FinkStatusFile->FindInCache(*File.Cache()) == File))
++   {
++      Found = FinkStatusFile;
++      return true;
++   }
++   
++   return false;
++}
++									/*}}}*/
+diff -urN apt-0.5.4.orig/apt-pkg/deb/debsystem.h apt-0.5.4/apt-pkg/deb/debsystem.h
+--- apt-0.5.4.orig/apt-pkg/deb/debsystem.h	Sun Apr 29 14:13:51 2001
++++ apt-0.5.4/apt-pkg/deb/debsystem.h	Sun Nov  9 14:29:40 2003
+@@ -25,6 +25,7 @@
+    bool CheckUpdates();
+    
+    debStatusIndex *StatusFile;
++   debStatusIndex *FinkStatusFile;
+    
+    public:
+ 
+diff -urN apt-0.5.4.orig/apt-pkg/deb/debversion.cc apt-0.5.4/apt-pkg/deb/debversion.cc
+--- apt-0.5.4.orig/apt-pkg/deb/debversion.cc	Mon May  7 14:14:53 2001
++++ apt-0.5.4/apt-pkg/deb/debversion.cc	Sun Nov  9 14:29:40 2003
+@@ -24,6 +24,11 @@
+ 
+ debVersioningSystem debVS;
+ 
++void init_deb3()
++{
++  (void)debVS;
++}
++
+ // debVS::debVersioningSystem - Constructor				/*{{{*/
+ // ---------------------------------------------------------------------
+ /* */
+diff -urN apt-0.5.4.orig/apt-pkg/init.cc apt-0.5.4/apt-pkg/init.cc
+--- apt-0.5.4.orig/apt-pkg/init.cc	Tue Mar 13 15:51:46 2001
++++ apt-0.5.4/apt-pkg/init.cc	Sun Nov  9 14:29:40 2003
+@@ -15,6 +15,8 @@
+ #include <apti18n.h>
+ #include <config.h>
+ #include <sys/stat.h>
++
++extern void initDebSystem();
+ 									/*}}}*/
+ 
+ #define Stringfy_(x) # x
+@@ -39,7 +41,7 @@
+       Cnf.Set("APT::Architecture",COMMON_CPU);
+    else
+       Cnf.Set("APT::Architecture",COMMON_OS "-" COMMON_CPU);
+-   Cnf.Set("Dir","/");
++   Cnf.Set("Dir","@PREFIX@/");
+    
+    // State   
+    Cnf.Set("Dir::State","var/lib/apt/");
+@@ -68,7 +70,7 @@
+    Cnf.Set("Dir::Etc::main","apt.conf");
+    Cnf.Set("Dir::Etc::parts","apt.conf.d");
+    Cnf.Set("Dir::Etc::preferences","preferences");
+-   Cnf.Set("Dir::Bin::methods","/usr/lib/apt/methods");
++   Cnf.Set("Dir::Bin::methods","@PREFIX@/lib/apt/methods");
+ 	      
+    bool Res = true;
+    
+@@ -101,6 +103,8 @@
+ /* */
+ bool pkgInitSystem(Configuration &Cnf,pkgSystem *&Sys)
+ {
++   initDebSystem();
++
+    Sys = 0;
+    string Label = Cnf.Find("Apt::System","");
+    if (Label.empty() == false)
+diff -urN apt-0.5.4.orig/apt-pkg/policy.cc apt-0.5.4/apt-pkg/policy.cc
+--- apt-0.5.4.orig/apt-pkg/policy.cc	Mon May 28 08:40:56 2001
++++ apt-0.5.4/apt-pkg/policy.cc	Sun Nov  9 14:29:40 2003
+@@ -183,7 +183,7 @@
+    Pin *P = 0;
+    
+    if (Name.empty() == true)
+-      P = &*Defaults.insert(Defaults.end());
++      P = &*Defaults.insert(Defaults.end(),PkgPin());
+    else
+    {
+       // Get a spot to put the pin
+@@ -197,7 +197,7 @@
+ 	       P = &*I;
+ 	 
+ 	 if (P == 0)
+-	    P = &*Unmatched.insert(Unmatched.end());      
++	    P = &*Unmatched.insert(Unmatched.end(), PkgPin());      
+       }
+       else
+       {
+diff -urN apt-0.5.4.orig/apt-pkg/tagfile.cc apt-0.5.4/apt-pkg/tagfile.cc
+--- apt-0.5.4.orig/apt-pkg/tagfile.cc	Mon May 14 14:56:26 2001
++++ apt-0.5.4/apt-pkg/tagfile.cc	Sun Nov  9 14:29:40 2003
+@@ -197,7 +197,7 @@
+       return false;
+    
+    TagCount = 0;
+-   while (TagCount < sizeof(Indexes)/sizeof(Indexes[0]) && Stop < End)
++   while (TagCount+1 < sizeof(Indexes)/sizeof(Indexes[0]) && Stop < End)
+    {
+       // Start a new index and add it to the hash
+       if (isspace(Stop[0]) == 0)
+@@ -211,13 +211,13 @@
+       if (Stop == 0)
+ 	 return false;
+       
+-      for (; Stop[1] == '\r' && Stop+1 < End; Stop++);
++      for (; Stop+1 < End && Stop[1] == '\r'; Stop++);
+ 
+       // Double newline marks the end of the record
+       if (Stop+1 < End && Stop[1] == '\n')
+       {
+ 	 Indexes[TagCount] = Stop - Section;
+-	 for (; (Stop[0] == '\n' || Stop[0] == '\r') && Stop < End; Stop++);
++	 for (; Stop < End && (Stop[0] == '\n' || Stop[0] == '\r'); Stop++);
+ 	 return true;
+       }
+       
+diff -urN apt-0.5.4.orig/apt-pkg/tagfile.h apt-0.5.4/apt-pkg/tagfile.h
+--- apt-0.5.4.orig/apt-pkg/tagfile.h	Sun Apr 22 14:42:52 2001
++++ apt-0.5.4/apt-pkg/tagfile.h	Sun Nov  9 14:29:40 2003
+@@ -34,7 +34,7 @@
+    
+    // We have a limit of 256 tags per section.
+    unsigned short Indexes[256];
+-   unsigned short AlphaIndexes[0xff];
++   unsigned short AlphaIndexes[0x100];
+    
+    unsigned int TagCount;
+      
+diff -urN apt-0.5.4.orig/buildlib/environment.mak.in apt-0.5.4/buildlib/environment.mak.in
+--- apt-0.5.4.orig/buildlib/environment.mak.in	Tue May 29 14:11:03 2001
++++ apt-0.5.4/buildlib/environment.mak.in	Sun Nov  9 14:29:40 2003
+@@ -11,8 +11,8 @@
+ LIBSTDCPP_VER = @LIBSTDCPP_VER@
+ 
+ # Linker stuff
+-PICFLAGS+= -fPIC -DPIC
+-LFLAGS+= @LDFLAGS@
++PICFLAGS+= -fno-common -DPIC
++LFLAGS+= @LDFLAGS@ -framework CoreFoundation
+ LEFLAGS+= 
+ SOCKETLIBS:= @SOCKETLIBS@
+ AR:=@AR@
+@@ -47,11 +47,13 @@
+ 
+ # Shared library things
+ HOST_OS = @host_os@
+-ifneq ($(words $(filter linux-gnu gnu%,$(HOST_OS))),0)
+-   SONAME_MAGIC=-Wl,-soname -Wl,
+-   LFLAGS_SO=
+-else
+-   # Do not know how to create shared libraries here.
+-   ONLYSTATICLIBS = yes
+-endif
++#ifneq ($(words $(filter linux-gnu gnu%,$(HOST_OS))),0)
++#   SONAME_MAGIC=-Wl,-soname -Wl,
++#   LFLAGS_SO=
++#else
++#   # Do not know how to create shared libraries here.
++#   ONLYSTATICLIBS = yes
++#endif
++SONAME_MAGIC=-install_name @PREFIX@/lib/
++LFLAGS_SO=-dynamiclib
+ 	
+diff -urN apt-0.5.4.orig/buildlib/library.mak apt-0.5.4/buildlib/library.mak
+--- apt-0.5.4.orig/buildlib/library.mak	Tue Feb 27 13:16:05 2001
++++ apt-0.5.4/buildlib/library.mak	Sun Nov  9 14:29:40 2003
+@@ -15,17 +15,17 @@
+ # See defaults.mak for information about LOCAL
+ 
+ # Some local definitions
+-LOCAL := lib$(LIBRARY)$(LIBEXT).so.$(MAJOR).$(MINOR)
++LOCAL := lib$(LIBRARY)$(LIBEXT).$(MAJOR).$(MINOR).dylib
+ $(LOCAL)-OBJS := $(addprefix $(OBJ)/,$(addsuffix .opic,$(notdir $(basename $(SOURCE)))))
+ $(LOCAL)-DEP := $(addprefix $(DEP)/,$(addsuffix .opic.d,$(notdir $(basename $(SOURCE)))))
+ $(LOCAL)-HEADERS := $(addprefix $(INCLUDE)/,$(HEADERS))
+-$(LOCAL)-SONAME := lib$(LIBRARY)$(LIBEXT).so.$(MAJOR)
++$(LOCAL)-SONAME := lib$(LIBRARY)$(LIBEXT).$(MAJOR).dylib
+ $(LOCAL)-SLIBS := $(SLIBS)
+ $(LOCAL)-LIBRARY := $(LIBRARY)
+ 
+ # Install the command hooks
+ headers: $($(LOCAL)-HEADERS)
+-library: $(LIB)/lib$(LIBRARY).so $(LIB)/lib$(LIBRARY)$(LIBEXT).so.$(MAJOR)
++library: $(LIB)/lib$(LIBRARY).dylib $(LIB)/lib$(LIBRARY)$(LIBEXT).$(MAJOR).dylib
+ clean: clean/$(LOCAL)
+ veryclean: veryclean/$(LOCAL)
+ 
+@@ -37,21 +37,23 @@
+ clean/$(LOCAL):
+ 	-rm -f $($(@F)-OBJS) $($(@F)-DEP)
+ veryclean/$(LOCAL): clean/$(LOCAL)
+-	-rm -f $($(@F)-HEADERS) $(LIB)/lib$($(@F)-LIBRARY)*.so*
++	-rm -f $($(@F)-HEADERS) $(LIB)/lib$($(@F)-LIBRARY)*.dylib
+ 
+ # Build rules for the two symlinks
+-.PHONY: $(LIB)/lib$(LIBRARY)$(LIBEXT).so.$(MAJOR) $(LIB)/lib$(LIBRARY).so
+-$(LIB)/lib$(LIBRARY)$(LIBEXT).so.$(MAJOR): $(LIB)/lib$(LIBRARY)$(LIBEXT).so.$(MAJOR).$(MINOR)
++.PHONY: $(LIB)/lib$(LIBRARY)$(LIBEXT).$(MAJOR).dylib $(LIB)/lib$(LIBRARY).dylib
++$(LIB)/lib$(LIBRARY)$(LIBEXT).$(MAJOR).dylib: $(LIB)/lib$(LIBRARY)$(LIBEXT).$(MAJOR).$(MINOR).dylib
+ 	ln -sf $(<F) $@
+-$(LIB)/lib$(LIBRARY).so: $(LIB)/lib$(LIBRARY)$(LIBEXT).so.$(MAJOR).$(MINOR)
++$(LIB)/lib$(LIBRARY).dylib: $(LIB)/lib$(LIBRARY)$(LIBEXT).$(MAJOR).$(MINOR).dylib
+ 	ln -sf $(<F) $@
+ 	
+ # The binary build rule
+-$(LIB)/lib$(LIBRARY)$(LIBEXT).so.$(MAJOR).$(MINOR): $($(LOCAL)-HEADERS) $($(LOCAL)-OBJS)
+-	-rm -f $(LIB)/lib$($(@F)-LIBRARY)*.so* 2> /dev/null
++$(LIB)/lib$(LIBRARY)$(LIBEXT).$(MAJOR).$(MINOR).dylib: $($(LOCAL)-HEADERS) $($(LOCAL)-OBJS)
++	-rm -f $(LIB)/lib$($(@F)-LIBRARY)*.dylib 2> /dev/null
+ 	echo Building shared library $@
+ 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(PICFLAGS) $(LFLAGS) $(LFLAGS_SO)\
+-	   -o $@ $(SONAME_MAGIC)$($(@F)-SONAME) -shared \
++	   -o $@ $(SONAME_MAGIC)$($(@F)-SONAME) \
++	   -compatibility_version $(MAJOR).$(MINOR) \
++	   -current_version $(MAJOR).$(MINOR) \
+ 	   $(filter %.opic,$^) \
+ 	   $($(@F)-SLIBS) 
+ 
+diff -urN apt-0.5.4.orig/buildlib/ostable apt-0.5.4/buildlib/ostable
+--- apt-0.5.4.orig/buildlib/ostable	Tue Feb 20 16:03:17 2001
++++ apt-0.5.4/buildlib/ostable	Sun Nov  9 14:29:40 2003
+@@ -14,6 +14,7 @@
+ hp-hpux[^-]*	    hp-ux
+ sun-solaris[^-]*    solaris
+ [^-]*-openbsd[^-]*  openbsd
++[^-]*-darwin[^-]*   darwin
+ 
+ # Catch all
+ .*	unknown
+diff -urN apt-0.5.4.orig/cmdline/apt-cache.cc apt-0.5.4/cmdline/apt-cache.cc
+--- apt-0.5.4.orig/cmdline/apt-cache.cc	Mon Jul  2 09:10:32 2001
++++ apt-0.5.4/cmdline/apt-cache.cc	Sun Nov  9 14:29:40 2003
+@@ -374,8 +374,10 @@
+    if (ReadPinFile(Plcy) == false)
+       return false;
+    
+-   pkgCache::VerFile **VFList = new pkgCache::VerFile *[Cache.HeaderP->PackageCount];
+-   memset(VFList,0,sizeof(*VFList)*Cache.HeaderP->PackageCount);
++   // Make sure we have a sentinel for the list.
++   unsigned long Count = Cache.HeaderP->PackageCount+1;
++   pkgCache::VerFile **VFList = new pkgCache::VerFile *[Count];
++   memset(VFList,0,sizeof(*VFList)*Count);
+    
+    // Map versions that we want to write out onto the VerList array.
+    for (pkgCache::PkgIterator P = Cache.PkgBegin(); P.end() == false; P++)
+@@ -428,7 +430,7 @@
+       VFList[P->ID] = VF;
+    }
+    
+-   LocalitySort(VFList,Cache.HeaderP->PackageCount,sizeof(*VFList));
++   LocalitySort(VFList,Count,sizeof(*VFList));
+ 
+    // Iterate over all the package files and write them out.
+    char *Buffer = new char[Cache.HeaderP->MaxVerFileSize+10];
+diff -urN apt-0.5.4.orig/cmdline/apt-get.cc apt-0.5.4/cmdline/apt-get.cc
+--- apt-0.5.4.orig/cmdline/apt-get.cc	Mon Jul  2 07:59:04 2001
++++ apt-0.5.4/cmdline/apt-get.cc	Sun Nov  9 14:29:40 2003
+@@ -113,6 +113,8 @@
+       return true;
+    }
+    
++   fflush(NULL);
++   
+    char C = 0;
+    char Jnk = 0;
+    if (read(STDIN_FILENO,&C,1) != 1)
+@@ -281,7 +283,14 @@
+ 		  if (Cache[Targ].CandidateVerIter(Cache).end() == true)
+ 		  {
+ 		     if (Targ->ProvidesList == 0)
+-			out << _("but it is not installable");
++		     {
++			out << _("but it is not installable. For Fink users, ");
++			out << _("this often means that you have attempted ");
++			out << _("to install a package from the binary distribution ");
++			out << _("which depends on a \"Restrictive\" package. ");
++			out << _("See <http://fink.sourceforge.net/faq/usage-fink.php#bindist>, ");
++			out << _("<http://fink.sourceforge.net/doc/users-guide/packages.php#bin-exceptions>");
++		     }
+ 		     else
+ 			out << _("but it is a virtual package");
+ 		  }		  
+diff -urN apt-0.5.4.orig/configure apt-0.5.4/configure
+--- apt-0.5.4.orig/configure	Sun Aug 19 09:46:43 2001
++++ apt-0.5.4/configure	Sun Nov  9 14:29:40 2003
+@@ -2394,7 +2394,7 @@
+ 
+ ac_given_srcdir=$srcdir
+ 
+-trap 'rm -fr `echo "environment.mak:buildlib/environment.mak.in makefile:buildlib/makefile.in include/config.h:buildlib/config.h.in include/apti18n.h:buildlib/apti18n.h.in" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
++trap 'rm -fr `echo "environment.mak:buildlib/environment.mak.in makefile.wrap:buildlib/makefile.in include/config.h:buildlib/config.h.in include/apti18n.h:buildlib/apti18n.h.in" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
+ EOF
+ cat >> $CONFIG_STATUS <<EOF
+ 
+@@ -2504,7 +2504,7 @@
+ 
+ cat >> $CONFIG_STATUS <<EOF
+ 
+-CONFIG_FILES=\${CONFIG_FILES-"environment.mak:buildlib/environment.mak.in makefile:buildlib/makefile.in"}
++CONFIG_FILES=\${CONFIG_FILES-"environment.mak:buildlib/environment.mak.in makefile.wrap:buildlib/makefile.in"}
+ EOF
+ cat >> $CONFIG_STATUS <<\EOF
+ for ac_file in .. $CONFIG_FILES; do if test "x$ac_file" != x..; then
+@@ -2670,7 +2670,7 @@
+ 
+ EOF
+ cat >> $CONFIG_STATUS <<\EOF
+-make -s dirs
++make -f makefile.wrap -s dirs
+ exit 0
+ EOF
+ chmod +x $CONFIG_STATUS
+diff -urN apt-0.5.4.orig/configure.in apt-0.5.4/configure.in
+--- apt-0.5.4.orig/configure.in	Mon Jun 18 14:56:32 2001
++++ apt-0.5.4/configure.in	Sun Nov  9 14:29:40 2003
+@@ -163,4 +163,4 @@
+ rc_LIBSTDCPP_VER
+ ah_GCC3DEP
+ 
+-AC_OUTPUT(environment.mak:buildlib/environment.mak.in makefile:buildlib/makefile.in,make -s dirs)
++AC_OUTPUT(environment.mak:buildlib/environment.mak.in makefile.wrap:buildlib/makefile.in,make -f makefile.wrap -s dirs)
+diff -urN apt-0.5.4.orig/dselect/install apt-0.5.4/dselect/install
+--- apt-0.5.4.orig/dselect/install	Tue Feb 20 16:03:17 2001
++++ apt-0.5.4/dselect/install	Sun Nov  9 14:29:40 2003
+@@ -3,8 +3,8 @@
+ # Get the configuration from /etc/apt/apt.conf
+ CLEAN="prompt"
+ OPTS="-f"
+-APTGET="/usr/bin/apt-get"
+-DPKG="/usr/bin/dpkg"
++APTGET="@PREFIX@/bin/apt-get"
++DPKG="@PREFIX@/bin/dpkg"
+ DPKG_OPTS="--admindir=$1"
+ APT_OPT0="-oDir::State::status=$1/status"
+ APT_OPT1="-oDPkg::Options::=$DPKG_OPTS"
+diff -urN apt-0.5.4.orig/dselect/setup apt-0.5.4/dselect/setup
+--- apt-0.5.4.orig/dselect/setup	Thu Jan 27 13:15:10 2000
++++ apt-0.5.4/dselect/setup	Sun Nov  9 23:34:41 2003
+@@ -23,15 +23,17 @@
+ my $vardir=$ARGV[0];
+ my $method=$ARGV[1];
+ my $option=$ARGV[2];
+-my $config_file = '/etc/apt/sources.list';
++my $config_file = '@PREFIX@/etc/apt/sources.list';
+ 
+-my $boldon=`setterm -bold on`;
+-my $boldoff=`setterm -bold off`;
++my $boldon=`setterm -bold on 2>/dev/null`;
++my $boldoff=`setterm -bold off 2>/dev/null`;
++$boldon = "" unless defined $boldon;
++$boldoff = "" unless defined $boldon;
+ 
+ my @known_types           = ('deb');
+ my @known_access         = ('http', 'ftp', 'file');
+-my @typical_distributions = ('stable', 'unstable', 'frozen', 'non-US');
+-my @typical_components    = ('main', 'contrib', 'non-free');
++my @typical_distributions = ('10.3/release', '10.3/current');
++my @typical_components    = ('main', 'crypto');
+ 
+ my %known_access           = map {($_,$_)} @known_access;
+ my %typical_distributions  = map {($_,$_)} @typical_distributions;
+@@ -48,6 +50,8 @@
+     die "Could not open $params{'Filename'}: $!";
+   while (<CONFIG>) {
+     chomp;
++	next if ( /^\s*$/ );
++	next if ( /^\s*\#/ );
+     my $rec = {};
+     my ($type, $urn, $distribution, $components) = 
+       m/^\s*(\S+)\s+(\S+)\s+(\S+)\s*(?:\s+(\S.*))?$/o;
+@@ -113,14 +117,26 @@
+   my ($type, $urn, $distribution, $components);
+   
+   if ($params{'Default'}) {
+-    ($type, $urn, $distribution, $components) = 
+-      $params{'Default'} =~ m/^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S.*)$/o;
++#    ($type, $urn, $distribution, $components) = 
++#      $params{'Default'} =~ m/^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S.*)$/o;
++	  print "HAve params \n";
++	  while (($key,$value) = each %{$params{'Default'}}) {
++          $rec{$key} = $value;
++	  }
++
++	  if ($rec) { 
++          $type = $rec{'Type'};
++          $urn = $rec{'URN'};
++          $distribution = $rec{'Distribution'};
++          $components = $rec{'Components'}; 
++		  print "$type $urn $distribution $components \n";
++	  }
+   }
+ 
+   $type         = 'deb';
+-  $urn          = "http://http.us.debian.org/debian" unless $urn;
+-  $distribution = "stable" unless $distribution;
+-  $components   = "main contrib non-free" unless $components;
++  $urn          = "http://us.dl.sourceforge.net/fink/direct_download" unless $urn;
++  $distribution = "" unless $distribution;
++  $components   = "" unless $components;
+ 
+     
+   $rec->{'Type'} = 'deb';
+@@ -222,19 +238,13 @@
+   print "\t$boldon Set up a list of distribution source locations $boldoff \n";
+   print "\n";
+ 
+-  print " Please give the base URL of the debian distribution.\n";
++  print " Please give the base URL of the Fink distribution.\n";
+   print " The access schemes I know about are:$boldon ";
+   print join (' ', @known_access), "$boldoff\n";
+-#  print " The mirror scheme is special  that it does not specify the\n";
+-#  print " location of a debian archive but specifies the location\n";
+-#  print " of a list of mirrors to use to access the archive.\n";
+   print "\n";
+   print " For example:\n";
+-  print "              file:/mnt/debian,\n";
+-  print "              ftp://ftp.debian.org/debian,\n";
+-  print "              http://ftp.de.debian.org/debian,\n";
+-#  print " and the special mirror scheme,\n";
+-#  print "              mirror:http://www.debian.org/archivemirrors \n";
++  print "              file:@PREFIX@/fink,\n";
++  print "              http://us.dl.sourceforge.net/fink/direct_download\n";
+   print "\n";
+ 
+   my $index = 0;
+diff -urN apt-0.5.4.orig/dselect/setup~ apt-0.5.4/dselect/setup~
+--- apt-0.5.4.orig/dselect/setup~	Thu Jan  1 09:00:00 1970
++++ apt-0.5.4/dselect/setup~	Sun Nov  9 22:25:02 2003
+@@ -0,0 +1,296 @@
++#!/usr/bin/perl -w
++#                              -*- Mode: Perl -*- 
++# setup.pl --- 
++# Author           : Manoj Srivastava ( srivasta@tiamat.datasync.com ) 
++# Created On       : Wed Mar  4 15:11:47 1998
++# Created On Node  : tiamat.datasync.com
++# Last Modified By : Manoj Srivastava
++# Last Modified On : Tue May 19 11:25:32 1998
++# Last Machine Used: tiamat.datasync.com
++# Update Count     : 87
++# Status           : Unknown, Use with caution!
++# HISTORY          : 
++# Description      : 
++# This file is designed to go into /usr/lib/apt/methods/setup
++# 
++
++#use strict;
++#use diagnostics;
++#printf STDERR "DEBUG: Arguments $ARGV[0];$ARGV[1];$ARGV[2];\n";
++
++
++# Handle the arguments
++my $vardir=$ARGV[0];
++my $method=$ARGV[1];
++my $option=$ARGV[2];
++my $config_file = '@PREFIX@/etc/apt/sources.list';
++
++my $boldon=`setterm -bold on 2>/dev/null`;
++my $boldoff=`setterm -bold off 2>/dev/null`;
++$boldon = "" unless defined $boldon;
++$boldoff = "" unless defined $boldon;
++
++my @known_types           = ('deb');
++my @known_access         = ('http', 'ftp', 'file');
++my @typical_distributions = ('10.3/release', '10.3/current');
++my @typical_components    = ('main', 'crypto');
++
++my %known_access           = map {($_,$_)} @known_access;
++my %typical_distributions  = map {($_,$_)} @typical_distributions;
++
++# Read the config file, creating source records
++sub read_config {
++  my %params = @_;
++  my @Config = ();
++  
++  die "Required parameter Filename Missing" unless
++    $params{'Filename'};
++  
++  open (CONFIG, "$params{'Filename'}") ||
++    die "Could not open $params{'Filename'}: $!";
++  while (<CONFIG>) {
++    chomp;
++	next if ( /^\s*$/ );
++	next if ( /^\s*\#/ );
++    my $rec = {};
++    my ($type, $urn, $distribution, $components) = 
++      m/^\s*(\S+)\s+(\S+)\s+(\S+)\s*(?:\s+(\S.*))?$/o;
++    $rec->{'Type'}          = $type;
++    $rec->{'URN'}           = $urn;
++    $rec->{'Distribution'}  = $distribution;
++    $rec->{'Components'}    = $components;
++    push @Config, $rec;
++  }
++  close(CONFIG);
++  
++  return @Config;
++}
++
++# write the config file; writing out the current set of source records
++sub write_config {
++  my %params = @_;
++  my $rec;
++  my %Seen = ();
++  
++  die "Required parameter Filename Missing" unless
++    $params{'Filename'};
++  die "Required parameter Config Missing" unless
++    $params{'Config'};
++  
++  open (CONFIG, ">$params{'Filename'}") ||
++    die "Could not open $params{'Filename'} for writing: $!";
++  for $rec (@{$params{'Config'}}) {
++        my $line = "$rec->{'Type'} $rec->{'URN'} $rec->{'Distribution'} ";
++    $line .= "$rec->{'Components'}" if $rec->{'Components'};
++    $line .= "\n";
++    print CONFIG $line unless $Seen{$line}++;
++  }
++  close(CONFIG);
++}
++
++# write the config file; writing out the current set of source records
++sub print_config {
++  my %params = @_;
++  my $rec;
++  my %Seen = ();
++  
++  die "Required parameter Config Missing" unless
++    $params{'Config'};
++  
++  for $rec (@{$params{'Config'}}) {
++    next unless $rec;
++    
++    my $line = "$rec->{'Type'} " if $rec->{'Type'};
++    $line .= "$rec->{'URN'} " if $rec->{'URN'};
++    $line .= "$rec->{'Distribution'} " if $rec->{'Distribution'};
++    $line .= "$rec->{'Components'}" if $rec->{'Components'};
++    $line .= "\n";
++    print $line unless $Seen{$line}++;
++  }
++}
++
++# Ask for and add a source record
++sub get_source {
++  my %params = @_;
++  my $rec = {};
++  my $answer;
++  my ($type, $urn, $distribution, $components);
++  
++  if ($params{'Default'}) {
++#    ($type, $urn, $distribution, $components) = 
++#      $params{'Default'} =~ m/^\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S.*)$/o;
++	  print "HAve params \n";
++	  while (($key,$value) = each %{$params{'Default'}}) {
++          $rec{$key} = $value;
++	  }
++
++	  if ($rec) { 
++          $type = $rec{'Type'};
++          $urn = $rec{'URN'};
++          $distribution = $rec{'Distribution'};
++          $components = $rec{'Components'}; 
++		  print "$type $urn $distribution $components \n";
++	  }
++  }
++
++  $type         = 'deb';
++  $urn          = "http://us.dl.sourceforge.net/fink/direct_download" unless $urn;
++  $distribution = "10.3/release" unless $distribution;
++  $components   = "main" unless $components;
++
++    
++  $rec->{'Type'} = 'deb';
++  $| = 1;
++
++  my $done = 0;
++  
++  while (!$done) {
++    print "\n";
++    print "$boldon URL [$urn]: $boldoff";
++    
++    $answer=<STDIN>;
++    chomp ($answer);
++    $answer =~ s/\s*//og;
++    
++    if ($answer =~ /^\s*$/o) {
++      $rec->{'URN'} = $urn;
++      last;
++    }
++    else {
++      my ($scheme) = $answer =~ /^\s*([^:]+):/o;
++      if (! defined $known_access{$scheme}) {
++	print "Unknown access scheme $scheme in $answer\n";
++	print "    The available access methods known to me are\n";
++	print join (' ', @known_access), "\n";
++	print "\n";
++      }
++      else {
++	$rec->{'URN'} = $answer;
++	last;
++      }
++    }
++  }
++
++  print "\n";
++  
++  print " Please give the distribution tag to get or a path to the\n";
++  print " package file ending in a /. The distribution\n";
++  print " tags are typically something like:$boldon ";
++  print join(' ', @typical_distributions), "$boldoff\n";
++  print "\n";
++  print "$boldon Distribution [$distribution]:$boldoff ";
++  $answer=<STDIN>;
++  chomp ($answer);
++  $answer =~ s/\s*//og;
++  
++  if ($answer =~ /^\s*$/o) {
++    $rec->{'Distribution'} = $distribution;
++    $rec->{'Components'}   = &get_components($components);
++  }
++  elsif ($answer =~ m|/$|o) {
++    $rec->{'Distribution'} = "$answer";
++    $rec->{'Components'}   = "";
++  }
++  else {
++    # A distribution tag, eh?
++    warn "$answer does not seem to be a typical distribution tag\n"
++      unless defined $typical_distributions{$answer};
++    
++    $rec->{'Distribution'} = "$answer";
++    $rec->{'Components'}   = &get_components($components);
++  }
++
++  return $rec;
++}
++
++sub get_components {
++  my $default = shift;
++  my $answer;
++  
++  print "\n";
++  print " Please give the components to get\n";
++  print " The components are typically something like:$boldon ";
++  print join(' ', @typical_components), "$boldoff\n";
++  print "\n";
++  print "$boldon Components [$default]:$boldoff ";
++  $answer=<STDIN>;
++  chomp ($answer);
++  $answer =~ s/\s+/ /og;
++  
++  if ($answer =~ /^\s*$/o) {
++    return $default;
++  }
++  else {
++    return $answer;
++  }
++}
++
++sub get_sources {
++  my @Config = ();
++  my $done = 0;
++
++  my @Oldconfig = ();
++  
++  if (-e $config_file) {
++    @Oldconfig = &read_config('Filename' => $config_file)
++  }
++
++  print "\t$boldon Set up a list of distribution source locations $boldoff \n";
++  print "\n";
++
++  print " Please give the base URL of the Fink distribution.\n";
++  print " The access schemes I know about are:$boldon ";
++  print join (' ', @known_access), "$boldoff\n";
++  print "\n";
++  print " For example:\n";
++  print "              file:@PREFIX@/fink,\n";
++  print "              http://us.dl.sourceforge.net/fink/direct_download\n";
++  print "\n";
++
++  my $index = 0;
++  while (!$done) {
++    if ($Oldconfig[$index]) {
++      push (@Config, &get_source('Default' => $Oldconfig[$index++]));
++    }
++    else {
++      push (@Config, &get_source());
++    }
++    print "\n";
++    print "$boldon Would you like to add another source?[y/N]$boldoff ";
++    my $answer = <STDIN>;
++    chomp ($answer);
++    $answer =~ s/\s+/ /og;
++    if ($answer =~ /^\s*$/o) {
++      last;
++    }
++    elsif ($answer !~ m/\s*y/io) {
++      last;
++    } 
++  }
++  
++  return @Config;
++}
++
++sub main {
++  if (-e $config_file) {
++    my @Oldconfig = &read_config('Filename' => $config_file);
++    
++    print "$boldon I see you already have a source list.$boldoff\n";
++    print "-" x 72, "\n";
++    &print_config('Config' => \@Oldconfig);
++    print "-" x 72, "\n";
++    print "$boldon Do you wish to change (overwrite) it?[y/N]$boldoff ";
++    my $answer = <STDIN>;
++    chomp ($answer);
++    $answer =~ s/\s+/ /og;
++    exit 0 unless $answer =~ m/\s*y/io;
++  }
++  # OK. They want to be here.
++  my @Config = &get_sources();
++  #&print_config('Config' => \@Config);
++  &write_config('Config' => \@Config, 'Filename' => $config_file);  
++}
++
++&main();
++
++
+diff -urN apt-0.5.4.orig/dselect/update apt-0.5.4/dselect/update
+--- apt-0.5.4.orig/dselect/update	Tue Mar 13 10:45:36 2001
++++ apt-0.5.4/dselect/update	Sun Nov  9 14:29:40 2003
+@@ -4,13 +4,13 @@
+ # Get the configuration from /etc/apt/apt.conf
+ CLEAN="prompt"
+ OPTS="-f"
+-APTGET="/usr/bin/apt-get"
+-APTCACHE="/usr/bin/apt-cache"
+-DPKG="/usr/bin/dpkg"
++APTGET="@PREFIX@/bin/apt-get"
++APTCACHE="@PREFIX@/bin/apt-cache"
++DPKG="@PREFIX@/bin/dpkg"
+ DPKG_OPTS="--admindir=$1"
+ APT_OPT0="-oDir::State::status=$1/status"
+ APT_OPT1="-oDPkg::Options::=$DPKG_OPTS"
+-CACHEDIR="/var/cache/apt"
++CACHEDIR="@PREFIX@/var/cache/apt"
+ PROMPT="false"
+ RES=`apt-config shell CLEAN DSelect::Clean OPTS DSelect::UpdateOptions \
+ 		      DPKG Dir::Bin::dpkg/f APTGET Dir::Bin::apt-get/f \
+diff -urN apt-0.5.4.orig/methods/connect.cc apt-0.5.4/methods/connect.cc
+--- apt-0.5.4.orig/methods/connect.cc	Tue Feb 20 16:03:18 2001
++++ apt-0.5.4/methods/connect.cc	Sun Nov  9 14:29:40 2003
+@@ -90,7 +90,7 @@
+ 
+    // Check the socket for an error condition
+    unsigned int Err;
+-   unsigned int Len = sizeof(Err);
++   int Len = sizeof(Err);
+    if (getsockopt(Fd,SOL_SOCKET,SO_ERROR,&Err,&Len) != 0)
+       return _error->Errno("getsockopt","Failed");
+    
+diff -urN apt-0.5.4.orig/methods/ftp.cc apt-0.5.4/methods/ftp.cc
+--- apt-0.5.4.orig/methods/ftp.cc	Tue May 22 13:02:00 2001
++++ apt-0.5.4/methods/ftp.cc	Sun Nov  9 14:29:40 2003
+@@ -694,7 +694,7 @@
+       if (WaitFd(DataFd,true,TimeOut) == false)
+ 	 return _error->Error("Could not connect data socket, connection timed out");
+       unsigned int Err;
+-      unsigned int Len = sizeof(Err);
++      int Len = sizeof(Err);
+       if (getsockopt(DataFd,SOL_SOCKET,SO_ERROR,&Err,&Len) != 0)
+ 	 return _error->Errno("getsockopt","Failed");
+       if (Err != 0)
+@@ -739,7 +739,7 @@
+    
+    // Determine the name to send to the remote
+    struct sockaddr_storage Addr;
+-   socklen_t AddrLen = sizeof(Addr);
++   int AddrLen = sizeof(Addr);
+    if (getsockname(DataListenFd,(sockaddr *)&Addr,&AddrLen) < 0)
+       return _error->Errno("getsockname","Could not determine the socket's name");
+ 
+@@ -815,7 +815,7 @@
+       
+    // Accept the connection
+    struct sockaddr_in Addr;
+-   socklen_t Len = sizeof(Addr);
++   int Len = sizeof(Addr);
+    DataFd = accept(DataListenFd,(struct sockaddr *)&Addr,&Len);
+    if (DataFd < 0)
+       return _error->Errno("accept","Unable to accept connection");
+diff -urN apt-0.5.4.orig/methods/ftp.h apt-0.5.4/methods/ftp.h
+--- apt-0.5.4.orig/methods/ftp.h	Tue Mar  6 16:15:29 2001
++++ apt-0.5.4/methods/ftp.h	Sun Nov  9 14:29:40 2003
+@@ -26,11 +26,11 @@
+    
+    // Generic Peer Address
+    struct sockaddr_storage PeerAddr;
+-   socklen_t PeerAddrLen;
++   int PeerAddrLen;
+    
+    // Generic Server Address (us)
+    struct sockaddr_storage ServerAddr;
+-   socklen_t ServerAddrLen;
++   int ServerAddrLen;
+    
+    // Private helper functions
+    bool ReadLine(string &Text);      
+diff -urN apt-0.5.4.orig/methods/rfc2553emu.h apt-0.5.4/methods/rfc2553emu.h
+--- apt-0.5.4.orig/methods/rfc2553emu.h	Sun Jun 18 15:04:45 2000
++++ apt-0.5.4/methods/rfc2553emu.h	Sun Nov  9 14:29:40 2003
+@@ -26,6 +26,11 @@
+ #include <sys/types.h>
+ #include <sys/socket.h>
+ 
++// Always use full emulation on Darwin:
++//  netdb.h has the structures and constants, but getnameinfo() is missing
++//  and getaddrinfo() seems to be broken
++#ifndef __APPLE__
++
+ // Autosense getaddrinfo
+ #if defined(AI_PASSIVE) && defined(EAI_NONAME)
+ #define HAVE_GETADDRINFO
+@@ -36,6 +41,8 @@
+ #define HAVE_GETNAMEINFO
+ #endif
+ 
++#endif /* __APPLE__ */
++
+ // getaddrinfo support?
+ #ifndef HAVE_GETADDRINFO
+   // Renamed to advoid type clashing.. (for debugging)
+@@ -100,6 +107,9 @@
+ //  #define NI_NOFQDN (1<<2)
+   #define NI_NAMEREQD (1<<3)
+   #define NI_DATAGRAM (1<<4)
++  #endif
++  #ifndef NI_DATAGRAM
++  #define NI_DATAGRAM NI_DGRAM
+   #endif
+ 
+   #define sockaddr_storage sockaddr_in
+diff -urN apt-0.5.4.orig/patch_flush apt-0.5.4/patch_flush
+--- apt-0.5.4.orig/patch_flush	Thu Jan  1 09:00:00 1970
++++ apt-0.5.4/patch_flush	Sun Nov  9 14:29:40 2003
+@@ -0,0 +1,11 @@
++#!/bin/sh
++set -e
++
++files=`find . -name '*.cc' -print | xargs grep -l 'flush;'`
++
++for i in $files ; do
++  sed 's/<< flush;/<< flush, fflush(NULL);/g' <$i >$i.tmp
++  mv $i.tmp $i
++done
++
++exit 0
+diff -urN apt-0.5.4.orig/sources.list.fink apt-0.5.4/sources.list.fink
+--- apt-0.5.4.orig/sources.list.fink	Thu Jan  1 09:00:00 1970
++++ apt-0.5.4/sources.list.fink	Sun Nov  9 14:29:40 2003
+@@ -0,0 +1,8 @@
++# Default APT sources configuration for Fink
++
++# Local package trees - packages built from source locally
++# NOTE: keep this in sync with the Trees: line in @PREFIX@/etc/fink.conf
++# NOTE: run 'fink scanpackages' to create Packages.gz files
++deb file:@PREFIX@/fink local main
++deb file:@PREFIX@/fink stable main crypto
++#deb file:@PREFIX@/fink unstable main crypto
+diff -urN apt-0.5.4.orig/sources.list.fink-bindist apt-0.5.4/sources.list.fink-bindist
+--- apt-0.5.4.orig/sources.list.fink-bindist	Thu Jan  1 09:00:00 1970
++++ apt-0.5.4/sources.list.fink-bindist	Sun Nov  9 14:29:40 2003
+@@ -0,0 +1,8 @@
++
++# Official binary distribution: download location for packages
++# from the latest release
++deb http://us.dl.sourceforge.net/fink/direct_download 10.2/release main crypto
++
++# Official binary distribution: download location for updated
++# packages built between releases
++deb http://us.dl.sourceforge.net/fink/direct_download 10.2/current main crypto
