@@ -1,0 +1,118 @@
+#! /bin/bash
+#
+# Copyright (C) 2004
+# Peter O'Gorman <peter@pogma.com>
+#
+# suggest-splits
+##
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+#
+
+func_init () {
+    # grab our prefs.
+    test -n "$HOME" && test -f "$HOME/.suggest-splits" && \
+    . $HOME/.suggest-splits
+    test -z "$fink_prefix" && fink_prefix="/sw"
+}
+
+func_usage () {
+    echo "Usage: $0 dir"
+    echo "where dir is a root dir in $fink_prefix obtained using"
+    echo "fink --keep-root-dir build <pkg>"
+}
+#main
+func_init
+
+if test -z "$1"; then
+    func_usage
+    exit 1
+fi
+root_dir=$1
+case $root_dir in
+    */) root_dir=${root_dir%/*} ;;
+esac
+fullspec=${root_dir#*root-}
+num=no
+verrev=$fullspec
+until test $num = yes
+  do
+  verrev=${verrev#*-}
+  case $verrev in
+      [0-9]*) num=yes ;;
+  esac
+done
+echo
+echo "Looking for shared libraries in $root_dir"
+echo
+candidates=`find $root_dir -name "*.dylib" 2>/dev/null| xargs otool -XD 2>/dev/null| sort -u 2>/dev/null`
+test -z "$candidates" && exit 0
+liblist=
+for candidate in $candidates
+  do
+  if test -L $root_dir/$candidate ; then
+      target=`/usr/bin/file $root_dir/$candidate 2>/dev/null | grep -v 'broken' 2>/dev/null | sed -e 's|.*\`||' -e "s|\'||g" 2> /dev/null`
+      case $target in
+	  /*) ;; # absolute link
+	  *) # relative link
+	      target="${candidate%/*}/$target"
+	      ;;
+      esac
+      liblist="$liblist $candidate $target"
+  else
+      liblist="$liblist $candidate"
+  fi
+done
+
+liblist=`echo "$liblist" | sed -e "s|$fink_prefix/||g"`
+
+# liblist now contains all the files we need for the "Files"
+# section of the Splitoff.
+
+# if we have masanori's fink-shlibdeps package, use it to generate a depends
+# line  
+# http://hp.vector.co.jp/authors/VA008857/macosx/fink/index.html#fink-shlibdeps
+shlibs_deps=:
+deps=
+if `fink-shlibdeps -V >&/dev/null`; then
+    shlibs_deps="fink-shlibdeps "
+    for candidate in $candidates
+      do
+      shlibs_deps="$shlibs_deps -f $root_dir/$candidate"
+    done
+    deps=`$shlibs_deps | xargs | sed -e 's| |, |g'`
+fi
+
+# Now show how smart we are!
+echo "Splitoff: <<"
+echo "  Package: %N-shlibs"
+echo "  Files: <<"
+for lib in $liblist
+do
+echo "    $lib"
+done
+echo "  <<"
+test -n "$deps" && echo "  Depends: $deps"
+echo "  Shlibs: <<"
+# Now for the shlibs field
+shlibs=
+for candidate in $candidates
+  do
+  name=`echo $candidate | sed -e "s|$fink_prefix|%p|g"`
+  compat=`otool -L "$root_dir/$candidate" | sed -n 2p | sed -e 's/.*compatibility version //g' -e 's/,.*//g'`
+  shlibs="$name $compat %n (>= $verrev)"
+  echo "    $shlibs"
+done
+echo "  <<"
+echo "<<"
