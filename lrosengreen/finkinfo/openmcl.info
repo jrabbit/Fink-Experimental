@@ -1,13 +1,11 @@
 Package: openmcl
 Version: 0.14.2.040914
-Revision: 1
+Revision: 10
 Description: ANSI Common Lisp implementation
 License: LGPL
 Maintainer: Lars Rosengreen <lars@margay.org>
 
-
-Depends: gnupg | gnupg-idea | gnupg-testing
-
+Depends: fink-lisp-manager
 
 Source: http://www.margay.org/fink/%n-cvs-%v.tar.bz2
 Source2: ftp://clozure.com/pub/%n-darwinppc-bin-0.14.2-p1.tar.gz
@@ -19,23 +17,20 @@ Source3-MD5: b66cda4edbf5e18baa54dae060e30f37
 
 SourceDirectory: ccl
 
-
 PatchScript: <<
   #! /bin/sh -ev
+  echo '(pushnew #P"%p/lib/common-lisp/%n/systems/" asdf:*central-registry*)' >> tools/asdf.lisp
+
   cd level-1
   sed -e 's/\(defparameter \*openmcl-suffix\* \)"[a-zA-Z0-9]*"/\1"040914"/' -e 's/\[-~a~\]/\[\-~a~\]/' version.lisp > version.lisp.new
-  mv version.lisp.new version.lisp
+  mv version.lisp.new version.lisp  
 <<
-
 
 CompileScript: <<
   cd lisp-kernel/darwin ; make
   echo '(ccl::xload-level-0 :force)' | ./dppccl --batch
   echo '(ccl::compile-ccl)' | ./dppccl --batch
   echo '(ccl::save-application "dppccl.image")' | ./dppccl --batch --image-name ppc-boot.image
-
-  # asdf-install
-  echo "(require \"asdf\")(load \"tools/asdf-install/asdf-install.asd\")(asdf:oos 'asdf:compile-op 'asdf-install)" | ./dppccl --batch
 <<
 
 
@@ -58,33 +53,34 @@ InstallScript: <<
   cp -Rp examples %i/lib/%n/ccl
   cp -Rp OpenMCL.app %i/lib/%n/ccl
   cp -Rp library %i/lib/%n/ccl
-
-#  find tools/asdf-install -type f -name "*.lisp" -exec rm -f {} \;
-  cp -Rp tools/asdf-install %i/lib/%n/ccl/tools
 <<
 
+PostInstScript: %p/lib/common-lisp/scripts/recompile-all openmcl
 
 DocFiles: LGPL LICENSE ChangeLog
 
 Homepage: http://openmcl.clozure.com/
 
 DescDetail: <<
-A free ANSI Common Lisp implementation for the Macintosh with several advanced
-features including native (POSIX) threading, support for most of the MOP,
-and an elegant interface to Objective-C/Cocoa.
+  A free ANSI Common Lisp implementation for the Macintosh with
+  several advanced features including native (POSIX) threading,
+  support for most of the MOP, and an elegant interface to
+  Objective-C/Cocoa.
 << 
 
 DescPackaging: <<
-Derived from the DarwinPorts package for OpenMCL originally created by
-Gregory Wright
+  Derived from the DarwinPorts package for OpenMCL originally created
+  by Gregory Wright
 
-This package roughly tracks the ccl-14 stable CVS tree.  
+  This package roughly tracks the ccl-14 stable CVS tree.
 
-OpenMCL.app is not a normal application.  It is part of OpenMCL's
-support for Cocoa, and needs to go in %p/lib/%n/ccl.
+  OpenMCL.app is not a normal application.  It is part of OpenMCL's
+  support for Cocoa, and needs to go in %p/lib/%n/ccl.
 
-A binary of the latest point release is used for bootstrapping.  
+  A binary of the latest point release is used for bootstrapping.  
 
-The sed stuff in PatchScript is there to get the date of the CVS
-snapshot into ccl:*openmcl-version*
+  The sed stuff in PatchScript is there to get the date of the CVS
+  snapshot into ccl:*openmcl-version*
+
+  Has support for fink-lisp-manager. 
 <<
