@@ -2,21 +2,17 @@
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                 version="1.1">
 
-<!-- set the variables used throughout the document -->
-<xsl:variable name="lang-ext" ><xsl:text>.</xsl:text><xsl:value-of select="document/@lang" /></xsl:variable>
-
 <!-- just a dummy, everything is written with xsl:document -->
 <xsl:output method="text"/>
 
 <!-- ***** whole document (renders contents page) ***** -->
 
 <xsl:template match="document">
-
-<xsl:document href="{@filename}{$lang-ext}.php.tmp" method="html" indent="no" encoding="utf-8">
+<xsl:document href="{@filename}.php.tmp" method="html" indent="no" encoding="iso-8859-1">
 <html><head>
 <title><xsl:value-of select="shorttitle"/></title>
-<link rel="contents" href="{@filename}{$lang-ext}.php" title="{shorttitle} Contents" />
-<link rel="next" href="{chapter/@filename}{$lang-ext}.php" title="{chapter/title}" />
+<link rel="contents" href="{@filename}.php" title="{shorttitle} Contents" />
+<link rel="next" href="{chapter/@filename}.php" title="{chapter/title}" />
 </head><body>
 
 <h1><xsl:value-of select="title"/></h1>
@@ -31,7 +27,7 @@
 </xsl:text>
 <xsl:for-each select="chapter">
 <li><a><xsl:attribute name="href">
-<xsl:value-of select="@filename"/><xsl:value-of select="$lang-ext"/><xsl:text>.php</xsl:text>
+<xsl:value-of select="@filename"/><xsl:text>.php</xsl:text>
 </xsl:attribute>
 <b><xsl:number format="1 " /><xsl:value-of select="title" /></b></a></li><xsl:text>
 </xsl:text>
@@ -40,7 +36,7 @@
 </xsl:text>
 <xsl:for-each select="faqentry|section">
 <li><a><xsl:attribute name="href">
-<xsl:value-of select="../@filename" /><xsl:value-of select="$lang-ext"/><xsl:text>.php</xsl:text><xsl:text>#</xsl:text><xsl:value-of select="@name" />
+<xsl:value-of select="../@filename" /><xsl:text>.php#</xsl:text><xsl:value-of select="@name" />
 </xsl:attribute>
 <xsl:number count="chapter" format="1." /><xsl:number format="1 " />
 <xsl:for-each select="question/p">
@@ -66,7 +62,7 @@
 </xsl:document>
 
 <!-- Generate header.inc -->
-<xsl:document href="{@xml:base}header.inc" method="text" indent="no" encoding="utf-8">
+<xsl:document href="{@xml:base}header.inc" method="text" indent="no" encoding="iso-8859-1">
 <xsl:text>&lt;?
 /* This file is generated, do not edit manually! */
 
@@ -78,7 +74,7 @@ $navbox = array(
 <xsl:text>index.php", "Contents",
 </xsl:text>
 <xsl:for-each select="chapter">
-<xsl:text>  "</xsl:text><xsl:value-of select="$DESTDIR"/><xsl:value-of select="@filename"/><xsl:value-of select="$lang-ext"/><xsl:text>.php</xsl:text><xsl:text>", "</xsl:text>
+<xsl:text>  "</xsl:text><xsl:value-of select="$DESTDIR"/><xsl:value-of select="@filename"/><xsl:text>.php", "</xsl:text>
 <xsl:value-of select="shorttitle"/>
 <xsl:text>",
 </xsl:text>
@@ -99,26 +95,26 @@ include $fsroot."header.inc";
 <!-- ***** chapter (renders to a separate file) ***** -->
 
 <xsl:template match="chapter">
-<xsl:document href="{@filename}{$lang-ext}.php.tmp" method="html" indent="no" encoding="utf-8">
+<xsl:document href="{@filename}.php.tmp" method="html" indent="no" encoding="iso-8859-1">
 <html><head>
 <!-- this will be seen and then removed by postprocess.pl -->
 <xsl:value-of select="../cvsid" />
 <title><xsl:value-of select="../shorttitle"/><xsl:text> - </xsl:text><xsl:value-of select="shorttitle"/></title>
-<link rel="contents" href="{../@filename}.{../@lang}.php" title="{../shorttitle} Contents" />
+<link rel="contents" href="{../@filename}.php" title="{../shorttitle} Contents" />
 
 <xsl:for-each select="following-sibling::chapter">
 <xsl:if test="position()=1">
-<link rel="next" href="{@filename}{$lang-ext}.php" title="{title}" />
+<link rel="next" href="{@filename}.php" title="{title}" />
 </xsl:if>
 </xsl:for-each>
 
 <xsl:for-each select="preceding-sibling::chapter">
 <xsl:if test="position()=last()">
-<link rel="prev" href="{@filename}{$lang-ext}.php" title="{title}" />
+<link rel="prev" href="{@filename}.php" title="{title}" />
 </xsl:if>
 </xsl:for-each>
 <xsl:if test="position()=1">
-<link rel="prev" href="{../@filename}{$lang-ext}.php" title="{../shorttitle} Contents" />
+<link rel="prev" href="{../@filename}.php" title="{../shorttitle} Contents" />
 </xsl:if>
 
 </head><body>
@@ -130,7 +126,7 @@ include $fsroot."header.inc";
 <xsl:for-each select="following-sibling::chapter">
 <xsl:if test="position()=1">
 <p align="right">
-Next: <a href="{@filename}{$lang-ext}.php"><xsl:number format="1 " /><xsl:value-of select="title" /></a>
+Next: <a href="{@filename}.php"><xsl:number format="1 " /><xsl:value-of select="title" /></a>
 </p>
 </xsl:if>
 </xsl:for-each>
@@ -142,7 +138,7 @@ Next: <a href="{@filename}{$lang-ext}.php"><xsl:number format="1 " /><xsl:value-
 <!-- ***** article (renders all on one page) ***** -->
 
 <xsl:template match="article">
-<xsl:document href="{@filename}{$lang-ext}.php.tmp" method="html" indent="no" encoding="utf-8">
+<xsl:document href="{@filename}.php.tmp" method="html" indent="no" encoding="iso-8859-1">
 <html><head>
 <title><xsl:value-of select="shorttitle" /></title>
 </head><body>
@@ -276,7 +272,7 @@ Next: <a href="{@filename}{$lang-ext}.php"><xsl:number format="1 " /><xsl:value-
 
 <xsl:template match="xref">
 <a><xsl:attribute name="href">
-<xsl:if test="boolean(@chapter)"><xsl:value-of select="@chapter" />.<xsl:value-of select="../@lang" />.php</xsl:if>
+<xsl:if test="boolean(@chapter)"><xsl:value-of select="@chapter" />.php</xsl:if>
 <xsl:if test="boolean(@section)">#<xsl:value-of select="@section" /></xsl:if>
 </xsl:attribute>
 <xsl:apply-templates/></a>
