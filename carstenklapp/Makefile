@@ -1,7 +1,9 @@
-# Fink maintainer's utility to automatically validate fink info files.
+# Fink maintainer's utility to automatically validate fink info files
+# and perform some basic cleanup tasks within the dists
+# subdirectories.
 #
-# Put this file in /sw/fink/dists
-# cd /sw/fink/dists
+# Put this file in /sw/fink/dists then cd /sw/fink/dists
+# or cd /sw/fink/dists/experimental/carstenklapp
 # Type 'make' for usage information.
 
 p=/sw
@@ -42,9 +44,11 @@ usage :
 	@echo "along with Fink; if not, write to the Free Software"
 	@echo "Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA"
 	@echo " "
-	@echo "$Id$"
+	@echo "\$$Id$$"
 	@echo " "
-	@echo "Fink maintainer's utility to automatically validate fink info files."
+	@echo "Fink maintainer's utility to automatically validate fink info files"
+	@echo "and perform some basic cleanup tasks within the dists"
+	@echo "subdirectories."
 	@echo " "
 	@echo "Usage:"
 	@echo " "
