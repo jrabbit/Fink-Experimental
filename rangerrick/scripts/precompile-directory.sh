@@ -1,7 +1,12 @@
 #!/bin/sh
 
+if test "$1" = "-v"; then
+	VERBOSE=true
+	shift
+fi
+
 if test -z "$1"; then
-	echo "you must specify at least one directory!"
+	echo "usage: $0 [-v] [directory1..directoryN]"
 	exit 1
 fi
 
@@ -18,19 +23,27 @@ find "$@" -name \*.h -type f | while read HEADER; do
 	for type in "gcc:c" "g++:c++"; do
 		COMPILER=`echo $type | cut -d: -f1`
 		FILENAME=`echo $type | cut -d: -f2`
-		echo -e "generating $HEADER.gch/$FILENAME.pch \c"
+		if [ "$VERBOSE" = "true" ]; then
+			echo -e "generating $HEADER.gch/$FILENAME.pch \c"
+		fi
 		transname=`echo $HEADER.gch/$FILENAME.pch | sed -e 's,//*,_,g'`
 		if [ -f "$CACHEDIR/$transname" ] && ! [ -s "$HEADER.gch/$FILENAME.pch" ]; then
-			echo "previously failed"
+			if [ "$VERBOSE" = "true" ]; then
+				echo "previously failed"
+			fi
 		elif [ "$HEADER" -nt "$HEADER.gch/$FILENAME.pch" ]; then
 			if $COMPILER-no-cpp-precomp $INCLUDEDIRS -o $HEADER.gch/$FILENAME.pch $HEADER >/dev/null 2>&1 || \
 				$COMPILER $INCLUDEDIRS -o $HEADER.gch/$FILENAME.pch $HEADER >/dev/null 2>&1; then
-				echo "done"
+				if [ "$VERBOSE" = "true" ]; then
+					echo "done"
+				else
+					echo "$HEADER precompiled for $FILENAME"
+				fi
 			else
-				echo "failed"
+				[ "$VERBOSE" = "true" ] && echo "failed"
 			fi
 		else
-			echo "exists"
+			[ "$VERBOSE" = "true" ] && echo "exists"
 		fi
 		touch "$CACHEDIR/$transname"
 	done
