@@ -1,0 +1,111 @@
+Package: usermin
+Version: 0.970
+Revision: 1
+Description: Web-based interface for users to perform unix tasks
+License: BSD
+DescDetail: <<
+ Usermin is a web interface that can be used by any user on a Unix
+ system to easily perform tasks like reading mail, setting up SSH or
+ configuring mail forwarding. It can be thought of as a simplified
+ version of Webmin designed for use by normal users rather than system
+ administrators.
+
+ Like Webmin, Usermin consists of a simple web server, and a number of
+ CGI programs which directly update user config files like ~/.cshrc
+ and ~/.forward. The web server and all CGI programs are written in
+ Perl version 5, and use only the non-standard Authen::PAM perl module.
+
+ Usermin works alone or together with webmin.
+<<
+Recommends: crypt-ssleay-pm 
+Suggests: webmin
+Enhances: webmin
+Maintainer: Carsten Klapp <carstenklapp@users.sourceforge.net>
+Homepage: http://usermin.com/
+Source: mirror:sourceforge:webadmin/%n-%v.tar.gz
+Source-MD5: 8f346c57358101a050da4d9d9ff59d77
+SourceDirectory: .
+PatchScript: <<
+ echo "Deleting files not applicable to Darwin / Mac OS X..." 
+ for incompatible_config in -linux aix cobalt-linux corel-linux debian-linux -freebsd generic-linux gentoo-linux hpux irix mandrake-linux msc-linux netbsd open-linux openbsd openserver osf1 redhat-linux slackware-linux solaris suse-linux turbo-linux united-linux unixware ; do find . -name "*${incompatible_config}*" -print -exec rm {} \; ; done
+ echo "Done."
+
+ sed 's|@PREFIX@|%p|g' <%a/%f.patch | patch -p1
+<<
+CompileScript: <<
+ echo "Inserting path to perl into scripts..."
+ (find . -name '*.cgi' -print ; find . -name '*.pl' -print) | /usr/bin/perl "./%n-%v/perlpath.pl" /usr/bin/perl -
+ echo "Done."
+ 
+ echo "Preparing DocFiles..."
+ ln %n-%v/LICENCE LICENCE
+ ln %n-%v/LICENCE.ja LICENCE.ja
+ ln %n-%v/README README
+ echo "Done."
+
+ echo "Preparing other webmin files..."
+ mkdir -p etc/%n
+ touch etc/%n/start
+ touch etc/%n/stop
+ touch etc/%n/uninstall.sh
+ chmod u+x etc/%n/start
+ chmod u+x etc/%n/stop
+ chmod u+x etc/%n/uninstall.sh
+
+ echo "Linking %p/etc/%n/start and stop to %p/sbin/%nstart and %nstop..."
+ mkdir -p sbin
+ cd sbin && ln -s ../etc/%n/start %nstart && ln -s ../etc/%n/stop %nstop
+ echo "Done."
+<<
+ConfFiles: <<
+
+<<
+InstallScript: <<
+ mkdir -p %i/lib
+ mv %n-%v %i/lib/%n0.9
+<<
+DocFiles: LICENCE LICENCE.ja README
+PostInstScript: <<
+ echo "Note:"
+ echo " "
+ echo "If this is a first-time %n installation, you will be asked for:"
+ echo " "
+ echo "- operating system, e.g. Darwin or Mac OS X"
+ echo "  (selecting #41 'Mac OS X / OS X Server 10.1' then version #2"
+ echo "   works fine with 10.1.5 or 10.2)"
+ echo " "
+ echo "Running %n setup"
+ config_dir='%p/etc/%n' ; \
+ var_dir='%p/var/%n' ; \
+ perl='/usr/bin/perl' ; \
+ port='20000' ; \
+ host=`hostname` ; \
+ export config_dir var_dir perl port host; \
+ %p/lib/%n0.9/setup.sh
+<<
+DescPort: <<
+ Add fink's bin / sbin directories into usermin's search path
+<<
+DescPackaging: <<
+ To avoid copying the whole directory tree we simply prune the whole
+ thing into the fink package root dir with mv.
+
+ setup.sh script also patched to default to the fink installation dir
+ for manual reinstallation.
+<<
+SplitOff: <<
+ Package: %N-mysql
+ Description: Usermin module: MySQL Database Server
+ DescDetail: <<
+  Setup databases, tables and permissions in your MySQL database
+  server.
+ <<
+ Homepage: http://www.usermin.com/standard.html
+ Depends: %N (= %v-%r)
+ Enhances: %N (= %v-%r), mysql
+ Recommends: mysql
+ Files: lib/%N0.9/mysql etc/%N/mysql/
+ ConfFiles: %p/etc/%N/mysql/config %p/etc/%N/mysql/admin.acl
+ DocFiles: LICENCE LICENCE.ja
+ PostInstScript: %p/lib/%N0.9/fink-newmodule-postinstall
+<<
