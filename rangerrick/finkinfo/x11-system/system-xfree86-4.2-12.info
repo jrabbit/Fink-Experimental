@@ -1,6 +1,6 @@
 Package: system-xfree86
 Version: 4.2
-Revision: 11
+Revision: 12
 Provides: x11, rman, libgl, libgl-shlibs
 Conflicts: x11, system-libgl
 Replaces: system-libgl
@@ -45,7 +45,19 @@ X11 at http://www.apple.com/macosx/x11/ .
 #
 PreInstScript: <<
 
-echo ""
+die_with_warning() {
+  echo "Note: update your package descriptions before sending bug reports"
+  echo "about this package not working, it may have been updated to support"
+  echo "the X11 release you are trying to use."
+  echo ""
+  echo "You can do this by running 'sudo apt-get update' (if you are"
+  echo "installing binaries), or 'fink selfupdate-cvs' (if you are building"
+  echo "from source)."
+  echo ""
+  echo "Press a key to quit."
+  read -n1 -s
+  exit 1
+}
 
 ##############################################################################
 # Phase 1: Interrogate the system for X11-like thingies
@@ -63,15 +75,13 @@ if [ -e /usr/lib/libXplugin.1.dylib ]; then
 elif [ -e /usr/X11R6/lib/libapplexp.1.dylib ]; then
   echo "- found old apple library"
   echo ""
-  echo "Previous Apple X11 releases had a number of bugs"
-  echo "that make compiling some Fink packages"
-  echo "problematic."
+  echo "Previous Apple X11 releases had a number of bugs that make compiling"
+  echo "some Fink packages problematic."
   echo ""
-  echo "Please install the Apple X11 beta 3 (released"
-  echo "17 March 2003) or later, including the SDK, and"
-  echo "then install system-xfree86 again."
+  echo "Please install the Apple X11 beta 3 (released 17 March 2003) or"
+  echo "later, including the SDK, and then install system-xfree86 again."
   echo ""
-  exit 1
+  die_with_warning
 fi
 if [ -d /usr/X11R6/lib/tenon ]; then
   echo "- found lib/tenon"
@@ -121,7 +131,7 @@ if [ "$LIBAPPLE" = "true" ] || [ "$XPINC" = "true" ]; then
     echo "http://www.apple.com/macosx/x11/ and download and install the missing"
     echo "files, and re-attempt your install of system-xfree86."
     echo ""
-    exit 1
+    die_with_warning
   fi
 
 fi
@@ -129,19 +139,14 @@ fi
 # Tenon XTools
 if [ "$LIBTENON" = "true" ]; then
   echo ""
-  echo "It looks like you have Xtools installed, not XFree86.  XTools was never"
-  echo "properly updated for MacOSX 10.2 and will likely have issues.  It is"
-  echo "suggested that you remove XTools XFree86 and download the XonX or"
-  echo "Apple X11 releases instead."
+  echo "It looks like you have Xtools installed, not XFree86.  Try installing"
+  echo "system-xtools instead."
   echo ""
   echo "It is possible that you have installed an XonX or Apple X11 release over"
   echo "your Xtools release.  If that is the case, delete the directory"
   echo "'/usr/X11R6/lib/tenon' and try this install again."
   echo ""
-  echo "Press a key to continue."
-  read -n1 -s
-  echo ""
-  exit 1
+  die_with_warning
 fi
 
 if [ "$mcount" -ge 1 ]; then
@@ -158,10 +163,7 @@ if [ "$mcount" -ge 1 ]; then
   echo "  Apple X11:"
   echo "    http://www.apple.com/macosx/x11/"
   echo ""
-  echo "Press a key to continue."
-  read -n1 -s
-  echo ""
-  exit 1
+  die_with_warning
 fi
 
 if [ "$GOODAPPLE" = "true" ]; then
@@ -175,20 +177,14 @@ else
     echo "An error occurred trying to find your XFree86 installation's"
     echo "version.  This really shouldn't happen, so I'm bailing.  :("
     echo ""
-    echo "Press a key to continue."
-    read -n1 -s
-    echo ""
-    exit 1
+    die_with_warning
   else
     if [ "$XF_MAJOR" != "4" ] || [ "$XF_MINOR" -lt 2 ]; then
       echo "This package requires XFree86 version 4.2 or equivalent, but your have"
       echo "version $XF_VERSION installed!  Please upgrade your XFree86 installation"
       echo "and try again."
       echo ""
-      echo "Press a key to continue."
-      read -n1 -s
-      echo ""
-      exit 1
+      die_with_warning
     fi
   fi
 fi
