@@ -2,13 +2,13 @@ Package: tetex-beta
 Version: 2.0-rc2
 Revision: 1
 GCC: 3.1
-Depends: %N-base, texinfo
+Depends: %N-base, %N-x11tools, texinfo
 BuildDepends: t1lib1, libpng3 (>= 1.0.12-3), libtiff (>= 3.5.7-5), libwww, x11
 Conflicts: system-tetex, bundle-tetex
 Provides: dialog, bundle-tetex
 Replaces: bundle-tetex
 Recommends: detex, ifmslide, latex2html, pdfscreen, pdfslide, ppower4, tex4ht, texpower
-Suggests: foiltex, xdvi
+Suggests: foiltex
 Source: ftp://cam.ctan.org/tex-archive/systems/unix/teTeX/2.0/distrib/tetex-src-2.0-rc2.tar.gz
 Source-MD5: db66ec2d4741cf1d225ed087212f9156
 SourceDirectory: tetex-src-%v
@@ -48,11 +48,31 @@ echo "prepare texi2html for the alternatives system"
 <<
 DocFiles: LICENSE ChangeLog INSTALL PROBLEMS README QuickInstall
 SplitOff: <<
+ Package: %N-x11tools
+ Depends: x11, %N-base (= %v-%r), %N-shlibs (= %v-%r)
+ Conflicts: xdvi
+ Files: <<
+  bin/mf-nowin
+  bin/mfw
+  bin/oxdvi
+  bin/oxdvi.bin
+  bin/t1mapper
+  bin/xdvi
+  bin/xdvi.bin
+  bin/xdvizilla
+  share/man/man1/t1mapper.1
+  share/man/man1/xdvi.1
+  share/man/man1/xdvizilla.1
+ <<
+ DocFiles: LICENSE ChangeLog INSTALL PROBLEMS README QuickInstall
+<<
+SplitOff2: <<
  Package: %N-base
- Depends: x11, t1lib1-shlibs, libpng3-shlibs, libwww-bin, libtiff-bin,  ghostscript | ghostscript-nox, fink (>= 0.9.3), tetex-texmf-beta, %N-shlibs (= %v-%r)
+ Depends: t1lib1-shlibs, libpng3-shlibs, libwww-bin, libtiff-bin,  ghostscript | ghostscript-nox, fink (>= 0.9.3), tetex-texmf-beta, %N-shlibs (= %v-%r)
  Conflicts: pdftex, tetex-macosx, tetex-base
  Replaces: pdftex, tetex-macosx, tetex-base
  Provides: pdftex, tetex-macosx, tetex-base
+ Recommends: xdvi | %N-x11tools
  Files: bin etc share/info share/man share/texmf
  InfoDocs: kpathsea.info web2c.info dvips.info latex.info
  DocFiles: LICENSE ChangeLog INSTALL PROBLEMS README QuickInstall
@@ -77,13 +97,13 @@ SplitOff: <<
   rm -f %p/share/texmf/web2c/*.oft
  <<
 <<
-SplitOff2: <<
+SplitOff3: <<
  Package: %N-shlibs
  Depends: libpng3-shlibs
  Files: lib/libkpathsea.*.dylib
  DocFiles: LICENSE ChangeLog INSTALL PROBLEMS README QuickInstall
 <<
-SplitOff3: <<
+SplitOff4: <<
  Package: %N-dev
  Depends: %N-shlibs (= %v-%r)
  Files: lib/libkpathsea.a lib/libkpathsea.dylib include
@@ -105,20 +125,25 @@ The Makefile is patched to prevent the mktexlsr, fmtutil, and texlinks
 utilities from running during Fink's install phase.  They are run in the
 PostInstall script.
 
-To build shared libraries, we give the configure flag --enable shared, set
+To build shared libraries, we give the configure flag --enable-shared, set
 the DYLD_LIBRARY_PATH environment variable, and patch klibtool.
 
-Now using update-alternatives for texi2html to allow users to install a
+We use update-alternatives for texi2html to allow users to install a
 more up-to-date version if they choose.
 <<
 DescPackaging: <<
  Other TeX related packages should use %p/etc/texmf.local/ as their texmf
  tree for storing files, rather than %p/share/texmf/.  In this way, the
  original texmf tree will be preserved. 
- Does not require X11?
- texinfo and xdvi are separate packages, although xdvik is included.
+
+ The X11-dependent parts have been splitoff to tetex-x11tools.
+
+ texinfo is a separate package, and one can either install xdvi or
+ tetex-x11tools (which contains xdvik).
+
  readlink and its manpage are removed since they conflict with debianutils,
   an essential package.
+
  Many thanks to the original teTeX maintainer Jeff Whitaker.
 <<
 Maintainer: Dave Morrison <dmrrsn@users.sourceforge.net>
