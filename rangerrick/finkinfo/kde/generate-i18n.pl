@@ -43,7 +43,7 @@ Source-MD5: $md5
 Version: ${VERSION}
 Revision: 1
 Depends: kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), arts (>= ${ARTSVER}), xfonts-intl
-BuildDepends: kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), arts-dev (>= ${ARTSVER})
+BuildDepends: kdebase3-ssl (>= %v-1) | kdebase3 (>= %v-1), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), arts-dev (>= ${ARTSVER})
 Maintainer: Benjamin Reed <ranger\@befunk.com>
 CompileScript: (export KDEDIR=%p; sh configure %c; make)
 InstallScript: make install DESTDIR=%d
