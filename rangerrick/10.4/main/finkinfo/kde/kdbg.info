@@ -1,0 +1,62 @@
+Package: kdbg
+Version: 1.9.6
+Revision: 21
+Description: KDE - debugger
+License: GPL
+Maintainer: Benjamin Reed <kdbg@fink.racoonfink.com>
+
+Depends: freetype2-shlibs | freetype2-hinting-shlibs, kdebase3-ssl (>= 3.3.1-21) | kdebase3 (>= 3.3.1-21), libart2-shlibs (>= 2.3.14-1), libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.3.2-21), x11
+BuildDepends: arts-dev (>= 1.3.1-21), autoconf2.5 (>= 2.58-1), automake1.9, cctools (>= 446-1), fink (>= 0.23.0-1), freetype2 | freetype2-hinting, kdelibs3-ssl-dev (>= 3.3.1-21) | kdelibs3-dev (>= 3.3.1-21), kdebase3-dev (>= 3.3.1-21) | kdebase3-ssl-dev (>= 3.3.1-21), libart2, libjpeg, libpng3 (>= 1.2.5-4), qt3 (>= 3.3.2-21), x11-dev
+Recommends: qt3 (>= 3.3.2-1)
+GCC: 3.3
+
+CustomMirror: <<
+  nam-US: http://ranger.befunk.com/fink
+  nam-US: http://astrange.ithinksw.net/~astrange/ranger-fink
+  nam-CA: http://www.southofheaven.net/befunk
+<<
+Source: mirror:sourceforge:kdbg/%n-%v.tar.gz
+Source-MD5: c4520bce71275bd889bce395f14ce550
+Source2: mirror:custom:kde-build-20050127.tar.bz2
+Source2-MD5: 37a9842fd7ea79156fe8b6b06f05f5fe
+Source2ExtractDir: %n-%v
+
+#PatchScript: sed 's|@PREFIX@|%p|g' <%a/%n.patch | patch -p1
+
+NoSetCC: true
+SetCC: gcc-3.3
+NoSetCXX: true
+SetCXX: g++-3.3
+NoSetCPPFLAGS: true
+SetCPPFLAGS: -fno-common -no-cpp-precomp -I%p/include/freetype2 -I/usr/X11R6/include -I%p/include
+ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-libraries=%p/lib --with-qt-includes=%p/include/qt --with-extra-includes=%p/include/qt --with-extra-libraries=%p/lib --disable-dependency-tracking --enable-mt
+
+CompileScript: <<
+#!/bin/sh -e
+
+  export HOME=/tmp
+  export PREFIX="%p"
+  . ./environment-helper.sh
+  export LIBQTMT="-lqt-mt"
+
+  ./build-helper.sh configure %N %v %r ./configure %c
+  ./build-helper.sh make      %N %v %r make all all_libraries="$ALL_LIBRARIES"
+<<
+
+InstallScript: <<
+#!/bin/sh -e
+
+  export PREFIX="%p"
+  . ./environment-helper.sh
+
+  ./build-helper.sh install %N %v %r make -j1 install DESTDIR=%d
+
+  mkdir -p %i/share/doc/installed-packages
+  touch %i/share/doc/installed-packages/%N
+<<
+
+DescDetail: <<
+KDbg is a graphical user interface to gdb, the GNU debugger.  It provides an
+intuitive interface for setting breakpoints, inspecting variables, and
+stepping through code.
+<<

@@ -1,0 +1,146 @@
+diff -uNr kdegames-3.3.91/admin/ltmain.sh kdegames-3.3.91-new/admin/ltmain.sh
+--- kdegames-3.3.91/admin/ltmain.sh	Mon Jan  3 09:53:05 2005
++++ kdegames-3.3.91-new/admin/ltmain.sh	Wed Jan 19 18:22:49 2005
+@@ -4453,6 +4453,7 @@
+ 	# We should set the shlibpath_var
+ 	rpath=
+ 	for dir in $temp_rpath; do
++     if test "$dir" != "@FINKPREFIX@/lib"; then
+ 	  case $dir in
+ 	  [\\/]* | [A-Za-z]:[\\/]*)
+ 	    # Absolute path.
+@@ -4463,6 +4464,7 @@
+ 	    rpath="$rpath\$thisdir/$dir:"
+ 	    ;;
+ 	  esac
++     fi
+ 	done
+ 	temp_rpath="$rpath"
+       fi
+diff -uNr kdegames-3.3.91/configure kdegames-3.3.91-new/configure
+--- kdegames-3.3.91/configure	Fri Jan  7 06:46:34 2005
++++ kdegames-3.3.91-new/configure	Wed Jan 19 18:22:49 2005
+@@ -8233,6 +8233,19 @@
+     lt_cv_sys_max_cmd_len=8192;
+     ;;
+ 
++  netbsd* | freebsd* | openbsd* | darwin* )
++    # This has been around since 386BSD, at least.  Likely further.
++    if test -x /sbin/sysctl; then
++      lt_cv_sys_max_cmd_len=`/sbin/sysctl -n kern.argmax`
++    elif test -x /usr/sbin/sysctl; then
++      lt_cv_sys_max_cmd_len=`/usr/sbin/sysctl -n kern.argmax`
++    else
++      lt_cv_sys_max_cmd_len=65536 # usable default for *BSD
++    fi
++    # And add a safety zone
++    lt_cv_sys_max_cmd_len=`expr $lt_cv_sys_max_cmd_len \/ 4`
++    ;;
++
+  *)
+     # If test is not a shell built-in, we'll probably end up computing a
+     # maximum length that is only half of the actual maximum length, but
+@@ -9876,10 +9889,21 @@
+       archive_cmds_need_lc=no
+       case "$host_os" in
+       rhapsody* | darwin1.[012])
+-	allow_undefined_flag='-undefined suppress'
++	allow_undefined_flag='-Wl,-undefined -Wl,suppress'
+ 	;;
+       *) # Darwin 1.3 on
+-	test -z ${LD_TWOLEVEL_NAMESPACE} && allow_undefined_flag='-flat_namespace -undefined suppress'
++	if test -z ${MACOSX_DEPLOYMENT_TARGET} ; then
++	  allow_undefined_flag='-Wl,-flat_namespace -Wl,-undefined -Wl,suppress'
++	else
++	  case ${MACOSX_DEPLOYMENT_TARGET} in
++	    10.[012])
++	      allow_undefined_flag='-Wl,-flat_namespace -Wl,-undefined -Wl,suppress'
++	      ;;
++	    10.*)
++	      allow_undefined_flag='-Wl,-undefined -Wl,dynamic_lookup'
++	      ;;
++	  esac
++	fi
+ 	;;
+       esac
+     	lt_int_apple_cc_single_mod=no
+@@ -11729,7 +11753,18 @@
+       allow_undefined_flag='-undefined suppress'
+       ;;
+     *) # Darwin 1.3 on
+-      test -z ${LD_TWOLEVEL_NAMESPACE} && allow_undefined_flag='-flat_namespace -undefined suppress'
++	if test -z ${MACOSX_DEPLOYMENT_TARGET} ; then
++	  allow_undefined_flag='-Wl,-flat_namespace -Wl,-undefined -Wl,suppress'
++	else
++	  case ${MACOSX_DEPLOYMENT_TARGET} in
++	    10.[012])
++	      allow_undefined_flag='-Wl,-flat_namespace -Wl,-undefined -Wl,suppress'
++	      ;;
++	    10.*)
++	      allow_undefined_flag='-Wl,-undefined -Wl,dynamic_lookup'
++	      ;;
++	  esac
++	fi
+       ;;
+     esac
+     output_verbose_link_cmd='echo'
+@@ -12780,7 +12815,18 @@
+       allow_undefined_flag_CXX='-undefined suppress'
+       ;;
+     *) # Darwin 1.3 on
+-      test -z ${LD_TWOLEVEL_NAMESPACE} && allow_undefined_flag_CXX='-flat_namespace -undefined suppress'
++	if test -z ${MACOSX_DEPLOYMENT_TARGET} ; then
++	  allow_undefined_flag_CXX='-Wl,-flat_namespace -Wl,-undefined -Wl,suppress'
++	else
++	  case ${MACOSX_DEPLOYMENT_TARGET} in
++	    10.[012])
++	      allow_undefined_flag_CXX='-Wl,-flat_namespace -Wl,-undefined -Wl,suppress'
++	      ;;
++	    10.*)
++	      allow_undefined_flag_CXX='-Wl,-undefined -Wl,dynamic_lookup'
++	      ;;
++	  esac
++	fi
+       ;;
+     esac
+     lt_int_apple_cc_single_mod=no
+@@ -16603,7 +16649,18 @@
+ 	allow_undefined_flag_F77='-undefined suppress'
+ 	;;
+       *) # Darwin 1.3 on
+-	test -z ${LD_TWOLEVEL_NAMESPACE} && allow_undefined_flag_F77='-flat_namespace -undefined suppress'
++	if test -z ${MACOSX_DEPLOYMENT_TARGET} ; then
++	  allow_undefined_flag_F77='-Wl,-flat_namespace -Wl,-undefined -Wl,suppress'
++	else
++	  case ${MACOSX_DEPLOYMENT_TARGET} in
++	    10.[012])
++	      allow_undefined_flag_F77='-Wl,-flat_namespace -Wl,-undefined -Wl,suppress'
++	      ;;
++	    10.*)
++	      allow_undefined_flag_F77='-Wl,-undefined -Wl,dynamic_lookup'
++	      ;;
++	  esac
++	fi
+ 	;;
+       esac
+     	lt_int_apple_cc_single_mod=no
+@@ -18885,7 +18942,18 @@
+ 	allow_undefined_flag_GCJ='-undefined suppress'
+ 	;;
+       *) # Darwin 1.3 on
+-	test -z ${LD_TWOLEVEL_NAMESPACE} && allow_undefined_flag_GCJ='-flat_namespace -undefined suppress'
++	if test -z ${MACOSX_DEPLOYMENT_TARGET} ; then
++	  allow_undefined_flag_GCJ='-Wl,-flat_namespace -Wl,-undefined -Wl,suppress'
++	else
++	  case ${MACOSX_DEPLOYMENT_TARGET} in
++	    10.[012])
++	      allow_undefined_flag_GCJ='-Wl,-flat_namespace -Wl,-undefined -Wl,suppress'
++	      ;;
++	    10.*)
++	      allow_undefined_flag_GCJ='-Wl,-undefined -Wl,dynamic_lookup'
++	      ;;
++	  esac
++	fi
+ 	;;
+       esac
+     	lt_int_apple_cc_single_mod=no

@@ -18,7 +18,8 @@ find(sub {
 for my $file (sort keys %files) {
 	my ($dir, $filename) = (dirname($file), basename($file));
 
-	for my $tree ('10.2-gcc3.3', '10.3') {
+	#for my $tree ('10.2-gcc3.3', '10.3', '10.4') {
+	for my $tree ('10.3', '10.4') {
 		my $todir = $dir;
 		$todir =~ s,/common/,/${tree}/,;
 
@@ -35,12 +36,12 @@ for my $file (sort keys %files) {
 							if ($line =~ /^\s*revision:\s*(.*?)\s*$/i) {
 								my $revision = $1;
 								if (my ($pre, $post) = $revision =~ /^(.*\.)(\d+)$/) {
-									$post += 10 if ($tree eq '10.2-gcc3.3');
-									$post += 20 if ($tree eq '10.3');
+									$post += 10 if ($tree eq '10.3');
+									$post += 20 if ($tree eq '10.4');
 									$revision = $pre . $post;
 								} else {
-									$revision += 10 if ($tree eq '10.2-gcc3.3');
-									$revision += 20 if ($tree eq '10.3');
+									$revision += 10 if ($tree eq '10.3');
+									$revision += 20 if ($tree eq '10.4');
 								}
 								print FILEOUT "Revision: $revision\n";
 							} else {
@@ -54,12 +55,12 @@ for my $file (sort keys %files) {
 											($comparator, $version, $revision) = ($1, $2, $3);
 											#print "$package ($version-$revision) -> ";
 											if (my ($pre, $post) = $revision =~ /^(.*\.)(\d+)$/) {
-												$post += 10 if ($tree eq '10.2-gcc3.3');
-												$post += 20 if ($tree eq '10.3');
+												$post += 10 if ($tree eq '10.3');
+												$post += 20 if ($tree eq '10.4');
 												$revision = $pre . $post;
 											} else {
-												$revision += 10 if ($tree eq '10.2-gcc3.3');
-												$revision += 20 if ($tree eq '10.3');
+												$revision += 10 if ($tree eq '10.3');
+												$revision += 20 if ($tree eq '10.4');
 											}
 											$newline =~ s/${package}\s+\([^\)]*?\)/$package ($comparator $version-$revision)/g;
 											#print "($version-$revision)... ";
@@ -72,7 +73,7 @@ for my $file (sort keys %files) {
 									$line =~ s/libgsf-dev/libgsf/g;
 									$line =~ s/gstreamer\S*?(\s+\([^\)]+\))?\s*[\,\s]*//g;
 									$line =~ s/((imagemagick.*?)-dev)/$2/g;
-									$line =~ s/(freetype2\S*) \((\S+)\s+2.1.3-23\)/$1 ($2 2.1.3-2)/g;
+									$line =~ s/(freetype2\S*) \((\S+)\s+2.1.3-\d+\)/$1 ($2 2.1.3-2)/g;
 								} else {
 									$line =~ s/^\#(\s*export\s+LD_TWOLEVEL_NAMESPACE.*)$/$1/;
 									$line =~ s/(dlcompat|libpoll)(\S*)(\s+\([^\)]+\))?[\,\s]*//g unless ($line =~ m#-I/usr/X11R6/include#);
@@ -80,9 +81,9 @@ for my $file (sort keys %files) {
 									$line =~ s/, libgnugetopt(-shlibs)?$//;
 									$line =~ s/libgnugetopt(-shlibs)?, //;
 									$line =~ s/-I.*?\/include\/gnugetopt //;
-									$line =~ s/^SetMACOSX_DEPLOYMENT_TARGET: 10.2/SetMACOSX_DEPLOYMENT_TARGET: 10.3/;
+									$line =~ s/^SetMACOSX_DEPLOYMENT_TARGET: 10.2/SetMACOSX_DEPLOYMENT_TARGET: $tree/;
 									$line =~ s/--disable-(ada|haskell|pascal) *//g;
-									$line =~ s/^\#10.3\s+(.*)$/$1/;
+									$line =~ s/^\#${tree}\s+(.*)$/$1/;
 									next if ($line =~ /^\s*Depends: libgnugetopt-shlibs$/);
 								}
 								print FILEOUT $line;

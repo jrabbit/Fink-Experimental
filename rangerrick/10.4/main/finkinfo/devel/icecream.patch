@@ -1,0 +1,283 @@
+diff -uNr icecream/client/remote.cpp icecream-new/client/remote.cpp
+--- icecream/client/remote.cpp	Sun Aug 29 07:27:02 2004
++++ icecream-new/client/remote.cpp	Fri Nov 19 15:54:11 2004
+@@ -19,7 +19,9 @@
+     Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ */
+ 
++#ifdef HAVE_CONFIG_H
+ #include "config.h"
++#endif
+ 
+ #include <sys/types.h>
+ #include <sys/socket.h>
+@@ -440,7 +442,7 @@
+ 		   int &ret)
+ {
+     sockaddr_in name;
+-    socklen_t len = sizeof(name);
++    kde_socklen_t len = sizeof(name);
+     int error = getsockname(scheduler->fd, (struct sockaddr*)&name, &len);
+     if ( !error ) {
+ 	if ( usecs->hostname == inet_ntoa( name.sin_addr ) ) {
+diff -uNr icecream/daemon/load.cpp icecream-new/daemon/load.cpp
+--- icecream/daemon/load.cpp	Wed Aug  4 04:46:24 2004
++++ icecream-new/daemon/load.cpp	Fri Nov 19 16:43:42 2004
+@@ -16,6 +16,10 @@
+     Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ */
+ 
++#ifdef HAVE_CONFIG_H
++#include <config.h>
++#endif
++
+ #include "load.h"
+ #include <unistd.h>
+ #include <stdio.h>
+@@ -25,6 +29,9 @@
+ #include <fcntl.h>
+ #ifdef __FreeBSD__
+ #  include <dkstat.h>
++#endif
++#ifdef __APPLE__
++#  include <sys/dkstat.h>
+ #endif
+ 
+ using namespace std;
+diff -uNr icecream/daemon/main.cpp icecream-new/daemon/main.cpp
+--- icecream/daemon/main.cpp	Sun Aug 29 07:27:02 2004
++++ icecream-new/daemon/main.cpp	Fri Nov 19 16:30:36 2004
+@@ -22,8 +22,12 @@
+ #ifndef _GNU_SOURCE
+ // getopt_long
+ #define _GNU_SOURCE 1
++#define HAVE_DECL_GETOPT 1
+ #endif
++
++#ifdef HAVE_CONFIG_H
+ #include "config.h"
++#endif
+ 
+ #include <stdio.h>
+ #include <stdlib.h>
+@@ -57,7 +61,7 @@
+ #endif
+ #include <netdb.h>
+ 
+-#ifdef __FreeBSD__
++#if defined(__FreeBSD__) || defined(__APPLE__)
+ #include <signal.h> // for kill(2)
+ #include <sys/time.h>
+ #include <sys/resource.h>
+@@ -536,7 +540,7 @@
+         while (1) {
+             int acc_fd;
+             struct sockaddr cli_addr;
+-            socklen_t cli_len;
++            kde_socklen_t cli_len;
+ 
+             if ( requests.size() + current_kids )
+                 log_info() << "requests " << requests.size() << " "
+diff -uNr icecream/daemon/serve.cpp icecream-new/daemon/serve.cpp
+--- icecream/daemon/serve.cpp	Sun Aug 29 07:27:02 2004
++++ icecream-new/daemon/serve.cpp	Fri Nov 19 15:33:22 2004
+@@ -55,7 +55,7 @@
+ #include <exception>
+ #include <sys/time.h>
+ 
+-#ifdef __FreeBSD__
++#if defined(__FreeBSD__) || defined(__APPLE__)
+ #include <sys/socket.h>
+ #include <sys/uio.h>
+ #endif
+diff -uNr icecream/daemon/workit.cpp icecream-new/daemon/workit.cpp
+--- icecream/daemon/workit.cpp	Mon Aug 23 08:46:14 2004
++++ icecream-new/daemon/workit.cpp	Fri Nov 19 15:33:22 2004
+@@ -36,7 +36,7 @@
+ #include <sys/wait.h>
+ #include <sys/user.h>
+ 
+-#ifdef __FreeBSD__
++#if defined(__FreeBSD__) || defined(__APPLE__)
+ #include <signal.h>
+ #include <sys/resource.h>
+ #ifndef RUSAGE_SELF
+@@ -50,6 +50,10 @@
+ #include <stdio.h>
+ #include <errno.h>
+ #include <string>
++
++#ifndef RLIMIT_AS
++#define RLIMIT_AS RLIMIT_DATA
++#endif
+ 
+ using namespace std;
+ 
+diff -uNr icecream/mon/monitor.cc icecream-new/mon/monitor.cc
+--- icecream/mon/monitor.cc	Sun Aug 29 08:10:55 2004
++++ icecream-new/mon/monitor.cc	Fri Nov 19 16:44:47 2004
+@@ -20,6 +20,10 @@
+     Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ */
+ 
++#ifdef HAVE_CONFIG_H
++#include <config.h>
++#endif
++
+ #include "monitor.h"
+ 
+ #include "hostinfo.h"
+diff -uNr icecream/services/comm.cpp icecream-new/services/comm.cpp
+--- icecream/services/comm.cpp	Sun Aug 29 07:27:03 2004
++++ icecream-new/services/comm.cpp	Fri Nov 19 15:34:09 2004
+@@ -20,6 +20,9 @@
+     Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ */
+ 
++#ifdef HAVE_CONFIG_H
++#include <config.h>
++#endif
+ 
+ #include <sys/types.h>
+ #include <netinet/in.h>
+@@ -438,7 +441,7 @@
+     }
+ }
+ 
+-Service::Service (struct sockaddr *_a, socklen_t _l)
++Service::Service (struct sockaddr *_a, kde_socklen_t _l)
+ {
+   last_talk = time( 0 );
+   c = 0;
+@@ -869,7 +872,7 @@
+ static bool
+ get_broad_answer (int ask_fd, int timeout, char *buf2,
+ 		  struct sockaddr_in *remote_addr,
+-		  socklen_t *remote_len)
++		  kde_socklen_t *remote_len)
+ {
+   char buf = PROTOCOL_VERSION;
+   fd_set read_set;
+@@ -927,7 +930,7 @@
+     {
+       int ask_fd;
+       struct sockaddr_in remote_addr;
+-      socklen_t remote_len;
++      kde_socklen_t remote_len;
+       time_t time0 = time (0);
+       bool found = false;
+ 
+@@ -968,7 +971,7 @@
+   list<string> l;
+   int ask_fd;
+   struct sockaddr_in remote_addr;
+-  socklen_t remote_len;
++  kde_socklen_t remote_len;
+   time_t time0 = time (0);
+ 
+   ask_fd = open_send_broadcast ();
+diff -uNr icecream/services/comm.h icecream-new/services/comm.h
+--- icecream/services/comm.h	Sun Aug 22 16:31:42 2004
++++ icecream-new/services/comm.h	Fri Nov 19 15:34:20 2004
+@@ -123,13 +123,13 @@
+   friend class MsgChannel;
+   // deep copied
+   struct sockaddr *addr;
+-  socklen_t len;
++  kde_socklen_t len;
+   MsgChannel *c;
+ public:
+   std::string name;
+   unsigned short port;
+   time_t last_talk;
+-  Service (struct sockaddr *, socklen_t);
++  Service (struct sockaddr *, kde_socklen_t);
+   Service (const std::string &host, unsigned short p);
+   MsgChannel *channel() const { return c; }
+   MsgChannel *createChannel( int remote_fd, bool text_based = false );
+diff -uNr icecream/services/logging.cpp icecream-new/services/logging.cpp
+--- icecream/services/logging.cpp	Tue Aug 17 14:33:37 2004
++++ icecream-new/services/logging.cpp	Fri Nov 19 15:33:22 2004
+@@ -64,8 +64,6 @@
+         logfile_error = &logfile_null;
+ }
+ 
+-#define HAVE_BACKTRACE
+-
+ #ifdef HAVE_BACKTRACE
+ #include <execinfo.h>
+ #endif
+diff -uNr icecream/services/receiver.cpp icecream-new/services/receiver.cpp
+--- icecream/services/receiver.cpp	Mon Apr 26 11:36:18 2004
++++ icecream-new/services/receiver.cpp	Fri Nov 19 15:34:39 2004
+@@ -18,6 +18,10 @@
+     Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ */
+ 
++#ifdef HAVE_CONFIG_H
++#include <config.h>
++#endif
++
+ #include <sys/types.h>
+ #include <sys/socket.h>
+ #include <netinet/in.h>
+@@ -34,7 +38,7 @@
+ 
+ class Client : public Service {
+ public:
+-  Client (struct sockaddr *_addr, socklen_t _len) : Service (_addr, _len) {}
++  Client (struct sockaddr *_addr, kde_socklen_t _len) : Service (_addr, _len) {}
+ };
+ 
+ MsgChannel *sched_channel;
+@@ -91,7 +95,7 @@
+ {
+   int fd, remote_fd;
+   struct sockaddr_in myaddr, remote_addr;
+-  socklen_t remote_len;
++  kde_socklen_t remote_len;
+   if ((fd = socket (PF_INET, SOCK_STREAM, 0)) < 0)
+     {
+       perror ("socket()");
+diff -uNr icecream/services/scheduler.cpp icecream-new/services/scheduler.cpp
+--- icecream/services/scheduler.cpp	Sun Aug 29 07:27:03 2004
++++ icecream-new/services/scheduler.cpp	Fri Nov 19 15:45:12 2004
+@@ -23,6 +23,11 @@
+ #ifndef _GNU_SOURCE
+ // getopt_long
+ #define _GNU_SOURCE 1
++#define HAVE_DECL_GETOPT 1
++#endif
++
++#ifdef HAVE_CONFIG_H
++#include <config.h>
+ #endif
+ 
+ #include <sys/types.h>
+@@ -128,7 +133,7 @@
+   int max_jobs;
+   list<Job*> joblist;
+   Environments compiler_versions;  // Available compilers
+-  CS (struct sockaddr *_addr, socklen_t _len)
++  CS (struct sockaddr *_addr, kde_socklen_t _len)
+     : Service(_addr, _len), load(1000), max_jobs(0), state(CONNECTED),
+       type(UNKNOWN), chroot_possible(false) {
+     hostid = 0;
+@@ -1526,7 +1531,7 @@
+   int listen_fd, remote_fd, broad_fd, text_fd;
+   struct sockaddr_in remote_addr;
+   unsigned int port = 8765;
+-  socklen_t remote_len;
++  kde_socklen_t remote_len;
+   char *netname = (char*)"ICECREAM";
+   bool detach = false;
+   int debug_level = Error;
+@@ -1730,7 +1735,7 @@
+ 	  max_fd--;
+ 	  char buf[16];
+ 	  struct sockaddr_in broad_addr;
+-	  socklen_t broad_len = sizeof (broad_addr);
++	  kde_socklen_t broad_len = sizeof (broad_addr);
+ 	  if (recvfrom (broad_fd, buf, 1, 0, (struct sockaddr*) &broad_addr,
+ 			&broad_len) != 1)
+ 	    {
