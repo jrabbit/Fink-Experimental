@@ -6,7 +6,7 @@ basedir = ..
 
 STYLESHEET_WEBSITE = $(basedir)/finkdoc-website.i18n.xsl
 WANT_HTML = 1
-DESTDIR = faq
+DESTDIR = doc/users-guide
 
 LANGUAGES = en ja
 BASE_SOURCE = uguide.xml
