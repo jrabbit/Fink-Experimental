@@ -1,0 +1,43 @@
+Package: sane-backends
+Version: 1.0.9
+Revision: 1
+Source: ftp://ftp.mostang.com/pub/sane/sane-1.0.9/%n-%v.tar.gz
+ConfigureParams: --mandir=%p/share/man --docdir=%p/share/doc/%n
+NoSetLDFLags: true
+NoSetCPPFLags: true
+SetCPPFLags: -no-cpp-precomp
+Patch: %f.patch
+BuildDepends: libusb, libjpeg, dlcompat-dev
+Depends: %n-shlibs
+CompileScript: <<
+#!/bin/sh
+# Just bacuase this is the way I have been building it
+DYLD_LIBRARY_PATH=%p/lib
+LIBRARY_PATH=%p/lib
+CPATH=%p/include
+export DYLD_LIBRARY_PATH
+export LIBRARY_PATH
+export CPATH
+./configure %c
+make
+<<
+InstallScript: <<
+make install DESTDIR=%d
+rm -f %i/lib/sane/libsane-sm3600.*
+<<
+Splitoff: <<
+Package: %N-shlibs
+Depends: dlcompat-shlibs, libjpeg-shlibs, libusb-shlibs
+Files: <<
+ lib/libsane.1.0.9.dylib
+ lib/libsane.1.dylib
+ <<
+Shlibs: %p/lib/libsane.1.dylib 2.0.0 %n (>= %v-%r)
+DocFiles: COPYING
+License: GPL
+<<
+DocFiles: COPYING README README.darwin LICENSE TODO
+Maintainer: Peter O'Gorman <peter@pogma.com>
+License: GPL
+Homepage: http://www.mostang.com/sane/
+ 
