@@ -1,0 +1,135 @@
+diff -Nru3 cvsup-snap-16.1g/Makefile cvsup-snap-patched/Makefile
+--- cvsup-snap-16.1g/Makefile	2003-03-04 20:26:05.000000000 +0100
++++ cvsup-snap-patched/Makefile	2003-04-01 19:16:43.000000000 +0200
+@@ -33,14 +33,14 @@
+ ###############################################################################
+ 
+ # Base directory for installed files.
+-PREFIX=		/usr/local
++PREFIX=		/usr/l
+ 
+ # Modula-3 compiler.  For the SRC and PM3 compilers it is "m3build".  For
+ # the Critical Mass compiler use "cm3".
+-M3=		m3build
++M3=		cm3
+ 
+ # Extra flags to pass to the Modula-3 compiler.
+-M3FLAGS=
++M3FLAGS=-DNOGUI
+ 
+ ###############################################################################
+ # End of configuration section.  You shouldn't need to change the rest
+@@ -49,6 +49,7 @@
+ 
+ SUBDIR=		suptcp suplib server client cvpasswd
+ SUBMAKEARGS=	PREFIX="${PREFIX}" M3="${M3}" M3FLAGS="${M3FLAGS}"
++.PHONY : install
+ 
+ default:	all
+ 
+diff -Nru3 cvsup-snap-16.1g/client/Makefile cvsup-snap-patched/client/Makefile
+--- cvsup-snap-16.1g/client/Makefile	2003-04-02 00:59:26.000000000 +0200
++++ cvsup-snap-patched/client/Makefile	2003-04-02 01:00:44.000000000 +0200
+@@ -32,7 +32,7 @@
+ PREFIX=		/usr/local
+ 
+ BINDIR=		${PREFIX}/bin
+-MANDIR=		${PREFIX}/man
++MANDIR=		${PREFIX}/share/man
+ 
+ all:
+ 	${M3} ${M3FLAGS}
+diff -Nru3 cvsup-snap-16.1g/cvpasswd/Makefile cvsup-snap-patched/cvpasswd/Makefile
+--- cvsup-snap-16.1g/cvpasswd/Makefile	2003-04-02 00:59:47.000000000 +0200
++++ cvsup-snap-patched/cvpasswd/Makefile	2003-04-02 01:00:25.000000000 +0200
+@@ -32,7 +32,7 @@
+ PREFIX=		/usr/local
+ 
+ BINDIR=		${PREFIX}/bin
+-MANDIR=		${PREFIX}/man
++MANDIR=		${PREFIX}/share/man
+ 
+ all:
+ 	${M3} ${M3FLAGS}
+diff -Nru3 cvsup-snap-16.1g/server/Makefile cvsup-snap-patched/server/Makefile
+--- cvsup-snap-16.1g/server/Makefile	2003-04-02 00:59:12.000000000 +0200
++++ cvsup-snap-patched/server/Makefile	2003-04-02 01:00:06.000000000 +0200
+@@ -32,7 +32,7 @@
+ PREFIX=		/usr/local
+ 
+ BINDIR=		${PREFIX}/sbin
+-MANDIR=		${PREFIX}/man
++MANDIR=		${PREFIX}/share/man
+ 
+ all:
+ 	${M3} ${M3FLAGS}
+@@ -49,5 +49,6 @@
+ 	chmod 755 ${BINDIR}/cvsupd
+ 	strip ${BINDIR}/cvsupd
+ 	rm -f ${MANDIR}/man8/cvsupd.8
++	mkdir -p ${MANDIR}/man8
+ 	cp `cat ${TOP}/M3TARGET`/cvsupd.8 ${MANDIR}/man8/cvsupd.8
+ 	chmod 644 ${MANDIR}/man8/cvsupd.8
+diff -Nru3 cvsup-snap-16.1g/suplib/Makefile cvsup-snap-patched/suplib/Makefile
+--- cvsup-snap-16.1g/suplib/Makefile	2003-03-04 20:26:17.000000000 +0100
++++ cvsup-snap-patched/suplib/Makefile	2003-04-01 18:39:19.000000000 +0200
+@@ -29,12 +29,25 @@
+ # $Id$
+ 
+ TOP=		..
+-
++PREFIX=         /usr/local
++LIBDIR=         ${PREFIX}/lib/cm3
++     
+ all:
+ 	${M3} ${M3FLAGS}
+ 
+ clean:
+ 	rm -rf `cat ${TOP}/M3TARGET`
+ 
+-depend install:
++depend:
+ 	@true
++install:
++	rm -f ${LIBDIR}/libsuplib.5.2.dylib
++	#call me paranoid but dangling symlinks are never good
++	rm -f ${LIBDIR}/libsuplib.5.dylib
++	rm -f ${LIBDIR}/libsuplib.dylib
++	cp `cat ${TOP}/M3TARGET`/libsuplib.5.2.dylib ${LIBDIR}/libsuplib.5.2.dylib
++	ln -s ${LIBDIR}/libsuplib.5.2.dylib ${LIBDIR}/libsuplib.5.dylib
++	ln -s ${LIBDIR}/libsuplib.5.dylib ${LIBDIR}/libsuplib.dylib
++	chmod 644 ${LIBDIR}/libsuplib.5.2.dylib
++	chmod 755 ${LIBDIR}/libsuplib.5.dylib
++	chmod 755 ${LIBDIR}/libsuplib.dylib
+diff -Nru3 cvsup-snap-16.1g/suptcp/Makefile cvsup-snap-patched/suptcp/Makefile
+--- cvsup-snap-16.1g/suptcp/Makefile	2003-03-04 20:26:33.000000000 +0100
++++ cvsup-snap-patched/suptcp/Makefile	2003-04-01 18:39:28.000000000 +0200
+@@ -29,6 +29,8 @@
+ # $Id$
+ 
+ TOP=		..
++PREFIX=         /usr/local
++LIBDIR=         ${PREFIX}/lib/cm3
+ 
+ all:
+ 	${M3} ${M3FLAGS}
+@@ -36,5 +38,18 @@
+ clean:
+ 	rm -rf `cat ${TOP}/M3TARGET`
+ 
+-depend install:
++depend:
+ 	@true
++	
++install:
++	 rm -f ${LIBDIR}/libsuptcp.5.2.dylib
++	 #call me paranoid but dangling symlinks are never good
++	 rm -f ${LIBDIR}/libsuptcp.5.dylib
++	 rm -f ${LIBDIR}/libsuptcp.dylib
++	 cp `cat ${TOP}/M3TARGET`/libsuptcp.5.2.dylib ${LIBDIR}/libsuptcp.5.2.dylib
++	 ln -s ${LIBDIR}/libsuptcp.5.2.dylib ${LIBDIR}/libsuptcp.5.dylib
++	 ln -s ${LIBDIR}/libsuptcp.5.dylib ${LIBDIR}/libsuptcp.dylib
++	 chmod 644 ${LIBDIR}/libsuptcp.5.2.dylib
++	 chmod 755 ${LIBDIR}/libsuptcp.5.dylib
++	 chmod 755 ${LIBDIR}/libsuptcp.dylib
++							 
