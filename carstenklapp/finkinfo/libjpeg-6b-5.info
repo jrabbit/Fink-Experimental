@@ -1,0 +1,59 @@
+Package: libjpeg
+Version: 6b
+Revision: 5
+Depends: %N-shlibs (= %v-%r), %N-bin
+BuildDepends: fink (>= 0.9.9)
+Source: ftp://ftp.uunet.de/pub/graphics/jpeg/jpegsrc.v%v.tar.gz
+Source-MD5: dbd5f3b47ed13132f04c685d608a7547
+SourceDirectory: jpeg-%v
+UpdateConfigGuess: true
+UpdateLibtool: true
+PatchScript: patch -p1 < %a/%f.patch
+SetLDFLAGS: -prebind
+ConfigureParams: --enable-shared --enable-static
+InstallScript: <<
+ mkdir -p %i/bin %i/include %i/lib %i/share/man/man1
+ make install LDFLAGS='-prebind' prefix=%i mandir=%i/share/man/man1
+
+ redo_prebinding -seg_addr_table %p/fink/dists/experimental/carstenklapp/finkinfo/seg_addr_table %i/lib/%n.62.0.0.dylib
+<<
+DocFiles: README
+BuildDependsOnly: True
+SplitOff: <<
+  Package: %N-shlibs
+  Replaces: libjpeg (<< 6b-3)
+  Suggests: %N-bin
+  Files: lib/libjpeg.62.0.0.dylib lib/libjpeg.62.dylib
+  Shlibs: %p/lib/libjpeg.62.dylib 63.0.0 %n (>= 6b-5)
+  DocFiles: README
+<<
+SplitOff2: <<
+  Package: %N-bin
+  Replaces: libjpeg (<< 6b-3)
+  Depends: %N-shlibs (= %v-%r)
+  Files:  bin share/man
+  DocFiles: README libjpeg.doc structure.doc usage.doc wizard.doc
+<<
+Description: JPEG image format handling library
+DescPort: <<
+Uses autoconf and libtool. Requires the usual fixes.
+
+Previous versions by Christoph Pfisterer.
+<<
+#Maintainer: Dave Morrison <dmrrsn@users.sourceforge.net>
+Maintainer: Carsten Klapp <carstenklapp@users.sourceforge.net>
+Homepage: http://www.ijg.org/
+License: OSI-Approved
+DescPackaging: <<
+ patches ltconfig before configure is run to enable prebinding by:
+ - disabling $allow_undefined_flag
+ - adding -prebind flag to dylib linking
+ - adding -seg1addr flag to dylib linking (address arbitrarily chosen)
+
+ Make with LDFLAGS='-prebind' to allow the libjpeg-bin binaries to prebind to the newly built libs:
+ - explicitly setting LDFLAGS here prevents /sw/lib from being found in the link path in case existing (non-prebound) libjpeg is present on system. Binaries in other packages won't be so easy to trick, no idea what to do for those.
+
+After running redo_prebinding on the dylib, each of the binaries built in this package also need to be re-bound before packing them up in the deb (unless the seg1addr specified during the build is identical to the one in our seg_addr_table). Any ideas?
+
+Carsten Klapp <carstenklapp@users.sourceforge.net>
+<<
