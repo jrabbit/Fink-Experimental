@@ -40,8 +40,7 @@ $ENV{CVS_RSH} = '/Users/ranger/bin/ssh.sh';
 
 print "- updating cvs repository... ";
 `mkdir -p '$PREFIX'`;
-#`cd $PREFIX; cvs -d :pserver:anonymous\@cvs.fink.sourceforge.net:/cvsroot/fink co dists packages >$PREFIX/cvs.log 2>&1`;
-`cd $PREFIX; cvs -d :ext:rangerrick\@cvs.fink.sourceforge.net:/cvsroot/fink co dists packages >$PREFIX/cvs.log 2>&1`;
+`cd $PREFIX; rsync -azvr rsync://master.us.finkmirrors.net/finkinfo/ dists >$PREFIX/rsync.log 2>&1`;
 print "done\n";
 
 print "- searching for new info files...\n";
@@ -170,7 +169,7 @@ sub make_rss {
 		}
 
 		$rss->add_item(
-			title       => encode_entities($package->{'package'} . ' ' . $package->{'version'} . '-' . $package->{'revision'} . ' (' . $package->{'description'} . ')'),
+			title       => encode_entities($package->{'package'} . ' ' . $package->{'version'} . '-' . $package->{'revision'} . ' (' . $package->{'description'} . ', ' . $package->{'tree'} . ' tree)'),
 			description => $description,
 			link        => encode_entities('http://fink.sourceforge.net/pdb/package.php/' . $package->{'package'}),
 			dc          => {
@@ -186,7 +185,10 @@ sub make_rss {
 
 sub find_infofiles {
 	return unless (/\.info$/);
-	return unless ($File::Find::name =~ /dists\/10\.2\//);
+	my $tree = '10.2';
+	if ($File::Find::name =~ /dists\/([^\/]+)\//) {
+		$tree = $1;
+	}
 
 	my @stat = stat($File::Find::name) or die "can't stat $_: $!\n";
 	return unless ($stat[9] >= $CUTOFF);
@@ -197,6 +199,7 @@ sub find_infofiles {
 	my $hash = parse_keys($text);
 	close(FILEIN);
 
+	$hash->{'tree'} = $tree;
 	next unless (exists $hash->{'package'});
 	$hash->{'date'} = $stat[9];
 	if ($DOCVS) {
@@ -204,9 +207,9 @@ sub find_infofiles {
 	}
 
 	if ($File::Find::name =~ m#/stable/#) {
-		$STABLE_PACKAGES{$hash->{'package'}} = $hash;
+		$STABLE_PACKAGES{$tree . '/' . $hash->{'package'}} = $hash;
 	} else {
-		$UNSTABLE_PACKAGES{$hash->{'package'}} = $hash;
+		$UNSTABLE_PACKAGES{$tree . '/' . $hash->{'package'}} = $hash;
 	}
 }
 
