@@ -5,29 +5,40 @@ Description: R5RS Scheme implementation for the Java VM
 License: GPL
 Maintainer: Lars Rosengreen <lars@margay.org>
 
-BuildDepends: ant, docbook-xsl, junit, system-java-dev
-Depends: rlwrap, system-java
+BuildDepends: ant, docbook-xsl, system-java13-dev
+Depends: rlwrap, system-java13 | system-java14 | system-java15
 
 Source: mirror:sourceforge:%n/%n-%v.jar
 Source-MD5: 1300460919eef3a1bc78aace6e4f62ab
 SourceRename: %n.zip
 
-CompileScript: ant -Ddoc.style=%p/share/xml/xsl/docbook-xsl/html/chunk.xsl
+CompileScript: <<
+  ant -Ddoc.style=%p/share/xml/xsl/docbook-xsl/html/chunk.xsl
+<<
 
 InstallScript: <<
-mkdir -p %i/lib/sisc
-cp -Rp *.jar %i/lib/sisc
-cp -Rp %n.shp %i/lib/sisc
-mkdir -p %i/share/doc/sisc
-cp -Rp doc/*.txt %i/share/doc/sisc
-cp -Rp doc/generated/sss %i/share/doc/sisc
-mkdir -p %i/bin
-sed 's|`dirname $0`|%p/lib/sisc|g' %n.sh > %i/bin/sisc
-chmod 755 %i/bin/sisc
+  mkdir -p %i/lib/sisc
+  cp -Rp *.jar %i/lib/sisc
+  cp -Rp %n.shp %i/lib/sisc
+  cp -Rp src/sisc/modules/srfi/srfi-22/srfi-22.sh %i/lib/sisc
+  chmod 755 %i/lib/sisc/srfi-22.sh
+  mkdir -p %i/share/doc/sisc
+  cp -Rp doc/*.txt %i/share/doc/sisc
+  cp -Rp doc/generated/sss %i/share/doc/sisc
+  mkdir -p %i/bin
+  sed 's|`dirname $0`|%p/lib/sisc|g' %n.sh > %i/bin/sisc
+  chmod 755 %i/bin/sisc
 <<
 
 Docfiles: COPYING GOALS LICENSE.txt README TODO
-  
+
+PostInstScript: update-alternatives --install %p/bin/scheme scheme %p/bin/sisc 40 --slave %p/bin/scheme-r5rs scheme-r5rs %p/lib/sisc/srfi-22.sh --slave %p/bin/scheme-r4rs scheme-r4rs %p/lib/sisc/srfi-22.sh --slave %p/bin/scheme-srfi-0 scheme-srfi-0 %p/lib/sisc/srfi-22.sh --slave %p/bin/scheme-ieee-1178-1900 scheme-ieee-1178-1900 %p/lib/sisc/srfi-22.sh
+
+PreRmScript: <<
+  if [ $1 != "upgrade" ]; then
+    update-alternatives --remove scheme %p/bin/sisc
+  fi
+<<
 Homepage: http://sisc.sourceforge.net
 
 DescDetail: << 
@@ -57,5 +68,8 @@ the Scheme level as well.
 <<
 
 DescPort: <<
-No support for SRFI-22 yet.
+SRFI-22 support included, with scheme-r5rs scheme-r4rs, scheme-srfi-0
+and scheme-ieee-1178-1900 all in %p/bin (using update_alternates).
+There appears to be a probelm with using scheme-srfi-7, so it is not
+provided for the time being.
 <<
