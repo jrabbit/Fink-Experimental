@@ -143,8 +143,8 @@ if ($DOSCP) {
 	my $newfiles;
 	for my $file (@FILES) {
 		$newfiles .= ' ' . $file . '.new';
+		symlink($file . '.new', $file);
 	}
-	#print "rsync -av -e $ENV{CVS_RSH} $newfiles rangerrick\@fink.sourceforge.net:/home/groups/f/fi/fink/htdocs/news/rdf/ >/tmp/rss-rsync.log 2>&1\n";
 	`rsync -av -e $ENV{CVS_RSH} $newfiles rangerrick\@fink.sourceforge.net:/home/groups/f/fi/fink/htdocs/news/rdf/ >/tmp/rss-rsync.log 2>&1`;
 
 	my $movecommands;
@@ -152,8 +152,10 @@ if ($DOSCP) {
 		$file =~ s/.*\///;
 		$movecommands .= "; mv news/rdf/${file}.new news/rdf/${file}; chgrp fink news/rdf/${file}";
 	}
-	#print "$ENV{CVS_RSH} rangerrick\@fink.sourceforge.net 'cd /home/groups/f/fi/fink/htdocs; ./fix_perm.sh $movecommands' >/tmp/rss-mv.log 2>&1\n";
 	`$ENV{CVS_RSH} rangerrick\@fink.sourceforge.net 'cd /home/groups/f/fi/fink/htdocs; ./fix_perm.sh $movecommands' >/tmp/rss-mv.log 2>&1`;
+	for my $file (@FILES) {
+		unlink($file . '.new');
+	}
 	print "done\n";
 }
 
