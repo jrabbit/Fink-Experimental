@@ -1,0 +1,30 @@
+Package: aris-extract
+Version: 4.04
+Revision: 1
+Description: Reports IDS incidents to ARIN for global statistics
+Homepage: https://analyzer.securityfocus.com/
+License: BSD
+
+#Depends: snort, dlcompat, curl-ssl-shlibs (>= 7.9.0), curl-ssl-shlibs (=< 7.9.8)
+#Builddepends: dlcompat-dev, curl-ssl-dev (>= 7.9), curl-ssl-dev (=< 7.9.8)
+Depends: snort, dlcompat, curl-ssl-shlibs (>= 7.9.0), curl-ssl-shlibs (<< 7.9.9-1)
+Builddepends: dlcompat-dev, curl-ssl-dev (>= 7.9), curl-ssl-dev (<< 7.9.9-1)
+
+Source: "http://analyzer.securityfocus.com/downloads/extractor-%v.tar.gz?"
+Source-MD5: 2208c09970e7b82229189c37f10faff7
+Sourcerename: %n-%v.tar.gz
+Sourcedirectory: Extractor
+Patch: %f.patch
+CompileScript: make IOPT=-I/sw/include LOPT='-L/sw/lib -ldl'
+InstallScript: <<
+ make install EXTRACTORDIR=%i/share/extractor BINDIR=%i/bin
+ cd %i/bin; ln -sf ../share/extractor/bin/extractor
+<<
+DocFiles: CHANGES LICENSE README-FIRST extractor-tz-offset
+Maintainer: Carsten Klapp <carstenklapp@users.sourceforge.net>
+DescPort: patch submitted upstream
+DescPackaging: <<
+ Requires a slightly older version of curl-ssl from 10.1 stable:
+
+   sudo apt-get install curl-ssl-dev-7.9.8-1 curl-ssl-shlibs-7.9.8-1
+<<
