@@ -4,35 +4,54 @@ Revision: 10
 Maintainer: Peter O'Gorman <peter@pogma.com>
 Source: mirror:sourceforge:gttr/%n-%v.tar.gz
 Source-MD5: d1a56daf932c4334f92572335ba9b7a3
-ConfigureParams: --disable-dependency-tracking --disable-schemas-install --with-gconf-schema-file-dir=%i/etc/gconf/gconf.xml.defaults/schemas/apps/%n/Display/
+ConfigureParams: --disable-dependency-tracking --disable-shared
 NoSetLDFLAGS: true
 NoSetCPPFLAGS: true
-SetCPPFLAGS: -I%p/include/libgnomeprint-2.2 -I%p/include/libgtkhtml-3.0/
+SetCPPFLAGS: -I%p/include/libgnomeprint-2.2 -I%p/include/libgtkhtml-3.0/ -DPACKAGE=%n -DVERSION=%v
 SetLIBS: -lX11 -L/usr/X11R6/lib
-BuildDepends: atk1, audiofile, esound, gail17-dev, gal199-dev, gconf2-dev, gettext-dev, glib2-dev, gtk+2-dev, gtkhtml3-dev, guile16-dev, libart2, libbonobo2-dev, libbonoboui2-dev, libglade2, libgnome2-dev, libgnomecanvas2-dev, libgnomeprint2.2-dev, libgnomeprintui2.2-dev, libgnomeui2-dev, libiconv-dev, libjpeg, libxml2, orbit2-dev, pango1-xft2-dev, popt, x11-dev 
-Depends: atk1-shlibs, audiofile-shlibs, esound-shlibs, gail17-shlibs, gal199-shlibs, gconf2-shlibs, glib2-shlibs, gnome-vfs2-ssl-shlibs, gtk+2-shlibs, gtkhtml3-shlibs, guile16-shlibs, libart2-shlibs, libbonobo2-shlibs, libbonoboui2-shlibs, libglade2-shlibs, libgnome2-shlibs, libgnomecanvas2-shlibs, libgnomeprint2.2-shlibs, libgnomeprintui2.2-shlibs, libgnomeui2-shlibs, libiconv, libjpeg-shlibs, libxml2-shlibs, orbit2-shlibs, pango1-xft2-shlibs, popt-shlibs, scrollkeeper, x11-shlibs
+BuildDepends: atk1, audiofile, esound, gail17-dev, gal199-dev, gconf2-dev, gettext-dev, glib2-dev, gtk+2-dev, gtkhtml3-dev, guile16-dev, libart2, libbonobo2-dev, libbonoboui2-dev, libglade2, libgnome2-dev, libgnomecanvas2-dev, libgnomeprint2.2-dev, libgnomeprintui2.2-dev, libgnomeui2-dev, libiconv-dev, libjpeg, libxml2, orbit2-dev, pango1-xft2-dev, popt, x11-dev, pkgconfig
+Depends: atk1-shlibs, audiofile-shlibs, esound-shlibs, gail17-shlibs, gal199-shlibs, gconf2-shlibs, glib2-shlibs, gnome-vfs2-ssl-shlibs, gtk+2-shlibs, gtkhtml3-shlibs, guile16-shlibs, libart2-shlibs, libbonobo2-shlibs, libbonoboui2-shlibs, libglade2-shlibs, libgnome2-shlibs, libgnomecanvas2-shlibs, libgnomeprint2.2-shlibs, libgnomeprintui2.2-shlibs, libgnomeui2-shlibs, libiconv, libjpeg-shlibs, libxml2-shlibs, orbit2-shlibs, pango1-xft2-shlibs, popt-shlibs, scrollkeeper, x11-shlibs, slib-gu16, docbook-dtd (>= 4.2.0-2), gconf2
 Patch: %n.patch
+PatchScript: <<
+perl -pi -e 's,.*oasis.*,"file://%p/share/xml/dtd/docbookx/4.2.0/docbookx.dtd" \[,g' doc/C/gnotime.xml
+perl -pi -e 's,.*oasis.*,"file://%p/share/xml/dtd/docbookx/4.2.0/docbookx.dtd" \[,g' doc/es/gnotime.xml
+perl -pi -e 's,.*oasis.*,"file://%p/share/xml/dtd/docbookx/4.2.0/docbookx.dtd" \[,g' doc/eu/gnotime.xml
+<<
 CompileScript: <<
 #! /bin/sh -ex
 export LIBRARY_PATH=%p/lib
 export CPATH=%p/include
-./configure %c
-echo "all:" > gconf/Makefile
-echo "install:" >> gconf/Makefile
-make includedir="" || make
+guile16-build ./configure %c
+make includedir="" GCONFTOOL=: || make GCONFTOOL=:
 <<
 InstallScript: <<
 #! /bin/sh -ex
-make install DESTDIR=%d
+make install DESTDIR=%d GCONFTOOL=:
+rm -rf %i/lib %i/include
 <<
 PostInstScript: <<
-scrollkeeper-update -o %p/share/omf/gnotime
+GCONF_CONFIG_SOURCE=xml::%p/etc/gconf/gconf.xml.defaults %p/bin/gconftool-2 --makefile-install-rule %p/etc/gconf/schemas/gnotime.schemas
+gconftool-2 --shutdown
+%p/bin/scrollkeeper-update -o %p/share/omf/gnotime
 <<
+DocFiles: README COPYING
 Description: Gnome Time Tracker
 DescDetail: <<
-
+The Gnome Time Tracker is a to-do list/diary/journal tool that can track
+the amount of time spent on projects, and, among other things, generate
+reports and invoices based on that time. I've used it to keep shopping
+lists, organize ideas, track bug reports, keep a diary of activities,
+provide weekly status reports to management, and even as a consultant
+billing system.
 <<
 DescPort: <<
-
+Disabled schemas install (it insisted on doing it directly in %p
+Patch to make it use gtkhtml-3.0, 3.1 is not in fink yet.
+Work around strangeness where some parts need -I/sw/include and others break with it.
+Patch to fix waidpid include.
+PatchScript to change url's in the docbook xml files to local ones.
+Disabled shared, and removed the includes (too lazy to do splitoffs).
+Depends are probably wrong.
+Help seems to be broken  :(
 <<
 License: GPL
