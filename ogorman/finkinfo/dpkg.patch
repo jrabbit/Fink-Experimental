@@ -275,6 +275,36 @@ diff -urN dpkg-1.10.9.orig/dselect/pkgdepcon.cc dpkg-1.10.9/dselect/pkgdepcon.cc
    if (!depends->up->clientdata) return 0;
  
    switch (depends->type) {
+@@ -352,7 +360,28 @@
+ int packagelist::deppossatisfied(deppossi *possi, perpackagestate **fixbyupgrade) {
+   int would;
+   pkginfo::pkgwant want= pkginfo::want_purge;
+-  
++/* FINK LOCAL begin */
++  {
++      int interestingwarnings;
++      struct varbuf oemsgs;
++      struct FinkVirtualPkgs *virt_pkg = NULL; 
++      varbufinit(&oemsgs);
++      interestingwarnings= 0;
++      virt_pkg = fink_virt_pkg;
++      while (virt_pkg)
++      {
++            if (0==strcmp(possi->ed->name,virt_pkg->pkgname)) {
++            if (depdebug && debug)
++                fprintf(debug,"Found package : %s from VirtPackages.pm, depended by %s\n",virt_pkg->pkgname, possi->up->up->name);
++            if (versionsatisfied3(&virt_pkg->version,&possi->version,possi->verrel))
++            {
++                return 1;
++            }
++            }
++        virt_pkg = virt_pkg->next;
++      }
++  }    
++// FINK_LOCAL_END      
+   if (possi->ed->clientdata) {
+     want= possi->ed->clientdata->selected;
+     would= would_like_to_install(want,possi->ed);
 @@ -411,5 +440,6 @@
          *fixbyupgrade= provider->up->up->clientdata;
      }
