@@ -1,7 +1,7 @@
 <?
 $title = "i18n - Files";
 $cvs_author = 'Author: alexkhansen';
-$cvs_date = 'Date: 2004/03/04 22:05:44';
+$cvs_date = 'Date: 2004/03/05 14:41:43';
 
 $metatags = '<link rel="contents" href="index.php" title="i18n Contents"><link rel="next" href="procedure.php" title="Procedure for Updating Documents"><link rel="prev" href="intro.php" title="Introduction">';
 
@@ -67,7 +67,18 @@ Check out the xml module (for example):
         </li>
       </ol>
     
-    <h2><a name="initial-translation">2.3 Initial Translation</a></h2>
+    <h2><a name="updating">2.3 Update to latest revision</a></h2>
+      
+      <p>Since other translators will change some files (don't afraid about that, CVS can take good care of it) after you checked out the files, it is a good idea that update your working copy to the latest revision frequently. For updating, you can:</p>
+      <ol>
+        <li> follow steps 4 - 6 above, login to CVS.</li>
+        <li> move to the directory that contains the files you checked out, e.g:
+<pre>cd ~/Documents/Fink-i18n/web</pre></li>
+        <li> Update it, e.g:
+<pre>cvs -z3 -d:pserver:anonymous@cvs.sourceforge.net:/cvsroot/fink update</pre></li>
+      </ol>
+    
+    <h2><a name="initial-translation">2.4 Initial Translation</a></h2>
       
       <p>The files to translate, in order of priority, are:
 </p>
@@ -138,9 +149,10 @@ file, don't change it, but instead report it instead to the fink-i18n list, so
 that the master English file is changed.
 </p>
     
-    <h2><a name="committing">2.4 Committing the Changes</a></h2>
+    <h2><a name="committing">2.5 Committing the Changes</a></h2>
       
-      <p>Now you need to send your changes to the main server.  To do this you need to make sure that you have commits access.  This process is a bit different between the static and dynamic documents:</p>
+      <p>Now you need to send your changes to the main server.  To do this you need to make sure that you have commits access.  You also should make sure that you are using the same version of XSLT as everyone else, which currently is <code>xslt-1.1.2-2</code> from Fink.</p>
+<p>The commits process is a bit different between the static and dynamic documents:</p>
       <ul>
         <li>
           <b>Static:  </b>(PHP files only)To commit these documents do the following:<ol>
@@ -151,13 +163,7 @@ Set the cvs environment variable.
 For <code>bash</code> and <code>zsh</code>:
 <pre>export CVS_RSH=ssh</pre>
 For <code>tcsh</code>:
-<pre>setenv CVS_RSH ssh</pre>
-              <p>If you don't know how to use the <code>vi</code> editor you will want to set the EDITOR 
-environment variable to something more friendly, e.g. for bash and zsh:</p>
-              <pre>export EDITOR=pico</pre>
-              <p>and for tcsh:</p>
-              <pre>setenv EDITOR pico</pre>
-            </li>
+<pre>setenv CVS_RSH ssh</pre>            </li>
             <li>Move to the directory that contains the file you want to check in, e.g:
 <pre>cd ~/Documents/Fink-i18n/web/xml/web</pre>
               <p>if you created your <code>web</code> tree under <code>Documents/Fink-i18n/</code> in your home folder, and you want to commit a PHP file from the web/xml/web directory.</p>
@@ -172,40 +178,56 @@ environment variable to something more friendly, e.g. for bash and zsh:</p>
         </li>
         <li>
           <b>Dynamic:  </b>(XML and PHP).  After you've modified the XML file, do the following:<ol>
-            <li>Open a terminal--this will be referred to as Terminal 1</li>
-            <li>In Terminal 1, set the cvs environment variable.
+            <li>Open a terminal</li>
+            <li>Set the cvs environment variable.
 For <code>bash</code> and <code>zsh</code>:
 <pre>export CVS_RSH=ssh</pre>
 For <code>tcsh</code>:
 <pre>setenv CVS_RSH ssh</pre>
-              <p>If you don't know how to use the <code>vi</code> editor you will want to set the EDITOR 
-environment variable to something more friendly, e.g. for bash and zsh:</p>
-              <pre>export EDITOR=pico</pre>
-              <p>and for tcsh:</p>
-              <pre>setenv EDITOR pico</pre>
+              <p></p></li>
+            <li>Move to the directory that contains the file you've added or modified, e.g.<pre>cd ~/Documents/Fink-i18n/web/xml/faq</pre>if you've been working on the FAQ.</li>
+            <li>Now run<pre>make check</pre>To ensure that the file is valid.
             </li>
-            <li>In Terminal 1 move to the directory that contains your copy of the Fink web tree, e.g:
+            <li>If the XML file is a new one that you've created, then you need to add it to the list of files, e,g.:<pre>cvs -z3 -d:ext:username@cvs.sourceforge.net:/cvsroot/fink add faq.ru.xml</pre>
+    You'll need to give your SourceForge password.  You may get a message about the DSA key of the server.  Go ahead and answer yes.
+    <p>If the file already exists, you can skip to the next step.</p>
+            </li>
+            <li>Commit the file, e.g.:<pre>cvs -z3 -d:ext:username@cvs.sourceforge.net:/cvsroot/fink ci -m "message" faq.ru.xml</pre>
+              <p>where <b>message</b> is a descriptive message about what you've done.  Enter your SourceForge Password at the prompt.  You may get a message about the DSA key of the server.  Go ahead and anwer yes.</p>
+            </li>
+            <li>Now run<pre>make &amp;&amp; make install</pre>
+            </li>
+            <li>Move to the directory that contains your copy of the Fink web tree, e.g:
 <pre>cd ~/Documents/Fink-i18n</pre>
               <p>if you created your <code>web</code> tree under <code>Documents/Fink-i18n/</code> in your home folder.</p>
             </li>
-            <li>Open another terminal--which will be referred to as Terminal 2.</li>
-            <li>In Terminal 2 move to the directory that contains the file you've added or modified, e.g.<pre>cd ~/Documents/Fink-i18n/web/xml/faq</pre>if you've been working on the FAQ.</li>
-            <li>Now in Terminal 2, run<pre>make</pre>
+            <li>If the XML file was new, you'll need to do some more CVS adding.  For example, if you have been working on the FAQ, then, you'll want to run, in Terminal 1:<pre>cvs -z3 -d:ext:yourusername@cvs.sourceforge.net:/cvsroot/fink add 
+\ web/xml/web/faq/* 
+\ web/xml/scripts/installer/dmg/*</pre>
             </li>
-            <li>In Terminal 2, if the .xml file is a new one that you've created, then you need to add it to the list of files, e,g.:<pre>cvs -z3 -d:ext:username@cvs.sourceforge.net:/cvsroot/fink add faq.ru.xml</pre>
-    You'll need to give your SourceForge password.  You may get a message about the DSA key of the server.  Go ahead and anwer yes.
-    <p>If the file already exists, you can skip to the next step.</p>
+            <li>In Terminal 1, commit the whole web tree:<pre>cvs -z3 -d:ext:username@cvs.sourceforge.net:/cvsroot/fink -m "message" ci web</pre>          <p>Where once again <b>message</b> is a descriptive log message (you may want to use the same one as when you committed the XML file). Enter your SourceForge Password at the prompt.  You may get a message about the DSA key of the server.  Go ahead and anwer yes.</p>
             </li>
-            <li>In Terminal 1, commit the web tree:<pre>cvs -z3 -d:ext:username@cvs.sourceforge.net:/cvsroot/fink ci web</pre>
-              <p>You may get a message about the DSA key of the server.  Go ahead and anwer yes.</p>
-              <p>Note:  you can commit multiple files at once, and use wildcards, too.</p>
-            </li>
-            <li>Now in Terminal 2, run<pre>make &amp;&amp; make install</pre>
-            </li>
-            <li>If this was a new file, you'll need to do some more CVS adding.</li>
           </ol>
         </li>
       </ul>
+    
+    <h2><a name="website">2.6 Update our website</a></h2>
+      
+      <p>Want to see your efforts from our website right now? Just do the following:</p>
+      <ol>
+        <li>Open a terminal</li>
+        <li>log in web server via ssh:
+<pre>ssh username@shell.sourceforge.net</pre>
+You'll need to give your SourceForge password. You may get a message about the DSA key of the server. Go ahead and answer yes.</li>
+        <li>Move to the dictory contains our web pages:
+<pre>cd /home/groups/f/fi/fink/htdocs</pre></li>
+        <li>update the website from CVS:
+<pre>./update.sh</pre></li>
+        <li>log out from web server:
+<pre>exit</pre></li>
+        <li>See your efforts:
+<pre>open http://fink.sourceforge.net/</pre></li>
+      </ol>
     
   <p align="right">
 Next: <a href="procedure.php">3 Procedure for Updating Documents</a></p>

@@ -1,7 +1,7 @@
 <?
 $title = "i18n";
 $cvs_author = 'Author: alexkhansen';
-$cvs_date = 'Date: 2004/03/04 22:05:44';
+$cvs_date = 'Date: 2004/03/05 14:41:43';
 
 $metatags = '<link rel="contents" href="index.php" title="i18n Contents"><link rel="next" href="intro.php" title="Introduction">';
 
@@ -27,8 +27,10 @@ to contribute to the i18n effort for the Fink website.</p>
 <ul>
 <li><a href="files.php#file-standards">2.1 File Standards</a></li>
 <li><a href="files.php#acquiring">2.2 Acquiring Files to Work on.</a></li>
-<li><a href="files.php#initial-translation">2.3 Initial Translation</a></li>
-<li><a href="files.php#committing">2.4 Committing the Changes</a></li>
+<li><a href="files.php#updating">2.3 Update to latest revision</a></li>
+<li><a href="files.php#initial-translation">2.4 Initial Translation</a></li>
+<li><a href="files.php#committing">2.5 Committing the Changes</a></li>
+<li><a href="files.php#website">2.6 Update our website</a></li>
 </ul>
 <li><a href="procedure.php"><b>3 Procedure for Updating Documents</b></a></li>
 <ul>
@@ -39,9 +41,11 @@ to contribute to the i18n effort for the Fink website.</p>
 </ul>
 <li><a href="resources.php"><b>4 Additional Resources.</b></a></li>
 <ul>
-<li><a href="resources.php#resources">4.1 </a></li>
+<li><a href="resources.php#resources">4.1 Important Links</a></li>
+<li><a href="resources.php#editors">4.2 Editors</a></li>
+<li><a href="resources.php#moretools">4.3 Useful Tools</a></li>
 </ul>
-</ul><p>Generated from <i>$Fink: multilingual.xml,v 1.5 2004/03/04 22:05:44 alexkhansen Exp $</i></p>
+</ul><p>Generated from <i>$Fink: multilingual.xml,v 1.6 2004/03/05 14:41:43 alexkhansen Exp $</i></p>
 
 
 <?
