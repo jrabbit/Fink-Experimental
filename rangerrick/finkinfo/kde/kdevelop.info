@@ -1,28 +1,31 @@
 Package: kdevelop
 Version: 3.0.0
-Revision: 1
+Revision: 0.a5.1
 Description: KDE - development IDE
 License: GPL/LGPL
 Maintainer: Benjamin Reed <ranger@befunk.com>
 
-Depends: kdelibs3-ssl (>= 3.1.4-1) | kdelibs3 (>= 3.1.4-1), kdebase3-ssl (>= 3.1.4-1) | kdebase3 (>= 3.1.4-1), dlcompat-shlibs (>= 20030629-1),  libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-1), qt3 (>= 3.2.1-1), python22 (>= 2.2.1-1) | python22-nox (>= 2.2.1-1), graphviz
-BuildDepends: arts-dev (>= 1.1.4-1), autoconf2.54, automake1.6, cctools (>= 446-1) | cctools-single-module, dlcompat-dev (>= 20030629-1), doxygen, fink (>= 0.12.1-1), flex, graphviz, kdelibs3-ssl-dev (>= 3.1.4-1) | kdelibs3-dev (>= 3.1.4-1), kdebase3-ssl-dev (>= 3.1.4-1) | kdebase3-dev (>= 3.1.4-1), libart2, libjpeg, libpng3 (>= 1.2.5-4), libtool14, python22 (>= 2.2.1-1) | python22-nox (>= 2.2.1-1), qt3 (>= 3.2.1-1)
-GCC: 3.1
+Depends: kdelibs3-ssl (>= 3.1.93-1) | kdelibs3 (>= 3.1.93-1), kdebase3-ssl (>= 3.1.93-1) | kdebase3 (>= 3.1.93-1), dlcompat-shlibs (>= 20030629-1),  libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.1-1), qt3 (>= 3.2.1-1), python22 (>= 2.2.1-1) | python22-nox (>= 2.2.1-1), graphviz
+BuildDepends: arts-dev (>= 1.1.93-1), autoconf2.54, automake1.6, cctools (>= 446-1) | cctools-single-module, dlcompat-dev (>= 20030629-1), doxygen, fink (>= 0.12.1-1), flex (>= 2.5.31-1), graphviz, kdelibs3-ssl-dev (>= 3.1.93-1) | kdelibs3-dev (>= 3.1.93-1), kdebase3-ssl-dev (>= 3.1.93-1) | kdebase3-dev (>= 3.1.93-1), libart2, libjpeg, libpng3 (>= 1.2.5-4), libtool14, python22 (>= 2.2.1-1) | python22-nox (>= 2.2.1-1), qt3 (>= 3.2.1-1)
+GCC: 3.3
 
 CustomMirror: <<
   nam-US: http://ranger.befunk.com/fink
   nam-US: http://astrange.ithinksw.net/~astrange/ranger-fink
   nam-CA: http://www.southofheaven.net/befunk
 <<
-Source: mirror:kde:unstable/kdevelop-3.0-alpha4a/src/%n-3.0a4a.tar.bz2
-#Source: mirror:custom:%n-osx-3.0-alpha4b.tar.bz2
-#Source-MD5: 183342aeb902074bbccdfb1330e010a4
-SourceDirectory: %n-3.0a4a
-Source2: mirror:custom:kde-admindir-20030807.tar.bz2
-Source2-MD5: 9b8b1f6b496ae99212a081445f609e23
-Source2ExtractDir: %n-3.0a4a
+Source: mirror:kde:unstable/kdevelop-3.0-alpha5/src/%n-3.0a5.tar.bz2
+Source-MD5: 46d24cf9688ad1988285fa42939237db
+SourceExtractDir: %n-3.0a5
+Source2: mirror:custom:kde-admindir-3.1.93.tar.bz2
+Source2-MD5: c818720d3ab2ea6d9cd880f5adc28e0d
+Source2ExtractDir: %n-3.0a5
 
-PatchScript: sed 's|@PREFIX@|%p|g' <%a/%n.patch | patch -p0
+PatchScript: <<
+  patch -p0 < %a/%n.patch
+  perl -pi -e 's,-O2,-Os,' admin/acinclude.m4.in
+  perl -pi -e 's,doc/HTML,doc/kde,g' admin/acinclude.m4.in
+<<
 
 SetCPPFLAGS: -fno-common -no-cpp-precomp -I/usr/X11R6/include/freetype2 -I/usr/X11R6/include -I%p/include -I%p/include/db4
 SetLIBS: -L%p/lib
@@ -30,29 +33,32 @@ NoSetLDFLAGS: true
 SetMACOSX_DEPLOYMENT_TARGET: 10.2
 ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --disable-final --with-pythondir=%p --with-qtdoc-dir=%p/share/doc/qt3/html --with-kdelibsdoxy-dir=%p/share/doc/kde/en/kdelibs-3.1.2-apidocs --with-kdelibsdoc-dir=%p/share/doc/kde/en/kdelibs-3.1.2-apidocs --enable-scripting --enable-javasupport --enable-debug
 CompileScript: <<
-#!/bin/sh
-  export KDEDIR=%p
+#!/bin/sh -e
   mkdir -p /tmp/kde-build
 
+# breaks a lot of plugins on 10.2, enable this again on 10.3
+#  export LD_TWOLEVEL_NAMESPACE=true
+  export PATH="/usr/X11R6/bin:$PATH"
+  
   date > /tmp/kde-build/%N-%v-%r.cvs
   make -f admin/Makefile.common cvs 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.cvs
-  [ $? -gt 0 ] && exit 1
-
   date > /tmp/kde-build/%N-%v-%r.configure
-  sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure
-  [ $? -gt 0 ] && exit 1
-
+  FREETYPE_CONFIG=/usr/X11R6/bin/freetype-config sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure
   date > /tmp/kde-build/%N-%v-%r.make
-  make -j2 all 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.make
+  find . -name \*.l -exec touch {} \;
+  find . -name \*.ll -exec touch {} \;
 <<
 
 InstallScript: <<
-#!/bin/sh
+#!/bin/sh -e
   mkdir -p /tmp/kde-build
+  mkdir -p %i/share/doc/kde-installed-packages
+  touch %i/share/doc/kde-installed-packages/%N
 
   date > /tmp/kde-build/%N-%v-%r.install
-  make install DESTDIR=%d 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.install
+  make -j1 install DESTDIR=%d 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.install
 <<
+
 DocFiles: AUTHORS COPYING* ChangeLog HACKING INSTALL NEWS README TODO
 
 DescDetail: <<
