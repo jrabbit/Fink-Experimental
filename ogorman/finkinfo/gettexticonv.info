@@ -1,0 +1,90 @@
+Package: gettexticonv
+Version: 0.1
+Revision: 1
+BuildDepends: fink (>= 0.13.0), fink-prebinding
+Source: mirror:gnu:gettext/gettext-0.10.40.tar.gz
+Source-MD5: 6a17767b47ffb45b4866cec9fb0a39b0
+Source2: mirror:sourceforge:fink/libiconv-1.9.2.tar.gz
+Source2-MD5: 6bc300365053c815b10b800a21e0bc7e
+Patch: gettext.patch
+NoSetLDFLAGS: true
+NoSetCPPFLAGS: true
+CompileScript: <<
+#! /bin/sh -ex
+PATH=/bin:/sbin:/usr/bin:/usr/sbin
+export PATH
+cd %b/../libiconv-1.9.2
+./configure --prefix=%p
+make
+find . -name "*.la" | xargs perl -pi.bak -e 's/relink_commands=.*/relink_commands=/g'
+find . -name "*.la" | xargs perl -pi.bak -e 's/dependency_libs=.*/dependency_libs=/g'
+find . -name "*.lai" | xargs perl -pi.bak -e 's/dependency_libs=.*/dependency_libs=/g'
+make install DESTDIR=%b/../_inst
+cd %b/../gettext-0.10.40
+CPPFLAGS="-I%b/../_inst/%p/include" LDFLAGS="-L%b/../_inst/%p/lib" ./configure --prefix=%p --infodir=%p/share/info --mandir=%p/share/man --with-included-gettext
+make
+find . -name "*.la" | xargs perl -pi.bak -e 's/relink_commands=.*/relink_commands=/g'
+find . -name "*.la" | xargs perl -pi.bak -e 's/dependency_libs=.*/dependency_libs=/g'
+find . -name "*.lai" | xargs perl -pi.bak -e 's/dependency_libs=.*/dependency_libs=/g'
+rm -rf %b/../_inst
+make install DESTDIR=%b/../_inst
+cd %b/../libiconv-1.9.2
+make distclean
+CPPFLAGS="-I%b/../_inst/%p/include" LDFLAGS="-L%b/../_inst/%p/lib" ./configure --prefix=%p --mandir=%p/share/man
+make
+find . -name "*.la" | xargs perl -pi.bak -e 's/relink_commands=.*/relink_commands=/g'
+find . -name "*.la" | xargs perl -pi.bak -e 's/dependency_libs=.*/dependency_libs=/g'
+find . -name "*.lai" | xargs perl -pi.bak -e 's/dependency_libs=.*/dependency_libs=/g'
+<<
+InstallScript: <<
+#! /bin/sh -ex
+cd %b/../libiconv-1.9.2
+make install DESTDIR=%d
+cd %b/../gettext-0.10.40
+make install DESTDIR=%d
+rm -rf %i/share/emacs/site-lisp
+mv %i/doc/gettext %i/share/doc
+<<
+Splitoff: <<
+  Package: %N-shlibs
+  Provides: libiconv, gettext
+  Replaces: libiconv, gettext
+  Files: lib/libcharset.1.0.0.dylib lib/libcharset.1.dylib lib/libiconv.2.2.0.dylib lib/libiconv.2.dylib lib/libintl.1.0.1.dylib lib/libintl.1.dylib
+  Description: libiconv and gettext shared libraries
+  Essential: Yes
+  DocFiles: COPYING*
+  Shlibs: <<
+   %p/lib/libintl.1.dylib 2.0.0 %n (>= 0.1-1)
+   %p/lib/libcharset.1.dylib 2.0.0 %n (>= 0.1-1)
+   %p/lib/libiconv.2.dylib 5.0.0 %n (>= 0.1-1)
+  <<
+<<
+SplitOff2: <<
+ Package: libiconv-bin
+ Essential: false
+ Depends: libiconv
+ Files: bin/iconv share/doc/libiconv/*.html share/man/man1/iconv.1 share/man/man3/iconv*.3
+ Description: Executables for libiconv package
+ DocFiles: ../libiconv-1.9.2/README* ../libiconv-1.9.2/AUTHORS ../libiconv-1.9.2/COPYING.LIB ../libiconv-1.9.2/DESIGN ../libiconv-1.9.2/NEWS ../libiconv-1.9.2/NOTES ../libiconv-1.9.2/THANKS
+<<
+SplitOff3: <<
+ Package: gettext-bin
+ Depends: %N (= %v-%r)
+ Replaces: %N (<= 0.10.40-4)
+ Files: bin share/aclocal share/doc/gettext/*.html share/gettext share/info share/locale share/man
+ Description: Executables for gettext package
+ InfoDocs: gettext.info
+ DocFiles: COPYING*
+<<
+SplitOff4: <<
+ Package: %N-dev
+ Depends: %N (= %v-%r)
+ Provides: gettext-dev, libiconv-dev
+ Replaces: gettext (<= 0.10.40-4), gettext-dev, libiconv-dev
+ BuildDependsOnly: true
+ Files: include lib/libintl.dylib lib/libcharset.dylib lib/libiconv.dylib  lib/*.a lib/*.la
+ Description: Developer files for gettext and libiconv packages
+ DocFiles: COPYING*
+<<
+Maintainer: Fink Core <peter@pogma.com>
+DocFiles: COPYING*
