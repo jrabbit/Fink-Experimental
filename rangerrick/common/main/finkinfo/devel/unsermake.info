@@ -1,6 +1,6 @@
 Package: unsermake
-Version: 0.3
-Revision: 0.20040815.1
+Version: 0.3.1
+Revision: 0.20050302.1
 Description: automake replacement
 License: GPL
 Maintainer: Benjamin Reed <unsermake@fink.racoonfink.com>
@@ -10,8 +10,8 @@ CustomMirror: <<
   nam-US: http://astrange.ithinksw.net/~astrange/ranger-fink
   nam-CA: http://www.southofheaven.net/befunk
 <<
-Source: mirror:custom:%n-%v-20040815.tar.bz2
-Source-MD5: acad92e80650daa06c52bc6be15e4f76
+Source: mirror:custom:%n-20050302.tar.bz2
+Source-MD5: 63bc97db183ea2da2844711256ba4299
 SourceDirectory: %n
 
 CompileScript: echo "nothing to do"
@@ -19,20 +19,28 @@ InstallScript: <<
 #!/bin/sh -ex
 
 	install -d -m 755 %i/share/unsermake
-	install -m 755 unsermake %i/share/unsermake/
 	install -m 644 *.um *.py %i/share/unsermake/
 
 	install -d -m 755 %i/bin
 	cat <<END >%i/bin/unsermake
 #!/bin/sh
 
-export UNSERMAKE="%p/share/unsermake/unsermake"
-"%p/share/unsermake/unsermake" "\$@"
+mods="%p/share/unsermake"
+directory="%p/share"
+mod="unsermake"
+
+if test -n "\$PYTHONPATH"; then
+   export PYTHONPATH=\$directory:\$PYTHONPATH
+else
+   export PYTHONPATH=\$directory
+fi
+exec python -c "import \$mod; \$mod.main()" --modules \$mods "\$@"
 END
+
 	chmod 755 "%i/bin/unsermake"
 <<
 
-DocFiles: README TODO doc/*.*
+DocFiles: COPYING README TODO doc/*.*
 
 Homepage: http://www.kde.me.uk/index.php?page=unsermake
 DescDetail: <<

@@ -1,6 +1,39 @@
-diff -uNr kdebase-3.3.92/kdeprint/kprinter/printwrapper.cpp kdebase-3.3.92-new/kdeprint/kprinter/printwrapper.cpp
---- kdebase-3.3.92/kdeprint/kprinter/printwrapper.cpp	Fri Nov 26 07:07:25 2004
-+++ kdebase-3.3.92-new/kdeprint/kprinter/printwrapper.cpp	Mon Feb 14 09:15:25 2005
+diff -uNr kdebase-3.4.0/Makefile.am.in kdebase-3.4.0-new/Makefile.am.in
+--- kdebase-3.4.0/Makefile.am.in	Thu Feb  3 18:18:46 2005
++++ kdebase-3.4.0-new/Makefile.am.in	Tue Mar  1 16:07:02 2005
+@@ -9,7 +9,7 @@
+ 
+ AUTOMAKE_OPTIONS = foreign 1.5
+ 
+-bin_SCRIPTS = startkde
++bin_SCRIPTS = startkde startkde-remap-keys.pl
+ 
+ EXTRA_DIST = admin bsd-port debian kdebase.spec.in README.pam kde.pamd kscreensaver.pamd mkpamserv
+ 
+diff -uNr kdebase-3.4.0/kcontrol/kfontinst/configure.in.in kdebase-3.4.0-new/kcontrol/kfontinst/configure.in.in
+--- kdebase-3.4.0/kcontrol/kfontinst/configure.in.in	Wed Feb 23 06:25:11 2005
++++ kdebase-3.4.0-new/kcontrol/kfontinst/configure.in.in	Tue Mar  1 09:30:10 2005
+@@ -56,7 +56,7 @@
+             done
+             LIBFONTCONFIG_RPATH=`echo $LIBFONTCONFIG_RPATH | sed -e "s/-L/-R/g"`
+             LIBFONTCONFIG_CFLAGS="`$PKGCONFIG fontconfig --cflags`"
+-            KFI_FOUND_FONTCONFIG=1
++            KFI_FOUND_FONTCONFIG=0
+         fi
+     fi
+ 
+@@ -74,7 +74,7 @@
+             done
+             LIBFONTCONFIG_RPATH=`echo $LIBFONTCONFIG_RPATH | sed -e "s/-L/-R/g"`
+             LIBFONTCONFIG_CFLAGS="`$FONTCONFIG_CONFIG --cflags`"
+-            KFI_FOUND_FONTCONFIG=1
++            KFI_FOUND_FONTCONFIG=0
+         fi
+     fi
+ 
+diff -uNr kdebase-3.4.0/kdeprint/kprinter/printwrapper.cpp kdebase-3.4.0-new/kdeprint/kprinter/printwrapper.cpp
+--- kdebase-3.4.0/kdeprint/kprinter/printwrapper.cpp	Fri Nov 26 07:07:25 2004
++++ kdebase-3.4.0-new/kdeprint/kprinter/printwrapper.cpp	Tue Mar  1 09:29:13 2005
 @@ -137,10 +137,6 @@
  {
  	KCmdLineArgs	*args = KCmdLineArgs::parsedArgs();
@@ -23,9 +56,72 @@ diff -uNr kdebase-3.3.92/kdeprint/kprinter/printwrapper.cpp kdebase-3.3.92-new/k
  
  #  if defined(HAVE_SIGSET)
  		sigset(SIGHUP, signal_handler);
-diff -uNr kdebase-3.3.92/kioslave/info/kde-info2html.conf kdebase-3.3.92-new/kioslave/info/kde-info2html.conf
---- kdebase-3.3.92/kioslave/info/kde-info2html.conf	Tue Feb 24 06:30:11 2004
-+++ kdebase-3.3.92-new/kioslave/info/kde-info2html.conf	Mon Feb 14 09:15:25 2005
+diff -uNr kdebase-3.4.0/kdesktop/init.cc kdebase-3.4.0-new/kdesktop/init.cc
+--- kdebase-3.4.0/kdesktop/init.cc	Thu Feb  3 18:18:56 2005
++++ kdebase-3.4.0-new/kdesktop/init.cc	Tue Mar  1 16:50:06 2005
+@@ -42,6 +42,9 @@
+ #include <errno.h>
+ #include <ksimpleconfig.h>
+ 
++#include <sys/attr.h>
++#include <sys/paths.h>
++
+ // for multihead
+ extern int kdesktop_screen_number;
+ 
+@@ -207,7 +210,7 @@
+     // Take care of creating or updating trash.desktop
+     const QString trashDir = KGlobal::dirs()->localxdgdatadir() + "Trash";
+     const bool firstTimeWithNewTrash = !QFile::exists( trashDir );
+-    const QString trashDesktopPath = desktopPath + "/trash.desktop";
++    const QString trashDesktopPath = desktopPath + "/.trash.desktop";
+     const bool trashDesktopExists = QFile::exists( trashDesktopPath );
+     const bool installNewTrashi18n = newRelease && trashDesktopExists; // not if deleted by user
+     if ( emptyDesktop || firstTimeWithNewTrash || installNewTrashi18n ) {
+@@ -223,6 +226,18 @@
+             trashDesktop.writeEntry( "Icon", oldIcon );
+             trashDesktop.writeEntry( "EmptyIcon", oldEmptyIcon );
+             trashDesktop.sync();
++        }
++        fileinfobuf finfo;
++        struct attrlist alist;
++        int result = getattrlist(trashDesktopPath, &alist, &finfo, sizeof(fileinfobuf), 0);
++        if (result != 0) {
++          kdDebug() << "couldn't get attribute list for " << trashDesktopPath << endl;
++        } else {
++          finfo.data.finder.fdFlags |= kFinfoIsInvisible;
++          result = setattrlist(trashDesktopPath, &alist, &finfo.data, sizeof(finfo.data), 0);
++          if (result != 0) {
++            kdDebug() << "couldn't set attribute list for " << trashDesktopPath << endl;
++          }
+         }
+     }
+ 
+diff -uNr kdebase-3.4.0/kdesktop/init.h kdebase-3.4.0-new/kdesktop/init.h
+--- kdebase-3.4.0/kdesktop/init.h	Sun Oct 31 17:53:12 1999
++++ kdebase-3.4.0-new/kdesktop/init.h	Tue Mar  1 16:49:21 2005
+@@ -27,4 +27,18 @@
+  */
+ void testLocalInstallation();
+ 
++typedef struct fileinfobuf {
++   u_int32_t info_length;
++   union {
++     struct {
++       u_int32_t type;
++       u_int32_t creator;
++       u_int16_t fdFlags;
++       u_int16_t location;
++       u_int32_t padding[4];
++     } finder;
++     off_t rsrcForkSize;
++   } data;
++} fileinfobuf;
++
+ #endif
+diff -uNr kdebase-3.4.0/kioslave/info/kde-info2html.conf kdebase-3.4.0-new/kioslave/info/kde-info2html.conf
+--- kdebase-3.4.0/kioslave/info/kde-info2html.conf	Tue Feb 24 06:30:11 2004
++++ kdebase-3.4.0-new/kioslave/info/kde-info2html.conf	Tue Mar  1 09:29:13 2005
 @@ -25,6 +25,7 @@
  
  #-- location of info files.
@@ -34,9 +130,9 @@ diff -uNr kdebase-3.3.92/kioslave/info/kde-info2html.conf kdebase-3.3.92-new/kio
  	    "/usr/share/info",
  	    "/usr/info",
  	    "/usr/lib/info",
-diff -uNr kdebase-3.3.92/kioslave/man/kio_man.cpp kdebase-3.3.92-new/kioslave/man/kio_man.cpp
---- kdebase-3.3.92/kioslave/man/kio_man.cpp	Mon Nov 15 21:10:34 2004
-+++ kdebase-3.3.92-new/kioslave/man/kio_man.cpp	Mon Feb 14 09:15:25 2005
+diff -uNr kdebase-3.4.0/kioslave/man/kio_man.cpp kdebase-3.4.0-new/kioslave/man/kio_man.cpp
+--- kdebase-3.4.0/kioslave/man/kio_man.cpp	Mon Nov 15 21:10:34 2004
++++ kdebase-3.4.0-new/kioslave/man/kio_man.cpp	Tue Mar  1 09:29:13 2005
 @@ -50,7 +50,7 @@
  
  MANProtocol *MANProtocol::_self = 0;
@@ -54,9 +150,9 @@ diff -uNr kdebase-3.3.92/kioslave/man/kio_man.cpp kdebase-3.3.92-new/kioslave/ma
                          NULL };
  
  
-diff -uNr kdebase-3.3.92/libkonq/Makefile.am kdebase-3.3.92-new/libkonq/Makefile.am
---- kdebase-3.3.92/libkonq/Makefile.am	Sun Nov 21 05:07:01 2004
-+++ kdebase-3.3.92-new/libkonq/Makefile.am	Mon Feb 14 09:38:58 2005
+diff -uNr kdebase-3.4.0/libkonq/Makefile.am kdebase-3.4.0-new/libkonq/Makefile.am
+--- kdebase-3.4.0/libkonq/Makefile.am	Sun Nov 21 05:07:01 2004
++++ kdebase-3.4.0-new/libkonq/Makefile.am	Tue Mar  1 09:29:13 2005
 @@ -21,7 +21,7 @@
  
  lib_LTLIBRARIES = libkonq.la
@@ -66,25 +162,22 @@ diff -uNr kdebase-3.3.92/libkonq/Makefile.am kdebase-3.3.92-new/libkonq/Makefile
  
  libkonq_la_SOURCES = konq_popupmenu.cc knewmenu.cc \
     konq_xmlguiclient.cc\
-diff -uNr kdebase-3.3.92/startkde kdebase-3.3.92-new/startkde
---- kdebase-3.3.92/startkde	Thu Feb  3 18:18:46 2005
-+++ kdebase-3.3.92-new/startkde	Mon Feb 14 09:15:25 2005
-@@ -3,6 +3,14 @@
- #  DEFAULT KDE STARTUP SCRIPT ( KDE-3.3.92 )
+diff -uNr kdebase-3.4.0/startkde kdebase-3.4.0-new/startkde
+--- kdebase-3.4.0/startkde	Wed Feb 23 06:24:24 2005
++++ kdebase-3.4.0-new/startkde	Tue Mar  1 16:07:15 2005
+@@ -3,6 +3,11 @@
+ #  DEFAULT KDE STARTUP SCRIPT ( KDE-3.4 )
  #
  
-+source @FINKPREFIX@/bin/init.sh
-+
-+for KEY in Up Down Left Right; do
-+	FOO=$(xmodmap -pk | grep "($KEY)" | grep -i slash | cut -f 1); xmodmap -e"keycode $FOO = $KEY"
-+done
-+
 +source "@FINKPREFIX@/bin/init.sh"
++
++@FINKPREFIX@/bin/startkde-remap-keys.pl
++nohup @FINKPREFIX@/bin/esd -noterminate -nobeeps -as 2 >/dev/null 2>&1 &
 +
  # When the X server dies we get a HUP signal from xinit. We must ignore it
  # because we still need to do some cleanup.
  trap 'echo GOT SIGHUP' HUP
-@@ -179,21 +187,24 @@
+@@ -179,21 +184,24 @@
  
  echo 'startkde: Starting up...'  1>&2
  
@@ -124,7 +217,7 @@ diff -uNr kdebase-3.3.92/startkde kdebase-3.3.92-new/startkde
  
  # the splashscreen and progress indicator
  splash=`kreadconfig --file ksplashrc --group KSplash --key Theme`
-@@ -227,7 +238,29 @@
+@@ -227,7 +235,29 @@
  # We only check for 255 which means that the ksmserver process could not be 
  # started, any problems thereafter, e.g. ksmserver failing to initialize, 
  # will remain undetected.
@@ -155,3 +248,34 @@ diff -uNr kdebase-3.3.92/startkde kdebase-3.3.92-new/startkde
  kwrapper ksmserver $KDEWM 
  if test $? -eq 255; then
    # Startup error
+diff -uNr kdebase-3.4.0/startkde-remap-keys.pl kdebase-3.4.0-new/startkde-remap-keys.pl
+--- kdebase-3.4.0/startkde-remap-keys.pl	Wed Dec 31 19:00:00 1969
++++ kdebase-3.4.0-new/startkde-remap-keys.pl	Tue Mar  1 16:00:56 2005
+@@ -0,0 +1,27 @@
++#!/usr/bin/perl
++
++my @keys = ('Up', 'Down', 'Left', 'Right');
++
++open (XMODMAP, "xmodmap -pk |") or die "couldn't run xmodmap -pk: $!\n";
++
++while (my $line = <XMODMAP>) {
++	chomp($line);
++	$line =~ s/^\s*(.*?)\s*$/$1/;
++	my ($keycode, @values) = split(/[	 ]+/, $line);
++
++	for my $index (0..$#values) {
++		$values[$index] =~ s/^\((.*)\)$/$1/;
++	}
++
++	my @primary = (shift @values, shift @values);
++
++	for my $key (@keys) {
++		if ($primary[1] eq $key) {
++			my @command = ('xmodmap', '-e', "keycode $keycode = $key");
++			print join(', ', @command), "\n" if (@ARGV);
++			system(@command);
++		}
++	}
++
++}
++
