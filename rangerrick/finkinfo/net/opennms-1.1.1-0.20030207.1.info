@@ -1,18 +1,19 @@
 Package: opennms
 Version: 1.1.1
-Revision: 0.20030206.1
+Revision: 0.20030207.1
 
 CustomMirror: <<
   nam-US: ftp://ftp.opennms.org/pub/development/snapshots
   nam-US: http://ranger.befunk.com/fink
   nam-CA: http://www.southofheaven.net/befunk
 <<
-Source: mirror:custom:opennms-20030206.tar.bz2
-Source-MD5: 65d7241c2d1453e2386e66fd74895736
+Source: mirror:custom:opennms-20030207.tar.bz2
+Source-MD5: f948dca11c34aa198d15d466eb951c5d
 SourceDirectory: %n
+Patch: %f.patch
 
-BuildDepends: ant (>= 1.5), postgresql-dev (>= 7.3.1) | postgresql-ssl-dev (>= 7.3.1), tomcat (>= 4.1.18-4), commons-logging (>= 1.0.3), rrdtool (>= 1.0.40-2), passwd (>= 20030202-1)
-Depends: postgresql (>= 7.3.1), tomcat (>= 4.1.18-4), commons-logging (>= 1.0.3), rrdtool (>= 1.0.40-2), daemonic, passwd (>= 20030202-1), dbd-pg-pm (>= 1.21), getopt-mixed-pm
+BuildDepends: ant (>= 1.5), postgresql73-dev | postgresql73-ssl-dev, tomcat (>= 4.1.18-4), commons-logging (>= 1.0.3), rrdtool (>= 1.0.40-2), passwd (>= 20030202-1)
+Depends: postgresql73 | postgresql73-ssl, tomcat (>= 4.1.18-4), commons-logging (>= 1.0.3), rrdtool (>= 1.0.40-2), daemonic, passwd (>= 20030202-1), dbd-pg-pm (>= 1.21), getopt-mixed-pm
 ConfFiles: <<
   %p/var/opennms/etc/actiond-configuration.xml
   %p/var/opennms/etc/capsd-configuration.xml
@@ -71,7 +72,6 @@ ConfFiles: <<
   %p/var/opennms/etc/vulnscand-configuration.xml
   %p/var/opennms/etc/webui-colors.xml
 <<
-PatchScript: sed -e 's:@PREFIX@:%p:g' -e 's:@DESTDIR@:%d:g' <%a/%f.patch | patch -p1
 CompileScript: <<
 #!/bin/sh
   NEW_JDK=false
@@ -93,7 +93,8 @@ CompileScript: <<
   # opennms will find it's own stuff
   export CLASSPATH=""
   rm -rf work dist
-  ./build.sh -v compile
+  sed -e 's:@PREFIX@:%p:g' -e 's:@DESTDIR@:%d:g' < tools/packages/fink/build.properties > build.properties
+  ./build.sh compile
 <<
 InstallScript: <<
 #!/bin/sh
@@ -186,7 +187,7 @@ RuntimeVars: OPENNMS_HOME: %p/var/opennms
 Homepage: http://www.opennms.org/
 Maintainer: Benjamin Reed <ranger@befunk.com>
 Description: Network Management System
-DocFiles: README.Darwin
+DocFiles: tools/packages/fink/README.Darwin
 DescDetail: <<
 OpenNMS is an open-source, enterprise-level network management system
 along the lines of HP's OpenView line of network management tools, or

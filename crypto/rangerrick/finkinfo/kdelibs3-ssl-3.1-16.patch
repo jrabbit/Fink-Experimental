@@ -20,6 +20,17 @@
  
  AC_SUBST(EXTRA_SUBDIRS)
  
+--- kde.pot	14 Jan 2003 19:45:33 -0000	1.1.1.13
++++ kde.pot	21 Jan 2003 04:54:33 -0000	1.1.1.14
+@@ -6,7 +6,7 @@
+ msgid ""
+ msgstr ""
+ "Project-Id-Version: PACKAGE VERSION\n"
+-"POT-Creation-Date: 2003-01-09 04:32+0100\n"
++"POT-Creation-Date: 2003-01-18 01:50+0100\n"
+ "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+ "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+ "Language-Team: LANGUAGE <LL@li.org>\n"
 --- arts/kde/mcop-dcop/Makefile.am	10 Jul 2002 04:41:04 -0000	1.1.1.2
 +++ arts/kde/mcop-dcop/Makefile.am	26 Nov 2002 21:00:48 -0000	1.2
 @@ -1,16 +1,23 @@
@@ -288,6 +299,7 @@ diff -N dcop/dcopserver_main.cpp
 +{
 +	return kdemain(argc, argv);
 +}
+Binary files /tmp/cvsdElOgB and /tmp/cvs8pPc4v differ
 --- interfaces/kmediaplayer/Makefile.am	10 Jul 2002 04:41:58 -0000	1.1.1.1
 +++ interfaces/kmediaplayer/Makefile.am	24 Nov 2002 07:11:20 -0000	1.2
 @@ -3,7 +3,7 @@
@@ -346,7 +358,7 @@ diff -N dcop/dcopserver_main.cpp
  libkabc_la_SOURCES = \
    address.cpp addressbook.cpp addressee.cpp addresseedialog.cpp agent.cpp \
 --- kabc/plugins/ldap/configure.in.in	14 Jan 2003 19:45:52 -0000	1.1.1.3
-+++ kabc/plugins/ldap/configure.in.in	14 Jan 2003 23:53:31 -0000	1.7
++++ kabc/plugins/ldap/configure.in.in	9 Feb 2003 17:00:14 -0000	1.8
 @@ -19,7 +19,7 @@
    fi
    if test $with_ldap = FOUND ; then
@@ -356,6 +368,19 @@ diff -N dcop/dcopserver_main.cpp
        AC_FIND_FILE(libldap.$ext, $kde_libraries /usr/lib /usr/local/lib,
          ldap_libdir)
        if test -r $ldap_libdir/libldap.$ext ; then
+@@ -38,6 +38,12 @@
+ case "$with_ldap" in
+ no) AC_MSG_RESULT(no) ;;
+ NOTFOUND) AC_MSG_RESULT(searched but not found) ;;
++framework)
++  LDAP_LIBS="-framework LDAP"
++  AC_DEFINE_UNQUOTED(HAVE_LIBLDAP, 1, [Define if you have LDAP libraries])
++  LDAP_SUBDIR="ldap"
++  AC_MSG_RESULT(Apple framework)
++  ;;
+ *)
+   if test "x$with_ldap" = "xFOUND" ; then
+     msg="incs=$ldap_incdir libs=$ldap_libdir"
 --- kabc/vcard/Makefile.am	10 Jul 2002 04:42:34 -0000	1.1.1.2
 +++ kabc/vcard/Makefile.am	24 Nov 2002 07:11:21 -0000	1.5
 @@ -7,6 +7,7 @@
@@ -377,6 +402,93 @@ diff -N dcop/dcopserver_main.cpp
  
  kateinclude_HEADERS = document.h view.h
  kateincludedir = $(includedir)/kate
+--- kate/part/kateview.cpp	20 Nov 2002 00:54:10 -0000	1.1.1.7
++++ kate/part/kateview.cpp	21 Jan 2003 04:56:05 -0000	1.1.1.8
+@@ -19,7 +19,7 @@
+    Boston, MA 02111-1307, USA.
+ */
+ 
+-// $Id$
++// $Id$
+ 
+ #include "kateview.h"
+ #include "kateview.moc"
+@@ -414,39 +414,42 @@
+     i18n("Select to Matching Bracket"),      SHIFT +  CTRL + Key_6,
+     this, SLOT(shiftToMatchingBracket()),
+     ac, "select_matching_bracket" );
+-
+-  new KAction(
+-    i18n("Transpose Characters"),           CTRL          + Key_T,
+-    this, SLOT(transpose()),
+-    ac, "transpose_char" );
+-// new KAction(
+-//    i18n("Transpose Words"),                CTRL + SHIFT + Key_T,
+-//    this, SLOT(transposeWord()),
+-//    ac, "transpose_word" );
+-// new KAction(
+-//    i18n("Transpose Line"),                 CTRL + SHIFT + Key_T, ??? What key combo?
+-//    this, SLOT(transposeLine()),
+-//    ac, "transpose_line" );
+-
+-//  new KAction(
+-//    i18n("Delete Word"),                    CTRL + Key_K, ??? What key combo?
+-//    this, SLOT(killWord()),
+-//    ac, "delete_word" );
+-  new KAction(
+-    i18n("Delete Line"),                    CTRL + Key_K,
+-    this, SLOT(killLine()),
+-    ac, "delete_line" );
+-
+-  new KAction(
+-    i18n("Delete Word Left"),               CTRL + Key_Backspace,
+-    this, SLOT(deleteWordLeft()),
+-    ac, "delete_word_left" );
+-
+-  new KAction(
+-    i18n("Delete Word Right"),              CTRL + Key_Delete,
+-    this, SLOT(deleteWordRight()),
+-    ac, "delete_word_right" );
+-
++  // anders: shortcuts doing any changes should not be created in browserextension
++  if ( !m_doc->m_bReadOnly )
++  {
++    new KAction(
++      i18n("Transpose Characters"),           CTRL          + Key_T,
++      this, SLOT(transpose()),
++      ac, "transpose_char" );
++//   new KAction(
++//      i18n("Transpose Words"),                CTRL + SHIFT + Key_T,
++//      this, SLOT(transposeWord()),
++//      ac, "transpose_word" );
++//   new KAction(
++//      i18n("Transpose Line"),                 CTRL + SHIFT + Key_T, ??? What key combo?
++//      this, SLOT(transposeLine()),
++//      ac, "transpose_line" );
++
++//   new KAction(
++//     i18n("Delete Word"),                    CTRL + Key_K, ??? What key combo?
++//     this, SLOT(killWord()),
++//     ac, "delete_word" );
++    new KAction(
++      i18n("Delete Line"),                    CTRL + Key_K,
++      this, SLOT(killLine()),
++      ac, "delete_line" );
++
++    new KAction(
++      i18n("Delete Word Left"),               CTRL + Key_Backspace,
++      this, SLOT(deleteWordLeft()),
++      ac, "delete_word_left" );
++
++    new KAction(
++      i18n("Delete Word Right"),              CTRL + Key_Delete,
++      this, SLOT(deleteWordRight()),
++      ac, "delete_word_right" );
++  }
++  
+   connect( this, SIGNAL(gotFocus(Kate::View*)),
+            this, SLOT(slotGotFocus()) );
+   connect( this, SIGNAL(lostFocus(Kate::View*)),
 --- kconf_update/Makefile.am	25 Jun 2002 02:46:55 -0000	1.1.1.1
 +++ kconf_update/Makefile.am	26 Nov 2002 21:00:48 -0000	1.4
 @@ -18,22 +18,26 @@
@@ -491,6 +603,50 @@ diff -N kconf_update/kconf_update_main.cpp
  {
          struct utsname uts;
          struct hostent *hent;
+--- kdecore/kapplication.cpp	17 Jan 2003 14:29:00 -0000	1.1.1.12
++++ kdecore/kapplication.cpp	21 Jan 2003 04:58:46 -0000	1.1.1.13
+@@ -18,7 +18,7 @@
+     Boston, MA 02111-1307, USA.
+         */
+ 
+-// $Id$
++// $Id$
+ 
+ #include "config.h"
+ 
+@@ -276,14 +276,14 @@
+ 
+      bool destMatch(const KURL &url, const KURL &base)
+      {
+-        if (destProtWildCard)
++        if (destProtEqual)
+         {
+-           if (!destProt.isEmpty() && !url.protocol().startsWith(destProt))
++           if (url.protocol() != base.protocol())
+               return false;
+         }
+-        else if (destProtEqual)
++        else if (destProtWildCard)
+         {
+-           if (url.protocol() != base.protocol())
++           if (!destProt.isEmpty() && !url.protocol().startsWith(destProt))
+               return false;
+         }
+         else
+@@ -2383,9 +2383,11 @@
+   d->urlActionRestrictions.append( new KApplicationPrivate::URLActionRule
+   ("redirect", QString::null, QString::null, QString::null, "file", QString::null, QString::null, true));
+   d->urlActionRestrictions.append( new KApplicationPrivate::URLActionRule
+-  ("redirect", "http*", QString::null, QString::null, "file", QString::null, QString::null, false));
++  ("redirect", "http", QString::null, QString::null, "file", QString::null, QString::null, false));
++  d->urlActionRestrictions.append( new KApplicationPrivate::URLActionRule
++  ("redirect", "ftp", QString::null, QString::null, "file", QString::null, QString::null, false));
+   d->urlActionRestrictions.append( new KApplicationPrivate::URLActionRule
+-  ("redirect", "webdav*", QString::null, QString::null, "file", QString::null, QString::null, false));
++  ("redirect", "webdav", QString::null, QString::null, "file", QString::null, QString::null, false));
+ 
+   d->urlActionRestrictions.append( new KApplicationPrivate::URLActionRule
+   ("redirect", QString::null, QString::null, QString::null, "about", QString::null, QString::null, true));
 --- kdecore/kglobalsettings.cpp	29 Oct 2002 02:36:56 -0000	1.1.1.3
 +++ kdecore/kglobalsettings.cpp	29 Oct 2002 02:58:40 -0000	1.4
 @@ -455,7 +455,7 @@
@@ -819,6 +975,63 @@ diff -N kdeprint/cups/cupsdconf2/stub_main.cpp
 -dummy.cpp:
 -	echo > dummy.cpp
  
+--- kdeui/kcombobox.cpp	14 Jan 2003 19:46:46 -0000	1.1.1.8
++++ kdeui/kcombobox.cpp	21 Jan 2003 04:59:35 -0000	1.1.1.9
+@@ -95,7 +95,7 @@
+     installEventFilter( this );
+     if ( lineEdit() )
+     {
+-        connect( lineEdit(), SIGNAL( returnPressed() ), 
++        connect( lineEdit(), SIGNAL( returnPressed() ),
+                  this, SIGNAL( returnPressed() ));
+     }
+ }
+@@ -279,7 +279,13 @@
+ 
+     if ( d->klineEdit )
+     {
+-        connect( d->klineEdit, SIGNAL( returnPressed( const QString& )), 
++        // someone calling KComboBox::setEditable( false ) destroys our
++        // lineedit without us noticing. And KCompletionBase::delegate would
++        // be a dangling pointer then, so prevent that. Note: only do this
++        // when it is a KLineEdit!
++        connect( edit, SIGNAL( destroyed() ), SLOT( lineEditDeleted() ));
++        
++        connect( d->klineEdit, SIGNAL( returnPressed( const QString& )),
+                  SIGNAL( returnPressed( const QString& ) ));
+ 
+         connect( d->klineEdit, SIGNAL( completion( const QString& )),
+@@ -328,6 +334,18 @@
+             sel = count() - 1;
+     }
+     setCurrentItem(sel);
++}
++
++void KComboBox::lineEditDeleted()
++{
++    // yes, we need those ugly casts due to the multiple inheritance
++    // sender() is guaranteed to be a KLineEdit (see the connect() to the
++    // destroyed() signal
++    const KCompletionBase *base = static_cast<const KCompletionBase*>( static_cast<const KLineEdit*>( sender() ));
++
++    // is it our delegate, that is destroyed?
++    if ( base == delegate() )
++        setDelegate( 0L );
+ }
+ 
+ // *********************************************************************
+--- kdeui/kcombobox.h	4 Jan 2003 04:29:37 -0000	1.1.1.6
++++ kdeui/kcombobox.h	21 Jan 2003 04:59:27 -0000	1.1.1.7
+@@ -472,6 +472,9 @@
+ 
+     virtual void wheelEvent( QWheelEvent *ev );
+ 
++private slots:
++    void lineEditDeleted();
++
+ private:
+     // Constants that represent the ID's of the popup menu.
+     // TODO: See if we can replace this mess with KActionMenu
 --- kdeui/kedittoolbar.cpp	10 Dec 2002 16:19:22 -0000	1.1.1.6
 +++ kdeui/kedittoolbar.cpp	10 Dec 2002 16:37:43 -0000	1.7
 @@ -142,13 +142,13 @@
@@ -838,6 +1051,19 @@ diff -N kdeprint/cups/cupsdconf2/stub_main.cpp
          list.append(elem);
  
        QDomElement child = elem.firstChild().toElement();
+--- kdeui/klineeditdlg.cpp	29 Oct 2002 02:37:33 -0000	1.1.1.3
++++ kdeui/klineeditdlg.cpp	21 Jan 2003 04:59:36 -0000	1.1.1.4
+@@ -54,7 +54,10 @@
+   connect( this, SIGNAL(user1Clicked()), this, SLOT(slotClear()) );
+   edit->setText( _value );
+   if ( _value.isEmpty() )
++  {
+       enableButtonOK( false );
++      enableButton(KDialogBase::User1, false);
++  }
+   edit->setSelection(0, edit->text().length());
+   edit->setFocus();
+ }
 --- kdeui/kxmlguifactory.cpp	1 Oct 2002 03:06:00 -0000	1.1.1.3
 +++ kdeui/kxmlguifactory.cpp	1 Oct 2002 03:59:10 -0000	1.5
 @@ -49,14 +49,10 @@
@@ -906,6 +1132,739 @@ diff -N kdeprint/cups/cupsdconf2/stub_main.cpp
  
  INCLUDES = -I$(top_srcdir)/kjs -I$(top_srcdir)/kimgio \
  	-I$(srcdir)/java -I$(top_srcdir)/dcop -I$(srcdir)/misc \
+--- khtml/khtml_part.cpp	14 Jan 2003 19:47:13 -0000	1.1.1.12
++++ khtml/khtml_part.cpp	21 Jan 2003 04:59:49 -0000	1.1.1.13
+@@ -7,6 +7,8 @@
+  *                     2000 Simon Hausmann <hausmann@kde.org>
+  *                     2000 Stefan Schimanski <1Stein@gmx.de>
+  *                     2001 George Staikos <staikos@kde.org>
++ *                     2001-2003 Dirk Mueller <mueller@kde.org>
++ *                     2002 Apple Computer, Inc.
+  *
+  * This library is free software; you can redistribute it and/or
+  * modify it under the terms of the GNU Library General Public
+@@ -803,7 +805,7 @@
+ 
+   // TODO: handle child target correctly! currently the script are always executed fur the parent
+   if ( url.find( QString::fromLatin1( "javascript:" ), 0, false ) == 0 ) {
+-      executeScript( url.right( url.length() - 11) );
++      executeScript( KURL::decode_string( url.right( url.length() - 11) ) );
+       return;
+   }
+ 
+@@ -1374,7 +1376,7 @@
+ {
+     if ( !d->m_decoder ) {
+         d->m_decoder = new khtml::Decoder();
+-        if(d->m_encoding != QString::null)
++        if(!d->m_encoding.isNull())
+             d->m_decoder->setEncoding(d->m_encoding.latin1(), d->m_haveEncoding);
+         else
+             d->m_decoder->setEncoding(settings()->encoding().latin1(), d->m_haveEncoding);
+@@ -1456,6 +1458,7 @@
+ 
+ void KHTMLPart::slotFinishedParsing()
+ {
++  qDebug( "slotFinishedParsing: %s", kdBacktrace( ).latin1( ) ) ;  
+   d->m_doc->setParsing(false);
+   checkEmitLoadEvent();
+   disconnect(d->m_doc,SIGNAL(finishedParsing()),this,SLOT(slotFinishedParsing()));
+@@ -1715,7 +1718,8 @@
+ void KHTMLPart::scheduleRedirection( int delay, const QString &url, bool doLockHistory )
+ {
+   //kdDebug(6050) << "KHTMLPart::scheduleRedirection delay=" << delay << " url=" << url << endl;
+-    if( d->m_redirectURL.isEmpty() || delay < d->m_delayRedirect )
++    if ( delay < 24*60*60 &&
++       ( d->m_redirectURL.isEmpty() || delay < d->m_delayRedirect ) )
+     {
+        d->m_delayRedirect = delay;
+        d->m_redirectURL = url;
+@@ -2446,7 +2450,7 @@
+   }
+ 
+   if (url.find( QString::fromLatin1( "javascript:" ),0, false ) != -1 ) {
+-    QString jscode = url.mid( url.find( "javascript:", 0, false ) );
++    QString jscode = KURL::decode_string( url.mid( url.find( "javascript:", 0, false ) ) );
+     jscode = KStringHandler::rsqueeze( jscode, 80 ); // truncate if too long
+     setStatusBarText( QStyleSheet::escape( jscode ), BarHoverText );
+     return;
+@@ -2602,7 +2606,7 @@
+ 
+   if ( url.find( QString::fromLatin1( "javascript:" ), 0, false ) == 0 )
+   {
+-    executeScript( url.right( url.length() - 11 ) );
++    executeScript( KURL::decode_string( url.right( url.length() - 11 ) ) );
+     return;
+   }
+ 
+@@ -2969,7 +2973,7 @@
+   // Support for <frame src="javascript:string">
+   if ( url.find( QString::fromLatin1( "javascript:" ), 0, false ) == 0 )
+   {
+-      QVariant res = executeScript( DOM::Node(frame->element()), url.right( url.length() - 11) );
++      QVariant res = executeScript( DOM::Node(frame->element()), KURL::decode_string( url.right( url.length() - 11) ) );
+       KURL myurl;
+       myurl.setProtocol("javascript");
+       if ( res.type() == QVariant::String )
+@@ -4193,7 +4197,7 @@
+   d->m_settings = new KHTMLSettings(*KHTMLFactory::defaultHTMLSettings());
+ 
+   QApplication::setOverrideCursor( waitCursor );
+-  if(d->m_doc) d->m_doc->recalcStyle( NodeImpl::Force );
++  if(d->m_doc) d->m_doc->updateStyleSelector();
+   QApplication::restoreOverrideCursor();
+ }
+ 
+--- khtml/ecma/kjs_html.cpp	14 Jan 2003 19:47:23 -0000	1.1.1.11
++++ khtml/ecma/kjs_html.cpp	21 Jan 2003 05:00:05 -0000	1.1.1.12
+@@ -700,6 +700,7 @@
+   name		KJS::HTMLElement::FormName	DontDelete
+   acceptCharset	KJS::HTMLElement::FormAcceptCharset	DontDelete
+   action	KJS::HTMLElement::FormAction	DontDelete
++  encoding	KJS::HTMLElement::FormEncType	DontDelete
+   enctype	KJS::HTMLElement::FormEncType	DontDelete
+   method	KJS::HTMLElement::FormMethod	DontDelete
+   target	KJS::HTMLElement::FormTarget	DontDelete
+--- khtml/ecma/kjs_html.lut.h	14 Jan 2003 19:47:23 -0000	1.1.1.6
++++ khtml/ecma/kjs_html.lut.h	21 Jan 2003 05:00:02 -0000	1.1.1.7
+@@ -221,7 +221,7 @@
+ namespace KJS {
+ 
+ const struct HashEntry HTMLFormElementTableEntries[] = {
+-   { "action", KJS::HTMLElement::FormAction, DontDelete, 0, &HTMLFormElementTableEntries[12] },
++   { "action", KJS::HTMLElement::FormAction, DontDelete, 0, &HTMLFormElementTableEntries[13] },
+    { "enctype", KJS::HTMLElement::FormEncType, DontDelete, 0, 0 },
+    { 0, 0, 0, 0, 0 },
+    { "elements", KJS::HTMLElement::FormElements, DontDelete|ReadOnly, 0, &HTMLFormElementTableEntries[11] },
+@@ -232,11 +232,12 @@
+    { "reset", KJS::HTMLElement::FormReset, DontDelete|Function, 0, 0 },
+    { "target", KJS::HTMLElement::FormTarget, DontDelete, 0, 0 },
+    { "name", KJS::HTMLElement::FormName, DontDelete, 0, 0 },
++   { "encoding", KJS::HTMLElement::FormEncType, DontDelete, 0, &HTMLFormElementTableEntries[12] },
+    { "method", KJS::HTMLElement::FormMethod, DontDelete, 0, 0 },
+    { "submit", KJS::HTMLElement::FormSubmit, DontDelete|Function, 0, 0 }
+ };
+ 
+-const struct HashTable HTMLFormElementTable = { 2, 13, HTMLFormElementTableEntries, 11 };
++const struct HashTable HTMLFormElementTable = { 2, 14, HTMLFormElementTableEntries, 11 };
+ 
+ }; // namespace
+ 
+--- khtml/ecma/kjs_window.cpp	17 Jan 2003 14:30:26 -0000	1.1.1.15
++++ khtml/ecma/kjs_window.cpp	21 Jan 2003 05:00:01 -0000	1.1.1.16
+@@ -405,7 +405,47 @@
+   }
+ 
+   const HashEntry* entry = Lookup::findEntry(&WindowTable, p);
+-  if (entry)
++
++  // properties that work on all windows
++  if (entry) {
++    switch(entry->value) {
++    case Closed:
++      return Boolean( false );
++    case _Location:
++      // No isSafeScript test here, we must be able to _set_ location.href (#49819)
++      return Value(location());
++    case Frames:
++      return Value(frames(exec));
++    case Opener:
++      if (!m_part->opener())
++        return Null();    // ### a null Window might be better, but == null
++      else                // doesn't work yet
++        return retrieve(m_part->opener());
++    case Parent:
++      return retrieve(m_part->parentPart() ? m_part->parentPart() : (KHTMLPart*)m_part);
++    case _Window:
++    case Self:
++      return retrieve(m_part);
++    case Top: {
++      KHTMLPart *p = m_part;
++      while (p->parentPart())
++        p = p->parentPart();
++      return retrieve(p);
++    }
++    case Alert:
++    case Confirm:
++    case Prompt:
++    case Open:
++    case Focus:
++    case Blur:
++      return lookupOrCreateFunction<WindowFunc>(exec,p,this,entry->value,entry->params,entry->attr);
++    default:
++      break;
++    }
++  }
++
++  // properties that only work on safe windows
++  if (isSafeScript(exec) && entry)
+   {
+     //kdDebug(6070) << "token: " << entry->value << endl;
+     switch( entry->value ) {
+@@ -416,8 +456,6 @@
+     case Status:
+       return String(UString(m_part->jsStatusBarText()));
+     case Document:
+-      // no isSafeScript() test. Getting hold of the document object itself is allowed
+-      // (to test it for null, for instance).
+       if (m_part->document().isNull()) {
+         kdDebug(6070) << "Document.write: adding <HTML><BODY> to create document" << endl;
+         m_part->begin();
+@@ -437,8 +475,6 @@
+       return getCSSRuleConstructor(exec);
+     case EventCtor:
+       return getEventConstructor(exec);
+-    case Frames:
+-      return Value(frames(exec));
+     case _History:
+       return Value(history ? history :
+                    (const_cast<Window*>(this)->history = new History(exec,m_part)));
+@@ -462,9 +498,6 @@
+       return Number(m_part->view()->visibleWidth());
+     case Length:
+       return Number(m_part->frames().count());
+-    case _Location:
+-      // No isSafeScript test here, we must be able to _set_ location.href (#49819)
+-      return Value(location());
+     case Name:
+       return String(m_part->name());
+     case _Navigator:
+@@ -484,11 +517,6 @@
+ #endif
+     case OffscreenBuffering:
+       return Boolean(true);
+-    case Opener:
+-      if (!m_part->opener())
+-        return Null();    // ### a null Window might be better, but == null
+-      else                // doesn't work yet
+-        return retrieve(m_part->opener());
+     case OuterHeight:
+     case OuterWidth:
+     {
+@@ -502,8 +530,6 @@
+       return Number(m_part->view()->contentsX());
+     case PageYOffset:
+       return Number(m_part->view()->contentsY());
+-    case Parent:
+-      return retrieve(m_part->parentPart() ? m_part->parentPart() : (KHTMLPart*)m_part);
+     case Personalbar:
+       return Undefined(); // ###
+     case ScreenLeft:
+@@ -532,15 +558,6 @@
+     }
+     case Scrollbars:
+       return Undefined(); // ###
+-    case Self:
+-    case _Window:
+-      return retrieve(m_part);
+-    case Top: {
+-      KHTMLPart *p = m_part;
+-      while (p->parentPart())
+-        p = p->parentPart();
+-      return retrieve(p);
+-    }
+     case _Screen:
+       return Value(screen ? screen :
+                    (const_cast<Window*>(this)->screen = new Screen(exec)));
+@@ -548,12 +565,6 @@
+       return Value(new ImageConstructorImp(exec, m_part->document()));
+     case Option:
+       return Value(new OptionConstructorImp(exec, m_part->document()));
+-    case Alert:
+-    case Confirm:
+-    case Prompt:
+-    case Open:
+-    case Focus:
+-    case Blur:
+     case Close:
+     case Scroll: // compatibility
+     case ScrollBy:
+@@ -572,125 +583,53 @@
+     case SetInterval:
+     case ClearInterval:
+     case Print:
+-      if (isSafeScript(exec))
+-        return lookupOrCreateFunction<WindowFunc>(exec,p,this,entry->value,entry->params,entry->attr);
+-      else
+-        return Undefined();
++      return lookupOrCreateFunction<WindowFunc>(exec,p,this,entry->value,entry->params,entry->attr);
+     case Onabort:
+-      if (isSafeScript(exec))
+-        return getListener(exec,DOM::EventImpl::ABORT_EVENT);
+-      else
+-        return Undefined();
++      return getListener(exec,DOM::EventImpl::ABORT_EVENT);
+     case Onblur:
+-      if (isSafeScript(exec))
+-        return getListener(exec,DOM::EventImpl::BLUR_EVENT);
+-      else
+-        return Undefined();
++      return getListener(exec,DOM::EventImpl::BLUR_EVENT);
+     case Onchange:
+-      if (isSafeScript(exec))
+-        return getListener(exec,DOM::EventImpl::CHANGE_EVENT);
+-      else
+-        return Undefined();
++      return getListener(exec,DOM::EventImpl::CHANGE_EVENT);
+     case Onclick:
+-      if (isSafeScript(exec))
+-        return getListener(exec,DOM::EventImpl::KHTML_ECMA_CLICK_EVENT);
+-      else
+-        return Undefined();
++      return getListener(exec,DOM::EventImpl::KHTML_ECMA_CLICK_EVENT);
+     case Ondblclick:
+-      if (isSafeScript(exec))
+-        return getListener(exec,DOM::EventImpl::KHTML_ECMA_DBLCLICK_EVENT);
+-      else
+-        return Undefined();
++      return getListener(exec,DOM::EventImpl::KHTML_ECMA_DBLCLICK_EVENT);
+     case Ondragdrop:
+-      if (isSafeScript(exec))
+-        return getListener(exec,DOM::EventImpl::KHTML_DRAGDROP_EVENT);
+-      else
+-        return Undefined();
++      return getListener(exec,DOM::EventImpl::KHTML_DRAGDROP_EVENT);
+     case Onerror:
+-      if (isSafeScript(exec))
+-        return getListener(exec,DOM::EventImpl::KHTML_ERROR_EVENT);
+-      else
+-        return Undefined();
++      return getListener(exec,DOM::EventImpl::KHTML_ERROR_EVENT);
+     case Onfocus:
+-      if (isSafeScript(exec))
+-        return getListener(exec,DOM::EventImpl::FOCUS_EVENT);
+-      else
+-        return Undefined();
++      return getListener(exec,DOM::EventImpl::FOCUS_EVENT);
+     case Onkeydown:
+-      if (isSafeScript(exec))
+-        return getListener(exec,DOM::EventImpl::KHTML_KEYDOWN_EVENT);
+-      else
+-        return Undefined();
++      return getListener(exec,DOM::EventImpl::KHTML_KEYDOWN_EVENT);
+     case Onkeypress:
+-      if (isSafeScript(exec))
+-        return getListener(exec,DOM::EventImpl::KHTML_KEYPRESS_EVENT);
+-      else
+-        return Undefined();
++      return getListener(exec,DOM::EventImpl::KHTML_KEYPRESS_EVENT);
+     case Onkeyup:
+-      if (isSafeScript(exec))
+-        return getListener(exec,DOM::EventImpl::KHTML_KEYUP_EVENT);
+-      else
+-        return Undefined();
++      return getListener(exec,DOM::EventImpl::KHTML_KEYUP_EVENT);
+     case Onload:
+-      if (isSafeScript(exec))
+-        return getListener(exec,DOM::EventImpl::LOAD_EVENT);
+-      else
+-        return Undefined();
++      return getListener(exec,DOM::EventImpl::LOAD_EVENT);
+     case Onmousedown:
+-      if (isSafeScript(exec))
+-        return getListener(exec,DOM::EventImpl::MOUSEDOWN_EVENT);
+-      else
+-        return Undefined();
++      return getListener(exec,DOM::EventImpl::MOUSEDOWN_EVENT);
+     case Onmousemove:
+-      if (isSafeScript(exec))
+-        return getListener(exec,DOM::EventImpl::MOUSEMOVE_EVENT);
+-      else
+-        return Undefined();
++      return getListener(exec,DOM::EventImpl::MOUSEMOVE_EVENT);
+     case Onmouseout:
+-      if (isSafeScript(exec))
+-        return getListener(exec,DOM::EventImpl::MOUSEOUT_EVENT);
+-      else
+-        return Undefined();
++      return getListener(exec,DOM::EventImpl::MOUSEOUT_EVENT);
+     case Onmouseover:
+-      if (isSafeScript(exec))
+-        return getListener(exec,DOM::EventImpl::MOUSEOVER_EVENT);
+-      else
+-        return Undefined();
++      return getListener(exec,DOM::EventImpl::MOUSEOVER_EVENT);
+     case Onmouseup:
+-      if (isSafeScript(exec))
+-        return getListener(exec,DOM::EventImpl::MOUSEUP_EVENT);
+-      else
+-        return Undefined();
++      return getListener(exec,DOM::EventImpl::MOUSEUP_EVENT);
+     case Onmove:
+-      if (isSafeScript(exec))
+-        return getListener(exec,DOM::EventImpl::KHTML_MOVE_EVENT);
+-      else
+-        return Undefined();
++      return getListener(exec,DOM::EventImpl::KHTML_MOVE_EVENT);
+     case Onreset:
+-      if (isSafeScript(exec))
+-        return getListener(exec,DOM::EventImpl::RESET_EVENT);
+-      else
+-        return Undefined();
++      return getListener(exec,DOM::EventImpl::RESET_EVENT);
+     case Onresize:
+-      if (isSafeScript(exec))
+-        return getListener(exec,DOM::EventImpl::RESIZE_EVENT);
+-      else
+-        return Undefined();
++      return getListener(exec,DOM::EventImpl::RESIZE_EVENT);
+     case Onselect:
+-      if (isSafeScript(exec))
+-        return getListener(exec,DOM::EventImpl::SELECT_EVENT);
+-      else
+-        return Undefined();
++      return getListener(exec,DOM::EventImpl::SELECT_EVENT);
+     case Onsubmit:
+-      if (isSafeScript(exec))
+-        return getListener(exec,DOM::EventImpl::SUBMIT_EVENT);
+-      else
+-        return Undefined();
++      return getListener(exec,DOM::EventImpl::SUBMIT_EVENT);
+     case Onunload:
+-      if (isSafeScript(exec))
+-        return getListener(exec,DOM::EventImpl::UNLOAD_EVENT);
+-      else
+-        return Undefined();
++      return getListener(exec,DOM::EventImpl::UNLOAD_EVENT);
+     }
+   }
+   KHTMLPart *kp = m_part->findFrame( p.qstring() );
+@@ -1215,6 +1154,9 @@
+       KHTMLPart* p = Window::retrieveActive(exec)->m_part;
+       if ( p )
+         url = p->htmlDocument().completeURL(str).string();
++      if ( !p ||
++           !static_cast<DOM::DocumentImpl*>(p->htmlDocument().handle())->isURLAllowed(url.url()) )
++          return Undefined();
+     }
+ 
+     KParts::URLArgs uargs;
+--- khtml/html/html_formimpl.cpp	14 Jan 2003 19:47:26 -0000	1.1.1.12
++++ khtml/html/html_formimpl.cpp	21 Jan 2003 05:06:21 -0000	1.15
+@@ -20,7 +20,7 @@
+  * the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+  * Boston, MA 02111-1307, USA.
+  *
+- * $Id$
++ * $Id$
+  */
+ 
+ #undef FORMS_DEBUG
+@@ -842,9 +842,8 @@
+ 
+     RenderStyle* _style = getDocument()->styleSelector()->styleForElement(this);
+     _style->ref();
+-    if (parentNode()->renderer() && _style->display() != NONE)
++    if (parentNode()->renderer() && _style->display() != NONE) {
+         m_render = new RenderFieldset(this);
+-    if (m_render) {
+         m_render->setStyle(_style);
+     }
+     HTMLGenericFormElementImpl::attach();
+@@ -1396,6 +1395,12 @@
+     }
+ }
+ 
++void HTMLLabelElementImpl::attach()
++{
++    // skip the generic handler
++    HTMLElementImpl::attach();
++}
++
+ #if 0
+ ElementImpl *HTMLLabelElementImpl::formElement()
+ {
+@@ -1431,11 +1436,10 @@
+     addCSSProperty(CSS_PROP_PADDING_RIGHT, "1px");
+     RenderStyle* _style = getDocument()->styleSelector()->styleForElement(this);
+     _style->ref();
+-    if (parentNode()->renderer() && _style->display() != NONE)
++    if (parentNode()->renderer() && _style->display() != NONE) {
+         m_render = new RenderLegend(this);
+-    if (m_render)
+         m_render->setStyle(_style);
+-
++    }
+     HTMLGenericFormElementImpl::attach();
+     _style->deref();
+ }
+--- khtml/html/html_formimpl.h	14 Jan 2003 19:47:26 -0000	1.1.1.9
++++ khtml/html/html_formimpl.h	21 Jan 2003 05:06:21 -0000	1.11
+@@ -20,7 +20,7 @@
+  * the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+  * Boston, MA 02111-1307, USA.
+  *
+- * $Id$
++ * $Id$
+  */
+ #ifndef HTML_FORMIMPL_H
+ #define HTML_FORMIMPL_H
+@@ -314,6 +314,7 @@
+ 
+     virtual Id id() const;
+     virtual void parseAttribute(AttributeImpl *attr);
++    virtual void attach();
+ 
+  private:
+     DOMString m_formElementID;
+RCS file: khtml/java/tests/badapplets/.cvsignore
+diff -N khtml/java/tests/badapplets/.cvsignore
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ khtml/java/tests/badapplets/.cvsignore	21 Jan 2003 05:10:44 -0000	1.1.1.1
+@@ -0,0 +1,2 @@
++*.class 
++Makefile.rules.in
+--- khtml/misc/loader.cpp	14 Jan 2003 19:47:31 -0000	1.1.1.9
++++ khtml/misc/loader.cpp	21 Jan 2003 05:00:15 -0000	1.1.1.10
+@@ -1030,7 +1030,7 @@
+ 
+     emit requestStarted( req->m_docLoader, req->object );
+ 
+-    servePendingRequests();
++    QTimer::singleShot( 0, this, SLOT( servePendingRequests() ) );
+ }
+ 
+ void Loader::servePendingRequests()
+@@ -1112,7 +1112,7 @@
+ #endif
+ 
+   delete r;
+-  servePendingRequests();
++  QTimer::singleShot( 0, this, SLOT( servePendingRequests() ) );
+ }
+ 
+ void Loader::slotData( KIO::Job*job, const QByteArray &data )
+--- khtml/misc/loader.h	1 Oct 2002 03:06:36 -0000	1.1.1.3
++++ khtml/misc/loader.h	21 Jan 2003 05:00:15 -0000	1.1.1.4
+@@ -397,8 +397,6 @@
+     protected slots:
+ 	void slotFinished( KIO::Job * );
+ 	void slotData( KIO::Job *, const QByteArray & );
+-
+-    private:
+ 	void servePendingRequests();
+ 
+ 	QPtrList<Request> m_requestsPending;
+--- khtml/rendering/render_form.cpp	14 Jan 2003 19:47:32 -0000	1.1.1.10
++++ khtml/rendering/render_form.cpp	21 Jan 2003 05:00:19 -0000	1.1.1.11
+@@ -20,7 +20,7 @@
+  * the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+  * Boston, MA 02111-1307, USA.
+  *
+- * $Id$
++ * $Id$
+  */
+ 
+ #include <kdebug.h>
+@@ -54,7 +54,6 @@
+     setInline(true);   // our object is Inline
+ 
+     m_state = 0;
+-    m_button = 0;
+     m_isDoubleClick = false;
+ }
+ 
+@@ -96,7 +95,7 @@
+ void RenderFormElement::slotClicked()
+ {
+     ref();
+-    QMouseEvent e2( QEvent::MouseButtonRelease, m_mousePos, m_button, m_state);
++    QMouseEvent e2( QEvent::MouseButtonRelease, m_mousePos, 1, m_state);
+ 
+     element()->dispatchMouseEvent(&e2, EventImpl::CLICK_EVENT, m_isDoubleClick + 1);
+     m_isDoubleClick = false;
+@@ -106,7 +105,7 @@
+ void RenderFormElement::slotPressed()
+ {
+     ref();
+-    QMouseEvent e2( QEvent::MouseButtonPress, m_mousePos, m_button, m_state);
++    QMouseEvent e2( QEvent::MouseButtonPress, m_mousePos, 1, m_state);
+     element()->dispatchMouseEvent(&e2, EventImpl::MOUSEDOWN_EVENT, 1);
+     deref();
+ }
+@@ -114,7 +113,7 @@
+ void RenderFormElement::slotReleased()
+ {
+     ref();
+-    QMouseEvent e2( QEvent::MouseButtonRelease, m_mousePos, m_button, m_state);
++    QMouseEvent e2( QEvent::MouseButtonRelease, m_mousePos, 1, m_state);
+     element()->dispatchMouseEvent(&e2, EventImpl::MOUSEUP_EVENT, 1);
+     deref();
+ }
+@@ -253,7 +252,7 @@
+ 
+     bool empty = raw.isEmpty();
+     if ( empty )
+-        raw = QString::fromLatin1(" ");
++        raw = QString::fromLatin1("X");
+     QFontMetrics fm = pb->fontMetrics();
+     QSize ts = fm.size( ShowPrefix, raw);
+     QSize s(pb->style().sizeFromContents( QStyle::CT_PushButton, pb, ts )
+@@ -665,6 +664,7 @@
+ RenderFileButton::RenderFileButton(HTMLInputElementImpl *element)
+     : RenderFormElement(element)
+ {
++    // this sucks, it creates a grey background
+     QHBox *w = new QHBox(view()->viewport());
+ 
+     m_edit = new LineEditWidget(w);
+@@ -690,18 +690,17 @@
+     KHTMLAssert( !minMaxKnown() );
+ 
+     const QFontMetrics &fm = style()->fontMetrics();
+-    QSize s;
+     int size = element()->size();
+ 
+     int h = fm.lineSpacing();
+     int w = fm.width( 'x' ) * (size > 0 ? size : 17); // "some"
+-    w += 6 + fm.width( m_button->text() ) + 2*fm.width( ' ' );
+-    s = QSize(w + 2 + 2*m_edit->frameWidth(),
+-              QMAX(h, 14) + 2 + 2*m_edit->frameWidth())
++    QSize s = m_edit->style().sizeFromContents(QStyle::CT_LineEdit, m_edit,
++          QSize(w + 2 + 2*m_edit->frameWidth(), kMax(h, 14) + 2 + 2*m_edit->frameWidth()))
+         .expandedTo(QApplication::globalStrut());
++    QSize bs = m_button->sizeHint();
+ 
+-    setIntrinsicWidth( s.width() );
+-    setIntrinsicHeight( s.height() );
++    setIntrinsicWidth( s.width() + bs.width() );
++    setIntrinsicHeight( kMax(s.height(), bs.height()) );
+ 
+     RenderFormElement::calcMinMaxWidth();
+ }
+--- khtml/rendering/render_form.h	14 Jan 2003 19:47:32 -0000	1.1.1.7
++++ khtml/rendering/render_form.h	21 Jan 2003 05:00:20 -0000	1.1.1.8
+@@ -20,7 +20,7 @@
+  * the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+  * Boston, MA 02111-1307, USA.
+  *
+- * $Id$
++ * $Id$
+  */
+ #ifndef RENDER_FORM_H
+ #define RENDER_FORM_H
+@@ -92,7 +92,6 @@
+ 
+     QPoint m_mousePos;
+     int m_state;
+-    int m_button;
+     bool m_isDoubleClick;
+ };
+ 
+--- khtml/xml/dom_docimpl.cpp	14 Jan 2003 19:47:36 -0000	1.1.1.8
++++ khtml/xml/dom_docimpl.cpp	21 Jan 2003 04:59:59 -0000	1.1.1.9
+@@ -65,6 +65,7 @@
+ #include "html/html_objectimpl.h"
+ 
+ #include <kio/job.h>
++#include <kapplication.h>
+ 
+ using namespace DOM;
+ using namespace khtml;
+@@ -1936,6 +1937,37 @@
+     QPtrListIterator<NodeIteratorImpl> it(m_nodeIterators);
+     for (; it.current(); ++it)
+         it.current()->notifyBeforeNodeRemoval(n);
++}
++
++bool DocumentImpl::isURLAllowed(const QString& url) const
++{
++    KHTMLView *w = view();
++
++    KURL newURL(completeURL(url));
++    newURL.setRef(QString::null);
++
++    // Prohibit non-file URLs if we are asked to.
++    if (!w || w->part()->onlyLocalReferences() && newURL.protocol() != "file")
++        return false;
++
++    // do we allow this suburl ?
++    if ( !kapp || !kapp->authorizeURLAction("redirect", w->part()->url(), newURL) )
++        return false;
++
++    // We allow one level of self-reference because some sites depend on that.
++    // But we don't allow more than one.
++    bool foundSelfReference = false;
++    for (KHTMLPart *part = w->part(); part; part = part->parentPart()) {
++        KURL partURL = part->url();
++        partURL.setRef(QString::null);
++        if (partURL == newURL) {
++            if (foundSelfReference)
++                return false;
++            foundSelfReference = true;
++        }
++    }
++
++    return true;
+ }
+ 
+ AbstractViewImpl *DocumentImpl::defaultView() const
+--- khtml/xml/dom_docimpl.h	14 Jan 2003 19:47:36 -0000	1.1.1.7
++++ khtml/xml/dom_docimpl.h	21 Jan 2003 04:59:58 -0000	1.1.1.8
+@@ -20,7 +20,7 @@
+  * the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+  * Boston, MA 02111-1307, USA.
+  *
+- * $Id$
++ * $Id$
+  */
+ #ifndef _DOM_DocumentImpl_h_
+ #define _DOM_DocumentImpl_h_
+@@ -227,7 +227,7 @@
+     QString baseTarget() const { return m_baseTarget; }
+     void setBaseTarget(const QString& baseTarget) { m_baseTarget = baseTarget; }
+ 
+-    QString completeURL(const QString& url) { return KURL(baseURL(),url,m_decoderMibEnum).url(); };
++    QString completeURL(const QString& url) const { return KURL(baseURL(),url,m_decoderMibEnum).url(); };
+ 
+     // from cachedObjectClient
+     virtual void setStyleSheet(const DOM::DOMString &url, const DOM::DOMString &sheetStr);
+@@ -370,6 +370,7 @@
+      * @param content The header value (value of the meta tag's "content" attribute)
+      */
+     void processHttpEquiv(const DOMString &equiv, const DOMString &content);
++    bool isURLAllowed(const QString& url) const;
+ 
+ signals:
+     void finishedParsing();
+--- khtml/xml/dom_nodeimpl.cpp	14 Jan 2003 19:47:37 -0000	1.1.1.8
++++ khtml/xml/dom_nodeimpl.cpp	21 Jan 2003 04:59:57 -0000	1.1.1.9
+@@ -457,6 +457,12 @@
+ 
+ bool NodeImpl::dispatchEvent(EventImpl *evt, int &exceptioncode, bool tempEvent)
+ {
++    // Not mentioned in spec: throw NOT_FOUND_ERR if evt is null
++    if (!evt) {
++        exceptioncode = DOMException::NOT_FOUND_ERR;
++        return false;
++    }
++
+     evt->setTarget(this);
+ 
+     // Since event handling code could cause this object to be deleted, grab a reference to the view now
+@@ -522,7 +528,8 @@
+                  !evt->defaultPrevented() && !evt->defaultHandled(); --it)
+             it.current()->defaultEventHandler(evt);
+ 
+-        if (evt->id() == EventImpl::CLICK_EVENT && !evt->defaultPrevented())
++        if (evt->id() == EventImpl::CLICK_EVENT && !evt->defaultPrevented() &&
++			static_cast<MouseEventImpl*>(evt)->button() == 0)
+             dispatchUIEvent(EventImpl::DOMACTIVATE_EVENT, static_cast<UIEventImpl*>(evt)->detail());
+     }
+ 
+@@ -623,9 +630,9 @@
+         default:
+             break;
+     }
+-    bool ctrlKey = (_mouse->state() & Qt::ControlButton);
+-    bool altKey = (_mouse->state() & Qt::AltButton);
+-    bool shiftKey = (_mouse->state() & Qt::ShiftButton);
++    bool ctrlKey = (_mouse->state() & Qt::ControlButton) == Qt::ControlButton;
++    bool altKey = (_mouse->state() & Qt::AltButton) == Qt::AltButton;
++    bool shiftKey = (_mouse->state() & Qt::ShiftButton) == Qt::ShiftButton;
+     bool metaKey = false; // ### qt support?
+ 
+     EventImpl *evt = new MouseEventImpl(evtId,true,cancelable,getDocument()->defaultView(),
 --- kimgio/Makefile.am	4 Jan 2003 04:31:10 -0000	1.1.1.5
 +++ kimgio/Makefile.am	4 Jan 2003 04:43:31 -0000	1.8
 @@ -7,7 +7,7 @@
@@ -1010,6 +1969,103 @@ diff -N kio/kded/Makefile
 +
 +clean:
 +install:
+--- kio/kfile/kurlrequesterdlg.cpp	5 Nov 2002 00:05:06 -0000	1.1.1.3
++++ kio/kfile/kurlrequesterdlg.cpp	21 Jan 2003 04:55:19 -0000	1.1.1.4
+@@ -72,7 +72,9 @@
+     urlRequester_->setFocus();
+     connect( urlRequester_->lineEdit(), SIGNAL(textChanged(const QString&)),
+              SLOT(slotTextChanged(const QString&)) );
+-    enableButtonOK( !urlName.isEmpty() );
++    bool state = !urlName.isEmpty();
++    enableButtonOK( state );
++    enableButton( KDialogBase::User1, state );
+     /*
+     KFile::Mode mode = static_cast<KFile::Mode>( KFile::File |
+             KFile::ExistingOnly );
+@@ -83,7 +85,9 @@
+ 
+ void KURLRequesterDlg::slotTextChanged(const QString & text)
+ {
+-    enableButtonOK( !text.isEmpty() );
++    bool state = !text.isEmpty();
++    enableButtonOK( state );
++    enableButton( KDialogBase::User1, state );
+ }
+ 
+ void KURLRequesterDlg::slotClear()
+--- kio/kio/global.cpp	17 Jan 2003 14:30:48 -0000	1.1.1.6
++++ kio/kio/global.cpp	21 Jan 2003 04:55:01 -0000	1.1.1.7
+@@ -1,7 +1,7 @@
+ /* This file is part of the KDE libraries
+    Copyright (C) 2000 David Faure <faure@kde.org>
+ 
+-   $Id$
++   $Id$
+ 
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Library General Public
+@@ -35,7 +35,6 @@
+ #include "kio/job.h"
+ 
+ #include <kdebug.h>
+-#include <kapplication.h>
+ #include <klocale.h>
+ #include <kglobal.h>
+ #include <kprotocolmanager.h>
+@@ -1250,6 +1249,7 @@
+ #define GETMNTENT(file, var) ((var = getmntent(file)) != 0)
+ #define MOUNTPOINT(var) var->mnt_dir
+ #define MOUNTTYPE(var) var->mnt_type
++#define HASMNTOPT(var, opt) hasmntopt(var, opt)
+ #define FSNAME(var) var->mnt_fsname
+ #elif defined(_AIX)
+ /* we don't need this stuff */
+@@ -1261,6 +1261,7 @@
+ #define GETMNTENT(file, var) (getmntent(file, &var) == 0)
+ #define MOUNTPOINT(var) var.mnt_mountp
+ #define MOUNTTYPE(var) var.mnt_fstype
++#define HASMNTOPT(var, opt) hasmntopt(&var, opt)
+ #define FSNAME(var) var.mnt_special
+ #endif
+ 
+@@ -1684,14 +1685,34 @@
+         {
+             mountPoint = QFile::decodeName( MOUNTPOINT(me) );
+             check_mount_point(MOUNTTYPE(me), FSNAME(me), isautofs, isslow);
+-
++kdDebug() << "***** point: " << mountPoint << ", " << FSNAME(me) << ", " << MOUNTPOINT(me) << endl;
+             // we don't check if ismanual is Right, if /a/b is manually
+             // mounted /a/b/c can't be automounted. At least IMO.
+             if (ismanual == Unseen)
+             {
+-                struct fstab *ft = getfsfile(MOUNTPOINT(me));
+-                if (!ft || strstr(ft->fs_mntops, "noauto"))
++                STRUCT_SETMNTENT fstab;
++                // TODO: #define FSTAB (FSTAB_FILE?), important for Solaris
++                if ((fstab = SETMNTENT("/etc/fstab", "r")) == 0)
++                    continue;
++
++                bool found = false;
++                STRUCT_MNTENT fe;
++                while (GETMNTENT(fstab, fe))
++                {
++                    if (!strcmp(FSNAME(me), FSNAME(fe)))
++                    {
++kdDebug() << "***** found: " << MOUNTPOINT(fe) << ", " << FSNAME(fe) <<endl;
++                        found = true;
++                        if (HASMNTOPT(fe, "noauto") || 
++                            !strcmp(MOUNTTYPE(fe), "supermount"))
++                            ismanual = Right;
++                        break;
++                    }
++                }
++                if (!found || !strcmp(MOUNTTYPE(me), "supermount"))
+                   ismanual = Right;
++
++                ENDMNTENT(fstab);
+             }
+         }
+     }
 --- kio/kio/kurlcompletion.cpp	1 Oct 2002 03:06:59 -0000	1.1.1.3
 +++ kio/kio/kurlcompletion.cpp	1 Oct 2002 03:59:13 -0000	1.4
 @@ -740,6 +740,11 @@
@@ -1392,3 +2448,8 @@ diff -N kioslave/http/stub_main.cpp
    AC_DEFINE(NEED_USCORE, 1,
      [Define if dlsym() requires a leading underscode in symbol names. ])
  fi
+RCS file: pics/crystalsvg/cr16-mime-Mime.png
+diff -N pics/crystalsvg/cr16-mime-Mime.png
+RCS file: pics/crystalsvg/cr16-mime-mime.png
+diff -N pics/crystalsvg/cr16-mime-mime.png
+Binary files /tmp/cvsbUICiQ and /dev/null differ
