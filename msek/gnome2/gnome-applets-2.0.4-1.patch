@@ -1,0 +1,95 @@
+diff -Naur gnome-applets-2.0.4.old/configure gnome-applets-2.0.4.new/configure
+--- gnome-applets-2.0.4.old/configure	Tue Nov 19 08:04:37 2002
++++ gnome-applets-2.0.4.new/configure	Mon Jan 20 22:02:51 2003
+@@ -8889,6 +8889,9 @@
+   *solaris*)
+ 	build_battstat_applet=no
+ 	;;
++  *darwin*)
++	build_battstat_applet=no
++	;;
+ esac
+ 
+ 
+diff -Naur gnome-applets-2.0.4.old/configure.rej gnome-applets-2.0.4.new/configure.rej
+--- gnome-applets-2.0.4.old/configure.rej	Thu Jan  1 09:00:00 1970
++++ gnome-applets-2.0.4.new/configure.rej	Mon Jan 20 22:01:02 2003
+@@ -0,0 +1,43 @@
++***************
++*** 5150,5160 ****
++      ;;
++  
++    darwin* | rhapsody*)
++-     allow_undefined_flag='-undefined suppress'
++      # FIXME: Relying on posixy $() will cause problems for
++      #        cross-compilation, but unfortunately the echo tests do not
++      #        yet detect zsh echo's removal of \ escapes.
++-     archive_cmds='$CC $(test .$module = .yes && echo -bundle || echo -dynamiclib) $allow_undefined_flag -o $lib $libobjs $deplibs$linkopts -install_name $rpath/$soname $(test -n "$verstring" -a x$verstring != x0.0 && echo $verstring)'
++      # We need to add '_' to the symbols in $export_symbols first
++      #archive_expsym_cmds="$archive_cmds"' && strip -s $export_symbols'
++      hardcode_direct=yes
++--- 5150,5160 ----
++      ;;
++  
++    darwin* | rhapsody*)
+++     allow_undefined_flag='-undefined suppress -flat_namespace'
++      # FIXME: Relying on posixy $() will cause problems for
++      #        cross-compilation, but unfortunately the echo tests do not
++      #        yet detect zsh echo's removal of \ escapes.
+++     archive_cmds='$CC $(test .$module = .yes && echo -bundle || echo -dynamiclib) $allow_undefined_flag -o $lib $libobjs $deplibs$linkopts $(test .$module != .yes && echo -install_name $rpath/$soname $tmp_verstring)'
++      # We need to add '_' to the symbols in $export_symbols first
++      #archive_expsym_cmds="$archive_cmds"' && strip -s $export_symbols'
++      hardcode_direct=yes
++***************
++*** 10883,10888 ****
++    HAVE_LIBAPM_FALSE=
++  fi
++  
++  	;;
++    *solaris*)
++  	build_battstat_applet=no
++--- 10883,10891 ----
++    HAVE_LIBAPM_FALSE=
++  fi
++  
+++ 	;;
+++   *darwin*)
+++ 	build_battstat_applet=no
++  	;;
++    *solaris*)
++  	build_battstat_applet=no
+diff -Naur gnome-applets-2.0.4.old/gkb-new/preset.c gnome-applets-2.0.4.new/gkb-new/preset.c
+--- gnome-applets-2.0.4.old/gkb-new/preset.c	Tue May 14 20:13:47 2002
++++ gnome-applets-2.0.4.new/gkb-new/preset.c	Mon Jan 20 22:01:02 2003
+@@ -29,6 +29,7 @@
+  * USA
+  */
+ 
++#include <sys/types.h>
+ #include <dirent.h>
+ #include "gkb.h"
+ 
+diff -Naur gnome-applets-2.0.4.old/multiload/Makefile.in gnome-applets-2.0.4.new/multiload/Makefile.in
+--- gnome-applets-2.0.4.old/multiload/Makefile.in	Tue Nov 19 08:34:37 2002
++++ gnome-applets-2.0.4.new/multiload/Makefile.in	Tue Jan 21 00:27:25 2003
+@@ -146,7 +146,7 @@
+ multiload_applet_2_SOURCES =  			global.h				linux-proc.h				load-graph.h				cpuload.c				linux-proc.c				load-graph.c				loadavg.c				main.c				memload.c				netload.c				properties.c				swapload.c
+ 
+ 
+-multiload_applet_2_LDADD =  				$(GNOME_APPLETS_LIBS) 					$(GTOP_APPLETS_LIBS)
++multiload_applet_2_LDADD =  				$(GNOME_APPLETS_LIBS) 					$(GTOP_APPLETS_LIBS)	$(X_LIBS)
+ 
+ 
+ pixmaps = gnome-cpu.png
+diff -Naur gnome-applets-2.0.4.old/omf-install/Makefile.in gnome-applets-2.0.4.new/omf-install/Makefile.in
+--- gnome-applets-2.0.4.old/omf-install/Makefile.in	Tue Nov 19 08:34:57 2002
++++ gnome-applets-2.0.4.new/omf-install/Makefile.in	Mon Jan 20 22:01:03 2003
+@@ -261,7 +261,7 @@
+ 	-for file in $(srcdir)/*.omf; do \
+ 		$(INSTALL_DATA) $(srcdir)/$$file $(DESTDIR)$(omf_dest_dir); \
+ 	done
+-	-scrollkeeper-update -p $(scrollkeeper_localstate_dir) 
++#	-scrollkeeper-update -p $(scrollkeeper_localstate_dir) 
+ 
+ uninstall-local:
+ 	-for file in $(srcdir)/*.omf; do \
