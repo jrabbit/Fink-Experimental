@@ -1,6 +1,6 @@
 Package: cyrus-sasl
 Version: 1.5.27
-Revision: 5
+Revision: 6
 Description: Cyrus Simple Authentication and Security Layer Library.
 DescDetail: <<
 SASL is the Simple Authentication and Security Layer, a method for adding 
@@ -10,10 +10,15 @@ for optionally negotiating protection of subsequent protocol interactions. If
 its use is negotiated, a security layer is inserted between the protocol and 
 the connection. 
 <<
+DescPort: <<
+Due to a conflict with the essential fink package "dpkg", the include files 
+for cyrus-sasl have been moved to a directory "include/cyrus-sasl/".  This
+may affect other packages which depend on this one.
+<<
 License: OSI-Approved
 Homepage: http://asg.web.cmu.edu/sasl
 Maintainer: Michael McKibben <mmckibben@users.sourceforge.net>
-Depends: db4-shlibs, openssl-shlibs
+Depends: %N-shlibs (= %v-%r)
 Recommends: openssl
 BuildDepends: openssl-dev, db4
 Provides: sasl
@@ -25,5 +30,20 @@ SetCPPFLAGS: -no-cpp-precomp
 Patch: %f.patch
 InstallScript: <<
 make install DESTDIR=%d includedir=%p/include
+<<
+SplitOff: <<
+  Package: %N-shlibs
+  Depends: db4-shlibs, openssl-shlibs
+  Replaces: %N (<= 1.5.27-5)
+  Files: lib/libsasl.*.dylib  
+  DocFiles: AUTHORS COPYING NEWS README TODO ChangeLog doc/*.html doc/*.txt
+<<
+SplitOff2: <<
+  Package: %N-dev
+  Depends: %N-shlibs
+  Replaces: %N (<= 1.5.27-5)
+  Files: include/%N/*.h lib/libsasl.dylib
+  BuildDependsOnly: True
+  DocFiles: AUTHORS COPYING NEWS README TODO ChangeLog doc/*.html doc/*.txt
 <<
 DocFiles: AUTHORS COPYING NEWS README TODO ChangeLog doc/*.html doc/*.txt
