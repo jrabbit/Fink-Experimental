@@ -1,0 +1,101 @@
+Index: fink.in
+===================================================================
+RCS file: /cvsroot/fink/fink/fink.in,v
+retrieving revision 1.41
+diff -u -b -B -r1.41 fink.in
+--- fink.in	2 Jan 2005 15:50:15 -0000	1.41
++++ fink.in	28 Jan 2005 21:01:05 -0000
+@@ -128,6 +128,7 @@
+   cleanup      - removes obsolete package files if newer versions are available
+   dumpinfo     - show how fink parses parts of a package's .info file
+   show-deps    - list run-time and compile-time package dependencies
++  snapshot     - create a file detailing all of your installed packages
+ 
+ Options:
+   -h, --help            - display this help text
+Index: fink.8.in
+===================================================================
+RCS file: /cvsroot/fink/fink/fink.8.in,v
+retrieving revision 1.31
+diff -u -b -B -r1.31 fink.8.in
+--- fink.8.in	22 Jan 2005 17:53:08 -0000	1.31
++++ fink.8.in	28 Jan 2005 21:01:05 -0000
+@@ -336,6 +336,11 @@
+ Displays a human-readable list of the compile-time (build) and
+ run-time (installation) dependencies of the listed package(s).
+ .El
++.It Cm snapshot Ar
++Creates a file detailing all of your installed packages. You can move
++this file to a new computer, install it with Fink there, and your
++whole Fink environment will be replicated.
++.El
+ .\"
+ .\"
+ .\" FILES
+Index: perlmod/Fink/Engine.pm
+===================================================================
+RCS file: /cvsroot/fink/fink/perlmod/Fink/Engine.pm,v
+retrieving revision 1.225
+diff -u -b -B -r1.225 Engine.pm
+--- perlmod/Fink/Engine.pm	28 Jan 2005 08:09:46 -0000	1.225
++++ perlmod/Fink/Engine.pm	28 Jan 2005 21:01:06 -0000
+@@ -96,6 +96,7 @@
+ 	  'showparent'        => [\&cmd_showparent,        1, 0, 0],
+ 	  'dumpinfo'          => [\&cmd_dumpinfo,          1, 0, 0],
+ 	  'show-deps'         => [\&cmd_show_deps,         1, 0, 0],
++	  'snapshot'          => [\&cmd_snapshot,          1, 0, 0],
+ 	);
+ 
+ END { }				# module clean-up code here (global destructor)
+@@ -2272,6 +2273,51 @@
+ 	}
+ }
+ 
++sub cmd_snapshot {
++	my ($pname, $package, @installed, $snapdir, $outfile, @time,
++		$snappkg, $snapver, $snaprev, $snapdep);
++
++	eval "use POSIX qw(strftime);";
++	$snappkg = "fink-snapshot";
++	$snapver = strftime("%Y.%m.%d.%H", localtime);
++	$snaprev = "1";
++	$snapdir = "/tmp";
++	foreach $pname (Fink::Package->list_packages()) {
++		next if ($pname eq $snappkg);
++		$package = Fink::Package->package_by_name($pname);
++		if ($package->is_any_installed() &&
++			!$package->is_virtual()) {
++			push @installed, $pname;
++		}
++	}
++	$snapdep = join(",\n ", sort(@installed));
++	$outfile = sprintf("$snapdir/snap-%s-%s.info",
++					   $snapver, $snaprev);
++	my @user = getpwnam($ENV{SUDO_USER} || $ENV{USER});
++	local *SNAP;
++	open(SNAP, "> $outfile") or die "can't create file $outfile\n";
++	print SNAP <<"EOF";
++Package: $snappkg
++Version: $snapver
++Revision: $snaprev
++Type: bundle
++License: Restrictive
++Description: Snapshot of Fink packages for $user[6]
++Maintainer: $user[6] <$user[0]\@localhost>
++Homepage: http://fink.sourceforge.net/
++Depends: <<
++ $snapdep
++<<
++EOF
++	close(SNAP) or die "can't create file $outfile\n";
++    print <<"EOF";
++Wrote $outfile
++To use this file:
++   copy to /sw/fink/dists/local/main/finkinfo
++   run "fink build fink-snapshot"
++EOF
++}
++
+ # pretty-print a set of PkgVersion::pkglist (each "or" group on its own line)
+ # pass:
+ #   ref to list of field names

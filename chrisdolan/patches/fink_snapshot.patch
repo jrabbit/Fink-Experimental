@@ -1,0 +1,74 @@
+diff -udr -X diff_exclude.txt fink.orig/fink.in fink/fink.in
+--- fink.orig/fink.in	2005-01-06 17:42:39.000000000 +0100
++++ fink/fink.in	2005-01-28 08:31:31.000000000 +0100
+@@ -128,6 +128,7 @@
+   cleanup      - removes obsolete package files if newer versions are available
+   dumpinfo     - show how fink parses parts of a package's .info file
+   show-deps    - list run-time and compile-time package dependencies
++  snapshot     - create a file detailing all of your installed packages
+ 
+ Options:
+   -h, --help            - display this help text
+diff -udr -X diff_exclude.txt fink.orig/perlmod/Fink/Engine.pm fink/perlmod/Fink/Engine.pm
+--- fink.orig/perlmod/Fink/Engine.pm	2005-01-28 09:21:28.000000000 +0100
++++ fink/perlmod/Fink/Engine.pm	2005-01-28 09:23:07.000000000 +0100
+@@ -96,6 +96,7 @@
+ 	  'showparent'        => [\&cmd_showparent,        1, 0, 0],
+ 	  'dumpinfo'          => [\&cmd_dumpinfo,          1, 0, 0],
+ 	  'show-deps'         => [\&cmd_show_deps,         1, 0, 0],
++	  'snapshot'          => [\&cmd_snapshot,          0, 0, 0],
+ 	);
+ 
+ END { }				# module clean-up code here (global destructor)
+@@ -2272,6 +2273,50 @@
+ 	}
+ }
+ 
++sub cmd_snapshot {
++	my ($pname, $package, @installed, $snapdir, $outfile, @time,
++		$snapversion, $snaprevision, $depends);
++
++	$snapdir = "$basepath/fink/dists/local/main/finkinfo/snapshots";
++	if (! -d $snapdir) {
++		mkdir_p $snapdir or
++			die "can't create directory $snapdir\n";
++	}
++	Fink::Package->require_packages();
++	foreach $pname (Fink::Package->list_packages()) {
++		next if ($pname eq "snap");
++		$package = Fink::Package->package_by_name($pname);
++		if ($package->is_any_installed()) {
++			push @installed, $pname;
++		}
++	}
++	$depends = join(",\n ", sort(@installed));
++	@time = localtime();
++	$snapversion = sprintf("%04d.%02d.%02d.%02d",
++						   $time[5]+1900, $time[4]+1, $time[3], $time[2]);
++	$snaprevision = 1;
++	$outfile = sprintf("$snapdir/snap-%s-%s.info",
++                       $snapversion, $snaprevision);
++	my @user = getpwnam($ENV{SUDO_USER} || $ENV{USER});
++	local *SNAP;
++	open(SNAP, "> $outfile") or die "can't create file $outfile\n";
++	print SNAP <<"EOF";
++Package: snap
++Version: $snapversion
++Revision: $snaprevision
++Type: bundle
++License: Restrictive
++Description: Snapshot of Fink packages for $user[6]
++Maintainer: $user[6] <$user[0]\@localhost>
++Homepage: http://fink.sourceforge.net/
++Depends: <<
++ $depends
++<<
++EOF
++	close(SNAP) or die "can't create file $outfile\n";
++	print "Wrote $outfile\n";
++}
++
+ # pretty-print a set of PkgVersion::pkglist (each "or" group on its own line)
+ # pass:
+ #   ref to list of field names
+Only in fink/perlmod/Fink: FinkVersion.pm
