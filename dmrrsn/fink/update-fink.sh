@@ -25,6 +25,8 @@ fink remove openldap-ssl cyrus-sasl
 
 sudo dpkg -r --force-depends manconf
 
+fink scanpackages
+
 ./inject.pl
 
 sudo apt-get update
