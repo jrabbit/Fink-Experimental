@@ -102,11 +102,6 @@ InstallScript: <<
   ln -sf %p/var/opennms/etc %i/etc/opennms
   ln -sf %p/var/log/opennms %i/var/opennms/logs
 
-  # fix ownership so tomcat can write to log dirs
-  chown -R opennms:tomcat %i/var/opennms %i/var/log/opennms %i/var/tomcat4/webapps/opennms
-  chmod g+w %i/var/opennms/etc %i/var/log/opennms
-  chmod g+s %i/var/log/opennms
-
   # put in the symlinks so tomcat can find classes
   install -d -m 755 %i/var/tomcat4/server/lib
   for jar in \
@@ -127,6 +122,11 @@ InstallScript: <<
 CLASSPATH="%p/var/opennms/etc:$CLASSPATH" export CLASSPATH
 DYLD_LIBRARY_PATH="%p/var/opennms/lib:$DYLD_LIBRARY_PATH" export DYLD_LIBRARY_PATH
 END
+
+  # fix ownership so tomcat can write to log dirs
+  chown -R opennms:tomcat %i/var/opennms %i/var/log/opennms %i/var/tomcat4/webapps/opennms %i/var/tomcat4/conf/*
+  chmod -R g+w %i/var/opennms/etc %i/var/log/opennms %i/var/tomcat4/conf/*
+  chmod g+s %i/var/log/opennms
 
 <<
 DaemonicFile: <<
