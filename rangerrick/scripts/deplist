@@ -1,0 +1,192 @@
+#!/usr/bin/perl
+
+use IPC::Open3;
+use File::Basename;
+use Getopt::Std;
+
+use vars qw(
+	$DEBUG
+	$DIRECTORY
+	%OPTS
+	@VERMAP
+	@ALTMAP
+);
+
+$DEBUG = 0;
+$DIRECTORY = dirname($0);
+getopts('dhv:m:', \%OPTS);
+
+$DEBUG++ if ($OPTS{'d'});
+
+if (not @ARGV or $OPTS{'h'}) {
+	print <<END;
+usage: $0 [-d] [-h] [-m /path/to/version/file] [-a /path/to/alternates/file] [-v version] <package1..packageN>
+
+	-d          debug mode
+	-h          this help
+	-v <ver>    force version <ver> for package/alternate lookup
+   -m <file>   the path to the package-version mapping
+	            (defaults to $DIRECTORY/mapping.deplist)
+	-a <file>   the path to the alternate-package listing
+	            (defaults to $DIRECTORY/alternates.deplist)
+
+The filenames specified in -m and -a are always searched, as well
+as "<file>.<ver>".  "<file>.<ver>" always takes precedence
+over "<file>", the first match wins.
+
+END
+	exit;
+}
+
+{
+	my ($version, @MAPFILES, @ALTFILES);
+
+	if ($OPTS{'m'}) {
+		$MAPFILES[0] = $OPTS{'m'};
+	} else {
+		$MAPFILES[0] = $DIRECTORY . '/mapping.deplist';
+	}
+	if ($OPTS{'a'}) {
+		$ALTFILES[0] = $OPTS{'a'};
+	} else {
+		$ALTFILES[0] = $DIRECTORY . '/alternates.deplist';
+	}
+
+	if ($OPTS{'v'}) {
+		$version = $OPTS{'v'};
+	} else {
+		if (open(SWVERS, "sw_vers |")) {
+			while (<SWVERS>) {
+				if (/ProductVersion:\s+(\d+(\.\d+)?)/gsi) {
+					$version = $1;
+					last;
+				}
+			}
+			close(SWVERS);
+		}
+	}
+
+	if (-f $MAPFILES[0] . '.' . $version) {
+		unshift(@MAPFILES, $MAPFILES[0] . '.' . $version);
+	}
+	if (-f $ALTFILES[0] . '.' . $version) {
+		unshift(@ALTFILES, $ALTFILES[0] . '.' . $version);
+	}
+
+	for my $MAPFILE (@MAPFILES) {
+		if (-f $MAPFILE) {
+			if (open(FILEIN, $MAPFILE)) {
+				while (<FILEIN>) {
+					next if (/^\s*\#/);
+					next if (/^\s*$/);
+					chomp;
+					my ($package, $version) = split(/\s+/, $_, 2);
+					push(@VERMAP, [lc($package), $version]);
+				}
+				close(FILEIN);
+			}
+		}
+	}
+
+	for my $ALTFILE (@ALTFILES) {
+		if (-f $ALTFILE) {
+			if (open(FILEIN, $ALTFILE)) {
+				while (<FILEIN>) {
+					next if (/^\s*\#/);
+					next if (/^\s*$/);
+					chomp;
+					my @packages = sort(split(/\s+/, $_));
+					push(@ALTMAP, \@packages);
+				}
+				close(FILEIN);
+			}
+		}
+	}
+
+}
+
+if (not @VERMAP or not @ALTMAP) {
+	die "no mappings found\n";
+}
+
+for my $package (@ARGV) {
+	print "=== ($package) ===\n";
+	my (%depfiles, %deppackages);
+	if(open(OTOOL, "dpkg -L $package 2>/dev/null | xargs otool -L 2>/dev/null |")) {
+		while (<OTOOL>) {
+			if (my ($file) = $_ =~ /^\s*(\S+) \(/) {
+				$depfiles{$file}++;
+			}
+		}
+		close(OTOOL);
+	} else {
+		print "couldn't run otool -L on $package: $!\n";
+	}
+	if (my $pid = open3(\*WRITER, \*READER, \*ERR, 'xargs dpkg -S')) {
+		print WRITER join("\n", sort keys %depfiles), "\n";
+		close(WRITER);
+		while(<READER>) {
+			chomp;
+			$_ =~ s/^([^:]+).*$/$1/;
+			$deppackages{$_}++;
+		}
+		close(READER);
+		close(ERR);
+	} else {
+		print "couldn't open3 dpkg -S: $!\n";
+	}
+	my @pkgspecs;
+	PKGLOOP: for my $deppackage (sort keys %deppackages) {
+		print "deppackage = $deppackage\n" if ($DEBUG);
+		my $matchver;
+		for (@VERMAP) {
+			my ($key, $value) = @{$_};
+			if ($deppackage =~ /^$key$/) {
+
+				# RHS side check of mapping.deplist
+				# SKIP
+				if ($value =~ /^(skip|ignore)$/i) {
+					next PKGLOOP;
+				}
+				# search and replace
+				if ($value =~ /^s\//) {
+					eval "\$deppackage =~ $value";
+					push(@pkgspecs, $deppackage);
+					next PKGLOOP;
+				}
+				# blank override
+				if (not defined $value or $value eq "") {
+					$matchver = undef;
+					last;
+				}
+
+				$matchver = $value;
+				last;
+			}
+		}
+		my @alternates = ($deppackage);
+		my $append;
+		for my $entry (@ALTMAP) {
+			for my $key (@{$entry}) {
+				if ($deppackage =~ /^($key)(.*)$/) {
+					print "'$deppackage' matched '$key' with append '$2'\n" if ($DEBUG);
+					@alternates = @{$entry};
+					if (defined $2 and $2 ne "") {
+						$append = $2;
+					}
+				}
+			}
+		}
+		my @altspecs;
+		for my $alt (@alternates) {
+			next PKGLOOP if ($alt . $append eq $package);
+			if (defined $matchver) {
+				push(@altspecs, $alt . $append . " " . $matchver);
+			} else {
+				push(@altspecs, $alt . $append);
+			}
+		}
+		push(@pkgspecs, join(' | ', @altspecs));
+	}
+	print "Depends: ", join(', ', @pkgspecs), "\n\n";
+}
