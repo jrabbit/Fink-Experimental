@@ -133,16 +133,32 @@ diff -ruN Fink.orig/Package.pm Fink/Package.pm
    
 diff -ruN Fink.orig/PkgVersion.pm Fink/PkgVersion.pm
 --- Fink.orig/PkgVersion.pm	Sun Oct 13 19:37:23 2002
-+++ Fink/PkgVersion.pm	Thu Nov  7 20:35:43 2002
++++ Fink/PkgVersion.pm	Thu Nov  7 23:58:02 2002
 @@ -28,7 +28,7 @@
  		      &prompt_boolean &prompt_selection
  		      &collapse_space &read_properties_var
  		      &file_MD5_checksum);
 -use Fink::Config qw($config $basepath $libpath $debarch);
-+use Fink::Config qw($config $basepath $libpath $debarch $buildpath  $distribution);
++use Fink::Config qw($config $basepath $libpath $debarch $buildpath $distribution);
  use Fink::NetAccess qw(&fetch_url_to_file);
  use Fink::Mirror;
  use Fink::Package;
+@@ -55,7 +55,6 @@
+ 
+ 
+ ### self-initialization
+-
+ sub initialize {
+   my $self = shift;
+   my ($pkgname, $version, $revision, $filename, $source);
+@@ -72,6 +71,7 @@
+   # the following is set by Fink::Package::scan
+   $self->{_filename} = $filename = $self->{thefilename};
+ 
++
+   # path handling
+   if ($filename) {
+     @parts = split(/\//, $filename);
 @@ -101,7 +101,7 @@
      }
      
@@ -162,11 +178,21 @@ diff -ruN Fink.orig/PkgVersion.pm Fink/PkgVersion.pm
      my $parent = $self->{parent};
      $parentpkgname = $parent->{_name};
 -    $parentdestdir = "$basepath/src/root-".$parent->{_fullname};
-+    $parentdestdir = "$buildpath/root-".$parent->{_fullname};
++    $parentdestdir = "buildpath/root-".$parent->{_fullname};
    } else {
      $parentpkgname = $pkgname;
      $parentdestdir = $destdir;
-@@ -306,13 +306,13 @@
+@@ -149,6 +149,9 @@
+ 	      'c' => $configure_params,
+ 	      'b' => '.'
+ 	    };
++while (my ($key, $value) = each %{$expand}) {  print "$key =
++             $value\n" }
++
+   $self->{_expand} = $expand;
+ 
+   $self->{_bootstrap} = 0;
+@@ -306,13 +309,13 @@
    my ($destdir);
    my $splitoff;
  
@@ -182,7 +208,7 @@ diff -ruN Fink.orig/PkgVersion.pm Fink/PkgVersion.pm
      $self->{_expand}->{D} = $parentdestdir;
      $self->{_expand}->{I} = $parentdestdir.$basepath;
    } else {
-@@ -474,7 +474,7 @@
+@@ -474,7 +477,7 @@
      $self->{_builddir} = $self->get_fullname()."/".$dir;
    }
  
@@ -191,7 +217,7 @@ diff -ruN Fink.orig/PkgVersion.pm Fink/PkgVersion.pm
    return $self->{_builddir};
  }
  
-@@ -934,7 +934,7 @@
+@@ -934,7 +937,7 @@
    }
  
    # remove dir if it exists
@@ -200,7 +226,7 @@ diff -ruN Fink.orig/PkgVersion.pm Fink/PkgVersion.pm
    if (-e $bdir) {
      if (&execute("rm -rf $bdir")) {
        die "can't remove existing directory $bdir\n";
-@@ -942,7 +942,7 @@
+@@ -942,7 +945,7 @@
    }
  
    if ($self->{_type} eq "nosource") {
@@ -209,7 +235,7 @@ diff -ruN Fink.orig/PkgVersion.pm Fink/PkgVersion.pm
      if (&execute("mkdir -p $destdir")) {
        die "can't create directory $destdir\n";
      }
-@@ -1045,7 +1045,7 @@
+@@ -1045,7 +1048,7 @@
      }
  
      # calculate destination directory
@@ -218,7 +244,7 @@ diff -ruN Fink.orig/PkgVersion.pm Fink/PkgVersion.pm
      if ($i > 1) {
        if ($self->has_param("Source".$i."ExtractDir")) {
  	$destdir .= "/".&expand_percent($self->param("Source".$i."ExtractDir"), $self->{_expand});
-@@ -1103,10 +1103,10 @@
+@@ -1103,10 +1106,10 @@
    }
  
    $dir = $self->get_build_directory();
@@ -232,7 +258,7 @@ diff -ruN Fink.orig/PkgVersion.pm Fink/PkgVersion.pm
  
    $patch_script = "";
  
-@@ -1189,10 +1189,10 @@
+@@ -1189,10 +1192,10 @@
    }
  
    $dir = $self->get_build_directory();
@@ -246,7 +272,7 @@ diff -ruN Fink.orig/PkgVersion.pm Fink/PkgVersion.pm
  
    # generate compilation script
    if ($self->has_param("CompileScript")) {
-@@ -1234,10 +1234,10 @@
+@@ -1234,10 +1237,10 @@
      } else {
        $dir = $self->get_build_directory();
      }
@@ -260,7 +286,7 @@ diff -ruN Fink.orig/PkgVersion.pm Fink/PkgVersion.pm
    }
  
    # generate installation script
-@@ -1394,7 +1394,7 @@
+@@ -1394,7 +1397,7 @@
  
    if (not $do_splitoff) {
      $bdir = $self->get_fullname();
@@ -269,7 +295,7 @@ diff -ruN Fink.orig/PkgVersion.pm Fink/PkgVersion.pm
      if (not $config->param_boolean("KeepBuildDir") and -e $bdir) {
        if (&execute("rm -rf $bdir")) {
  	&print_breaking("WARNING: Can't remove build directory $bdir. ".
-@@ -1427,9 +1427,9 @@
+@@ -1427,9 +1430,9 @@
      return;
    }
  
