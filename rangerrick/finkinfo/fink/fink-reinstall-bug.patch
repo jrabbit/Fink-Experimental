@@ -1,0 +1,86 @@
+Index: perlmod/Fink/Engine.pm
+===================================================================
+RCS file: /cvsroot/fink/fink/perlmod/Fink/Engine.pm,v
+retrieving revision 1.69
+diff -u -r1.69 Engine.pm
+--- perlmod/Fink/Engine.pm	4 Oct 2002 21:30:10 -0000	1.69
++++ perlmod/Fink/Engine.pm	13 Oct 2002 19:19:45 -0000
+@@ -1055,17 +1055,6 @@
+ 
+       my @batch_install;
+ 
+-      if (($item->[3] == $OP_REBUILD and not $already_rebuilt{$pkgname})
+-	  or not $package->is_present()) {
+-	$package->phase_unpack();
+-	$package->phase_patch();
+-	$package->phase_compile();
+-	$package->phase_install();
+-	$package->phase_build();
+-
+-	$already_rebuilt{$pkgname} = 1;
+-      }
+-
+       my $parent;
+       if (exists $package->{_splitoffs} and @{$package->{_splitoffs}} > 0) {
+ 	$parent = $package;
+@@ -1086,20 +1075,49 @@
+       # Grr, stupid dpkg needs the parent dep last on the command-line.  WHY?!
+ 
+       if (defined $parent) {
+-	$already_rebuilt{$parent->get_name()} = 1;
+-	foreach my $splitoff (@{$parent->{_splitoffs}}) {
+-	  $already_rebuilt{$splitoff->get_name()} = 1;
+-	  # skip it if it's the parent, he gets added down below
+-	  next if ($parent->get_name() eq $splitoff->get_name());
+-	  if ($splitoff->is_installed() or exists $deps{$splitoff->get_name()}) {
+-            if (not $already_activated{$splitoff->get_name()} and
+-	        ($item->[3] == $OP_INSTALL or $item->[3] == $OP_REINSTALL
+-	         or ($item->[3] == $OP_REBUILD and $splitoff->is_installed()))) {
+-	      push(@batch_install, $splitoff);
+-	    $already_activated{$splitoff->get_name()} = 1;
++	if (exists $deps{$parent->get_name()}) {
++	  $deps{$parent->get_name()}->[3] = $OP_REBUILD if ($item->[3] == $OP_REBUILD);
++	}
++
++	if (not exists $deps{$parent->get_name()} or $package->get_name() eq $parent->get_name()) {
++	  foreach my $splitoff (@{$parent->{_splitoffs}}) {
++	    my $parentname   = $parent->get_name();
++	    my $splitoffname = $splitoff->get_name();
++
++	    # skip it if it's the parent, he gets added down below
++	    next if ($parentname eq $splitoffname);
++
++	    $already_rebuilt{$splitoffname} = 1;
++
++	    if ($splitoff->is_installed() or exists $deps{$splitoffname}) {
++              if (not $already_activated{$splitoffname} and
++	        (
++		  $item->[3] == $OP_INSTALL or
++		  $item->[3] == $OP_REINSTALL or
++		  (
++		    $item->[3] == $OP_REBUILD and
++		    $splitoff->is_installed()
++		  )
++		)
++	      ) {
++		push(@batch_install, $splitoff);
++		$already_activated{$splitoffname} = 1;
++	      }
+ 	    }
+ 	  }
+ 	}
++      }
++
++      if (($item->[3] == $OP_REBUILD and not $already_rebuilt{$pkgname})
++	  or not $package->is_present()
++	  or ( defined $parent and $deps{$parent->get_name()}->[3] == $OP_REBUILD ) ) {
++	$package->phase_unpack();
++	$package->phase_patch();
++	$package->phase_compile();
++	$package->phase_install();
++	$package->phase_build();
++
++	$already_rebuilt{$pkgname} = 1;
+       }
+ 
+       # Install the package if necessary and if it wasn't already installed 
