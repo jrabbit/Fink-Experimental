@@ -1,0 +1,46 @@
+#!/bin/sh
+
+# Compare the bom of an installed package with  
+# what is really on the disk
+# This version checks only the existence of files
+# TODO: compare file attributes
+
+[ -z $1 ] && exec echo "usage: bomcheck PACKAGE"
+# Allow PACKAGE and PACKAGE.pkg
+PKG=${1%".pkg"}
+PKG="$PKG.pkg"
+
+# Careful with spaces in names 
+IFS="
+"
+
+NONE=1
+RECEIPT="/Library/Receipts/$PKG"
+[ ! -e "$RECEIPT" ] && echo "$RECEIPT: No such package" && exit 
+
+echo "Checking $RECEIPT..."
+cd "$RECEIPT"
+for BOM in `find . -name \*.bom`  
+  do  
+  for FILE in `lsbom -p f $BOM`
+    do
+# Remove leading dot 
+    FNAME=${FILE#"."}
+
+    if [[  -n "$FNAME" && ! -e "$FNAME" ]] 
+	then
+# Found one: Double-check for split-off resource forks
+# remove the leading "._"  and try again
+	BNAME=`basename "$FNAME"`
+	BNAME=${BNAME#"._"}
+	FNAME=`dirname "$FNAME"`"/$BNAME"
+	if [[ ! -e "$FNAME" ]]
+	    then
+	    [ $NONE -gt 0 ] &&  echo "Missing files:"
+	    NONE=0
+	    echo $BOM " - " $FNAME
+	fi    
+    fi
+  done
+done
+[ $NONE -gt 0 ] &&  echo "No files missing. Congratulations!"
