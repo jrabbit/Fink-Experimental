@@ -46,11 +46,11 @@ for my $file (sort keys %files) {
 										my ($comparator, $revision);
 										if ($version =~ /^(.+?)\s+(.+)-(.+?)$/) {
 											($comparator, $version, $revision) = ($1, $2, $3);
-											print "$package ($version-$revision) -> ";
+											#print "$package ($version-$revision) -> ";
 											$revision += 10 if ($tree eq '10.2-gcc3.3');
 											$revision += 20 if ($tree eq '10.3');
 											$newline =~ s/${package}\s+\([^\)]*?\)/$package ($comparator $version-$revision)/g;
-											print "($version-$revision)... ";
+											#print "($version-$revision)... ";
 										}
 									}
 									$line = $newline;
