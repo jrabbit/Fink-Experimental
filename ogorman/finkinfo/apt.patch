@@ -1,6 +1,6 @@
-diff -urN apt-0.5.4.orig/apt-inst/makefile apt-0.5.4/apt-inst/makefile
---- apt-0.5.4.orig/apt-inst/makefile	Tue Feb 27 13:16:05 2001
-+++ apt-0.5.4/apt-inst/makefile	Mon Dec  8 23:24:46 2003
+diff -ruN apt-0.6.21.orig/apt-inst/makefile apt-0.6.21/apt-inst/makefile
+--- apt-0.6.21.orig/apt-inst/makefile	Mon Apr 21 01:48:55 2003
++++ apt-0.6.21/apt-inst/makefile	Tue May  4 00:20:39 2004
 @@ -10,6 +10,7 @@
  include ../buildlib/defaults.mak
  
@@ -9,129 +9,23 @@ diff -urN apt-0.5.4.orig/apt-inst/makefile apt-0.5.4/apt-inst/makefile
  LIBRARY=apt-inst
  LIBEXT=$(GLIBC_VER)$(LIBSTDCPP_VER)
  MAJOR=1.0
-diff -urN apt-0.5.4.orig/apt-pkg/contrib/mmap.cc apt-0.5.4/apt-pkg/contrib/mmap.cc
---- apt-0.5.4.orig/apt-pkg/contrib/mmap.cc	Sun May 27 14:19:30 2001
-+++ apt-0.5.4/apt-pkg/contrib/mmap.cc	Mon Dec  8 23:24:46 2003
-@@ -41,7 +41,7 @@
- // ---------------------------------------------------------------------
- /* */
- MMap::MMap(FileFd &F,unsigned long Flags) : Flags(Flags), iSize(0),
--                     Base(0)
-+                     Base(0), iFd(0)
- {
-    if ((Flags & NoImmMap) != NoImmMap)
-       Map(F);
-@@ -51,7 +51,7 @@
- // ---------------------------------------------------------------------
- /* */
- MMap::MMap(unsigned long Flags) : Flags(Flags), iSize(0),
--                     Base(0)
-+                     Base(0), iFd(0)
- {
+diff -ruN apt-0.6.21.orig/apt-pkg/deb/debindexfile.cc apt-0.6.21/apt-pkg/deb/debindexfile.cc
+--- apt-0.6.21.orig/apt-pkg/deb/debindexfile.cc	Mon Jan  5 04:11:00 2004
++++ apt-0.6.21/apt-pkg/deb/debindexfile.cc	Tue May  4 00:20:39 2004
+@@ -444,3 +444,10 @@
  }
+ 
  									/*}}}*/
-@@ -68,6 +68,7 @@
- /* */
- bool MMap::Map(FileFd &Fd)
- {
-+   iFd = &Fd;
-    iSize = Fd.Size();
-    
-    // Set the permissions.
-@@ -81,10 +82,19 @@
-    if (iSize == 0)
-       return _error->Error(_("Can't mmap an empty file"));
-    
-+#ifndef EMULATE_MMAP
-    // Map it.
-    Base = mmap(0,iSize,Prot,Map,Fd.Fd(),0);
-    if (Base == (void *)-1)
-       return _error->Errno("mmap",_("Couldn't make mmap of %lu bytes"),iSize);
-+#else
-+   Base = new unsigned char[iSize];
-+   if (Base == NULL)
-+      return _error->Errno("mmap",_("Couldn't allocate %lu bytes to emulate mmap"),iSize);
 +
-+   Fd.Seek(0);
-+   Fd.Read(Base, iSize, true);
-+#endif
- 
-    return true;
- }
-@@ -100,8 +110,16 @@
-    if (DoSync == true)
-       Sync();
-    
-+#ifndef EMULATE_MMAP   
-    if (munmap((char *)Base,iSize) != 0)
-       _error->Warning("Unable to munmap");
-+#else
-+   if ((Flags & ReadOnly) != ReadOnly && iFd != 0) {
-+      iFd->Seek(0);
-+      iFd->Write(Base, iSize);
-+   }
-+   delete [] (unsigned char *)Base;
-+#endif
-    
-    iSize = 0;
-    Base = 0;
-@@ -117,11 +135,13 @@
-    if ((Flags & UnMapped) == UnMapped)
-       return true;
-    
-+#ifndef EMULATE_MMAP
- #ifdef _POSIX_SYNCHRONIZED_IO   
-    if ((Flags & ReadOnly) != ReadOnly)
-       if (msync((char *)Base,iSize,MS_SYNC) != 0)
- 	 return _error->Errno("msync","Unable to write mmap");
- #endif   
-+#endif
-    return true;
- }
- 									/*}}}*/
-@@ -133,11 +153,13 @@
-    if ((Flags & UnMapped) == UnMapped)
-       return true;
-    
-+#ifndef EMULATE_MMAP
- #ifdef _POSIX_SYNCHRONIZED_IO
-    unsigned long PSize = sysconf(_SC_PAGESIZE);
-    if ((Flags & ReadOnly) != ReadOnly)
-       if (msync((char *)Base+(int)(Start/PSize)*PSize,Stop - Start,MS_SYNC) != 0)
- 	 return _error->Errno("msync","Unable to write mmap");
-+#endif   
- #endif   
-    return true;
- }
-diff -urN apt-0.5.4.orig/apt-pkg/contrib/mmap.h apt-0.5.4/apt-pkg/contrib/mmap.h
---- apt-0.5.4.orig/apt-pkg/contrib/mmap.h	Mon May 14 14:16:43 2001
-+++ apt-0.5.4/apt-pkg/contrib/mmap.h	Mon Dec  8 23:24:47 2003
-@@ -46,6 +46,7 @@
-    unsigned long Flags;
-    unsigned long iSize;
-    void *Base;
-+   FileFd *iFd;
- 
-    bool Map(FileFd &Fd);
-    bool Close(bool DoSync = true);
-diff -urN apt-0.5.4.orig/apt-pkg/deb/debindexfile.cc apt-0.5.4/apt-pkg/deb/debindexfile.cc
---- apt-0.5.4.orig/apt-pkg/deb/debindexfile.cc	Sun Apr 29 14:13:51 2001
-+++ apt-0.5.4/apt-pkg/deb/debindexfile.cc	Mon Dec  8 23:24:47 2003
-@@ -505,3 +505,11 @@
- }
- 
- 									/*}}}*/
 +void init_deb2()
 +{
-+  (void)_apt_DebType;
-+  (void)_apt_DebSrcType;
 +  (void)_apt_Src;
 +  (void)_apt_Pkg;
 +  (void)_apt_Status;
 +}
-diff -urN apt-0.5.4.orig/apt-pkg/deb/debsystem.cc apt-0.5.4/apt-pkg/deb/debsystem.cc
---- apt-0.5.4.orig/apt-pkg/deb/debsystem.cc	Sun Apr 29 14:13:51 2001
-+++ apt-0.5.4/apt-pkg/deb/debsystem.cc	Mon Dec  8 23:24:47 2003
+diff -ruN apt-0.6.21.orig/apt-pkg/deb/debsystem.cc apt-0.6.21/apt-pkg/deb/debsystem.cc
+--- apt-0.6.21.orig/apt-pkg/deb/debsystem.cc	Tue Feb 10 08:33:07 2004
++++ apt-0.6.21/apt-pkg/deb/debsystem.cc	Tue May  4 00:20:39 2004
 @@ -27,6 +27,108 @@
  #include <dirent.h>
  #include <errno.h>
@@ -241,7 +135,7 @@ diff -urN apt-0.5.4.orig/apt-pkg/deb/debsystem.cc apt-0.5.4/apt-pkg/deb/debsyste
  
  debSystem debSys;
  
-@@ -48,6 +150,8 @@
+@@ -49,6 +151,8 @@
  debSystem::~debSystem()
  {
     delete StatusFile;
@@ -250,7 +144,7 @@ diff -urN apt-0.5.4.orig/apt-pkg/deb/debsystem.cc apt-0.5.4/apt-pkg/deb/debsyste
  }
  									/*}}}*/
  // System::Lock - Get the lock						/*{{{*/
-@@ -161,8 +265,8 @@
+@@ -162,8 +266,8 @@
        which is yet to be determined. The functions in pkgcachegen should
        be the only users of these */
     Cnf.CndSet("Dir::State::userstatus","status.user"); // Defunct
@@ -261,7 +155,7 @@ diff -urN apt-0.5.4.orig/apt-pkg/deb/debsystem.cc apt-0.5.4/apt-pkg/deb/debsyste
     
     return true;
  }
-@@ -185,9 +289,9 @@
+@@ -186,9 +290,9 @@
  signed debSystem::Score(Configuration const &Cnf)
  {
     signed Score = 0;
@@ -273,7 +167,7 @@ diff -urN apt-0.5.4.orig/apt-pkg/deb/debsystem.cc apt-0.5.4/apt-pkg/deb/debsyste
        Score += 10;
     if (FileExists("/etc/debian_version") == true)
        Score += 10;
-@@ -202,6 +306,44 @@
+@@ -203,6 +307,44 @@
     if (StatusFile == 0)
        StatusFile = new debStatusIndex(_config->FindFile("Dir::State::status"));
     List.push_back(StatusFile);
@@ -290,25 +184,25 @@ diff -urN apt-0.5.4.orig/apt-pkg/deb/debsystem.cc apt-0.5.4/apt-pkg/deb/debsyste
 +	  std::ofstream finkstatus(FINKSTATUSFILE);
 +      if(macosx_version.version != 0)
 +      {
-+        finkstatus << "Package: macosx" << endl;
-+        finkstatus << "Status: install ok installed" << endl;      
-+        finkstatus << "Priority: optional" << endl;
-+        finkstatus << "Section: base" << endl;
-+        finkstatus << "Maintainer: None" << endl;
-+        finkstatus << "Source: macosx" << endl;
-+        finkstatus << "Version: " << macosx_version.version << endl;
-+        finkstatus << "Description: Pseudo package representing Mac OS X" << endl;
-+        finkstatus << " Pseudo package representing Mac OS X" << endl << endl;
++        finkstatus << "Package: macosx" << std::endl;
++        finkstatus << "Status: install ok installed" << std::endl;      
++        finkstatus << "Priority: optional" << std::endl;
++        finkstatus << "Section: base" << std::endl;
++        finkstatus << "Maintainer: None" << std::endl;
++        finkstatus << "Source: macosx" << std::endl;
++        finkstatus << "Version: " << macosx_version.version << std::endl;
++        finkstatus << "Description: Pseudo package representing Mac OS X" << std::endl;
++        finkstatus << " Pseudo package representing Mac OS X" << std::endl << std::endl;
 +      }
-+      finkstatus << "Package: darwin" << endl;
-+      finkstatus << "Status: install ok installed" << endl;
-+      finkstatus << "Priority: optional" << endl;
-+      finkstatus << "Section: base" << endl;
-+      finkstatus << "Maintainer: None" << endl;
-+      finkstatus << "Source: darwin" << endl;
-+      finkstatus << "Version: " << darwin_version.version  << endl;
-+      finkstatus << "Description: Pseudo package representing Darwin" << endl;
-+      finkstatus << " Pseudo package representing Darwin" << endl << endl;
++      finkstatus << "Package: darwin" << std::endl;
++      finkstatus << "Status: install ok installed" << std::endl;
++      finkstatus << "Priority: optional" << std::endl;
++      finkstatus << "Section: base" << std::endl;
++      finkstatus << "Maintainer: None" << std::endl;
++      finkstatus << "Source: darwin" << std::endl;
++      finkstatus << "Version: " << darwin_version.version  << std::endl;
++      finkstatus << "Description: Pseudo package representing Darwin" << std::endl;
++      finkstatus << " Pseudo package representing Darwin" << std::endl << std::endl;
 +      finkstatus.close();
 +      }		
 +      FinkStatusFile = new debStatusIndex(FINKSTATUSFILE);
@@ -318,7 +212,7 @@ diff -urN apt-0.5.4.orig/apt-pkg/deb/debsystem.cc apt-0.5.4/apt-pkg/deb/debsyste
     return true;
  }
  									/*}}}*/
-@@ -216,6 +358,10 @@
+@@ -217,6 +359,10 @@
     if (StatusFile->FindInCache(*File.Cache()) == File)
     {
        Found = StatusFile;
@@ -329,9 +223,9 @@ diff -urN apt-0.5.4.orig/apt-pkg/deb/debsystem.cc apt-0.5.4/apt-pkg/deb/debsyste
        return true;
     }
     
-diff -urN apt-0.5.4.orig/apt-pkg/deb/debsystem.h apt-0.5.4/apt-pkg/deb/debsystem.h
---- apt-0.5.4.orig/apt-pkg/deb/debsystem.h	Sun Apr 29 14:13:51 2001
-+++ apt-0.5.4/apt-pkg/deb/debsystem.h	Mon Dec  8 23:24:47 2003
+diff -ruN apt-0.6.21.orig/apt-pkg/deb/debsystem.h apt-0.6.21/apt-pkg/deb/debsystem.h
+--- apt-0.6.21.orig/apt-pkg/deb/debsystem.h	Sun Jan 12 11:09:29 2003
++++ apt-0.6.21/apt-pkg/deb/debsystem.h	Tue May  4 00:20:39 2004
 @@ -25,6 +25,7 @@
     bool CheckUpdates();
     
@@ -340,9 +234,9 @@ diff -urN apt-0.5.4.orig/apt-pkg/deb/debsystem.h apt-0.5.4/apt-pkg/deb/debsystem
     
     public:
  
-diff -urN apt-0.5.4.orig/apt-pkg/deb/debversion.cc apt-0.5.4/apt-pkg/deb/debversion.cc
---- apt-0.5.4.orig/apt-pkg/deb/debversion.cc	Mon May  7 14:14:53 2001
-+++ apt-0.5.4/apt-pkg/deb/debversion.cc	Mon Dec  8 23:24:47 2003
+diff -ruN apt-0.6.21.orig/apt-pkg/deb/debversion.cc apt-0.6.21/apt-pkg/deb/debversion.cc
+--- apt-0.6.21.orig/apt-pkg/deb/debversion.cc	Fri Sep 12 09:05:53 2003
++++ apt-0.6.21/apt-pkg/deb/debversion.cc	Tue May  4 00:20:39 2004
 @@ -24,6 +24,11 @@
  
  debVersioningSystem debVS;
@@ -355,9 +249,23 @@ diff -urN apt-0.5.4.orig/apt-pkg/deb/debversion.cc apt-0.5.4/apt-pkg/deb/debvers
  // debVS::debVersioningSystem - Constructor				/*{{{*/
  // ---------------------------------------------------------------------
  /* */
-diff -urN apt-0.5.4.orig/apt-pkg/init.cc apt-0.5.4/apt-pkg/init.cc
---- apt-0.5.4.orig/apt-pkg/init.cc	Tue Mar 13 15:51:46 2001
-+++ apt-0.5.4/apt-pkg/init.cc	Mon Dec  8 23:24:47 2003
+diff -ruN apt-0.6.21.orig/apt-pkg/deb/dpkgpm.cc apt-0.6.21/apt-pkg/deb/dpkgpm.cc
+--- apt-0.6.21.orig/apt-pkg/deb/dpkgpm.cc	Tue Feb 10 08:33:07 2004
++++ apt-0.6.21/apt-pkg/deb/dpkgpm.cc	Tue May  4 00:20:39 2004
+@@ -436,8 +436,8 @@
+          it forks scripts. What happens is that when you hit ctrl-c it sends
+ 	 it to all processes in the group. Since dpkg ignores the signal 
+ 	 it doesn't die but we do! So we must also ignore it */
+-      sighandler_t old_SIGQUIT = signal(SIGQUIT,SIG_IGN);
+-      sighandler_t old_SIGINT = signal(SIGINT,SIG_IGN);
++      sig_t old_SIGQUIT = signal(SIGQUIT,SIG_IGN);
++      sig_t old_SIGINT = signal(SIGINT,SIG_IGN);
+ 		     
+       // Fork dpkg
+       pid_t Child = ExecFork();
+diff -ruN apt-0.6.21.orig/apt-pkg/init.cc apt-0.6.21/apt-pkg/init.cc
+--- apt-0.6.21.orig/apt-pkg/init.cc	Fri Feb 27 10:21:06 2004
++++ apt-0.6.21/apt-pkg/init.cc	Tue May  4 00:20:39 2004
 @@ -15,6 +15,8 @@
  #include <apti18n.h>
  #include <config.h>
@@ -367,16 +275,16 @@ diff -urN apt-0.5.4.orig/apt-pkg/init.cc apt-0.5.4/apt-pkg/init.cc
  									/*}}}*/
  
  #define Stringfy_(x) # x
-@@ -39,7 +41,7 @@
-       Cnf.Set("APT::Architecture",COMMON_CPU);
+@@ -40,7 +42,7 @@
     else
        Cnf.Set("APT::Architecture",COMMON_OS "-" COMMON_CPU);
+    Cnf.Set("APT::Build-Essential::", "build-essential");
 -   Cnf.Set("Dir","/");
 +   Cnf.Set("Dir","@PREFIX@/");
     
     // State   
     Cnf.Set("Dir::State","var/lib/apt/");
-@@ -68,7 +70,7 @@
+@@ -69,7 +71,7 @@
     Cnf.Set("Dir::Etc::main","apt.conf");
     Cnf.Set("Dir::Etc::parts","apt.conf.d");
     Cnf.Set("Dir::Etc::preferences","preferences");
@@ -385,7 +293,7 @@ diff -urN apt-0.5.4.orig/apt-pkg/init.cc apt-0.5.4/apt-pkg/init.cc
  	      
     bool Res = true;
     
-@@ -101,6 +103,8 @@
+@@ -110,6 +112,8 @@
  /* */
  bool pkgInitSystem(Configuration &Cnf,pkgSystem *&Sys)
  {
@@ -394,95 +302,33 @@ diff -urN apt-0.5.4.orig/apt-pkg/init.cc apt-0.5.4/apt-pkg/init.cc
     Sys = 0;
     string Label = Cnf.Find("Apt::System","");
     if (Label.empty() == false)
-diff -urN apt-0.5.4.orig/apt-pkg/policy.cc apt-0.5.4/apt-pkg/policy.cc
---- apt-0.5.4.orig/apt-pkg/policy.cc	Mon May 28 08:40:56 2001
-+++ apt-0.5.4/apt-pkg/policy.cc	Mon Dec  8 23:24:47 2003
-@@ -183,7 +183,7 @@
-    Pin *P = 0;
-    
-    if (Name.empty() == true)
--      P = &*Defaults.insert(Defaults.end());
-+      P = &*Defaults.insert(Defaults.end(),PkgPin());
-    else
-    {
-       // Get a spot to put the pin
-@@ -197,7 +197,7 @@
- 	       P = &*I;
- 	 
- 	 if (P == 0)
--	    P = &*Unmatched.insert(Unmatched.end());      
-+	    P = &*Unmatched.insert(Unmatched.end(), PkgPin());      
-       }
-       else
-       {
-diff -urN apt-0.5.4.orig/apt-pkg/tagfile.cc apt-0.5.4/apt-pkg/tagfile.cc
---- apt-0.5.4.orig/apt-pkg/tagfile.cc	Mon May 14 14:56:26 2001
-+++ apt-0.5.4/apt-pkg/tagfile.cc	Mon Dec  8 23:24:47 2003
-@@ -197,7 +197,7 @@
-       return false;
-    
-    TagCount = 0;
--   while (TagCount < sizeof(Indexes)/sizeof(Indexes[0]) && Stop < End)
-+   while (TagCount+1 < sizeof(Indexes)/sizeof(Indexes[0]) && Stop < End)
-    {
-       // Start a new index and add it to the hash
-       if (isspace(Stop[0]) == 0)
-@@ -211,13 +211,13 @@
-       if (Stop == 0)
- 	 return false;
-       
--      for (; Stop[1] == '\r' && Stop+1 < End; Stop++);
-+      for (; Stop+1 < End && Stop[1] == '\r'; Stop++);
- 
-       // Double newline marks the end of the record
-       if (Stop+1 < End && Stop[1] == '\n')
-       {
- 	 Indexes[TagCount] = Stop - Section;
--	 for (; (Stop[0] == '\n' || Stop[0] == '\r') && Stop < End; Stop++);
-+	 for (; Stop < End && (Stop[0] == '\n' || Stop[0] == '\r'); Stop++);
- 	 return true;
-       }
-       
-diff -urN apt-0.5.4.orig/apt-pkg/tagfile.h apt-0.5.4/apt-pkg/tagfile.h
---- apt-0.5.4.orig/apt-pkg/tagfile.h	Sun Apr 22 14:42:52 2001
-+++ apt-0.5.4/apt-pkg/tagfile.h	Mon Dec  8 23:24:47 2003
-@@ -34,7 +34,7 @@
-    
-    // We have a limit of 256 tags per section.
-    unsigned short Indexes[256];
--   unsigned short AlphaIndexes[0xff];
-+   unsigned short AlphaIndexes[0x100];
-    
-    unsigned int TagCount;
-      
-diff -urN apt-0.5.4.orig/buildlib/environment.mak.in apt-0.5.4/buildlib/environment.mak.in
---- apt-0.5.4.orig/buildlib/environment.mak.in	Tue May 29 14:11:03 2001
-+++ apt-0.5.4/buildlib/environment.mak.in	Mon Dec  8 23:42:14 2003
-@@ -11,9 +11,9 @@
+diff -ruN apt-0.6.21.orig/buildlib/environment.mak.in apt-0.6.21/buildlib/environment.mak.in
+--- apt-0.6.21.orig/buildlib/environment.mak.in	Tue Feb 10 06:03:14 2004
++++ apt-0.6.21/buildlib/environment.mak.in	Tue May  4 00:20:39 2004
+@@ -13,8 +13,8 @@
  LIBSTDCPP_VER = @LIBSTDCPP_VER@
  
  # Linker stuff
 -PICFLAGS+= -fPIC -DPIC
 -LFLAGS+= @LDFLAGS@
--LEFLAGS+= 
 +PICFLAGS+= -fno-common -DPIC
 +LFLAGS+= @LDFLAGS@ -framework CoreFoundation
-+LEFLAGS+= -force_flat_namespace
+ LEFLAGS+= 
  SOCKETLIBS:= @SOCKETLIBS@
  AR:=@AR@
- RANLIB:=@RANLIB@
-@@ -47,11 +47,13 @@
+@@ -59,11 +59,12 @@
  
  # Shared library things
  HOST_OS = @host_os@
--ifneq ($(words $(filter linux-gnu gnu%,$(HOST_OS))),0)
+-ifneq ($(words $(filter linux-gnu gnu% %gnu,$(HOST_OS))),0)
 -   SONAME_MAGIC=-Wl,-soname -Wl,
 -   LFLAGS_SO=
 -else
 -   # Do not know how to create shared libraries here.
 -   ONLYSTATICLIBS = yes
 -endif
-+#ifneq ($(words $(filter linux-gnu gnu%,$(HOST_OS))),0)
+-	
++#ifneq ($(words $(filter linux-gnu gnu% %gnu,$(HOST_OS))),0)
 +#   SONAME_MAGIC=-Wl,-soname -Wl,
 +#   LFLAGS_SO=
 +#else
@@ -491,11 +337,19 @@ diff -urN apt-0.5.4.orig/buildlib/environment.mak.in apt-0.5.4/buildlib/environm
 +#endif
 +SONAME_MAGIC=-install_name @PREFIX@/lib/
 +LFLAGS_SO=-dynamiclib
- 	
-diff -urN apt-0.5.4.orig/buildlib/library.mak apt-0.5.4/buildlib/library.mak
---- apt-0.5.4.orig/buildlib/library.mak	Tue Feb 27 13:16:05 2001
-+++ apt-0.5.4/buildlib/library.mak	Mon Dec  8 23:24:47 2003
-@@ -15,17 +15,17 @@
+diff -ruN apt-0.6.21.orig/buildlib/library.mak apt-0.6.21/buildlib/library.mak
+--- apt-0.6.21.orig/buildlib/library.mak	Mon Nov 11 16:00:16 2002
++++ apt-0.6.21/buildlib/library.mak	Tue May  4 00:24:38 2004
+@@ -5,7 +5,7 @@
+ # Input
+ # $(SOURCE) - The source code to use
+ # $(HEADERS) - Exported header files and private header files
+-# $(LIBRARY) - The name of the library without lib or .so 
++# $(LIBRARY) - The name of the library without lib or .dylib
+ # $(MAJOR) - The major version number of this library
+ # $(MINOR) - The minor version number of this library
+ # $(APT_DOMAIN) - The text domain for this library
+@@ -16,11 +16,11 @@
  # See defaults.mak for information about LOCAL
  
  # Some local definitions
@@ -509,6 +363,8 @@ diff -urN apt-0.5.4.orig/buildlib/library.mak apt-0.5.4/buildlib/library.mak
  $(LOCAL)-SLIBS := $(SLIBS)
  $(LOCAL)-LIBRARY := $(LIBRARY)
  
+@@ -29,7 +29,7 @@
+ 
  # Install the command hooks
  headers: $($(LOCAL)-HEADERS)
 -library: $(LIB)/lib$(LIBRARY).so $(LIB)/lib$(LIBRARY)$(LIBEXT).so.$(MAJOR)
@@ -516,12 +372,12 @@ diff -urN apt-0.5.4.orig/buildlib/library.mak apt-0.5.4/buildlib/library.mak
  clean: clean/$(LOCAL)
  veryclean: veryclean/$(LOCAL)
  
-@@ -37,21 +37,23 @@
+@@ -41,23 +41,23 @@
  clean/$(LOCAL):
  	-rm -f $($(@F)-OBJS) $($(@F)-DEP)
  veryclean/$(LOCAL): clean/$(LOCAL)
 -	-rm -f $($(@F)-HEADERS) $(LIB)/lib$($(@F)-LIBRARY)*.so*
-+	-rm -f $($(@F)-HEADERS) $(LIB)/lib$($(@F)-LIBRARY)*.dylib
++	-rm -f $($(@F)-HEADERS) $(LIB)/lib$($(@F)-LIBRARY)*.dylib*
  
  # Build rules for the two symlinks
 -.PHONY: $(LIB)/lib$(LIBRARY)$(LIBEXT).so.$(MAJOR) $(LIB)/lib$(LIBRARY).so
@@ -532,25 +388,26 @@ diff -urN apt-0.5.4.orig/buildlib/library.mak apt-0.5.4/buildlib/library.mak
 -$(LIB)/lib$(LIBRARY).so: $(LIB)/lib$(LIBRARY)$(LIBEXT).so.$(MAJOR).$(MINOR)
 +$(LIB)/lib$(LIBRARY).dylib: $(LIB)/lib$(LIBRARY)$(LIBEXT).$(MAJOR).$(MINOR).dylib
  	ln -sf $(<F) $@
- 	
+ 
  # The binary build rule
 -$(LIB)/lib$(LIBRARY)$(LIBEXT).so.$(MAJOR).$(MINOR): $($(LOCAL)-HEADERS) $($(LOCAL)-OBJS)
 -	-rm -f $(LIB)/lib$($(@F)-LIBRARY)*.so* 2> /dev/null
 +$(LIB)/lib$(LIBRARY)$(LIBEXT).$(MAJOR).$(MINOR).dylib: $($(LOCAL)-HEADERS) $($(LOCAL)-OBJS)
-+	-rm -f $(LIB)/lib$($(@F)-LIBRARY)*.dylib 2> /dev/null
++	-rm -f $(LIB)/lib$($(@F)-LIBRARY)*.dylib* 2> /dev/null
  	echo Building shared library $@
  	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(PICFLAGS) $(LFLAGS) $(LFLAGS_SO)\
 -	   -o $@ $(SONAME_MAGIC)$($(@F)-SONAME) -shared \
-+	   -o $@ $(SONAME_MAGIC)$($(@F)-SONAME) \
-+	   -compatibility_version $(MAJOR).$(MINOR) \
-+	   -current_version $(MAJOR).$(MINOR) \
++	   -o $@ $(SONAME_MAGIC)$($(@F)-SONAME)  \
  	   $(filter %.opic,$^) \
- 	   $($(@F)-SLIBS) 
+-	   $($(@F)-SLIBS) 
++	   $($(@F)-SLIBS) -compatibility_version $(MAJOR) -current_version $(MAJOR)
  
-diff -urN apt-0.5.4.orig/buildlib/ostable apt-0.5.4/buildlib/ostable
---- apt-0.5.4.orig/buildlib/ostable	Tue Feb 20 16:03:17 2001
-+++ apt-0.5.4/buildlib/ostable	Mon Dec  8 23:24:47 2003
-@@ -14,6 +14,7 @@
+ # Compilation rules
+ vpath %.cc $(SUBDIRS)
+diff -ruN apt-0.6.21.orig/buildlib/ostable apt-0.6.21/buildlib/ostable
+--- apt-0.6.21.orig/buildlib/ostable	Thu Dec 25 07:35:08 2003
++++ apt-0.6.21/buildlib/ostable	Tue May  4 00:20:39 2004
+@@ -16,6 +16,7 @@
  hp-hpux[^-]*	    hp-ux
  sun-solaris[^-]*    solaris
  [^-]*-openbsd[^-]*  openbsd
@@ -558,44 +415,10 @@ diff -urN apt-0.5.4.orig/buildlib/ostable apt-0.5.4/buildlib/ostable
  
  # Catch all
  .*	unknown
-diff -urN apt-0.5.4.orig/cmdline/apt-cache.cc apt-0.5.4/cmdline/apt-cache.cc
---- apt-0.5.4.orig/cmdline/apt-cache.cc	Mon Jul  2 09:10:32 2001
-+++ apt-0.5.4/cmdline/apt-cache.cc	Mon Dec  8 23:24:47 2003
-@@ -374,8 +374,10 @@
-    if (ReadPinFile(Plcy) == false)
-       return false;
-    
--   pkgCache::VerFile **VFList = new pkgCache::VerFile *[Cache.HeaderP->PackageCount];
--   memset(VFList,0,sizeof(*VFList)*Cache.HeaderP->PackageCount);
-+   // Make sure we have a sentinel for the list.
-+   unsigned long Count = Cache.HeaderP->PackageCount+1;
-+   pkgCache::VerFile **VFList = new pkgCache::VerFile *[Count];
-+   memset(VFList,0,sizeof(*VFList)*Count);
-    
-    // Map versions that we want to write out onto the VerList array.
-    for (pkgCache::PkgIterator P = Cache.PkgBegin(); P.end() == false; P++)
-@@ -428,7 +430,7 @@
-       VFList[P->ID] = VF;
-    }
-    
--   LocalitySort(VFList,Cache.HeaderP->PackageCount,sizeof(*VFList));
-+   LocalitySort(VFList,Count,sizeof(*VFList));
- 
-    // Iterate over all the package files and write them out.
-    char *Buffer = new char[Cache.HeaderP->MaxVerFileSize+10];
-diff -urN apt-0.5.4.orig/cmdline/apt-get.cc apt-0.5.4/cmdline/apt-get.cc
---- apt-0.5.4.orig/cmdline/apt-get.cc	Mon Jul  2 07:59:04 2001
-+++ apt-0.5.4/cmdline/apt-get.cc	Mon Dec  8 23:24:47 2003
-@@ -113,6 +113,8 @@
-       return true;
-    }
-    
-+   fflush(NULL);
-+   
-    char C = 0;
-    char Jnk = 0;
-    if (read(STDIN_FILENO,&C,1) != 1)
-@@ -281,7 +283,14 @@
+diff -ruN apt-0.6.21.orig/cmdline/apt-get.cc apt-0.6.21/cmdline/apt-get.cc
+--- apt-0.6.21.orig/cmdline/apt-get.cc	Thu Mar  4 02:27:23 2004
++++ apt-0.6.21/cmdline/apt-get.cc	Tue May  4 00:20:39 2004
+@@ -331,7 +331,14 @@
  		  if (Cache[Targ].CandidateVerIter(Cache).end() == true)
  		  {
  		     if (Targ->ProvidesList == 0)
@@ -611,19 +434,19 @@ diff -urN apt-0.5.4.orig/cmdline/apt-get.cc apt-0.5.4/cmdline/apt-get.cc
  		     else
  			out << _("but it is a virtual package");
  		  }		  
-diff -urN apt-0.5.4.orig/configure apt-0.5.4/configure
---- apt-0.5.4.orig/configure	Sun Aug 19 09:46:43 2001
-+++ apt-0.5.4/configure	Mon Dec  8 23:24:47 2003
-@@ -2394,7 +2394,7 @@
- 
+diff -ruN apt-0.6.21.orig/configure apt-0.6.21/configure
+--- apt-0.6.21.orig/configure	Wed Mar 17 15:53:50 2004
++++ apt-0.6.21/configure	Tue May  4 00:20:39 2004
+@@ -4188,7 +4188,7 @@
  ac_given_srcdir=$srcdir
+ ac_given_INSTALL="$INSTALL"
  
 -trap 'rm -fr `echo "environment.mak:buildlib/environment.mak.in makefile:buildlib/makefile.in include/config.h:buildlib/config.h.in include/apti18n.h:buildlib/apti18n.h.in" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
 +trap 'rm -fr `echo "environment.mak:buildlib/environment.mak.in makefile.wrap:buildlib/makefile.in include/config.h:buildlib/config.h.in include/apti18n.h:buildlib/apti18n.h.in" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
  EOF
  cat >> $CONFIG_STATUS <<EOF
  
-@@ -2504,7 +2504,7 @@
+@@ -4317,7 +4317,7 @@
  
  cat >> $CONFIG_STATUS <<EOF
  
@@ -632,28 +455,28 @@ diff -urN apt-0.5.4.orig/configure apt-0.5.4/configure
  EOF
  cat >> $CONFIG_STATUS <<\EOF
  for ac_file in .. $CONFIG_FILES; do if test "x$ac_file" != x..; then
-@@ -2670,7 +2670,7 @@
- 
- EOF
- cat >> $CONFIG_STATUS <<\EOF
+@@ -4604,7 +4604,7 @@
+         ;;
+       esac
+     done
 -make -s dirs
 +make -f makefile.wrap -s dirs
  exit 0
  EOF
  chmod +x $CONFIG_STATUS
-diff -urN apt-0.5.4.orig/configure.in apt-0.5.4/configure.in
---- apt-0.5.4.orig/configure.in	Mon Jun 18 14:56:32 2001
-+++ apt-0.5.4/configure.in	Mon Dec  8 23:24:47 2003
-@@ -163,4 +163,4 @@
- rc_LIBSTDCPP_VER
- ah_GCC3DEP
+diff -ruN apt-0.6.21.orig/configure.in apt-0.6.21/configure.in
+--- apt-0.6.21.orig/configure.in	Wed Mar 17 15:53:49 2004
++++ apt-0.6.21/configure.in	Tue May  4 00:20:39 2004
+@@ -182,4 +182,4 @@
+ AC_SUBST(USE_NLS)
+ AC_PATH_PROG(BASH, bash)
  
 -AC_OUTPUT(environment.mak:buildlib/environment.mak.in makefile:buildlib/makefile.in,make -s dirs)
 +AC_OUTPUT(environment.mak:buildlib/environment.mak.in makefile.wrap:buildlib/makefile.in,make -f makefile.wrap -s dirs)
-diff -urN apt-0.5.4.orig/dselect/install apt-0.5.4/dselect/install
---- apt-0.5.4.orig/dselect/install	Tue Feb 20 16:03:17 2001
-+++ apt-0.5.4/dselect/install	Mon Dec  8 23:24:47 2003
-@@ -3,8 +3,8 @@
+diff -ruN apt-0.6.21.orig/dselect/install apt-0.6.21/dselect/install
+--- apt-0.6.21.orig/dselect/install	Sun Nov 24 11:22:55 2002
++++ apt-0.6.21/dselect/install	Tue May  4 00:20:39 2004
+@@ -6,8 +6,8 @@
  # Get the configuration from /etc/apt/apt.conf
  CLEAN="prompt"
  OPTS="-f"
@@ -664,10 +487,10 @@ diff -urN apt-0.5.4.orig/dselect/install apt-0.5.4/dselect/install
  DPKG_OPTS="--admindir=$1"
  APT_OPT0="-oDir::State::status=$1/status"
  APT_OPT1="-oDPkg::Options::=$DPKG_OPTS"
-diff -urN apt-0.5.4.orig/dselect/setup apt-0.5.4/dselect/setup
---- apt-0.5.4.orig/dselect/setup	Thu Jan 27 13:15:10 2000
-+++ apt-0.5.4/dselect/setup	Mon Dec  8 23:24:47 2003
-@@ -23,15 +23,17 @@
+diff -ruN apt-0.6.21.orig/dselect/setup apt-0.6.21/dselect/setup
+--- apt-0.6.21.orig/dselect/setup	Fri Jul 18 23:23:16 2003
++++ apt-0.6.21/dselect/setup	Tue May  4 00:20:39 2004
+@@ -23,10 +23,12 @@
  my $vardir=$ARGV[0];
  my $method=$ARGV[1];
  my $option=$ARGV[2];
@@ -683,13 +506,6 @@ diff -urN apt-0.5.4.orig/dselect/setup apt-0.5.4/dselect/setup
  
  my @known_types           = ('deb');
  my @known_access         = ('http', 'ftp', 'file');
--my @typical_distributions = ('stable', 'unstable', 'frozen', 'non-US');
--my @typical_components    = ('main', 'contrib', 'non-free');
-+my @typical_distributions = ('10.3/release', '10.3/current');
-+my @typical_components    = ('main', 'crypto');
- 
- my %known_access           = map {($_,$_)} @known_access;
- my %typical_distributions  = map {($_,$_)} @typical_distributions;
 @@ -118,9 +120,9 @@
    }
  
@@ -730,18 +546,18 @@ diff -urN apt-0.5.4.orig/dselect/setup apt-0.5.4/dselect/setup
      print "-" x 72, "\n";
      &print_config('Config' => \@Oldconfig);
      print "-" x 72, "\n";
--    print "$boldon Do you wish to change (overwrite) it?[y/N]$boldoff ";
-+    print "$boldon In most cases, this file was installed by Fink or by apt,"
-+	." and$boldoff\n";
-+        print "$boldon should NOT be changed.  " .
-+        "Do you wish to change (overwrite) it?[y/N]$boldoff ";
+-    print "$boldon Do you wish to overwrite it? [y/N]$boldoff ";
++	print "$boldon In most cases, this file was installed by Fink or by apt,"
++		." and$boldoff\n";
++	print "$boldon should NOT be changed.  " .
++		"Do you wish to change (overwrite) it?[y/N]$boldoff ";
      my $answer = <STDIN>;
      chomp ($answer);
      $answer =~ s/\s+/ /og;
-diff -urN apt-0.5.4.orig/dselect/update apt-0.5.4/dselect/update
---- apt-0.5.4.orig/dselect/update	Tue Mar 13 10:45:36 2001
-+++ apt-0.5.4/dselect/update	Mon Dec  8 23:24:47 2003
-@@ -4,13 +4,13 @@
+diff -ruN apt-0.6.21.orig/dselect/update apt-0.6.21/dselect/update
+--- apt-0.6.21.orig/dselect/update	Sun Nov 24 11:22:55 2002
++++ apt-0.6.21/dselect/update	Tue May  4 00:20:39 2004
+@@ -7,13 +7,13 @@
  # Get the configuration from /etc/apt/apt.conf
  CLEAN="prompt"
  OPTS="-f"
@@ -759,40 +575,40 @@ diff -urN apt-0.5.4.orig/dselect/update apt-0.5.4/dselect/update
  PROMPT="false"
  RES=`apt-config shell CLEAN DSelect::Clean OPTS DSelect::UpdateOptions \
  		      DPKG Dir::Bin::dpkg/f APTGET Dir::Bin::apt-get/f \
-diff -urN apt-0.5.4.orig/methods/connect.cc apt-0.5.4/methods/connect.cc
---- apt-0.5.4.orig/methods/connect.cc	Tue Feb 20 16:03:18 2001
-+++ apt-0.5.4/methods/connect.cc	Mon Dec  8 23:24:47 2003
-@@ -90,7 +90,7 @@
+diff -ruN apt-0.6.21.orig/methods/connect.cc apt-0.6.21/methods/connect.cc
+--- apt-0.6.21.orig/methods/connect.cc	Sat Jan 17 03:58:50 2004
++++ apt-0.6.21/methods/connect.cc	Tue May  4 00:20:39 2004
+@@ -94,7 +94,7 @@
  
     // Check the socket for an error condition
     unsigned int Err;
 -   unsigned int Len = sizeof(Err);
 +   int Len = sizeof(Err);
     if (getsockopt(Fd,SOL_SOCKET,SO_ERROR,&Err,&Len) != 0)
-       return _error->Errno("getsockopt","Failed");
+       return _error->Errno("getsockopt",_("Failed"));
     
-diff -urN apt-0.5.4.orig/methods/ftp.cc apt-0.5.4/methods/ftp.cc
---- apt-0.5.4.orig/methods/ftp.cc	Tue May 22 13:02:00 2001
-+++ apt-0.5.4/methods/ftp.cc	Mon Dec  8 23:24:47 2003
-@@ -694,7 +694,7 @@
+diff -ruN apt-0.6.21.orig/methods/ftp.cc apt-0.6.21/methods/ftp.cc
+--- apt-0.6.21.orig/methods/ftp.cc	Sat Jan 17 03:58:50 2004
++++ apt-0.6.21/methods/ftp.cc	Tue May  4 00:20:39 2004
+@@ -697,7 +697,7 @@
        if (WaitFd(DataFd,true,TimeOut) == false)
- 	 return _error->Error("Could not connect data socket, connection timed out");
+ 	 return _error->Error(_("Could not connect data socket, connection timed out"));
        unsigned int Err;
 -      unsigned int Len = sizeof(Err);
 +      int Len = sizeof(Err);
        if (getsockopt(DataFd,SOL_SOCKET,SO_ERROR,&Err,&Len) != 0)
- 	 return _error->Errno("getsockopt","Failed");
+ 	 return _error->Errno("getsockopt",_("Failed"));
        if (Err != 0)
-@@ -739,7 +739,7 @@
+@@ -742,7 +742,7 @@
     
     // Determine the name to send to the remote
     struct sockaddr_storage Addr;
 -   socklen_t AddrLen = sizeof(Addr);
 +   int AddrLen = sizeof(Addr);
     if (getsockname(DataListenFd,(sockaddr *)&Addr,&AddrLen) < 0)
-       return _error->Errno("getsockname","Could not determine the socket's name");
+       return _error->Errno("getsockname",_("Could not determine the socket's name"));
  
-@@ -815,7 +815,7 @@
+@@ -819,7 +819,7 @@
        
     // Accept the connection
     struct sockaddr_in Addr;
@@ -800,10 +616,10 @@ diff -urN apt-0.5.4.orig/methods/ftp.cc apt-0.5.4/methods/ftp.cc
 +   int Len = sizeof(Addr);
     DataFd = accept(DataListenFd,(struct sockaddr *)&Addr,&Len);
     if (DataFd < 0)
-       return _error->Errno("accept","Unable to accept connection");
-diff -urN apt-0.5.4.orig/methods/ftp.h apt-0.5.4/methods/ftp.h
---- apt-0.5.4.orig/methods/ftp.h	Tue Mar  6 16:15:29 2001
-+++ apt-0.5.4/methods/ftp.h	Mon Dec  8 23:24:47 2003
+       return _error->Errno("accept",_("Unable to accept connection"));
+diff -ruN apt-0.6.21.orig/methods/ftp.h apt-0.6.21/methods/ftp.h
+--- apt-0.6.21.orig/methods/ftp.h	Tue Mar  6 16:15:29 2001
++++ apt-0.6.21/methods/ftp.h	Tue May  4 00:20:39 2004
 @@ -26,11 +26,11 @@
     
     // Generic Peer Address
@@ -818,9 +634,9 @@ diff -urN apt-0.5.4.orig/methods/ftp.h apt-0.5.4/methods/ftp.h
     
     // Private helper functions
     bool ReadLine(string &Text);      
-diff -urN apt-0.5.4.orig/methods/rfc2553emu.h apt-0.5.4/methods/rfc2553emu.h
---- apt-0.5.4.orig/methods/rfc2553emu.h	Sun Jun 18 15:04:45 2000
-+++ apt-0.5.4/methods/rfc2553emu.h	Mon Dec  8 23:24:47 2003
+diff -ruN apt-0.6.21.orig/methods/rfc2553emu.h apt-0.6.21/methods/rfc2553emu.h
+--- apt-0.6.21.orig/methods/rfc2553emu.h	Sun Jun 18 15:04:45 2000
++++ apt-0.6.21/methods/rfc2553emu.h	Tue May  4 00:20:39 2004
 @@ -26,6 +26,11 @@
  #include <sys/types.h>
  #include <sys/socket.h>
@@ -852,9 +668,9 @@ diff -urN apt-0.5.4.orig/methods/rfc2553emu.h apt-0.5.4/methods/rfc2553emu.h
    #endif
  
    #define sockaddr_storage sockaddr_in
-diff -urN apt-0.5.4.orig/patch_flush apt-0.5.4/patch_flush
---- apt-0.5.4.orig/patch_flush	Thu Jan  1 09:00:00 1970
-+++ apt-0.5.4/patch_flush	Mon Dec  8 23:24:47 2003
+diff -ruN apt-0.6.21.orig/patch_flush apt-0.6.21/patch_flush
+--- apt-0.6.21.orig/patch_flush	Thu Jan  1 09:00:00 1970
++++ apt-0.6.21/patch_flush	Tue May  4 00:20:39 2004
 @@ -0,0 +1,11 @@
 +#!/bin/sh
 +set -e
@@ -867,9 +683,9 @@ diff -urN apt-0.5.4.orig/patch_flush apt-0.5.4/patch_flush
 +done
 +
 +exit 0
-diff -urN apt-0.5.4.orig/sources.list.fink apt-0.5.4/sources.list.fink
---- apt-0.5.4.orig/sources.list.fink	Thu Jan  1 09:00:00 1970
-+++ apt-0.5.4/sources.list.fink	Mon Dec  8 23:24:47 2003
+diff -ruN apt-0.6.21.orig/sources.list.fink apt-0.6.21/sources.list.fink
+--- apt-0.6.21.orig/sources.list.fink	Thu Jan  1 09:00:00 1970
++++ apt-0.6.21/sources.list.fink	Tue May  4 00:20:39 2004
 @@ -0,0 +1,8 @@
 +# Default APT sources configuration for Fink
 +
@@ -879,9 +695,9 @@ diff -urN apt-0.5.4.orig/sources.list.fink apt-0.5.4/sources.list.fink
 +deb file:@PREFIX@/fink local main
 +deb file:@PREFIX@/fink stable main crypto
 +#deb file:@PREFIX@/fink unstable main crypto
-diff -urN apt-0.5.4.orig/sources.list.fink-bindist apt-0.5.4/sources.list.fink-bindist
---- apt-0.5.4.orig/sources.list.fink-bindist	Thu Jan  1 09:00:00 1970
-+++ apt-0.5.4/sources.list.fink-bindist	Mon Dec  8 23:24:47 2003
+diff -ruN apt-0.6.21.orig/sources.list.fink-bindist apt-0.6.21/sources.list.fink-bindist
+--- apt-0.6.21.orig/sources.list.fink-bindist	Thu Jan  1 09:00:00 1970
++++ apt-0.6.21/sources.list.fink-bindist	Tue May  4 00:20:39 2004
 @@ -0,0 +1,8 @@
 +
 +# Official binary distribution: download location for packages

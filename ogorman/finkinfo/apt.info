@@ -1,85 +1,92 @@
 Package: apt
-Version: 0.5.4
+Version: 0.6.21
 Revision: 200
 GCC: 3.3
 Depends: %N-shlibs (= %v-%r)
-BuildDepends: fink-prebinding
+BuildDepends: fink-prebinding, libiconv-dev, gettext-dev
 Source: mirror:sourceforge:fink/%n_%v.tar.gz
-Source-MD5: 274fb64e2e67318b4c9c94599785c37d
+Source-MD5: 57364232b641051226f1c78ad6359b4c
 SourceDirectory: %n-%v
 PatchScript: <<
  sed 's|@PREFIX@|%p|g' <%a/%n.patch | patch -p1
  if [ "%p" = "/sw" ]; then cat sources.list.fink-bindist >>sources.list.fink ; fi
  sh patch_flush
- for i in `grep -rl '#ifdef __GNUG__' .` ; do perl -pi -e 's/#ifdef __GNUG__/#if defined(__GNUG__) && !defined(__APPLE_CC__)/' $i; done
  for i in `grep -rl '#ifdef __GNUG__' .` ; do perl -pi -e 's/#ifdef __GNUG__/#if defined(__GNUG__) && !defined(__APPLE_CC__)/' $i ; done
 <<
 NoSetCPPFLAGS: true
 NoSetLDFLAGS: true
-SetCXXFLAGS: -O2 -DEMULATE_MMAP -D__USE_MISC -fconstant-cfstrings
+SetCXXFLAGS: -D__USE_MISC -fconstant-cfstrings -O2
+SetLDFLAGS: -liconv -lintl
 CompileScript: <<
- ./configure %c
- make -f makefile.wrap NOISY=1
+#! /bin/sh -ex
+ export LIBRARY_PATH=%p/lib
+ export CPATH=%p/include
+#./configure %c
+# find . | xargs -n1 touch
+# touch apt-pkg/contrib/mmap.h
+ make prefix=%p NOISY=1 INLINEDEPFLAG= LIBEXT= XGETTEXT=%p/bin/xgettext
 <<
 InstallScript: <<
  mkdir -p %i/bin
- install -m 755 bin/apt-cache %i/bin/
- install -m 755 bin/apt-cdrom %i/bin/
- install -m 755 bin/apt-config %i/bin/
- install -m 755 bin/apt-extracttemplates %i/bin/
- install -m 755 bin/apt-get %i/bin/
- install -m 755 bin/apt-sortpkgs %i/bin/
+ install -m 755 build/bin/apt-cache %i/bin/
+ install -m 755 build/bin/apt-cdrom %i/bin/
+ install -m 755 build/bin/apt-config %i/bin/
+ install -m 755 build/bin/apt-extracttemplates %i/bin/
+ install -m 755 build/bin/apt-get %i/bin/
+ install -m 755 build/bin/apt-sortpkgs %i/bin/
  mkdir -p %i/lib
- install -m 644 bin/libapt-pkg.3.2.0.dylib %i/lib/
- cd %i/lib/ && ln -s libapt-pkg.3.2.0.dylib libapt-pkg.3.2.dylib && ln -s libapt-pkg.3.2.0.dylib libapt-pkg.dylib
- install -m 644 bin/libapt-inst.1.0.0.dylib %i/lib/
+ install -m 644 build/bin/libapt-pkg.3.5.0.dylib %i/lib/
+ cd %i/lib/ && ln -s libapt-pkg.3.5.0.dylib libapt-pkg.3.5.dylib && ln -s libapt-pkg.3.5.0.dylib libapt-pkg.dylib
+ install -m 644 build/bin/libapt-inst.1.0.0.dylib %i/lib/
  cd %i/lib/ && ln -s libapt-inst.1.0.0.dylib libapt-inst.1.0.dylib && ln -s libapt-inst.1.0.0.dylib libapt-inst.dylib
  mkdir -p %i/lib/apt/methods
- install -m 755 bin/methods/cdrom %i/lib/apt/methods/
- install -m 755 bin/methods/copy %i/lib/apt/methods/
- install -m 755 bin/methods/file %i/lib/apt/methods/
- install -m 755 bin/methods/ftp %i/lib/apt/methods/
- install -m 755 bin/methods/gzip %i/lib/apt/methods/
- install -m 755 bin/methods/http %i/lib/apt/methods/
- install -m 755 bin/methods/rsh %i/lib/apt/methods/
+ install -m 755 build/bin/methods/cdrom %i/lib/apt/methods/
+ install -m 755 build/bin/methods/copy %i/lib/apt/methods/
+ install -m 755 build/bin/methods/file %i/lib/apt/methods/
+ install -m 755 build/bin/methods/ftp %i/lib/apt/methods/
+ install -m 755 build/bin/methods/gzip %i/lib/apt/methods/
+ install -m 755 build/bin/methods/http %i/lib/apt/methods/
+ install -m 755 build/bin/methods/rsh %i/lib/apt/methods/
  cd %i/lib/apt/methods && ln -s rsh ssh
  mkdir -p %i/lib/dpkg/methods/apt
- install -m 644 scripts/dselect/desc.apt %i/lib/dpkg/methods/apt/
- install -m 755 scripts/dselect/install %i/lib/dpkg/methods/apt/
- install -m 644 scripts/dselect/names %i/lib/dpkg/methods/apt/
- install -m 755 scripts/dselect/setup %i/lib/dpkg/methods/apt/
- install -m 755 scripts/dselect/update %i/lib/dpkg/methods/apt/
+ install -m 644 build/scripts/dselect/desc.apt %i/lib/dpkg/methods/apt/
+ install -m 755 build/scripts/dselect/install %i/lib/dpkg/methods/apt/
+ install -m 644 build/scripts/dselect/names %i/lib/dpkg/methods/apt/
+ install -m 755 build/scripts/dselect/setup %i/lib/dpkg/methods/apt/
+ install -m 755 build/scripts/dselect/update %i/lib/dpkg/methods/apt/
  mkdir -p %i/include/apt-pkg
- cp include/apt-pkg/*.h %i/include/apt-pkg/
+ cp build/include/apt-pkg/*.h %i/include/apt-pkg/
  mkdir -p %i/share/man
  mkdir -p %i/share/man/man1
  mkdir -p %i/share/man/man5
  mkdir -p %i/share/man/man8
  install -m 644 doc/apt.8 %i/share/man/man8/
- install -m 644 docs/apt-cache.8 %i/share/man/man8/
- install -m 644 docs/apt-cdrom.8 %i/share/man/man8/
- install -m 644 docs/apt-config.8 %i/share/man/man8/
- install -m 644 docs/apt-extracttemplates.1 %i/share/man/man1/
- install -m 644 docs/apt-get.8 %i/share/man/man8/
- install -m 644 docs/apt-sortpkgs.1 %i/share/man/man1/
- install -m 644 docs/apt.conf.5 %i/share/man/man5/
- install -m 644 docs/apt_preferences.5 %i/share/man/man5/
- install -m 644 docs/sources.list.5 %i/share/man/man5/
+ install -m 644 build/docs/apt-cache.8 %i/share/man/man8/
+ install -m 644 build/docs/apt-cdrom.8 %i/share/man/man8/
+ install -m 644 build/docs/apt-config.8 %i/share/man/man8/
+ install -m 644 build/docs/apt-extracttemplates.1 %i/share/man/man1/
+ install -m 644 build/docs/apt-get.8 %i/share/man/man8/
+ install -m 644 build/docs/apt-sortpkgs.1 %i/share/man/man1/
+ install -m 644 build/docs/apt.conf.5 %i/share/man/man5/
+ install -m 644 build/docs/apt_preferences.5 %i/share/man/man5/
+ install -m 644 build/docs/sources.list.5 %i/share/man/man5/
  mkdir -p %i/etc/apt/apt.conf.d
  install -m 644 sources.list.fink %i/etc/apt/sources.list
  mkdir -p %i/var/cache/apt/archives/partial
  mkdir -p %i/var/lib/apt/lists/partial
  mkdir -p %i/lib/fink
  install -m 644 sources.list.fink %i/lib/fink
+ mkdir -p %i/share/locale
+ /bin/cp -p -R build/locale/* %i/share/locale/
 <<
 SplitOff: <<
   Package: %N-shlibs
   Depends: dpkg
   Replaces: %N (<= 0.5.4-1)
-  Files: lib/libapt-inst.1.0.0.dylib lib/libapt-pkg.3.2.0.dylib lib/libapt-inst.1.0.dylib lib/libapt-pkg.3.2.dylib
+  Files: lib/libapt-inst.1.0.0.dylib lib/libapt-pkg.3.5.0.dylib lib/libapt-inst.1.0.dylib lib/libapt-pkg.3.5.dylib
   Shlibs: <<
-    %p/lib/libapt-inst.1.0.dylib 1.0.0 %n (>= 0.5.4-24)
-    %p/lib/libapt-pkg.3.2.dylib 3.2.0 %n (>= 0.5.4-24)
+    %p/lib/libapt-inst.1.0.dylib 1.0.0 %n (>= 0.6.21-1)
+    %p/lib/libapt-pkg.3.5.dylib 3.5.0 %n (>= 0.6.21-1)
   <<
   DocFiles: COPYING* AUTHORS
 <<
