@@ -1,0 +1,97 @@
+
+diff -ru xchat-1.8.10/intl/Makefile.in xchat-1.8.10-patched/intl/Makefile.in
+--- xchat-1.8.10/intl/Makefile.in	2000-01-01 04:19:37.000000000 +0100
++++ xchat-1.8.10-patched/intl/Makefile.in	2002-08-08 23:05:18.000000000 +0200
+@@ -41,7 +41,7 @@
+ INSTALL_DATA = @INSTALL_DATA@
+ MKINSTALLDIRS = @MKINSTALLDIRS@
+ 
+-l = @l@
++l = 
+ 
+ AR = ar
+ CC = @CC@
+@@ -202,12 +202,8 @@
+ # The dependency for intlh.inst is different in gettext and all other
+ # packages.  Because we cannot you GNU make features we have to solve
+ # the problem while rewriting Makefile.in.
+-@GT_YES@intlh.inst: intlh.inst.in ../config.status
+-@GT_YES@	cd .. \
+-@GT_YES@	&& CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= \
+-@GT_YES@	  $(SHELL) ./config.status
+-@GT_NO@.PHONY: intlh.inst
+-@GT_NO@intlh.inst:
++.PHONY: intlh.inst
++intlh.inst:
+ 
+ # Tell versions [3.59,3.63) of GNU make not to export all variables.
+ # Otherwise a system limit (for SysV at least) may be exceeded.
+
+
+--- xchat-1.9.2/plugins/python/Makefile.in.orig	2002-09-17 19:58:14.000000000 -0700
++++ xchat-1.9.2/plugins/python/Makefile.in	2002-09-17 19:59:16.000000000 -0700
+@@ -325,7 +325,7 @@
+ 
+ python.o: python.c
+ 	$(COMPILE) $(PY_CFLAGS) $(COMMON_CFLAGS) -I.. -c python.c -o python.o
+-	$(COMPILE) -shared python.o -o python.so $(PY_LIBS)
++	$(COMPILE) -bundle -bundle_loader ../../src/fe-gtk/xchat python.o -o python.so $(PY_LIBS)
+ 
+ # Tell versions [3.59,3.63) of GNU make to not export all variables.
+ # Otherwise a system limit (for SysV at least) may be exceeded.
+--- xchat-1.9.2/plugins/perl/Makefile.in.orig	2002-09-17 20:03:21.000000000 -0700
++++ xchat-1.9.2/plugins/perl/Makefile.in	2002-09-17 20:03:48.000000000 -0700
+@@ -325,7 +325,7 @@
+ 
+ perl.o: perl.c ../xchat-plugin.h
+ 	$(COMPILE) -Wno-unused $(PERL_CFLAGS) $(COMMON_CFLAGS) -I.. -c perl.c -o perl.o
+-	$(COMPILE) -shared perl.o -o perl.so $(PERL_LDFLAGS)
++	$(COMPILE) -bundle -bundle_loader ../../src/fe-gtk/xchat perl.o -o perl.so -lglib-2.0 -L/sw/lib $(PERL_LDFLAGS)
+ 
+ # Tell versions [3.59,3.63) of GNU make to not export all variables.
+ # Otherwise a system limit (for SysV at least) may be exceeded.
+--- xchat-1.9.2/plugins/mailcheck/Makefile.orig	2002-09-17 20:04:57.000000000 -0700
++++ xchat-1.9.2/plugins/mailcheck/Makefile	2002-09-17 20:05:01.000000000 -0700
+@@ -6,7 +6,7 @@
+ CFLAGS = -Os -mpreferred-stack-boundary=2 -Wall $(GLIB) -I..
+ 
+ $(PLUGIN).so: $(PLUGIN).c Makefile
+-	$(CC) -shared $(CFLAGS) $(PLUGIN).c -o $(PLUGIN).so
++	$(CC) -bundle -bundle_loader ../../src/fe-gtk/xchat $(CFLAGS) $(PLUGIN).c -o $(PLUGIN).so
+ 	@ls -l $(PLUGIN).so
+ 	strip -R .comment -R .note $(PLUGIN).so
+ 	@ls -l $(PLUGIN).so
+--- xchat-1.9.2/plugins/xdcc/Makefile.orig	2002-09-17 20:06:58.000000000 -0700
++++ xchat-1.9.2/plugins/xdcc/Makefile	2002-09-17 20:07:40.000000000 -0700
+@@ -6,7 +6,7 @@
+ CFLAGS = -Os -mpreferred-stack-boundary=2 -Wall $(GLIB) -I..
+ 
+ $(PLUGIN).so: $(PLUGIN).c Makefile
+-	$(CC) -shared $(CFLAGS) $(PLUGIN).c -o $(PLUGIN).so
++	$(CC)  -bundle -bundle_loader ../../src/fe-gtk/xchat $(CFLAGS) $(PLUGIN).c -o $(PLUGIN).so
+ 	@ls -l $(PLUGIN).so
+ 	strip -R .comment -R .note $(PLUGIN).so
+ 	@ls -l $(PLUGIN).so
+--- xchat-1.9.2/configure.orig	2002-09-17 19:44:58.000000000 -0700
++++ xchat-1.9.2/configure	2002-09-17 20:43:50.000000000 -0700
+@@ -5002,7 +5002,7 @@
+ 			echo $ac_n "checking Python compile flags""... $ac_c" 1>&6
+ echo "configure:5004: checking Python compile flags" >&5
+ 			if test -f $PY_PREFIX/include/python$PY_MAJOR/Python.h; then
+-				PY_LIBS="-L$PY_EXEC_PREFIX/lib/python$PY_MAJOR/config -lpython$PY_MAJOR -lpthread -lutil"
++				PY_LIBS="-L$PY_EXEC_PREFIX/lib/python$PY_MAJOR/config -lpython$PY_MAJOR -lpthread -lglib-2.0 -L/sw/lib"
+ 				PY_CFLAGS="-I$PY_PREFIX/include/python$PY_MAJOR"
+ 				echo "$ac_t""ok" 1>&6
+ 			else
+@@ -5370,9 +5370,9 @@
+ #define USE_PLUGIN 1
+ EOF
+ 
+-		LIBS="$LIBS -rdynamic"
++		LIBS="$LIBS"
+ 		if test "x$GCC" = "xyes"; then
+-			GUI_LIBS="$GUI_LIBS -Wl,--version-script,../version-script"
++			GUI_LIBS="$GUI_LIBS"
+ 		fi
+ 	else
+ 		plugin=no
