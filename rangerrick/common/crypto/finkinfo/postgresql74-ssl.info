@@ -50,7 +50,7 @@ Source: mirror:custom:source/v%v/postgresql-%v.tar.bz2
 Source-MD5: 32dac2916d16287d95e0c958a75161fa
 BuildDepends: readline5, autoconf2.5, libgnugetopt, bison, openssl097-dev
 Conflicts: postgresql (<< %v-%r), postgresql-ssl (<< %v-%r)
-Replaces: postgresql (<< %v-%r), postgresql-ssl (<< %v-%r), postgresql-shlibs, postgresql-ssl-shlibs, postgresql-python (<< 7.3-1), postgresql-ssl-python (<< 7.3-1), postgresql-perl (<< 7.3-1), postgresql-ssl-perl (<< 7.3-1), postgresql73, postgresql73-ssl, postgresql74, postgresql74-ssl
+Replaces: postgresql (<< %v-%r), postgresql-ssl (<< %v-%r), postgresql-shlibs, postgresql-ssl-shlibs, postgresql-python, postgresql-ssl-python, postgresql-perl, postgresql-ssl-perl, postgresql73, postgresql73-ssl, postgresql74, postgresql74-ssl
 Depends: readline5-shlibs, passwd (>= 20030906-1), daemonic (>= 20010902-1), openssl097-shlibs, postgresql74-ssl-shlibs (>= %v-%r)
 Description: PostgreSQL open-source database (with SSL)
 PatchScript: sed -e 's|@BUILDDIR@|%b|g' -e 's|@INSTPREFIX@|%p|g' < %a/%n.patch | patch -p1
@@ -104,6 +104,15 @@ InstallScript: <<
   install -d -m 755 %i/var/log
   ln -sf %p/var/postgresql-7.4/pgsql.log %i/var/log/pgsql-7.4.log
 
+  for libname in libecpg.4.1 libecpg_compat.1.2 libpgtypes.1.2 libpq.3.1; do
+    mv %i/lib/$libname.dylib %i/lib/$libname.dylib-7.4
+  done
+
+  rm -rf %i/lib/libecpg.*.dylib
+  rm -rf %i/lib/libecpg_compat.*.dylib
+  rm -rf %i/lib/libpgtypes.*.dylib
+  rm -rf %i/lib/libpq.*.dylib
+
   for file in `ls -1 %i/bin/`; do
     mv "%i/bin/${file}" "%i/bin/${file}-7.4"
     echo "${file}" >> %i/var/postgresql-7.4/binary.list
@@ -118,8 +127,6 @@ InstallScript: <<
     mv "%i/share/man/man7/${file}" "%i/share/man/man7/${file}-7.4"
     echo "${file}" >> %i/var/postgresql-7.4/man7.list
   done
-
-  rm -rf %i/lib/libpq.3.dylib
 
   cat <<END > %i/var/postgresql-7.4/remove-alternatives.sh
 #!/bin/sh
@@ -140,16 +147,24 @@ for arg in "\$@"; do
 	esac
 done
 
-#echo update-alternatives --remove "libpq.3.dylib" "%p/lib/libpq.3.1.dylib"
-     update-alternatives --remove "libpq.3.dylib" "%p/lib/libpq.3.1.dylib"
+update-alternatives --remove "libecpg.4.1.dylib"        "%p/lib/libecpg.4.1.dylib-7.4"
+update-alternatives --remove "libecpg.4.dylib"          "%p/lib/libecpg.4.1.dylib-7.4"
+
+update-alternatives --remove "libecpg_compat.1.2.dylib" "%p/lib/libecpg_compat.1.2.dylib-7.4"
+update-alternatives --remove "libecpg_compat.1.dylib"   "%p/lib/libecpg_compat.1.2.dylib-7.4"
+
+update-alternatives --remove "libpgtypes.1.2.dylib"     "%p/lib/libpgtypes.1.2.dylib-7.4"
+update-alternatives --remove "libpgtypes.1.dylib"       "%p/lib/libpgtypes.1.2.dylib-7.4"
+
+update-alternatives --remove "libpq.3.1.dylib"          "%p/lib/libpq.3.1.dylib-7.4"
+update-alternatives --remove "libpq.3.dylib"            "%p/lib/libpq.3.1.dylib-7.4"
 
 for tuple in %p/bin:binary.list %p/share/man/man1:man1.list %p/share/man/man7:man7.list; do
 	TUPLE_PATH=\`echo \$tuple | cut -d: -f1\`
 	TUPLE_FILE=\`echo \$tuple | cut -d: -f2\`
 
 	for file in \`cat %p/var/postgresql-7.4/\${TUPLE_FILE}\`; do
-#		echo update-alternatives --remove "\${file}" "\${TUPLE_PATH}/\${file}-7.4"
-		     update-alternatives --remove "\${file}" "\${TUPLE_PATH}/\${file}-7.4"
+		update-alternatives --remove "\${file}" "\${TUPLE_PATH}/\${file}-7.4"
 	done
 done
 
@@ -180,11 +195,32 @@ for arg in "\$@"; do
 	esac
 done
 
-if [ -e "%p/lib/libpq.3.1.dylib" ]; then
-#	echo update-alternatives --install "%p/lib/libpq.4.dylib" "libpq.3.dylib" "%p/lib/libpq.3.1.dylib" 74
-	     update-alternatives --install "%p/lib/libpq.3.dylib" "libpq.3.dylib" "%p/lib/libpq.3.1.dylib" 74
+if [ -e "%p/lib/libecpg.4.1.dylib-7.4" ]; then
+	update-alternatives --install "%p/lib/libecpg.4.1.dylib"        "libecpg.4.1.dylib"        "%p/lib/libecpg.4.1.dylib-7.4" 0401000704
+	update-alternatives --install "%p/lib/libecpg.4.dylib"          "libecpg.4.dylib"          "%p/lib/libecpg.4.1.dylib-7.4" 0401000704
 else
-	echo "WARNING: %p/lib/libpq.3.1.dylib does not exist"
+	echo "WARNING: %p/lib/libecpg.4.1.dylib-7.4 does not exist"
+fi
+
+if [ -e "%p/lib/libecpg_compat.1.2.dylib-7.4" ]; then
+	update-alternatives --install "%p/lib/libecpg_compat.1.2.dylib" "libecpg_compat.1.2.dylib" "%p/lib/libecpg_compat.1.2.dylib-7.4" 0102000704
+	update-alternatives --install "%p/lib/libecpg_compat.1.dylib"   "libecpg_compat.1.dylib"   "%p/lib/libecpg_compat.1.2.dylib-7.4" 0102000704
+else
+	echo "WARNING: %p/lib/libecpg_compat.1.2.dylib-7.4 does not exist"
+fi
+
+if [ -e "%p/lib/libpgtypes.1.2.dylib-7.4" ]; then
+	update-alternatives --install "%p/lib/libpgtypes.1.2.dylib"     "libpgtypes.1.2.dylib"     "%p/lib/libpgtypes.1.2.dylib-7.4" 0102000704
+	update-alternatives --install "%p/lib/libpgtypes.1.dylib"       "libpgtypes.1.dylib"       "%p/lib/libpgtypes.1.2.dylib-7.4" 0102000704
+else
+	echo "WARNING: %p/lib/libpgtypes.1.2.dylib-7.4 does not exist"
+fi
+
+if [ -e "%p/lib/libpq.3.1.dylib-7.4" ]; then
+	update-alternatives --install "%p/lib/libpq.3.1.dylib"          "libpq.3.1.dylib"          "%p/lib/libpq.3.1.dylib-7.4" 0301000704
+	update-alternatives --install "%p/lib/libpq.3.dylib"            "libpq.3.dylib"            "%p/lib/libpq.3.1.dylib-7.4" 0301000704
+else
+	echo "WARNING: %p/lib/libpq.3.1.dylib-7.4 does not exist"
 fi
 
 for tuple in %p/bin:binary.list %p/share/man/man1:man1.list %p/share/man/man7:man7.list; do
@@ -237,9 +273,15 @@ SplitOff2: <<
   Depends: libgnugetopt-shlibs, openssl097-shlibs
   Conflicts: %N-ssl-shlibs
   Replaces: postgresql73-shlibs, postgresql73-ssl-shlibs, postgresql74-shlibs, postgresql74-ssl-shlibs, postgresql, postgresql-shlibs
-  Files: lib/*.dylib
+  Files: lib/*.dylib* var/postgresql-7.4/*.sh var/postgresql-7.4/*.list
   PostInstScript: [ -x %p/var/postgresql-7.4/update-alternatives.sh ] && %p/var/postgresql-7.4/update-alternatives.sh
   PreRmScript: [ -x %p/var/postgresql-7.4/remove-alternatives.sh ] && %p/var/postgresql-7.4/remove-alternatives.sh
+  Shlibs: <<
+    %p/lib/libecpg.4.dylib        4.0.0                                                                           postgresql74-shlibs (>= 7.4.7-1) | postgresql74-ssl-shlibs (>= 7.4.7-1) | postgresql80-shlibs (>= 8.0.1-1) | postgresql80-ssl-shlibs (>= 8.0.1-1)
+    %p/lib/libecpg_compat.1.dylib 1.0.0                                                                           postgresql74-shlibs (>= 7.4.7-1) | postgresql74-ssl-shlibs (>= 7.4.7-1) | postgresql80-shlibs (>= 8.0.1-1) | postgresql80-ssl-shlibs (>= 8.0.1-1)
+    %p/lib/libpgtypes.1.dylib     1.0.0                                                                           postgresql74-shlibs (>= 7.4.7-1) | postgresql74-ssl-shlibs (>= 7.4.7-1) | postgresql80-shlibs (>= 8.0.1-1) | postgresql80-ssl-shlibs (>= 8.0.1-1)
+    %p/lib/libpq.3.dylib          3.0.0 postgresql73-shlibs (>= 7.3.9-1) | postgresql73-ssl-shlibs (>= 7.3.9-1) | postgresql74-shlibs (>= 7.4.7-1) | postgresql74-ssl-shlibs (>= 7.4.7-1) | postgresql80-shlibs (>= 8.0.1-1) | postgresql80-ssl-shlibs (>= 8.0.1-1)
+  <<
 <<
 
 DaemonicFile: <<
