@@ -72,10 +72,13 @@ for my $file (sort keys %files) {
 									$line =~ s/^\#(\s*export\s+LD_TWOLEVEL_NAMESPACE.*)$/$1/;
 									$line =~ s/freetype2(\S*)(\s+\([^\)]+\))?\s*\|\s*freetype2(\S*)(\s+\([^\)]+\))?\s*[\,\s]*//g;
 									$line =~ s/(dlcompat|freetype2|libpoll)(\S*)(\s+\([^\)]+\))?[\,\s]*//g;
-									$line =~ s/, libgnugetopt$//;
+									$line =~ s/, libgnugetopt(-shlibs)?$//;
+									$line =~ s/libgnugetopt(-shlibs)?, //;
+									$line =~ s/-I.*?\/include\/gnugetopt //;
 									$line =~ s/^SetMACOSX_DEPLOYMENT_TARGET: 10.2/SetMACOSX_DEPLOYMENT_TARGET: 10.3/;
 									$line =~ s/--disable-(ada|haskell|pascal) *//g;
 									$line =~ s/^\#10.3\s+(.*)$/$1/;
+									next if ($line =~ /^\s*Depends: libgnugetopt-shlibs$/);
 								} else {
 									$line =~ s/freetype2(-hinting)?-dev(\s+\([^\)]+\))?\s*\|\s*freetype2(-hinting)?-dev(\s+\([^\)]+\))?\s*[\,\s]*//g;
 									$line =~ s/^\#10.2\s+(.*)$/$1/;
