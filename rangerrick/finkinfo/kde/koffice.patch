@@ -1,17 +1,18 @@
-
---- example/Makefile.am	25 Apr 2003 15:43:28 -0000	1.1.1.3
-+++ example/Makefile.am	9 Jul 2003 14:40:21 -0000	1.4
-@@ -9,19 +9,12 @@
+diff -uNr koffice-1.2.94/example/Makefile.am koffice-1.2.94-patched/example/Makefile.am
+--- koffice-1.2.94/example/Makefile.am	Fri Dec 13 13:55:15 2002
++++ koffice-1.2.94-patched/example/Makefile.am	Fri Nov  7 20:50:13 2003
+@@ -8,20 +8,13 @@
+ libexamplepart_la_LDFLAGS = $(KDE_PLUGIN)
  libexamplepart_la_LIBADD = $(LIB_KOFFICEUI)
  
- ## The kdeinit loadable module
+-## The kdeinit loadable module
 -lib_LTLIBRARIES = example.la
-+bin_PROGRAMS = 
++bin_PROGRAMS =
 +lib_LTLIBRARIES =
 +kdeinit_LTLIBRARIES = example.la
++
  example_la_SOURCES = main.cc
--example_la_LDFLAGS = $(all_libraries) -module -avoid-version
-+example_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -module -avoid-version
+ example_la_LDFLAGS = $(all_libraries) -module -avoid-version
  example_la_LIBADD = $(LIB_KOFFICEUI)
 -
 -## The executable
@@ -25,316 +26,106 @@
  
  METASOURCES = AUTO
  noinst_HEADERS =  example_part.h \
---- filters/karbon/ai/Makefile.am	25 Apr 2003 15:43:29 -0000	1.1.1.3
-+++ filters/karbon/ai/Makefile.am	26 Apr 2003 02:07:12 -0000	1.3
-@@ -2,7 +2,7 @@
+diff -uNr koffice-1.2.94/example/main.cc koffice-1.2.94-patched/example/main.cc
+--- koffice-1.2.94/example/main.cc	Thu May 15 08:31:41 2003
++++ koffice-1.2.94-patched/example/main.cc	Fri Nov  7 20:50:30 2003
+@@ -32,7 +32,7 @@
+ 	KCmdLineLastOption
+ };
  
- libkarbonaiimport_la_LIBADD = \
- 	$(LIB_KOFFICEUI) \
--	../../../karbon/libkarbonpart.la
-+	../../../karbon/libkarbonpart_shared.la
+-int main( int argc, char **argv )
++extern "C" int kdemain( int argc, char **argv )
+ {
+     KCmdLineArgs::init( argc, argv, newExampleAboutData() );
+     KCmdLineArgs::addCmdLineOptions( options );
+diff -uNr koffice-1.2.94/filters/kontour/latex/launcher/Makefile.am koffice-1.2.94-patched/filters/kontour/latex/launcher/Makefile.am
+--- koffice-1.2.94/filters/kontour/latex/launcher/Makefile.am	Sun Jul 15 11:09:54 2001
++++ koffice-1.2.94-patched/filters/kontour/latex/launcher/Makefile.am	Fri Nov  7 20:54:31 2003
+@@ -2,7 +2,9 @@
  
- libkarbonaiimport_la_LDFLAGS = \
- 	$(all_libraries) \
---- filters/karbon/eps/Makefile.am	10 Aug 2003 15:19:27 -0000	1.1.1.4
-+++ filters/karbon/eps/Makefile.am	10 Aug 2003 16:11:29 -0000	1.4
-@@ -7,7 +7,7 @@
- 	epsexportdlg.cc 
+ INCLUDES= -I.. $(KOFFICE_INCLUDES) $(all_includes)
+  
+-bin_PROGRAMS = texlauncher
++bin_PROGRAMS =
++lib_LTLIBRARIES =
++kdeinit_LTLIBRARIES = texlauncher.la
  
- libkarbonepsexport_la_LDFLAGS = $(KDE_PLUGIN)
--libkarbonepsexport_la_LIBADD  = $(LIB_KOFFICEUI) ../../../karbon/libkarbonpart.la
-+libkarbonepsexport_la_LIBADD  = $(LIB_KOFFICEUI) ../../../karbon/libkarbonpart_shared.la
+ texlauncher_SOURCES = texlauncher.cc
+ texlauncher_LDADD = $(KOFFICE_LIBS) ../libtexgraphexport.la
+diff -uNr koffice-1.2.94/filters/kontour/latex/launcher/texlauncher.cc koffice-1.2.94-patched/filters/kontour/latex/launcher/texlauncher.cc
+--- koffice-1.2.94/filters/kontour/latex/launcher/texlauncher.cc	Sun Jul 15 11:09:54 2001
++++ koffice-1.2.94-patched/filters/kontour/latex/launcher/texlauncher.cc	Fri Nov  7 20:54:48 2003
+@@ -6,7 +6,7 @@
+ #include <koFilter.h>
+ #include <koStore.h>
  
- libkarbonepsimport_la_SOURCES = epsimport.cc pscommentlexer.cc
- libkarbonepsimport_la_LDFLAGS = $(KDE_PLUGIN)
---- filters/karbon/kontour/Makefile.am	25 Apr 2003 15:43:30 -0000	1.1.1.2
-+++ filters/karbon/kontour/Makefile.am	27 Apr 2003 19:04:23 -0000	1.2
-@@ -11,7 +11,7 @@
- 
- libkarbonkontourimport_la_SOURCES = kontourimport.cpp
- libkarbonkontourimport_la_LDFLAGS = -module $(KDE_PLUGIN)
--libkarbonkontourimport_la_LIBADD = $(KOFFICE_LIBS) ../../../karbon/libkarbonpart.la
-+libkarbonkontourimport_la_LIBADD = $(KOFFICE_LIBS) ../../../karbon/libkarbonpart_shared.la
- 
- METASOURCES = AUTO
- 
---- filters/karbon/msod/Makefile.am	25 Apr 2003 15:43:30 -0000	1.1.1.1
-+++ filters/karbon/msod/Makefile.am	27 Apr 2003 19:04:23 -0000	1.2
-@@ -2,7 +2,7 @@
- 
- INCLUDES= -I$(srcdir) $(KOFFICE_INCLUDES) $(all_includes)
- libkarbonmsodimport_la_LDFLAGS	= -module -avoid-version -no-undefined $(all_libraries)
--libkarbonmsodimport_la_LIBADD = $(KOFFICE_LIBS)
-+libkarbonmsodimport_la_LIBADD = $(KOFFICE_LIBS) $(LIBZ)
- 
- ####### Files
- 
---- filters/karbon/oodraw/Makefile.am	25 Apr 2003 15:43:30 -0000	1.1.1.1
-+++ filters/karbon/oodraw/Makefile.am	27 Apr 2003 19:04:23 -0000	1.2
-@@ -14,7 +14,7 @@
- liboodrawimport_la_SOURCES = oodrawimport.cc
- liboodrawimport_la_LDFLAGS = $(all_libraries) -module -avoid-version -no-undefined
- liboodrawimport_la_LIBADD  = ../../liboofilter/liboofilter.la \
--							../../../karbon/libkarbonpart.la \
-+							../../../karbon/libkarbonpart_shared.la \
- 							$(KOFFICE_LIBS)
- 
- METASOURCES = AUTO
---- filters/karbon/png/Makefile.am	25 Apr 2003 15:43:30 -0000	1.1.1.2
-+++ filters/karbon/png/Makefile.am	26 Apr 2003 02:07:13 -0000	1.3
-@@ -3,7 +3,7 @@
- libkarbonpngexport_la_LDFLAGS = $(KDE_PLUGIN)
- libkarbonpngexport_la_LIBADD = \
- 	$(LIB_KOFFICEUI) \
--	../../../karbon/libkarbonpart.la
-+	../../../karbon/libkarbonpart_shared.la
- 
- INCLUDES = \
- 	$(KOFFICE_INCLUDES) $(KOPAINTER_INCLUDES) \
---- filters/karbon/svg/Makefile.am	25 Apr 2003 15:43:31 -0000	1.1.1.3
-+++ filters/karbon/svg/Makefile.am	26 Apr 2003 02:07:14 -0000	1.3
-@@ -3,12 +3,12 @@
- libkarbonsvgexport_la_LDFLAGS = $(KDE_PLUGIN)
- libkarbonsvgexport_la_LIBADD = \
- 	$(LIB_KOFFICEUI) \
--	../../../karbon/libkarbonpart.la
-+	../../../karbon/libkarbonpart_shared.la
- 
- libkarbonsvgimport_la_LDFLAGS = $(KDE_PLUGIN)
- libkarbonsvgimport_la_LIBADD = \
- 	$(LIB_KOFFICEUI) \
--	../../../karbon/libkarbonpart.la
-+	../../../karbon/libkarbonpart_shared.la
- 
- INCLUDES = \
- 	$(KOFFICE_INCLUDES) \
---- filters/karbon/wmf/Makefile.am	5 Jul 2003 18:31:01 -0000	1.1.1.3
-+++ filters/karbon/wmf/Makefile.am	6 Jul 2003 14:11:25 -0000	1.3
-@@ -12,12 +12,11 @@
- kde_module_LTLIBRARIES = libwmfimport.la libwmfexport.la
- 
- libwmfimport_la_LDFLAGS = -module $(KDE_PLUGIN)
--libwmfimport_la_LIBADD = $(KOFFICE_LIBS) $(LIB_KOWMF) ../../../karbon/libkarbonpart.la
--#libwmfimport_la_LIBADD = $(KOFFICE_LIBS) $(LIB_KOWMF) ../../../karbon/libkarbonpart.la
-+libwmfimport_la_LIBADD = $(KOFFICE_LIBS) $(LIB_KOWMF) ../../../karbon/libkarbonpart_shared.la
- libwmfimport_la_SOURCES = wmfimport.cc wmfimportparser.cc
- 
- libwmfexport_la_LDFLAGS = -module $(KDE_PLUGIN)
--libwmfexport_la_LIBADD = $(KOFFICE_LIBS) $(LIB_KOWMF) ../../../karbon/libkarbonpart.la
-+libwmfexport_la_LIBADD = $(KOFFICE_LIBS) $(LIB_KOWMF) ../../../karbon/libkarbonpart_shared.la
- libwmfexport_la_SOURCES = wmfexport.cc
- 
- noinst_HEADERS = wmfimport.h wmfimportparser.h wmfexport.h 
---- filters/karbon/xcf/Makefile.am	25 Apr 2003 15:43:31 -0000	1.1.1.1
-+++ filters/karbon/xcf/Makefile.am	27 Apr 2003 19:04:24 -0000	1.2
-@@ -3,7 +3,7 @@
- libkarbonxcfexport_la_LDFLAGS = $(KDE_PLUGIN)
- libkarbonxcfexport_la_LIBADD = \
- 	$(LIB_KOFFICEUI) \
--	../../../karbon/libkarbonpart.la
-+	../../../karbon/libkarbonpart_shared.la
- 
- INCLUDES = \
- 	$(KOFFICE_INCLUDES) $(KOPAINTER_INCLUDES) \
---- filters/kspread/csv/Makefile.am	25 Apr 2003 15:43:38 -0000	1.1.1.2
-+++ filters/kspread/csv/Makefile.am	26 Apr 2003 02:07:15 -0000	1.3
-@@ -9,11 +9,11 @@
- 
- libcsvimport_la_SOURCES = csvimport.cc xmltree.cc csvdialog.cpp dialogui.ui
- libcsvimport_la_LDFLAGS	= $(all_libraries) -module -avoid-version -no-undefined 
--libcsvimport_la_LIBADD  = $(KOFFICE_LIBS) ../../../kspread/libkspreadpart.la
-+libcsvimport_la_LIBADD  = $(KOFFICE_LIBS) ../../../kspread/libkspreadpart_shared.la
- 
- libcsvexport_la_SOURCES = csvexport.cc csvexportdialog.cpp exportdialogui.ui
- libcsvexport_la_LDFLAGS = $(all_libraries) -module -avoid-version -no-undefined
--libcsvexport_la_LIBADD  = $(KOFFICE_LIBS) ../../../kspread/libkspreadpart.la
-+libcsvexport_la_LIBADD  = $(KOFFICE_LIBS) ../../../kspread/libkspreadpart_shared.la
- 
- METASOURCES = AUTO
- 
---- filters/kspread/gnumeric/Makefile.am	25 Apr 2003 15:43:38 -0000	1.1.1.2
-+++ filters/kspread/gnumeric/Makefile.am	27 Apr 2003 19:04:24 -0000	1.5
-@@ -4,15 +4,15 @@
- 	$(KOTEXT_INCLUDES) $(KOSCRIPT_INCLUDES) $(all_includes)
- 
- ####### Files
--kde_module_LTLIBRARIES = libgnumericexport.la libgnumericimport.la 
-+kde_module_LTLIBRARIES = libgnumericexport.la libgnumericimport.la
- 
- libgnumericexport_la_SOURCES = gnumericexport.cc
- libgnumericexport_la_LDFLAGS = $(all_libraries) -module -avoid-version -no-undefined
--libgnumericexport_la_LIBADD  = $(KOFFICE_LIBS) ../../../kspread/libkspreadpart.la
-+libgnumericexport_la_LIBADD  = $(KOFFICE_LIBS) ../../../kspread/libkspreadpart_shared.la $(LIBZ)
- 
- libgnumericimport_la_SOURCES = gnumericimport.cc
- libgnumericimport_la_LDFLAGS = $(all_libraries) -module -avoid-version -no-undefined
--libgnumericimport_la_LIBADD  = $(KOFFICE_LIBS) ../../../kspread/libkspreadpart.la
-+libgnumericimport_la_LIBADD  = $(KOFFICE_LIBS) ../../../kspread/libkspreadpart_shared.la $(LIBZ)
- 
- METASOURCES = AUTO
- 
---- filters/kspread/html/Makefile.am	25 Apr 2003 15:43:39 -0000	1.1.1.2
-+++ filters/kspread/html/Makefile.am	26 Apr 2003 02:07:16 -0000	1.3
-@@ -9,7 +9,7 @@
- 
- libkspreadhtmlexport_la_SOURCES = htmlexport.cc
- libkspreadhtmlexport_la_LDFLAGS = $(all_libraries) -module -avoid-version -no-undefined
--libkspreadhtmlexport_la_LIBADD  = $(KOFFICE_LIBS) ../../../kspread/libkspreadpart.la
-+libkspreadhtmlexport_la_LIBADD  = $(KOFFICE_LIBS) ../../../kspread/libkspreadpart_shared.la
- 
- METASOURCES = AUTO
- 
---- filters/kspread/opencalc/Makefile.am	25 Apr 2003 15:43:40 -0000	1.1.1.1
-+++ filters/kspread/opencalc/Makefile.am	27 Apr 2003 19:04:24 -0000	1.2
-@@ -8,11 +8,11 @@
- 
- libopencalcexport_la_SOURCES = opencalcexport.cc opencalcstyleexport.cc
- libopencalcexport_la_LDFLAGS = $(all_libraries) -module -avoid-version -no-undefined
--libopencalcexport_la_LIBADD  = $(KOFFICE_LIBS) ../../../kspread/libkspreadpart.la
-+libopencalcexport_la_LIBADD  = $(KOFFICE_LIBS) ../../../kspread/libkspreadpart_shared.la
- 
- libopencalcimport_la_SOURCES = opencalcimport.cc
- libopencalcimport_la_LDFLAGS = $(all_libraries) -module -avoid-version -no-undefined
--libopencalcimport_la_LIBADD  = $(KOFFICE_LIBS) ../../../kspread/libkspreadpart.la
-+libopencalcimport_la_LIBADD  = $(KOFFICE_LIBS) ../../../kspread/libkspreadpart_shared.la
- 
- METASOURCES = AUTO
- 
---- filters/kspread/qpro/Makefile.am	25 Apr 2003 15:43:41 -0000	1.1.1.2
-+++ filters/kspread/qpro/Makefile.am	26 Apr 2003 02:07:16 -0000	1.3
-@@ -13,7 +13,7 @@
- libqproimport_la_SOURCES = qproimport.cc qproformula.cc
- 
- libqproimport_la_LDFLAGS = $(all_libraries) -module -avoid-version -no-undefined
--libqproimport_la_LIBADD  = $(KOFFICE_LIBS) ../../../kspread/libkspreadpart.la \
-+libqproimport_la_LIBADD  = $(KOFFICE_LIBS) ../../../kspread/libkspreadpart_shared.la \
- 	libqpro/src/libqpro.la
- 
- METASOURCES = AUTO
---- filters/kword/Makefile.am	5 Jul 2003 18:31:12 -0000	1.1.1.3
-+++ filters/kword/Makefile.am	9 Jul 2003 14:40:22 -0000	1.2
-@@ -2,5 +2,6 @@
- MSWORD_SUBDIR=msword
- endif
- 
-+# removed pdf, broken on OSX currently
- SUBDIRS = libexport abiword amipro applixword ascii docbook html latex mswrite \
--	  oowriter palmdoc rtf wml wordperfect pdf $(MSWORD_SUBDIR)
-+	  oowriter palmdoc rtf wml wordperfect $(MSWORD_SUBDIR)
---- filters/kword/latex/import/parser/Makefile.am	25 Apr 2003 15:43:49 -0000	1.1.1.5
-+++ filters/kword/latex/import/parser/Makefile.am	26 Apr 2003 02:07:18 -0000	1.6
-@@ -1,7 +1,7 @@
- ####### General stuff
- 
- INCLUDES= -I$(srcdir) $(all_includes)
--liblatexparser_la_LDFLAGS = $(all_libraries) -module -avoid-version -no-undefined
-+liblatexparser_la_LDFLAGS = $(all_libraries) -avoid-version -no-undefined
- liblatexparser_la_LIBADD  = -lm $(KOFFICE_LIBS)
- 
- ####### Files
---- interfaces/Makefile.am	20 Jun 2002 04:43:14 -0000	1.1.1.1
-+++ interfaces/Makefile.am	1 Jun 2003 14:59:32 -0000	1.2
-@@ -3,7 +3,7 @@
- lib_LTLIBRARIES = libkochart.la
- 
- libkochart_la_SOURCES = koChart.cc
--libkochart_la_LDFLAGS = $(all_libraries) -version-info 1:0:0
-+libkochart_la_LDFLAGS = $(all_libraries) -version-info 1:0:0 -no-undefined
- libkochart_la_LIBADD = $(LIB_KOFFICECORE)
- METASOURCES = AUTO
- 
---- karbon/Makefile.am	10 Aug 2003 15:20:23 -0000	1.1.1.7
-+++ karbon/Makefile.am	10 Aug 2003 16:11:31 -0000	1.12
-@@ -12,22 +12,24 @@
+-int main(int argc, char* argv[])
++extern "C" int kdemain(int argc, char* argv[])
+ {
+ 	kdDebug() << argv[0] << endl;
+ 	kdDebug() << argv[1] << endl;
+diff -uNr koffice-1.2.94/karbon/Makefile.am koffice-1.2.94-patched/karbon/Makefile.am
+--- koffice-1.2.94/karbon/Makefile.am	Mon Oct 27 08:17:35 2003
++++ koffice-1.2.94-patched/karbon/Makefile.am	Fri Nov  7 21:34:08 2003
+@@ -12,22 +12,21 @@
  
  SUBDIRS = commands visitors core shapes widgets dialogs dockers render tools . plugins data pics
  
 -bin_PROGRAMS = karbon
-+bin_PROGRAMS = 
-+lib_LTLIBRARIES =
- 
+-
 -lib_LTLIBRARIES = karbon.la
-+noinst_LTLIBRARIES = libkarbonpart_shared.la
- kde_module_LTLIBRARIES = libkarbonbase.la libkarbonpart.la
-+kdeinit_LTLIBRARIES = karbon.la
- 
+-kde_module_LTLIBRARIES = libkarbonbase.la libkarbonpart.la
+-
 -libkarbonpart_la_SOURCES = karbon_factory.cc 	karbon_resourceserver.cc 	karbon_part.cc 	karbon_part_iface.cc 	karbon_part_iface.skel 	karbon_view.cc 	karbon_view_iface.cc 	karbon_view_iface.skel karbon_drag.cpp
-+libkarbonpart_shared_la_SOURCES = karbon_factory.cc 	karbon_resourceserver.cc 	karbon_part.cc 	karbon_part_iface.cc 	karbon_part_iface.skel 	karbon_view.cc 	karbon_view_iface.cc 	karbon_view_iface.skel karbon_drag.cpp
++bin_PROGRAMS = 
++lib_LTLIBRARIES = libkarboncommon.la libkarbonbase.la
++kdeinit_LTLIBRARIES = karbon.la
++kde_module_LTLIBRARIES = libkarbonpart.la
  
  libkarbonbase_la_SOURCES = \
  	karbon_view_base.cc \
  	karbon_part_base.cc
  
 -libkarbonbase_la_LDFLAGS = $(KDE_PLUGIN)
-+libkarbonbase_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -no-undefined
++libkarbonbase_la_LDFLAGS = $(KDE_RPATH)
  libkarbonbase_la_LIBADD = $(LIB_KOFFICEUI)
  
 -libkarbonpart_la_LDFLAGS = $(KDE_PLUGIN) $(LIBFREETYPE_RPATH)
 -libkarbonpart_la_LIBADD = $(LIB_KOFFICEUI) $(LIB_KOPAINTER) \
-+libkarbonpart_shared_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -avoid-version $(LIBFREETYPE_RPATH) -no-undefined
-+libkarbonpart_shared_la_LIBADD = $(LIB_KOFFICEUI) $(LIB_KOPAINTER) \
++libkarboncommon_la_SOURCES = karbon_factory.cc 	karbon_resourceserver.cc 	karbon_part.cc 	karbon_part_iface.cc 	karbon_part_iface.skel 	karbon_view.cc 	karbon_view_iface.cc 	karbon_view_iface.skel karbon_drag.cpp
++libkarboncommon_la_LDFLAGS = $(KDE_PLUGIN) $(LIBFREETYPE_RPATH)
++libkarboncommon_la_LIBADD  = $(LIB_KOFFICEUI) $(LIB_KOPAINTER) \
  	dockers/libkarbondockers.la \
  	widgets/libkarbonwidgets.la \
  	render/libvpainter.la \
-@@ -43,18 +45,18 @@
+@@ -43,18 +42,17 @@
  	$(LIBFONTCONFIG_LIBS) \
  	$(LIBFREETYPE_LIBS)
  
--libkarbonpart_la_METASOURCES = AUTO
-+libkarbonpart_shared_la_METASOURCES = AUTO
++libkarbonpart_la_SOURCES = dummy.cpp
++libkarbonpart_la_LDFLAGS = $(KDE_PLUGIN) $(LIBFREETYPE_RPATH)
++libkarbonpart_la_LIBADD = libkarboncommon.la
+ libkarbonpart_la_METASOURCES = AUTO
  
--karbon_la_SOURCES = main.cc
--karbon_la_LDFLAGS = $(all_libraries) -module -avoid-version
+ karbon_la_SOURCES = main.cc
+ karbon_la_LDFLAGS = $(all_libraries) -module -avoid-version
 -karbon_la_LIBADD = libkarbonpart.la
 -
 -karbon_SOURCES = dummy.cc
 -karbon_LDFLAGS = $(all_libraries) $(KDE_RPATH)
 -karbon_LDADD = karbon.la
-+libkarbonpart_la_SOURCES = dummy.cc
-+libkarbonpart_la_LDFLAGS = $(all_libraries) $(KDE_PLUGIN) -module
-+libkarbonpart_la_LIBADD  = libkarbonpart_shared.la
++karbon_la_LIBADD = libkarboncommon.la
  
- dummy.cc:
- 	echo > dummy.cc
-+
-+karbon_la_SOURCES = main.cc
-+karbon_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -module -avoid-version
-+karbon_la_LIBADD = libkarbonpart_shared.la
+-dummy.cc:
+-	echo > dummy.cc
++dummy.cpp:
++	echo > dummy.cpp
  
  noinst_HEADERS = \
  	karbon_factory.h \
---- karbon/configure.in.in	10 Aug 2003 15:20:21 -0000	1.1.1.6
-+++ karbon/configure.in.in	10 Aug 2003 16:11:31 -0000	1.4
-@@ -1,5 +1,5 @@
- 
--KDE_FIND_PATH(freetype-config, FREETYPE_CONFIG, [${prefix}/bin ${exec_prefix}/bin /usr/local/bin /opt/local/bin], [
-+KDE_FIND_PATH(freetype-config, FREETYPE_CONFIG, [/usr/X11R6/bin ${prefix}/bin ${exec_prefix}/bin /usr/local/bin /opt/local/bin], [
-   AC_MSG_WARN([Could not find libfreetype anywhere, check http://www.freetype.org/])
- ])
- 
---- karbon/dockers/Makefile.am	5 Jul 2003 18:31:48 -0000	1.1.1.3
-+++ karbon/dockers/Makefile.am	6 Jul 2003 14:11:35 -0000	1.3
-@@ -20,7 +20,6 @@
- 	vtransformdocker.h
- 
- libkarbondockers_la_SOURCES = \
--	dummy.cc \
- 	vcolordocker.cc \
- 	vdocumentdocker.cc \
- 	vdocker.cc \
-@@ -29,10 +28,3 @@
- 	vtransformdocker.cc
- 
- libkarbondockers_la_METASOURCES = AUTO
--
--DISTCLEANFILES = \
--	dummy.cc
--
--dummy.cc:
--	echo > dummy.cc
--
---- karbon/main.cc	5 Jul 2003 18:31:46 -0000	1.1.1.4
-+++ karbon/main.cc	6 Jul 2003 21:05:00 -0000	1.2
+diff -uNr koffice-1.2.94/karbon/main.cc koffice-1.2.94-patched/karbon/main.cc
+--- koffice-1.2.94/karbon/main.cc	Thu May 15 08:31:42 2003
++++ koffice-1.2.94-patched/karbon/main.cc	Fri Nov  7 20:58:02 2003
 @@ -34,7 +34,7 @@
  		KCmdLineLastOption
  	};
@@ -344,128 +135,23 @@
  {
  	KCmdLineArgs::init( argc, argv, KarbonFactory::aboutData() );
  	KCmdLineArgs::addCmdLineOptions( options );
---- karbon/plugins/flattenpath/Makefile.am	25 Apr 2003 15:44:10 -0000	1.1.1.1
-+++ karbon/plugins/flattenpath/Makefile.am	27 Apr 2003 19:04:26 -0000	1.2
-@@ -4,7 +4,7 @@
+diff -uNr koffice-1.2.94/kchart/Makefile.am koffice-1.2.94-patched/kchart/Makefile.am
+--- koffice-1.2.94/kchart/Makefile.am	Mon Sep 22 07:06:03 2003
++++ koffice-1.2.94-patched/kchart/Makefile.am	Fri Nov  7 21:39:25 2003
+@@ -1,5 +1,8 @@
+ INCLUDES  = $(KOFFICE_INCLUDES) -I$(srcdir)/kdchart -I$(top_srcdir)/interfaces -I$(interfacedir) $(all_includes)
  
- karbon_flattenpathplugin_la_SOURCES = flattenpathplugin.cc
- karbon_flattenpathplugin_la_LIBADD = $(LIB_KPARTS) $(LIB_KOFFICEUI) \
--				../../libkarbonpart.la
-+				../../libkarbonpart_shared.la
- 
- karbon_flattenpathplugin_la_LDFLAGS = $(all_libraries) -module $(KDE_PLUGIN)
- 
---- karbon/plugins/imagetool/Makefile.am	25 Apr 2003 15:44:10 -0000	1.1.1.1
-+++ karbon/plugins/imagetool/Makefile.am	27 Apr 2003 19:04:26 -0000	1.2
-@@ -4,7 +4,7 @@
- 
- karbon_imagetoolplugin_la_SOURCES = imagetoolplugin.cc
- karbon_imagetoolplugin_la_LIBADD = $(LIB_KPARTS) $(LIB_KOFFICEUI) \
--				../../libkarbonpart.la
-+				../../libkarbonpart_shared.la
- 
- karbon_imagetoolplugin_la_LDFLAGS = $(all_libraries) -module $(KDE_PLUGIN)
- 
---- karbon/plugins/insertknots/Makefile.am	25 Apr 2003 15:44:10 -0000	1.1.1.1
-+++ karbon/plugins/insertknots/Makefile.am	27 Apr 2003 19:04:26 -0000	1.2
-@@ -4,7 +4,7 @@
- 
- karbon_insertknotsplugin_la_SOURCES = insertknotsplugin.cc
- karbon_insertknotsplugin_la_LIBADD = $(LIB_KPARTS) \
--					../../libkarbonpart.la
-+					../../libkarbonpart_shared.la
- 
- karbon_insertknotsplugin_la_LDFLAGS = $(all_libraries) -module $(KDE_PLUGIN)
- 
---- karbon/plugins/roundcorners/Makefile.am	25 Apr 2003 15:44:10 -0000	1.1.1.1
-+++ karbon/plugins/roundcorners/Makefile.am	27 Apr 2003 19:04:26 -0000	1.2
-@@ -4,7 +4,7 @@
- 
- karbon_roundcornersplugin_la_SOURCES = roundcornersplugin.cc
- karbon_roundcornersplugin_la_LIBADD = $(LIB_KPARTS) \
--					../../libkarbonpart.la
-+					../../libkarbonpart_shared.la
- 
- karbon_roundcornersplugin_la_LDFLAGS = $(all_libraries) -module $(KDE_PLUGIN)
- 
---- karbon/plugins/shadoweffect/Makefile.am	25 Apr 2003 15:44:10 -0000	1.1.1.1
-+++ karbon/plugins/shadoweffect/Makefile.am	27 Apr 2003 19:04:27 -0000	1.2
-@@ -4,7 +4,7 @@
- 
- karbon_shadoweffectplugin_la_SOURCES = shadoweffectplugin.cc vshadowdecorator.cc 
- karbon_shadoweffectplugin_la_LIBADD = $(LIB_KPARTS) $(LIB_KOFFICEUI) \
--					../../libkarbonpart.la
-+					../../libkarbonpart_shared.la
- 
- karbon_shadoweffectplugin_la_LDFLAGS = $(all_libraries) -module $(KDE_PLUGIN)
- 
---- karbon/plugins/whirlpinch/Makefile.am	5 Jul 2003 18:31:49 -0000	1.1.1.2
-+++ karbon/plugins/whirlpinch/Makefile.am	6 Jul 2003 14:11:37 -0000	1.3
-@@ -4,7 +4,7 @@
- 
- karbon_whirlpinchplugin_la_SOURCES = whirlpinchplugin.cc
- karbon_whirlpinchplugin_la_LIBADD = $(LIB_KPARTS) $(LIB_KOPAINTER) \
--				../../libkarbonpart.la
-+				../../libkarbonpart_shared.la
- 
- 
- karbon_whirlpinchplugin_la_LDFLAGS = $(all_libraries) -module $(KDE_PLUGIN)
---- karbon/plugins/zoomtool/Makefile.am	25 Apr 2003 15:44:10 -0000	1.1.1.1
-+++ karbon/plugins/zoomtool/Makefile.am	27 Apr 2003 19:04:27 -0000	1.2
-@@ -4,7 +4,7 @@
- 
- karbon_zoomtoolplugin_la_SOURCES = zoomtoolplugin.cc
- karbon_zoomtoolplugin_la_LIBADD = $(LIB_KPARTS) $(LIB_KOFFICEUI) \
--				../../libkarbonpart.la
-+				../../libkarbonpart_shared.la
- 
- karbon_zoomtoolplugin_la_LDFLAGS = $(all_libraries) -module $(KDE_PLUGIN)
- 
---- karbon/widgets/Makefile.am	5 Jul 2003 18:31:54 -0000	1.1.1.3
-+++ karbon/widgets/Makefile.am	6 Jul 2003 14:11:41 -0000	1.3
-@@ -26,7 +26,6 @@
- 	vtypebuttonbox.h
- 
- libkarbonwidgets_la_SOURCES = \
--	dummy.cc \
- 	vcanvas.cc \
- 	vcolorslider.cc \
- 	vcolordlg.cc \
-@@ -42,10 +41,3 @@
- 
- libkarbonwidgets_la_METASOURCES = \
- 	AUTO
--
--DISTCLEANFILES = \
--	dummy.cc
--
--dummy.cc:
--	echo > dummy.cc
--
---- kchart/Makefile.am	25 Apr 2003 15:44:18 -0000	1.1.1.3
-+++ kchart/Makefile.am	9 Jul 2003 14:40:31 -0000	1.7
-@@ -2,6 +2,7 @@
- 
++bin_PROGRAMS =
++lib_LTLIBRARIES =
++
  ## The part
  kde_module_LTLIBRARIES = libkchartpart.la
-+
  libkchartpart_la_SOURCES = kchart_part.cc \
- 	kchart_view.cc kchart_factory.cc \
- 	kchartBarConfigDialog.cc \
-@@ -33,25 +34,18 @@
- 	KChartParamsIface.cc kchartHeaderFooterConfigPage.cc \
- 	kchartLine3dConfigPage.cc kchartParameterPolarConfigPage.cc kchartPageLayout.cc
- 
--libkchartpart_la_LDFLAGS = $(KDE_PLUGIN)
-+libkchartpart_la_LDFLAGS = $(all_libraries) $(KDE_PLUGIN) -module
- libkchartpart_la_LIBADD = $(top_builddir)/interfaces/libkochart.la \
-                           $(LIB_KOFFICEUI) \
+@@ -39,19 +42,10 @@
  			  kdchart/libkdchart.la			
  
  ## The kdeinit loadable module
 -lib_LTLIBRARIES = kchart.la
-+bin_PROGRAMS =
-+lib_LTLIBRARIES =
 +kdeinit_LTLIBRARIES = kchart.la
  kchart_la_SOURCES = main.cc
  kchart_la_LDFLAGS = $(all_libraries) -avoid-version -module
@@ -482,18 +168,9 @@
  
  noinst_HEADERS =  kchart_part.h \
  		kchart_view.h kchart_factory.h \
---- kchart/kdchart/Makefile.am	20 Jun 2002 04:49:58 -0000	1.1.1.2
-+++ kchart/kdchart/Makefile.am	1 Jun 2003 14:59:33 -0000	1.5
-@@ -1,5 +1,7 @@
- lib_LTLIBRARIES = libkdchart.la
- 
-+libkdchart_la_LIBADD  = $(LIB_QT)
-+libkdchart_la_LDFLAGS = $(all_libraries) -avoid-version -no-undefined
- libkdchart_la_SOURCES = KDChart.cpp 		\
- 			KDChartAreaPainter.cpp	\
- 			KDChartAxesPainter.cpp	\
---- kchart/main.cc	25 Apr 2003 15:44:18 -0000	1.1.1.3
-+++ kchart/main.cc	9 Jul 2003 14:40:32 -0000	1.2
+diff -uNr koffice-1.2.94/kchart/main.cc koffice-1.2.94-patched/kchart/main.cc
+--- koffice-1.2.94/kchart/main.cc	Thu Jan 23 04:10:23 2003
++++ koffice-1.2.94-patched/kchart/main.cc	Fri Nov  7 21:35:28 2003
 @@ -28,7 +28,7 @@
  	KCmdLineLastOption
  };
@@ -503,17 +180,22 @@
  {
      KCmdLineArgs::init( argc, argv, newKChartAboutData());
      KCmdLineArgs::addCmdLineOptions( options );
---- kformula/Makefile.am	25 Apr 2003 15:45:03 -0000	1.1.1.4
-+++ kformula/Makefile.am	9 Jul 2003 14:40:32 -0000	1.5
-@@ -12,19 +12,12 @@
+diff -uNr koffice-1.2.94/kformula/Makefile.am koffice-1.2.94-patched/kformula/Makefile.am
+--- koffice-1.2.94/kformula/Makefile.am	Sat Jan 18 15:01:07 2003
++++ koffice-1.2.94-patched/kformula/Makefile.am	Fri Nov  7 21:40:54 2003
+@@ -11,20 +11,13 @@
+ libkformulapart_la_LIBADD = $(LIB_KOFFICEUI) $(LIB_KFORMULA) $(LIB_KOTEXT)
  libkformulapart_la_METASOURCES = AUTO
  
- ## The kdeinit loadable module
+-## The kdeinit loadable module
 -lib_LTLIBRARIES = kformulamain.la
 -kformulamain_la_SOURCES = main.cc
 -kformulamain_la_LDFLAGS = $(all_libraries) -module -avoid-version
 -kformulamain_la_LIBADD = $(LIB_KOFFICECORE)
--
++bin_PROGRAMS =
++lib_LTLIBRARIES =
++kdeinit_LTLIBRARIES = kformula.la
+ 
 -## The executable
 -bin_PROGRAMS = kformula
 -kformula_SOURCES = dummy.cc
@@ -522,17 +204,15 @@
 -
 -dummy.cc:
 -	echo > dummy.cc
-+bin_PROGRAMS =
-+lib_LTLIBRARIES =
-+kdeinit_LTLIBRARIES = kformula.la
 +kformula_la_SOURCES = main.cc
 +kformula_la_LDFLAGS = $(all_libraries) -module -avoid-version
 +kformula_la_LIBADD = $(LIB_KOFFICECORE)
  
  noinst_HEADERS =  kformula_doc.h \
  		  kformula_view.h kformula_factory.h \
---- kformula/main.cc	25 Apr 2003 15:45:03 -0000	1.1.1.3
-+++ kformula/main.cc	6 Jul 2003 21:05:01 -0000	1.2
+diff -uNr koffice-1.2.94/kformula/main.cc koffice-1.2.94-patched/kformula/main.cc
+--- koffice-1.2.94/kformula/main.cc	Thu Jan 23 04:10:23 2003
++++ koffice-1.2.94-patched/kformula/main.cc	Fri Nov  7 21:41:43 2003
 @@ -31,7 +31,7 @@
          KCmdLineLastOption
  };
@@ -542,1364 +222,75 @@
  {
      KCmdLineArgs::init( argc, argv, newKFormulaAboutData() );
      KCmdLineArgs::addCmdLineOptions( options );
---- kivio/kiviopart/Makefile.am	10 Aug 2003 15:20:49 -0000	1.1.1.6
-+++ kivio/kiviopart/Makefile.am	10 Aug 2003 16:11:31 -0000	1.10
-@@ -10,19 +10,20 @@
- 	$(all_includes)
- 
- 
--kde_module_LTLIBRARIES = libkiviopart.la
-+kde_module_LTLIBRARIES = libkiviopart.la kivio.la
-+lib_LTLIBRARIES = libkiviopart_shared.la
- 
--libkiviopart_la_LDFLAGS = -avoid-version -module $(all_libraries) -no-undefined
-+libkiviopart_shared_la_LDFLAGS = -avoid-version $(all_libraries) -no-undefined
- 
--libkiviopart_la_LIBADD = \
-+libkiviopart_shared_la_LIBADD = \
- 	$(top_builddir)/kivio/kiviopart/tools/libtools.la\
- 	$(top_builddir)/kivio/kiviopart/kiviosdk/libkiviosdk.la\
- 	$(top_builddir)/kivio/kiviopart/ui/libui.la \
- 	$(LIB_KOFFICEUI) $(LIB_KOPAINTER) $(LIB_KOTEXT) $(LIBPYTHON) $(PYTHONLIB)
- 
--libkiviopart_la_METASOURCES = AUTO
-+libkiviopart_shared_la_METASOURCES = AUTO
- 
--libkiviopart_la_SOURCES = kivio_canvas.cpp kivio_doc.cpp kivio_factory.cpp \
-+libkiviopart_shared_la_SOURCES = kivio_canvas.cpp kivio_doc.cpp kivio_factory.cpp \
- 	kivio_tabbar.cpp kivio_view.cpp kivio_map.cpp kivio_page.cpp \
- 	kivio_dlg_pageshow.cpp kivio_zoomaction.cpp kivio_icon_view.cpp \
- 	kivio_config.cpp kivio_spawner_drag.cpp kivio_intra_stencil_data.cpp \
-@@ -36,25 +37,28 @@
- 	kiviostencilsetaction.cpp kivioarrowheadaction.cpp KIvioStencilIface.skel \
+diff -uNr koffice-1.2.94/kivio/kiviopart/Makefile.am koffice-1.2.94-patched/kivio/kiviopart/Makefile.am
+--- koffice-1.2.94/kivio/kiviopart/Makefile.am	Mon Jul 14 10:07:53 2003
++++ koffice-1.2.94-patched/kivio/kiviopart/Makefile.am	Fri Nov  7 21:41:55 2003
+@@ -37,31 +37,16 @@
  	KIvioStencilIface.cc kiviodragobject.cpp
  
--
+ 
 -lib_LTLIBRARIES = kivio.la
-+libkiviopart_la_LDFLAGS = -module -avoid-version $(all_libraries)
-+libkiviopart_la_LIBADD  = libkiviopart_shared.la
-+libkiviopart_la_SOURCES = dummy.cpp
++bin_PROGRAMS =
++lib_LTLIBRARIES =
++kdeinit_LTLIBRARIES = kivio.la
  
  kivio_la_SOURCES = main.cpp
- 
+-
  kivio_la_LDFLAGS = $(all_libraries) -module -avoid-version
+-
+ kivio_la_LIBADD = ../../lib/kofficecore/libkofficecore.la
  
--kivio_la_LIBADD = ../../lib/kofficecore/libkofficecore.la
-+kivio_la_LIBADD = ../../lib/kofficecore/libkofficecore.la libkiviopart_shared.la
- 
- 
- bin_PROGRAMS = kivio
- 
+-
+-bin_PROGRAMS = kivio
+-
 -kivio_SOURCES = dummy.cpp
-+kivio_SOURCES = kivio_main.cpp
- 
- kivio_LDFLAGS = $(all_libraries) $(KDE_RPATH)
- 
+-
+-kivio_LDFLAGS = $(all_libraries) $(KDE_RPATH)
+-
 -kivio_LDADD = kivio.la
 -
-+kivio_LDADD = ../../lib/kofficecore/libkofficecore.la libkiviopart_shared.la
+-
+-dummy.cpp:
+-	echo > dummy.cpp
+-
+-
+ kdelnk_DATA = kivio.desktop
+ kdelnkdir = $(kde_appsdir)/Office
+-
  
-+kivio_main.cpp:
-+	cat main.cpp > kivio_main.cpp
-+	
- dummy.cpp:
- 	echo > dummy.cpp
+ rc_DATA = kivio.rc kivio_readonly.rc
+ rcdir = $(kde_datadir)/kivio
+diff -uNr koffice-1.2.94/koshell/Makefile.am koffice-1.2.94-patched/koshell/Makefile.am
+--- koffice-1.2.94/koshell/Makefile.am	Sun Dec  8 16:12:27 2002
++++ koffice-1.2.94-patched/koshell/Makefile.am	Fri Nov  7 21:42:33 2003
+@@ -1,20 +1,13 @@
  
---- /dev/null	1 Jan 1970 00:00:00 -0000
-+++ kivio/kiviopart/dummy.cpp	10 Aug 2003 21:19:43 -0000	1.1
-@@ -0,0 +1 @@
-+
---- /dev/null	1 Jan 1970 00:00:00 -0000
-+++ kivio/kiviopart/stub_main.cpp	10 Aug 2003 16:11:32 -0000	1.1
-@@ -0,0 +1,28 @@
-+/*
-+ *
-+ * Copyright (c) 2001 Nick Hudson <skrll@netbsd.org>
-+ *
-+ * Permission is hereby granted, free of charge, to any person obtaining a copy
-+ * of this software and associated documentation files (the "Software"), to deal
-+ * in the Software without restriction, including without limitation the rights
-+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-+ * copies of the Software, and to permit persons to whom the Software is
-+ * furnished to do so, subject to the following conditions:
-+ *
-+ * The above copyright notice and this permission notice shall be included in
-+ * all copies or substantial portions of the Software.
-+ *
-+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
-+ * AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
-+ * AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-+ */
-+extern "C" int kdemain(int, char* []);
-+
-+int main( int argc, char* argv[] )
-+{
-+        return kdemain(argc, argv);
-+}
-+
---- /dev/null	1 Jan 1970 00:00:00 -0000
-+++ kivio/kiviopart/ui/aligndialog.cpp	10 Aug 2003 21:19:43 -0000	1.1
-@@ -0,0 +1,662 @@
-+#include <klocale.h>
-+/****************************************************************************
-+** Form implementation generated from reading ui file './aligndialog.ui'
-+**
-+** Created: Sun May 11 19:13:34 2003
-+**      by: The User Interface Compiler ($Id$)
-+**
-+** WARNING! All changes made in this file will be lost!
-+****************************************************************************/
-+
-+#include "aligndialog.h"
-+
-+#include <qvariant.h>
-+#include <qpushbutton.h>
-+#include <qtabwidget.h>
-+#include <qwidget.h>
-+#include <qbuttongroup.h>
-+#include <qlabel.h>
-+#include <qradiobutton.h>
-+#include <qcheckbox.h>
-+#include <qlayout.h>
-+#include <qtooltip.h>
-+#include <qwhatsthis.h>
-+#include <qimage.h>
-+#include <qpixmap.h>
-+
-+static const char* const img0_aligndialog[] = { 
-+"16 16 3 1",
-+"# c None",
-+"a c #000000",
-+". c #838183",
-+".###############",
-+".aaaaaaaaaa#####",
-+".a########a#####",
-+".a########a#####",
-+".a########a#####",
-+".a########a#####",
-+".aaaaaaaaaa#####",
-+".###############",
-+".######aaa######",
-+".####aa###aa####",
-+".##aa#######aa##",
-+".aa###########aa",
-+".##aa#######aa##",
-+".####aa###aa####",
-+".######aaa######",
-+".###############"};
-+
-+static const char* const img1_aligndialog[] = { 
-+"16 16 3 1",
-+". c None",
-+"a c #000000",
-+"# c #838183",
-+"........#.......",
-+"...aaaaa#aaaaa..",
-+"...a....#....a..",
-+"...a....#....a..",
-+"...a....#....a..",
-+"...a....#....a..",
-+"...aaaaa#aaaaa..",
-+"........#.......",
-+".......a#a......",
-+".....aa.#.aa....",
-+"...aa...#...aa..",
-+".aa.....#.....aa",
-+"...aa...#...aa..",
-+".....aa.#.aa....",
-+".......a#a......",
-+"........#......."};
-+
-+static const char* const img2_aligndialog[] = { 
-+"16 16 3 1",
-+". c None",
-+"a c #000000",
-+"# c #838183",
-+"...............#",
-+".....aaaaaaaaaa#",
-+".....a........a#",
-+".....a........a#",
-+".....a........a#",
-+".....a........a#",
-+".....aaaaaaaaaa#",
-+"...............#",
-+".......aaa.....#",
-+".....aa...aa...#",
-+"...aa.......aa.#",
-+"..a...........a#",
-+"...aa.......aa.#",
-+".....aa...aa...#",
-+".......aaa.....#",
-+"...............#"};
-+
-+static const char* const img3_aligndialog[] = { 
-+"16 16 3 1",
-+"# c None",
-+"a c #000000",
-+". c #838183",
-+"................",
-+"####a####aaaaaa#",
-+"####a####a####a#",
-+"###a#a###a####a#",
-+"###a#a###a####a#",
-+"##a###a##a####a#",
-+"##a###a##a####a#",
-+"#a#####a#a####a#",
-+"#a#####a#a####a#",
-+"#a#####a#a####a#",
-+"##a###a##aaaaaa#",
-+"##a###a#########",
-+"###a#a##########",
-+"###a#a##########",
-+"####a###########",
-+"####a###########"};
-+
-+static const char* const img4_aligndialog[] = { 
-+"16 16 3 1",
-+". c None",
-+"# c #000000",
-+"a c #838183",
-+"...........#....",
-+"...........#....",
-+".######...#.#...",
-+".#....#...#.#...",
-+".#....#..#...#..",
-+".#....#..#...#..",
-+".#....#.#.....#.",
-+"aaaaaaaaaaaaaaaa",
-+".#....#.#.....#.",
-+".#....#..#...#..",
-+".#....#..#...#..",
-+".######...#.#...",
-+"..........#.#...",
-+"...........#....",
-+"...........#....",
-+"................"};
-+
-+static const char* const img5_aligndialog[] = { 
-+"16 16 3 1",
-+". c None",
-+"# c #000000",
-+"a c #838183",
-+"...........#....",
-+"...........#....",
-+"..........#.#...",
-+"..........#.#...",
-+".........#...#..",
-+".######..#...#..",
-+".#....#.#.....#.",
-+".#....#.#.....#.",
-+".#....#.#.....#.",
-+".#....#..#...#..",
-+".#....#..#...#..",
-+".#....#...#.#...",
-+".#....#...#.#...",
-+".#....#....#....",
-+".######....#....",
-+"aaaaaaaaaaaaaaaa"};
-+
-+static const char* const img6_aligndialog[] = { 
-+"16 16 3 1",
-+"# c None",
-+"a c #000000",
-+". c #838183",
-+"................",
-+"#####aaaaa###a##",
-+"#####a###a##aaa#",
-+"#####a###a##.a.#",
-+"#####a###a###a##",
-+"#####aaaaa###a##",
-+"############.a.#",
-+"############aaa#",
-+"#############a##",
-+"................",
-+"aaaaa###########",
-+"a###a###########",
-+"a###a###########",
-+"a###a###########",
-+"aaaaa###########",
-+"################"};
-+
-+static const char* const img7_aligndialog[] = { 
-+"16 16 3 1",
-+". c None",
-+"# c #000000",
-+"a c #838183",
-+"................",
-+".....#####......",
-+".....#...#......",
-+"aaaaa#aaa#aaaaaa",
-+".....#...#...#..",
-+".....#####..###.",
-+"............a#a.",
-+".............#..",
-+".............#..",
-+"............a#a.",
-+"#####.......###.",
-+"#...#........#..",
-+"#aaa#aaaaaaaaaaa",
-+"#...#...........",
-+"#####...........",
-+"................"};
-+
-+static const char* const img8_aligndialog[] = { 
-+"16 16 3 1",
-+". c None",
-+"# c #000000",
-+"a c #838183",
-+".............#..",
-+".....#####...#..",
-+".....#...#...#..",
-+".....#...#..a#a.",
-+".....#...#..###.",
-+".....#####...#..",
-+"aaaaaaaaaaaaaaaa",
-+"................",
-+"................",
-+"aaaaaaaaaaaaaaaa",
-+"#####........#..",
-+"#...#.......###.",
-+"#...#.......a#a.",
-+"#...#........#..",
-+"#####........#..",
-+".............#.."};
-+
-+static const char* const img9_aligndialog[] = { 
-+"16 16 3 1",
-+". c None",
-+"# c #000000",
-+"a c #838183",
-+"................",
-+"#####...........",
-+"#...#...........",
-+"#...#...........",
-+"#...#...........",
-+"#####...........",
-+"aaaaaaaaaaaaaaaa",
-+".............#..",
-+"............###.",
-+"............a#a.",
-+".....#####...#..",
-+".....#...#...#..",
-+".....#...#..a#a.",
-+".....#...#..###.",
-+".....#####...#..",
-+"aaaaaaaaaaaaaaaa"};
-+
-+static const char* const img10_aligndialog[] = { 
-+"16 16 3 1",
-+". c None",
-+"a c #000000",
-+"# c #838183",
-+".#........#.....",
-+".#.a#..#a.#.....",
-+".#aaaaaaaa#.....",
-+".#.a#..#a.#.....",
-+".#........#.....",
-+".#........#.....",
-+".#aaaaa...#.....",
-+".#a...a...#.....",
-+".#a...a...#.....",
-+".#a...a...#.....",
-+".#aaaaa...#.....",
-+".#........#aaaaa",
-+".#........#a...a",
-+".#........#a...a",
-+".#........#a...a",
-+".#........#aaaaa"};
-+
-+static const char* const img11_aligndialog[] = { 
-+"16 16 3 1",
-+". c None",
-+"a c #000000",
-+"# c #838183",
-+".....#........#.",
-+".....#.a#..#a.#.",
-+".....#aaaaaaaa#.",
-+".....#.a#..#a.#.",
-+".....#........#.",
-+".....#........#.",
-+".....#...aaaaa#.",
-+".....#...a...a#.",
-+".....#...a...a#.",
-+".....#...a...a#.",
-+".....#...aaaaa#.",
-+"aaaaa#........#.",
-+"a...a#........#.",
-+"a...a#........#.",
-+"a...a#........#.",
-+"aaaaa#........#."};
-+
-+static const char* const img12_aligndialog[] = { 
-+"16 16 3 1",
-+". c None",
-+"a c #000000",
-+"# c #838183",
-+"...#........#...",
-+"...#.a#..#a.#...",
-+"...#aaaaaaaa#...",
-+"...#.a#..#a.#...",
-+"...#........#...",
-+"...#........#...",
-+".aaaaa......#...",
-+".a.#.a......#...",
-+".a.#.a......#...",
-+".a.#.a......#...",
-+".aaaaa......#...",
-+"...#......aaaaa.",
-+"...#......a.#.a.",
-+"...#......a.#.a.",
-+"...#......a.#.a.",
-+"...#......aaaaa."};
-+
-+static const char* const img13_aligndialog[] = { 
-+"16 16 3 1",
-+". c None",
-+"a c #000000",
-+"# c #838183",
-+"......#..#......",
-+"...#a.#..#.a#...",
-+"aaaaaa#..#aaaaaa",
-+"...#a.#..#.a#...",
-+"......#..#......",
-+"......#..#......",
-+".aaaaa#..#......",
-+".a...a#..#......",
-+".a...a#..#......",
-+".a...a#..#......",
-+".aaaaa#..#......",
-+"......#..#aaaaa.",
-+"......#..#a...a.",
-+"......#..#a...a.",
-+"......#..#a...a.",
-+"......#..#aaaaa."};
-+
-+
-+/* 
-+ *  Constructs a AlignDialog as a child of 'parent', with the 
-+ *  name 'name' and widget flags set to 'f'.
-+ *
-+ *  The dialog will by default be modeless, unless you set 'modal' to
-+ *  TRUE to construct a modal dialog.
-+ */
-+AlignDialog::AlignDialog( QWidget* parent, const char* name, bool modal, WFlags fl )
-+    : QDialog( parent, name, modal, fl ),
-+      image0( (const char **) img0_aligndialog ),
-+      image1( (const char **) img1_aligndialog ),
-+      image2( (const char **) img2_aligndialog ),
-+      image3( (const char **) img3_aligndialog ),
-+      image4( (const char **) img4_aligndialog ),
-+      image5( (const char **) img5_aligndialog ),
-+      image6( (const char **) img6_aligndialog ),
-+      image7( (const char **) img7_aligndialog ),
-+      image8( (const char **) img8_aligndialog ),
-+      image9( (const char **) img9_aligndialog ),
-+      image10( (const char **) img10_aligndialog ),
-+      image11( (const char **) img11_aligndialog ),
-+      image12( (const char **) img12_aligndialog ),
-+      image13( (const char **) img13_aligndialog )
-+{
-+    if ( !name )
-+	setName( "AlignDialog" );
-+    setSizePolicy( QSizePolicy( (QSizePolicy::SizeType)5, (QSizePolicy::SizeType)5, 0, 0, sizePolicy().hasHeightForWidth() ) );
-+    AlignDialogLayout = new QVBoxLayout( this, 6, 6, "AlignDialogLayout"); 
-+
-+    tab = new QTabWidget( this, "tab" );
-+    tab->setSizePolicy( QSizePolicy( (QSizePolicy::SizeType)7, (QSizePolicy::SizeType)7, 0, 0, tab->sizePolicy().hasHeightForWidth() ) );
-+
-+    align = new QWidget( tab, "align" );
-+    alignLayout = new QGridLayout( align, 1, 1, 11, 6, "alignLayout"); 
-+
-+    hAlignBox = new QButtonGroup( align, "hAlignBox" );
-+    hAlignBox->setColumnLayout(0, Qt::Vertical );
-+    hAlignBox->layout()->setSpacing( 6 );
-+    hAlignBox->layout()->setMargin( 11 );
-+    hAlignBoxLayout = new QGridLayout( hAlignBox->layout() );
-+    hAlignBoxLayout->setAlignment( Qt::AlignTop );
-+
-+    PixmapLabel3_2_2 = new QLabel( hAlignBox, "PixmapLabel3_2_2" );
-+    PixmapLabel3_2_2->setPixmap( image0 );
-+
-+    hAlignBoxLayout->addWidget( PixmapLabel3_2_2, 0, 0 );
-+
-+    PixmapLabel2_2_2 = new QLabel( hAlignBox, "PixmapLabel2_2_2" );
-+    PixmapLabel2_2_2->setPixmap( image1 );
-+
-+    hAlignBoxLayout->addWidget( PixmapLabel2_2_2, 0, 2 );
-+
-+    PixmapLabel1_2_2 = new QLabel( hAlignBox, "PixmapLabel1_2_2" );
-+    PixmapLabel1_2_2->setPixmap( image2 );
-+    PixmapLabel1_2_2->setScaledContents( FALSE );
-+
-+    hAlignBoxLayout->addWidget( PixmapLabel1_2_2, 0, 4 );
-+    QSpacerItem* spacer = new QSpacerItem( 20, 20, QSizePolicy::Expanding, QSizePolicy::Minimum );
-+    hAlignBoxLayout->addItem( spacer, 0, 1 );
-+    QSpacerItem* spacer_2 = new QSpacerItem( 20, 20, QSizePolicy::Expanding, QSizePolicy::Minimum );
-+    hAlignBoxLayout->addItem( spacer_2, 0, 3 );
-+
-+    ahleft = new QRadioButton( hAlignBox, "ahleft" );
-+
-+    hAlignBoxLayout->addMultiCellWidget( ahleft, 1, 1, 0, 1 );
-+
-+    ahcenter = new QRadioButton( hAlignBox, "ahcenter" );
-+
-+    hAlignBoxLayout->addMultiCellWidget( ahcenter, 1, 1, 2, 3 );
-+
-+    ahnone = new QRadioButton( hAlignBox, "ahnone" );
-+    ahnone->setChecked( TRUE );
-+
-+    hAlignBoxLayout->addMultiCellWidget( ahnone, 2, 2, 2, 3 );
-+    QSpacerItem* spacer_3 = new QSpacerItem( 41, 20, QSizePolicy::Expanding, QSizePolicy::Minimum );
-+    hAlignBoxLayout->addMultiCell( spacer_3, 2, 2, 0, 1 );
-+    QSpacerItem* spacer_4 = new QSpacerItem( 20, 20, QSizePolicy::Expanding, QSizePolicy::Minimum );
-+    hAlignBoxLayout->addItem( spacer_4, 0, 5 );
-+
-+    ahright = new QRadioButton( hAlignBox, "ahright" );
-+
-+    hAlignBoxLayout->addMultiCellWidget( ahright, 1, 1, 4, 5 );
-+    QSpacerItem* spacer_5 = new QSpacerItem( 51, 20, QSizePolicy::Expanding, QSizePolicy::Minimum );
-+    hAlignBoxLayout->addMultiCell( spacer_5, 2, 2, 4, 5 );
-+
-+    alignLayout->addWidget( hAlignBox, 0, 1 );
-+
-+    aCenterPage = new QCheckBox( align, "aCenterPage" );
-+
-+    alignLayout->addWidget( aCenterPage, 1, 1 );
-+
-+    vAlignBox = new QButtonGroup( align, "vAlignBox" );
-+    vAlignBox->setColumnLayout(0, Qt::Vertical );
-+    vAlignBox->layout()->setSpacing( 6 );
-+    vAlignBox->layout()->setMargin( 11 );
-+    vAlignBoxLayout = new QGridLayout( vAlignBox->layout() );
-+    vAlignBoxLayout->setAlignment( Qt::AlignTop );
-+
-+    PixmapLabel6_2 = new QLabel( vAlignBox, "PixmapLabel6_2" );
-+    PixmapLabel6_2->setPixmap( image3 );
-+    PixmapLabel6_2->setAlignment( int( QLabel::AlignTop | QLabel::AlignLeft ) );
-+
-+    vAlignBoxLayout->addWidget( PixmapLabel6_2, 0, 0 );
-+
-+    avtop = new QRadioButton( vAlignBox, "avtop" );
-+
-+    vAlignBoxLayout->addWidget( avtop, 0, 1 );
-+
-+    PixmapLabel5_2 = new QLabel( vAlignBox, "PixmapLabel5_2" );
-+    PixmapLabel5_2->setPixmap( image4 );
-+
-+    vAlignBoxLayout->addWidget( PixmapLabel5_2, 1, 0 );
-+
-+    avcenter = new QRadioButton( vAlignBox, "avcenter" );
-+
-+    vAlignBoxLayout->addWidget( avcenter, 1, 1 );
-+
-+    PixmapLabel4_2 = new QLabel( vAlignBox, "PixmapLabel4_2" );
-+    PixmapLabel4_2->setPixmap( image5 );
-+    PixmapLabel4_2->setAlignment( int( QLabel::AlignBottom | QLabel::AlignLeft ) );
-+
-+    vAlignBoxLayout->addWidget( PixmapLabel4_2, 2, 0 );
-+
-+    avnone = new QRadioButton( vAlignBox, "avnone" );
-+    avnone->setChecked( TRUE );
-+
-+    vAlignBoxLayout->addWidget( avnone, 3, 1 );
-+
-+    avbottom = new QRadioButton( vAlignBox, "avbottom" );
-+
-+    vAlignBoxLayout->addWidget( avbottom, 2, 1 );
-+
-+    alignLayout->addMultiCellWidget( vAlignBox, 0, 2, 0, 0 );
-+    QSpacerItem* spacer_6 = new QSpacerItem( 20, 16, QSizePolicy::Minimum, QSizePolicy::Expanding );
-+    alignLayout->addItem( spacer_6, 2, 1 );
-+    tab->insertTab( align, QString("") );
-+
-+    distribute = new QWidget( tab, "distribute" );
-+    distributeLayout = new QGridLayout( distribute, 1, 1, 11, 6, "distributeLayout"); 
-+
-+    ButtonGroup9 = new QButtonGroup( distribute, "ButtonGroup9" );
-+    ButtonGroup9->setFrameShape( QButtonGroup::NoFrame );
-+    ButtonGroup9->setColumnLayout(0, Qt::Vertical );
-+    ButtonGroup9->layout()->setSpacing( 0 );
-+    ButtonGroup9->layout()->setMargin( 0 );
-+    ButtonGroup9Layout = new QVBoxLayout( ButtonGroup9->layout() );
-+    ButtonGroup9Layout->setAlignment( Qt::AlignTop );
-+
-+    dselection = new QRadioButton( ButtonGroup9, "dselection" );
-+    dselection->setChecked( TRUE );
-+    ButtonGroup9Layout->addWidget( dselection );
-+
-+    dpage = new QRadioButton( ButtonGroup9, "dpage" );
-+    ButtonGroup9Layout->addWidget( dpage );
-+
-+    distributeLayout->addWidget( ButtonGroup9, 1, 1 );
-+
-+    vDistBox = new QButtonGroup( distribute, "vDistBox" );
-+    vDistBox->setColumnLayout(0, Qt::Vertical );
-+    vDistBox->layout()->setSpacing( 6 );
-+    vDistBox->layout()->setMargin( 11 );
-+    vDistBoxLayout = new QGridLayout( vDistBox->layout() );
-+    vDistBoxLayout->setAlignment( Qt::AlignTop );
-+
-+    PixmapLabel8_2 = new QLabel( vDistBox, "PixmapLabel8_2" );
-+    PixmapLabel8_2->setPixmap( image6 );
-+
-+    vDistBoxLayout->addWidget( PixmapLabel8_2, 0, 0 );
-+
-+    dvtop = new QRadioButton( vDistBox, "dvtop" );
-+
-+    vDistBoxLayout->addWidget( dvtop, 0, 1 );
-+
-+    dvcenter = new QRadioButton( vDistBox, "dvcenter" );
-+
-+    vDistBoxLayout->addWidget( dvcenter, 1, 1 );
-+
-+    PixmapLabel8_3 = new QLabel( vDistBox, "PixmapLabel8_3" );
-+    PixmapLabel8_3->setPixmap( image7 );
-+
-+    vDistBoxLayout->addWidget( PixmapLabel8_3, 1, 0 );
-+
-+    dvnone = new QRadioButton( vDistBox, "dvnone" );
-+    dvnone->setChecked( TRUE );
-+
-+    vDistBoxLayout->addWidget( dvnone, 4, 1 );
-+
-+    dvspacing = new QRadioButton( vDistBox, "dvspacing" );
-+
-+    vDistBoxLayout->addWidget( dvspacing, 2, 1 );
-+
-+    PixmapLabel8_4 = new QLabel( vDistBox, "PixmapLabel8_4" );
-+    PixmapLabel8_4->setPixmap( image8 );
-+
-+    vDistBoxLayout->addWidget( PixmapLabel8_4, 2, 0 );
-+
-+    dvbottom = new QRadioButton( vDistBox, "dvbottom" );
-+
-+    vDistBoxLayout->addWidget( dvbottom, 3, 1 );
-+
-+    PixmapLabel8_5 = new QLabel( vDistBox, "PixmapLabel8_5" );
-+    PixmapLabel8_5->setPixmap( image9 );
-+
-+    vDistBoxLayout->addWidget( PixmapLabel8_5, 3, 0 );
-+
-+    distributeLayout->addMultiCellWidget( vDistBox, 0, 1, 0, 0 );
-+
-+    hDistBox = new QButtonGroup( distribute, "hDistBox" );
-+    hDistBox->setColumnLayout(0, Qt::Vertical );
-+    hDistBox->layout()->setSpacing( 6 );
-+    hDistBox->layout()->setMargin( 11 );
-+    hDistBoxLayout = new QGridLayout( hDistBox->layout() );
-+    hDistBoxLayout->setAlignment( Qt::AlignTop );
-+
-+    PixmapLabel10_2 = new QLabel( hDistBox, "PixmapLabel10_2" );
-+    PixmapLabel10_2->setPixmap( image10 );
-+
-+    hDistBoxLayout->addWidget( PixmapLabel10_2, 0, 0 );
-+
-+    PixmapLabel7_2 = new QLabel( hDistBox, "PixmapLabel7_2" );
-+    PixmapLabel7_2->setPixmap( image11 );
-+
-+    hDistBoxLayout->addWidget( PixmapLabel7_2, 0, 3 );
-+
-+    PixmapLabel9_2 = new QLabel( hDistBox, "PixmapLabel9_2" );
-+    PixmapLabel9_2->setPixmap( image12 );
-+
-+    hDistBoxLayout->addWidget( PixmapLabel9_2, 0, 1 );
-+
-+    PixmapLabel8_6 = new QLabel( hDistBox, "PixmapLabel8_6" );
-+    PixmapLabel8_6->setPixmap( image13 );
-+
-+    hDistBoxLayout->addWidget( PixmapLabel8_6, 0, 2 );
-+
-+    dhleft = new QRadioButton( hDistBox, "dhleft" );
-+
-+    hDistBoxLayout->addWidget( dhleft, 1, 0 );
-+
-+    dhspacing = new QRadioButton( hDistBox, "dhspacing" );
-+
-+    hDistBoxLayout->addWidget( dhspacing, 1, 2 );
-+
-+    dhright = new QRadioButton( hDistBox, "dhright" );
-+
-+    hDistBoxLayout->addWidget( dhright, 1, 3 );
-+
-+    dhcenter = new QRadioButton( hDistBox, "dhcenter" );
-+
-+    hDistBoxLayout->addWidget( dhcenter, 1, 1 );
-+
-+    dhnone = new QRadioButton( hDistBox, "dhnone" );
-+    dhnone->setChecked( TRUE );
-+
-+    hDistBoxLayout->addMultiCellWidget( dhnone, 2, 2, 1, 2 );
-+
-+    distributeLayout->addWidget( hDistBox, 0, 1 );
-+    tab->insertTab( distribute, QString("") );
-+    AlignDialogLayout->addWidget( tab );
-+
-+    Layout1 = new QHBoxLayout( 0, 0, 6, "Layout1"); 
-+    QSpacerItem* spacer_7 = new QSpacerItem( 20, 20, QSizePolicy::Expanding, QSizePolicy::Minimum );
-+    Layout1->addItem( spacer_7 );
-+
-+    okButton = new QPushButton( this, "okButton" );
-+    okButton->setDefault( TRUE );
-+    Layout1->addWidget( okButton );
-+
-+    cancelButton = new QPushButton( this, "cancelButton" );
-+    Layout1->addWidget( cancelButton );
-+    AlignDialogLayout->addLayout( Layout1 );
-+    languageChange();
-+    resize( QSize(467, 289).expandedTo(minimumSizeHint()) );
-+    clearWState( WState_Polished );
-+
-+    // signals and slots connections
-+    connect( okButton, SIGNAL( clicked() ), this, SLOT( accept() ) );
-+    connect( cancelButton, SIGNAL( clicked() ), this, SLOT( reject() ) );
-+}
-+
-+/*
-+ *  Destroys the object and frees any allocated resources
-+ */
-+AlignDialog::~AlignDialog()
-+{
-+    // no need to delete child widgets, Qt does it all for us
-+}
-+
-+/*
-+ *  Sets the strings of the subwidgets using the current
-+ *  language.
-+ */
-+void AlignDialog::languageChange()
-+{
-+    setCaption( tr2i18n( "Align & Distribute" ) );
-+    hAlignBox->setTitle( tr2i18n( "Horizontal" ) );
-+    ahleft->setText( tr2i18n( "&Left" ) );
-+    ahcenter->setText( tr2i18n( "Ce&nter" ) );
-+    ahnone->setText( tr2i18n( "N&one" ) );
-+    ahright->setText( tr2i18n( "&Right" ) );
-+    aCenterPage->setText( tr2i18n( "Center of &page" ) );
-+    vAlignBox->setTitle( tr2i18n( "Vertical" ) );
-+    avtop->setText( tr2i18n( "&Top" ) );
-+    avcenter->setText( tr2i18n( "C&enter" ) );
-+    avnone->setText( tr2i18n( "&None" ) );
-+    avbottom->setText( tr2i18n( "&Bottom" ) );
-+    tab->changeTab( align, tr2i18n( "&Align" ) );
-+    ButtonGroup9->setTitle( QString::null );
-+    dselection->setText( tr2i18n( "E&xtent of selection" ) );
-+    dpage->setText( tr2i18n( "Extent of pa&ge" ) );
-+    vDistBox->setTitle( tr2i18n( "Vertical" ) );
-+    dvtop->setText( tr2i18n( "&Top" ) );
-+    dvcenter->setText( tr2i18n( "C&enter" ) );
-+    dvnone->setText( tr2i18n( "&None" ) );
-+    dvspacing->setText( tr2i18n( "&Spacing" ) );
-+    dvbottom->setText( tr2i18n( "&Bottom" ) );
-+    hDistBox->setTitle( tr2i18n( "Horizontal" ) );
-+    dhleft->setText( tr2i18n( "&Left" ) );
-+    dhspacing->setText( tr2i18n( "S&pacing" ) );
-+    dhright->setText( tr2i18n( "&Right" ) );
-+    dhcenter->setText( tr2i18n( "Ce&nter" ) );
-+    dhnone->setText( tr2i18n( "N&one" ) );
-+    tab->changeTab( distribute, tr2i18n( "&Distribute" ) );
-+    okButton->setText( tr2i18n( "&OK" ) );
-+    cancelButton->setText( tr2i18n( "&Cancel" ) );
-+}
-+
-+#include "aligndialog.moc"
---- /dev/null	1 Jan 1970 00:00:00 -0000
-+++ kivio/kiviopart/ui/export_page_dialog_base.cpp	10 Aug 2003 21:19:43 -0000	1.1
-@@ -0,0 +1,135 @@
-+#include <klocale.h>
-+/****************************************************************************
-+** Form implementation generated from reading ui file './export_page_dialog_base.ui'
-+**
-+** Created: Sun May 11 19:13:35 2003
-+**      by: The User Interface Compiler ($Id$)
-+**
-+** WARNING! All changes made in this file will be lost!
-+****************************************************************************/
-+
-+#include "export_page_dialog_base.h"
-+
-+#include <qvariant.h>
-+#include <qlabel.h>
-+#include <qbuttongroup.h>
-+#include <qcheckbox.h>
-+#include <qradiobutton.h>
-+#include <qspinbox.h>
-+#include <qpushbutton.h>
-+#include <qlayout.h>
-+#include <qtooltip.h>
-+#include <qwhatsthis.h>
-+
-+/* 
-+ *  Constructs a ExportPageDialogBase as a child of 'parent', with the 
-+ *  name 'name' and widget flags set to 'f'.
-+ *
-+ *  The dialog will by default be modeless, unless you set 'modal' to
-+ *  TRUE to construct a modal dialog.
-+ */
-+ExportPageDialogBase::ExportPageDialogBase( QWidget* parent, const char* name, bool modal, WFlags fl )
-+    : QDialog( parent, name, modal, fl )
-+{
-+    if ( !name )
-+	setName( "ExportPageDialogBase" );
-+    setBaseSize( QSize( 0, 0 ) );
-+    ExportPageDialogBaseLayout = new QGridLayout( this, 1, 1, 11, 6, "ExportPageDialogBaseLayout"); 
-+
-+    TextLabel2 = new QLabel( this, "TextLabel2" );
-+
-+    ExportPageDialogBaseLayout->addWidget( TextLabel2, 1, 0 );
-+
-+    TextLabel3 = new QLabel( this, "TextLabel3" );
-+
-+    ExportPageDialogBaseLayout->addWidget( TextLabel3, 2, 0 );
-+
-+    ButtonGroup1 = new QButtonGroup( this, "ButtonGroup1" );
-+    ButtonGroup1->setSizePolicy( QSizePolicy( (QSizePolicy::SizeType)3, (QSizePolicy::SizeType)3, 0, 0, ButtonGroup1->sizePolicy().hasHeightForWidth() ) );
-+
-+    m_checkCrop = new QCheckBox( ButtonGroup1, "m_checkCrop" );
-+    m_checkCrop->setEnabled( FALSE );
-+    m_checkCrop->setGeometry( QRect( 9, 82, 242, 20 ) );
-+
-+    m_radioSelectedStencils = new QRadioButton( ButtonGroup1, "m_radioSelectedStencils" );
-+    m_radioSelectedStencils->setGeometry( QRect( 10, 48, 249, 20 ) );
-+
-+    m_radioFullPage = new QRadioButton( ButtonGroup1, "m_radioFullPage" );
-+    m_radioFullPage->setGeometry( QRect( 10, 20, 246, 20 ) );
-+    m_radioFullPage->setChecked( TRUE );
-+    ButtonGroup1->insert( m_radioFullPage, 1 );
-+
-+    ExportPageDialogBaseLayout->addMultiCellWidget( ButtonGroup1, 0, 0, 0, 2 );
-+
-+    m_spinQuality = new QSpinBox( this, "m_spinQuality" );
-+    m_spinQuality->setMaxValue( 100 );
-+    m_spinQuality->setValue( 100 );
-+
-+    ExportPageDialogBaseLayout->addMultiCellWidget( m_spinQuality, 1, 1, 1, 2 );
-+
-+    m_spinBorder = new QSpinBox( this, "m_spinBorder" );
-+    m_spinBorder->setMaxValue( 10000 );
-+
-+    ExportPageDialogBaseLayout->addMultiCellWidget( m_spinBorder, 2, 2, 1, 2 );
-+
-+    m_cancel = new QPushButton( this, "m_cancel" );
-+
-+    ExportPageDialogBaseLayout->addWidget( m_cancel, 3, 2 );
-+
-+    m_ok = new QPushButton( this, "m_ok" );
-+
-+    ExportPageDialogBaseLayout->addMultiCellWidget( m_ok, 3, 3, 0, 1 );
-+    languageChange();
-+    resize( QSize(290, 224).expandedTo(minimumSizeHint()) );
-+    clearWState( WState_Polished );
-+
-+    // buddies
-+    TextLabel2->setBuddy( m_spinQuality );
-+    TextLabel3->setBuddy( m_spinBorder );
-+}
-+
-+/*
-+ *  Destroys the object and frees any allocated resources
-+ */
-+ExportPageDialogBase::~ExportPageDialogBase()
-+{
-+    // no need to delete child widgets, Qt does it all for us
-+}
-+
-+/*
-+ *  Sets the strings of the subwidgets using the current
-+ *  language.
-+ */
-+void ExportPageDialogBase::languageChange()
-+{
-+    setCaption( tr2i18n( "Export Page" ) );
-+    TextLabel2->setText( tr2i18n( "&Quality:" ) );
-+    TextLabel3->setText( tr2i18n( "&Border:" ) );
-+    ButtonGroup1->setTitle( tr2i18n( "Export" ) );
-+    m_checkCrop->setText( tr2i18n( "C&rop picture to edges" ) );
-+    QToolTip::add( m_checkCrop, tr2i18n( "Don't export extra blank space to file" ) );
-+    QWhatsThis::add( m_checkCrop, tr2i18n( "<b>Crop picture to edges</b><br>\n"
-+"This will eliminate all blank portions of the drawing. The picture will only be as large as the stencils it contains. If your stencils are located in the upper right corner of the page, then only the upper right corner will be exported." ) );
-+    m_radioSelectedStencils->setText( tr2i18n( "&Selected stencils" ) );
-+    QToolTip::add( m_radioSelectedStencils, tr2i18n( "Export the selected stencils on the current page" ) );
-+    QWhatsThis::add( m_radioSelectedStencils, tr2i18n( "<b>Selected Stencils</b><br>\n"
-+"Export only the selected stencils to file." ) );
-+    m_radioFullPage->setText( tr2i18n( "&All stencils" ) );
-+    QToolTip::add( m_radioFullPage, tr2i18n( "Export all stencils on the current page" ) );
-+    QWhatsThis::add( m_radioFullPage, tr2i18n( "<b>All Stencils</b><br>\n"
-+"This will cause the entire page to be exported to the file. This means that <i>all</i> stencils will be exported." ) );
-+    QToolTip::add( m_spinQuality, tr2i18n( "The higher the quality, the more space the file takes up." ) );
-+    QWhatsThis::add( m_spinQuality, tr2i18n( "<b>Quality</b><br>\n"
-+"Not all file formats use this. But for those that do, this affects the quality of the image that gets exported. 100 is the maximum quality. The higher the number, the better the picture looks. The downside is the higher the number, the larger the filesize." ) );
-+    QToolTip::add( m_spinBorder, tr2i18n( "An optional border of whitespace around the page, in pixels" ) );
-+    QWhatsThis::add( m_spinBorder, tr2i18n( "<b>Border</b><br>\n"
-+"Places a blank border around the edges of the image. This can be used if for one reason or another, the stencils don't fit into the export page with a 0-pixel border (default)." ) );
-+    m_cancel->setText( tr2i18n( "&Cancel" ) );
-+    QWhatsThis::add( m_cancel, tr2i18n( "<b>Cancel</b><br>\n"
-+"Abort the page export." ) );
-+    m_ok->setText( tr2i18n( "&OK" ) );
-+    QWhatsThis::add( m_ok, tr2i18n( "<b>OK</b><br>\n"
-+"Export the page with the current settings." ) );
-+}
-+
-+#include "export_page_dialog_base.moc"
---- /dev/null	1 Jan 1970 00:00:00 -0000
-+++ kivio/kiviopart/ui/kivio_birdeye_panel_base.cpp	10 Aug 2003 21:19:43 -0000	1.1
-@@ -0,0 +1,106 @@
-+#include <klocale.h>
-+/****************************************************************************
-+** Form implementation generated from reading ui file './kivio_birdeye_panel_base.ui'
-+**
-+** Created: Sun May 11 19:13:34 2003
-+**      by: The User Interface Compiler ($Id$)
-+**
-+** WARNING! All changes made in this file will be lost!
-+****************************************************************************/
-+
-+#include "kivio_birdeye_panel_base.h"
-+
-+#include <qvariant.h>
-+#include <qframe.h>
-+#include <qslider.h>
-+#include <qspinbox.h>
-+#include <qlayout.h>
-+#include <qtooltip.h>
-+#include <qwhatsthis.h>
-+#include <qimage.h>
-+#include <qpixmap.h>
-+
-+#include "ktoolbar.h"
-+/* 
-+ *  Constructs a KivioBirdEyePanelBase as a child of 'parent', with the 
-+ *  name 'name' and widget flags set to 'f'.
-+ */
-+KivioBirdEyePanelBase::KivioBirdEyePanelBase( QWidget* parent, const char* name, WFlags fl )
-+    : QWidget( parent, name, fl )
-+{
-+    if ( !name )
-+	setName( "KivioBirdEyePanelBase" );
-+    setSizePolicy( QSizePolicy( (QSizePolicy::SizeType)1, (QSizePolicy::SizeType)1, 0, 0, sizePolicy().hasHeightForWidth() ) );
-+    KivioBirdEyePanelBaseLayout = new QVBoxLayout( this, 0, 0, "KivioBirdEyePanelBaseLayout"); 
-+
-+    bar = new KToolBar( this, "bar" );
-+    KivioBirdEyePanelBaseLayout->addWidget( bar );
-+
-+    Layout1 = new QGridLayout( 0, 1, 1, 0, 3, "Layout1"); 
-+
-+    canvas = new QFrame( this, "canvas" );
-+    canvas->setMouseTracking( TRUE );
-+    canvas->setFrameShape( QFrame::Box );
-+    canvas->setFrameShadow( QFrame::Raised );
-+
-+    Layout1->addMultiCellWidget( canvas, 0, 0, 0, 1 );
-+
-+    slider = new QSlider( this, "slider" );
-+    slider->setMinValue( 5 );
-+    slider->setMaxValue( 500 );
-+    slider->setValue( 100 );
-+    slider->setOrientation( QSlider::Horizontal );
-+
-+    Layout1->addWidget( slider, 1, 0 );
-+
-+    zoomBox = new QSpinBox( this, "zoomBox" );
-+    zoomBox->setButtonSymbols( QSpinBox::PlusMinus );
-+    zoomBox->setMaxValue( 10000 );
-+    zoomBox->setMinValue( 5 );
-+    zoomBox->setValue( 100 );
-+
-+    Layout1->addWidget( zoomBox, 1, 1 );
-+    KivioBirdEyePanelBaseLayout->addLayout( Layout1 );
-+    languageChange();
-+    resize( QSize(281, 293).expandedTo(minimumSizeHint()) );
-+    clearWState( WState_Polished );
-+
-+    // signals and slots connections
-+    connect( slider, SIGNAL( valueChanged(int) ), this, SLOT( zoomChanged(int) ) );
-+    connect( zoomBox, SIGNAL( valueChanged(int) ), this, SLOT( zoomChanged(int) ) );
-+}
-+
-+/*
-+ *  Destroys the object and frees any allocated resources
-+ */
-+KivioBirdEyePanelBase::~KivioBirdEyePanelBase()
-+{
-+    // no need to delete child widgets, Qt does it all for us
-+}
-+
-+/*
-+ *  Sets the strings of the subwidgets using the current
-+ *  language.
-+ */
-+void KivioBirdEyePanelBase::languageChange()
-+{
-+    setCaption( tr2i18n( "KivioBirdEyePanelBase" ) );
-+    zoomBox->setSuffix( tr2i18n( "%" ) );
-+}
-+
-+void KivioBirdEyePanelBase::zoomChanged(int)
-+{
-+    qWarning( "KivioBirdEyePanelBase::zoomChanged(int): Not implemented yet" );
-+}
-+
-+void KivioBirdEyePanelBase::zoomMinus()
-+{
-+    qWarning( "KivioBirdEyePanelBase::zoomMinus(): Not implemented yet" );
-+}
-+
-+void KivioBirdEyePanelBase::zoomPlus()
-+{
-+    qWarning( "KivioBirdEyePanelBase::zoomPlus(): Not implemented yet" );
-+}
-+
-+#include "kivio_birdeye_panel_base.moc"
---- /dev/null	1 Jan 1970 00:00:00 -0000
-+++ kivio/kiviopart/ui/kivio_layer_panel_base.cpp	10 Aug 2003 21:19:43 -0000	1.1
-@@ -0,0 +1,111 @@
-+#include <klocale.h>
-+/****************************************************************************
-+** Form implementation generated from reading ui file './kivio_layer_panel_base.ui'
-+**
-+** Created: Sun May 11 19:13:35 2003
-+**      by: The User Interface Compiler ($Id$)
-+**
-+** WARNING! All changes made in this file will be lost!
-+****************************************************************************/
-+
-+#include "kivio_layer_panel_base.h"
-+
-+#include <qvariant.h>
-+#include <qheader.h>
-+#include <qlistview.h>
-+#include <qlayout.h>
-+#include <qtooltip.h>
-+#include <qwhatsthis.h>
-+#include <qimage.h>
-+#include <qpixmap.h>
-+
-+#include "ktoolbar.h"
-+static const char* const img21_kivio_layer_panel_base[] = { 
-+"22 22 2 1",
-+". c None",
-+"# c #a1c410",
-+"........######........",
-+".....###########......",
-+"....##############....",
-+"...################...",
-+"..######......######..",
-+"..#####........#####..",
-+".#####.......#..#####.",
-+".####.......###..####.",
-+"####.......#####..####",
-+"####......#####...####",
-+"####....#######...####",
-+"####....######....####",
-+"####...########...####",
-+".####.##########..####",
-+".####..####.#########.",
-+".#####..##...########.",
-+"..#####.......#######.",
-+"..######......######..",
-+"...###################",
-+"....##################",
-+"......###########.###.",
-+"........######.....#.."};
-+
-+
-+/* 
-+ *  Constructs a KivioLayerPanelBase as a child of 'parent', with the 
-+ *  name 'name' and widget flags set to 'f'.
-+ */
-+KivioLayerPanelBase::KivioLayerPanelBase( QWidget* parent, const char* name, WFlags fl )
-+    : QWidget( parent, name, fl ),
-+      image21( (const char **) img21_kivio_layer_panel_base )
-+{
-+    if ( !name )
-+	setName( "KivioLayerPanelBase" );
-+    KivioLayerPanelBaseLayout = new QVBoxLayout( this, 0, 0, "KivioLayerPanelBaseLayout"); 
-+
-+    bar = new KToolBar( this, "bar" );
-+    KivioLayerPanelBaseLayout->addWidget( bar );
-+
-+    list = new QListView( this, "list" );
-+    list->setAllColumnsShowFocus( TRUE );
-+    KivioLayerPanelBaseLayout->addWidget( list );
-+    languageChange();
-+    resize( QSize(177, 240).expandedTo(minimumSizeHint()) );
-+    clearWState( WState_Polished );
-+
-+    // signals and slots connections
-+    connect( list, SIGNAL( currentChanged(QListViewItem*) ), this, SLOT( updateButtons(QListViewItem*) ) );
-+    connect( list, SIGNAL( currentChanged(QListViewItem*) ), this, SLOT( itemActivated(QListViewItem*) ) );
-+    connect( list, SIGNAL( clicked(QListViewItem*,const QPoint&,int) ), this, SLOT( itemClicked(QListViewItem*,const QPoint&,int) ) );
-+}
-+
-+/*
-+ *  Destroys the object and frees any allocated resources
-+ */
-+KivioLayerPanelBase::~KivioLayerPanelBase()
-+{
-+    // no need to delete child widgets, Qt does it all for us
-+}
-+
-+/*
-+ *  Sets the strings of the subwidgets using the current
-+ *  language.
-+ */
-+void KivioLayerPanelBase::languageChange()
-+{
-+    setCaption( QString::null );
-+}
-+
-+void KivioLayerPanelBase::itemActivated(QListViewItem*)
-+{
-+    qWarning( "KivioLayerPanelBase::itemActivated(QListViewItem*): Not implemented yet" );
-+}
-+
-+void KivioLayerPanelBase::itemClicked(QListViewItem*,const QPoint&,int)
-+{
-+    qWarning( "KivioLayerPanelBase::itemClicked(QListViewItem*,const QPoint&,int): Not implemented yet" );
-+}
-+
-+void KivioLayerPanelBase::updateButtons(QListViewItem*)
-+{
-+    qWarning( "KivioLayerPanelBase::updateButtons(QListViewItem*): Not implemented yet" );
-+}
-+
-+#include "kivio_layer_panel_base.moc"
---- /dev/null	1 Jan 1970 00:00:00 -0000
-+++ kivio/kiviopart/ui/kivio_protection_panel_base.cpp	10 Aug 2003 21:19:43 -0000	1.1
-@@ -0,0 +1,89 @@
-+#include <klocale.h>
-+/****************************************************************************
-+** Form implementation generated from reading ui file './kivio_protection_panel_base.ui'
-+**
-+** Created: Sun May 11 19:13:35 2003
-+**      by: The User Interface Compiler ($Id$)
-+**
-+** WARNING! All changes made in this file will be lost!
-+****************************************************************************/
-+
-+#include "kivio_protection_panel_base.h"
-+
-+#include <qvariant.h>
-+#include <qcheckbox.h>
-+#include <qlayout.h>
-+#include <qtooltip.h>
-+#include <qwhatsthis.h>
-+
-+/* 
-+ *  Constructs a KivioProtectionPanelBase as a child of 'parent', with the 
-+ *  name 'name' and widget flags set to 'f'.
-+ */
-+KivioProtectionPanelBase::KivioProtectionPanelBase( QWidget* parent, const char* name, WFlags fl )
-+    : QWidget( parent, name, fl )
-+{
-+    if ( !name )
-+	setName( "KivioProtectionPanelBase" );
-+    setMinimumSize( QSize( 120, 120 ) );
-+    setMaximumSize( QSize( 120, 120 ) );
-+
-+    m_checkXPosition = new QCheckBox( this, "m_checkXPosition" );
-+    m_checkXPosition->setGeometry( QRect( 0, 60, 120, 20 ) );
-+
-+    m_checkYPosition = new QCheckBox( this, "m_checkYPosition" );
-+    m_checkYPosition->setGeometry( QRect( 0, 80, 120, 20 ) );
-+
-+    m_checkHeight = new QCheckBox( this, "m_checkHeight" );
-+    m_checkHeight->setGeometry( QRect( 0, 20, 120, 20 ) );
-+
-+    m_checkWidth = new QCheckBox( this, "m_checkWidth" );
-+    m_checkWidth->setGeometry( QRect( 0, 0, 120, 20 ) );
-+
-+    m_checkAspect = new QCheckBox( this, "m_checkAspect" );
-+    m_checkAspect->setGeometry( QRect( 0, 41, 120, 16 ) );
-+
-+    m_checkDeletion = new QCheckBox( this, "m_checkDeletion" );
-+    m_checkDeletion->setGeometry( QRect( 0, 100, 143, 20 ) );
-+    languageChange();
-+    resize( QSize(120, 120).expandedTo(minimumSizeHint()) );
-+    clearWState( WState_Polished );
-+
-+    // tab order
-+    setTabOrder( m_checkWidth, m_checkHeight );
-+    setTabOrder( m_checkHeight, m_checkAspect );
-+    setTabOrder( m_checkAspect, m_checkXPosition );
-+    setTabOrder( m_checkXPosition, m_checkYPosition );
-+    setTabOrder( m_checkYPosition, m_checkDeletion );
-+}
-+
-+/*
-+ *  Destroys the object and frees any allocated resources
-+ */
-+KivioProtectionPanelBase::~KivioProtectionPanelBase()
-+{
-+    // no need to delete child widgets, Qt does it all for us
-+}
-+
-+/*
-+ *  Sets the strings of the subwidgets using the current
-+ *  language.
-+ */
-+void KivioProtectionPanelBase::languageChange()
-+{
-+    setCaption( tr2i18n( "Protection" ) );
-+    m_checkXPosition->setText( tr2i18n( "&X position" ) );
-+    QToolTip::add( m_checkXPosition, tr2i18n( "Toggles the ability to protect the x position of the selected stencils" ) );
-+    m_checkYPosition->setText( tr2i18n( "&Y position" ) );
-+    QToolTip::add( m_checkYPosition, tr2i18n( "Toggles the ability to protect the y position of the selected stencils" ) );
-+    m_checkHeight->setText( tr2i18n( "&Height" ) );
-+    QToolTip::add( m_checkHeight, tr2i18n( "Toggles the ability to change the height of the selected stencils" ) );
-+    m_checkWidth->setText( tr2i18n( "&Width" ) );
-+    QToolTip::add( m_checkWidth, tr2i18n( "Toggles the ability to change the width of the selected stencils" ) );
-+    m_checkAspect->setText( tr2i18n( "&Aspect ratio" ) );
-+    QToolTip::add( m_checkAspect, tr2i18n( "Toggles the ability to change the aspect ratio of the selected stencils" ) );
-+    m_checkDeletion->setText( tr2i18n( "&Deletion" ) );
-+    QToolTip::add( m_checkDeletion, tr2i18n( "Toggles the ability to delete the selected stencils" ) );
-+}
-+
-+#include "kivio_protection_panel_base.moc"
---- kivio/plugins/kivioconnectortool/Makefile.am	10 Aug 2003 15:21:20 -0000	1.1.1.6
-+++ kivio/plugins/kivioconnectortool/Makefile.am	10 Aug 2003 16:11:32 -0000	1.6
-@@ -1,5 +1,6 @@
- SUBDIRS = straight_connector
--lib_LTLIBRARIES =libkivioconnectortool.la
-+
-+kde_module_LTLIBRARIES =libkivioconnectortool.la
- 
- 
- INCLUDES = -I$(top_srcdir)/kivio/kiviopart\
-@@ -23,7 +24,7 @@
- 		kivio_connector_cursor1.xpm
- 
- libkivioconnectortool_la_LDFLAGS = -module $(KDE_PLUGIN)
--libkivioconnectortool_la_LIBADD = $(all_libraries) $(LIB_KOPAINTER) $(top_builddir)/kivio/kiviopart/libkiviopart.la
-+libkivioconnectortool_la_LIBADD = $(all_libraries) $(LIB_KOPAINTER) $(top_builddir)/kivio/kiviopart/libkiviopart_shared.la
- 
- rc_DATA = kivioconnectortool.rc
- rcdir = $(kde_datadir)/kivio/kpartplugins
---- kivio/plugins/kivioconnectortool/straight_connector/Makefile.am	5 Jul 2003 18:32:27 -0000	1.1.1.5
-+++ kivio/plugins/kivioconnectortool/straight_connector/Makefile.am	6 Jul 2003 14:11:52 -0000	1.8
-@@ -6,7 +6,7 @@
- straight_connector_la_LDFLAGS = -module $(KDE_PLUGIN) $(all_libraries)
- 
- # Hack to make it work (dave m)
--straight_connector_la_LIBADD = $(LIB_KOPAINTER) $(top_builddir)/kivio/kiviopart/libkiviopart.la
-+straight_connector_la_LIBADD = $(LIB_KOPAINTER) $(top_builddir)/kivio/kiviopart/libkiviopart_shared.la
- 
- INCLUDES = -I$(top_srcdir)/kivio/kiviopart\
- 	-I$(top_srcdir)/kivio/kiviopart/kiviosdk\
---- kivio/plugins/kivioselecttool/Makefile.am	5 Jul 2003 18:32:27 -0000	1.1.1.5
-+++ kivio/plugins/kivioselecttool/Makefile.am	6 Jul 2003 14:11:55 -0000	1.5
-@@ -1,5 +1,5 @@
--SUBDIRS = select_pics
--lib_LTLIBRARIES =libkivioselecttool.la
-+SUBDIRS = select_pics 
-+kde_module_LTLIBRARIES =libkivioselecttool.la
- 
- 
- INCLUDES = -I$(top_srcdir)/kivio/kiviopart\
-@@ -18,7 +18,7 @@
- 		tool_select.h\
- 		kivioselecttool.rc
- libkivioselecttool_la_LDFLAGS = -module $(KDE_PLUGIN)
--libkivioselecttool_la_LIBADD = $(LIB_KOTEXT) $(LIB_KOPAINTER) $(all_libraries) $(top_builddir)/kivio/kiviopart/libkiviopart.la
-+libkivioselecttool_la_LIBADD = $(LIB_KOTEXT) $(LIB_KOPAINTER) $(all_libraries) $(top_builddir)/kivio/kiviopart/libkiviopart_shared.la
- 
- rc_DATA = kivioselecttool.rc
- rcdir = $(kde_datadir)/kivio/kpartplugins
---- kivio/plugins/kiviosmlconnector/Makefile.am	5 Jul 2003 18:32:27 -0000	1.1.1.1
-+++ kivio/plugins/kiviosmlconnector/Makefile.am	9 Jul 2003 14:40:33 -0000	1.2
-@@ -10,7 +10,7 @@
- METASOURCES = AUTO
- libkiviosmlconnector_la_SOURCES = plugin.cpp tool_connector.cpp
- libkiviosmlconnector_la_LDFLAGS = -module $(KDE_PLUGIN) $(all_libraries)
--libkiviosmlconnector_la_LIBADD = $(LIB_KOPAINTER) $(top_builddir)/kivio/kiviopart/libkiviopart.la
-+libkiviosmlconnector_la_LIBADD = $(LIB_KOPAINTER) $(top_builddir)/kivio/kiviopart/libkiviopart_shared.la
- 
- 
- 
---- kivio/plugins/kiviosmlconnector/sml_connector/Makefile.am	5 Jul 2003 18:32:27 -0000	1.1.1.1
-+++ kivio/plugins/kiviosmlconnector/sml_connector/Makefile.am	9 Jul 2003 14:40:34 -0000	1.2
-@@ -9,7 +9,7 @@
- 
- sml_connector_la_SOURCES = sml_connector.cpp
- sml_connector_la_LDFLAGS = -module $(KDE_PLUGIN) $(all_libraries)
--sml_connector_la_LIBADD = $(LIB_KOPAINTER) $(top_builddir)/kivio/kiviopart/libkiviopart.la
-+sml_connector_la_LIBADD = $(LIB_KOPAINTER) $(top_builddir)/kivio/kiviopart/libkiviopart_shared.la
- 
- stencildir = $(kde_datadir)/kivio/autoloadStencils
- stencil_DATA = sml_connector.xpm
---- kivio/plugins/kiviotexttool/Makefile.am	5 Jul 2003 18:32:27 -0000	1.1.1.5
-+++ kivio/plugins/kiviotexttool/Makefile.am	9 Jul 2003 14:40:35 -0000	1.6
-@@ -1,4 +1,4 @@
--lib_LTLIBRARIES =libkiviotexttool.la
-+kde_module_LTLIBRARIES =libkiviotexttool.la
- 
- 
- INCLUDES = -I$(top_srcdir)/kivio/kiviopart\
-@@ -21,7 +21,7 @@
- 		Text.sml\
- 		Text.xpm
- libkiviotexttool_la_LDFLAGS = -module $(KDE_PLUGIN)
--libkiviotexttool_la_LIBADD = $(all_libraries) $(LIB_KOPAINTER) $(top_builddir)/kivio/kiviopart/libkiviopart.la
-+libkiviotexttool_la_LIBADD = $(all_libraries) $(LIB_KOPAINTER) $(top_builddir)/kivio/kiviopart/libkiviopart_shared.la
- 
- rc_DATA = kiviotexttool.rc
- rcdir = $(kde_datadir)/kivio/kpartplugins
---- kivio/plugins/kiviozoomtool/Makefile.am	5 Jul 2003 18:32:27 -0000	1.1.1.5
-+++ kivio/plugins/kiviozoomtool/Makefile.am	9 Jul 2003 14:40:35 -0000	1.6
-@@ -1,5 +1,5 @@
--SUBDIRS = zoom_pics
--lib_LTLIBRARIES =libkiviozoomtool.la
-+SUBDIRS = zoom_pics 
-+kde_module_LTLIBRARIES =libkiviozoomtool.la
- 
- INCLUDES = -I$(top_srcdir)/kivio/kiviopart\
- 	-I$(top_srcdir)/kivio/kiviopart/kiviosdk\
-@@ -17,7 +17,7 @@
- 		tool_zoom.cpp\
- 		tool_zoom.h
- libkiviozoomtool_la_LDFLAGS = -module $(KDE_PLUGIN)
--libkiviozoomtool_la_LIBADD = $(LIB_KOTEXT) $(all_libraries) $(LIB_KOPAINTER) $(top_builddir)/kivio/kiviopart/libkiviopart.la
-+libkiviozoomtool_la_LIBADD = $(LIB_KOTEXT) $(all_libraries) $(LIB_KOPAINTER) $(top_builddir)/kivio/kiviopart/libkiviopart_shared.la
- 
- rc_DATA = kiviozoomtool.rc
- rcdir = $(kde_datadir)/kivio/kpartplugins
---- koshell/Makefile.am	25 Apr 2003 15:45:37 -0000	1.1.1.2
-+++ koshell/Makefile.am	9 Jul 2003 14:40:36 -0000	1.8
-@@ -2,19 +2,19 @@
  INCLUDES  = $(KOFFICE_INCLUDES) $(all_includes)
  
- ## The kdeinit loadable module
+-## The kdeinit loadable module
 -lib_LTLIBRARIES = koshell.la
--koshell_la_SOURCES = koshell_main.cc koshell_shell.cc
--koshell_la_LDFLAGS = $(all_libraries) -avoid-version -module
--koshell_la_LIBADD = $(LIB_KOFFICEUI)
 +bin_PROGRAMS =
 +lib_LTLIBRARIES =
 +kdeinit_LTLIBRARIES = koshell.la
-+noinst_LTLIBRARIES = libkoshell_shared.la
- 
++
+ koshell_la_SOURCES = koshell_main.cc koshell_shell.cc
+ koshell_la_LDFLAGS = $(all_libraries) -avoid-version -module
+ koshell_la_LIBADD = $(LIB_KOFFICEUI)
+-
 -## The executable
 -bin_PROGRAMS = koshell
 -koshell_SOURCES = dummy.cc
 -koshell_LDFLAGS = $(all_libraries) $(KDE_RPATH)
 -koshell_LDADD = koshell.la
-+libkoshell_shared_la_SOURCES = koshell_shell.cc
-+libkoshell_shared_la_LDFLAGS = $(all_libraries) -avoid-version -no-undefined
-+libkoshell_shared_la_LIBADD = $(LIB_KOFFICEUI)
- 
+-
 -dummy.cc:
 -	echo > dummy.cc
-+koshell_la_SOURCES = koshell_main.cc
-+koshell_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -module -avoid-version
-+koshell_la_LIBADD  = libkoshell_shared.la
-+koshell_la_DEPENDENCIES = libkoshell_shared.la
  
  noinst_HEADERS = koshell_shell.h
  
---- koshell/koshell_main.cc	25 Apr 2003 15:45:36 -0000	1.1.1.6
-+++ koshell/koshell_main.cc	6 Jul 2003 21:05:03 -0000	1.2
+diff -uNr koffice-1.2.94/koshell/koshell_main.cc koffice-1.2.94-patched/koshell/koshell_main.cc
+--- koffice-1.2.94/koshell/koshell_main.cc	Mon Jan 20 09:58:49 2003
++++ koffice-1.2.94-patched/koshell/koshell_main.cc	Fri Nov  7 21:42:44 2003
 @@ -30,7 +30,7 @@
  static const char* description=I18N_NOOP("KOffice Workspace");
  static const char* version=VERSION;
@@ -1909,19 +300,21 @@
  {
    KAboutData * aboutData = new KAboutData( "koshell", I18N_NOOP("KOffice Workspace"),
       version, description, KAboutData::License_GPL,
---- kpresenter/Makefile.am	10 Aug 2003 15:21:33 -0000	1.1.1.5
-+++ kpresenter/Makefile.am	10 Aug 2003 16:11:32 -0000	1.7
-@@ -54,19 +54,12 @@
+diff -uNr koffice-1.2.94/kpresenter/Makefile.am koffice-1.2.94-patched/kpresenter/Makefile.am
+--- koffice-1.2.94/kpresenter/Makefile.am	Mon Jul 14 10:08:13 2003
++++ koffice-1.2.94-patched/kpresenter/Makefile.am	Fri Nov  7 21:46:26 2003
+@@ -53,20 +53,13 @@
+ libkpresenterpart_la_LIBADD = autoformEdit/libaf.la $(LIB_KOFFICEUI) $(LIB_KOTEXT) -lkspell $(LIBKOSPELL) -lartskde -lkdefx
  libkpresenterpart_la_METASOURCES = AUTO
  
- ## The kdeinit loadable module
+-## The kdeinit loadable module
 -lib_LTLIBRARIES = kpresenter.la
-+bin_PROGRAMS =
 +lib_LTLIBRARIES =
++bin_PROGRAMS =
 +kdeinit_LTLIBRARIES = kpresenter.la
++
  kpresenter_la_SOURCES = main.cc
--kpresenter_la_LDFLAGS = $(all_libraries) -avoid-version -module
-+kpresenter_la_LDFLAGS = $(all_libraries) -avoid-version $(KDE_RPATH) -module
+ kpresenter_la_LDFLAGS = $(all_libraries) -avoid-version -module
  kpresenter_la_LIBADD = $(LIB_KOFFICECORE)
 -
 -## The executable
@@ -1935,19 +328,9 @@
  
  noinst_HEADERS = koPointArray.h kprcanvas.h kprpage.h kpresenter_doc.h kpresenter_view.h \
  		backdia.h styledia.h \
---- kpresenter/kpresenter_view.cc	10 Aug 2003 15:21:31 -0000	1.1.1.8
-+++ kpresenter/kpresenter_view.cc	10 Aug 2003 16:11:33 -0000	1.12
-@@ -4276,7 +4276,7 @@
-     //(Laurent) deselect object when we change page.
-     //otherwise you can change object properties on other page
-     deSelectAllObjects();
--    m_pKPresenterDoc->repaint( FALSE );
-+    m_pKPresenterDoc->repaint( (bool)FALSE );
- 
-     m_pKPresenterDoc->displayActivePage( page );
- 
---- kpresenter/main.cc	5 Jul 2003 18:32:42 -0000	1.1.1.4
-+++ kpresenter/main.cc	6 Jul 2003 21:05:04 -0000	1.2
+diff -uNr koffice-1.2.94/kpresenter/main.cc koffice-1.2.94-patched/kpresenter/main.cc
+--- koffice-1.2.94/kpresenter/main.cc	Fri Apr 25 09:52:27 2003
++++ koffice-1.2.94-patched/kpresenter/main.cc	Fri Nov  7 21:46:39 2003
 @@ -32,7 +32,7 @@
  	KCmdLineLastOption
  };
@@ -1957,49 +340,22 @@
  {
      KCmdLineArgs::init( argc, argv, newKPresenterAboutData() );
      KCmdLineArgs::addCmdLineOptions( options );
---- kspread/Makefile.am	25 Apr 2003 15:46:34 -0000	1.1.1.4
-+++ kspread/Makefile.am	9 Jul 2003 14:40:37 -0000	1.8
-@@ -3,10 +3,10 @@
- 	$(KOSCRIPT_INCLUDES) -I$(top_srcdir)/interfaces \
- 	 -I$(top_srcdir)/kchart/kdchart $(all_includes)
+diff -uNr koffice-1.2.94/kspread/Makefile.am koffice-1.2.94-patched/kspread/Makefile.am
+--- koffice-1.2.94/kspread/Makefile.am	Mon Oct 27 08:21:14 2003
++++ koffice-1.2.94-patched/kspread/Makefile.am	Fri Nov  7 21:48:21 2003
+@@ -51,20 +51,13 @@
  
--kde_module_LTLIBRARIES = libkspreadpart.la
-+kde_module_LTLIBRARIES = libkspreadpart.la libkspreadpart_shared.la
- 
- ## The part
--libkspreadpart_la_SOURCES = kspread_locale.cc \
-+libkspreadpart_shared_la_SOURCES = kspread_locale.cc \
- 	kspread_dlg_formula.cc digest.cc \
- 	kspread_functions.cc kspread_dlg_csv.cc \
- 	kspread_canvas.cc kspread_functions_helper.cc \
-@@ -45,26 +45,27 @@
- 	kspread_selection.cc kspread_dlg_paperlayout.cc kspread_format.cc \
-         kspread_sheetprint.cc
- 
--libkspreadpart_la_LDFLAGS = $(all_libraries) $(KDE_PLUGIN)
--libkspreadpart_la_LIBADD = $(top_builddir)/interfaces/libkochart.la \
-+libkspreadpart_shared_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -avoid-version -no-undefined
-+libkspreadpart_shared_la_LIBADD = $(top_builddir)/interfaces/libkochart.la \
- 	$(LIB_KOSCRIPT) $(LIB_KOFFICEUI) $(LIB_KOTEXT) -lkspell
- 
-+libkspreadpart_la_LDFLAGS = $(all_libraries) $(KDE_PLUGIN)
-+libkspreadpart_la_LIBADD  = libkspreadpart_shared.la
-+libkspreadpart_la_SOURCES = dummy.cpp
-+libkspreadpart_la_DEPENDENCIES = libkspreadpart_shared.la
-+
-+dummy.cpp:
-+	echo > dummy.cpp
-+
  METASOURCES = AUTO
  
- ## The kdeinit loadable module
+-## The kdeinit loadable module
 -lib_LTLIBRARIES =  kspread.la
-+bin_PROGRAMS =
 +lib_LTLIBRARIES =
-+kdeinit_LTLIBRARIES =  kspread.la
++bin_PROGRAMS =
++kdeinit_LTLIBRARIES = kspread.la
++
  kspread_la_SOURCES = main.cc
  kspread_la_LDFLAGS = $(all_libraries) -avoid-version -module
--kspread_la_LIBADD = $(LIB_KOFFICECORE)
+ kspread_la_LIBADD = $(LIB_KOFFICECORE)
 -
 -## The executable
 -bin_PROGRAMS = kspread
@@ -2009,12 +365,12 @@
 -
 -dummy.cc:
 -	echo > dummy.cc
-+kspread_la_LIBADD = $(LIB_KOFFICECORE) libkspreadpart_shared.la
  
  noinst_HEADERS = kspread_doc.h kspread_functions.h kspread_functions_helper.h \
  	kspread_undo.h kspread_view.h kspread_tabbar.h \
---- kspread/main.cc	25 Apr 2003 15:46:34 -0000	1.1.1.3
-+++ kspread/main.cc	6 Jul 2003 21:05:04 -0000	1.2
+diff -uNr koffice-1.2.94/kspread/main.cc koffice-1.2.94-patched/kspread/main.cc
+--- koffice-1.2.94/kspread/main.cc	Thu Jan 23 04:10:24 2003
++++ koffice-1.2.94-patched/kspread/main.cc	Fri Nov  7 21:48:31 2003
 @@ -30,7 +30,7 @@
          KCmdLineLastOption
  };
@@ -2024,44 +380,25 @@
  {
  
      KCmdLineArgs::init( argc, argv, newKSpreadAboutData() );
---- kspread/plugins/calculator/Makefile.am	25 Apr 2003 15:46:36 -0000	1.1.1.2
-+++ kspread/plugins/calculator/Makefile.am	26 Apr 2003 02:07:38 -0000	1.3
-@@ -9,7 +9,7 @@
- 			main.cpp \
- 			stats.cpp
- libkspreadcalc_la_LDFLAGS = -avoid-version -module -no-undefined
--libkspreadcalc_la_LIBADD = $(all_libraries) ../../libkspreadpart.la
-+libkspreadcalc_la_LIBADD = $(all_libraries) ../../libkspreadpart_shared.la
+diff -uNr koffice-1.2.94/kugar/kudesigner/Makefile.am koffice-1.2.94-patched/kugar/kudesigner/Makefile.am
+--- koffice-1.2.94/kugar/kudesigner/Makefile.am	Fri May 30 16:07:52 2003
++++ koffice-1.2.94-patched/kugar/kudesigner/Makefile.am	Fri Nov  7 21:50:15 2003
+@@ -2,6 +2,7 @@
  
- METASOURCES = AUTO
- 
---- kugar/kudesigner/Makefile.am	5 Jul 2003 18:33:16 -0000	1.1.1.5
-+++ kugar/kudesigner/Makefile.am	6 Jul 2003 21:05:05 -0000	1.5
-@@ -4,30 +4,24 @@
- 
- 
- ## The kdeinit loadable module
--lib_LTLIBRARIES = libkudesignercore.la kudesigner.la
-+lib_LTLIBRARIES = libkudesignercore.la
- libkudesignercore_la_SOURCES = kudesigner_view.cpp kudesigner_factory.cpp kudesigner_doc.cpp
--libkudesignercore_la_LDFLAGS = -avoid-version -module $(all_libraries) $(KDE_RPATH)
-+libkudesignercore_la_LDFLAGS = -avoid-version $(all_libraries) $(KDE_RPATH)
- libkudesignercore_la_LIBADD = ../kudesigner_lib/libkudesignercommon.la $(LIB_KOFFICEUI) $(LIB_KPARTS) $(LIB_KOFFICECORE) $(LIB_KIO) $(LIB_KDEPRINT)
- 
- ## The part
- kde_module_LTLIBRARIES = libkudesignerpart.la
- libkudesignerpart_la_SOURCES = kudesigner_part.cpp
--libkudesignerpart_la_LDFLAGS = $(all_libraries) $(KDE_PLUGIN) $(KDE_RPATH)
-+libkudesignerpart_la_LDFLAGS = $(all_libraries) $(KDE_PLUGIN) $(KDE_RPATH) -module
- libkudesignerpart_la_LIBADD = libkudesignercore.la $(LIB_KOFFICEUI) $(LIB_KPARTS) $(LIB_KOFFICECORE)
+ INCLUDES = -I$(srcdir)/../kudesigner_lib -I$(srcdir)/../lib $(KOFFICE_INCLUDES) $(all_includes)
  
 +bin_PROGRAMS =
-+kdeinit_LTLIBRARIES = kudesigner.la
-+
+ 
  ## The kdeinit loadable module
+ lib_LTLIBRARIES = libkudesignercore.la kudesigner.la
+@@ -15,19 +16,10 @@
+ libkudesignerpart_la_LDFLAGS = $(all_libraries) $(KDE_PLUGIN) $(KDE_RPATH)
+ libkudesignerpart_la_LIBADD = libkudesignercore.la $(LIB_KOFFICEUI) $(LIB_KPARTS) $(LIB_KOFFICECORE)
+ 
+-## The kdeinit loadable module
++kdeinit_LTLIBRARIES = kudesigner.la
  kudesigner_la_SOURCES = main.cpp
--kudesigner_la_LDFLAGS = $(all_libraries) -module -avoid-version
-+kudesigner_la_LDFLAGS = $(all_libraries) -avoid-version $(KDE_PLUGIN) -module
+ kudesigner_la_LDFLAGS = $(all_libraries) -module -avoid-version
  kudesigner_la_LIBADD = $(LIB_KOFFICECORE)
 -
 -## The executable
@@ -2075,8 +412,9 @@
  
  appsdir = $(kde_appsdir)/Office
  apps_DATA = kudesigner.desktop
---- kugar/kudesigner/main.cpp	5 Jul 2003 18:33:16 -0000	1.1.1.5
-+++ kugar/kudesigner/main.cpp	9 Jul 2003 14:40:38 -0000	1.2
+diff -uNr koffice-1.2.94/kugar/kudesigner/main.cpp koffice-1.2.94-patched/kugar/kudesigner/main.cpp
+--- koffice-1.2.94/kugar/kudesigner/main.cpp	Wed May 28 16:35:18 2003
++++ koffice-1.2.94-patched/kugar/kudesigner/main.cpp	Fri Nov  7 21:49:51 2003
 @@ -32,7 +32,7 @@
  	KCmdLineLastOption
  };
@@ -2086,29 +424,23 @@
  {
      KLocale::setMainCatalogue("kugar");
      KCmdLineArgs::init( argc, argv, newKudesignerAboutData() );
---- kugar/part/Makefile.am	25 Apr 2003 15:46:43 -0000	1.1.1.2
-+++ kugar/part/Makefile.am	9 Jul 2003 14:40:39 -0000	1.6
-@@ -2,7 +2,7 @@
+diff -uNr koffice-1.2.94/kugar/part/Makefile.am koffice-1.2.94-patched/kugar/part/Makefile.am
+--- koffice-1.2.94/kugar/part/Makefile.am	Mon Nov 25 16:08:11 2002
++++ koffice-1.2.94-patched/kugar/part/Makefile.am	Fri Nov  7 21:51:02 2003
+@@ -24,18 +24,11 @@
  
- kde_module_LTLIBRARIES = libkugarpart.la
- libkugarpart_la_SOURCES = kugar_part.cpp kugar_factory.cpp kugar_view.cpp
--libkugarpart_la_LDFLAGS = $(all_libraries) -module -avoid-version
-+libkugarpart_la_LDFLAGS = $(all_libraries) $(KDE_PLUGIN) -module -avoid-version
- libkugarpart_la_LIBADD = ../lib/libkugar.la $(LIB_KPARTS) $(LIB_KDEPRINT) $(LIB_KOFFICECORE)
+ CLEANFILES = kugarpart_meta_unload.cpp
  
- libkugarpart_la_METASOURCES = AUTO
-@@ -26,16 +26,9 @@
- 
- 
- ## The kdeinit loadable module
--lib_LTLIBRARIES = kugar.la
 +bin_PROGRAMS =
 +lib_LTLIBRARIES =
+ 
+-## The kdeinit loadable module
+-lib_LTLIBRARIES = kugar.la
 +kdeinit_LTLIBRARIES = kugar.la
  kugar_la_SOURCES = main.cpp
  kugar_la_LDFLAGS = $(all_libraries) -module -avoid-version
  kugar_la_LIBADD = $(LIB_KOFFICECORE)
--
+ 
 -## The executable
 -bin_PROGRAMS = kugar
 -kugar_SOURCES = dummy.cc
@@ -2117,8 +449,9 @@
 -
 -dummy.cc:
 -	echo > dummy.cc
---- kugar/part/main.cpp	5 Jul 2003 18:33:21 -0000	1.1.1.2
-+++ kugar/part/main.cpp	9 Jul 2003 14:40:39 -0000	1.2
+diff -uNr koffice-1.2.94/kugar/part/main.cpp koffice-1.2.94-patched/kugar/part/main.cpp
+--- koffice-1.2.94/kugar/part/main.cpp	Thu May 15 08:31:45 2003
++++ koffice-1.2.94-patched/kugar/part/main.cpp	Fri Nov  7 21:51:13 2003
 @@ -28,7 +28,7 @@
    // INSERT YOUR COMMANDLINE OPTIONS HERE
  };
@@ -2128,31 +461,61 @@
  {
  
  	KCmdLineArgs::init( argc, argv, newKugarAboutData() );
---- kword/Makefile.am	10 Aug 2003 15:22:39 -0000	1.1.1.6
-+++ kword/Makefile.am	10 Aug 2003 16:11:34 -0000	1.7
-@@ -1,3 +1,4 @@
-+KDE_OPTIONS = nofinal
+diff -uNr koffice-1.2.94/kugar/shell/Makefile.am koffice-1.2.94-patched/kugar/shell/Makefile.am
+--- koffice-1.2.94/kugar/shell/Makefile.am	Thu Mar 29 07:32:02 2001
++++ koffice-1.2.94-patched/kugar/shell/Makefile.am	Fri Nov  7 21:52:11 2003
+@@ -1,9 +1,13 @@
+ INCLUDES = -I$(srcdir)/../lib $(KOFFICE_INCLUDES) $(all_includes)
  
- KDE_CXXFLAGS = $(USE_RTTI)
- INCLUDES = $(KOFFICE_INCLUDES) -I$(top_srcdir)/lib/kformula \
-@@ -48,7 +49,7 @@
+-bin_PROGRAMS = kugar
+-kugar_SOURCES = main.cpp report.cpp
+-kugar_LDFLAGS = $(all_libraries) $(KDE_RPATH)
+-kugar_LDADD = ../lib/libkugar.la $(LIB_KIO) $(LIB_KDEPRINT)
++bin_PROGRAMS =
++lib_LTLIBRARIES =
++
++kdeinit_LTLIBRARIES = kugar.la
++
++kugar_la_SOURCES = main.cpp report.cpp
++kugar_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -module -avoid-version
++kugar_la_LIBADD = ../lib/libkugar.la $(LIB_KIO) $(LIB_KDEPRINT)
+ 
+ kugar_METASOURCES = AUTO
+ 
+diff -uNr koffice-1.2.94/kugar/shell/main.cpp koffice-1.2.94-patched/kugar/shell/main.cpp
+--- koffice-1.2.94/kugar/shell/main.cpp	Mon Apr 21 07:11:18 2003
++++ koffice-1.2.94-patched/kugar/shell/main.cpp	Fri Nov  7 21:52:22 2003
+@@ -16,7 +16,7 @@
+ #include "report.h"
+ 
+ 
+-int main(int argc,char **argv)
++extern "C" int kdemain(int argc,char **argv)
+ {
+ 	KAboutData about("kugar", I18N_NOOP("Kugar"), VERSION,
+ 		I18N_NOOP("A template driven report viewer for XML data."),
+diff -uNr koffice-1.2.94/kword/Makefile.am koffice-1.2.94-patched/kword/Makefile.am
+--- koffice-1.2.94/kword/Makefile.am	Wed Sep 24 07:52:14 2003
++++ koffice-1.2.94-patched/kword/Makefile.am	Fri Nov  7 21:53:19 2003
+@@ -49,7 +49,8 @@
  libkwordpart_la_LIBADD = $(LIB_KOFFICEUI) $(LIB_KOTEXT) ../lib/kformula/libkformula.la -lkspell $(LIBKOSPELL) ./libkwmailmerge_interface.la
  METASOURCES = AUTO
  
 -lib_LTLIBRARIES = kword.la libkwmailmerge_interface.la
-+lib_LTLIBRARIES = libkwmailmerge_interface.la
++lib_LTLIBRARIES = ibkwmailmerge_interface.la
++bin_PROGRAMS =
  
  ## The mailmerge interface library
  libkwmailmerge_interface_la_SOURCES = mailmerge_interface.cc mailmerge_interface.skel
-@@ -61,18 +62,11 @@
+@@ -61,19 +62,10 @@
+ kwmailmerge_servicetype_DATA=kwmailmerge.desktop
  kwmailmerge_servicetypedir=$(kde_servicetypesdir)
  
- ## The kdeinit loadable module
-+bin_PROGRAMS =
+-## The kdeinit loadable module
 +kdeinit_LTLIBRARIES = kword.la
  kword_la_SOURCES = main.cc
--kword_la_LDFLAGS = $(all_libraries) -avoid-version -module
--kword_la_LIBADD = ../lib/kofficecore/libkofficecore.la
+ kword_la_LDFLAGS = $(all_libraries) -avoid-version -module
+ kword_la_LIBADD = ../lib/kofficecore/libkofficecore.la
 -
 -## The executable
 -bin_PROGRAMS = kword
@@ -2162,13 +525,12 @@
 -
 -dummy.cc:
 -	echo > dummy.cc
-+kword_la_LDFLAGS = $(all_libraries) -avoid-version $(KDE_PLUGIN) -module
-+kword_la_LIBADD = $(LIB_KOFFICECORE)
  
  kdelnk_DATA = kword.desktop
  kdelnkdir = $(kde_appsdir)/Office
---- kword/main.cc	25 Apr 2003 15:46:57 -0000	1.1.1.3
-+++ kword/main.cc	6 Jul 2003 21:05:06 -0000	1.2
+diff -uNr koffice-1.2.94/kword/main.cc koffice-1.2.94-patched/kword/main.cc
+--- koffice-1.2.94/kword/main.cc	Thu Jan 23 04:10:24 2003
++++ koffice-1.2.94-patched/kword/main.cc	Fri Nov  7 21:53:33 2003
 @@ -28,7 +28,7 @@
  	KCmdLineLastOption
  };
@@ -2178,3 +540,115 @@
  {
      KCmdLineArgs::init( argc, argv, newKWordAboutData());
      KCmdLineArgs::addCmdLineOptions( options );
+diff -uNr koffice-1.2.94/lib/koscript/Makefile.am koffice-1.2.94-patched/lib/koscript/Makefile.am
+--- koffice-1.2.94/lib/koscript/Makefile.am	Sat May 18 03:58:18 2002
++++ koffice-1.2.94-patched/lib/koscript/Makefile.am	Fri Nov  7 21:54:54 2003
+@@ -4,19 +4,22 @@
+ 
+ ####### Files
+ 
+-lib_LTLIBRARIES = libkoscript.la
+-libkoscript_la_SOURCES = koscript_locale.cc \
++lib_LTLIBRARIES = libkoscriptcommon.la
++bin_PROGRAMS =
++
++kdeinit_LTLIBRARIES = libkoscript.la
++
++libkoscriptcommon_la_SOURCES = koscript_locale.cc \
+ 		  koscript_eval.cc koscript_func.cc koscript_property.cc koscript_method.cc \
+ 		  koscript_context.cc koscript_value.cc koscript_parser.cc koscript_parsenode.cc yacc.cc \
+                   scanner.cc koscript.cc koscript_util.cc koscript_struct.cc
+-libkoscript_la_METASOURCES = AUTO
+-libkoscript_la_LDFLAGS = -version-info 2:0:0 -no-undefined $(all_libraries)
+-libkoscript_la_LIBADD = $(LIB_KDEUI)
++libkoscriptcommon_la_METASOURCES = AUTO
++libkoscriptcommon_la_LDFLAGS = -version-info 2:0:0 -no-undefined $(all_libraries)
++libkoscriptcommon_la_LIBADD = $(LIB_KDEUI)
+ 
+-bin_PROGRAMS = koscript
+-koscript_SOURCES = main.cc
+-koscript_LDADD = ./libkoscript.la $(all_libraries)
+-koscript_LDFLAGS = $(KDE_RPATH)
++koscript_la_SOURCES = main.cc
++koscript_la_LIBADD = libkoscriptcommon.la $(all_libraries)
++koscript_la_LDFLAGS = $(KDE_RPATH) -module -avoid-version
+ 
+ noinst_HEADERS = koscript_locale.h \
+ 		 koscript_eval.h koscript_func.h koscript_context.h koscript_value.h \
+diff -uNr koffice-1.2.94/lib/koscript/main.cc koffice-1.2.94-patched/lib/koscript/main.cc
+--- koffice-1.2.94/lib/koscript/main.cc	Thu Jan 23 04:10:24 2003
++++ koffice-1.2.94-patched/lib/koscript/main.cc	Fri Nov  7 21:55:06 2003
+@@ -36,7 +36,7 @@
+   KCmdLineLastOption
+ };
+ 
+-int main( int argc, char** argv )
++extern "C" int kdemain( int argc, char** argv )
+ {
+   const char *appName = (argc > 1) ? argv[1] : "koscript";
+   KCmdLineArgs::init(argc, argv, appName,
+diff -uNr koffice-1.2.94/tools/converter/Makefile.am koffice-1.2.94-patched/tools/converter/Makefile.am
+--- koffice-1.2.94/tools/converter/Makefile.am	Wed May 29 03:37:33 2002
++++ koffice-1.2.94-patched/tools/converter/Makefile.am	Fri Nov  7 21:56:10 2003
+@@ -1,9 +1,12 @@
+ INCLUDES = $(KOFFICE_INCLUDES) $(all_includes)
+ 
+-bin_PROGRAMS = koconverter
+-koconverter_SOURCES = koconverter.cc
+-koconverter_LDFLAGS = $(all_libraries) $(KDE_RPATH)
+-koconverter_LDADD = $(top_builddir)/lib/kofficecore/libkofficecore.la
++bin_PROGRAMS =
++lib_LTLIBRARIES =
++
++kdeinit_LTLIBRARIES = koconverter.la
++koconverter_la_SOURCES = koconverter.cc
++koconverter_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -module -avoid-version
++koconverter_la_LIBADD = $(top_builddir)/lib/kofficecore/libkofficecore.la
+ 
+ METASOURCES = AUTO
+ 
+diff -uNr koffice-1.2.94/tools/converter/koconverter.cc koffice-1.2.94-patched/tools/converter/koconverter.cc
+--- koffice-1.2.94/tools/converter/koconverter.cc	Mon Oct 27 08:22:57 2003
++++ koffice-1.2.94-patched/tools/converter/koconverter.cc	Fri Nov  7 21:56:24 2003
+@@ -58,7 +58,7 @@
+     //kdDebug() << "ProgressObject::slotProgress " << progress << endl;
+ }
+ 
+-int main( int argc, char **argv )
++extern "C" int kdemain( int argc, char **argv )
+ {
+     KAboutData aboutData( "koconverter", I18N_NOOP("KOConverter"), "1.1",
+                           I18N_NOOP("KOffice Document Converter"),
+diff -uNr koffice-1.2.94/tools/kthesaurus/Makefile.am koffice-1.2.94-patched/tools/kthesaurus/Makefile.am
+--- koffice-1.2.94/tools/kthesaurus/Makefile.am	Sat Jun  8 21:22:54 2002
++++ koffice-1.2.94-patched/tools/kthesaurus/Makefile.am	Fri Nov  7 21:57:02 2003
+@@ -1,11 +1,13 @@
+ 
+ INCLUDES = $(all_includes)
+ 
+-bin_PROGRAMS = kthesaurus
++bin_PROGRAMS =
++lib_LTLIBRARIES =
++kdeinit_LTLIBRARIES = kthesaurus.la
+ 
+-kthesaurus_LDFLAGS = $(all_libraries) $(KDE_RPATH)
+-kthesaurus_SOURCES = main.cc
+-kthesaurus_LDADD = $(LIB_KSYCOCA)
++kthesaurus_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -module -avoid-version
++kthesaurus_la_SOURCES = main.cc
++kthesaurus_la_LIBADD = $(LIB_KSYCOCA)
+  
+ appsdir = $(kde_appsdir)/Office
+ apps_DATA = KThesaurus.desktop
+diff -uNr koffice-1.2.94/tools/kthesaurus/main.cc koffice-1.2.94-patched/tools/kthesaurus/main.cc
+--- koffice-1.2.94/tools/kthesaurus/main.cc	Thu Jan 23 04:10:24 2003
++++ koffice-1.2.94-patched/tools/kthesaurus/main.cc	Fri Nov  7 21:57:12 2003
+@@ -32,7 +32,7 @@
+ 	KCmdLineLastOption
+ };
+ 
+-int main(int argc, char **argv)
++extern "C" int kdemain(int argc, char **argv)
+ {
+ 
+ 	KAboutData aboutData("kthesaurus", I18N_NOOP("KThesaurus"), "1.0",
