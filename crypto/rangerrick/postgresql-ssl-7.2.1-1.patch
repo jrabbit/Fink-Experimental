@@ -1,20 +1,97 @@
+? config.cache
+? config.log
+? config.status
+? GNUmakefile
+? pgsql.sh
+? src/GNUmakefile
+? src/Makefile.global
+? src/Makefile.port
+? src/backend/postgres
+? src/backend/catalog/postgres.bki
+? src/backend/catalog/postgres.description
+? src/backend/port/dynloader.c
+? src/backend/port/Makefile
+? src/backend/port/tas.s
+? src/bin/initdb/initdb
+? src/bin/initlocation/initlocation
+? src/bin/ipcclean/ipcclean
+? src/bin/pg_config/pg_config
+? src/bin/pg_ctl/pg_ctl
+? src/bin/pg_dump/pg_dump
+? src/bin/pg_dump/pg_dumpall
+? src/bin/pg_dump/pg_restore
+? src/bin/pg_encoding/pg_encoding
+? src/bin/pg_id/pg_id
+? src/bin/pg_passwd/pg_passwd
+? src/bin/pgaccess/pgaccess
+? src/bin/pgtclsh/Makefile.tcldefs
+? src/bin/pgtclsh/Makefile.tkdefs
+? src/bin/pgtclsh/pgtclsh
+? src/bin/pgtclsh/pgtksh
+? src/bin/psql/psql
+? src/bin/scripts/createlang
+? src/include/dynloader.h
+? src/include/pg_config.h
+? src/include/pg_config_os.h
+? src/include/stamp-h
+? src/include/parser/parse.h
+? src/include/utils/fmgroids.h
+? src/interfaces/ecpg/lib/libecpg.so.3
+? src/interfaces/ecpg/lib/libecpg.so.3.3.0
+? src/interfaces/ecpg/preproc/ecpg
+? src/interfaces/jdbc/build
+? src/interfaces/jdbc/jars
+? src/interfaces/jdbc/org/postgresql/Driver.java
+? src/interfaces/libpgeasy/libpgeasy.so.2
+? src/interfaces/libpgeasy/libpgeasy.so.2.2
+? src/interfaces/libpq/dllist.c
+? src/interfaces/libpq/encnames.c
+? src/interfaces/libpq/libpq.so.2
+? src/interfaces/libpq/libpq.so.2.2
+? src/interfaces/libpq/md5.c
+? src/interfaces/libpq/wchar.c
+? src/interfaces/libpq++/libpq++.so.4
+? src/interfaces/libpq++/libpq++.so.4.0
+? src/interfaces/odbc/odbc-drop.sql
+? src/interfaces/perl5/blib
+? src/interfaces/perl5/Makefile
+? src/interfaces/perl5/Pg.bs
+? src/interfaces/perl5/Pg.c
+? src/interfaces/perl5/pm_to_blib
+? src/interfaces/python/lib_pgmodule.so.0
+? src/interfaces/python/lib_pgmodule.so.0.0
+? src/pl/plperl/blib
+? src/pl/plperl/Makefile
+? src/pl/plperl/plperl.bs
+? src/pl/plperl/pm_to_blib
+? src/pl/plperl/SPI.c
+? src/pl/plpgsql/src/libplpgsql.so.1
+? src/pl/plpgsql/src/libplpgsql.so.1.0
+? src/pl/plpython/libplpython.so.0
+? src/pl/plpython/libplpython.so.0.0
+? src/pl/tcl/Makefile.tcldefs
+? src/pl/tcl/modules/pltcl_delmod
+? src/pl/tcl/modules/pltcl_listmod
+? src/pl/tcl/modules/pltcl_loadmod
 Index: src/Makefile.shlib
 ===================================================================
 RCS file: /projects/cvsroot/pgsql/src/Makefile.shlib,v
 retrieving revision 1.56
-diff -u -b -r1.56 Makefile.shlib
+diff -u -b -u -b -r1.56 Makefile.shlib
 --- src/Makefile.shlib	2001/11/11 19:20:53	1.56
-+++ src/Makefile.shlib	2002/07/05 20:12:56
-@@ -112,7 +112,7 @@
++++ src/Makefile.shlib	2002/07/06 05:21:27
+@@ -112,8 +112,9 @@
  endif
  
  ifeq ($(PORTNAME), darwin)
 -  shlib			:= lib$(NAME)$(DLSUFFIX).$(SO_MAJOR_VERSION).$(SO_MINOR_VERSION)
 +  shlib			:= lib$(NAME).$(SO_MAJOR_VERSION).$(SO_MINOR_VERSION)$(DLSUFFIX)
    LINK.shared		= $(COMPILER) $(DARWIN_NAMESPACE_SPEC) -bundle -undefined suppress
++  SHLIB_LINK		:= -L$(libpq_builddir) $(SHLIB_LINK)
  endif
  
-@@ -305,9 +305,9 @@
+ ifeq ($(PORTNAME), openbsd)
+@@ -305,9 +306,9 @@
  $(shlib): $(OBJS)
  	$(LINK.shared) $(OBJS) $(SHLIB_LINK) -o $@
  # If we're using major and minor versions, then make a symlink to major-version-only.
@@ -27,7 +104,7 @@ diff -u -b -r1.56 Makefile.shlib
  endif
  # Make sure we have a link to a name without any version numbers
  ifneq ($(shlib), lib$(NAME)$(DLSUFFIX))
-@@ -363,10 +363,10 @@
+@@ -363,10 +364,10 @@
  install-lib-shared: $(shlib)
  	$(INSTALL_SHLIB) $< $(DESTDIR)$(libdir)/$(shlib)
  ifneq ($(PORTNAME), win)
@@ -41,13 +118,74 @@ diff -u -b -r1.56 Makefile.shlib
  endif
  ifneq ($(shlib), lib$(NAME)$(DLSUFFIX))
  	cd $(DESTDIR)$(libdir) && \
+Index: src/interfaces/ecpg/lib/Makefile
+===================================================================
+RCS file: /projects/cvsroot/pgsql/src/interfaces/ecpg/lib/Makefile,v
+retrieving revision 1.15
+diff -u -b -u -b -r1.15 Makefile
+--- src/interfaces/ecpg/lib/Makefile	2002/01/08 20:41:26	1.15
++++ src/interfaces/ecpg/lib/Makefile	2002/07/06 05:21:28
+@@ -17,7 +17,7 @@
+ SO_MINOR_VERSION= 3.0
+ 
+ override CPPFLAGS := -I$(top_srcdir)/src/interfaces/ecpg/include -I$(libpq_srcdir) $(CPPFLAGS)
+-
++override LDFLAGS := -L$(libpq_builddir) $(LDFLAGS)
+ 
+ OBJS= execute.o typename.o descriptor.o data.o error.o prepare.o memory.o \
+ 	connect.o misc.o
+Index: src/interfaces/libpgeasy/Makefile
+===================================================================
+RCS file: /projects/cvsroot/pgsql/src/interfaces/libpgeasy/Makefile,v
+retrieving revision 1.7
+diff -u -b -u -b -r1.7 Makefile
+--- src/interfaces/libpgeasy/Makefile	2001/05/11 01:46:33	1.7
++++ src/interfaces/libpgeasy/Makefile	2002/07/06 05:21:28
+@@ -17,6 +17,7 @@
+ SO_MINOR_VERSION= 2
+ 
+ override CPPFLAGS := -I$(libpq_srcdir) $(CPPFLAGS)
++override LDFLAGS := -L$(libpq_builddir) $(LDFLAGS)
+ 
+ OBJS= libpgeasy.o halt.o
+ 
+Index: src/interfaces/libpgtcl/Makefile
+===================================================================
+RCS file: /projects/cvsroot/pgsql/src/interfaces/libpgtcl/Makefile,v
+retrieving revision 1.26
+diff -u -b -u -b -r1.26 Makefile
+--- src/interfaces/libpgtcl/Makefile	2001/05/11 01:46:33	1.26
++++ src/interfaces/libpgtcl/Makefile	2002/07/06 05:21:28
+@@ -17,6 +17,7 @@
+ SO_MINOR_VERSION= 2
+ 
+ override CPPFLAGS := -I$(libpq_srcdir) $(CPPFLAGS)
++override LDFLAGS := -L$(libpq_builddir) $(LDFLAGS)
+ 
+ OBJS= pgtcl.o pgtclCmds.o pgtclId.o
+ 
+Index: src/interfaces/libpq++/Makefile
+===================================================================
+RCS file: /projects/cvsroot/pgsql/src/interfaces/libpq++/Makefile,v
+retrieving revision 1.30
+diff -u -b -u -b -r1.30 Makefile
+--- src/interfaces/libpq++/Makefile	2001/05/22 11:24:28	1.30
++++ src/interfaces/libpq++/Makefile	2002/07/06 05:21:28
+@@ -17,6 +17,7 @@
+ SO_MINOR_VERSION= 0
+ 
+ override CPPFLAGS := -I$(libpq_srcdir) $(CPPFLAGS)
++override LDFLAGS := -L$(libpq_builddir) $(LDFLAGS)
+ 
+ OBJS = pgconnection.o pgdatabase.o pgtransdb.o pgcursordb.o pglobject.o 
+ 
 Index: src/interfaces/perl5/GNUmakefile
 ===================================================================
 RCS file: /projects/cvsroot/pgsql/src/interfaces/perl5/GNUmakefile,v
 retrieving revision 1.6
-diff -u -b -r1.6 GNUmakefile
+diff -u -b -u -b -r1.6 GNUmakefile
 --- src/interfaces/perl5/GNUmakefile	2001/08/26 22:28:04	1.6
-+++ src/interfaces/perl5/GNUmakefile	2002/07/05 20:12:56
++++ src/interfaces/perl5/GNUmakefile	2002/07/06 05:21:28
 @@ -12,14 +12,9 @@
  
  .NOTPARALLEL:
@@ -66,13 +204,28 @@ diff -u -b -r1.6 GNUmakefile
  
  all: Makefile libpq-all
  	$(MAKE) -f $< all VPATH=$(VPATH)
+Index: src/interfaces/python/GNUmakefile
+===================================================================
+RCS file: /projects/cvsroot/pgsql/src/interfaces/python/GNUmakefile,v
+retrieving revision 1.13
+diff -u -b -u -b -r1.13 GNUmakefile
+--- src/interfaces/python/GNUmakefile	2001/12/13 18:39:04	1.13
++++ src/interfaces/python/GNUmakefile	2002/07/06 05:21:28
+@@ -18,6 +18,7 @@
+ include $(top_srcdir)/src/Makefile.shlib
+ 
+ override CPPFLAGS := -I$(libpq_srcdir) $(CPPFLAGS) $(python_includespec)
++override SHLIB_LINK := -L$(libpq_builddir) $(SHLIB_LINK)
+ 
+ all: all-lib
+ 
 Index: src/pl/plpython/Makefile
 ===================================================================
 RCS file: /projects/cvsroot/pgsql/src/pl/plpython/Makefile,v
 retrieving revision 1.10
-diff -u -b -r1.10 Makefile
+diff -u -b -u -b -r1.10 Makefile
 --- src/pl/plpython/Makefile	2001/09/16 16:11:11	1.10
-+++ src/pl/plpython/Makefile	2002/07/05 20:12:56
++++ src/pl/plpython/Makefile	2002/07/06 05:21:28
 @@ -8,7 +8,7 @@
  # On some platforms we can only build PL/Python if libpython is a
  # shared library.  Since there is no official way to determine this,

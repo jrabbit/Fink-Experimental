@@ -1,11 +1,13 @@
 Package: postgresql-ssl
 Version: 7.2.1
 Revision: 1
-Source: http://www.postgresql.org/ftpsite/source/v%v/%n-%v.tar.gz
-BuildDepends: libxml2, gdbm, gmp, expat, tcltk-dev, ant
-Depends: readline, passwd, daemonic (>= 20010902-1)
+Source: http://www.postgresql.org/ftpsite/source/v%v/postgresql-%v.tar.gz
+BuildDepends: libxml2, gdbm, gmp, expat, tcltk-dev, ant, openssl-dev
+Depends: readline, passwd, daemonic (>= 20010902-1), openssl-shlibs, expat-shlibs, gdbm-shlibs, libxml2-shlibs, gmp-shlibs
+Conflicts: postgresql
+Replaces: postgresql
 PatchScript: sed 's|@PREFIX@|%p|g' < %a/%f.patch | patch -p0
-ConfigureParams: --prefix=%p --docdir=%p/share/doc --mandir=%p/share/man --enable-multibyte --enable-recode --with-CXX --with-perl --with-python --with-openssl=%p --with-maxbackends=128 --with-libraries=%p/lib --with-includes=%p/include --with-tclconfig=%p/lib/tclConfig.sh --with-tkconfig=%p/lib/tkConfig.sh --with-java --enable-odbc
+ConfigureParams: --prefix=%p --docdir=%p/share/doc --mandir=%p/share/man --enable-multibyte --enable-recode --with-CXX --with-perl --with-python --with-openssl=%p --with-maxbackends=128 --with-libraries=%p/lib --with-includes=%p/include --with-tcl --with-tclconfig=%p/lib --with-tkconfig=%p/lib --with-java --enable-odbc
 CompileScript: <<
 (source %p/etc/profile.d/ant.sh; sh ./configure %c)
 (source %p/etc/profile.d/ant.sh; make)
@@ -14,27 +16,47 @@ InstallScript: <<
 make install DESTDIR=%d
 make install-all-headers DESTDIR=%d
 mv %i/share/postgresql/java %i/lib/postgresql/java
+ranlib %i/lib/*.a
 <<
 SplitOff: <<
-  Description: Development headers and libraries for PostgreSQL.
-  Package: %N-dev
-  Depends: %N (= %v-%r)
-  BuildDependsOnly: true
-  Files: bin/pg_config include lib/*.a lib/libecpg.so lib/libpgeasy.so lib/libpq++.so lib/libpq.so
-<<
-SplitOff2: <<
-  Description: Modules for developing apps and functions for PostgreSQL in perl.
+  Description: Perl tools for PostgreSQL application and function development.
   Package: %N-perl
-  Depends: %N (= %v-%r)
+  Provides: postgresql-perl
+  Conflicts: postgresql-perl
+  Replaces: postgresql-perl
+  Depends: postgresql-ssl (= %v-%r)
   BuildDependsOnly: true
   Files: lib/perl5 lib/postgresql/plperl.bundle share/man/man3/Pg.3 share/doc/postgresql/html/plperl*
 <<
-SplitOff3: <<
-  Description: Modules for developing apps and functions for PostgreSQL in python.
+SplitOff2: <<
+  Description: Python tools for PostgreSQL application and function development.
   Package: %N-python
-  Depends: %N (= %v-%r)
+  Provides: postgresql-python
+  Conflicts: postgresql-python
+  Replaces: postgresql-ptyhon
+  Depends: postgresql-ssl (= %v-%r)
   BuildDependsOnly: true
   Files: lib/python2.2 lib/postgresql/plpython.so share/doc/postgresql/html/plpython*
+<<
+SplitOff3: <<
+  Description: TCL tools for PostgreSQL application and function development.
+  Package: %N-tcl
+  Provides: postgresql-tcl
+  Conflicts: postgresql-tcl
+  Replaces: postgresql-tcl
+  Depends: postgresql-ssl (= %v-%r)
+  BuildDependsOnly: true
+  Files: bin/pgtclsh bin/pltcl* lib/libpgtcl* lib/postgresql/pltcl.so include/libpgtcl.h
+<<
+SplitOff4: <<
+  Description: Development headers and libraries for PostgreSQL.
+  Package: %N-dev
+  Depends: %N (= %v-%r)
+  Recommends: openssl-dev, tcltk-dev, expat
+  Conflicts: postgresql-dev
+  Replaces: postgresql-dev
+  BuildDependsOnly: true
+  Files: bin/pg_config include lib/*.a lib/libecpg.so lib/libpgeasy.so lib/libpq++.so lib/libpq.so
 <<
 DocFiles: COPYRIGHT HISTORY INSTALL README register.txt
 DaemonicFile: <<
@@ -58,12 +80,12 @@ if [ ! -d %p/var/postgresql/data ]; then
 fi
 
 # update daemonic init script if necessary
-daemonic install postgresql
+daemonic install %N
 <<
 PreRmScript: <<
 # clean up
 if [ $1 != "upgrade" ]; then
-  daemonic remove postgresql
+  daemonic remove %N
 fi
 <<
 
