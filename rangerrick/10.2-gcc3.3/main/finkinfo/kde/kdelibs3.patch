@@ -1,5 +1,6 @@
+diff -uNr kdelibs-3.3.91/admin/ltmain.sh kdelibs-3.3.91-new/admin/ltmain.sh
 --- kdelibs-3.3.91/admin/ltmain.sh	Mon Jan  3 09:53:16 2005
-+++ kdelibs-3.3.91-new/admin/ltmain.sh	Fri Jan 14 15:04:17 2005
++++ kdelibs-3.3.91-new/admin/ltmain.sh	Fri Jan 14 16:52:47 2005
 @@ -4453,6 +4453,7 @@
  	# We should set the shlibpath_var
  	rpath=
@@ -16,8 +17,9 @@
  	done
  	temp_rpath="$rpath"
        fi
+diff -uNr kdelibs-3.3.91/configure kdelibs-3.3.91-new/configure
 --- kdelibs-3.3.91/configure	Fri Jan  7 07:49:25 2005
-+++ kdelibs-3.3.91-new/configure	Fri Jan 14 15:04:17 2005
++++ kdelibs-3.3.91-new/configure	Fri Jan 14 16:52:47 2005
 @@ -8528,6 +8528,19 @@
      lt_cv_sys_max_cmd_len=8192;
      ;;
@@ -181,8 +183,9 @@
  cat >conftest.$ac_ext <<_ACEOF
  /* confdefs.h.  */
  _ACEOF
+diff -uNr kdelibs-3.3.91/kdecore/Makefile.in kdelibs-3.3.91-new/kdecore/Makefile.in
 --- kdelibs-3.3.91/kdecore/Makefile.in	Fri Jan  7 07:48:59 2005
-+++ kdelibs-3.3.91-new/kdecore/Makefile.in	Fri Jan 14 15:04:17 2005
++++ kdelibs-3.3.91-new/kdecore/Makefile.in	Fri Jan 14 16:52:47 2005
 @@ -653,7 +653,7 @@
  xdg_menudir = @xdg_menudir@
  INCLUDES = -I$(top_srcdir)/kdefx -I$(top_srcdir)/kdecore/network $(all_includes) $(LIBART_CFLAGS)
@@ -192,8 +195,9 @@
  SUBDIRS = malloc network $(SVGICONS) . kconfig_compiler tests
  AM_LDFLAGS = $(LDFLAGS_AS_NEEDED)
  lib_LTLIBRARIES = libkdefakes.la libkdecore.la
+diff -uNr kdelibs-3.3.91/kdecore/kglobalsettings.cpp kdelibs-3.3.91-new/kdecore/kglobalsettings.cpp
 --- kdelibs-3.3.91/kdecore/kglobalsettings.cpp	Tue Oct 26 13:30:49 2004
-+++ kdelibs-3.3.91-new/kdecore/kglobalsettings.cpp	Fri Jan 14 15:04:17 2005
++++ kdelibs-3.3.91-new/kdecore/kglobalsettings.cpp	Fri Jan 14 16:52:47 2005
 @@ -460,7 +460,7 @@
        s_desktopPath->append('/');
  
@@ -203,8 +207,82 @@
      *s_trashPath = g.readPathEntry( "Trash" , *s_trashPath);
      *s_trashPath = QDir::cleanDirPath( *s_trashPath );
      if ( !s_trashPath->endsWith("/") )
+diff -uNr kdelibs-3.3.91/kdecore/ksocks.cpp kdelibs-3.3.91-new/kdecore/ksocks.cpp
+--- kdelibs-3.3.91/kdecore/ksocks.cpp	Tue May 11 04:31:44 2004
++++ kdelibs-3.3.91-new/kdecore/ksocks.cpp	Fri Jan 14 17:35:44 2005
+@@ -475,7 +475,7 @@
+                                                    ksocklen_t addrlen) {
+    if (_useSocks && F_connect)
+       return (*F_connect)(sockfd, serv_addr, addrlen);
+-   else return ::connect(sockfd, (sockaddr*) serv_addr, (socklen_t)addrlen);
++   else return ::connect(sockfd, (sockaddr*) serv_addr, (ksocklen_t)addrlen);
+ }
+ 
+ 
+@@ -498,7 +498,7 @@
+    if (_useSocks && F_recvfrom) {
+       return (*F_recvfrom)(s, buf, len, flags, from, fromlen);
+    } else {
+-      socklen_t casted_len = (socklen_t) *fromlen;
++      kde_socklen_t casted_len = (kde_socklen_t) *fromlen;
+       int rc = ::recvfrom(s, (char*) buf, len, flags, from, &casted_len);
+       *fromlen = casted_len;
+       return rc;
+@@ -510,7 +510,7 @@
+                              const sockaddr *to, ksocklen_t tolen) {
+    if (_useSocks && F_sendto)
+       return (*F_sendto)(s, msg, len, flags, to, tolen);
+-   else return ::sendto(s, (char*) msg, len, flags, to, (socklen_t)tolen);
++   else return ::sendto(s, (char*) msg, len, flags, to, (ksocklen_t)tolen);
+ }
+ 
+ 
+@@ -532,7 +532,7 @@
+    if (_useSocks && F_getsockname) {
+       return (*F_getsockname)(s, name, namelen);
+    } else {
+-     socklen_t casted_len = *namelen;
++     kde_socklen_t casted_len = *namelen;
+      int rc = ::getsockname(s, name, &casted_len);
+      *namelen = casted_len;
+      return rc;
+@@ -544,7 +544,7 @@
+    if (_useSocks && F_getpeername) {
+       return (*F_getpeername)(s, name, namelen);
+    } else {
+-      socklen_t casted_len = *namelen;
++      kde_socklen_t casted_len = *namelen;
+       int rc = ::getpeername(s, name, &casted_len);
+       *namelen = casted_len;
+       return rc;
+@@ -556,7 +556,7 @@
+    if (_useSocks && F_accept) {
+      return (*F_accept)(s, addr, addrlen);
+    } else {
+-      socklen_t casted_len = *addrlen;
++      kde_socklen_t casted_len = *addrlen;
+       int rc = ::accept(s, addr, &casted_len);
+       *addrlen = casted_len;
+       return rc;
+@@ -582,13 +582,13 @@
+ int KSocks::bind (int sockfd, const sockaddr *my_addr, ksocklen_t addrlen) {
+    if (_useSocks && F_bind)
+       return (*F_bind)(sockfd, my_addr, addrlen);
+-   else return ::bind(sockfd, my_addr, (socklen_t)addrlen);
++   else return ::bind(sockfd, my_addr, (ksocklen_t)addrlen);
+ }
+ 
+ int KSocks::bind (int sockfd, sockaddr *my_addr, ksocklen_t addrlen) {
+    if (_useSocks && F_bind)
+       return (*F_bind)(sockfd, my_addr, addrlen);
+-   else return ::bind(sockfd, my_addr, (socklen_t)addrlen);
++   else return ::bind(sockfd, my_addr, (ksocklen_t)addrlen);
+ }
+ 
+ 
+diff -uNr kdelibs-3.3.91/kdecore/kstandarddirs.cpp kdelibs-3.3.91-new/kdecore/kstandarddirs.cpp
 --- kdelibs-3.3.91/kdecore/kstandarddirs.cpp	Mon Jan  3 09:53:18 2005
-+++ kdelibs-3.3.91-new/kdecore/kstandarddirs.cpp	Fri Jan 14 15:04:17 2005
++++ kdelibs-3.3.91-new/kdecore/kstandarddirs.cpp	Fri Jan 14 16:52:47 2005
 @@ -1020,7 +1020,7 @@
      if (!strcmp(type, "data"))
  	return "share/apps/";
@@ -214,8 +292,9 @@
      if (!strcmp(type, "icon"))
  	return "share/icons/";
      if (!strcmp(type, "config"))
+diff -uNr kdelibs-3.3.91/kdecore/network/kresolvermanager.cpp kdelibs-3.3.91-new/kdecore/network/kresolvermanager.cpp
 --- kdelibs-3.3.91/kdecore/network/kresolvermanager.cpp	Sat Dec  4 13:07:46 2004
-+++ kdelibs-3.3.91-new/kdecore/network/kresolvermanager.cpp	Fri Jan 14 15:04:17 2005
++++ kdelibs-3.3.91-new/kdecore/network/kresolvermanager.cpp	Fri Jan 14 16:52:47 2005
 @@ -31,6 +31,7 @@
  
  #ifdef HAVE_RES_INIT
@@ -224,8 +303,90 @@
  # include <resolv.h>
  # include <time.h>
  #endif
+diff -uNr kdelibs-3.3.91/kdecore/network/ksocketdevice.cpp kdelibs-3.3.91-new/kdecore/network/ksocketdevice.cpp
+--- kdelibs-3.3.91/kdecore/network/ksocketdevice.cpp	Sat Dec  4 13:07:46 2004
++++ kdelibs-3.3.91-new/kdecore/network/ksocketdevice.cpp	Fri Jan 14 16:52:57 2005
+@@ -311,7 +311,7 @@
+     }
+ 
+   struct sockaddr sa;
+-  socklen_t len = sizeof(sa);
++  kde_socklen_t len = sizeof(sa);
+   int newfd = kde_accept(m_sockfd, &sa, &len);
+   if (newfd == -1)
+     {
+@@ -385,7 +385,7 @@
+ 
+ static int do_read_common(int sockfd, char *data, Q_ULONG maxlen, KSocketAddress* from, ssize_t &retval, bool peek = false)
+ {
+-  socklen_t len;
++  kde_socklen_t len;
+   if (from)
+     {
+       from->setLength(len = 128); // arbitrary length
+@@ -523,7 +523,7 @@
+   if (m_sockfd == -1)
+     return KSocketAddress();	// not open, empty value
+ 
+-  socklen_t len;
++  kde_socklen_t len;
+   KSocketAddress localAddress;
+   localAddress.setLength(len = 32);	// arbitrary value
+   if (kde_getsockname(m_sockfd, localAddress.address(), &len) == -1)
+@@ -552,7 +552,7 @@
+   if (m_sockfd == -1)
+     return KSocketAddress();	// not open, empty value
+ 
+-  socklen_t len;
++  kde_socklen_t len;
+   KSocketAddress peerAddress;
+   peerAddress.setLength(len = 32);	// arbitrary value
+   if (kde_getpeername(m_sockfd, peerAddress.address(), &len) == -1)
+diff -uNr kdelibs-3.3.91/kdecore/network/syssocket.h kdelibs-3.3.91-new/kdecore/network/syssocket.h
+--- kdelibs-3.3.91/kdecore/network/syssocket.h	Tue May 25 22:34:35 2004
++++ kdelibs-3.3.91-new/kdecore/network/syssocket.h	Fri Jan 14 16:52:57 2005
+@@ -53,7 +53,7 @@
+   }
+ 
+   // bind
+-  inline int kde_bind(int fd, const struct sockaddr* sa, socklen_t len)
++  inline int kde_bind(int fd, const struct sockaddr* sa, kde_socklen_t len)
+   {
+     return ::bind(fd, sa, len);
+   }
+@@ -65,25 +65,25 @@
+   }
+ 
+   // connect
+-  inline int kde_connect(int fd, const struct sockaddr* sa, socklen_t len)
++  inline int kde_connect(int fd, const struct sockaddr* sa, kde_socklen_t len)
+   {
+     return ::connect(fd, sa, len);
+   }
+ 
+   // accept
+-  inline int kde_accept(int fd, struct sockaddr* sa, socklen_t* len)
++  inline int kde_accept(int fd, struct sockaddr* sa, kde_socklen_t* len)
+   {
+     return ::accept(fd, sa, len);
+   }
+ 
+   // getpeername
+-  inline int kde_getpeername(int fd, struct sockaddr* sa, socklen_t* len)
++  inline int kde_getpeername(int fd, struct sockaddr* sa, kde_socklen_t* len)
+   {
+     return ::getpeername(fd, sa, len);
+   }
+ 
+   // getsockname
+-  inline int kde_getsockname(int fd, struct sockaddr* sa, socklen_t* len)
++  inline int kde_getsockname(int fd, struct sockaddr* sa, kde_socklen_t* len)
+   {
+     return ::getsockname(fd, sa, len);
+   }
+diff -uNr kdelibs-3.3.91/kdesu/su.cpp kdelibs-3.3.91-new/kdesu/su.cpp
 --- kdelibs-3.3.91/kdesu/su.cpp	Tue Apr 13 09:33:21 2004
-+++ kdelibs-3.3.91-new/kdesu/su.cpp	Fri Jan 14 15:04:17 2005
++++ kdelibs-3.3.91-new/kdesu/su.cpp	Fri Jan 14 16:52:47 2005
 @@ -74,13 +74,14 @@
  	setTerminal(true);
  
@@ -242,8 +403,9 @@
  
      QCString command = __PATH_SU;
      if (::access(__PATH_SU, X_OK) != 0)
+diff -uNr kdelibs-3.3.91/kdeui/Makefile.in kdelibs-3.3.91-new/kdeui/Makefile.in
 --- kdelibs-3.3.91/kdeui/Makefile.in	Fri Jan  7 07:49:03 2005
-+++ kdelibs-3.3.91-new/kdeui/Makefile.in	Fri Jan 14 15:04:18 2005
++++ kdelibs-3.3.91-new/kdeui/Makefile.in	Fri Jan 14 16:52:47 2005
 @@ -614,11 +614,11 @@
  lib_LTLIBRARIES = libkdeui.la libkspell.la
  #>- libkdeui_la_LDFLAGS = $(KDE_MT_LDFLAGS) -no-undefined -version-info 6:0:2
@@ -258,8 +420,9 @@
  libkspell_la_LIBADD = libkdeui.la
  libkspell_la_SOURCES = dummy.cpp
  picsdir = $(kde_datadir)/kdeui/pics
+diff -uNr kdelibs-3.3.91/kinit/Makefile.in kdelibs-3.3.91-new/kinit/Makefile.in
 --- kdelibs-3.3.91/kinit/Makefile.in	Fri Jan  7 07:49:06 2005
-+++ kdelibs-3.3.91-new/kinit/Makefile.in	Fri Jan 14 15:04:18 2005
++++ kdelibs-3.3.91-new/kinit/Makefile.in	Fri Jan 14 16:52:47 2005
 @@ -596,7 +596,7 @@
  xdg_appsdir = @xdg_appsdir@
  xdg_directorydir = @xdg_directorydir@
@@ -269,8 +432,9 @@
  SUBDIRS = . tests
  #>- lib_LTLIBRARIES = 
  #>+ 1
+diff -uNr kdelibs-3.3.91/kio/kio/job.cpp kdelibs-3.3.91-new/kio/kio/job.cpp
 --- kdelibs-3.3.91/kio/kio/job.cpp	Mon Jan  3 09:53:25 2005
-+++ kdelibs-3.3.91-new/kio/kio/job.cpp	Fri Jan 14 15:04:18 2005
++++ kdelibs-3.3.91-new/kio/kio/job.cpp	Fri Jan 14 16:52:47 2005
 @@ -3260,10 +3260,10 @@
                             f.close();
                             KSimpleConfig config( path );
@@ -286,8 +450,9 @@
                             config.writeEntry( QString::fromLatin1("Type"), QString::fromLatin1("Link") );
                             QString protocol = (*it).uSource.protocol();
                             if ( protocol == QString::fromLatin1("ftp") )
+diff -uNr kdelibs-3.3.91/kio/kssl/kopenssl.cc kdelibs-3.3.91-new/kio/kssl/kopenssl.cc
 --- kdelibs-3.3.91/kio/kssl/kopenssl.cc	Tue May 11 04:31:45 2004
-+++ kdelibs-3.3.91-new/kio/kssl/kopenssl.cc	Fri Jan 14 15:04:18 2005
++++ kdelibs-3.3.91-new/kio/kssl/kopenssl.cc	Fri Jan 14 16:52:47 2005
 @@ -322,6 +322,7 @@
               #elif defined(_AIX)
               << "libcrypto.a(libcrypto.so.0)"
@@ -296,8 +461,9 @@
  	     << "libcrypto.dylib"
  	     << "libcrypto.0.9.dylib"
  	     #else
+diff -uNr kdelibs-3.3.91/kio/misc/kpac/Makefile.in kdelibs-3.3.91-new/kio/misc/kpac/Makefile.in
 --- kdelibs-3.3.91/kio/misc/kpac/Makefile.in	Fri Jan  7 07:49:09 2005
-+++ kdelibs-3.3.91-new/kio/misc/kpac/Makefile.in	Fri Jan 14 15:04:18 2005
++++ kdelibs-3.3.91-new/kio/misc/kpac/Makefile.in	Fri Jan 14 16:52:47 2005
 @@ -533,7 +533,7 @@
                               downloader.cpp discovery.cpp proxyscout_skel.cpp
  

@@ -76,6 +76,7 @@ for my $file (sort keys %files) {
 								} else {
 									$line =~ s/^\#(\s*export\s+LD_TWOLEVEL_NAMESPACE.*)$/$1/;
 									$line =~ s/(dlcompat|libpoll)(\S*)(\s+\([^\)]+\))?[\,\s]*//g unless ($line =~ m#-I/usr/X11R6/include#);
+									$line =~ s/(dlcompat|libpoll|mdnsresponder)(\S*)(\s+\([^\)]+\))?[\,\s]*//g unless ($line =~ m#-I/usr/X11R6/include#);
 									$line =~ s/, libgnugetopt(-shlibs)?$//;
 									$line =~ s/libgnugetopt(-shlibs)?, //;
 									$line =~ s/-I.*?\/include\/gnugetopt //;

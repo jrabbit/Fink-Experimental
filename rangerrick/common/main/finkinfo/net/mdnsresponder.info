@@ -1,0 +1,64 @@
+Package: mdnsresponder
+Version: 87
+Revision: 1
+Depends: daemonic
+Source: http://helios.et.put.poznan.pl/~jstachow/pub/mDNSResponder-%v.tar.gz
+Source-MD5: c1ade8880c87531246fdd3bb51853ff3
+SourceDirectory: mDNSResponder-%v
+CompileScript: <<
+#!/bin/sh -ex
+
+  pushd mDNSPosix
+
+  make os=jaguar
+
+  popd
+<<
+InstallScript: <<
+#!/bin/sh -ex
+
+  pushd mDNSPosix
+
+  for dir in sbin lib include etc/rc.d share/man/man8; do
+    install -d -m 755 %i/$dir
+  done
+
+  make install os=jaguar INSTBASE=%i MANPATH=%i/share/man 
+
+  rm -rf %i/lib/libdns_sd.dylib %i/etc
+  mv %i/lib/libdns_sd.dylib.1 %i/lib/libdns_sd.1.dylib
+  install_name_tool -change build/prod/libdns_sd.dylib %p/lib/libdns_sd.1.dylib %i/lib/libdns_sd.1.dylib
+  ln -sf %p/lib/libdns_sd.1.dylib %i/lib/libdns_sd.dylib
+
+  popd
+<<
+SplitOff: <<
+  Description: headers and development libraries for mDNSResponder
+  Package: %N-dev
+  BuildDependsOnly: true
+  Depends: %N (>= %v-%r)
+  Files: <<
+    include
+    lib/libdns_sd.dylib
+  <<
+<<
+SplitOff2: <<
+  Description: shared libraries for mDNSResponder
+  Package: %N-shlibs
+  Files: lib
+  Shlibs: %p/lib/libdns_sd.1.dylib 0.0.0 %N-shlibs (>= 87-1)
+<<
+DaemonicFile: <<
+<service>
+	<description>Apple's Rendezvous (Multicast DNS) daemon</description>
+	<message> Rendezvous</message>
+	<daemon name="%N">
+		<executable background="no">%p/sbin/mdnsd</executable>
+	</daemon>
+</service>
+<<
+DocFiles: APPLE_* README.txt
+Description: Apple's Rendezvous (multicast DNS) implementation
+License: OSI-Approved
+Maintainer: Benjamin Reed <mDNSResponder@fink.racoonfink.com>
+Homepage: http://developer.apple.com/darwin/projects/rendezvous/
