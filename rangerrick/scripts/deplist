@@ -7,6 +7,7 @@ use Getopt::Std;
 use vars qw(
 	$DEBUG
 	$DIRECTORY
+	$KDEMODE
 	%OPTS
 	@VERMAP
 	@ALTMAP
@@ -14,16 +15,18 @@ use vars qw(
 
 $DEBUG = 0;
 $DIRECTORY = dirname($0);
-getopts('dhv:m:', \%OPTS);
+$KDEMODE = 0;
+getopts('dhkv:m:', \%OPTS);
 
 $DEBUG++ if ($OPTS{'d'});
 
 if (not @ARGV or $OPTS{'h'}) {
 	print <<END;
-usage: $0 [-d] [-h] [-m /path/to/version/file] [-a /path/to/alternates/file] [-v version] <package1..packageN>
+usage: $0 [-d] [-h] [-k] [-m /path/to/version/file] [-a /path/to/alternates/file] [-v version] <package1..packageN>
 
 	-d          debug mode
 	-h          this help
+	-k          KDE mode
 	-v <ver>    force version <ver> for package/alternate lookup
 	-m <file>   the path to the package-version mapping
 	            (defaults to $DIRECTORY/mapping.deplist)
@@ -105,6 +108,8 @@ END
 
 }
 
+$KDEMODE++ if ($OPTS{'k'});
+
 if (not @VERMAP or not @ALTMAP) {
 	die "no mappings found\n";
 }
@@ -158,6 +163,7 @@ for my $package (@ARGV) {
 	} else {
 		print "couldn't open3 dpkg -S: $!\n";
 	}
+	$deppackages{'%N-base'}++ if ($KDEMODE and $package ne '%N-base');
 	my @pkgspecs;
 	PKGLOOP: for my $deppackage (sort keys %deppackages) {
 		print "deppackage = $deppackage\n" if ($DEBUG);
@@ -209,7 +215,12 @@ for my $package (@ARGV) {
 				push(@altspecs, $alt . $append);
 			}
 		}
-		push(@pkgspecs, join(' | ', @altspecs));
+		if (grep(/kde(libs|base)/, @altspecs) and $KDEMODE) {
+			# special case, put ssl first
+			push(@pkgspecs, join(' | ', reverse(@altspecs)));
+		} else {
+			push(@pkgspecs, join(' | ', @altspecs));
+		}
 	}
 	print "Depends: ", join(', ', @pkgspecs), "\n\n";
 }
