@@ -1,0 +1,100 @@
+Package: defoma
+Version: 0.11.1
+Revision: 1
+Depends: dialog, ftlib-pm
+Source: http://ftp.us.debian.org/debian/pool/main/d/%n/%n_%v.tar.gz
+Source-MD5: 22d7cc148439985d7f3f875deca0c730
+SourceDirectory: %n-%v
+PatchScript: sed 's|@PREFIX@|%p|g' <%a/%f.patch | patch -p1
+CompileScript: <<
+(cd src; ln -sf defoma defoma-font)
+(cd src; ln -sf defoma defoma-app)
+(cd src; ln -sf defoma defoma-subst)
+(cd src; ln -sf defoma defoma-id)
+(cd src; ln -sf defoma defoma-user)
+<<
+InstallScript: <<
+echo installing defoma...
+install -d -m 755 %i/bin
+install -c -m 755 src/* %i/bin/
+install -d -m 755 %i/lib/perl5/Debian/Defoma
+install -c -m 644 pm/Defoma/*.pm %i/lib/perl5/Debian/Defoma/
+install -d -m 755 %i/share/man/man1
+install -c -m 644 man/*.1 %i/share/man/man1/
+install -d -m 755 %i/share/man/man3
+install -c -m 644 man/*.3pm %i/share/man/man3/
+install -d -m 755 %i/share/defoma
+install -c -m 644 libs/* %i/share/defoma/
+install -d -m 755 %i/etc/defoma
+install -c -m 644 conf/* %i/etc/defoma
+install -d -m 755 %i/share/debhelper/autoscripts
+install -c -m 644 debhelper-files/* %i/share/debhelper/autoscripts/
+install -d -m 755 %i/share/doc/%n/examples
+install -c -m 644 examples/* %i/share/doc/%n/examples/
+install -d -m 755 %i/var/lib/defoma/scripts
+
+echo installing psfontmgr...
+install -d -m 755 %i/bin
+install -c -m 644 psfontmgr/src/* %i/bin/
+install -d -m 755 %i/share/defoma
+install -c -m 644 psfontmgr/libs/* %i/share/defoma/
+install -d -m 755 %i/share/man/man1
+install -c -m 644 psfontmgr/man/*.1 %i/share/man/man1/
+install -d -m 755 %i/share/defoma/scripts
+install -c -m 644 debian/psfontmgr.defoma %i/share/defoma/scripts/
+install -d -m 755 %i/var/lib/defoma/psfontmgr.d
+<<
+Conffiles: <<
+  %p/etc/defoma/csetenc-xenc.data2
+  %p/etc/defoma/loc-cset.data
+  %p/etc/defoma/ps-cset-enc.data
+  %p/etc/defoma/xenc-cset.data
+<<
+DocFiles: debian/copyright debian/README*
+SplitOff: <<
+  Package: psfontmgr
+  Depends: defoma
+  Files: <<
+    bin/defoma-psfont-installer
+    share/defoma/Adobe-*
+    share/defoma/psprfonts.*
+    share/defoma/scripts/psfontmgr.defoma
+    share/man/man1/defoma-psfont-installer.1
+    var/lib/defoma/psfontmgr.d
+  <<
+  Description: PostScript font manager
+  PostInstScript: <<
+    case "$1" in
+      configure)
+        defoma-app -t update psfontmgr 1>&2
+        ;;
+    esac
+  <<
+  PreRmScript: <<
+    case "$1" in
+      remove)
+        if [ -f %p/etc/defoma/hints/defoma-ps.hints ]; then
+          defoma-font -t purge-all %p/etc/defoma/hints/defoma-ps.hints
+        fi
+        defoma-app -t purge psfontmgr
+        ;;
+      upgrade)
+        defoma-app -t clean psfontmgr
+        ;;
+    esac
+  <<
+<<
+Description: Debian Font Manager
+DescDetail: <<
+Defoma, which stands for DEbian FOnt MAnager, provides a framework of
+automatic font configuration. An application whose configuration of fonts
+requires users' hand can make the configuration process automated through
+Defoma, by installing a Defoma-configuration script to Defoma. The script
+gets called whenever a font is installed and removed, so that the script
+updates the configuration.
+Font packages should register their fonts to Defoma in order to have them
+configured automatically for applications.
+<<
+License: GPL
+Maintainer: Masanori Sekino <msek@users.sourceforge.net>
+Homepage: http://www.debian.org/

@@ -1,0 +1,324 @@
+diff -Naur defoma-0.11.1.old/libs/defoma-test.sh defoma-0.11.1.new/libs/defoma-test.sh
+--- defoma-0.11.1.old/libs/defoma-test.sh	Tue Dec 18 04:55:42 2001
++++ defoma-0.11.1.new/libs/defoma-test.sh	Tue Nov 12 18:28:08 2002
+@@ -1,18 +1,18 @@
+ #! /bin/sh
+ 
+-mkdir -p var/lib/defoma/scripts
+-mkdir -p usr/share/defoma/scripts
+-mkdir -p etc/defoma
++mkdir -p .@PREFIX@/var/lib/defoma/scripts
++mkdir -p .@PREFIX@/share/defoma/scripts
++mkdir -p .@PREFIX@/etc/defoma
+ 
+-cp -r /usr/share/defoma/* usr/share/defoma
+-cp /etc/defoma/*.subst-rule etc/defoma
++cp -r @PREFIX@/share/defoma/* .@PREFIX@/share/defoma
++cp @PREFIX@/etc/defoma/*.subst-rule .@PREFIX@/etc/defoma
+ 
+ SYSTEM="postscript\npspreview\npsprint\nx-postscript\nxfont"
+-for i in /var/lib/defoma/*.font-cache; do
++for i in @PREFIX@/var/lib/defoma/*.font-cache; do
+   s=${i##*/}
+   s=${s%.font-cache}
+   if ! echo -e "$SYSTEM" | fgrep -q -x -e "$s"; then
+-    cp $i var/lib/defoma
++    cp $i .@PREFIX@/var/lib/defoma
+   fi
+ done
+ 
+diff -Naur defoma-0.11.1.old/libs/libconsole.pl defoma-0.11.1.new/libs/libconsole.pl
+--- defoma-0.11.1.old/libs/libconsole.pl	Tue Apr 16 16:45:38 2002
++++ defoma-0.11.1.new/libs/libconsole.pl	Tue Nov 12 18:28:08 2002
+@@ -72,13 +72,13 @@
+ 
+   my @options = split(' ', $optionstr) if ($optionstr ne '');
+ 
+-#  $result = callsystem_output('2>&1', '/usr/bin/dialog', '--clear', '--title',
++#  $result = callsystem_output('2>&1', '@PREFIX@/bin/dialog', '--clear', '--title',
+ #			      $title, @options, $type, $text, $height, 80,
+ #			      @vars);
+ #  my $item=$output;
+ #  chomp $item; # For gdialog, which returns strings with newlines.
+ 
+-  my $item = safe_redirect('/usr/bin/dialog', '--stdout', '--clear', '--title',
++  my $item = safe_redirect('@PREFIX@/bin/dialog', '--stdout', '--clear', '--title',
+ 			   $title, @options, $type, $text, $height, 80, @vars);
+   
+   $result = ($result >> 8);
+diff -Naur defoma-0.11.1.old/libs/libdefoma-subst.pl defoma-0.11.1.new/libs/libdefoma-subst.pl
+--- defoma-0.11.1.old/libs/libdefoma-subst.pl	Sun Dec 23 02:55:11 2001
++++ defoma-0.11.1.new/libs/libdefoma-subst.pl	Tue Nov 12 18:28:08 2002
+@@ -23,12 +23,12 @@
+ 	exit ERROR;
+     }
+     
+-    my $newfile = `/bin/tempfile`;
++    my $newfile = `@PREFIX@/bin/tempfile`;
+ 
+     chomp($newfile);
+     
+     copy($rulefile, $newfile);
+-    system('/usr/bin/sensible-editor', $newfile);
++    system('@PREFIX@/bin/editor', $newfile);
+ 
+     my @new = ();
+     if (open(F, $newfile)) {
+diff -Naur defoma-0.11.1.old/libs/libdefoma-user.pl defoma-0.11.1.new/libs/libdefoma-user.pl
+--- defoma-0.11.1.old/libs/libdefoma-user.pl	Sat Dec 29 04:26:22 2001
++++ defoma-0.11.1.new/libs/libdefoma-user.pl	Tue Nov 12 18:28:08 2002
+@@ -1,4 +1,4 @@
+-require("/usr/share/defoma/libdefoma-user2.pl");
++require("@PREFIX@/share/defoma/libdefoma-user2.pl");
+ 
+ my $Arg0 = $ARG0;
+ 
+@@ -9,12 +9,12 @@
+ 
+     foreach my $d (@ds) {
+ 	$d =~ s/\.d$//;
+-	system("/usr/bin/defoma-app", "-u", OPTIONS, "purge", $d);
++	system("@PREFIX@/bin/defoma-app", "-u", OPTIONS, "purge", $d);
+     }
+ 
+     system("/bin/rm", "-r", ROOTDIR);
+ 
+-    exec("/usr/bin/defoma-user", "-u", OPTIONS, "update");
++    exec("@PREFIX@/bin/defoma-user", "-u", OPTIONS, "update");
+ 
+     exit 0;
+ }
+@@ -40,7 +40,7 @@
+ }
+ 
+ sub user_update_invoke {
+-    system("/usr/bin/defoma-app", OPTIONS, @_);
++    system("@PREFIX@/bin/defoma-app", OPTIONS, @_);
+ }
+ 
+ sub user_update_message {
+diff -Naur defoma-0.11.1.old/libs/libhint-cmap.pl defoma-0.11.1.new/libs/libhint-cmap.pl
+--- defoma-0.11.1.old/libs/libhint-cmap.pl	Tue Apr 16 16:56:48 2002
++++ defoma-0.11.1.new/libs/libhint-cmap.pl	Tue Nov 12 18:28:08 2002
+@@ -49,7 +49,7 @@
+     my $charset = '';
+     my $encoding = '';
+     
+-    if (open(F, "$DEFOMA_TEST_DIR/etc/defoma/ps-cset-enc.data")) {
++    if (open(F, "$DEFOMA_TEST_DIR/@PREFIX@/etc/defoma/ps-cset-enc.data")) {
+ 	while (<F>) {
+ 	    $line = $_;
+ 	    chomp($line);
+diff -Naur defoma-0.11.1.old/libs/libhint-truetype.pl defoma-0.11.1.new/libs/libhint-truetype.pl
+--- defoma-0.11.1.old/libs/libhint-truetype.pl	Tue Apr 16 16:55:37 2002
++++ defoma-0.11.1.new/libs/libhint-truetype.pl	Tue Nov 12 18:28:08 2002
+@@ -32,7 +32,7 @@
+     my $charset = shift;
+     my $i;
+ 
+-    open(F, "$DEFOMA_TEST_DIR/etc/defoma/loc-cset.data") || return '';
++    open(F, "$DEFOMA_TEST_DIR/@PREFIX@/etc/defoma/loc-cset.data") || return '';
+ 
+     while (<F>) {
+ 	my $line = $_;
+@@ -303,7 +303,7 @@
+ 	    if ($cset eq '') {
+ 		$text = <<EOF
+ No Standard Charset for $i is found in
+-/etc/defoma/loc-cset.data. Input it manually, or just press return.
++@PREFIX@/etc/defoma/loc-cset.data. Input it manually, or just press return.
+ EOF
+     ;
+ 		$cset = input_menu_q($text, '', '.', 1, '');
+diff -Naur defoma-0.11.1.old/pm/Defoma/Common.pm defoma-0.11.1.new/pm/Defoma/Common.pm
+--- defoma-0.11.1.old/pm/Defoma/Common.pm	Tue Apr 16 16:06:02 2002
++++ defoma-0.11.1.new/pm/Defoma/Common.pm	Tue Nov 12 18:28:08 2002
+@@ -74,10 +74,10 @@
+ 	    $Defoma_Test_Dir = $DEFOMA_TEST_DIR = $ENV{'DEFOMA_TEST_DIR'};
+ 	}
+ 	
+-	push(@Scriptdirs, "$DEFOMA_TEST_DIR/usr/local/share/defoma/scripts");
++	push(@Scriptdirs, "$DEFOMA_TEST_DIR/@PREFIX@/local/share/defoma/scripts");
+     }
+ 
+-    push(@Scriptdirs, "$DEFOMA_TEST_DIR/usr/share/defoma/scripts");
++    push(@Scriptdirs, "$DEFOMA_TEST_DIR/@PREFIX@/share/defoma/scripts");
+ 
+     if (exists($ENV{'LC_ALL'})) {
+ 	$Locale = $ENV{'LC_ALL'};
+@@ -94,10 +94,10 @@
+ 	$Login = $l[0];
+ 	$Rootdir = $ROOTDIR = "$Homedir/.defoma";
+     } else {
+-	$Rootdir = $ROOTDIR = "$DEFOMA_TEST_DIR/var/lib/defoma";
++	$Rootdir = $ROOTDIR = "$DEFOMA_TEST_DIR/@PREFIX@/var/lib/defoma";
+     }
+     
+-    $Substruledir = "$DEFOMA_TEST_DIR/etc/defoma";
++    $Substruledir = "$DEFOMA_TEST_DIR/@PREFIX@/etc/defoma";
+     $Scriptdir = "$ROOTDIR/scripts";
+     $Lockfile = "$ROOTDIR/locked";
+     
+@@ -563,8 +563,8 @@
+     my $encoding = shift || '';
+ 
+     unless (@XencData) {
+-	read_csetenc_xenc_data("$DEFOMA_TEST_DIR/etc/defoma");
+-	read_csetenc_xenc_data("$DEFOMA_TEST_DIR/usr/share/defoma");
++	read_csetenc_xenc_data("$DEFOMA_TEST_DIR/@PREFIX@/etc/defoma");
++	read_csetenc_xenc_data("$DEFOMA_TEST_DIR/@PREFIX@/share/defoma");
+     }
+     
+     foreach my $i (@XencData) {
+@@ -611,8 +611,8 @@
+     my $i;
+ 
+     unless (@X2C) {
+-	read_xenc_cset_file("$DEFOMA_TEST_DIR/etc/defoma");
+-	read_xenc_cset_file("$DEFOMA_TEST_DIR/usr/share/defoma");
++	read_xenc_cset_file("$DEFOMA_TEST_DIR/@PREFIX@/etc/defoma");
++	read_xenc_cset_file("$DEFOMA_TEST_DIR/@PREFIX@/share/defoma");
+     }
+     
+     $xfont =~ /([^-]+-[^-]+)$/;
+@@ -920,7 +920,7 @@
+ }
+ 
+ sub init_scripts {
+-    # Check out /usr/share/defoma/scripts
++    # Check out /@PREFIX@/share/defoma/scripts
+ 
+     my $pat = (USERSPACE) ? "\\.udefoma\$" : "\\.defoma\$";
+     my @scripts;
+diff -Naur defoma-0.11.1.old/pm/Defoma/User.pm defoma-0.11.1.new/pm/Defoma/User.pm
+--- defoma-0.11.1.old/pm/Defoma/User.pm	Sat Dec 29 15:58:18 2001
++++ defoma-0.11.1.new/pm/Defoma/User.pm	Tue Nov 12 18:28:08 2002
+@@ -17,7 +17,7 @@
+ 
+ my %SystemFontUpdateTime;
+ my $SystemUpdateTime;
+-my $SystemRoot = DEFOMA_TEST_DIR . "/var/lib/defoma";
++my $SystemRoot = DEFOMA_TEST_DIR . "@PREFIX@/var/lib/defoma";
+ 
+ sub defoma_user_init {
+     &Debian::Defoma::Configure::read_status_cache($SystemRoot);
+diff -Naur defoma-0.11.1.old/src/defoma defoma-0.11.1.new/src/defoma
+--- defoma-0.11.1.old/src/defoma	Sat Dec 29 15:00:35 2001
++++ defoma-0.11.1.new/src/defoma	Tue Nov 12 18:28:08 2002
+@@ -112,7 +112,7 @@
+ }
+ 
+ if ($Type =~ /^(font|app|subst|id|user)$/) {
+-    require("/usr/share/defoma/libdefoma-$Type.pl");
++    require("@PREFIX@/share/defoma/libdefoma-$Type.pl");
+     main($command);
+ }
+ 
+diff -Naur defoma-0.11.1.old/src/defoma-hints defoma-0.11.1.new/src/defoma-hints
+--- defoma-0.11.1.old/src/defoma-hints	Tue Apr 16 13:28:49 2002
++++ defoma-0.11.1.new/src/defoma-hints	Tue Nov 12 18:28:08 2002
+@@ -9,7 +9,7 @@
+ use Debian::Defoma::Common;
+ import Debian::Defoma::Common qw(&DEFOMA_TEST_DIR);
+ 
+-$LIBDIR = DEFOMA_TEST_DIR . "/usr/share/defoma";
++$LIBDIR = DEFOMA_TEST_DIR . "@PREFIX@/share/defoma";
+ 
+ @EXITREMOVE = ();
+ 
+diff -Naur defoma-0.11.1.old/src/defoma-reconfigure defoma-0.11.1.new/src/defoma-reconfigure
+--- defoma-0.11.1.old/src/defoma-reconfigure	Sun Dec 30 21:22:14 2001
++++ defoma-0.11.1.new/src/defoma-reconfigure	Tue Nov 12 18:28:25 2002
+@@ -3,25 +3,25 @@
+ OPTION=$1
+ 
+ if [ "X$OPTION" = "X-f" ]; then
+-  /bin/rm -fr /var/lib/defoma/locked
++  /bin/rm -fr @PREFIX@/var/lib/defoma/locked
+ fi
+ 
+-if ! /bin/ln -s locknow /var/lib/defoma/locked > /dev/null 2>&1; then
+-  echo "Error: /var/lib/defoma/locked exists."
++if ! /bin/ln -s locknow @PREFIX@/var/lib/defoma/locked > /dev/null 2>&1; then
++  echo "Error: @PREFIX@/var/lib/defoma/locked exists."
+   echo "Another defoma process seems running, or you aren't root."
+   echo "If you are root and defoma process isn't running undoubtedly,"
+   echo "it is possible that defoma might have aborted."
+   echo "Please run defoma-reconfigure -f to fix its broken status."
+   exit 1
+ else
+-  /bin/rm -fr /var/lib/defoma/locked
++  /bin/rm -fr @PREFIX@/var/lib/defoma/locked
+ fi
+ 
+ DELETES="postscript pspreview psprint x-postscript xfont"
+ 
+-cd /var/lib/defoma
+-if [ "`pwd`" != "/var/lib/defoma" ]; then
+-  echo "failed to chdir /var/lib/defoma."
++cd @PREFIX@/var/lib/defoma
++if [ "`pwd`" != "@PREFIX@/var/lib/defoma" ]; then
++  echo "failed to chdir @PREFIX@/var/lib/defoma."
+   exit 1
+ fi
+ 
+@@ -30,8 +30,8 @@
+   [ "X$i" = "X*.d" ] && exit 0
+   DIRS="$DIRS $i"
+   cd $i
+-  /usr/bin/find -type f | /usr/bin/xargs rm -f
+-  /usr/bin/find -type l | /usr/bin/xargs rm -f
++  /usr/bin/find . -type f | /usr/bin/xargs rm -f
++  /usr/bin/find . -type l | /usr/bin/xargs rm -f
+   cd ..
+ done
+ 
+@@ -44,7 +44,7 @@
+ 
+ for i in $DIRS; do
+   APP=${i%%.d}
+-  /usr/bin/defoma-app update $APP
++  @PREFIX@/bin/defoma-app update $APP
+ done
+ 
+ exit 0
+diff -Naur defoma-0.11.1.old/src/dh_installdefoma defoma-0.11.1.new/src/dh_installdefoma
+--- defoma-0.11.1.old/src/dh_installdefoma	Tue Feb 19 21:17:08 2002
++++ defoma-0.11.1.new/src/dh_installdefoma	Tue Nov 12 18:28:08 2002
+@@ -40,27 +40,27 @@
+ 	    $version = defomaversion($defoma);
+ 	    checkdepends($PACKAGE, $defoma, $version);
+ 	    
+-            if ( ! -d "$TMP/usr/share/defoma/scripts/") {
+-              doit("install","-d","$TMP/usr/share/defoma/scripts/");
++            if ( ! -d "$TMP/@PREFIX@/share/defoma/scripts/") {
++              doit("install","-d","$TMP/@PREFIX@/share/defoma/scripts/");
+             }
+-            doit("install","-m0644","$defoma","$TMP/usr/share/defoma/scripts/$PACKAGE.defoma");
++            doit("install","-m0644","$defoma","$TMP/@PREFIX@/share/defoma/scripts/$PACKAGE.defoma");
+         }
+ 	if ( $udefoma ne '' ) {
+ 	    $uversion = defomaversion($udefoma);
+ 	    checkdepends($PACKAGE, $udefoma, $uversion);
+ 	    
+-            if ( ! -d "$TMP/usr/share/defoma/scripts/") {
+-              doit("install","-d","$TMP/usr/share/defoma/scripts/");
++            if ( ! -d "$TMP/@PREFIX@/share/defoma/scripts/") {
++              doit("install","-d","$TMP/@PREFIX@/share/defoma/scripts/");
+             }
+-            doit("install","-m0644","$udefoma","$TMP/usr/share/defoma/scripts/$PACKAGE.udefoma");
++            doit("install","-m0644","$udefoma","$TMP/@PREFIX@/share/defoma/scripts/$PACKAGE.udefoma");
+         }
+ 
+         if ( $hints ne '' ) {
+ 	    checkdepends($PACKAGE, undef, undef);
+-            if ( ! -d "$TMP/etc/defoma/hints/") {
+-              doit("install","-d","$TMP/etc/defoma/hints/");
++            if ( ! -d "$TMP/@PREFIX@/etc/defoma/hints/") {
++              doit("install","-d","$TMP/@PREFIX@/etc/defoma/hints/");
+             }
+-            doit("install","-m0644","$hints","$TMP/etc/defoma/hints/$PACKAGE.hints");
++            doit("install","-m0644","$hints","$TMP/@PREFIX@/etc/defoma/hints/$PACKAGE.hints");
+         }
+         
+ 

@@ -1,0 +1,62 @@
+Package: ttf-kochi-gothic
+Version: 0.2.20020727
+Revision: 1
+Depends: defoma
+Source: mirror:debian:pool/main/t/%n/%n_%v.orig.tar.gz
+Source2: mirror:debian:pool/main/t/%n/%n_%v-2.diff.gz
+Source-MD5: 896328e02a0194865e1badcb2dce3f7f
+Source2-MD5: d1e7677df26a32628498ec1f52b7b3c1
+SourceDirectory: %n-%v.orig
+PatchScript: <<
+ tar xfvj *.bz2
+ mv */* .
+ gzcat ../*.diff.gz | patch -p1
+ sed 's|/usr/|%p/|g' <debian/defoma/%n.hints >%n.hints
+ mv -f %n.hints debian/defoma/%n.hints
+<<
+CompileScript: echo Nothing to do.
+InstallScript: <<
+ install -d -m 755 %i/share/fonts/truetype/kochi
+ install -c -m 644 fonts/kochi-gothic.ttf %i/share/fonts/truetype/kochi/
+
+ install -d -m 755 %i/etc/defoma/hints
+ install -c -m 644 debian/defoma/%n.hints %i/etc/defoma/hints/
+
+ install -d -m 755 %i/share/doc/%n
+ /bin/cp -R docs %i/share/doc/%n/
+ /bin/cp debian/README.Debian %i/share/doc/%n/
+ /bin/cp debian/changelog %i/share/doc/%n/changelog.Debian
+ /bin/cp debian/copyright %i/share/doc/%n/copyright.Debian
+<<
+PostInstScript: <<
+ case "$1" in
+  configure)
+   defoma-font -vt reregister-all %p/etc/defoma/hints/%n.hints
+   ;;
+ esac
+<<
+PreRmScript: <<
+ case "$1" in
+   remove|upgrade|deconfigure)
+     defoma-font -vt purge-all %p/etc/defoma/hints/%n.hints
+     ;;
+ esac
+<<
+DocFiles: AUTHORS CHANGES Changelog README THANKS TODO
+Description: Kochi gothic japanese truetype font without naga10
+DescDetail: <<
+ ttf-kochi-gothic is high quality, Japanese gothic TrueType font.
+ It does not include naga10 font, so it's DFSG-free.
+
+ The family of ttf-kochi-* is very smooth and beautiful compared with
+ current free Japanese TrueType fonts. It has bitmap hinting information,
+ so it's beautiful and no jagged to display on the CRT.
+ This font is suitable for both printing and displaying Japanese
+ characters.
+<<
+DescPackaging: <<
+Re-packaging of debian's ttf-kochi-gothic.
+<<
+License: OSI-Approved
+Maintainer: Masanori Sekino <msek@users.sourceforge.net>
+Homepage: http://www.debian.org/

@@ -1,0 +1,51 @@
+Package: x-ttcidfont-conf
+Version: 13
+Revision: 1
+Depends: defoma, psfontmgr
+Source: http://core.ring.gr.jp/pub/linux/debian/debian/pool/main/x/%n/%n_%v.tar.gz
+Source-MD5: e2b041c0b368444f8a9b582bc47b2d0b
+SourceDirectory: %n-%v/debian
+PatchScript: sed 's|@PREFIX@|%p|g' <%a/%f.patch | patch -p1
+CompileScript: mv defoma x-ttcidfont-conf.defoma
+InstallScript: <<
+ install -d -m 755 %i/share/defoma/scripts
+ install -c -m 644 x-ttcidfont-conf.defoma %i/share/defoma/scripts/
+ install -d -m 755 %i/etc/defoma/config
+ install -c -m 644 x-ttcidfont-conf.conf %i/etc/defoma/config/
+ install -c -m 644 x-ttcidfont-conf.conf2 %i/etc/defoma/config/
+ install -d -m 755 %p/var/lib/defoma/x-ttcidfont-conf.d/dirs/CID
+ install -d -m 755 %p/var/lib/defoma/x-ttcidfont-conf.d/dirs/TrueType
+<<
+PostInstScript: <<
+  case "$1" in
+    configure)
+      defoma-app update x-ttcidfont-conf
+      ;;
+  esac
+<<
+PreRmScript: <<
+  case "$1" in
+    upgrade)
+      defoma-app clean x-ttcidfont-conf
+      ;;
+    remove)
+      defoma-app purge x-ttcidfont-conf
+      ;;
+  esac
+<<
+ConfFiles: <<
+ %p/etc/defoma/config/x-ttcidfont-conf.conf
+ %p/etc/defoma/config/x-ttcidfont-conf.conf2
+<<
+DocFiles: README.* changelog copyright
+Description: Configure TrueType and CID fonts for X
+DescDetail: <<
+This package configures TrueType fonts and CID fonts (as well as CMaps)
+for X. It generates .scale file and .alias file from TrueType and CID
+fonts registered to Defoma, and calls mkfontdir (and mkcfm).
+Both xtt and freetype backends which are used to handle TrueType fonts
+in X are supported.
+<<
+License: GPL
+Maintainer: Masanori Sekino <msek@users.sourceforge.net>
+Homepage: http://www.debian.org/
