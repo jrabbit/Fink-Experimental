@@ -5,7 +5,7 @@ Description: KDE - miscellaneous utilities
 License: GPL/LGPL
 Maintainer: Benjamin Reed <ranger@befunk.com>
 
-Depends: ark (>= %v-%r), kcalc (>= %v-%r), kcharselect (>= %v-%r), kdessh (>= %v-%r), kdf (>= %v-%r), kedit (>= %v-%r), kfloppy (>= %v-%r), khexedit (>= %v-%r), kjots (>= %v-%r), ksim (>= %v-%r), ktimer (>= %v-%r), kwalletmanager (>= %v-%r), kwikdisk (>= %v-%r), kregexpeditor (>= %v-%r), kdelibs3-ssl (>= %v-21) | kdelibs3 (>= %v-21), %N-base (>= %v-%r)
+Depends: ark (>= %v-%r), kcalc (>= %v-%r), kcharselect (>= %v-%r), kdessh (>= %v-%r), kdf (>= %v-%r), kedit (>= %v-%r), kfloppy (>= %v-%r), khexedit (>= %v-%r), klaptopdaemon (>= %v-%r), kjots (>= %v-%r), kmilo (>= %v-%r), ksim (>= %v-%r), ktimer (>= %v-%r), kwalletmanager (>= %v-%r), kwikdisk (>= %v-%r), kregexpeditor (>= %v-%r), kdelibs3-ssl (>= %v-21) | kdelibs3 (>= %v-21), %N-base (>= %v-%r)
 BuildDepends: arts-dev (>= 1.3.0-21), cctools (>= 446-1) | cctools-single-module, fink (>= 0.20.2.1-1), gnupg, kdebase3-ssl-dev (>= %v-21) | kdebase3-dev (>= %v-21), kdelibs3-ssl-dev (>= %v-21) | kdelibs3-dev (>= %v-21), libart2, libjpeg, libpng3 (>= 1.2.5-4), net-snmp-dev | net-snmp-ssl-dev, qt3 (>= 3.3.2-21), x11-dev
 Replaces: %N-dev (<< %v-%r)
 GCC: 3.3
@@ -16,7 +16,7 @@ CustomMirror: <<
   nam-CA: http://www.southofheaven.net/befunk
 <<
 Source: mirror:kde:unstable/%v/src/kdeutils-%v.tar.bz2
-Source-MD5: 394b104c6d701ef9731e07ddbf0c52f8
+Source-MD5: 9a3788e7ee386080b66254e515fa6e49
 Source2: mirror:custom:kde-build-20040821.tar.bz2
 Source2-MD5: 5f222ad99ea992cf9a84d14ae12918cf
 Source2ExtractDir: kdeutils-%v
@@ -24,7 +24,6 @@ Source2ExtractDir: kdeutils-%v
 PatchScript: <<
   patch -p1 < %a/%n.patch
   perl -pi.bak -e 's,-O2,-Os,; s,doc/HTML,doc/kde,g' configure
-#  echo 'DO_NOT_COMPILE="$DO_NOT_COMPILE klaptopdaemon"' >> klaptopdaemon/configure.in.in
 <<
 
 NoSetCPPFLAGS: true
@@ -54,10 +53,13 @@ InstallScript: <<
   touch %i/share/doc/kde-installed-packages/%N
   touch %i/share/doc/kde-installed-packages/%N-base
 
-  rm -rf %i/share/doc/kde/en/kcontrol
-  rm -rf %i/share/doc/kde/en/kcmlirc
-  rm -rf %i/share/doc/kde/en/kdelirc
-  rm -rf %i/share/doc/kde/en/irkick
+  find %i -name \*kmilo\* -exec rm -rf {} \; || :
+  find %i -name \*irkick\* -exec rm -rf {} \; || :
+  find %i -name \*kcmlirc\* -exec rm -rf {} \; || :
+  rm -rf %i/share/applications/kde/pcmcia.desktop
+  rm -rf %i/share/applications/kde/thinkpad.desktop
+  rm -rf %i/share/apps/profiles
+  rm -rf %i/share/apps/remotes
 <<
 
 DocFiles: AUTHORS COPYING INSTALL README
@@ -73,6 +75,7 @@ SplitOff: <<
     lib/libkdeinit_ark*
     share/applications/kde/ark.desktop
     share/apps/ark
+    share/config.kcfg/ark.kcfg
     share/doc/kde/en/ark
     share/icons/crystalsvg/16x16/apps/ark.png
     share/icons/crystalsvg/32x32/apps/ark.png
@@ -112,6 +115,7 @@ SplitOff3: <<
   Files: <<
     bin/kcharselect
     lib/kde3/*kcharselect_panelapplet*
+    share/apps/kconf_update/kcharselect.upd
     share/apps/kicker/applets/kcharselectapplet.desktop
     share/applications/kde/KCharSelect.desktop
     share/doc/kde/en/kcharselect
@@ -228,6 +232,24 @@ SplitOff10: <<
   <<
 <<
 SplitOff11: <<
+  Package: klaptopdaemon
+  Description: KDE - battery monitor for laptops
+  Depends: %N-base (>= %v-%r)
+  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r)
+  Recommends: %N (>= %v-%r)
+  Files: <<
+    bin/klaptop*
+    share/applications/kde/laptop.desktop
+    share/apps/klaptopdaemon
+    share/icons/crystalsvg/128x128/apps/*laptop*
+    share/icons/crystalsvg/16x16/apps/*laptop*
+    share/icons/crystalsvg/32x32/apps/*laptop*
+    share/icons/crystalsvg/48x48/apps/*laptop*
+    share/icons/crystalsvg/64x64/apps/*laptop*
+    share/services/kded/klaptopdaemon.desktop
+  <<
+<<
+SplitOff12: <<
   Package: kjots
   Description: KDE - small note taker
   Depends: %N-base (>= %v-%r)
@@ -245,7 +267,7 @@ SplitOff11: <<
     share/icons/crystalsvg/64x64/apps/kjots.png
   <<
 <<
-SplitOff12: <<
+SplitOff13: <<
   Package: ksim
   Description: KDE - system monitor
   Depends: %N-base (>= %v-%r)
@@ -265,7 +287,7 @@ SplitOff12: <<
     share/icons/crystalsvg/48x48/apps/ksim.png
   <<
 <<
-SplitOff13: <<
+SplitOff14: <<
   Package: ktimer
   Description: KDE - timer
   Depends: %N-base (>= %v-%r)
@@ -281,7 +303,7 @@ SplitOff13: <<
     share/icons/crystalsvg/48x48/apps/ktimer.png
   <<
 <<
-SplitOff14: <<
+SplitOff15: <<
   Package: kwikdisk
   Description: KDE - mount and unmount disks
   Depends: %N-base (>= %v-%r)
@@ -297,7 +319,7 @@ SplitOff14: <<
     share/icons/crystalsvg/64x64/apps/kwikdisk.png
   <<
 <<
-SplitOff15: <<
+SplitOff16: <<
   Package: kregexpeditor
   Description: KDE - regular expression editor kpart
   Depends: %N-base (>= %v-%r)
@@ -310,10 +332,15 @@ SplitOff15: <<
     share/applications/kde/kregexpeditor.desktop
     share/apps/kregexpeditor
     share/doc/kde/en/KRegExpEditor
+    share/icons/crystalsvg/128x128/apps/kregexpeditor.png
+    share/icons/crystalsvg/16x16/apps/kregexpeditor.png
+    share/icons/crystalsvg/32x32/apps/kregexpeditor.png
+    share/icons/crystalsvg/48x48/apps/kregexpeditor.png
+    share/icons/crystalsvg/64x64/apps/kregexpeditor.png
     share/services/kregexpeditorgui.desktop
   <<
 <<
-SplitOff16: <<
+SplitOff17: <<
   Package: kwalletmanager
   Description: KDE - KWallet configuration tool
   Depends: %N-base (>= %v-%r)
@@ -334,7 +361,7 @@ SplitOff16: <<
     share/services/kwallet*
   <<
 <<
-SplitOff17: <<
+SplitOff18: <<
   Package: %N-dev
   Description: KDE - kdeutils development headers and libraries
   Depends: %N (>= %v-%r), %N-base (>= %v-%r)
@@ -346,7 +373,7 @@ SplitOff17: <<
     lib
   <<
 <<
-SplitOff18: <<
+SplitOff19: <<
   Package: %N-base
   Description: KDE - kdeutils base package
   Depends: kdebase3-ssl (>= %v-21) | kdebase3 (>= %v-21)
