@@ -131,7 +131,7 @@ sub display_info
     #--MEMORY USED--#
     $MEMUSED = `top -l1 | grep PhysMem | cut -d":" -f2 | cut -d"," -f4`;
     chop ($MEMUSED);
-    $MEMUSED =~ / ([0-9]+)([GKM]) used$/;
+    $MEMUSED =~ / ([0-9.]+)([GKM]) used$/;
     $MEMUSED = $1;
     $MEMUSEDGKM = $2;      
     if ($MEMUSEDGKM =~ /^K$/) {
