@@ -1,30 +1,32 @@
-Package: cyrus-imapd
-Version: 2.1.12
+Package: cyrus-imapd21
+Version: 2.1.13
 Revision: 1
 Maintainer: Matt Stephenson <cattrap@users.sourceforge.net>
-Depends: cyrus-sasl2-shlibs, db3-shlibs, passwd (>= 20030330-2), daemonic
-BuildDepends: openssl097-dev, db3, cyrus-sasl2-dev, dlcompat-dev
-UpdatePOD: true
-Source: mirror:custom:%N-%v.tar.gz
+Depends: cyrus-imapd21-pm560, passwd (>= 20030330-2), daemonic
+BuildDepends: openssl097-dev, db41 | db41-ssl, cyrus-sasl2-dev, dlcompat-dev
+Source: mirror:custom:cyrus-imapd-%v.tar.gz
 CustomMirror: <<
-  nam-US: ftp://ftp.andrew.cmu.edu/pub/cyrus-mail/
-  nam-US: ftp://ftp.andrew.cmu.edu/pub/cyrus-mail/OLD-VERSIONS/imap/
+  Primary: ftp://ftp.andrew.cmu.edu/pub/cyrus-mail/
+  Secondary: ftp://ftp.andrew.cmu.edu/pub/cyrus-mail/OLD-VERSIONS/imap/
 <<
-Source-MD5: dc3355d0170509ccebd9788ed2daad39
+Source-MD5: ac3a4773c2f0fb2d0f9c5ec8669b7e65
 PatchScript: sed 's|@prefix@|%p|g' <%a/%f.patch | patch -p1
 UpdateConfigGuess: true
-ConfigureParams: --with-bdb-incdir=%p/include/db3 --with-cyrus-prefix=%p --with-statedir=%p/var --with-auth=unix --with-pidfile=%p/var/run/cyrus-master.pid --with-cyrus-group=cyrus
+ConfigureParams: --with-bdb-incdir=%p/include/db4 --with-cyrus-prefix=%p --with-statedir=%p/var --with-auth=unix --with-pidfile=%p/var/run/cyrus-master.pid --with-cyrus-group=cyrus
 InstallScript: <<
     mkdir -p %i/etc
     mkdir -p %i/share/doc/%N/man
     mkdir -p %i/share/%N/master/conf
     mkdir -p %i/var/imap/sieve
     mkdir -p %i/var/spool/imap
-    make install DESTDIR=%d INSTALLPRIVLIB=%i/lib/perl5 INSTALLARCHLIB=%i/lib/perl5/darwin INSTALLSITELIB=%i/lib/perl5 INSTALLSITEARCH=%i/lib/perl5/darwin INSTALLMAN1DIR=%i/share/man/man1 INSTALLMAN3DIR=%i/share/man/man3
-    cd tools; cp mkimap %i/bin
+    make install DESTDIR=%d
+    cp -r tools %i/share/%N
     cd master/conf; cp *.conf %i/share/%N/master/conf
     cd %i/share/%N/master/conf; cp normal.conf %i/etc/cyrus.conf
     mv %i/share/man/man8/master.8 %i/share/man/man8/master_imapd.8
+    mv %i/bin/master %i/bin/master_imapd
+    cp cyrus-imapd %i/bin
+    chmod 755 %i/bin/cyrus-imapd
     cp imapd.conf %i/etc
     chown cyrus %i/var/imap/sieve
     chgrp cyrus %i/var/imap/sieve
@@ -47,18 +49,25 @@ ConfFiles: <<
 DocFiles: COPYRIGHT README
 Splitoff: <<
  Package: %N-dev
- Files: include lib/*.a
- Description: Cyrus-imapd development headers and libraries
+ Files: include lib
+ Description: Cyrus-imapd21 development headers and libraries
  DocFiles: COPYRIGHT README
  BuildDependsOnly: True
 <<
+Splitoff2: <<
+ Package: %N-doc
+ Files: share/doc/%N/*.html share/doc/%N/man share/man
+ Description: Documentation for cyrus-imapd21
+ DocFiles: COPYRIGHT README
+<<
+DaemonicName: cyrus-imapd
 DaemonicFile: <<
 <service>
 <description>Cyrus Mail Server</description>
-<message>Starting Cyrus Mail Server</message>
+<message>Cyrus Mail Server</message>
 
-<daemon name="master">
-<executable background="yes">%p/bin/master</executable>
+<daemon name="master_imapd">
+<executable background="yes">%p/bin/master_imapd</executable>
 <configfile>%p/etc/imapd.conf</configfile>
 <pidfile>%i/var/run/cyrus-master.pid</pidfile>
 </daemon>
@@ -66,7 +75,16 @@ DaemonicFile: <<
 </service>
 <<
 PostInstScript: <<
-echo "To finish setting up cyrus-imapd run 'sudo -u cyrus /sw/bin/mkimap'"
+ if [ -d "%p/var/imap/proc" ]; then
+ echo ""
+ echo "Installation Complete"
+ echo ""
+ else
+   echo ""
+   echo "Finishing Installation Setup"
+   echo ""
+   sudo -u cyrus %p/share/%N/tools/mkimap
+ fi
 <<
 PreRmScript: <<
 if [ $1 != "upgrade" ]; then
@@ -80,11 +98,15 @@ use from small to large enterprise environments using standards-based
 technologies.
 <<
 DescUsage: <<
- After installing and before running, to finish setting up the directories
-for cyrus-imapd run the command 'sudo -u cyrus /sw/bin/mkimap'.
  To create a startup item that starts cyrus-imapd after reboot just run as
 root 'daemonic enable cyrus-imapd'. To remove the cyrus-imapd startup item
 just run as root 'daemonic remove cyrus-imapd'.
+ To manually start/stop cyrus-imapd21, run 'sudo cyrus-imapd start' and
+'sudo cyrus-imapd stop'.
+<<
+DescPackaging: <<
+ To prevent conflict with postfix the 'master' executable and 'master.8'
+man page were renamed to 'master_imapd' and 'master_imapd.8' respectively.
 <<
 License: Restrictive/Distributable
 Homepage: http://asg.web.cmu.edu/cyrus/imapd

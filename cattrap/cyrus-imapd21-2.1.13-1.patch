@@ -1,169 +1,5 @@
---- cyrus-imapd-2.1.12/imap/mboxlist.c	Thu Jan  9 04:40:17 2003
-+++ cyrus-imapd-2.1.12-patched/imap/mboxlist.c	Fri Feb 14 09:24:54 2003
-@@ -62,7 +62,7 @@
- #include <com_err.h>
- 
- #include <sys/ipc.h>
--#include <sys/msg.h>
-+/* #include <sys/msg.h> */
- 
- #include "acl.h"
- #include "auth.h"
-
---- cyrus-imapd-2.1.12/imap/setproctitle.c	Fri Mar 16 09:31:11 2001
-+++ cyrus-imapd-2.1.12-patched/imap/setproctitle.c	Fri Feb 14 11:07:10 2003
-@@ -87,6 +87,7 @@
- # define VA_END		va_end(ap)
- 
- # define MAXLINE 2048            /* max line length */
-+#define	USRSTACK	0xc0000000
- 
- extern char **environ;
- #ifdef USE_SETPROCTITLE
-@@ -162,7 +163,7 @@
- #  include <sys/pstat.h>
- # endif
- # if SPT_TYPE == SPT_PSSTRINGS
--#  include <machine/vmparam.h>
-+/* #  include <machine/vmparam.h> */
- #  include <sys/exec.h>
- #  ifndef PS_STRINGS	/* hmmmm....  apparently not available after all */
- #   undef SPT_TYPE
-
-
---- cyrus-imapd-2.1.12/imap/cvt_cyrusdb.c	Thu Nov  7 07:43:20 2002
-+++ cyrus-imapd-2.1.12-patched/imap/cvt_cyrusdb.c	Fri Feb 14 17:26:18 2003
-@@ -62,7 +62,7 @@
- #include <com_err.h>
- 
- #include <sys/ipc.h>
--#include <sys/msg.h>
-+/* #include <sys/msg.h> */
- 
- #include "acl.h"
- #include "auth.h"
-
---- cyrus-imapd-2.1.12/imtest/imtest.c	Tue Nov  5 03:10:32 2002
-+++ cyrus-imapd-2.1.12-patched/imtest/imtest.c	Sat Feb 15 13:03:34 2003
-@@ -47,7 +47,6 @@
- #include <sys/time.h>
- #include <sys/types.h>
- #include <sys/ipc.h>
--#include <sys/msg.h>
- #include <sys/stat.h>
- #include <fcntl.h>
- 
-
---- cyrus-imapd-2.1.12/perl/sieve/lib/request.c	Sun May 26 05:57:50 2002
-+++ cyrus-imapd-2.1.12-patched/perl/sieve/lib/request.c	Sat Feb 15 13:46:49 2003
-@@ -51,7 +51,6 @@
- #include <sys/stat.h>
- #include <sys/types.h>
- #include <sys/ipc.h>
--#include <sys/msg.h>
- 
- #include <stdlib.h>
- #include <stdio.h>
-
---- cyrus-imapd-2.1.12/man/Makefile.in	Wed Jun 26 01:22:29 2002
-+++ cyrus-imapd-2.1.12-patched/man/Makefile.in	Sat Feb 15 15:18:03 2003
-@@ -85,19 +85,19 @@
- install:
- 	for file in $(MAN1); \
- 	do \
--		$(INSTALL) -m 644 $$file $(DESTDIR)$(prefix)/man/man1 || exit 1; \
-+		$(INSTALL) -m 644 $$file $(DESTDIR)$(prefix)/share/man/man1 || exit 1; \
- 	done
- 	for file in $(MAN3); \
- 	do \
--		$(INSTALL) -m 644 $$file $(DESTDIR)$(prefix)/man/man3 || exit 1; \
-+		$(INSTALL) -m 644 $$file $(DESTDIR)$(prefix)/share/man/man3 || exit 1; \
- 	done
- 	for file in $(MAN5); \
- 	do \
--		$(INSTALL) -m 644 $$file $(DESTDIR)$(prefix)/man/man5 || exit 1; \
-+		$(INSTALL) -m 644 $$file $(DESTDIR)$(prefix)/share/man/man5 || exit 1; \
- 	done
- 	for file in $(MAN8); \
- 	do \
--		$(INSTALL) -m 644 $$file $(DESTDIR)$(prefix)/man/man8 || exit 1; \
-+		$(INSTALL) -m 644 $$file $(DESTDIR)$(prefix)/share/man/man8 || exit 1; \
- 	done
- 
- .c.o:
-
---- cyrus-imapd-2.1.12/perl/Makefile.in	Fri Jan  3 04:27:35 2003
-+++ cyrus-imapd-2.1.12-patched/perl/Makefile.in	Sat Feb 15 18:46:23 2003
-@@ -52,8 +52,8 @@
- INSTALL = @INSTALL@
- 
- # Note that we use the *dynamic* sasl libraries
--SASL_LIB=@LIB_DYN_SASL@
--SASL_INC=@DYNSASLFLAGS@
-+SASL_LIB=-L@prefix@/lib -lsasl2
-+SASL_INC=-I@prefix@/include
- OPENSSL_LIB=@OPENSSL_LIB@
- OPENSSL_INC=@OPENSSL_INC@
- 
-@@ -80,7 +80,7 @@
- 	(cd imap; \
- 	 OPENSSL_LIB="$(OPENSSL_LIB)" OPENSSL_INC="$(OPENSSL_INC)" \
- 	 SASL_LIB="$(SASL_LIB)" SASL_INC="$(SASL_INC)" CC="$(CC)" \
--	   $(PERL) Makefile.PL PREFIX=$(prefix))
-+	   $(PERL) Makefile.PL PREFIX=$(prefix) INSTALLPRIVLIB=@prefix@/lib/perl5 INSTALLARCHLIB=@prefix@/lib/perl5/darwin INSTALLSITELIB=@prefix@/lib/perl5 INSTALLSITEARCH=@prefix@/lib/perl5/darwin INSTALLMAN1DIR=@prefix@/share/man/man1 INSTALLMAN3DIR=@prefix@/share/man/man3)
- 
- install::
- 	@for d in  $(SUBDIRS); \
-
---- cyrus-imapd-2.1.12/perl/sieve/Makefile.in	Tue Jul 23 02:16:09 2002
-+++ cyrus-imapd-2.1.12-patched/perl/sieve/Makefile.in	Sat Feb 15 18:48:42 2003
-@@ -63,8 +63,8 @@
- cyrus_prefix = @cyrus_prefix@
- 
- # Note that we use the *dynamic* sasl libraries
--SASL_LIB=@LIB_DYN_SASL@
--SASL_INC=@DYNSASLFLAGS@
-+SASL_LIB=-L@prefix@/lib -lsasl2
-+SASL_INC=-I@prefix@/include
- OPENSSL_LIB=@OPENSSL_LIB@
- OPENSSL_INC=@OPENSSL_INC@
- 
-@@ -78,7 +78,7 @@
- 			if [ -f Makefile.PL ]; then \
- 			   OPENSSL_LIB="$(OPENSSL_LIB)" OPENSSL_INC="$(OPENSSL_INC)" \
- 			   SASL_LIB="$(SASL_LIB)" SASL_INC="$(SASL_INC)" CC="$(CC)" \
--			     $(PERL) Makefile.PL PREFIX=$(prefix); \
-+			     $(PERL) Makefile.PL PREFIX=$(prefix) INSTALLPRIVLIB=@prefix@/lib/perl5 INSTALLARCHLIB=@prefix@/lib/perl5/darwin INSTALLSITELIB=@prefix@/lib/perl5 INSTALLSITEARCH=@prefix@/lib/perl5/darwin INSTALLMAN1DIR=@prefix@/share/man/man1 INSTALLMAN3DIR=@prefix@/share/man/man3; \
- 			fi; \
- 			$(MAKE) $(MFLAGS) DESTDIR=$(DESTDIR) all) || exit 1; \
- 	done
-
---- cyrus-imapd-2.1.12/imap/config.c	Thu Nov  7 07:43:20 2002
-+++ cyrus-imapd-2.1.12-patched/imap/config.c	Sun Feb 16 15:06:48 2003
-@@ -67,7 +67,7 @@
- #include "hash.h"
- #include "prot.h" /* for PROT_BUFSIZE */
- 
--#define CONFIG_FILENAME "/etc/imapd.conf"
-+#define CONFIG_FILENAME "@prefix@/etc/imapd.conf"
- 
- #define CONFIGHASHSIZE 200 /* > 2x # of options */
- static struct hash_table confighash;
-
---- cyrus-imapd-2.1.12/imap/krbck.c	Thu Nov  7 07:43:22 2002
-+++ cyrus-imapd-2.1.12-patched/imap/krbck.c	Sun Feb 16 15:07:12 2003
-@@ -59,7 +59,7 @@
- 
- #define EXIT_CHOKE (int) 10
- 
--#define CONFIG_FILENAME "/etc/imapd.conf"
-+#define CONFIG_FILENAME "@prefix@/etc/imapd.conf"
- #define MAX_FILENAME_LEN 255
- 
- static int  evalcheck(char*, int, char*);
-
---- cyrus-imapd-2.1.12/configure	Tue Feb  4 08:31:13 2003
-+++ cyrus-imapd-2.1.12-patched/configure	Wed Feb 19 11:24:21 2003
+--- cyrus-imapd-2.1.13/configure	Fri May  2 05:08:14 2003
++++ cyrus-imapd-2.1.13-patched/configure	Mon May  5 22:47:02 2003
 @@ -1499,7 +1499,7 @@
      CFLAGS="-Wall ${CFLAGS}"
    GCC_VERSION=`$CC -v 2>&1 | sed -n -e '/version/s/.*version \([0-9]\)\..*/\1/p'`
@@ -186,21 +22,21 @@
  	    BDB_LIBADD=""
  	fi
  
--        for dbname in db-4.1 db4.1 db-4.0 db4.0 db-4 db4 db-3.3 db3.3 db-3.2 db3.2 db-3.1 db3.1 db-3 db3 db
-+        for dbname in db-3.3 db3.3 db-3.2 db3.2 db-3 db3 db
+-        for dbname in db-4.1 db4.1 db41 db-4.0 db4.0 db-4 db40 db4 db-3.3 db3.3 db33 db-3.2 db3.2 db32 db-3.1 db3.1 db31 db-3 db30 db3 db
++        for dbname in db-4.1
            do
              echo $ac_n "checking for db_create in -l$dbname""... $ac_c" 1>&6
  echo "configure:2848: checking for db_create in -l$dbname" >&5
-@@ -5241,7 +5241,7 @@
+@@ -5306,7 +5306,7 @@
  EOF
- if { (eval echo configure:5243: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+ if { (eval echo configure:5308: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
    rm -rf conftest*
 -  eval "ac_cv_lib_$ac_lib_var=yes"
 +  eval "ac_cv_lib_$ac_lib_var=no"
  else
    echo "configure: failed program was:" >&5
    cat conftest.$ac_ext >&5
-@@ -5357,8 +5357,7 @@
+@@ -5422,8 +5422,7 @@
  	  with_com_err="yes"
  	else
  	  if test "${COMPILE_ET}" = "no compile et" -o "${COMPILE_ET}" = ""; then
@@ -211,20 +47,85 @@
  	  fi
  	fi
 
---- cyrus-imapd-2.1.12/master/masterconf.c	Thu Nov  7 07:43:31 2002
-+++ cyrus-imapd-2.1.12-patched/master/masterconf.c	Wed Feb 19 12:17:47 2003
-@@ -58,7 +58,7 @@
+--- cyrus-imapd-2.1.13/imap/config.c	Tue Apr 15 06:31:36 2003
++++ cyrus-imapd-2.1.13-patched/imap/config.c	Tue May  6 00:30:02 2003
+@@ -68,7 +68,7 @@
+ #include "hash.h"
+ #include "prot.h" /* for PROT_BUFSIZE */
  
- #include "masterconf.h"
+-#define CONFIG_FILENAME "/etc/imapd.conf"
++#define CONFIG_FILENAME "@prefix@/etc/imapd.conf"
  
--#define CONFIG_FILENAME "/etc/cyrus.conf"
-+#define CONFIG_FILENAME "@prefix@/etc/cyrus.conf"
- 
- struct configlist {
-     char *key;
+ #define CONFIGHASHSIZE 200 /* > 2x # of options */
+ static struct hash_table confighash;
 
---- cyrus-imapd-2.1.12/master/conf/normal.conf	Wed Oct  2 06:46:01 2002
-+++ cyrus-imapd-2.1.12-patched/master/conf/normal.conf	Wed Feb 19 12:55:01 2003
+--- cyrus-imapd-2.1.13/imap/cvt_cyrusdb.c	Tue Apr 15 06:15:12 2003
++++ cyrus-imapd-2.1.13-patched/imap/cvt_cyrusdb.c	Tue May  6 00:46:22 2003
+@@ -62,7 +62,6 @@
+ #include <com_err.h>
+ 
+ #include <sys/ipc.h>
+-#include <sys/msg.h>
+ 
+ #include "acl.h"
+ #include "auth.h"
+
+--- cyrus-imapd-2.1.13/imap/krbck.c	Fri Feb 14 07:15:26 2003
++++ cyrus-imapd-2.1.13-patched/imap/krbck.c	Tue May  6 00:28:30 2003
+@@ -59,7 +59,7 @@
+ 
+ #define EXIT_CHOKE (int) 10
+ 
+-#define CONFIG_FILENAME "/etc/imapd.conf"
++#define CONFIG_FILENAME "@prefix@/etc/imapd.conf"
+ #define MAX_FILENAME_LEN 255
+ 
+ static int  evalcheck(char*, int, char*);
+
+--- cyrus-imapd-2.1.13/imap/mboxlist.c	Thu May  1 06:33:20 2003
++++ cyrus-imapd-2.1.13-patched/imap/mboxlist.c	Tue May  6 00:51:14 2003
+@@ -62,7 +62,6 @@
+ #include <com_err.h>
+ 
+ #include <sys/ipc.h>
+-#include <sys/msg.h>
+ 
+ #include "acl.h"
+ #include "auth.h"
+
+--- cyrus-imapd-2.1.13/imap/setproctitle.c	Fri Feb 14 07:15:30 2003
++++ cyrus-imapd-2.1.13-patched/imap/setproctitle.c	Tue May  6 00:49:52 2003
+@@ -87,6 +87,7 @@
+ # define VA_END		va_end(ap)
+ 
+ # define MAXLINE 2048            /* max line length */
++#define	 USRSTACK  	0xc0000000
+ 
+ extern char **environ;
+ #ifdef USE_SETPROCTITLE
+@@ -162,7 +163,7 @@
+ #  include <sys/pstat.h>
+ # endif
+ # if SPT_TYPE == SPT_PSSTRINGS
+-#  include <machine/vmparam.h>
++/*#  include <machine/vmparam.h> */
+ #  include <sys/exec.h>
+ #  ifndef PS_STRINGS	/* hmmmm....  apparently not available after all */
+ #   undef SPT_TYPE
+
+--- cyrus-imapd-2.1.13/imtest/imtest.c	Fri Feb 14 07:15:33 2003
++++ cyrus-imapd-2.1.13-patched/imtest/imtest.c	Tue May  6 00:44:32 2003
+@@ -47,7 +47,6 @@
+ #include <sys/time.h>
+ #include <sys/types.h>
+ #include <sys/ipc.h>
+-#include <sys/msg.h>
+ #include <sys/stat.h>
+ #include <fcntl.h>
+ 
+
+--- cyrus-imapd-2.1.13/master/conf/normal.conf	Wed Oct  2 06:46:01 2002
++++ cyrus-imapd-2.1.13-patched/master/conf/normal.conf	Tue May  6 00:24:55 2003
 @@ -19,10 +19,10 @@
  
    # at least one LMTP is required for delivery
@@ -239,26 +140,20 @@
  
  EVENTS {
 
---- cyrus-imapd-2.1.12/Makefile.in	Tue Feb  4 07:43:52 2003
-+++ cyrus-imapd-2.1.12-patched/Makefile.in	Thu Feb 20 12:44:48 2003
-@@ -95,10 +95,10 @@
- 	$(srcdir)/install-sh -d ${DESTDIR}$(exec_prefix)/bin
- 	$(srcdir)/install-sh -d ${DESTDIR}$(exec_prefix)/lib
- 	$(srcdir)/install-sh -d ${DESTDIR}$(prefix)/include/cyrus
--	$(srcdir)/install-sh -d ${DESTDIR}$(prefix)/man/man1
--	$(srcdir)/install-sh -d ${DESTDIR}$(prefix)/man/man3
--	$(srcdir)/install-sh -d ${DESTDIR}$(prefix)/man/man5
--	$(srcdir)/install-sh -d ${DESTDIR}$(prefix)/man/man8
-+	$(srcdir)/install-sh -d ${DESTDIR}$(prefix)/share/man/man1
-+	$(srcdir)/install-sh -d ${DESTDIR}$(prefix)/share/man/man3
-+	$(srcdir)/install-sh -d ${DESTDIR}$(prefix)/share/man/man5
-+	$(srcdir)/install-sh -d ${DESTDIR}$(prefix)/share/man/man8
- 	@for d in  $(SUBDIRS); \
- 	do \
- 		(cd $$d; echo "### Making" install "in" `pwd`;	\
+--- cyrus-imapd-2.1.13/master/masterconf.c	Fri Feb 14 07:15:45 2003
++++ cyrus-imapd-2.1.13-patched/master/masterconf.c	Tue May  6 00:26:44 2003
+@@ -58,7 +58,7 @@
+ 
+ #include "masterconf.h"
+ 
+-#define CONFIG_FILENAME "/etc/cyrus.conf"
++#define CONFIG_FILENAME "@prefix@/etc/cyrus.conf"
+ 
+ struct configlist {
+     char *key;
 
---- cyrus-imapd-2.1.12/tools/mkimap	Fri Sep 28 02:02:34 2001
-+++ cyrus-imapd-2.1.12-patched/tools/mkimap	Fri Mar  7 12:06:59 2003
+--- cyrus-imapd-2.1.13/tools/mkimap	Fri Sep 28 02:02:34 2001
++++ cyrus-imapd-2.1.13-patched/tools/mkimap	Tue May  6 00:22:13 2003
 @@ -59,8 +59,8 @@
  __END__
  require 5;
@@ -270,9 +165,8 @@
  $nosievedir = 0;
  $hashispool = 0;
  
-
---- cyrus-imapd-2.1.12/imapd.conf	Fri Mar  7 13:59:27 2003
-+++ cyrus-imapd-2.1.12-patched/imapd.conf	Fri Mar  7 13:44:25 2003
+--- cyrus-imapd-2.1.13/imapd.conf	Tue May  6 00:19:19 2003
++++ cyrus-imapd-2.1.13-patched/imapd.conf	Fri Mar  7 13:44:25 2003
 @@ -0,0 +1,371 @@
 +#
 +# Sample configurations file for Cyrus IMAPd
@@ -544,7 +438,7 @@
 +# The mechanism used by the server to verify plaintext passwords.  Possible
 +# values include "auxprop", "saslauthd", and "pwcheck"
 +#
-+#sasl_pwcheck_method: saslauthd
++sasl_pwcheck_method: saslauthd
 +
 +# If enabled,  the SASL library will automatically create authentication
 +# secrets when given a plaintext password.  See the SASL documentation.
@@ -633,16 +527,107 @@
 +
 +# Unix domain socket that lmtpd listens on, used by deliver(8).
 +#
-+#lmtpsocket: @prefix@/var/imap/socket/lmtp
++#lmtpsocket: /var/imap/socket/lmtp
 +
 +# Unix domain socket that idled listens on.
 +#
-+#idlesocket: @prefix@/var/imap/socket/idle
++#idlesocket: /var/imap/socket/idle
 +
 +# Unix domain socket that the new mail notification daemon listens on.
 +#
-+#notifysocket: @prefix@/var/imap/socket/notify
++#notifysocket: /var/imap/socket/notify
 +
 +#
 +# EOF
 
+--- cyrus-imapd-2.1.13/Makefile.in	Fri May  2 05:05:22 2003
++++ cyrus-imapd-2.1.13-patched/Makefile.in	Sun May 11 00:14:28 2003
+@@ -42,8 +42,8 @@
+ # OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ # 
+ 
+-SUBDIRS = man @PRE_SUBDIRS@ acap lib @SERVER_SUBDIRS@ \
+-	imtest @SNMP_SUBDIRS@ @EXTRA_SUBDIRS@
++SUBDIRS = man et  sieve acap lib master imap \
++	imtest   timsieved notifyd
+ DISTSUBDIRS = doc
+ 
+ srcdir = @srcdir@
+@@ -95,10 +95,10 @@
+ 	$(srcdir)/install-sh -d ${DESTDIR}$(exec_prefix)/bin
+ 	$(srcdir)/install-sh -d ${DESTDIR}$(exec_prefix)/lib
+ 	$(srcdir)/install-sh -d ${DESTDIR}$(prefix)/include/cyrus
+-	$(srcdir)/install-sh -d ${DESTDIR}$(prefix)/man/man1
+-	$(srcdir)/install-sh -d ${DESTDIR}$(prefix)/man/man3
+-	$(srcdir)/install-sh -d ${DESTDIR}$(prefix)/man/man5
+-	$(srcdir)/install-sh -d ${DESTDIR}$(prefix)/man/man8
++	$(srcdir)/install-sh -d ${DESTDIR}$(prefix)/share/man/man1
++	$(srcdir)/install-sh -d ${DESTDIR}$(prefix)/share/man/man3
++	$(srcdir)/install-sh -d ${DESTDIR}$(prefix)/share/man/man5
++	$(srcdir)/install-sh -d ${DESTDIR}$(prefix)/share/man/man8
+ 	@for d in  $(SUBDIRS); \
+ 	do \
+ 		(cd $$d; echo "### Making" install "in" `pwd`;	\
+
+--- cyrus-imapd-2.1.13/man/Makefile.in	Wed Jun 26 01:22:29 2002
++++ cyrus-imapd-2.1.13-patched/man/Makefile.in	Sun May 11 00:43:33 2003
+@@ -63,8 +63,7 @@
+ cyrus_prefix = @cyrus_prefix@
+ 
+ MAN1 = $(srcdir)/imtest.1 $(srcdir)/pop3test.1 $(srcdir)/lmtptest.1 \
+-	$(srcdir)/smtptest.1 $(srcdir)/sivtest.1 $(srcdir)/mupdatetest.1 \
+-	$(srcdir)/installsieve.1 $(srcdir)/sieveshell.1
++	$(srcdir)/smtptest.1 $(srcdir)/sivtest.1 $(srcdir)/mupdatetest.1
+ MAN3 = $(srcdir)/imclient.3
+ MAN5 = $(srcdir)/imapd.conf.5 $(srcdir)/krb.equiv.5 $(srcdir)/cyrus.conf.5
+ MAN8 = $(srcdir)/arbitron.8 $(srcdir)/collectnews.8 $(srcdir)/deliver.8 \
+@@ -85,19 +84,19 @@
+ install:
+ 	for file in $(MAN1); \
+ 	do \
+-		$(INSTALL) -m 644 $$file $(DESTDIR)$(prefix)/man/man1 || exit 1; \
++		$(INSTALL) -m 644 $$file $(DESTDIR)$(prefix)/share/man/man1 || exit 1; \
+ 	done
+ 	for file in $(MAN3); \
+ 	do \
+-		$(INSTALL) -m 644 $$file $(DESTDIR)$(prefix)/man/man3 || exit 1; \
++		$(INSTALL) -m 644 $$file $(DESTDIR)$(prefix)/share/man/man3 || exit 1; \
+ 	done
+ 	for file in $(MAN5); \
+ 	do \
+-		$(INSTALL) -m 644 $$file $(DESTDIR)$(prefix)/man/man5 || exit 1; \
++		$(INSTALL) -m 644 $$file $(DESTDIR)$(prefix)/share/man/man5 || exit 1; \
+ 	done
+ 	for file in $(MAN8); \
+ 	do \
+-		$(INSTALL) -m 644 $$file $(DESTDIR)$(prefix)/man/man8 || exit 1; \
++		$(INSTALL) -m 644 $$file $(DESTDIR)$(prefix)/share/man/man8 || exit 1; \
+ 	done
+ 
+ .c.o:
+
+--- cyrus-imapd-2.1.13/cyrus-imapd	Mon May 12 11:25:51 2003
++++ cyrus-imapd-2.1.13-patched/cyrus-imapd	Fri May 16 01:00:57 2003
+@@ -0,0 +1,22 @@
++#!/bin/sh
++#
++# Start/Stop script for Cyrus IMAP Server
++
++case "$1" in
++    start)
++        echo "Starting Cyrus IMAP Server"
++        @prefix@/bin/master_imapd &
++        ;;
++
++    stop)
++        echo "Stopping Cyrus IMAP Server"
++        killall master_imapd
++        ;;
++
++    *)
++        echo "Start/Stop script for Cyrus IMAP Server"
++        echo "Usage: $0 {start|stop}"
++        exit 1
++        ;;
++
++esac

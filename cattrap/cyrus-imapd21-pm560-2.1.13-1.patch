@@ -1,0 +1,185 @@
+--- cyrus-imapd-2.1.13/perl/sieve/lib/request.c	Fri Feb 14 07:15:53 2003
++++ cyrus-imapd-2.1.13-patched/perl/sieve/lib/request.c	Tue May  6 00:42:52 2003
+@@ -51,7 +51,6 @@
+ #include <sys/stat.h>
+ #include <sys/types.h>
+ #include <sys/ipc.h>
+-#include <sys/msg.h>
+ 
+ #include <stdlib.h>
+ #include <stdio.h>
+
+--- cyrus-imapd-2.1.13/perl/Makefile.in	Fri Jan  3 04:27:35 2003
++++ cyrus-imapd-2.1.13-patched/perl/Makefile.in	Tue May  6 00:38:40 2003
+@@ -52,8 +52,8 @@
+ INSTALL = @INSTALL@
+ 
+ # Note that we use the *dynamic* sasl libraries
+-SASL_LIB=@LIB_DYN_SASL@
+-SASL_INC=@DYNSASLFLAGS@
++SASL_LIB=-L@prefix@/lib -lsasl2
++SASL_INC=-I@prefix@/include
+ OPENSSL_LIB=@OPENSSL_LIB@
+ OPENSSL_INC=@OPENSSL_INC@
+ 
+@@ -80,7 +80,7 @@
+ 	(cd imap; \
+ 	 OPENSSL_LIB="$(OPENSSL_LIB)" OPENSSL_INC="$(OPENSSL_INC)" \
+ 	 SASL_LIB="$(SASL_LIB)" SASL_INC="$(SASL_INC)" CC="$(CC)" \
+-	   $(PERL) Makefile.PL PREFIX=$(prefix))
++	   /usr/bin/perl5.6.0 Makefile.PL PREFIX=$(prefix) INSTALLPRIVLIB=@prefix@/lib/perl5/5.6.0 INSTALLARCHLIB=@prefix@/lib/perl5/5.6.0/darwin INSTALLSITELIB=@prefix@/lib/perl5/5.6.0 INSTALLSITEARCH=@prefix@/lib/perl5/5.6.0/darwin INSTALLMAN1DIR=@prefix@/share/man/man1 INSTALLMAN3DIR=@prefix@/share/man/man3)
+ 
+ install::
+ 	@for d in  $(SUBDIRS); \
+
+--- cyrus-imapd-2.1.13/perl/sieve/Makefile.in	Tue Jul 23 02:16:09 2002
++++ cyrus-imapd-2.1.13-patched/perl/sieve/Makefile.in	Tue May  6 00:35:30 2003
+@@ -63,8 +63,8 @@
+ cyrus_prefix = @cyrus_prefix@
+ 
+ # Note that we use the *dynamic* sasl libraries
+-SASL_LIB=@LIB_DYN_SASL@
+-SASL_INC=@DYNSASLFLAGS@
++SASL_LIB=-L@prefix@/lib -lsasl2
++SASL_INC=-I@prefix@/include
+ OPENSSL_LIB=@OPENSSL_LIB@
+ OPENSSL_INC=@OPENSSL_INC@
+ 
+@@ -78,7 +78,7 @@
+ 			if [ -f Makefile.PL ]; then \
+ 			   OPENSSL_LIB="$(OPENSSL_LIB)" OPENSSL_INC="$(OPENSSL_INC)" \
+ 			   SASL_LIB="$(SASL_LIB)" SASL_INC="$(SASL_INC)" CC="$(CC)" \
+-			     $(PERL) Makefile.PL PREFIX=$(prefix); \
++			     /usr/bin/perl5.6.0 Makefile.PL PREFIX=$(prefix) INSTALLPRIVLIB=@prefix@/lib/perl5/5.6.0 INSTALLARCHLIB=@prefix@/lib/perl5/5.6.0/darwin INSTALLSITELIB=@prefix@/lib/perl5/5.6.0 INSTALLSITEARCH=@prefix@/lib/perl5/5.6.0/darwin INSTALLMAN1DIR=@prefix@/share/man/man1 INSTALLMAN3DIR=@prefix@/share/man/man3; \
+ 			fi; \
+ 			$(MAKE) $(MFLAGS) DESTDIR=$(DESTDIR) all) || exit 1; \
+ 	done
+
+
+--- cyrus-imapd-2.1.13/configure	Fri May  2 05:08:14 2003
++++ cyrus-imapd-2.1.13-patched/configure	Mon May  5 22:47:02 2003
+@@ -1499,7 +1499,7 @@
+     CFLAGS="-Wall ${CFLAGS}"
+   GCC_VERSION=`$CC -v 2>&1 | sed -n -e '/version/s/.*version \([0-9]\)\..*/\1/p'`
+   if test "$GCC_VERSION" != "3"; then
+-    CPPFLAGS="${CPPFLAGS} -I/usr/local/include"
++    CPPFLAGS="${CPPFLAGS}"
+   fi
+ else
+   CPPFLAGS="${CPPFLAGS} -I/usr/local/include"
+@@ -1507,7 +1507,7 @@
+ 
+   # this is CMU ADD LIBPATH
+   if test "$andrew_runpath_switch" = "none" ; then
+-	LDFLAGS="-L"/usr/local/lib" ${LDFLAGS}"
++	LDFLAGS="${LDFLAGS}"
+   else
+ 	LDFLAGS="-L"/usr/local/lib" $andrew_runpath_switch"/usr/local/lib" ${LDFLAGS}"
+   fi
+@@ -2841,7 +2841,7 @@
+ 	    BDB_LIBADD=""
+ 	fi
+ 
+-        for dbname in db-4.1 db4.1 db41 db-4.0 db4.0 db-4 db40 db4 db-3.3 db3.3 db33 db-3.2 db3.2 db32 db-3.1 db3.1 db31 db-3 db30 db3 db
++        for dbname in db-4.1
+           do
+             echo $ac_n "checking for db_create in -l$dbname""... $ac_c" 1>&6
+ echo "configure:2848: checking for db_create in -l$dbname" >&5
+@@ -5306,7 +5306,7 @@
+ EOF
+ if { (eval echo configure:5308: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+   rm -rf conftest*
+-  eval "ac_cv_lib_$ac_lib_var=yes"
++  eval "ac_cv_lib_$ac_lib_var=no"
+ else
+   echo "configure: failed program was:" >&5
+   cat conftest.$ac_ext >&5
+@@ -5422,8 +5422,7 @@
+ 	  with_com_err="yes"
+ 	else
+ 	  if test "${COMPILE_ET}" = "no compile et" -o "${COMPILE_ET}" = ""; then
+-	    echo "configure: warning: Parts of com_err distribuion were found, but not compile_et." 1>&2
+-	    echo "configure: warning: Will build com_err from included sources." 1>&2
++            echo "configure: included com_err will be used." 1>&2
+ 	    with_com_err="yes" # build it ourselves
+ 	  fi
+ 	fi
+
+
+--- cyrus-imapd-2.1.13/Makefile.in	Fri May  2 05:05:22 2003
++++ cyrus-imapd-2.1.13-patched/Makefile.in	Sat May 10 23:52:42 2003
+@@ -42,9 +42,8 @@
+ # OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ # 
+ 
+-SUBDIRS = man @PRE_SUBDIRS@ acap lib @SERVER_SUBDIRS@ \
+-	imtest @SNMP_SUBDIRS@ @EXTRA_SUBDIRS@
+-DISTSUBDIRS = doc
++SUBDIRS = lib perl
++DISTSUBDIRS =
+ 
+ srcdir = @srcdir@
+ VPATH = @srcdir@
+@@ -94,12 +93,7 @@
+ install::
+ 	$(srcdir)/install-sh -d ${DESTDIR}$(exec_prefix)/bin
+ 	$(srcdir)/install-sh -d ${DESTDIR}$(exec_prefix)/lib
+-	$(srcdir)/install-sh -d ${DESTDIR}$(prefix)/include/cyrus
+-	$(srcdir)/install-sh -d ${DESTDIR}$(prefix)/man/man1
+-	$(srcdir)/install-sh -d ${DESTDIR}$(prefix)/man/man3
+-	$(srcdir)/install-sh -d ${DESTDIR}$(prefix)/man/man5
+-	$(srcdir)/install-sh -d ${DESTDIR}$(prefix)/man/man8
+-	@for d in  $(SUBDIRS); \
++	@for d in  perl man; \
+ 	do \
+ 		(cd $$d; echo "### Making" install "in" `pwd`;	\
+ 			$(MAKE) $(MFLAGS) DESTDIR=$(DESTDIR) install) || exit 1; \
+
+
+--- cyrus-imapd-2.1.13/man/Makefile.in	Wed Jun 26 01:22:29 2002
++++ cyrus-imapd-2.1.13-patched/man/Makefile.in	Sun May 11 00:34:03 2003
+@@ -62,19 +62,10 @@
+ exec_prefix = @exec_prefix@
+ cyrus_prefix = @cyrus_prefix@
+ 
+-MAN1 = $(srcdir)/imtest.1 $(srcdir)/pop3test.1 $(srcdir)/lmtptest.1 \
+-	$(srcdir)/smtptest.1 $(srcdir)/sivtest.1 $(srcdir)/mupdatetest.1 \
+-	$(srcdir)/installsieve.1 $(srcdir)/sieveshell.1
+-MAN3 = $(srcdir)/imclient.3
+-MAN5 = $(srcdir)/imapd.conf.5 $(srcdir)/krb.equiv.5 $(srcdir)/cyrus.conf.5
+-MAN8 = $(srcdir)/arbitron.8 $(srcdir)/collectnews.8 $(srcdir)/deliver.8 \
+-	$(srcdir)/fud.8 $(srcdir)/imapd.8 $(srcdir)/pop3d.8 $(srcdir)/quota.8 \
+-	$(srcdir)/reconstruct.8 $(srcdir)/rmnews.8 $(srcdir)/syncnews.8 \
+-	$(srcdir)/mbpath.8 $(srcdir)/timsieved.8 $(srcdir)/master.8 \
+-	$(srcdir)/lmtpd.8 $(srcdir)/idled.8 $(srcdir)/ctl_mboxlist.8 \
+-	$(srcdir)/ctl_deliver.8 $(srcdir)/ctl_cyrusdb.8 $(srcdir)/ipurge.8 \
+-	$(srcdir)/tls_prune.8 $(srcdir)/squatter.8 $(srcdir)/cvt_cyrusdb.8 \
+-	$(srcdir)/notifyd.8 $(srcdir)/chk_cyrus.8
++MAN1 = $(srcdir)/installsieve.1 $(srcdir)/sieveshell.1
++MAN3 =
++MAN5 =
++MAN8 =
+ 
+ all: $(MAN1) $(MAN3) $(MAN5) $(MAN8)
+ 
+@@ -85,19 +76,7 @@
+ install:
+ 	for file in $(MAN1); \
+ 	do \
+-		$(INSTALL) -m 644 $$file $(DESTDIR)$(prefix)/man/man1 || exit 1; \
+-	done
+-	for file in $(MAN3); \
+-	do \
+-		$(INSTALL) -m 644 $$file $(DESTDIR)$(prefix)/man/man3 || exit 1; \
+-	done
+-	for file in $(MAN5); \
+-	do \
+-		$(INSTALL) -m 644 $$file $(DESTDIR)$(prefix)/man/man5 || exit 1; \
+-	done
+-	for file in $(MAN8); \
+-	do \
+-		$(INSTALL) -m 644 $$file $(DESTDIR)$(prefix)/man/man8 || exit 1; \
++		$(INSTALL) -m 644 $$file $(DESTDIR)$(prefix)/share/man/man1 || exit 1; \
+ 	done
+ 
+ .c.o:
