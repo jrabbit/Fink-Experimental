@@ -1,0 +1,74 @@
+#!/bin/sh
+
+# Display an info file
+
+help_displayinfofile()
+{
+echo "-----------------------------------------------------"
+echo -e "Purpose: Display an info or patch file\n"
+echo -e "Usage: $0 -s -i -w -b -t -c\n"
+echo -e "Options: -s is mandatory, the other ones are optional.\n"
+echo " -s the info or patch file to search, without extension"
+echo " -i the file type"
+echo "    default to info, may be patch"
+echo " -w the location of the root of fink tree" 
+echo "    default to /sw"
+echo " -b the branch to explore"
+echo "    default to 10.3, may be 10.2 or 10.2-gcc3.3"
+echo " -t the tree to explore"
+echo "    default to unstable, may be stable or local"
+echo " -c the subtree to explore"
+echo -e "    default to main, may be crypto\n"
+echo "Author: Michele Garoche Date: April 22nd, 2004"
+echo "-----------------------------------------------------"
+exit 1
+}
+
+# Default values 
+MYTYPE="info"
+MYSW="/sw"
+MYBRANCH="10.3"
+MYTREE="unstable"
+MYSUBTREE="main"
+
+# No argument
+if [[ $# -lt 1 ]]; then
+help_displayinfofile
+fi
+
+OPTIND=1
+while getopts "s:i:w:b:t:c:" flag
+do
+case "$flag" in
+s) STRINGTOSEARCH="$OPTARG";;
+i) MYTYPE="$OPTARG";;
+w) MYSW="$OPTARG";;
+b) MYBRANCH="$OPTARG";;
+t) MYTREE=$OPTARG;;
+c) MYSUBTREE=$OPTARG;;
+\?) help_displayinfofile;;
+esac
+done
+
+if [[ $STRINGTOSEARCH = '' ]]; then
+echo "Please, supply an info or patch file to search."
+help_displayinfofile
+fi
+
+WHERETOSEARCH=${MYSW}/fink/${MYBRANCH}/${MYTREE}/${MYSUBTREE}/finkinfo
+
+if [[ !(-d $WHERETOSEARCH) ]]; then
+echo "The path " $WHERETOSEARCH "does not exist."
+help_displayinfofile
+fi
+
+echo "Searching " ${STRINGTOSEARCH}"*."${MYTYPE} "in " ${WHERETOSEARCH}
+
+cd $WHERETOSEARCH
+
+# Search for the $STRINGTOSEARCH info or patch file in $WHERETOSEARCH directory
+for FIL in `find . -name $STRINGTOSEARCH\*.$MYTYPE`
+do
+# Display the file
+less $FIL
+done

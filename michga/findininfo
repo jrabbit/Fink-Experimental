@@ -1,0 +1,76 @@
+#!/bin/sh
+
+# Find some string in info files
+
+help_findininfo()
+{
+echo "-----------------------------------------------------"
+echo -e "Purpose: Search some string in info files\n"
+echo -e "Usage: $0 -s -w -b -t -c\n"
+echo -e "Options: -s is mandatory, the other ones are optional.\n"
+echo " -s the string to search"
+echo " -w the location of the root of fink tree" 
+echo "    default to /sw"
+echo " -b the branch to explore"
+echo "    default to 10.3, may be 10.2 or 10.2-gcc3.3"
+echo " -t the tree to explore"
+echo "    default to unstable, may be stable or local"
+echo " -c the subtree to explore"
+echo -e "    default to main, may be crypto\n"
+echo "Author: Michele Garoche Date: April 16th, 2004"
+echo "-----------------------------------------------------"
+exit 1
+}
+
+# Default values 
+MYSW="/sw"
+MYBRANCH="10.3"
+MYTREE="unstable"
+MYSUBTREE="main"
+
+# No argument
+if [[ $# -lt 1 ]]; then
+help_findininfo
+fi
+
+OPTIND=1
+while getopts "s:w:b:t:c:" flag
+do
+case "$flag" in
+s) STRINGTOSEARCH="$OPTARG";;
+w) MYSW="$OPTARG";;
+b) MYBRANCH="$OPTARG";;
+t) MYTREE=$OPTARG;;
+c) MYSUBTREE=$OPTARG;;
+\?) help_findininfo;;
+esac
+done
+
+if [[ $STRINGTOSEARCH = '' ]]; then
+echo "Please, supply a string to search."
+help_findininfo
+fi
+
+WHERETOSEARCH=${MYSW}/fink/${MYBRANCH}/${MYTREE}/${MYSUBTREE}/finkinfo
+
+if [[ !(-d $WHERETOSEARCH) ]]; then
+echo "The path " $WHERETOSEARCH "does not exist."
+help_findininfo
+fi
+
+echo "Searching " ${STRINGTOSEARCH} "in " ${WHERETOSEARCH}
+
+cd $WHERETOSEARCH
+
+# Search for the $STRINGTOSEARCH string in all files located in $WHERETOSEARCH directory
+for FIL in `find . -name \*.info`
+do
+# Test if the result of grep is not an empty string
+# i.e. if the string $STRINGTOSEARCH exists in the file $FIL
+if [[ -n `grep $STRINGTOSEARCH $FIL` ]]; then
+# print the file's name
+echo $FIL
+# print the whole line where the string $STRINGTOSEARCH is located in the file $FIL
+grep $STRINGTOSEARCH $FIL
+fi
+done
