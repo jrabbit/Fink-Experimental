@@ -15,6 +15,16 @@ dpkg --get-selections | \
 	grep -v '^ncurses[[:space:]]' | \
 	grep -v '^storable-pm[[:space:]]' | \
 	grep -v '^tar[[:space:]]' | \
+	grep -v '^xml-rss-pm[[:space:]]' | \
+	grep -v '^compress-zlib-pm[[:space:]]' | \
+	grep -v '^digest-md5-pm[[:space:]]' | \
+	grep -v '^html-parser-pm[[:space:]]' | \
+	grep -v '^html-tagset-pm[[:space:]]' | \
+	grep -v '^libnet-pm[[:space:]]' | \
+	grep -v '^libwww-pm[[:space:]]' | \
+	grep -v '^mime-base64-pm[[:space:]]' | \
+	grep -v '^uri-pm[[:space:]]' | \
+	grep -v '^xml-parser-pm[[:space:]]' | \
 	awk '{ print $1 }' | \
 	xargs sudo dpkg -r
 
@@ -33,6 +43,16 @@ dpkg --get-selections | \
 	grep -v '^ncurses[[:space:]]' | \
 	grep -v '^storable-pm[[:space:]]' | \
 	grep -v '^tar[[:space:]]' | \
+	grep -v '^xml-rss-pm[[:space:]]' | \
+	grep -v '^compress-zlib-pm[[:space:]]' | \
+	grep -v '^digest-md5-pm[[:space:]]' | \
+	grep -v '^html-parser-pm[[:space:]]' | \
+	grep -v '^html-tagset-pm[[:space:]]' | \
+	grep -v '^libnet-pm[[:space:]]' | \
+	grep -v '^libwww-pm[[:space:]]' | \
+	grep -v '^mime-base64-pm[[:space:]]' | \
+	grep -v '^uri-pm[[:space:]]' | \
+	grep -v '^xml-parser-pm[[:space:]]' | \
 	awk '{ print $1 }' | \
 	xargs sudo dpkg --purge
 

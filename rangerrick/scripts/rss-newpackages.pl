@@ -2,7 +2,7 @@
 
 use File::Find;
 use XML::RSS;
-use utf8;
+#use utf8;
 use strict;
 
 use vars qw(
@@ -20,7 +20,7 @@ use vars qw(
 	%UNSTABLE_PACKAGES
 );
 
-$DAYS   = 2; # number of days to look back
+$DAYS   = 1.5; # number of days to look back
 $NOW    = time;
 $CUTOFF = ($NOW - (60 * 60 * 24 * $DAYS));
 $PREFIX = '/tmp/fink-rss';
@@ -108,7 +108,8 @@ sub make_rss {
 		} else {
 			$description = $package->{'descdetail'};
 		}
-		$description =~ s/[\s\n\r]+/ /gs; $description =~ s/^\s+//; $description =~ s/\s+$//;
+		$description =~ s/!\p{IsASCII}//gs; $description =~ s/[\s\n\r]+/ /gs;
+		$description =~ s/^\s+//; $description =~ s/\s+$//;
 		$rss->add_item(
 			title       => encode_entities($package->{'package'} . ' ' . $package->{'version'} . '-' . $package->{'revision'} . ' (' . $package->{'description'} . ')'),
 			description => encode_entities($description),
@@ -193,7 +194,13 @@ sub encode_entities {
 		$_[$index] =~ s/>/&gt;/gs;
 		$_[$index] =~ s/</&lt;/gs;
 		$_[$index] =~ s/&/&amp;/gs;
-		$_[$index] =~ s/\xca//gs;
+#		$_[$index] =~ s/([\x{80}-\x{FFFF}])/'&#' . ord($1) . ';'/gse;
+		$_[$index] =~ s/([^\x20-\x7F])/'&#' . ord($1) . ';'/gse;
+#		$_[$index] =~ s/\xca//gs;
+		$_[$index] =~ tr/\x91\x92\x93\x94\x96\x97/''""\-\-/;
+		$_[$index] =~ tr/[\x80-\x9F]//d;
+		$_[$index] = pack("C*", unpack('U*', $_[$index]));
+#		$_[$index] =~ s/\xa8//gs;
 	}
 	return(@_);
 }
