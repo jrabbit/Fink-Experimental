@@ -190,6 +190,36 @@ diff -uNr postgresql-7.4.2/src/Makefile.shlib postgresql-7.4.2-new/src/Makefile.
  ifdef EXPSUFF
  	rm -f lib$(NAME)$(EXPSUFF)
  endif
+diff -uNr postgresql-7.4.2/src/backend/utils/fmgr/dfmgr.c postgresql-7.4.2-new/src/backend/utils/fmgr/dfmgr.c
+--- postgresql-7.4.2/src/backend/utils/fmgr/dfmgr.c	Thu Sep 25 02:58:05 2003
++++ postgresql-7.4.2-new/src/backend/utils/fmgr/dfmgr.c	Thu Jun 10 13:29:51 2004
+@@ -300,6 +300,26 @@
+ 		pfree(full);
+ 	}
+ 
++	new = palloc(strlen(name) + strlen(".so") + 1);
++	strcpy(new, name);
++	strcat(new, ".so");
++
++	if (!have_slash)
++	{
++		full = find_in_dynamic_libpath(new);
++		pfree(new);
++		if (full)
++			return full;
++	}
++	else
++	{
++		full = substitute_libpath_macro(new);
++		pfree(new);
++		if (file_exists(full))
++			return full;
++		pfree(full);
++	}
++
+ 	new = palloc(strlen(name) + strlen(DLSUFFIX) + 1);
+ 	strcpy(new, name);
+ 	strcat(new, DLSUFFIX);
 diff -uNr postgresql-7.4.2/src/backend/utils/mb/conversion_procs/ascii_and_mic/Makefile postgresql-7.4.2-new/src/backend/utils/mb/conversion_procs/ascii_and_mic/Makefile
 --- postgresql-7.4.2/src/backend/utils/mb/conversion_procs/ascii_and_mic/Makefile	Wed Aug 21 22:18:45 2002
 +++ postgresql-7.4.2-new/src/backend/utils/mb/conversion_procs/ascii_and_mic/Makefile	Fri May 21 08:42:56 2004
@@ -586,7 +616,7 @@ diff -uNr postgresql-7.4.2/src/interfaces/ecpg/compatlib/Makefile postgresql-7.4
  SO_MINOR_VERSION= 1
  
  override CPPFLAGS := -I$(top_srcdir)/src/interfaces/ecpg/include -I$(libpq_srcdir) -I$(top_srcdir)/src/include/utils $(CPPFLAGS) $(THREAD_CPPFLAGS)
-+override LDFLAGS := -L../../../../src/port -L@BUILDDIR@@PREFIX@/lib -L../ecpglib -lecpg -L../pgtypeslib -lpgtypes $(libpq) $(LDFLAGS)
++override LDFLAGS := -L../../../../src/port -L/sw/build/root-postgresql74-7.4.2-1/sw/lib -L../ecpglib -lecpg -L../pgtypeslib -lpgtypes $(libpq) $(LDFLAGS)
 +
  SHLIB_LINK = -L../ecpglib -lecpg -L../pgtypeslib -lpgtypes $(libpq) \
  	$(filter -lintl -lssl -lcrypto -lkrb5 -lcrypt -lm, $(LIBS)) $(THREAD_LIBS)
@@ -598,7 +628,7 @@ diff -uNr postgresql-7.4.2/src/interfaces/ecpg/ecpglib/Makefile postgresql-7.4.2
  SO_MINOR_VERSION= 1
  
  override CPPFLAGS := -I$(top_srcdir)/src/interfaces/ecpg/include -I$(libpq_srcdir) $(CPPFLAGS) $(THREAD_CPPFLAGS) 
-+override LDFLAGS := -L@BUILDDIR@@PREFIX@/lib -L../pgtypeslib -lpgtypes $(libpq) -L../../../../src/port $(LDFLAGS)
++override LDFLAGS := -L/sw/build/root-postgresql74-7.4.2-1/sw/lib -L../pgtypeslib -lpgtypes $(libpq) -L../../../../src/port $(LDFLAGS)
  
  OBJS= execute.o typename.o descriptor.o data.o error.o prepare.o memory.o \
  	connect.o misc.o
