@@ -5,7 +5,7 @@ KDEREL="1"
 clear
 echo "[$@]"
 echo "checking for libraries..."
-LIBS=`(dpkg -L "$@" 2>/dev/null | grep -E '(dylib$|so$|bundle$|/bin/)') | sort | uniq`
+LIBS=`(dpkg -L "$@" 2>/dev/null | grep -E '(dylib$|so$|bundle$|/sbin/|/bin/)') | sort | uniq`
 echo "scanning library dependencies..."
 DEPS=`otool -L $LIBS 2>/dev/null | grep -v : | awk '{ print $1 }' | sort | uniq`
 echo "backtracking packages..."
