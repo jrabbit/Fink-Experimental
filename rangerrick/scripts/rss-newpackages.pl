@@ -2,6 +2,7 @@
 
 use File::Find;
 use XML::RSS;
+use utf8;
 use strict;
 
 use vars qw(
@@ -19,20 +20,21 @@ use vars qw(
 	%UNSTABLE_PACKAGES
 );
 
-$DAYS   = 7; # number of days to look back
+$DAYS   = 2; # number of days to look back
 $NOW    = time;
 $CUTOFF = ($NOW - (60 * 60 * 24 * $DAYS));
 $PREFIX = '/tmp/fink-rss';
 $SCP    = 1;
+
+$ENV{CVS_RSH} = '/Users/ranger/bin/ssh.sh';
 
 print "- updating cvs repository... ";
 `mkdir -p '$PREFIX'`;
 `cd $PREFIX; cvs -d :pserver:anonymous\@cvs.fink.sourceforge.net:/cvsroot/fink co dists packages >$PREFIX/cvs.log 2>&1`;
 print "done\n";
 
-print "- searching for new info files... ";
+print "- searching for new info files...\n";
 find(\&find_infofiles, $PREFIX);
-print "done\n";
 
 print "- generating RSS... ";
 make_rss(\%STABLE_PACKAGES, 'Stable');
@@ -41,8 +43,18 @@ print "done\n";
 
 if ($SCP) {
 	print "- copying feeds to the Fink website... ";
-	`rsync -av -e ssh @FILES rangerrick\@fink.sourceforge.net:/home/groups/f/fi/fink/htdocs/news/ >/tmp/rss-rsync.log 2>&1`;
-	`ssh rangerrick\@fink.sourceforge.net 'cd /home/groups/f/fi/fink/htdocs; ./fix_perm.sh' >/dev/null 2>&1`;
+	system('echo > /tmp/rss-rsync.log');
+	my $newfiles;
+	for my $file (@FILES) {
+		$newfiles .= ' ' . $file . '.new';
+	}
+	`rsync -av -e /Users/ranger/bin/ssh.sh $newfiles rangerrick\@fink.sourceforge.net:/home/groups/f/fi/fink/htdocs/news/ >/tmp/rss-rsync.log 2>&1`;
+
+	my $movecommands;
+	for my $file (@FILES) {
+		$movecommands .= "; mv news/${file}.new news/${file}";
+	}
+	`/Users/ranger/bin/ssh.sh rangerrick\@fink.sourceforge.net 'cd /home/groups/f/fi/fink/htdocs; ./fix_perm.sh $movecommands' >/dev/null 2>&1`;
 	print "done\n";
 }
 
@@ -97,14 +109,10 @@ sub make_rss {
 			$description = $package->{'descdetail'};
 		}
 		$description =~ s/[\s\n\r]+/ /gs; $description =~ s/^\s+//; $description =~ s/\s+$//;
-		$description =~ s/</&lt;/gs;
-		$description =~ s/>/&gt;/gs;
-		$description =~ s/&/&amp;/gs;
-		# $description = '(updated ' . w3c_date($package->{'date'}) . ') ' . $description;
 		$rss->add_item(
-			title       => $package->{'package'} . ' ' . $package->{'version'} . '-' . $package->{'revision'} . ' (' . $package->{'description'} . ')',
-			description => $description,
-			link        => 'http://fink.sourceforge.net/pdb/package.php/' . $package->{'package'},
+			title       => encode_entities($package->{'package'} . ' ' . $package->{'version'} . '-' . $package->{'revision'} . ' (' . $package->{'description'} . ')'),
+			description => encode_entities($description),
+			link        => encode_entities('http://fink.sourceforge.net/pdb/package.php/' . $package->{'package'}),
 			dc          => {
 				date => w3c_date($package->{'date'}),
 			},
@@ -112,7 +120,7 @@ sub make_rss {
 	}
 
 	my $lctree = lc($tree);
-	$rss->save("fink-$lctree.rdf") or die "can't save rss: $!\n";
+	$rss->save("fink-$lctree.rdf.new") or die "can't save rss: $!\n";
 	push(@FILES, "fink-$lctree.rdf");
 }
 
@@ -124,6 +132,7 @@ sub find_infofiles {
 
 	my $text;
 	open(FILEIN, $File::Find::name) or die "can't open $File::Find::name: $!\n";
+	print "  - $_\n";
 	{ local $/ = undef; $text = <FILEIN>; }
 	my $hash = parse_keys($text);
 	close(FILEIN);
@@ -144,7 +153,7 @@ sub parse_keys {
 	my $lastkey = "";
 	my $heredoc = 0;
 
-	for (split(/\r?\n/, $text)) {
+	for (split(/\s*\r?\n/, $text)) {
 		chomp;
 		if ($heredoc > 0) {
 			if (/^\s*<<$/) {
@@ -155,8 +164,9 @@ sub parse_keys {
 				$heredoc++ if (/<<$/);
 			}
 		} else {
+			$_ =~ s/!\p{IsASCII}//gs;
 			next if /^\s*\#/;	# skip comments
-			if (/^\s*([0-9A-Za-z_.\-]+)\:\s*(\S.*?)\s*$/) {
+			if (/^\s*([0-9A-Za-z_.\-]+)\:\s*(.+?)\s*$/) {
 				$lastkey = lc($1);
 				if ($2 eq "<<") {
 					$hash->{lc($lastkey)} = "";
@@ -164,7 +174,7 @@ sub parse_keys {
 				} else {
 					$hash->{lc($lastkey)} = $2;
 				}
-			} elsif (/^\s+(\S.*?)\s*$/) {
+			} elsif (/^\s+(.+?)\s*$/) {
 				$hash->{lc($lastkey)} .= "\n".$1;
 			}
 		}
@@ -177,3 +187,13 @@ sub parse_keys {
 	return $hash;
 }
 
+sub encode_entities {
+	for my $index (0..$#_) {
+		$_[$index] =~ s/!\p{IsASCII}//gs;
+		$_[$index] =~ s/>/&gt;/gs;
+		$_[$index] =~ s/</&lt;/gs;
+		$_[$index] =~ s/&/&amp;/gs;
+		$_[$index] =~ s/\xca//gs;
+	}
+	return(@_);
+}
