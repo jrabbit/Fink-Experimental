@@ -63,7 +63,7 @@ if ($SCP) {
 
 	my $movecommands;
 	for my $file (@FILES) {
-		$movecommands .= "; mv news/${file}.new news/${file}";
+		$movecommands .= "; mv news/${file}.new news/${file}; chgrp fink news/${file}";
 	}
 	`/Users/ranger/bin/ssh.sh rangerrick\@fink.sourceforge.net 'cd /home/groups/f/fi/fink/htdocs; ./fix_perm.sh $movecommands' >/dev/null 2>&1`;
 	print "done\n";
