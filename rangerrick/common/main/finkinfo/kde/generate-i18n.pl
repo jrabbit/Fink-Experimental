@@ -6,9 +6,9 @@ my $KDEDIRECTORY  = 'stable/%v/src/';
 my $KDERELNUM     = 1;
 my $KDEARTSVER    = '1.3.1-1';
 my $KDEI18NRELNUM = 1;
-my $KOVERSION     = '1.3.4';
+my $KOVERSION     = '1.3.5';
 my $KODIRECTORY   = 'stable/koffice-%v/src/';
-my $KORELNUM      = '2';
+my $KORELNUM      = '1';
 my $VERBOSE       = 0;
 my $DRYRUN        = 0;
 
