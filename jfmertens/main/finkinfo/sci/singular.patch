@@ -1,0 +1,138 @@
+## PatchScript put here to escape the dreadfull fink indexing
+# (% expansions can't be used _ to correct when re-including in info file)
+
+### '--no-same-permissions' doesn't seem to work correctly
+chmod -R a+rX,u+w *
+
+### Trying slowly to get control over installation paths ...
+# Starting to get rid of hard-coded /usr/local...
+perl -pi.bak -e 's,/usr/local/bin/,,g; s,\$HOME/bin/\$MP_ARCH,/sw/bin,' MP/mpviewer/displaymp
+perl -pi.bak -e 's,/usr/local,\${prefix}/share/singular/localdir,' {,doc/}Makefile.in
+### Don't hardcode path, use relative path :
+perl -pi.bak -e 's,\${LN_S} \${SINGULAR},\${LN_S} Singular\-\${SINGULAR_VERSION},' Singular/Makefile.in
+### LIB must be copied to install-dir _ build-dir will disappear
+perl -pi -e 's,\${LN_S} `pwd`/,cp -pR ,' Singular/Makefile.in
+# Same in doc, for html and examples :
+perl -pi -e 's,ln -s `pwd`/,cp -pR ,' doc/Makefile.in
+
+### Misc
+## A rotten test : CPPFLAGS are set WITHIN the c file _ cf in the configure script :
+###   cat > conftest.$ac_ext <<EOF
+### #line 2756 "configure"
+### #include "confdefs.h"
+### #include "values.h" ,
+###               CPPFLAGS="-I. ${CPPFLAGS}"
+### EOF
+perl -pi.bak -e 's/AC_TRY_CPP\( #include "values\.h" ,//g; s/CPPFLAGS="\-I\. \${CPPFLAGS}",//g; s/echo "\*\*\* no values\.h";exit\)//g' MP/configure.in
+# And to make values.h found (eg in gcc -no-cpp-precomp -fPIC -I. -I%p/src/singular-2.04-1/ppcMac-darwin/include -DHAVE_CONFIG_H -c MP_Env.c _ in MP/MP)
+ln -s ../values.h MP/MP
+# it is MP_Memory.c
+perl -pi.bak -e 's/ Memory\.c/ MP_Memory\.c/g' MP/MP/Makefile.in
+# missing space
+perl -pi.bak -e 's/#include"MP.h"/#include "MP.h"/g' MP/MPT/MPT.h
+## stdlib.h shouldn't be a target _ no rule to make it... (correction no longer needed, but still...) :
+perl -pi.bak -e 's/ \${OM_MALLOC_HEADER}//g' omalloc/Makefile.in 
+## "--with-malloc=system" breaks down in MP, since there it is "--with-malloc=HEADER"
+## Thus patch the configure script to ignore the '--with-malloc=system, since the header we need is the default stdlib.h :
+perl -pi -e 's/"\${with_malloc\+set}" = set/0 = 1/g' MP/configure.in
+# setup2 missing in ntl/Makefile
+perl -pi -e 's/setup1 setup1/setup1 setup2/g' ntl/Makefile
+# GMP_PREFIX incorrectly set in ntl/configure
+perl -pi.bak -e 's, GMP_PREFIX=\$prefix/\$\{ac_cv_singuname\},,g' ntl/configure
+# re-run ranlib after cp
+perl -pi.bak -e 's,cp ntl\.a \$\(LIBDIR\)/libntl\.a,cp ntl\.a \$\(LIBDIR\)/libntl\.a; ranlib \$\(LIBDIR\)/libntl\.a,g' ntl/src/make.tail
+# cerr etc undefined in QuickTest.c etc...
+sed -i.bak -e '1i\
+#include <iostream\.h>' ntl/src/{*Test,subset}.c libfac/test*
+## The var $ac_cv_with_readline appears nowhere else in the build tree _ only at 1 place in configure(.in)
+# Everywhere else it is 'with_readline' : seems fixed in 2.05
+#perl -pi.bak -e 's/ac_cv_with_readline/with_readline/g' Singular/configure.in
+## line 1078 gave an error (not sure the fix is correct) : seems fixed in 2.05
+# iplib.cc: In function `BOOLEAN load_modules(char*, char*, char)':
+# iplib.cc:1078: error: could not convert `&token' to `int&'
+# ipshell.h:37: error: in passing argument 2 of `int IsCmd(char*, int&)'
+# perl -pi.bak -e 's/\(IsCmd\(plib, \&token\)\)/\(IsCmd\(plib, token\)\)/g' Singular/iplib.cc
+### new problem in 2.05 : HAVE_NAMESPACES leads to error (cf info file)
+perl -pi.bak -e 's,#   define HAVE_NAMESPACES 1,/\* #   define HAVE_NAMESPACES 1 \*/,g' Singular/mod2.h.in
+###
+### @ifclear needs a name _ guess is hopefully correct...
+perl -pi.bak -e 's,^\@ifclear$,\@ifclear singularmanual,' doc/INSTALL_win.texi
+## There is no ../GPL
+sed -i -e /GPL/d doc/Makefile.in
+### singular.hlp is installed (by doc/Makefile) in ${prefix}/info
+perl -pi.bak -e 's,/doc,/info,g' emacs/Makefile.in
+### and Singular/Makefile is not under $prefix
+perl -pi -e 's,\$\{prefix\}/Singular/Makefile,\.\./Singular/Makefile,g' emacs/Makefile.in
+### emacs/lib.pl expects to find libparse and LIB in "{prefix}/Singular" while they were installed
+### in ${bindir} and in ${prefix} resp ... The default in lib.pl is OK (except possibly for standalone build of emacs)
+perl -pi -e 's,\-s \$\{singulardir\} ,,'  emacs/Makefile.in
+### libm is libSystem, and is always searched _ but should be searched last :
+#perl -pi.bak -e 's/configure/configure NTL_STD_CXX=on LDLIBS=""/g' ntl/configure
+perl -pi -e 's/configure/configure LDLIBS=""/g' ntl/configure
+perl -pi -e 's/\-lm //g' Singular/Makefile.in
+###
+
+### Getting readline to be used (trying to _ don't understand this mess they did with readline...) :
+perl -pi.bak -e 's/"\$with_readline" != dynamic && test //g' Singular/configure.in
+###
+
+### changing .so suffixes to dylib ... (FIXME: probably better to use bundle and bundle-loader)
+perl -pi.bak -e 's/\"libreadline\.so\"\);/\"libreadline\.dylib\"\);\n\tif (fe_rl_hdl==NULL) fe_rl_hdl=dynl_open("libreadline.so");/g' Singular/fereadl.c
+perl -pi.bak -e 's/{ "",/{ "", "\.dylib",/g' Singular/iplib.cc
+perl -pi -e 's/\.so(=|:|\n|\))/\.dylib\1/g; s/\*\.so\*/\*\.so\* \*\.dylib\*/g' Singular/Makefile.in
+perl -pi.bak -e 's/"so"/"dylib"/g' Singular/mod_raw.cc
+###
+
+### dynamic loading
+# how to do dynamic loading (1)
+perl -pi -e 's,#if defined\(ix86_Linux\),#if defined\(ppcMac_darwin\)\n#define HAVE_ELF_SYSTEM\n#endif\n\n#if defined\(ix86_Linux\),g' Singular/mod_raw.cc
+# how to do dynamic loading (2)
+### The '-single_module' below is to avoid :
+### ld: common symbols not allowed with MH_DYLIB output format with the -multi_module option
+### fereadl.o definition of common _fe_rl_outstream (size 4)
+### (many such)
+## Have to try if there is a way to use continuation lines in commands like the following ... 
+# (Temporarily ?) rm'd ' -dynamiclib -single_module \-undefined dynamic_lookup' from the LD_DYN_FLAGS
+perl -pi -e 's|ac_cv_singuname\" in|ac_cv_singuname\" in\n\tppcMac\-darwin\)\n\t  AC_CHECK_LIB\(dl, dlopen\)\n\t  if test \"\$ac_cv_lib_dl_dlopen\" = yes; then\n\t\tLD_DYN_FLAGS=\"\-ldl\"\n\t\tSFLAGS=\"\-DPIC\"\n\t\tSLDFLAGS=\"\-dynamiclib \-undefined dynamic_lookup\"\n\t\tLD=g\+\+\n\t\tac_lib_dl=yes\n\t  fi\n\t;;|g' Singular/configure.in
+# remove temporarily -w flags
+# Also add the -dynamic -fno-common flags in Singular
+perl -pi.bak -e 's/\-O2/-O0 -Wall -Wcast-align -W -Wshadow -Wno-unused -no-cpp-precomp/g' omalloc/configure
+#perl -pi -e 's/\-O(3|)/$& -Wall -Wcast-align -W -Wshadow -Wno-unused -no-cpp-precomp/g' omalloc/Makefile.in
+perl -pi -e 's/\-O(3|)/-O0 -Wall -Wcast-align -W -Wshadow -Wno-unused -no-cpp-precomp/g' omalloc/Makefile.in
+perl -pi.bak -e 's/=\-O2/=\-O0 -Wall -Wcast-align -W -Wshadow -Wno-unused -no-cpp-precomp/g' ntl/src/def_makefile
+perl -pi.bak -e 's/=\-O2/=\-O0 -Wall -Wcast-align -W -Wshadow -Wno-unused -no-cpp-precomp/g' ntl/src/make.config 
+perl -pi -e 's/\-O3 \-w/-O0 -Wall -Wcast-align -W -Wshadow -Wno-unused -no-cpp-precomp/g' MP/configure.in
+perl -pi.bak -e 's/\-w$/ -Wall -Wcast-align -W -Wshadow -Wno-unused -no-cpp-precomp/g' factory/GNUmakefile.in
+perl -pi.bak -e 's/\-O2/-O0/g' factory/configure.in
+perl -pi.bak -e 's/\-O3/-O0 -Wall -Wcast-align -W -Wshadow -Wno-unused -no-cpp-precomp/g' libfac/configure.in
+perl -pi -e 's/\-O3 \-w /\-O0 -Wall -Wcast-align -W -Wshadow -Wno-unused -no-cpp-precomp /g' Singular/configure.in
+perl -pi -e 's/\"\-w\"/\"\-Wall -Wcast-align -W -Wshadow -Wno-unused -no-cpp-precomp\"/g' Singular/configure.in
+perl -pi -e 's/\-O2 \-w/-O0 -Wall -Wcast-align -W -Wshadow -Wno-unused -no-cpp-precomp/g' Singular/Makefile.in
+# get the patch into the configure scripts
+cd MP ; autoconf ; cd ..
+cd factory ; autoconf ; cd ..
+cd libfac ; autoconf ; cd ..
+cd Singular ; autoconf ; cd ..
+####
+
+#### C-C++ linking
+## The declaration 'extern int dynl_close ...' in Singular/ipid.cc:896 needs rather 'extern "C"' (for correct linking)
+## However just adding the "C" leads to a 'ipid.cc:896: error: parse error before string constant'
+## Apparently the extern "C" declaration has to come outside the scope, not only of the "if block" containing it
+## (logical _ what means a declaration that is conditional on execution-time circumstances), but even of the
+## whole function ( paCleanUp ) containing it... (have still to understand why).
+## Thus we rather include the corresponding header mod_raw.h, which contains its own extern "C" with #ifdef cplusplus wrappers
+## (has also to be included at the top level _ same reason.
+######### Fixed in vers 2.05
+# perl -pi.bak -e 's,^#include "ipid.h",#include "ipid.h"\n#include "mod_raw.h",g; s,^ *extern int dynl_close \(void \*handle\);,,g' Singular/ipid.cc
+## gmp.h can _ and must _ be included w/o any 'extern "C"' or '#undef __cplusplus'
+perl -pi.bak -e 's/(extern "C" {\n|}\n|.*cplusplus.*\n|#else\n|#endif\n)//g; s/#include <gmp\.h>\n/#include <gmp.h>/g' factory/cf_gmp.h
+perl -pi -e 's/>#include <gmp\.h>/>/g' factory/cf_gmp.h
+
+## For safety, after all those changes make sure to run 'make depend'
+perl -pi -e 's,stamp\-h$,stamp\-h depend,g' omalloc/Makefile.in
+perl -pi -e 's,Config\.h\.in$,Config\.h\.in depend,g' MP/MP/Makefile.in
+perl -pi.bak -e 's,^install:,install: depend,g' MP/MPT/Makefile.in
+perl -pi -e 's,stamp\-h$,stamp\-h depend,g' Singular/Makefile.in
+
+# Why does test mpsr_s ask for my (root-)password (Building as root) ???

@@ -1,0 +1,168 @@
+Package: singular
+Version: 2.05
+Revision: 0
+GCC: 3.3
+Conlicts: ntl
+# Also singular-factory and singular-libfac _ for the moment :
+Replaces: singular-factory, singular-libfac
+Depends: gmp-shlibs (>= 4.1.2-11), readline-shlibs, tetex
+## Soo little dep on tetex ...
+BuildDepends: gmp (>= 4.1.2-11), autoconf, readline, netpbm-bin (>= 10.18-3), latex2html, texinfo, tetex
+## For documentation, as long as not fixed
+BuildConflicts: bison (= 1.875)
+Source: ftp://www.mathematik.uni-kl.de/pub/Math/Singular/src/Singular-main-2-0-5.tar.gz
+Source2: ftp://www.mathematik.uni-kl.de/pub/Math/Singular/src/Singular-IntProg-2-0-5.tar.gz
+Source3: ftp://www.mathematik.uni-kl.de/pub/Math/Singular/src/Singular-MP-2-0-5.tar.gz
+Source4: ftp://www.mathematik.uni-kl.de/pub/Math/Singular/src/Singular-NTL-5.3.1.tar.gz
+Source5: ftp://www.mathematik.uni-kl.de/pub/Math/Singular/src/Singular-NTL-generic.tar.gz
+Source6: ftp://www.mathematik.uni-kl.de/pub/Math/Singular/src/Singular-Tst-2-0-5.tar.gz
+Source7: ftp://www.mathematik.uni-kl.de/pub/Math/Singular/src/Singular-doc-2-0-5.tar.gz
+Source8: ftp://www.mathematik.uni-kl.de/pub/Math/Singular/src/Singular-emacs-2-0-5.tar.gz
+Source9: ftp://www.mathematik.uni-kl.de/pub/Math/Singular/src/Singular-factory-2-0-5.tar.gz
+Source10: ftp://www.mathematik.uni-kl.de/pub/Math/Singular/src/Singular-kernel-2-0-5.tar.gz
+Source11: ftp://www.mathematik.uni-kl.de/pub/Math/Singular/src/Singular-libfac-2-0-5.tar.gz
+Source12: ftp://www.mathematik.uni-kl.de/pub/Math/Singular/src/Singular-omalloc-2-0-5.tar.gz
+Source13: ftp://www.mathematik.uni-kl.de/pub/Math/Singular/src/README
+Source-MD5: e88a57eab4c719f97a2cec19a8429f74
+Source2-MD5: b99ff8e6cd0961f6e1f64387d59f3510
+Source3-MD5: 8d7b33130501acf7d74cbd9e02b8a26a
+Source4-MD5: 5304918a83976e0d1c58ea40e795cfa7
+Source5-MD5: 990b2af1628eac683c4a69d2d3a554db
+Source6-MD5: a9fbca50eb2e0c6b468c572edcf737b6
+Source7-MD5: 7dade3cbf4b3297e13067bf136b47dd5
+Source8-MD5: 25490dbf52e0c3f3ff9d32a5c0773db9
+Source9-MD5: ccb98926a93b0fc90711730790c56ac5
+Source10-MD5: 2cc39a94e1e1c555cbbdfea2a825286e
+Source11-MD5: 149cd0f1249388e58138a6b1de17dd7c
+Source12-MD5: 7dc82f3822f35268c47c86edb9822e6f
+Source13-MD5: 375274293a5228c590454a37911fab27
+Source13Rename: README.%n
+NoSourceDirectory: true
+## And where are the sources for sgroup, Plural, etc ?
+PatchScript: <<
+#!/bin/sh -v
+. %a/%n.patch
+<<
+UpdateConfigGuessInDirs: . MP
+##ConfigureParams: --disable-streamio
+#ConfigureParams: --enable-doc --enable-emacs --with-malloc=stdlib.h --with-malloc=external --with-external-malloc-h=stdlib.h
+# Don't use "--with-namespaces" , else "ipshell.h:167: error: too few arguments to function `sleftv*" (called from iparith.cc:4098)
+NoSetLDFLAGS: true
+NoSetCPPFLAGS: true
+# CFLAGS and CXXFLAGS have to set differently in each dir _ because eg ntl doesn't respect CFLAGS,
+# and Singular/configure.in does not add its own flags when C(XX)FLAGS is set...  
+## Try to remove the next, to se it in each dir _ this way optimization flags are unchanged
+# SetCFLAGS: -no-cpp-precomp -O3 -Wall -Wno-unused
+# SetCXXFLAGS: -no-cpp-precomp -fno-common
+CompileScript: <<
+#!/bin/sh -v
+export PATH=${PATH}:/usr/libexec/binutils
+export CPATH=%p/include/pari:%p/include
+export LIBRARY_PATH=%p/lib
+export DYLD_LIBRARY_PATH=%p/lib
+## I thought this was the default ?? :
+export MACOSX_DEPLOYMENT_TARGET=10.3
+##
+# Else the configure might wrongly find things there from a previous build :
+rm -fR %i
+## removed -with-malloc=external (<- omalloc, removal for MP) _  Try now: malloc=system in omalloc; malloc=stdlib.h in MP :
+./configure --prefix=%i/share/%n --exec-prefix=%i --bindir=%i/bin --datadir=%i/mydata  --mandir=%i/share/man --infodir=%i/share/info --enable-doc --enable-emacs --enable-MP --enable-NTL -enable-factory --enable-libfac --enable-Singular --enable-IntegerProgramming --with-malloc=system --with-readline=dynamic -without-dynamic-kernel
+<<
+InstallScript: <<
+#!/bin/sh -v
+export PATH=${PATH}:/usr/libexec/binutils
+export CPATH=%p/include/pari:%p/include
+export LIBRARY_PATH=%p/lib
+export DYLD_LIBRARY_PATH=%p/lib
+export MACOSX_DEPLOYMENT_TARGET=10.3
+mkdir -p %i/share/%n/localdir
+mkdir -p %i/bin
+make install
+# Still to fix the install in emacs _ for the moment
+mkdir -p %i/share/emacs/site-lisp %i/share/%n/emacs %i/share/info
+cd emacs; cp -p *.el %i/share/emacs/site-lisp ; cp .emacs* singular.xpm %i/share/%n/emacs ; cd ..
+# And to fix this location :
+ln -s ../%n/info/%n.hlp %i/share/info/singular.info
+singtst () {
+### "make test"
+# This one OK :
+cd omalloc; make check > %p/var/logs/%n.test 2>&1 ; cd ..
+# Here : "make: *** No rule to make target `test.cc', needed by `test'.  Stop"  :
+cd MP/MPT; make test >> %p/var/logs/%n.test 2>&1 ; cd ../..
+# Here :
+## make QuickTest
+## g++ -I../include -I.  -O2  -o QuickTest QuickTest.c ntl.a   -lgmp
+## QuickTest.c: In function `int main()':
+## QuickTest.c:42: error: `cerr' undeclared (first use this function)
+cd ntl/src; make check  >> %p/var/logs/%n.test 2>&1 ; cd ../..
+# Here: need to configure "--without-Singular --with-memman --enable-streamio" to
+# make the first 2 targets, and need the tables for the last target ...
+# Thus, disabled for the moment :
+# cd factory; make gengftables; make gftables; make installtest; cd ..
+## And in the next one, :
+# test.cc: In function `void setVarNames(char*)':
+# test.cc:10: error: `strlen' undeclared (first use this function)
+# test.cc:23: error: `cout' undeclared (first use this function)
+# etc...
+cd libfac; make tests >> %p/var/logs/%n.test 2>&1 ; cd ..
+## Finally, the last one runs, but with scores of errors !!
+#cd Tst; ln -s ../ppcMac-darwin/Singular; perl ./regress.cmd `find . -name '*\.lst'`; cd ..
+make Tst-All >> %p/var/logs/%n.test 2>&1
+# Save the diff-files
+cd Tst; find . -name '*.diff'|xargs tar -cjf %i/share/%n/diffs.tar.bz2 ; cd ..
+}
+## Comment out to run the tests ..
+singtst
+###
+## God knows if this is still going to build something _ just exploring the set of targets ...
+make bindist sharedist
+# And not to lose them :
+install -pd %i/share/%n/dist
+install -p *.tar.gz %i/share/%n/dist
+## Cleanup
+rm -fR %i/share/%n/LIB{,/gftables}/CVS
+## Rough check for direct installs
+egrep '[^=][iI]nstall[^_].*\ %p/(bin|etc|man|lib|share|var|sbin|include|App|info|doc)' %p/var/logs/%n.log |grep -v '[Cc]hecking for'|grep -v '[iI]nstall path'|grep -v mkinstalldirs|grep -v 'will be installed in'|grep -v 'echo '|grep -v ': warning'
+# Finally, let's save the logs
+cp -p %p/var/logs/%n.* %i/share/%n
+<<
+InfoDocs: %p/share/info/%n.info
+DocFiles: COPYING ChangeLog README.%n
+License: GPL
+Description: A pkg for commutative algebra 
+DescPort: << 
+From singular-factory.info :
+ Had trouble compiling ftmpl_inst.cc, so tried adding 
+  --disable-streamio, but then make gftables doesn't work at all.
+Conflicts :
+Plus ntl ...
+dpkg - warning, overriding problem because --force enabled:
+ trying to overwrite `/sw/include/templates/ftmpl_inst.cc', which is also in package singular-factory dpkg - warning,
+overriding problem because --force enabled:
+ trying to overwrite `/sw/include/templates/ftmpl_array.cc', which is also in package singular-factory dpkg - warning,
+overriding problem because --force enabled:
+ trying to overwrite `/sw/include/templates/ftmpl_factor.cc', which is also in package singular-factory dpkg - warning,
+overriding problem because --force enabled:
+ trying to overwrite `/sw/include/templates/ftmpl_functions.h', which is also in package singular-factory dpkg - warning,
+overriding problem because --force enabled:
+ trying to overwrite `/sw/include/templates/ftmpl_list.cc', which is also in package singular-factory dpkg - warning,
+overriding problem because --force enabled:
+ trying to overwrite `/sw/include/templates/ftmpl_matrix.cc', which is also in package singular-factory dpkg - warning,
+overriding problem because --force enabled:
+ trying to overwrite `/sw/include/templates/ftmpl_array.h', which is also in package singular-factory dpkg - warning,
+overriding problem because --force enabled:
+ trying to overwrite `/sw/include/templates/ftmpl_factor.h', which is also in package singular-factory dpkg - warning,
+overriding problem because --force enabled:
+ trying to overwrite `/sw/include/templates/ftmpl_list.h', which is also in package singular-factory dpkg - warning,
+overriding problem because --force enabled:
+ trying to overwrite `/sw/include/templates/ftmpl_matrix.h', which is also in package singular-factory dpkg - warning,
+overriding problem because --force enabled:
+ trying to overwrite `/sw/include/factory.h', which is also in package singular-factory dpkg - warning, overriding problem
+because --force enabled:
+ trying to overwrite `/sw/include/factoryconf.h', which is also in package singular-factory dpkg - warning, overriding
+problem because --force enabled:
+ trying to overwrite `/sw/include/factor.h', which is also in package singular-libfac
+Setting up singular (2.05-0) ...
+<<
+Homepage: http://www.singular.uni-kl.de/
+Maintainer: Jean-Francois Mertens <jfmertens@users.sourceforge.net>
