@@ -1,0 +1,71 @@
+#!/usr/bin/perl
+use warnings;
+use strict;
+
+my $file = shift;
+
+# Make string addr -> string lookup
+my %strings;
+my $baseaddr = 4096;
+open STRINGS, "-|", "strings", "-o", $file or die "Can't open strings: $!";
+while (<STRINGS>) {
+	my ($offset, $label) = split;
+	$strings{$baseaddr + $offset} = $label;
+}
+close STRINGS;
+
+# Make method name memory location -> method name lookup
+my %methods;
+open REFS, "-|", "otool", "-sv", "__OBJC",  "__message_refs", $file
+	or die "Can't get __message_refs: $!";
+my $dummy = <REFS>;
+$dummy = <REFS>;
+while (<REFS>) {
+	my ($offset, @fields) = split;
+	my $deci = hex($offset);
+	
+	for (my $i = 0; $i < 4 && $i <= $#fields; ++$i) {
+		my $addr = sprintf "%x", $deci + 4 * $i;
+		my $msgref = hex($fields[$i]);
+		if (exists $strings{$msgref}) {
+			$methods{substr($addr, -4)} = $strings{$msgref};
+		}
+	}
+}
+close REFS;
+
+# Make method_imp -> method name lookup
+my %imp;
+my ($methname, $methtypes);
+open IMP, "-|", "otool", "-ov", $file or die "Can't get obj-c section: $!";
+while (<IMP>) {
+	my (@fields) = split;
+	if ($fields[0] eq "method_name") {
+		$methname = $fields[2];	
+	} elsif ($fields[0] eq "method_types") {
+		$methtypes = $fields[2];
+	} elsif ($fields[0] eq "method_imp") {
+		# Remove 0x
+		$imp{substr($fields[1], 2)} = "$methname  $methtypes";
+	}
+}
+close IMP;
+
+
+# Print disassembly
+open DISASSEM, "-|", "otool", "-tV", $file or die "Can't get disassembly: $!";
+while (<DISASSEM>) {
+	# Add method name headers
+	if (/^([\da-f]+)\s+/) {
+		if (exists $imp{$1}) {
+			print "$imp{$1}:\n";
+		}
+	}
+	
+	# Add method names to calls
+	s/,0x([\da-f]+)\(r/
+		",0x$1" . ((exists $methods{$1}) ? " [$methods{$1}] " : "") . "\(r"/eg;
+	
+	print $_;
+}
+close DISASSEM;

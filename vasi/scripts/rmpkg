@@ -1,0 +1,121 @@
+#!/usr/bin/perl
+use warnings;
+use strict;
+use English;
+
+use File::Find;
+
+our $receipts = '/Library/Receipts';
+our $verbose = 1;
+
+sub findboms {
+	my $dir = shift;
+	return {} unless -d $dir;
+
+	my %pkgs;
+	
+	find(
+		sub {
+			if ($File::Find::name =~ m,([^/]*)\.pkg/.*/Archive.bom$,) {
+				$pkgs{$1} = $File::Find::name;
+			}
+		},
+		$dir
+	);
+	
+	return \%pkgs;
+}
+
+sub readboms {
+	my $type = shift; 	# Either l, d, f
+	my @boms = @_;
+	
+	my %exclude = map { $_ => 1 } ("/etc", "/tmp", "/var", "");
+	my %results;
+	
+	for my $bom (@boms) {
+		open LSBOM, '-|', 'lsbom', '-s', "-$type", $bom or
+			die "Can't run lsbom: $!";
+		while (<LSBOM>) {
+			chomp;
+			s/^\.//g;
+			$results{$_} = 1 unless exists $exclude{$_};
+		}
+		close LSBOM;
+	}
+	
+	return [ sort keys %results ];
+}
+
+sub ensure_root {
+	if ($EUID != 0) {
+		# We need root
+		exec('/usr/bin/sudo', '-H', $0, @ARGV)
+		or die "$0: exec '/usr/bin/sudo -H $0 @ARGV' failed: $!";
+	}
+}
+
+
+unless (@ARGV) {
+	# Just list the available packages to remove
+	my $pkgs = findboms($receipts);
+		
+	map { print "$_\n" } sort { (lc $a) cmp (lc $b) } keys %$pkgs;
+	exit 0;
+}
+
+ensure_root;
+my @pkgs = @ARGV;
+my %boms;
+
+for my $pkg (@pkgs) {
+	my $pkgs = findboms("$receipts/$pkg.pkg");
+	my @pkgboms = values %$pkgs;
+	die "Multiple packages in package $pkg" if @pkgboms > 1;
+	die "No bom in package $pkg" if @pkgboms == 0;
+	$boms{$pkgboms[0]} = 1; # Don't allow dups
+}
+
+my @boms = keys %boms;
+
+
+my @dirs = @{ readboms('d', @boms) };
+my @files = sort ( @{ readboms('f', @boms) }, @{ readboms('l', @boms) } );
+
+for my $file (@files) {
+	print "Removing file '$file'\n" if $verbose;
+	unlink $file or print "WARNING: Couldn't remove $file: $!\n";
+}
+
+my @dirsfailed;
+while (1) {
+	my $success = 0;
+	for my $dir (@dirs) {
+		if (-d $dir) {
+			if (rmdir $dir) {
+				print "Removing directory '$dir'\n" if $verbose;
+				$success = 1;
+			} else {
+				push @dirsfailed, $dir;
+			}
+		}
+	}
+	
+	last unless $success;
+	@dirs = @dirsfailed;
+	@dirsfailed = ();
+}
+
+# Remove the pkg receipt
+for my $pkg (@pkgs) {
+	print "Removing package receipt for $pkg\n" if $verbose;
+	system("rm -rf \Q$receipts/$pkg.pkg\E") if $pkg; # No empty string!
+}
+
+if (@dirsfailed) {
+	print "\n";
+	print "The following directories were not empty so could not be removed:\n";
+	map { print "\t$_\n" } sort @dirsfailed;
+}
+
+
