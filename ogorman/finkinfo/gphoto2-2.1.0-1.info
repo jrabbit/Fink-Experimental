@@ -2,13 +2,14 @@ Package: gphoto2
 Version: 2.1.0
 Revision: 1
 Maintainer: Peter O'Gorman <peter@pogma.com> 
-Depends: libjpeg-shlibs, libusb-shlibs
-BuildDepends: libjpeg, libusb
+Depends: %N-shlibs (= %v-%r)
+BuildDepends: libjpeg, libusb, aalib, libexif, dlcompat-dev, readline (>= 4.3-5)
 Source: mirror:sourceforge:/gphoto/%n-%v.tar.bz2
+Source-MD5: b998bcb01cbb1916dedea03b7119ae42
 Patch: %f.patch 
 NoSetLDFlags: true
 NoSetCPPFlags: true
-Configureparams: --with-jpeg-prefix=%p --mandir=%p/share/man --disable-dependency-tracking
+Configureparams: --with-jpeg-prefix=%p --mandir=%p/share/man --disable-dependency-tracking --with-libiconv-prefix=%p --disable-static
 CompileScript: <<
 #!/bin/sh
 # Just bacuase this is the way I have been building it
@@ -19,16 +20,52 @@ export DYLD_LIBRARY_PATH
 export LIBRARY_PATH
 export CPATH
 ./configure %c
+# remove all traces of -lm -lpthread -lc and -L%p/lib and -I%p/include from the Makefiles
+# Note that this doesn't actually work :/
+for i in `find . -name Makefile` ; do
+  mv $i $i.old
+  echo "cleaning $i"
+  sed -e 's|-L%p/lib[^a-zA-Z0-9_\-\/]||g' \
+      -e 's|-I%p/include[^a-zA-Z0-9_\-\/]||g' \
+      -e 's|-lm[^a-zA-Z0-9_\-]||g' \
+      -e 's|-lpthread[^a-zA-Z0-9_\-]||g' \
+      -e 's|-lc[^a-zA-Z0-9_\-]||g' \
+  < $i.old > $i 
+  done
 make
 <<
 Installscript: <<
 make install DESTDIR=%d
-mv %i/bin/gphoto2-config %i/bin/gphoto2-config.old
-sed -e 's|"-L${exec_prefix}/lib"||g' -e 's| "-I${prefix}/include"||g' -e 's| -lm||g'< %i/bin/gphoto2-config.old > %i/bin/gphoto2-config
-rm -f %i/bin/gphoto2-config.old
-chmod +x %i/bin/gphoto2-config
 <<
 SetCPPFlags: -no-cpp-precomp
+Splitoff: <<
+Package: %N-shlibs
+Description: Shared libraries for gphoto2
+Depends: libusb-shlibs, libexif-shlibs, dlcompat-shlibs
+Files: <<
+    lib/gphoto2/%v/libgphoto2_*.so
+    lib/gphoto2_port/0.5.0/libgphoto2_port_*.so
+    lib/libgphoto2.2.0.1.dylib
+    lib/libgphoto2_port.0.5.0.dylib
+    lib/libgphoto2.2.dylib
+    lib/libgphoto2_port.0.dylib
+<<
+Shlibs: <<
+ %p/lib/libgphoto2.2.dylib 3.0.0 %n (>= 2.1.0-1)
+ %p/lib/libgphoto2_port.0.dylib 6.0.0 %n (>= 2.1.0-1)
+<<
+DocFiles: README HACKING COPYING
+<<
+Splitoff2: <<
+Package: %N-bin
+Depends: %N-shlibs (= %v-%r), aalib-shlibs, x11, readline-shlibs (>= 4.3-5), libjpeg-shlibs
+Description: Binary program for gphoto2
+DescPort: <<
+I have no idea if this works or not, don't have a supported camera
+<<
+Files: bin/gphoto2
+DocFiles: README HACKING COPYING
+<<
 DocFiles: README HACKING COPYING
 Description: Library that can be used to access digital cameras
 Descport: Usual fixes

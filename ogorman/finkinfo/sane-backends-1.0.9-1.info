@@ -1,7 +1,8 @@
 Package: sane-backends
 Version: 1.0.9
 Revision: 1
-Source: ftp://ftp.mostang.com/pub/sane/sane-1.0.9/%n-%v.tar.gz
+Source: ftp://ftp.mostang.com/pub/sane/sane-%v/%n-%v.tar.gz
+Source-MD5: b1869b7d333ab826b3aa9edde9820a96
 ConfigureParams: --mandir=%p/share/man --with-gphoto2
 NoSetLDFLags: true
 NoSetCPPFLags: true
@@ -9,28 +10,57 @@ SetCPPFLags: -no-cpp-precomp
 Patch: %f.patch
 BuildDepends: libusb, libjpeg, dlcompat-dev, gphoto2
 Depends: %n-shlibs
+Description: Scanner Access Now Easy
+DescDetail: <<
+ANE stands for "Scanner Access Now Easy" and is an application programming
+interface (API) that provides standardized access to any raster image 
+scanner hardware (flatbed scanner, hand-held scanner, video- and still-cameras,
+frame-grabbers, etc.). The SANE API is public domain and its discussion and
+development is open to everybody.
+<<
 CompileScript: <<
 #!/bin/sh
 # Just bacuase this is the way I have been building it
 DYLD_LIBRARY_PATH=%p/lib
 LIBRARY_PATH=%p/lib
 CPATH=%p/include
+LDFLAGS=
 export DYLD_LIBRARY_PATH
 export LIBRARY_PATH
 export CPATH
+export LDFLAGS
 ./configure %c
+# remove all traces of -lm -lpthread -lc and -L%p/lib and -I%p/include from the Makefiles
+# Note that this doesn't work :/
+for i in `find . -name Makefile` ; do 
+  mv $i $i.old
+  echo "cleaning $i"
+  sed -e 's|-L%p/lib[^a-zA-Z0-9_\-]||g' \
+      -e 's|-I%p/include[^a-zA-Z0-9_\-\/]||g' \
+      -e 's|-lm[^a-zA-Z0-9_\-]||g' \
+      -e 's|-lpthread[^a-zA-Z0-9_\-]||g' \
+      -e 's|-lc[^a-zA-Z0-9_\-]||g' \
+  < $i.old > $i
+# rm $i.old 
+  done
 make
 <<
 InstallScript: <<
 make install DESTDIR=%d docdir=%p/share/doc/%n-%v
 rm -f %i/lib/sane/libsane-sm3600.*
+rm -f %i/lib/sane/libsane*.so.1
+rm -f %i/lib/libsane.so.1
+rm -f %i/lib/libsane.so
 <<
 Splitoff: <<
 Package: %N-shlibs
-Depends: dlcompat-shlibs, libjpeg-shlibs, libusb-shlibs
+Depends: dlcompat-shlibs, libjpeg-shlibs, libusb-shlibs, gphoto2-shlibs
+Description: Shared libraries for sane
 Files: <<
  lib/libsane.1.0.9.dylib
  lib/libsane.1.dylib
+ lib/sane/libsane-*.1.0.9.so
+ lib/sane/libsane-*.1.so
  <<
 Shlibs: %p/lib/libsane.1.dylib 2.0.0 %n (>= %v-%r)
 DocFiles: COPYING
