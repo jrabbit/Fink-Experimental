@@ -1,0 +1,108 @@
+diff -ruN evolution-1.2.1/configure evolution-1.2.1-patched/configure
+--- evolution-1.2.1/configure	2002-12-05 20:01:27.000000000 +0100
++++ evolution-1.2.1-patched/configure	2003-01-14 22:05:22.000000000 +0100
+@@ -7260,7 +7260,7 @@
+ fi
+ rm -f conftest*
+ 
+-ALL_LINGUAS="az bg ca cs da de el en_AU en_GB es et eu fi fr ga gl hu it ja ko lt lv nl nn no pl pt pt_BR ro ru sk sl sv tr uk vi zh_CN zh_TW"
++ALL_LINGUAS="az bg ca cs da de el en_AU en_GB es et eu fi fr ga gl hu it ja ko lt lv nl nn no pl pt pt_BR ro ru sk sl sv tr uk vi zh_CN"
+ # Extract the first word of "ranlib", so it can be a program name with args.
+ set dummy ranlib; ac_word=$2
+ echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
+diff -ruN evolution-1.2.1/e-util/Makefile.in evolution-1.2.1-patched/e-util/Makefile.in
+--- evolution-1.2.1/e-util/Makefile.in	2002-12-06 00:07:28.000000000 +0100
++++ evolution-1.2.1-patched/e-util/Makefile.in	2003-01-14 22:07:03.000000000 +0100
+@@ -252,7 +252,7 @@
+ pilot_sources =  	$(econdinclude_HEADERS)		e-pilot-map.c			e-pilot-settings.c		e-pilot-util.c
+ 
+ @ENABLE_PILOT_CONDUITS_TRUE@pilot_compile = $(pilot_sources)
+-@ENABLE_PILOT_CONDUITS_FALSE@pilot_compile = 
++@ENABLE_PILOT_CONDUITS_FALSE@pilot_compile = dummy.c
+ 
+ libeconduit_la_SOURCES = $(pilot_compile)
+ 
+@@ -286,7 +286,7 @@
+ e-passwords.lo e-path.lo e-proxy.lo e-request.lo e-sexp.lo \
+ e-time-utils.lo e-url.lo md5-utils.lo
+ libeconduit_static_la_LIBADD = 
+-@ENABLE_PILOT_CONDUITS_FALSE@libeconduit_static_la_OBJECTS = 
++@ENABLE_PILOT_CONDUITS_FALSE@libeconduit_static_la_OBJECTS = dummy.lo
+ @ENABLE_PILOT_CONDUITS_TRUE@libeconduit_static_la_OBJECTS =  \
+ @ENABLE_PILOT_CONDUITS_TRUE@e-pilot-map.lo e-pilot-settings.lo \
+ @ENABLE_PILOT_CONDUITS_TRUE@e-pilot-util.lo
+@@ -305,7 +305,7 @@
+ libedb3util_la_OBJECTS =  e-db3-utils.lo e-dbhash.lo
+ libeconduit_la_LDFLAGS = 
+ libeconduit_la_LIBADD = 
+-@ENABLE_PILOT_CONDUITS_FALSE@libeconduit_la_OBJECTS = 
++@ENABLE_PILOT_CONDUITS_FALSE@libeconduit_la_OBJECTS = dummy.lo
+ @ENABLE_PILOT_CONDUITS_TRUE@libeconduit_la_OBJECTS =  e-pilot-map.lo \
+ @ENABLE_PILOT_CONDUITS_TRUE@e-pilot-settings.lo e-pilot-util.lo
+ CFLAGS = @CFLAGS@
+diff -ruN evolution-1.2.1/e-util/dummy.c evolution-1.2.1-patched/e-util/dummy.c
+--- evolution-1.2.1/e-util/dummy.c	1970-01-01 01:00:00.000000000 +0100
++++ evolution-1.2.1-patched/e-util/dummy.c	2003-01-14 22:05:46.000000000 +0100
+@@ -0,0 +1,6 @@
++/* Empty placeholder, to prevent link error when no conduits are used */
++
++static int foo()
++{
++	return 0;
++}
+diff -ruN evolution-1.2.1/libical/ltmain.sh evolution-1.2.1-patched/libical/ltmain.sh
+--- evolution-1.2.1/libical/ltmain.sh	2001-03-30 17:47:33.000000000 +0200
++++ evolution-1.2.1-patched/libical/ltmain.sh	2003-01-14 22:09:14.000000000 +0100
+@@ -2152,7 +2152,23 @@
+ 	if test -n "$export_symbols" && test -n "$archive_expsym_cmds"; then
+ 	  eval cmds=\"$archive_expsym_cmds\"
+ 	else
+-	  eval cmds=\"$archive_cmds\"
++	  if test "x$verstring" = "x0.0"; then
++	    tmp_verstring=
++	  else
++	    tmp_verstring="$verstring"
++	  fi
++	  save_deplibs="$deplibs"
++	  for conv in $convenience; do
++	    tmp_deplibs=
++	    for test_deplib in $deplibs; do
++	      if test "$test_deplib" != "$conv"; then
++	        tmp_deplibs="$tmp_deplibs $test_deplib"
++	      fi
++	    done
++	    deplibs="$tmp_deplibs"
++	  done
++ 	  eval cmds=\"$archive_cmds\"
++	  deplibs="$save_deplibs"
+ 	fi
+ 	IFS="${IFS= 	}"; save_ifs="$IFS"; IFS='~'
+ 	for cmd in $cmds; do
+diff -ruN evolution-1.2.1/ltmain.sh evolution-1.2.1-patched/ltmain.sh
+--- evolution-1.2.1/ltmain.sh	2002-12-05 20:01:28.000000000 +0100
++++ evolution-1.2.1-patched/ltmain.sh	2003-01-14 22:09:12.000000000 +0100
+@@ -2952,7 +2952,23 @@
+ 	if test -n "$export_symbols" && test -n "$archive_expsym_cmds"; then
+ 	  eval cmds=\"$archive_expsym_cmds\"
+ 	else
+-	  eval cmds=\"$archive_cmds\"
++	  if test "x$verstring" = "x0.0"; then
++	    tmp_verstring=
++	  else
++	    tmp_verstring="$verstring"
++	  fi
++	  save_deplibs="$deplibs"
++	  for conv in $convenience; do
++	    tmp_deplibs=
++	    for test_deplib in $deplibs; do
++	      if test "$test_deplib" != "$conv"; then
++	        tmp_deplibs="$tmp_deplibs $test_deplib"
++	      fi
++	    done
++	    deplibs="$tmp_deplibs"
++	  done
++ 	  eval cmds=\"$archive_cmds\"
++	  deplibs="$save_deplibs"
+ 	fi
+ 	save_ifs="$IFS"; IFS='~'
+ 	for cmd in $cmds; do
