@@ -75,7 +75,7 @@ include_once "header<xsl:value-of select="$lang-ext" />.inc";
 <xsl:text>&lt;?
 /* This file is generated, do not edit manually! */
 
-$section = "documentation";
+$section = "</xsl:text><xsl:value-of select="@section"/><xsl:text>";
 $parents = array("doc/index.php", "Document List");
 $navbox = array(
   "</xsl:text>
@@ -93,7 +93,7 @@ $printlink = "</xsl:text>
 <xsl:value-of select="$DESTDIR"/><xsl:value-of select="$PRINTFILE"/>
 <xsl:text>";
 
-$fsroot = $root = "../";
+$fsroot = $root = "</xsl:text><xsl:value-of select="@fsroot"/><xsl:text>";
 include $fsroot."header.inc";
 ?&gt;
 </xsl:text>
@@ -107,9 +107,9 @@ include $fsroot."header.inc";
 <xsl:document href="{@filename}{$lang-ext}.php" method="html" indent="no" encoding="utf-8">
 <xsl:text disable-output-escaping="yes">&lt;?</xsl:text>
 
-$title = "<xsl:value-of select="../shorttitle"/><xsl:text> - </xsl:text><xsl:value-of select="shorttitle"/>";
-$cvs_author = '$Id$';
-$cvs_date = '$Id$';
+$title = "<xsl:value-of select="../shorttitle"/> - <xsl:value-of select="shorttitle"/>";
+$cvs_author = 'Author: <xsl:value-of select="../cvsid" />';
+$cvs_date = 'Date: <xsl:value-of select="../cvsid" />';
 $metatags = '<link rel="contents" href="{../@filename}.php" title="{../shorttitle} Contents" />
 <xsl:for-each select="following-sibling::chapter">
 <xsl:if test="position()=1">
