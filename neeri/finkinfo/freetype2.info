@@ -1,6 +1,6 @@
 Package: freetype2
 Version: 2.1.9
-Revision: 2
+Revision: 3
 Depends: %N-shlibs (= %v-%r)
 Conflicts: freetype2-hinting
 Replaces: freetype2-hinting
@@ -13,25 +13,32 @@ CompileScript: <<
  make
 <<
 InstallScript: <<
+#!/bin/sh -e
+
  make install prefix=%i
  install -d -m 755 %i/lib/freetype2/lib
  mv %i/bin %i/lib/freetype2
  mv %i/lib/libfreetype.a %i/lib/freetype2/lib
  mv %i/lib/libfreetype.dylib %i/lib/freetype2/lib
  ln -sf %p/lib/libfreetype.6.dylib %i/lib/freetype2/lib/libfreetype.dylib
- mv %i/lib/libfreetype.la %i/lib/freetype2/lib
+ perl -p -e 's,%p/lib,%p/lib/freetype2/lib,g' %i/lib/libfreetype.la > %i/lib/freetype2/lib/libfreetype.la
+ rm -rf %i/lib/libfreetype.la
  mv %i/lib/pkgconfig %i/lib/freetype2/lib
  mv %i/include %i/lib/freetype2
  rm -rf %i/share/aclocal
  mkdir -p %i/share/doc/%n
  cp -r docs %i/share/doc/%n
+ for file in %i/lib/libfreetype*.dylib; do
+   REALFILE=`echo "$file" | sed -e 's,^%d,,'`
+   ln -sf "$REALFILE" %i/lib/freetype2/lib/
+ done
 <<
 SplitOff: <<
   Package: %N-shlibs
   Replaces:  freetype2-hinting-shlibs, freetype2 (<< 2.0.8-2)
   Conflicts: freetype2-hinting-shlibs
   Files: lib/libfreetype.6*dylib
-  Shlibs: %p/lib/libfreetype.6.dylib 10.0.0 %n (>= 2.0.9-1)
+  Shlibs: %p/lib/libfreetype.6.dylib 6.3.0 %n (>= 2.0.9-1)
   DocFiles: <<
     README docs/[A-Z]* docs/*.txt src/autohint/CatharonLicense.txt
     src/pcf/readme:README.pcf
