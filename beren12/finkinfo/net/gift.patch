@@ -1,7 +1,7 @@
 diff -ruN giFT/FastTrack/Makefile.am giFT.new/FastTrack/Makefile.am
 --- giFT/FastTrack/Makefile.am	1969-12-31 19:00:00.000000000 -0500
 +++ giFT.new/FastTrack/Makefile.am	2003-05-20 22:31:18.000000000 -0400
-@@ -0,0 +1,39 @@
+@@ -0,0 +1,36 @@
 +AM_CFLAGS = $(GIFT_CFLAGS)
 +
 +INCLUDES = -I$(top_srcdir)/lib \
@@ -35,12 +35,10 @@ diff -ruN giFT/FastTrack/Makefile.am giFT.new/FastTrack/Makefile.am
 +crypt/enc_type_20.c \
 +crypt/fst_crypt.c	crypt/fst_crypt.h
 +
-+# _BIG_ hack
-+# libFastTrack_la_LDFLAGS = -module -avoid-version -L$(top_builddir)/lib/.libs
-+
 +libFastTrack_la_LIBADD = \
 +	$(top_builddir)/lib/libgiFT.la \
 +	$(top_builddir)/plugin/libgiFTproto.la
+ 
 diff -ruN giFT/Makefile.am giFT.new/Makefile.am
 --- giFT/Makefile.am	2003-05-20 19:51:25.000000000 -0400
 +++ giFT.new/Makefile.am	2003-05-20 21:22:41.000000000 -0400
@@ -49,29 +47,7 @@ diff -ruN giFT/Makefile.am giFT.new/Makefile.am
 +SUBDIRS = lib plugin OpenFT Gnutella FastTrack src data
  
  man_MANS = giFT.1 gift.conf.5 OpenFT.conf.5
- 
-diff -ruN giFT/autogen.sh giFT.new/autogen.sh
---- giFT/autogen.sh	2002-10-29 19:36:21.000000000 -0500
-+++ giFT.new/autogen.sh	2003-05-20 19:54:45.000000000 -0400
-@@ -9,7 +9,7 @@
- : ${AUTOHEADER=autoheader}
- : ${AUTOMAKE=automake}
- : ${ACLOCAL=aclocal}
--: ${LIBTOOLIZE=libtoolize}
-+: ${LIBTOOLIZE=glibtoolize}
- 
- srcdir=`dirname $0`
- test -z "$srcdir" && srcdir=.
-@@ -57,6 +57,6 @@
- ) || exit 1
- 
- #conf_flags="--enable-maintainer-mode --enable-compile-warnings"
--echo Running $srcdir/configure $conf_flags "$@" ...
--$srcdir/configure --cache-file=config.cache $conf_flags "$@" && \
--  echo "Now type \`make' to compile giFT."
-+#echo Running $srcdir/configure $conf_flags "$@" ...
-+#$srcdir/configure --cache-file=config.cache $conf_flags "$@" && \
-+#  echo "Now type \`make' to compile giFT."
+
 diff -ruN giFT/configure.ac giFT.new/configure.ac
 --- giFT/configure.ac	2003-05-18 20:50:38.000000000 -0400
 +++ giFT.new/configure.ac	2003-05-20 21:45:18.000000000 -0400
@@ -167,15 +143,14 @@ diff -ruN giFT/src/Makefile.am giFT.new/src/Makefile.am
  
 diff -ruN giFT/src/main.c giFT.new/src/main.c
 --- giFT/src/main.c	2003-05-18 20:50:42.000000000 -0400
-+++ giFT.new/src/main.c	2003-05-20 21:49:49.000000000 -0400
-@@ -241,6 +241,10 @@
++++ giFT.new/src/main.c	2003-05-21 10:44:09.000000000 -0400
+@@ -241,6 +241,9 @@
  	string_appendf (s, "  OpenFT %i.%i.%i-%i\n", OPENFT_MAJOR, OPENFT_MINOR,
  	                OPENFT_MICRO, OPENFT_REV);
  # endif /* PLUGIN_OPENFT */
 +# ifdef PLUGIN_FASTTRACK
 +	string_appendf (s, "  FastTrack Enabled\n");
 +# endif /* PLUGIN_FASTTRACK */
-+#endif
  # ifdef PLUGIN_GNUTELLA
  	string_appendf (s, "  Gnutella %s\n", GT_VERSION);
  # endif /* PLUGIN_GNUTELLA */
