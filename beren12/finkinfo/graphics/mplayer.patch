@@ -1,7 +1,7 @@
-diff -ruN mplayer-1.0pre1/configure mplayer-1.0pre1.new/configure
---- mplayer-1.0pre1/configure	2003-09-01 06:51:11.000000000 -0400
-+++ mplayer-1.0pre1.new/configure	2003-09-29 12:10:03.000000000 -0400
-@@ -241,6 +241,7 @@
+diff -ruN MPlayer-1.0pre2/configure MPlayer-1.0pre2.new/configure
+--- MPlayer-1.0pre2/configure	2003-10-05 11:34:40.000000000 -0400
++++ MPlayer-1.0pre2.new/configure	2003-10-08 16:55:23.000000000 -0400
+@@ -245,6 +245,7 @@
  
  Miscellaneous options:
    --enable-runtime-cpudetection    Enable runtime CPU detection [disable]
@@ -9,7 +9,7 @@ diff -ruN mplayer-1.0pre1/configure mplayer-1.0pre1.new/configure
    --cc=COMPILER          use this C compiler to build MPlayer [gcc]
    --target=PLATFORM      target platform (i386-linux, arm-linux, etc)
    --enable-static        build a statically linked binary. Set further linking
-@@ -318,6 +319,7 @@
+@@ -322,6 +323,7 @@
  test "$CC" && _cc="$CC"
  _as=auto
  _runtime_cpudetection=no
@@ -17,7 +17,7 @@ diff -ruN mplayer-1.0pre1/configure mplayer-1.0pre1.new/configure
  for ac_option do
    case "$ac_option" in
    --target=*)
-@@ -357,6 +359,12 @@
+@@ -361,6 +363,12 @@
    --disable-runtime-cpudetection)
      _runtime_cpudetection=no
      ;;
@@ -30,7 +30,7 @@ diff -ruN mplayer-1.0pre1/configure mplayer-1.0pre1.new/configure
    --install-path=*)
      _install=`echo $ac_option | cut -d '=' -f 2 | sed 's/\/$//'`"/install"
      ;;
-@@ -565,6 +573,10 @@
+@@ -573,6 +581,10 @@
    # FreeBSD with Linux emulation /proc mounted,
    # extract CPU information from it
    _cpuinfo="cat /compat/linux/proc/cpuinfo"
@@ -41,7 +41,7 @@ diff -ruN mplayer-1.0pre1/configure mplayer-1.0pre1.new/configure
  elif x86; then
    # all other OSes try to extract CPU information from a small helper
    # program TOOLS/cpuinfo instead
-@@ -759,11 +771,11 @@
+@@ -767,11 +779,11 @@
        if test "$host_arch" = "i586-i686"; then
          _march="-march=i586"
          _mcpu="-mcpu=i686"
@@ -55,8 +55,8 @@ diff -ruN mplayer-1.0pre1/configure mplayer-1.0pre1.new/configure
        proc="$host_arch"
  
        case "$proc" in
-@@ -836,8 +848,9 @@
-             _altivec_gcc_flags='-maltivec -mabi=altivec'
+@@ -843,8 +855,9 @@
+ 	    _altivec=yes
  	fi
      fi
 -    if darwin ; then
@@ -65,12 +65,12 @@ diff -ruN mplayer-1.0pre1/configure mplayer-1.0pre1.new/configure
 +	proc=`$_cpuinfo | grep "Processor type" | cut -f 3 -d ' ' | sed 's/ppc//'`
 +	if [ `sysctl -n hw.optional.altivec` -eq 1 ]; then
  	    _altivec=yes
-             _altivec_gcc_flags='-faltivec'
   	fi
-@@ -845,24 +858,26 @@
-     echores "$proc"
+     fi
+@@ -856,31 +869,33 @@
  
      echocheck "GCC & CPU optimization abilities"
+ 
 -    if test -n "$proc"; then
 -        case "$proc" in
 -	    601) _march='-mcpu=601' _mcpu='-mtune=601' ;;
@@ -85,10 +85,11 @@ diff -ruN mplayer-1.0pre1/configure mplayer-1.0pre1.new/configure
 -	if test "$_cc_major" -ge "3" && test "$_cc_minor" -ge "1"; then
 -	    case "$proc" in
 -		7400*|7410*) _march='-mcpu=7400' _mcpu='-mtune=7400' ;;
--		7450*) _march='-mcpu=7450' _mcpu='-mtune=7450' ;;
+-		7450*|7455*) _march='-mcpu=7450' _mcpu='-mtune=7450' ;;
 -    		*) ;;
 -    	    esac
 -	fi
+-    fi
 +    if test "$_cpu_optimization" = yes; then
 +        if test -n "$proc"; then
 +            case "$proc" in
@@ -104,15 +105,27 @@ diff -ruN mplayer-1.0pre1/configure mplayer-1.0pre1.new/configure
 +	    if test "$_cc_major" -ge "3" && test "$_cc_minor" -ge "1"; then
 +	        case "$proc" in
 +		    7400*|7410*) _march='-mcpu=7400' _mcpu='-mtune=7400' ;;
-+		    7450*) _march='-mcpu=7450' _mcpu='-mtune=7450' ;;
++		    7450*|7455*) _march='-mcpu=7450' _mcpu='-mtune=7450' ;;
 +    		    *) ;;
 +    	        esac
 +	    fi
 +        fi
+ 
+-    if test -n "$_mcpu"; then
+-        _optimizing=`echo $_mcpu | cut -c 8-`
+-        echores "$_optimizing"
+-    else
+-        echores "none"
++        if test -n "$_mcpu"; then
++            _optimizing=`echo $_mcpu | cut -c 8-`
++            echores "$_optimizing"
++        else
++            echores "none"
++        fi
      fi
-     echores "$proc"
-     
-@@ -1162,6 +1177,8 @@
+ 
+     ;;
+@@ -1182,6 +1197,8 @@
    --with-extralibdir=*) ;;
    --enable-runtime-cpudetection) ;;
    --disable-runtime-cpudetection) ;;
@@ -121,7 +134,7 @@ diff -ruN mplayer-1.0pre1/configure mplayer-1.0pre1.new/configure
    --install-path=*) ;;
  
    # Real 2nd pass
-@@ -1872,6 +1889,8 @@
+@@ -1977,6 +1994,8 @@
  cc_check -lsocket && _ld_sock="-lsocket"
  cc_check -lnsl && _ld_sock="-lnsl"
  cc_check -lsocket -lnsl && _ld_sock="-lsocket -lnsl"
@@ -130,7 +143,7 @@ diff -ruN mplayer-1.0pre1/configure mplayer-1.0pre1.new/configure
  if test $_winsock2 = auto && not cygwin ; then
    _winsock2=no
    cat > $TMPC << EOF
-@@ -5109,7 +5128,11 @@
+@@ -5239,7 +5258,11 @@
    fi
  
    _def_xmms='#define HAVE_XMMS 1'
@@ -143,7 +156,7 @@ diff -ruN mplayer-1.0pre1/configure mplayer-1.0pre1.new/configure
  else
    _def_xmms='#undef HAVE_XMMS'
  fi
-@@ -5264,9 +5287,9 @@
+@@ -5443,9 +5466,9 @@
    _stripbinaries=no
  elif test -z "$CFLAGS" ; then
    if test "$host_arch" != "mips" ; then
@@ -155,7 +168,7 @@ diff -ruN mplayer-1.0pre1/configure mplayer-1.0pre1.new/configure
    fi
    # always compile with '-g' if .developer:
    if test -f ".developer" ; then
-@@ -5287,7 +5310,7 @@
+@@ -5466,7 +5489,7 @@
  fi
  if darwin ; then
    # use gnu style cpp on Darwin
@@ -164,7 +177,7 @@ diff -ruN mplayer-1.0pre1/configure mplayer-1.0pre1.new/configure
    # libavcodec (from ffmpeg) requires CONFIG_DARWIN to enable AltiVec on Darwin/MacOSX
    test "$_altivec" = yes && CFLAGS="$CFLAGS -DCONFIG_DARWIN"
  fi
-@@ -5440,7 +5463,7 @@
+@@ -5631,7 +5654,7 @@
  AWK = $_awk
  RANLIB = $_ranlib
  INSTALL = $_install
@@ -173,9 +186,9 @@ diff -ruN mplayer-1.0pre1/configure mplayer-1.0pre1.new/configure
  OPTFLAGS = $CFLAGS
  EXTRA_INC = $_inc_extra $_inc_gtk
  STRIPBINARIES = $_stripbinaries
-diff -ruN mplayer-1.0pre1/etc/example.conf mplayer-1.0pre1.new/etc/example.conf
---- mplayer-1.0pre1/etc/example.conf	2003-05-14 18:49:02.000000000 -0400
-+++ mplayer-1.0pre1.new/etc/example.conf	2003-09-26 09:24:37.000000000 -0400
+diff -ruN MPlayer-1.0pre2/etc/example.conf MPlayer-1.0pre2.new/etc/example.conf
+--- MPlayer-1.0pre2/etc/example.conf	2003-05-14 18:49:02.000000000 -0400
++++ MPlayer-1.0pre2.new/etc/example.conf	2003-10-08 16:49:10.000000000 -0400
 @@ -8,13 +8,13 @@
  ## more flexibly here. See below.
  ##
@@ -199,9 +212,9 @@ diff -ruN mplayer-1.0pre1/etc/example.conf mplayer-1.0pre1.new/etc/example.conf
  
 -include = /home/gabucino/.mplayer/i_did_not_RTFM_carefully_enough...
 +#include = /home/gabucino/.mplayer/i_did_not_RTFM_carefully_enough...
-diff -ruN mplayer-1.0pre1/libmpcodecs/vf_fame.c mplayer-1.0pre1.new/libmpcodecs/vf_fame.c
---- mplayer-1.0pre1/libmpcodecs/vf_fame.c	2003-03-15 13:01:02.000000000 -0500
-+++ mplayer-1.0pre1.new/libmpcodecs/vf_fame.c	2003-09-26 09:26:58.000000000 -0400
+diff -ruN MPlayer-1.0pre2/libmpcodecs/vf_fame.c MPlayer-1.0pre2.new/libmpcodecs/vf_fame.c
+--- MPlayer-1.0pre2/libmpcodecs/vf_fame.c	2003-03-15 13:01:02.000000000 -0500
++++ MPlayer-1.0pre2.new/libmpcodecs/vf_fame.c	2003-10-08 16:49:10.000000000 -0400
 @@ -16,7 +16,7 @@
  #include "vf.h"
  
@@ -211,3 +224,219 @@ diff -ruN mplayer-1.0pre1/libmpcodecs/vf_fame.c mplayer-1.0pre1.new/libmpcodecs/
  
  struct vf_priv_s {
      unsigned char* outbuf;
+diff -ruN MPlayer-1.0pre2/osdep/.gdb_history MPlayer-1.0pre2.new/osdep/.gdb_history
+--- MPlayer-1.0pre2/osdep/.gdb_history	1969-12-31 19:00:00.000000000 -0500
++++ MPlayer-1.0pre2.new/osdep/.gdb_history	2003-10-14 14:38:08.000000000 -0400
+@@ -0,0 +1,2 @@
++r
++c
+diff -ruN MPlayer-1.0pre2/osdep/timer-darwin.c MPlayer-1.0pre2.new/osdep/timer-darwin.c
+--- MPlayer-1.0pre2/osdep/timer-darwin.c	2003-08-03 14:28:28.000000000 -0400
++++ MPlayer-1.0pre2.new/osdep/timer-darwin.c	2003-10-16 00:05:52.000000000 -0400
+@@ -1,7 +1,5 @@
+ /*
+- * Precise timer routines using Mach kernel-space timing.
+- *
+- * It reports to be accurate by ~20us, unless the task is preempted. 
++ * Precise timer routines using CoreFoundation
+  *
+  * (C) 2003 Dan Christiansen
+  *
+@@ -10,157 +8,96 @@
+ 
+ #include <unistd.h>
+ #include <stdlib.h>
+-#include <stdio.h>
+-
++#include <time.h>
++#include <math.h>
++#include <sys/time.h>
+ #include <mach/mach_time.h>
+-#include <mach/mach.h>
+-#include <mach/clock.h>
+ 
+ #include "../config.h"
+ #include "../mp_msg.h"
+ #include "timer.h"
+ 
+-/* Utility macros for mach_timespec_t - it uses nsec rather than usec */
+-
+-/* returns time from t1 to t2, in seconds (as float) */
+-#define diff_time(t1, t2)						\
+-  (((t2).tv_sec - (t1).tv_sec) +					\
+-   ((t2).tv_nsec - (t1).tv_nsec) / 1e9)
+-
+-/* returns time from t1 to t2, in microseconds (as integer) */
+-#define udiff_time(t1, t2)						\
+-  (((t2).tv_sec - (t1).tv_sec) * 1000000 +				\
+-   ((t2).tv_nsec - (t1).tv_nsec) / 1000)
+-
+-/* returns float value of t, in seconds */
+-#define time_to_float(t)						\
+-  ((t).tv_sec + (t).tv_nsec / 1e9)
+-
+-/* returns integer value of t, in microseconds */
+-#define time_to_usec(t)							\
+-  ((t).tv_sec * 1000000 + (t).tv_nsec / 1000)
+-
+-/* sets ts to the value of f, in seconds */
+-#define float_to_time(f, ts)						\
+-  do {									\
+-    (ts).tv_sec = (unsigned int)(f);					\
+-    (ts).tv_nsec = (int)(((f) - (ts).sec) / 1000000000.0);		\
+-  } while (0)
+-
+-/* sets ts to the value of i, in microseconds */
+-#define usec_to_time(i, ts)						\
+-  do {									\
+-    (ts).tv_sec = (i) / 1000000;					\
+-    (ts).tv_nsec = (i) % 1000000 * 1000;				\
+-  } while (0)
+-
+-#define time_uadd(i, ts)						\
+-  do {									\
+-    (ts).tv_sec += (i) / 1000000;					\
+-    (ts).tv_nsec += (i) % 1000000 * 1000;				\
+-    while ((ts).tv_nsec > 1000000000) {					\
+-      (ts).tv_sec++;							\
+-      (ts).tv_nsec -= 1000000000;					\
+-    }									\
+-  } while (0)
+-
+-
+ /* global variables */
+ static double relative_time, startup_time;
+ static double timebase_ratio;
+-static mach_port_t clock_port;
+-
+ 
+-/* sleep usec_delay microseconds */
+-int usec_sleep(int usec_delay)
++/* the core sleep function, uses floats and is used in MPlayer G2 */
++float sleep_accurate(float time_frame)
+ {
+-  mach_timespec_t start_time, end_time;
+-
+-  clock_get_time(clock_port, &start_time);
++  uint64_t deadline = time_frame / timebase_ratio + mach_absolute_time();
+ 
+-  end_time = start_time;
+-  time_uadd(usec_delay, end_time);
++  mach_wait_until(deadline);
+ 
+-  clock_sleep(clock_port, TIME_ABSOLUTE, end_time, NULL);
+-
+-  clock_get_time(clock_port, &end_time);
++  return (mach_absolute_time() - deadline) * timebase_ratio;
++}
+ 
+-  return usec_delay - udiff_time(start_time, end_time);
++/* for MPlayer G1 */
++int usec_sleep(int usec_delay)
++{
++  return lrintf (sleep_accurate(usec_delay));
+ }
+ 
+ 
+-/* Returns current time in microseconds */
++/* current time in microseconds */
+ unsigned int GetTimer()
+ {
+   return (unsigned int)((mach_absolute_time() * timebase_ratio - startup_time)
+ 			* 1e6);
+-}  
++}
+ 
+-/* Returns current time in milliseconds */
++/* current time in milliseconds */
+ unsigned int GetTimerMS()
+ {
+   return (unsigned int)(GetTimer() / 1000);
+ }
+ 
+-/* Returns time spent between now and last call in seconds */
++/* time spent between now and last call in seconds */
+ float GetRelativeTime()
+ {
+-  double last_time;
+-
+-  last_time = relative_time;
++  double last_time = relative_time;
++  
++  if (!relative_time)
++    InitTimer();
+   
+   relative_time = mach_absolute_time() * timebase_ratio;
+ 
+   return (float)(relative_time-last_time);
+ }
+ 
+-/* Initialize timer, must be called at least once at start */
++/* initialize timer, must be called at least once at start */
+ void InitTimer()
+ {
+   struct mach_timebase_info timebase;
+ 
+-  /* get base for mach_absolute_time() */
+   mach_timebase_info(&timebase);
+   timebase_ratio = (double)timebase.numer / (double)timebase.denom 
+     * (double)1e-9;
+-  
+-  /* get mach port for the clock */
+-  host_get_clock_service(mach_host_self(), REALTIME_CLOCK, &clock_port);
+-  
+-  /* prepare for GetRelativeTime() */
+-  relative_time = startup_time = 
++    
++  relative_time =  startup_time = 
+     (double)(mach_absolute_time() * timebase_ratio);
+ }
+ 
+-
+ #if 0
+-int main()
+-{
+-  const long delay = 0.001*1e6;
+-  const unsigned short attempts = 100;
+-  int i,j[attempts],t[attempts],r[attempts];
+-  double sqtotal;
+-  double total;
+-  
++#include <stdio.h>
++
++int main() {
++  int i,j, r;
++  const int delay = 0.1 * 1e6;
++
+   InitTimer();
+ 
+-  for (i = 0; i < attempts; i++) {
+-    t[i] = j[i] = GetTimer();
+-    r[i] = usec_sleep(delay);
+-      j[i] = delay-(GetTimer() - j[i]);
+-      fflush(stdout);
++  for (i = 0; i < 20; i++) {
++    j = GetTimer();
++#if 1
++    r = usec_sleep(delay);
++#else
++    r = sleep_accurate(delay / 1e6) * 1e6;
++#endif
++    j = (GetTimer() - j) - delay;
++    printf("sleep time:\t%i (%i)\n",
++	   j, j - r);
+   }
+ 
+-  for (i = 0; i < attempts; i++) {
+-    sqtotal += j[i]*j[i];
+-    total += j[i];
+-    printf("%2i=%0.06g  \tr: %9i\tj: %9i\tr - j:%9i\n",
+-	   i, t[i] / 1e6, r[i], j[i], r[i] - j[i]);
+-  }
+-  
+-  printf("attempts: %i\ttotal=%g\trms=%g\tavg=%g\n", attempts, total, 
+-	 sqrt(sqtotal/attempts),total/attempts);
+-  
+   return 0;
+ }
+ #endif
