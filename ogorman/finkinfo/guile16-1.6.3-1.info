@@ -1,12 +1,12 @@
-Package: guile
+Package: guile16
 Version: 1.6.3
 Revision: 1
 BuildDepends: dlcompat-dev, readline
-Depends: guile16-shlibs (= %v-%r)
-Source: gnu
+Depends: %N-shlibs (= %v-%r), %N-libs (= %v-%r)
+Source: mirror:gnu:guile/guile-%v.tar.gz
 Source-MD5: d29bd197ef776b339d942d82d8ba8bdf
 Patch: %f.patch
-ConfigureParams: --infodir=%p/share/info
+ConfigureParams: --infodir=%p/share/info --program-transform-name="s|guile|guile\-1\.6|g"
 NoSetCPPFLAGS: true
 NoSetLDFLAGS: true
 SetCPPFLAGS: -no-cpp-precomp -Dmacosx
@@ -22,55 +22,56 @@ CompileScript: <<
 <<
 InstallScript: <<
  make install DESTDIR=%d
+ perl -pi -e "s|%p/bin/guile|%p/bin/guile\-1\.6|" %i/bin/guile-1.6-config
+ perl -pi -e "s|GUILE,guile|GUILE,guile\-1\.6|" %i/share/aclocal/guile.m4
+ perl -pi -e "s|GUILE_CONFIG,guile\-config|GUILE_CONFIG,guile\-1\.6\-config|" %i/share/aclocal/guile.m4
+ perl -pi -e "s|GUILE_TOOLS,guile\-tools|GUILE_TOOLS,guile\-1\.6\-tools|" %i/share/aclocal/guile.m4  
 <<
 SplitOff: <<
-  Package: guile16-shlibs
-  Depends: dlcompat-shlibs, readline-shlibs
-  Replaces: %N (<< 1.6.1)
+  Package: %N-shlibs
+  Depends: dlcompat-shlibs
   Files: <<
     lib/libguile.*.dylib
-    lib/libguile-srfi-srfi-13-14-v-1.*.dylib
-    lib/libguile-srfi-srfi-4-v-1.*.dylib
-    lib/libguilereadline-v-12.*.dylib
     lib/libguile-ltdl.1.0.0.dylib
     lib/libguile-ltdl.1.dylib
   <<
-  DocFiles: README COPYING AUTHORS NEWS THANKS
+  DocFiles: COPYING
   Shlibs: <<
-  %p/lib/libguilereadline-v-12.12.3.0.dylib 16.0.0 %n (>= 1.6.3-1)
-  %p/lib/libguile-srfi-srfi-13-14-v-1.1.dylib 2.0.0 %n (>= 1.6.3-1)
-  %p/lib/libguile-srfi-srfi-4-v-1.1.dylib 2.0.0 %n (>= 1.6.3-1)
   %p/lib/libguile.12.dylib 16.0.0 %n (>= 1.6.3-1)
   %p/lib/libguile-ltdl.1.dylib 2.0.0 %n (>= 1.6.3-1)
   <<
+  Description: Shared libraries for guile16
 <<
 SplitOff2: <<
-  Package: guile16-dev
+  Package: %N-libs
+  Files: <<
+    lib/libguile-srfi-srfi-13-14-v-1.*
+    lib/libguile-srfi-srfi-4-v-1.*
+    lib/libguilereadline-v-12.*
+    share/guile/1.6
+  <<
+  DocFiles: COPYING
+  Depends: readline-shlibs, %N-shlibs (= %v-%r)
+  Description: Scheme libraries and modules for guile16
+<<
+SplitOff3: <<
+  Package: %N-dev
   BuildDependsOnly: True
-  Depends: guile16-shlibs (= %v-%r)
-  Replaces: %N (<< 1.6.3-1), guile-dev
+  Depends: %N-shlibs (= %v-%r)
+  Replaces: guile-dev
   Conflicts: guile-dev
   Files: <<
-    bin/guile-config
     include
     share/aclocal
     lib/libguile.a
-    lib/libguile-srfi-srfi-13-14-v-1.a
-    lib/libguile-srfi-srfi-4-v-1.a
-    lib/libguilereadline-v-12.a
     lib/libguile.la
-    lib/libguile-srfi-srfi-13-14-v-1.la
-    lib/libguile-srfi-srfi-4-v-1.la
-    lib/libguilereadline-v-12.la
     lib/libguile.dylib
-    lib/libguile-srfi-srfi-13-14-v-1.dylib
-    lib/libguile-srfi-srfi-4-v-1.dylib
-    lib/libguilereadline-v-12.dylib
     lib/libguile-ltdl.dylib
     lib/libguile-ltdl.la
     lib/libguile-ltdl.a
   <<
-  DocFiles: README COPYING AUTHORS NEWS THANKS
+  DocFiles: COPYING
+  Description: Development package for guile16  
 <<
 DocFiles: README COPYING AUTHORS HACKING NEWS THANKS
 InfoDocs: guile.info guile-tut.info goops.info r5rs.info
@@ -82,8 +83,9 @@ Thread support currently disabled (configure's default).
 pass make check.
 Patched libtool to make it build two level namespace and
 ensure it links against the just built libs.
+Patched makefiles to replace -export-dynamic with -module.
+Made the main packages not conflict with guile-1.4
 <<
 License: GPL
 Homepage: http://www.gnu.org/software/guile/guile.html
-#Maintainer: David Bacher <drbacher@alum.mit.edu>
 Maintainer: Peter O'Gorman <peter@pogma.com>
