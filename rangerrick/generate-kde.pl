@@ -79,6 +79,7 @@ for my $file (sort keys %files) {
 									$line =~ s/freetype2(-hinting)?-dev(\s+\([^\)]+\))?\s*\|\s*freetype2(-hinting)?-dev(\s+\([^\)]+\))?\s*[\,\s]*//g;
 									$line =~ s/^\#10.2\s+(.*)$/$1/;
 									$line =~ s/libgsf-dev/libgsf/g;
+									$line =~ s/gstreamer\S*?(\s+\([^\)]+\))?\s*[\,\s]*//g;
 								}
 								print FILEOUT $line;
 							}
