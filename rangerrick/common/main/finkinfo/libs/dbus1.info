@@ -1,0 +1,61 @@
+Package: dbus1
+Version: 0.31
+Revision: 1
+BuildDepends: expat, pkgconfig, x11-dev
+Depends: %N-shlibs (>= %v-%r), daemonic, expat-shlibs
+Source: http://dbus.freedesktop.org/releases/dbus-%v.tar.gz
+Source-MD5: 26620cacfbbacf2f40a2729f3c642ca5
+ConfigureParams: --mandir=%p/share/man --disable-qt --disable-glib --disable-gtk --disable-xml-docs --disable-doxygen-docs --disable-gcj --disable-mono --disable-mono-docs --disable-python --disable-selinux --with-session-socket-dir=%p/var/run/dbus --with-system-socket=%p/var/run/dbus/system_bus_socket --with-system-pid-file=%p/var/run/dbus/pid --with-xml=expat
+InstallScript: <<
+  make install DESTDIR=%d
+<<
+SplitOff: <<
+  Package: %N-dev
+  Depends: %N (>= %v-%r)
+  Description: Development headers and tools for D-BUS
+  Files: <<
+    include
+    lib/*.a
+    lib/*.la
+    lib/libdbus-1.dylib
+    lib/dbus-1.0/include
+    lib/pkgconfig
+  <<
+<<
+SplitOff2: <<
+  Package: %N-shlibs
+  Description: Shared libraries for D-BUS
+  Files: <<
+    lib/libdbus-1.*.dylib
+  <<
+  Shlibs: <<
+    %p/lib/libdbus-1.1.dylib 2.0.0 %n (>= 0.31-1)
+  <<
+<<
+DocFiles: AUTHORS COPYING ChangeLog HACKING INSTALL NEWS README
+Description: Message bus system
+DescDetail: <<
+D-BUS is a message bus system, a simple way for applications to talk to one another.
+
+D-BUS supplies both a system daemon (for events such as "new hardware device added"
+or "printer queue changed") and a per-user-login-session daemon (for general IPC
+needs among user applications).  Also, the message bus is built on top of a general
+one-to-one message passing framework, which can be used by any two apps to
+communicate directly (without going through the message bus daemon). 
+<<
+Maintainer: Benjamin Reed <dbus1@fink.racoonfink.com>
+Homepage: http://dbus.freedesktop.org/
+License: Restrictive/Distributable
+DaemonicFile: <<
+  <service>
+    <description>D-BUS</description>
+    <message>D-BUS</message>
+
+    <daemon name="dbus-daemon">
+      <executable background="no">%p/bin/dbus-daemon</executable>
+      <pidfile>%p/var/run/dbus/pid</pidfile>
+    </daemon>
+
+  </service>
+<<
+DaemonicName: dbus

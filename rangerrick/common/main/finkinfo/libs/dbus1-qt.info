@@ -1,0 +1,49 @@
+Package: dbus1-qt
+Version: 0.31
+Revision: 1
+BuildDepends: dbus1-dev, expat, pkgconfig, qt3, x11-dev
+Depends: %N-shlibs (>= %v-%r)
+Source: http://dbus.freedesktop.org/releases/dbus-%v.tar.gz
+Source-MD5: 26620cacfbbacf2f40a2729f3c642ca5
+Patch: %n.patch
+ConfigureParams: --mandir=%p/share/man --enable-qt --disable-glib --disable-gtk --disable-xml-docs --disable-doxygen-docs --disable-gcj --disable-mono --disable-mono-docs --disable-python --disable-selinux --with-session-socket-dir=%p/var/run/dbus --with-system-socket=%p/var/run/dbus/system_bus_socket --with-system-pid-file=%p/var/run/dbus/pid --with-xml=expat
+CompileScript: <<
+#!/bin/sh -ex
+  ./configure %c
+  pushd qt
+  make
+  popd
+<<
+InstallScript: <<
+#!/bin/sh -ex
+  pushd qt
+  make install DESTDIR=%d
+  popd
+<<
+SplitOff: <<
+  Package: %N-shlibs
+  Depends: dbus1-shlibs (>= %v-1), qt3-shlibs (>= 3.3.3-1)
+  Description: Shared libraries for D-BUS Qt bindings
+  Files: <<
+    lib/libdbus-qt-1.*.dylib
+  <<
+  Shlibs: <<
+    %p/lib/libdbus-qt-1.1.dylib 2.0.0 %n (>= 0.31-1)
+  <<
+<<
+DocFiles: AUTHORS COPYING ChangeLog HACKING INSTALL NEWS README
+Description: D-BUS Qt bindings
+DescDetail: <<
+D-BUS is a message bus system, a simple way for applications to talk to one another.
+
+D-BUS supplies both a system daemon (for events such as "new hardware device added"
+or "printer queue changed") and a per-user-login-session daemon (for general IPC
+needs among user applications).  Also, the message bus is built on top of a general
+one-to-one message passing framework, which can be used by any two apps to
+communicate directly (without going through the message bus daemon). 
+
+These bindings provide D-BUS access using the Qt API.
+<<
+Maintainer: Benjamin Reed <dbus1-qt@fink.racoonfink.com>
+Homepage: http://dbus.freedesktop.org/
+License: Restrictive/Distributable
