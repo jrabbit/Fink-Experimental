@@ -3,7 +3,7 @@
 $|++;
 
 use lib '/home/ranger/cvs/fink/perlmod';
-use lib '/home/ranger/cvs/experimental/rangerrick';
+use lib '/home/ranger/cvs/experimental/rangerrick/scripts';
 
 use utf8;
 use Encode;
@@ -55,7 +55,7 @@ use vars qw(
 
 $basepath = '/home/ranger/share/sw';
 $TOPDIR   = abs_path(dirname($0));
-$DAYS     = 8; # number of days to look back
+$DAYS     = 5; # number of days to look back
 $NOW      = time;
 $CUTOFF   = ($NOW - (60 * 60 * 24 * $DAYS));
 $PREFIX   = '/tmp/fink-rss';
@@ -97,7 +97,7 @@ if ($DOSCP) {
 }
 print "done\n";
 
-print "- searching for new info files...\n";
+print "- searching for new info files... ";
 
 my %options =
   (
@@ -122,6 +122,8 @@ if (-f $configpath) {
 find({ wanted => \&find_infofiles, follow => 0 }, $DISTDIR . '/');
 find({ wanted => \&find_infofiles, follow => 0 }, $EXPDIR . '/');
 
+print "done\n";
+
 print "- getting CVS log info... ";
 get_cvs_log($DISTDIR);
 get_cvs_log($EXPDIR);
@@ -129,6 +131,7 @@ print "done\n";
 
 #print Dumper(%STABLE_PACKAGES), "\n";
 #print Dumper(%UNSTABLE_PACKAGES), "\n";
+#print Dumper(%EXPERIMENTAL_PACKAGES), "\n";
 
 print "- generating RSS...\n";
 make_rss(\%STABLE_PACKAGES, 'Stable');
@@ -153,6 +156,7 @@ if ($DOSCP) {
 		$movecommands .= "; mv news/rdf/${file}.new news/rdf/${file}; chgrp fink news/rdf/${file}";
 	}
 	`$ENV{CVS_RSH} rangerrick\@fink.sourceforge.net 'cd /home/groups/f/fi/fink/htdocs; ./fix_perm.sh $movecommands' >/tmp/rss-mv.log 2>&1`;
+
 	for my $file (@FILES) {
 		unlink($file . '.new');
 	}
@@ -206,7 +210,6 @@ sub get_cvs_log {
 				}
 				if (defined $author and int(@lines)) {
 					$CVS_FILES{$filename} = [ $author, join('', @lines), $revision ];
-					Dumper($CVS_FILES{$filename});
 				}
 				$filename = $directory . '/' . $1;
 				$revdone = 0;
@@ -242,7 +245,6 @@ sub get_cvs_log {
 		}
 		if (defined $author and int(@lines)) {
 			$CVS_FILES{$filename} = [ $author, join('', @lines), $revision ];
-			Dumper($CVS_FILES{$filename});
 		}
 	} else {
 		die "unable to do 'cvs log': $!\n";
@@ -360,7 +362,6 @@ sub make_rss {
 				} else {
 					warn "no CVS information for package " . $package->{'package'} . "\n";
 				}
-				Dumper(%CVS_FILES);
 			}
 		}
 
@@ -430,7 +431,7 @@ sub find_infofiles {
 	my ($shortname) = $_;
 	my $is_info = ($File::Find::name =~ /\.info$/);
 	my ($properties, @versions, $tree, $user);
-	return if (-d $File::Find::name);
+	return if (-d $File::Find::name or $File::Find::name =~ m#/CVS/#);
 
 	if ($File::Find::name =~ m#/experimental/([^/]*)/#) {
 		$user = $1;
@@ -458,45 +459,43 @@ sub find_infofiles {
 			}
 		}
 	} else {
-		my $descdetail;
-		if ($File::Find::name =~ /\.(pl|pm)$/) {
-			my $escaped = $File::Find::name;
-			$escaped =~ s/\'/\\\'/gs;
-			if (open (SCRIPT, "/usr/bin/code2html '$escaped' 2>/dev/null |")) {
-#			if (open (SCRIPT, "enscript -E --color -whtml -p- '$escaped' |")) {
+		my ($descdetail, $type);
+		$type = 'misc';
+		$type = 'perl' if ($File::Find::name =~ /\.(pl|pm)$/);
+
+		my $escaped = $File::Find::name;
+		$escaped =~ s/\'/\\\'/gs;
+#		if (open (SCRIPT, "/usr/bin/code2html '$escaped' 2>/dev/null |")) {
+		if (open (SCRIPT, "enscript -E --color -whtml -p- '$escaped' 2>/dev/null |")) {
+			local $/ = undef;
+			$descdetail = <SCRIPT>;
+			$descdetail =~ s/^.*?<pre>\n//si;
+			$descdetail =~ s/<\/pre>.*?$//si;
+			close(SCRIPT);
+		} else {
+			warn "unable to run syntax hilighter on $File::Find::name: $!\n";
+			if (open (SCRIPT, $File::Find::name)) {
 				local $/ = undef;
 				$descdetail = <SCRIPT>;
-				$descdetail =~ s/^.*?<pre>\n//si;
-				$descdetail =~ s/<\/pre>.*?$//si;
 				close(SCRIPT);
 			} else {
-				warn "unable to run syntax hilighter on $File::Find::name: $!\n";
-				if (open (SCRIPT, $File::Find::name)) {
-					local $/ = undef;
-					$descdetail = <SCRIPT>;
-					close(SCRIPT);
-				} else {
-					warn "couldn't read from $File::Find::name: $!\n";
-				}
+				warn "couldn't read from $File::Find::name: $!\n";
 			}
-			# make the package hash
-			my $package = {
-				type        => 'perl',
-				package     => $shortname,
-				descdetail  => $descdetail,
-				tree        => 'experimental',
-				owner       => $user,
-			};
-			Dumper($package);
-			push(@versions, $package);
-		} else {
-			return;
 		}
+		# make the package hash
+		my $package = {
+			type        => $type,
+			package     => $shortname,
+			descdetail  => $descdetail,
+			tree        => 'experimental',
+			owner       => $user,
+		};
+		push(@versions, $package);
 	}
 
 	for my $version (@versions) {
 		$version->{'filename'} = $File::Find::name;
-		if ($version->{'type'} eq "info" and $version->get_info_filename() =~ /$DISTDIR\/([^\/]+)\//) {
+		if ($version->{'type'} eq 'info' and $version->get_info_filename() =~ /$DISTDIR\/([^\/]+)\//) {
 			$version->{'tree'} = $1;
 		}
 		$version->{'date'} = $stat[9];
@@ -504,7 +503,7 @@ sub find_infofiles {
 		$CVS_FILES{$File::Find::name} = undef;
 
 		if ($version->{'tree'} eq 'experimental') {
-			$EXPERIMENTAL_PACKAGES{$version->{'tree'} . '/' . $user} = $version;
+			$EXPERIMENTAL_PACKAGES{$version->{'tree'} . '/' . $user . '/' . $version->{'package'}} = $version;
 		} elsif ($File::Find::name =~ m#$DISTDIR/$version->{'tree'}/stable/#) {
 			$STABLE_PACKAGES{$tree . '/' . $version->get_name()} = $version;
 		} elsif ($File::Find::name =~ m#$DISTDIR/$version->{'tree'}/unstable/#) {
