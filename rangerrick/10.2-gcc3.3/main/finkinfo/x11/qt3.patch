@@ -2228,32 +2228,137 @@ diff -uNr qt-x11-free-3.2.3/src/tools/qgpluginmanager.cpp qt-x11-free-3.2.3-patc
      QString filter = "*.sl";
 diff -uNr qt-x11-free-3.2.3/src/tools/qlibrary.cpp qt-x11-free-3.2.3-patched/src/tools/qlibrary.cpp
 --- qt-x11-free-3.2.3/src/tools/qlibrary.cpp	Mon Nov 10 05:21:37 2003
-+++ qt-x11-free-3.2.3-patched/src/tools/qlibrary.cpp	Fri Jan 30 14:57:11 2004
-@@ -39,6 +39,8 @@
++++ qt-x11-free-3.2.3-patched/src/tools/qlibrary.cpp	Fri Jan 30 15:42:22 2004
+@@ -1,5 +1,6 @@
++//depot/qt/3/src/tools/qlibrary.cpp#9 - edit change 123005 (text)
+ /****************************************************************************
+-** $Id$
++** $Id$
+ **
+ ** Implementation of QLibrary class
+ **
+@@ -37,6 +38,7 @@
+ 
+ #include "qplatformdefs.h"
  #include <private/qlibrary_p.h>
++#include <qstringlist.h>
  #include <qfile.h>
  
-+#include <qstringlist.h>
-+
  #ifndef QT_NO_LIBRARY
+@@ -52,7 +54,8 @@
+ # endif
+ #endif
  
- // uncomment this to get error messages
-@@ -320,29 +322,40 @@
+-#if defined(Q_WS_WIN) && !defined(QT_MAKEDLL)
++#if (defined(Q_WS_WIN) && !defined(QT_MAKEDLL)) \
++    || (defined(Q_OS_FREEBSD) && defined(Q_CC_INTEL))
+ #define QT_NO_LIBRARY_UNLOAD
+ #endif
+ 
+@@ -170,6 +173,54 @@
+ 	return -1;
+     \endcode
+ 
++    The symbol must be exported as a C-function from the library. This
++    requires the \c {extern "C"} notation if the library is compiled
++    with a C++ compiler. On Windows you also have to explicitly export
++    the function from the DLL using the \c {__declspec(dllexport)}
++    compiler directive.
++
++    \code
++    extern "C" MY_EXPORT_MACRO int avg(int a, int b)
++    {
++	return (a + b) / 2;
++    }
++    \endcode
++
++    with \c MY_EXPORT defined as
++
++    \code
++    #ifdef Q_WS_WIN
++    # define MY_EXPORT __declspec(dllexport)
++    #else
++    # define MY_EXPORT
++    #endif
++    \endcode
++
++    On Darwin and Mac OS X this function uses code from dlcompat, part of the
++    OpenDarwin project.
++
++    \legalese
++
++    Copyright (c) 2002 Jorge Acereda and Peter O'Gorman
++
++    Permission is hereby granted, free of charge, to any person obtaining
++    a copy of this software and associated documentation files (the
++    "Software"), to deal in the Software without restriction, including
++    without limitation the rights to use, copy, modify, merge, publish,
++    distribute, sublicense, and/or sell copies of the Software, and to
++    permit persons to whom the Software is furnished to do so, subject to
++    the following conditions:
++
++    The above copyright notice and this permission notice shall be
++    included in all copies or substantial portions of the Software.
++
++    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
++    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
++    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
++    LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
++    OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
++    WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+ void *QLibrary::resolve( const char* symb )
+ {
+@@ -237,6 +288,32 @@
+     before resolving any symbols it is not necessary to call it
+     explicitly. In some situations you might want the library loaded
+     in advance, in which case you would use this function.
++
++    On Darwin and Mac OS X this function uses code from dlcompat, part of the
++    OpenDarwin project.
++
++    \legalese
++
++    Copyright (c) 2002 Jorge Acereda and Peter O'Gorman
++
++    Permission is hereby granted, free of charge, to any person obtaining
++    a copy of this software and associated documentation files (the
++    "Software"), to deal in the Software without restriction, including
++    without limitation the rights to use, copy, modify, merge, publish,
++    distribute, sublicense, and/or sell copies of the Software, and to
++    permit persons to whom the Software is furnished to do so, subject to
++    the following conditions:
++
++    The above copyright notice and this permission notice shall be
++    included in all copies or substantial portions of the Software.
++
++    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
++    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
++    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
++    LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
++    OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
++    WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+ bool QLibrary::load()
+ {
+@@ -320,29 +397,41 @@
      if ( filename.findRev( '.' ) <= filename.findRev( '/' ) )
  	filename += ".dll";
  #else
 +    QStringList filters = "";
  #ifdef Q_OS_MACX
 -    QString filter = ".dylib";
-+     filters << ".so";
-+     filters << ".bundle";
-+     filters << ".dylib";  //the last one is also the default one..
++    filters << ".so";
++    filters << ".bundle";
++    filters << ".dylib"; //the last one is also the default one..
  #elif defined(Q_OS_HPUX)
 -    QString filter = ".sl";
-+     filters << ".sl";
++    filters << ".sl";
  #else
 -    QString filter = ".so";
-+     filters << ".so";
++    filters << ".so";
  #endif
 -    if ( filename.find(filter) == -1 ) {
 +    for(QStringList::Iterator it = filters.begin(); TRUE; ) {
@@ -2273,7 +2378,8 @@ diff -uNr qt-x11-free-3.2.3/src/tools/qlibrary.cpp qt-x11-free-3.2.3-patched/src
 -		QString file = filename.right( filename.length() - x - 1 );
 -		filename = QString( "%1lib%2%3" ).arg( path ).arg( file ).arg( filter );
 +		QString path = tmpfilename.left( x + 1 );
-+		QString path = tmpfilename.right( tmpfilename.length() - x - 1 );
++		QString file = tmpfilename.right( tmpfilename.length() - x - 1 );
++		tmpfilename = QString( "%1lib%2" ).arg( path ).arg( file );
  	    } else {
 -		filename = QString( "lib%1%2" ).arg( filename ).arg( filter );
 +		tmpfilename = QString( "lib%1" ).arg( filename );
