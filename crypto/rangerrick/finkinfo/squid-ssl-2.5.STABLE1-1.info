@@ -1,24 +1,28 @@
 Package: squid-ssl
-Version: 2.5.PRE10
+Version: 2.5.STABLE1
 Revision: 1
 Source: http://www.squid-cache.org/Versions/v2/2.5/squid-%v.tar.bz2
-Patch: %f.patch
-Conflicts: squid
+Depends: daemonic
 Replaces: squid
+Conflicts: squid
+Patch: %f.patch
 ConfFiles: <<
 %p/etc/squid.conf
 %p/etc/mime.conf
 <<
+ConfigureParams: --disable-dependency-tracking --enable-gnuregex --enable-async-io --enable-icmp --enable-delay-pools --enable-useragent-log --enable-referer-log --enable-carp --enable-htcp --disable-poll --enable-underscores --enable-snmp --enable-wccp --mandir=%p/share/man --enable-ssl --with-openssl=%p
 CompileScript: <<
- ./configure --prefix=%p --enable-snmp --enable-gnuregexp --enable-ssl
- make mandir=%p/share/man DEFAULT_SWAP_DIR=%p/var/cache/squid DEFAULT_LOG_PREFIX=%p/var/log/squid DEFAULT_MIB_PATH=%p/share/doc/%n DEFAULT_PID_FILE=%p/var/run/squid.pid
+ ./configure %c
+ make DEFAULT_SWAP_DIR=%p/var/cache/squid DEFAULT_LOG_PREFIX=%p/var/log/squid DEFAULT_MIB_PATH=%p/share/doc/%n DEFAULT_PID_FILE=%p/var/run/squid.pid
 <<
 InstallScript: <<
- make install prefix=%i mandir=%i/share/man DEFAULT_SWAP_DIR=%i/var/cache/squid DEFAULT_LOG_PREFIX=%i/var/log/squid DEFAULT_MIB_PATH=%i/share/doc/%n DEFAULT_PID_FILE=%i/var/run/squid.pid install
+ make install DESTDIR=%d DEFAULT_SWAP_DIR=%p/var/cache/squid DEFAULT_LOG_PREFIX=%p/var/log/squid DEFAULT_MIB_PATH=%p/share/doc/%n DEFAULT_PID_FILE=%p/var/run/squid.pid
  install -d -m 755 -o nobody %i/var/cache/squid
  install -d -m 755 -o nobody %i/var/log/squid
  rm -f %i/etc/squid.conf.default
  rm -f %i/etc/mime.conf.default
+ install -d -m 755 %i/share/doc/%n
+ mv %i/share/mib.txt %i/share/doc/%n/mib.txt
 <<
 ConfFiles: <<
   %p/etc/squid.conf
@@ -48,7 +52,7 @@ if [ $1 != "upgrade" ]; then
   daemonic remove squid-ssl
 fi
 <<
-DocFiles: CONTRIBUTORS COPYING COPYRIGHT CREDITS ChangeLog INSTALL QUICKSTART README SPONSORS TODO
+DocFiles: CONTRIBUTORS COPYING COPYRIGHT CREDITS ChangeLog INSTALL QUICKSTART README RELEASENOTES.html SPONSORS
 #
 Description: Proxy caching server
 DescDetail: <<
@@ -58,19 +62,15 @@ caching software, Squid handles all requests in a single,
 non-blocking, I/O-driven process. Squid keeps meta data and especially
 hot objects cached in RAM, caches DNS lookups, supports non-blocking
 DNS lookups, and implements negative caching of failed requests.
-<<
-DescPort: <<
-Only one small patch needed to fix a directory interrogation problem
-with zsh.
+
+This version of the squid package allows using SSL in accelerator mode.
 <<
 DescPackaging: <<
 The only changes made to the default configuration is to enable local
-access to the squid proxy (ie, connections from localhost).  By 
-default, squid is configured to listen on port 3128 for proxy 
+access to the squid proxy (ie, connections from localhost).  By
+default, squid is configured to listen on port 3128 for proxy
 connections.  To change this, add or change the http_port line to the
 port you want squid to listen on.
-
-This version of the squid package allows using SSL in accelerator mode.
 <<
 License: GPL
 Homepage: http://www.squid-cache.org/
