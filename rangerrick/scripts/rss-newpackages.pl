@@ -130,8 +130,8 @@ sub make_rss {
 		dc          => {
 			date      => w3c_date(time),
 			subject   => 'Fink Software',
-			creator   => 'fink-devel@lists.sf.net',
-			publisher => 'fink-devel@lists.sf.net',
+			creator   => 'fink-devel@lists.sourceforge.net',
+			publisher => 'fink-devel@lists.sourceforge.net',
 			language  => 'en-us',
 		},
 		syn         => {
