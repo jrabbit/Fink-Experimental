@@ -1,5 +1,5 @@
 --- admin/acinclude.m4.in	29 Oct 2002 02:27:18 -0000	1.1.1.5
-+++ admin/acinclude.m4.in	29 Oct 2002 02:29:54 -0000	1.18
++++ admin/acinclude.m4.in	11 Nov 2002 13:30:51 -0000
 @@ -704,13 +704,10 @@
       AC_CHECK_LIB(ipc, shmat, X_EXTRA_LIBS="$X_EXTRA_LIBS -lipc"))
     
@@ -75,6 +75,15 @@
  
  if test "x$no_xinerama" = "xno"; then
  
+@@ -1844,7 +1866,7 @@
+  kde_cxxflags_safe="$CXXFLAGS"
+ 
+  LIBS="-lkde-qt-addon $LIBQT $LIBS"
+- CXXFLAGS="$CXXFLAGS -I$prefix/include -I$prefix/include/kde $all_includes"
++ CXXFLAGS="$CXXFLAGS -isystem $prefix/include -isystem $prefix/include $all_includes"
+  LDFLAGS="$LDFLAGS $all_libraries $USER_LDFLAGS"
+ 
+  AC_TRY_LINK([
 @@ -1907,15 +1929,29 @@
     AC_REQUIRE([K_PATH_X])
  
@@ -322,7 +331,7 @@
    else
       AUTOMAKE="$UNSERMAKE"
 --- admin/libtool.m4.in	14 Aug 2002 13:18:45 -0000	1.1.1.3
-+++ admin/libtool.m4.in	16 Sep 2002 14:31:34 -0000	1.7
++++ admin/libtool.m4.in	11 Nov 2002 13:30:52 -0000
 @@ -609,6 +609,12 @@
      lt_cv_sys_max_cmd_len=-1;
      ;;
@@ -382,7 +391,7 @@
 -	_LT_AC_TAGVAR(allow_undefined_flag, $1)='-flat_namespace -undefined suppress'
 +	#_LT_AC_TAGVAR(allow_undefined_flag, $1)='-flat_namespace -undefined suppress'
 +        # testing with twolevel namespaces
-+	_LT_AC_TAGVAR(allow_undefined_flag, $1)=unsupported
++	_LT_AC_TAGVAR(allow_undefined_flag, $1)='-multiply_defined suppress'
  	;;
        esac
  
@@ -450,6 +459,10 @@
        esac
  
        compile_command="$compile_command $compile_deplibs"
+===================================================================
+diff -u -u -r1.1.1.6 -r1.3
+===================================================================
+diff -u -u -r1.1.1.4 -r1.3
 --- ./kalarmd/Makefile.am	29 Oct 2002 18:08:27 -0000	1.1.1.4
 +++ ./kalarmd/Makefile.am	29 Oct 2002 18:16:40 -0000	1.3
 @@ -3,7 +3,7 @@
@@ -461,8 +474,10 @@
  libkalarmd_la_SOURCES =  alarmdaemoniface.stub alarmguiiface.stub dummy.cpp
  
  DISTCLEANFILES = dummy.cpp
+===================================================================
+diff -u -u -r1.1.1.4 Makefile.am
 --- ./korganizer/Makefile.am	29 Oct 2002 18:08:43 -0000	1.1.1.4
-+++ ./korganizer/Makefile.am	7 Nov 2002 03:49:43 -0000
++++ ./korganizer/Makefile.am	11 Nov 2002 17:26:23 -0000
 @@ -93,7 +93,7 @@
  
  kde_bin_SCRIPTS = ical2vcal korganizerIn
@@ -472,6 +487,8 @@
  kdelnk_DATA = korganizer.desktop
  
  rcdir = $(kde_datadir)/korganizer
+===================================================================
+diff -u -u -r1.1.1.1 -r1.2
 --- ./korganizer/knewstuff/Makefile.am	10 Jul 2002 05:20:46 -0000	1.1.1.1
 +++ ./korganizer/knewstuff/Makefile.am	6 Oct 2002 16:12:37 -0000	1.2
 @@ -5,7 +5,7 @@
@@ -483,6 +500,8 @@
  libknewstuff_la_SOURCES = engine.cpp entry.cpp downloaddialog.cpp \
    uploaddialog.cpp providerdialog.cpp provider.cpp knewstuff.cpp
  
+===================================================================
+diff -u -u -r1.1.1.1 -r1.2
 --- ./korganizer/plugins/holidays/parseholiday.y	25 Jun 2002 03:18:22 -0000	1.1.1.1
 +++ ./korganizer/plugins/holidays/parseholiday.y	6 Oct 2002 17:22:17 -0000	1.2
 @@ -68,7 +68,7 @@
@@ -494,6 +513,8 @@
  int	         yacc_small;		/* small string or on its own line? */
  int	         yacc_stringcolor;	/* color of holiday name text, 1..8 */
  char	        *yacc_string;		/* holiday name text */
+===================================================================
+diff -u -u -r1.1.1.1 -r1.2
 --- ./kpilot/conduits/configure.in.in	3 Oct 2002 00:58:19 -0000	1.1.1.1
 +++ ./kpilot/conduits/configure.in.in	6 Oct 2002 04:32:13 -0000	1.2
 @@ -51,7 +51,7 @@
@@ -514,6 +535,8 @@
  	AC_CHECK_LIB(mal,
  		Disconnect,
  		[MAL_LIB="-lmal"
+===================================================================
+diff -u -u -r1.1.1.4 -r1.2
 --- ./kpilot/conduits/abbrowserconduit/Makefile.am	3 Oct 2002 00:58:19 -0000	1.1.1.4
 +++ ./kpilot/conduits/abbrowserconduit/Makefile.am	31 Oct 2002 19:24:26 -0000	1.2
 @@ -23,4 +23,4 @@
@@ -522,6 +545,8 @@
  libaddressconduit_la_LDFLAGS = $(KDE_RPATH) -L../../lib 
 -libaddressconduit_la_LIBADD = -lkpilot -lkabc
 +libaddressconduit_la_LIBADD = -lkpilot -lkabc -lpisock $(LIB_KDECORE) $(LIB_QT) $(LIB_KDEUI)
+===================================================================
+diff -u -u -r1.1.1.1 -r1.2
 --- ./kpilot/conduits/expense/Makefile.am	25 Jun 2002 03:18:22 -0000	1.1.1.1
 +++ ./kpilot/conduits/expense/Makefile.am	6 Oct 2002 04:32:13 -0000	1.2
 @@ -14,7 +14,7 @@
@@ -533,6 +558,8 @@
  
  # this option you can leave out. Just, if you use "make dist", you need it
  noinst_HEADERS = expense.h setupDialog.h 
+===================================================================
+diff -u -u -r1.1.1.1 -r1.2
 --- ./kpilot/conduits/JPilotPluginProxy/configure.in.in	10 Jul 2002 05:21:36 -0000	1.1.1.1
 +++ ./kpilot/conduits/JPilotPluginProxy/configure.in.in	19 Oct 2002 21:02:43 -0000	1.2
 @@ -25,218 +25,91 @@
@@ -800,6 +827,8 @@
 -LDFLAGS="$kpilot_save_ldflags"
 -unset kpilot_save_cflags
 -unset kpilot_save_ldflags
+===================================================================
+diff -u -u -r1.1.1.1 -r1.2
 --- ./kpilot/conduits/null/Makefile.am	25 Jun 2002 03:18:22 -0000	1.1.1.1
 +++ ./kpilot/conduits/null/Makefile.am	6 Oct 2002 04:32:13 -0000	1.2
 @@ -10,5 +10,5 @@
@@ -809,6 +838,8 @@
 -libnullconduit_la_LIBADD = -lkpilot
 +libnullconduit_la_LIBADD = -lkpilot $(LIB_KDECORE) $(LIB_QT) $(LIB_KDEUI)
  
+===================================================================
+diff -u -u -r1.1.1.1 -r1.2
 --- ./kpilot/conduits/popmail/Makefile.am	25 Jun 2002 03:18:22 -0000	1.1.1.1
 +++ ./kpilot/conduits/popmail/Makefile.am	6 Oct 2002 04:32:14 -0000	1.2
 @@ -17,7 +17,7 @@
@@ -820,6 +851,8 @@
  
  # this option you can leave out. Just, if you use "make dist", you need it
  noinst_HEADERS = popmail-conduit.h passworddialog.h setupDialog.h
+===================================================================
+diff -u -u -r1.1.1.4 -r1.2
 --- ./kpilot/conduits/popmail/popmail-conduit.cc	3 Oct 2002 00:58:22 -0000	1.1.1.4
 +++ ./kpilot/conduits/popmail/popmail-conduit.cc	31 Oct 2002 19:24:26 -0000	1.2
 @@ -41,6 +41,7 @@
@@ -830,6 +863,8 @@
  #include <sys/socket.h>
  #include <ctype.h>
  #include <iostream.h>
+===================================================================
+diff -u -u -r1.1.1.1 -r1.2
 --- ./kpilot/conduits/timeconduit/Makefile.am	14 Aug 2002 19:38:40 -0000	1.1.1.1
 +++ ./kpilot/conduits/timeconduit/Makefile.am	6 Oct 2002 04:32:14 -0000	1.2
 @@ -17,5 +17,5 @@
@@ -841,6 +876,8 @@
 \ No newline at end of file
 +libtimeconduit_la_LIBADD = -lkpilot $(LIB_KDECORE) $(LIB_QT) $(LIB_KDEUI)
 + 
+===================================================================
+diff -u -u -r1.1.1.3 -r1.2
 --- ./kpilot/conduits/vcalconduit/Makefile.am	14 Aug 2002 19:38:44 -0000	1.1.1.3
 +++ ./kpilot/conduits/vcalconduit/Makefile.am	6 Oct 2002 04:32:14 -0000	1.2
 @@ -16,12 +16,12 @@
@@ -858,6 +895,8 @@
  
  # You may want to enable debugging like this on systems with broken kdelibs
  # libtodoconduit_la_CFLAGS = -DDEBUG -DDEBUG_CERR
+===================================================================
+diff -u -u -r1.1.1.4 -r1.2
 --- ./kpilot/lib/Makefile.am	3 Oct 2002 00:58:31 -0000	1.1.1.4
 +++ ./kpilot/lib/Makefile.am	6 Oct 2002 04:32:14 -0000	1.2
 @@ -23,8 +23,8 @@
@@ -871,6 +910,8 @@
  
  kpilotincludedir = $(includedir)/kpilot
  kpilotinclude_HEADERS = kpilotlink.h uiDialog.h plugin.h syncAction.h \
+===================================================================
+diff -u -u -r1.1.1.1 -r1.2
 --- ./libical/src/libical/.cvsignore	25 Jun 2002 03:18:23 -0000	1.1.1.1
 +++ ./libical/src/libical/.cvsignore	6 Oct 2002 03:09:13 -0000	1.2
 @@ -9,7 +9,6 @@
@@ -887,6 +928,8 @@
  
 -icalyacc.c
 -icalyacc.h
+===================================================================
+diff -u -u -r1.1.1.3 -r1.2
 --- ./libical/src/libical/icallangbind.c	10 Jul 2002 05:23:44 -0000	1.1.1.3
 +++ ./libical/src/libical/icallangbind.c	6 Oct 2002 03:15:48 -0000	1.2
 @@ -22,7 +22,6 @@
@@ -897,6 +940,8 @@
  #include <string.h>
  
  int* icallangbind_new_array(int size){
+===================================================================
+diff -u -u -r1.1.1.1 -r1.2
 --- ./libical/src/libicalss/.cvsignore	25 Jun 2002 03:18:23 -0000	1.1.1.1
 +++ ./libical/src/libicalss/.cvsignore	6 Oct 2002 03:39:42 -0000	1.2
 @@ -30,4 +30,3 @@
@@ -904,6 +949,8 @@
  y.output
  
 -icalsslexer.c
+===================================================================
+diff -N ./libical/src/libicalss/icalsslexer.c
 --- /dev/null	1 Jan 1970 00:00:00 -0000
 +++ ./libical/src/libicalss/icalsslexer.c	6 Oct 2002 03:39:42 -0000	1.1
 @@ -0,0 +1,1687 @@
@@ -1306,6 +1353,7 @@
 +#define INITIAL 0
 +#line 2 "icalsslexer.l"
 +/* -*- Mode: C -*-
++  ======================================================================
 +  FILE: icalsslexer.l
 +  CREATOR: eric 8 Aug 2000
 +  
@@ -1330,6 +1378,7 @@
 + The Original Code is eric. The Initial Developer of the Original
 + Code is Eric Busboom
 +
++  ======================================================================*/
 +
 +#include "icalssyacc.h"
 +#include "icalgaugeimpl.h"
@@ -2592,6 +2641,8 @@
 +     return 1;
 +}
 +
+===================================================================
+diff -u -u -r1.1.1.1 -r1.2
 --- ./libical/src/libicalvcal/vcc.y	25 Jun 2002 03:18:24 -0000	1.1.1.1
 +++ ./libical/src/libicalvcal/vcc.y	6 Oct 2002 03:16:58 -0000	1.2
 @@ -107,7 +107,7 @@
@@ -2603,6 +2654,8 @@
  #include <malloc.h>
  #endif
  #include <stdio.h>
+===================================================================
+diff -u -u -r1.1.1.1 -r1.2
 --- ./libical/src/libicalvcal/vobject.c	25 Jun 2002 03:18:24 -0000	1.1.1.1
 +++ ./libical/src/libicalvcal/vobject.c	6 Oct 2002 03:16:58 -0000	1.2
 @@ -42,7 +42,7 @@
@@ -2614,6 +2667,8 @@
  #include <malloc.h>
  #endif
  
+===================================================================
+diff -u -u -r1.1.1.1 -r1.2
 --- ./libkcal/versit/vcc.c	25 Jun 2002 03:18:24 -0000	1.1.1.1
 +++ ./libkcal/versit/vcc.c	6 Oct 2002 04:36:30 -0000	1.2
 @@ -125,7 +125,7 @@

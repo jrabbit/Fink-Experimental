@@ -5,6 +5,7 @@ my $DIRECTORY = 'unstable/kde-3.1-rc2/src/';
 my $ARTSVER   = '1.1.0-6';
 my $VERBOSE   = 0;
 my $DRYRUN    = 0;
+my @packages;
 
 my %MAPPINGS;
 
@@ -33,6 +34,7 @@ for my $i18n (@I18N) {
 		$normalized =~ s#[^a-zA-Z]+#-#g;
 		my $filename = $i18n;
 		$filename =~ s#${VERSION}#\%v#g;
+		push(@packages, "kde-i18n-${normalized}");
 		my $contents = <<END;
 Package: kde-i18n-${normalized}
 Source: mirror:kde:${DIRECTORY}kde-i18n/${filename}
@@ -59,4 +61,23 @@ END
 	} else {
 		print "ERROR: no name mapping for $i18n!\n";
 	}
+}
+
+unless ($DRYRUN) {
+	my $packagelist = join(', ', map { $_ . " (>= ${VERSION}-1)" } @packages);
+	open(FILEOUT, ">bundle-kde-i18n-${VERSION}-1.info") or die "can't write to bundle-kde-i18n-${VERSION}-1.info: $!\n";
+	print FILEOUT <<END;
+Package: bundle-kde-i18n
+Version: ${VERSION}
+Revision: 1
+Type: bundle
+Depends: $packagelist
+Description: KDE convenience package: all language files
+DescDetail: <<
+This package doesn't install any files of itself, but instead makes
+sure that all KDE language files get installed.
+<<
+Maintainer: Benjamin Reed <ranger\@befunk.com>
+END
+	close(FILEOUT);
 }
