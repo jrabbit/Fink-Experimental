@@ -1,0 +1,89 @@
+diff -Naur gedit-2.2.0.1.old/configure gedit-2.2.0.1.new/configure
+--- gedit-2.2.0.1.old/configure	Tue Feb  4 20:09:24 2003
++++ gedit-2.2.0.1.new/configure	Tue Mar 11 20:09:25 2003
+@@ -5526,7 +5526,7 @@
+     # FIXME: Relying on posixy $() will cause problems for
+     #        cross-compilation, but unfortunately the echo tests do not
+     #        yet detect zsh echo's removal of \ escapes.
+-    archive_cmds='$nonopt $(test "x$module" = xyes && echo -bundle || echo -dynamiclib) $allow_undefined_flag -o $lib $libobjs $deplibs$linker_flags -install_name $rpath/$soname $verstring'
++    archive_cmds='$nonopt $(test x$module = xyes && echo -bundle || echo -dynamiclib) $allow_undefined_flag -o $lib $libobjs $deplibs$linker_flags $(test .$module != .yes && echo -install_name $rpath/$soname $tmp_verstring)'
+     # We need to add '_' to the symbols in $export_symbols first
+     #archive_expsym_cmds="$archive_cmds"' && strip -s $export_symbols'
+     hardcode_direct=yes
+diff -Naur gedit-2.2.0.1.old/help/C/Makefile.in gedit-2.2.0.1.new/help/C/Makefile.in
+--- gedit-2.2.0.1.old/help/C/Makefile.in	Tue Feb  4 20:39:40 2003
++++ gedit-2.2.0.1.new/help/C/Makefile.in	Tue Mar 11 20:09:25 2003
+@@ -334,7 +334,7 @@
+ 	for file in $(omffile); do \
+ 		$(INSTALL_DATA) $$file.out $(DESTDIR)$(omf_dest_dir)/$$file; \
+ 	done
+-	-scrollkeeper-update -p $(scrollkeeper_localstate_dir) -o $(DESTDIR)$(omf_dest_dir)
++#	-scrollkeeper-update -p $(scrollkeeper_localstate_dir) -o $(DESTDIR)$(omf_dest_dir)
+ 
+ uninstall-local-omf:
+ 	-for file in $(srcdir)/*.omf; do \
+diff -Naur gedit-2.2.0.1.old/help/ro/Makefile.in gedit-2.2.0.1.new/help/ro/Makefile.in
+--- gedit-2.2.0.1.old/help/ro/Makefile.in	Tue Feb  4 20:39:42 2003
++++ gedit-2.2.0.1.new/help/ro/Makefile.in	Tue Mar 11 20:09:25 2003
+@@ -334,7 +334,7 @@
+ 	for file in $(omffile); do \
+ 		$(INSTALL_DATA) $$file.out $(DESTDIR)$(omf_dest_dir)/$$file; \
+ 	done
+-	-scrollkeeper-update -p $(scrollkeeper_localstate_dir) -o $(DESTDIR)$(omf_dest_dir)
++#	-scrollkeeper-update -p $(scrollkeeper_localstate_dir) -o $(DESTDIR)$(omf_dest_dir)
+ 
+ uninstall-local-omf:
+ 	-for file in $(srcdir)/*.omf; do \
+diff -Naur gedit-2.2.0.1.old/ltmain.sh gedit-2.2.0.1.new/ltmain.sh
+--- gedit-2.2.0.1.old/ltmain.sh	Tue Feb  4 19:46:04 2003
++++ gedit-2.2.0.1.new/ltmain.sh	Tue Mar 11 20:09:25 2003
+@@ -2894,6 +2894,11 @@
+ 	if test -n "$export_symbols" && test -n "$archive_expsym_cmds"; then
+ 	  eval cmds=\"$archive_expsym_cmds\"
+ 	else
++	  if test "x$verstring" = "x0.0"; then
++	    tmp_verstring=
++	  else
++	    tmp_verstring="$verstring"
++	  fi
+ 	  eval cmds=\"$archive_cmds\"
+ 	fi
+ 	save_ifs="$IFS"; IFS='~'
+@@ -3948,10 +3953,10 @@
+ 
+ # Directory that this library needs to be installed in:
+ libdir='$install_libdir'"
+-	  if test "$installed" = no && test $need_relink = yes; then
+-	    $echo >> $output "\
+-relink_command=\"$relink_command\""
+-	  fi
++#	  if test "$installed" = no && test $need_relink = yes; then
++#	    $echo >> $output "\
++#relink_command=\"$relink_command\""
++#	  fi
+ 	done
+       fi
+ 
+diff -Naur gedit-2.2.0.1.old/plugins/sort/Makefile.in gedit-2.2.0.1.new/plugins/sort/Makefile.in
+--- gedit-2.2.0.1.old/plugins/sort/Makefile.in	Tue Feb  4 20:39:36 2003
++++ gedit-2.2.0.1.new/plugins/sort/Makefile.in	Tue Mar 11 20:11:27 2003
+@@ -159,7 +159,7 @@
+ 
+ DEFS = @DEFS@ -I. -I$(srcdir) -I../..
+ LIBS = @LIBS@
+-libsort_la_LDFLAGS = 
++libsort_la_LDFLAGS = $(PLUGIN_LIBTOOL_FLAGS)
+ libsort_la_LIBADD = 
+ libsort_la_OBJECTS =  sort.lo
+ COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+diff -Naur gedit-2.2.0.1.old/src/gedit-plugins-engine.c gedit-2.2.0.1.new/src/gedit-plugins-engine.c
+--- gedit-2.2.0.1.old/src/gedit-plugins-engine.c	Fri Jan  3 07:43:31 2003
++++ gedit-2.2.0.1.new/src/gedit-plugins-engine.c	Tue Mar 11 20:09:25 2003
+@@ -31,6 +31,7 @@
+ #include <config.h>
+ #endif
+ 
++#include <sys/types.h> 
+ #include <dirent.h> 
+ #include <string.h>
+ 

@@ -1,0 +1,36 @@
+Package: libgnomeprint2.2
+Version: 2.2.1.1
+Revision: 1
+Depends: %N-shlibs (= %v-%r)
+BuildDepends: freetype2 | freetype2-hinting, glib2-dev, pango1-dev, libxml2,
+ libart2, pkgconfig, dlcompat-dev
+Source: mirror:gnome:sources/libgnomeprint/2.2/libgnomeprint-%v.tar.bz2
+Source-MD5: 21398826672d7d13933448c859892a81
+Patch: %f.patch
+SetCPPFLAGS: -no-cpp-precomp -DLTDL_SHLIB_EXT="\".so\""
+SetCFLAGS: -O3 -funroll-loops -fstrict-aliasing -pipe
+NoSetLDFLAGS: true
+ConfigureParams: --without-cups --enable-compile-warnings=no --disable-gtk-doc
+CompileScript: ./configure %c; make -j2
+InstallScript: make install DESTDIR=%d
+SplitOff: <<
+  Package: %N-shlibs
+  Depends: freetype2-shlibs | freetype2-hinting-shlibs, pango1, libart2-shlibs, libxml2-shlibs
+  Files: lib/libgnomeprint-2-2.*.dylib lib/libgnomeprint
+  Shlibs: %p/lib/libgnomeprint-2-2.0.dylib 1.0.0 %n (>= 2.2.1.1-1)
+  DocFiles: AUTHORS COPYING* ChangeLog* NEWS README
+  Description: GNOME printing shared libraries
+<<
+SplitOff2: <<
+  Package: %N-dev
+  Depends: %N-shlibs (= %v-%r)
+  BuildDependsOnly: True
+  Files: include lib/libgnomeprint-2-2.* lib/pkgconfig
+  DocFiles: AUTHORS COPYING* ChangeLog* NEWS README
+  Description: GNOME printing development libraries and headers
+<<
+DocFiles: AUTHORS COPYING* ChangeLog* NEWS README
+Description: GNOME printing libraries
+License: GPL/LGPL
+Maintainer: Masanori Sekino <msek@users.sourceforge.net>
+Homepage: http://www.gnome.org

@@ -1,0 +1,47 @@
+Package: librsvg2
+Version: 2.2.3
+Revision: 1
+Depends: %N-shlibs (= %v-%r)
+BuildDepends: freetype2, glib2-dev (>= 2.0.0), pango1-dev (>= 1.0.0),
+ gtk+2-dev (>= 2.0.5-2), libart2 (>= 2.3.10), libxml2 (>= 2.4.7),
+ popt (>= 1.5), pkgconfig, dlcompat-dev
+Source: mirror:gnome:sources/librsvg/2.2/librsvg-%v.tar.bz2
+Source-MD5: cdd58f6ce2ce4b5e629501b864f513c2
+Patch: %f.patch
+SetCPPFLAGS: -no-cpp-precomp
+SetCFLAGS: -O3 -funroll-loops -fstrict-aliasing -pipe
+NoSetLDFLAGS: true
+SetLIBS: -L%p/lib
+ConfigureParams: --without-svgz --enable-gtk-theme --disable-pixbuf-loader --mandir=%p/share/man --disable-gtk-doc
+CompileScript: ./configure %c; make -j2
+InstallScript: make install DESTDIR=%d
+BuildDependsOnly: True
+SplitOff: <<
+  Package: %N-shlibs
+  Files: lib/librsvg-2.*.dylib
+  Shlibs: %p/lib/librsvg-2.2.dylib 5.0.0 %n (>= 2.2.3-1)
+  DocFiles: AUTHORS COPYING* ChangeLog NEWS README TODO
+  Description: SAX-based SVG rendering shared libraries
+<<
+SplitOff2: <<
+  Package: %N-bin
+  Depends: %N-shlibs (= %v-%r)
+  Files: bin share/man
+  DocFiles: AUTHORS COPYING* ChangeLog NEWS README TODO
+  Description: Turn SVG files into raster images
+<<
+#PostInstScript: <<
+#  if [ cofigure = "$1" ]; then
+#    update-gdk-pixbuf-loaders
+#  fi
+#<<
+#PostRmScript: <<
+#  if [ remove != "$1" ]; then
+#    update-gdk-pixbuf-loaders
+#  fi
+#<<
+DocFiles: AUTHORS COPYING* ChangeLog NEWS README TODO
+Description: SAX-based SVG rendering development libraries and headers
+License: GPL/LGPL
+Maintainer: Masanori Sekino <msek@users.sourceforge.net>
+Homepage: http://www.gnome.org/

@@ -1,0 +1,54 @@
+Package: metacity
+Version: 2.4.34
+Revision: 1
+Depends: %N-shlibs (=%v-%r), gtk+2, gconf2 (>= 1.1.9), libglade2-shlibs,
+ startup-notification-shlibs
+BuildDepends: glib2-dev, atk1, pango1-dev, gtk+2-dev, linc1, orbit2-dev,
+ gconf2-dev (>= 1.1.9), startup-notification, libxml2, libglade2, pkgconfig
+Source: mirror:gnome:sources/%n/2.4/%n-%v.tar.bz2
+Source-MD5: 69650ff5719b958b20f9969902f3f68d
+UpdatePoMakefile: true
+SetCPPFLAGS: -no-cpp-precomp -I/usr/X11R6/include -UHAVE_XINERAMA -UHAVE_XFREE86_XINERAMA
+SetCFLAGS: -O3 -funroll-loops -fstrict-aliasing -pipe
+SetLIBS: -L%p/lib -lintl
+ConfigureParams: --libexecdir=%p/lib/%n
+CompileScript: <<
+ ./configure %c
+ ulimit -s unlimited && make -j2
+<<
+SplitOff: <<
+  Package: %N-shlibs
+  Replaces: %N (<< 2.4.34-1)
+  Files: lib/libmetacity-private.*.dylib
+  Shlibs: %p/lib/libmetacity-private.0.dylib 1.0.0 %n (>= 2.4.34-1)
+  Description: Metacity window manager private shared libraries
+<<
+SplitOff2: <<
+  Package: %N-dev
+  Depends: %N-shlibs (= %v-%r)
+  Replaces: %N (<< 2.4.34-1)
+  Files: include lib/libmetacity-private.* lib/pkgconfig
+  Description: Metacity window manager private development libraries and headers
+<<
+InstallScript: <<
+ GCONF_DISABLE_MAKEFILE_SCHEMA_INSTALL=1 make install DESTDIR=%d
+<<
+PostInstScript: <<
+ if [ configure = "$1" ]; then
+  export GCONF_CONFIG_SOURCE=`gconftool-2 --get-default-source`
+  gconftool-2 --makefile-install-rule %p/etc/gconf/schemas/metacity.schemas >/dev/null
+ fi
+<<
+ConfFiles: %p/etc/gconf/schemas/metacity.schemas
+DocFiles: AUTHORS COPYING ChangeLog NEWS README
+Description: Metacity window manager
+DescDetail: <<
+ Metacity is a simple window manager that integrates nicely with
+ GNOME 2.
+<<
+DescPort: <<
+ Increases stacksize to prevent intltool-merge from crash.
+<<
+License: GPL
+Maintainer: Masanori Sekino <msek@users.sourceforge.net>
+Homepage: http://people.redhat.com/~hp/metacity/

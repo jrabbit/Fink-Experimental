@@ -1,0 +1,67 @@
+diff -Naur libgnome-2.2.0.1.old/configure libgnome-2.2.0.1.new/configure
+--- libgnome-2.2.0.1.old/configure	Thu Jan 23 22:57:20 2003
++++ libgnome-2.2.0.1.new/configure	Mon Mar 10 15:06:22 2003
+@@ -5990,7 +5990,7 @@
+     # FIXME: Relying on posixy $() will cause problems for
+     #        cross-compilation, but unfortunately the echo tests do not
+     #        yet detect zsh echo's removal of \ escapes.
+-    archive_cmds='$nonopt $(test "x$module" = xyes && echo -bundle || echo -dynamiclib) $allow_undefined_flag -o $lib $libobjs $deplibs$linker_flags -install_name $rpath/$soname $verstring'
++    archive_cmds='$nonopt $(test x$module = xyes && echo -bundle || echo -dynamiclib) $allow_undefined_flag -o $lib $libobjs $deplibs$linker_flags $(test .$module != .yes && echo -install_name $rpath/$soname $tmp_verstring)'
+     # We need to add '_' to the symbols in $export_symbols first
+     #archive_expsym_cmds="$archive_cmds"' && strip -s $export_symbols'
+     hardcode_direct=yes
+@@ -8354,6 +8354,12 @@
+ ;;
+   *-solaris*)
+ cat >>confdefs.h <<\_ACEOF
++#define HAVE_MAN_DEBUG 1
++_ACEOF
++;;
++  *-darwin*)
++cat >>confdefs.h <<\_ACEOF
++#define HAVE_MAN_WHEREIS 1
+ #define HAVE_MAN_DEBUG 1
+ _ACEOF
+ ;;
+diff -Naur libgnome-2.2.0.1.old/help-converters/gnome-vfs-module/Makefile.in libgnome-2.2.0.1.new/help-converters/gnome-vfs-module/Makefile.in
+--- libgnome-2.2.0.1.old/help-converters/gnome-vfs-module/Makefile.in	Thu Jan 23 23:08:20 2003
++++ libgnome-2.2.0.1.new/help-converters/gnome-vfs-module/Makefile.in	Mon Mar 10 15:02:34 2003
+@@ -140,7 +140,7 @@
+ 
+ modules_LTLIBRARIES = libvfs-help.la
+ 
+-module_flags = -export_dynamic -avoid-version
++module_flags = -export_dynamic -avoid-version -module
+ modulesdir = $(libdir)/gnome-vfs-2.0/modules
+ 
+ libvfs_help_la_SOURCES = \
+diff -Naur libgnome-2.2.0.1.old/ltmain.sh libgnome-2.2.0.1.new/ltmain.sh
+--- libgnome-2.2.0.1.old/ltmain.sh	Thu Jan 23 22:44:59 2003
++++ libgnome-2.2.0.1.new/ltmain.sh	Mon Mar 10 15:02:34 2003
+@@ -2952,6 +2952,11 @@
+ 	if test -n "$export_symbols" && test -n "$archive_expsym_cmds"; then
+ 	  eval cmds=\"$archive_expsym_cmds\"
+ 	else
++	  if test "x$verstring" = "x0.0"; then
++	    tmp_verstring=
++	  else
++	    tmp_verstring="$verstring"
++	  fi
+ 	  eval cmds=\"$archive_cmds\"
+ 	fi
+ 	save_ifs="$IFS"; IFS='~'
+@@ -4006,10 +4011,10 @@
+ 
+ # Directory that this library needs to be installed in:
+ libdir='$install_libdir'"
+-	  if test "$installed" = no && test "$need_relink" = yes; then
+-	    $echo >> $output "\
+-relink_command=\"$relink_command\""
+-	  fi
++#	  if test "$installed" = no && test "$need_relink" = yes; then
++#	    $echo >> $output "\
++#relink_command=\"$relink_command\""
++#	  fi
+ 	done
+       fi
+ 
