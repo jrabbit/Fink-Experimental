@@ -5,7 +5,9 @@
 basedir = ..
 
 SOURCE = quick-start-pkg.xml
-TARGET = index.php howtostart.php example1.php example2.php
+# The second example is not ready yet...
+#TARGET = index.php howtostart.php example.php example2.php
+TARGET = index.php howtostart.php example.php
 WANT_HTML = 1
 DESTDIR = doc/quick-start-pkg
 
