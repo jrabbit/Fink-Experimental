@@ -13,7 +13,6 @@ SourceDirectory: scribus-%v
 #Source2: http://www.scribus.org.uk/downloads/%v/%n-temp-all-%v.tar.bz2
 #Source2-MD5: 19d102ff16c295e29bb7a051c66c2c58
 Source3: http://perso.wanadoo.fr/costabel/Scribusapp-skeleton.tar.gz
-NoSource3Directory: true
 Source3-MD5: 870e48836db2ffa133bdfb1ec168b9a7
 License: GPL
 Recommends: x-ghostscript-fonts, msttcorefonts, applesystemfonts
@@ -28,7 +27,7 @@ perl -pi -e 's|(xml2-config.*)(\$\{prefix\})|$1 \$PATH $2|g' configure.in
 make -f Makefile.cvs
 #
 # Fix the building of plugins
- perl -pi.bak -e 's|(^AM_LDFLAGS =).*\$\(linkflag\)(.*)|$1 $2 \$(LIB_QT)|g ;
+ perl -pi.bak -e 's|(^AM_LDFLAGS =).*\$\(linkflag\)(.*)|$1 $2 \$(QT_LDFLAGS) \$(LIB_QT)|g ;
                   s|\-Xlinker||g ; 
                   s|(lib.*)\.la|$1.so|g ; 
                   s|-version-info 0:0:0|-bundle -undefined dynamic_lookup -bind_at_load|g ;
@@ -53,8 +52,9 @@ make -f Makefile.cvs
  perl -pi.bak -e 's|strn(dup\(.*),.*|str$1\)\;|g' scribus/plugins/scriptplugin/scriptplugin.cpp
 <<
 CompileScript: <<
- #!/bin/sh
+#!/bin/sh -ex
  export PATH=%p/lib/freetype219/bin:$PATH 
+ unset QMAKESPEC
  export QTDIR=%p/lib/qt3mac
  export PKG_CONFIG_PATH="%p/lib/fontconfig2/lib/pkgconfig/"
 # export FONTCONFIG_CONFIG=""
@@ -68,7 +68,7 @@ CompileScript: <<
 # remove linking to X11
  perl -pi.bar -e 's|(scribus_LDADD =.*)\-lXext \-lX11|$1|g;
                   s|(LIBFONTCONFIG_LIBS =).*|$1 %p/lib/fontconfig2/lib/libfontconfig.a -L%p/lib -lexpat|g;
-                  s|(AM_LDFLAGS =).*|$1 \$\(LIBFREETYPE_LIBS\) -L/sw/lib/qt3mac/lib \$\(LIB_QT\)|g;
+                  s|(AM_LDFLAGS =).*|$1 \$\(LIBFREETYPE_LIBS\) -L%p/lib/qt3mac/lib \$\(LIB_QT\)|g;
                  ' scribus/Makefile
  make
 << 
