@@ -26,15 +26,16 @@ NoSetLDFLAGS: true
 CompileScript: <<
 #!/bin/sh
  export QTDIR=`pwd`
- export DYLD_LIBRARY_PATH="$QTDIR/lib:%p/lib:$DYLD_LIBRARY_PATH"
+ export DYLD_LIBRARY_PATH="$QTDIR/lib:/usr/X11R6/lib:%p/lib:$DYLD_LIBRARY_PATH"
  export PATH="$QTDIR/bin:$PATH"
  export INSTALL_ROOT=""
  export INSTALLPREFIX="%p"
  # we have to force header/lib ordering or things get really wiggy
  # looks ugly, but it's better than patching the source
  echo "yes" | ./configure -DQ_OS_DARWIN -DQ_OS_FREEBSD \
-	'-I$(QTDIR)/include' -I/usr/X11R6/include/freetype2 -I%p/include \
-	'-L$(QTDIR)/lib' \
+	'-I$(QTDIR)/include' '-I/usr/X11R6/include/freetype2' \
+	'-I/usr/X11R6/include' '-I%p/include' \
+	'-L/usr/X11R6/lib' '-L$(QTDIR)/lib' \
 	-buildkey qt3-jaguar -platform darwin-g++ -xplatform darwin-g++ \
 	-prefix %p -bindir %p/bin -libdir %p/lib -docdir %p/share/doc/%n \
 	-datadir %p/share/qt3 -headerdir %p/include/qt -plugindir %p/lib/qt3-plugins \
@@ -49,7 +50,7 @@ InstallScript: <<
 #!/bin/sh
  mkdir -p %i/share/qt3
  export QTDIR=`pwd`
- export DYLD_LIBRARY_PATH="$QTDIR/lib:%p/lib:$DYLD_LIBRARY_PATH"
+ export DYLD_LIBRARY_PATH="$QTDIR/lib:/usr/X11R6/lib:%p/lib:$DYLD_LIBRARY_PATH"
  export PATH="$QTDIR/bin:$PATH"
 
  # it appears that make install is a tad broken
