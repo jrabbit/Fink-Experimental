@@ -1,0 +1,83 @@
+Package: arts
+Version: 1.0.2
+Revision: 1
+Depends: libpoll-shlibs (>= 1.1), qt3-shlibs (>= 3.0.4-7), xfree86-base (>= 4.2.0-6) | system-xfree86 (>= 4.2-1), dlcompat (>= 20020508), glib2-shlibs, esound
+BuildDepends: fink (>= 0.9.12), libpoll (>= 1.1), qt3 (>= 3.0.4-7), autoconf25, libtool14, automake15, glib2, audiofile, audiofile-bin, dlcompat (>= 20020508), esound, pkgconfig, xfree86-base (>= 4.2.0-6) | system-xfree86 (>= 4.2-1)
+Source: http://download.kde.org/stable/3.0.1/src/%n-%v.tar.bz2
+Source-MD5: ede77b629aa05547f68b36c6682493dc
+PatchScript: sed 's|@PREFIX@|%p|g' <%a/%f.patch | patch -p0
+ConfigureParams: --with-extra-includes=%p/include --with-extra-libs=%p/lib --with-qt-dir=%p --enable-rpath --with-pic --enable-shared --enable-static --mandir=%p/share/man --infodir=%p/share/info --libexecdir=%p/lib --with-xinerama --enable-final $KDEOPTS
+CompileScript: <<
+  make -f Makefile.cvs
+  sh ./configure %c
+  make
+<<
+InstallScript: <<
+  make install DESTDIR=%d
+<<
+SetLDFLAGS: -L%p/lib
+SetCPPFLAGS: -no-cpp-precomp -g -DMACOSX -DARTS_NO_ALARM
+SplitOff: <<
+  Package: %N-dev
+  Depends: %N (= %v-%r)
+  Suggests: qt3 (>= 3.0.4-7), glib2, audiofile, pkgconfig
+  BuildDependsOnly: true
+  Description: static libraries and headers for aRts development
+  Files: <<
+    bin/artsc-config
+    bin/mcopidl
+    include/
+    lib/*.a
+    lib/mcop
+    lib/libartsc.dylib
+    lib/libartscbackend.so
+    lib/libartsdsp.so
+    lib/libartsdsp_st.so
+    lib/libartsflow.dylib
+    lib/libartsflow_idl.dylib
+    lib/libartswavplayobject.so
+    lib/libgmcop.dylib
+    lib/libkmedia2.dylib
+    lib/libkmedia2_idl.dylib
+    lib/libmcop.dylib
+    lib/libmcop_mt.dylib
+    lib/libqtmcop.dylib
+    lib/libsoundserver_idl.dylib
+    lib/libx11globalcomm.so
+  <<
+<<
+DaemonicName: arts
+DaemonicFile: <<
+  <service>
+    <description>Analog Realtime Synthesizer Server</description>
+    <message>Analog Realtime Synthesizer Server</message>
+
+    <daemon name="artsd">
+      <executable background="yes">%p/bin/artsd</executable>
+      <!-- the daemon will background itself, but may take a while
+           to start up to the point where it does so -->
+      <pidfile>%p/var/run/arts.pid</pidfile>
+    </daemon>
+
+  </service>
+<<
+DocFiles: COPYING COPYING.LIB INSTALL
+Description: Analog realtime synthesizer
+DescDetail: <<
+aRts is a framework for developing modular multimedia applications. The
+sound server, artsd, allows multiple applications to cooperatively process
+and output sound and music. aRts is designed to provide its filter and
+synthesis capabilities to other applications using the multimedia
+communication protocol (MCOP). aRts is also capable of modular realtime
+synthesis. It can create sounds & music (realtime midi synthesis) using
+small modules like oscillators for creating waveforms, various filters,
+mixers, faders, etc.
+<<
+DescPackaging: <<
+Had to patch the makefiles because of ld's anal refusal to link to
+indirectly-referenced libraries.  Also had to patch to look for poll()
+in libpoll.
+<<
+License: GPL
+Maintainer: Benjamin Reed <ranger@befunk.com>
+Homepage: http://linux.twc.de/arts/

@@ -1,0 +1,75 @@
+Package: kdebase3
+Version: 3.0.2
+Revision: 1
+Replaces: kdebase3-ssl, kdebase3-ssl-dev
+Conflicts: kdebase3-ssl
+Depends: kdelibs3 (>= 3.0.2-1), lesstif-shlibs (>= 0.93.18-6), audiofile-shlibs, dlcompat (>= 20020508), esound-shlibs, freetype2-shlibs, libjpeg-shlibs, libpng-shlibs, libpoll, qt3-shlibs (>= 3.0.4-7), arts (>= 1.0.2-1), xfree86-base (>= 4.2.0-6) | system-xfree86 (>= 4.2-1), zlib, lame-shlibs
+BuildDepends: kdelibs3-dev (>= 3.0.2-1), automake15, autoconf25, libtool14, lesstif (>= 0.93.18-6), audiofile, esound, freetype2, libjpeg, libpng, libpoll, qt3 (>= 3.0.4-7), fink (>= 0.9.12), lame
+Maintainer: Benjamin Reed <ranger@befunk.com>
+Source: http://download.kde.org/stable/%v/src/kdebase-%v.tar.bz2
+Source-MD5: db63f6cdb586b64ffe666be2badec940
+PatchScript: sed 's|@PREFIX@|%p|g' <%a/%f.patch | patch -p0
+SetLDFLAGS: -L%p/lib
+SetCPPFLAGS: -no-cpp-precomp
+SetCFLAGS: -fno-common
+ConfigureParams: --prefix=%p --without-ssl-dir --without-ssl --with-qt-dir=%p --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=yes --mandir=%i/share/man --with-xinerama --enable-final $KDEOPTS
+CompileScript: <<
+ make -f Makefile.cvs
+ (export KDEDIR=%p; sh configure %c; make)
+<<
+InstallScript: <<
+ make install DESTDIR=%d
+<<
+SplitOff: <<
+ Package: %N-dev
+ Depends: %N (= %v-%r), qt3 (>= 3.0.4-7), lesstif (>= 0.93.18-6), audiofile, freetype2, lame, libpoll
+ Suggests: kdelibs3-dev (>= 3.0.2-1), lesstif (>= 0.93.18-6)
+ BuildDependsOnly: true
+ Replaces: kdebase3-ssl, kdebase3-ssl-dev
+ Conflicts: kdebase3-ssl-dev
+ Files: <<
+   include/
+   lib/*.a
+   lib/kde3/*.a
+   lib/libkateinterfaces.dylib
+   lib/libkickermain.so
+   lib/libkonq.dylib
+   lib/libkonqsidebarplugin.dylib
+   lib/libnsplugin.so
+   lib/libtaskbar.so
+   lib/libtaskmanager.so
+   lib/kde3/childpanel_panelextension.so
+   lib/kde3/clock_panelapplet.so
+   lib/kde3/dockbar_panelextension.so
+   lib/kde3/kasbar_panelextension.so
+   lib/kde3/launcher_panelapplet.so
+   lib/kde3/minipager_panelapplet.so
+   lib/kde3/naughty_panelapplet.so
+   lib/kde3/run_panelapplet.so
+   lib/kde3/systemtray_panelapplet.so
+   lib/kde3/taskbar_panelapplet.so
+   lib/kde3/taskbar_panelextension.so
+ <<
+<<
+DocFiles: AUTHORS COPYING INSTALL README README.pam
+Description: KDE - base system
+DescDetail: <<
+Core applications for the K Desktop Environment.
+
+Included are: kdm (replacement for xdm), kwin (window manager),
+konqueror (filemanager, web browser, ftp client, ...), konsole
+(xterm replacement), kpanel (application starter and desktop pager),
+kaudio (audio server), kdehelp (viewer for kde help files, info and
+man pages), kthememgr (system for managing alternate theme packages)
+plus other KDE components (kcheckpass, kikbd, kscreensaver, kcontrol,
+kfind, kfontmanager, kmenuedit).
+<<
+DescPort: <<
+NOTE: KDE packages do *not* have an -shlibs because of KDE's use of  
+libltdl!  The .la's *must* be used in conjunction with the dynamic
+libraries, and they are unversioned filenames, so multiple -shlibs would
+conflict.
+
+See README.osx for more details on what went into the port.
+<<
+License: GPL/LGPL

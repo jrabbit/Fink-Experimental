@@ -1,0 +1,2324 @@
+Index: admin/Makefile.common
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/admin/Makefile.common,v
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- admin/Makefile.common	25 Jun 2002 03:35:55 -0000	1.1.1.2
++++ admin/Makefile.common	25 Jun 2002 03:36:46 -0000	1.3
+@@ -1,24 +1,12 @@
+ 
+ SHELL=/bin/sh
+ 
++ACLOCAL=aclocal-1.5
++AUTOMAKE=automake-1.5
++AUTOCONF=autoconf
++
+ cvs:
+-	if test -x /usr/bin/autoconf2.50 ; then \
+-	   AUTOCONF="/usr/bin/autoconf2.50" ;\
+-	else \
+-	   AUTOCONF="autoconf" ;\
+-	fi; \
+-	AUTOCONF_VERSION=`$$AUTOCONF --version` ;\
+-	if test "x$$AUTOCONF_VERSION" = "xAutoconf version 2.13"; then \
+-	   echo "*** YOU'RE USING AUTOCONF 2.13. We suggest updating." ;\
+-	   echo "*** autoconf 2.5x works best for now, we will drop" ;\
+-	   echo "*** support for autoconf 2.13 soon."; \
+-	   test ! -f admin/libtool.m4.in || mv admin/libtool.m4.in admin/new-libtool.m4.in ;\
+-	   test ! -f admin/ltmain.sh || mv admin/ltmain.sh admin/new-ltmain.sh ;\
+-	   for file in libtool.m4.in ltcf-c.sh ltcf-cxx.sh ltcf-gcj.sh ltconfig ltmain.sh; do \
+-		rm -f admin/$$file ;\
+-		ln -s old-$$file admin/$$file ;\
+-	   done ;\
+-	fi 
++	@chmod a+x admin/*
+ 	@if grep '$$(top_srcdir)/acinclude.m4:' Makefile.am >/dev/null; then \
+ 	  echo "*** Creating acinclude.m4" ;\
+ 	  rm -f acinclude.m4 configure.files ;\
+@@ -34,7 +22,7 @@
+ 	  $(MAKE) -f Makefile.am top_srcdir=. configure.in ;\
+ 	fi
+ 	@echo "*** Creating aclocal.m4"
+-	@aclocal
++	@$(ACLOCAL)
+ 	@echo "*** Creating configure"
+ 	@autoconf
+ 	@if test -r configure.in.in ; then \
+@@ -52,7 +40,7 @@
+ 		autoheader ;\
+ 	fi
+ 	@echo "*** Creating Makefile templates"
+-	@automake
++	@$(AUTOMAKE)
+ 	@echo "*** Postprocessing Makefile templates"
+ 	@perl admin/am_edit
+ 	@if egrep "^cvs-local:" Makefile.am >/dev/null; then \
+@@ -71,9 +59,9 @@
+ 	@if test -r configure.in.in; then \
+ 	  $(MAKE) -f Makefile.am top_srcdir=. subdirs configure.in; \
+ 	fi ;\
+-	aclocal; \
++	$(ACLOCAL); \
+ 	autoheader; \
+-	automake --foreign --include-deps; \
++	$(AUTOMAKE) --foreign --include-deps; \
+ 	perl admin/am_edit; \
+ 	autoconf; \
+ 	if test -r configure.in.in ; then \
+@@ -281,7 +269,9 @@
+ 	done ;\
+ 	rm -f _SUBDIRS ;\
+ 	for i in $$dirs; do \
++	if [ $$i != "kdm" ]; then \
+ 	echo $$i >> ./_SUBDIRS; \
++        fi \
+ 	done
+ 	@if test -r subdirs && diff subdirs _SUBDIRS > /dev/null; then \
+ 	  rm -f _SUBDIRS; \
+Index: admin/acinclude.m4.in
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/admin/acinclude.m4.in,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- admin/acinclude.m4.in	25 Jun 2002 03:34:27 -0000	1.1.1.1
++++ admin/acinclude.m4.in	25 Jun 2002 03:35:36 -0000	1.2
+@@ -693,6 +693,19 @@
+    AC_CHECK_FUNC(shmat, ,
+      AC_CHECK_LIB(ipc, shmat, X_EXTRA_LIBS="$X_EXTRA_LIBS -lipc"))
+    
++   # darwin needs this to initialize the environment
++   AC_CHECK_HEADERS([crt_externs.h sys/types.h])
++   AC_CHECK_FUNC(_NSGetEnviron, [AC_DEFINE(HAVE_NSGETENVIRON, 1, [Define if your system needs _NSGetEnviron to set up the environment])])
++
++   # darwin requires a poll.h emulation library
++   AC_CHECK_LIB(poll, poll, LIB_POLL="-lpoll")
++
++   # CoreAudio framework
++   AC_CHECK_HEADER(CoreAudio/CoreAudio.h, [
++     AC_DEFINE(HAVE_COREAUDIO, 1, [Define if you have the CoreAudio API])
++     FRAMEWORK_COREAUDIO="-framework CoreAudio"
++   ])
++
+    # Solaris 2.6 and others need -lresolv for res_init
+    AC_CHECK_FUNCS(res_init, , [
+      kde_libs_safe="$LIBS"
+@@ -713,6 +726,8 @@
+ 
+    LIBSOCKET="$X_EXTRA_LIBS"
+    AC_SUBST(LIBSOCKET)
++   AC_SUBST(FRAMEWORK_COREAUDIO)
++   AC_SUBST(LIB_POLL)
+    AC_SUBST(LIBRESOLV)
+    AC_SUBST(X_EXTRA_LIBS)
+    AC_CHECK_LIB(ucb, killpg, [LIBUCB="-lucb"]) dnl for Solaris2.4
+@@ -1826,6 +1841,32 @@
+ if test $kde_qtver = 3; then
+    LIB_KDECORE='-lkdecore'
+    AC_SUBST(LIB_KDECORE)
++   LIB_KDEFX='-lkdefx'
++   AC_SUBST(LIB_KDEFX)
++   LIB_ARTSKDE='-lartskde'
++   AC_SUBST(LIB_ARTSKDE)
++   LIB_KABC='-lkabc'
++   AC_SUBST(LIB_KABC)
++   LIB_KDESASL='-lkdesasl'
++   AC_SUBST(LIB_KDESASL)
++   LIB_KDESU='-lkdesu'
++   AC_SUBST(LIB_KDESU)
++   LIB_KJAVA='-lkjava'
++   AC_SUBST(LIB_KJAVA)
++   LIB_KJS='-lkjs'
++   AC_SUBST(LIB_KJS)
++   LIB_KMID='-lkmid'
++   AC_SUBST(LIB_KMID)
++   LIB_KSCRIPT='-lkscript'
++   AC_SUBST(LIB_KSCRIPT)
++   LIB_KTEXTEDITOR='-lktexteditor'
++   AC_SUBST(LIB_KTEXTEDITOR)
++   LIB_SHELLSCRIPT='-lshellscript'
++   AC_SUBST(LIB_SHELLSCRIPT)
++   LIB_VCARD='-lvcard'
++   AC_SUBST(LIB_VCARD)
++   LIB_DCOP='-lDCOP'
++   AC_SUBST(LIB_DCOP)
+    LIB_KDEUI='-lkdeui'
+    AC_SUBST(LIB_KDEUI)
+    LIB_KIO='-lkio'
+@@ -1842,6 +1883,8 @@
+    AC_SUBST(LIB_KPARTS)
+    LIB_KDEPRINT='-lkdeprint'
+    AC_SUBST(LIB_KDEPRINT)
++   LIB_KDED='@PREFIX@/lib/kded.la'
++   AC_SUBST(LIB_KDED)
+ # these are for backward compatibility
+    LIB_KSYCOCA='-lkio'
+    AC_SUBST(LIB_KSYCOCA)
+@@ -4158,7 +4201,7 @@
+ AC_DEFUN(KDE_CREATE_SUBDIRSLIST,
+ [
+ 
+-DO_NOT_COMPILE="$DO_NOT_COMPILE CVS debian bsd-port admin"
++DO_NOT_COMPILE="$DO_NOT_COMPILE CVS debian bsd-port admin kdm ksysguard kscd"
+ 
+ if test ! -s $srcdir/subdirs; then
+   dnl Note: Makefile.common creates subdirs, so this is just a fallback
+@@ -4530,9 +4573,12 @@
+            [initgroups may exist but not its prototype (e.g. AIX<4.3.3:8)])
+ ])
+ 
+-
+ AC_DEFUN(KDE_CHECK_JAVA_DIR,
+ [
++
++# needed by the MacOS X JVM in certain circumstances
++AC_CHECK_HEADERS([TargetConditionals.h])
++
+ AC_MSG_CHECKING([for Java directory])
+ 
+ AC_ARG_WITH(java,
+@@ -4541,6 +4587,7 @@
+ ], ac_java_dir=""
+ )
+ 
++
+ dnl at this point ac_java_dir is either a dir, 'no' to disable, or '' to say look in $PATH
+ if test "x$ac_java_dir" = "xno"; then
+    kde_cv_java_bindir=no
+@@ -4572,10 +4619,20 @@
+ dnl At this point kde_cv_java_bindir and kde_cv_java_includedir are either set or "no"
+ if test "x$kde_cv_java_bindir" != "xno"; then
+ 
++  case $host_os in
++    darwin*)
++      dnl Look for libjvm.dylib
++      kde_java_libjvmdir=`find /System/Library/Frameworks/JavaVM.framework/ -name libjvm.dylib | sed 's,libjvm.dylib,,'|head -n 1`
++      kd_java_libhpidir=''
++      dnl Darwin doesn't have libhpi
++      ;;
++    *)
+   dnl Look for libjvm.so
+   kde_java_libjvmdir=`find $kde_cv_java_bindir/.. -name libjvm.so | sed 's,libjvm.so,,'|head -n 1`
+   dnl Look for libhpi.so and avoid green threads
+   kde_java_libhpidir=`find $kde_cv_java_bindir/.. -name libhpi.so | grep -v green | sed 's,libhpi.so,,'`
++      ;;
++  esac
+ 
+   dnl Now check everything's fine under there
+ 
+@@ -4591,12 +4648,26 @@
+   if test ! -r "$kde_cv_java_includedir/jni.h"; then
+     AC_MSG_ERROR([jni.h not found under $kde_cv_java_includedir. Use --with-java or --without-java.])
+   fi
++  case $host_os in
++    darwin*)
++      if test ! -r "$kde_java_libjvmdir/libjvm.dylib"; then
++        AC_MSG_ERROR([libjvm.dylib not found under $kde_java_libjvmdir. Use --without-java.])
++      fi
++      dnl Darwin doesn't have libhpi, but it's not fatal
++      LIB_JVM="-framework JavaVM"
++      LIB_HPI=""
++      ;;
++    *)
+   if test ! -r "$kde_java_libjvmdir/libjvm.so"; then
+     AC_MSG_ERROR([libjvm.so not found under $kde_java_libjvmdir. Use --without-java.])
+   fi
++      LIB_JVM="-L$kde_java_libjvmdir -ljvm"
+   if test ! -r "$kde_java_libhpidir/libhpi.so"; then
+     AC_MSG_ERROR([libhpi.so not found under $kde_java_libhpidir. Use --without-java.])
+   fi
++      LIB_HPI="-L$kde_java_libhpidir -lhpi"
++      ;;
++  esac
+ 
+   jni_includes="-I$kde_cv_java_includedir"
+   dnl Strange thing, jni.h requires jni_md.h which is under genunix here..
+@@ -4643,7 +4714,7 @@
+   JAR=$kde_cv_java_bindir/jar
+   AC_SUBST(JAR)
+   AC_SUBST(jni_includes)
+-  JVMLIBS="-L$kde_java_libjvmdir -ljvm -L$kde_java_libhpidir -lhpi"
++  JVMLIBS="$LIB_JVM $LIB_HPI"
+   AC_SUBST(JVMLIBS)
+ fi
+ ])
+Index: admin/libtool.m4.in
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/admin/libtool.m4.in,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- admin/libtool.m4.in	25 Jun 2002 03:34:27 -0000	1.1.1.1
++++ admin/libtool.m4.in	25 Jun 2002 03:35:36 -0000	1.2
+@@ -593,6 +593,12 @@
+     lt_cv_sys_max_cmd_len=-1;
+     ;;
+ 
++  darwin*)
++    # this should be enough... the length test freaks out some versions
++    # of OSX's `expr`
++    lt_cv_sys_max_cmd_len=16384;
++    ;;
++
+   *)
+     # If test is not a shell built-in, we'll probably end up computing a
+     # maximum length that is only half of the actual maximum length, but
+@@ -1876,16 +1882,7 @@
+   ;;
+ 
+ darwin* | rhapsody*)
+-  lt_cv_deplibs_check_method='file_magic Mach-O dynamically linked shared library'
+-  lt_cv_file_magic_cmd='/usr/bin/file -L'
+-  case "$host_os" in
+-  rhapsody* | darwin1.[[012]])
+-    lt_cv_file_magic_test_file=`/System/Library/Frameworks/System.framework/System`
+-    ;;
+-  *) # Darwin 1.3 on
+-    lt_cv_file_magic_test_file='/usr/lib/libSystem.dylib'
+-    ;;
+-  esac
++  lt_cv_deplibs_check_method='pass_all'
+   ;;
+ 
+ freebsd*)
+@@ -2535,6 +2532,11 @@
+ 	;;
+     esac
+     ;;
++  darwin*)
++    shared_flag='-dynamiclib'
++    _LT_AC_TAGVAR(archive_cmds, $1)='$CC -r -keep_private_externs -nostdlib -o ${lib}-master.o $libobjs && $CC -dynamiclib -install_name $rpath/$soname $predep_objects ${lib}-master.o $deplibs $postdep_objects $compiler_flags -o $lib'
++    output_verbose_link_cmd='$CC -dynamiclib $CFLAGS -v conftest.$objext 2>&1 | egrep "\-L"'
++    ;;
+   dgux*)
+     case $cc_basename in
+       ec++)
+@@ -4725,7 +4727,9 @@
+ 	_LT_AC_TAGVAR(allow_undefined_flag, $1)='-undefined suppress'
+ 	;;
+       *) # Darwin 1.3 on
+-	_LT_AC_TAGVAR(allow_undefined_flag, $1)='-flat_namespace -undefined suppress'
++	#_LT_AC_TAGVAR(allow_undefined_flag, $1)='-flat_namespace -undefined suppress'
++        # testing with twolevel namespaces
++	_LT_AC_TAGVAR(allow_undefined_flag, $1)=unsupported
+ 	;;
+       esac
+ 
+@@ -4733,7 +4737,7 @@
+       #        cross-compilation, but unfortunately the echo tests do not
+       #        yet detect zsh echo's removal of \ escapes.  Also zsh mangles
+       #	       `"' quotes if we put them in here... so don't!
+-      _LT_AC_TAGVAR(archive_cmds, $1)='$CC $(test .$module = .yes && echo -bundle || echo -dynamiclib) $allow_undefined_flag -o $lib $libobjs $deplibs$linker_flags -install_name $rpath/$soname $verstring'
++      _LT_AC_TAGVAR(archive_cmds, $1)='$CC -r -keep_private_externs -nostdlib -o ${lib}-master.o $libobjs && $CC $(test .$module = .yes && echo -bundle || echo -dynamiclib) -install_name $rpath/$soname $allow_undefined_flag -o $lib ${lib}-master.o $deplibs $linker_flags $verstring'
+       # We need to add '_' to the symbols in $export_symbols first
+       #_LT_AC_TAGVAR(archive_expsym_cmds, $1)="$_LT_AC_TAGVAR(archive_cmds, $1)"' && strip -s $export_symbols'
+       _LT_AC_TAGVAR(hardcode_direct, $1)=yes
+Index: admin/ltmain.sh
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/admin/ltmain.sh,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- admin/ltmain.sh	25 Jun 2002 03:34:27 -0000	1.1.1.1
++++ admin/ltmain.sh	25 Jun 2002 03:35:36 -0000	1.2
+@@ -3324,7 +3324,18 @@
+ 	if test -n "$export_symbols" && test -n "$archive_expsym_cmds"; then
+ 	  eval cmds=\"$archive_expsym_cmds\"
+ 	else
++ 	  save_deplibs="$deplibs"
++ 	  for conv in $convenience; do
++            tmp_deplibs=
++            for test_deplib in $deplibs; do
++              if test "$test_deplib" != "$conv"; then
++                tmp_deplibs="$tmp_deplibs $test_deplib"
++              fi
++            done
++            deplibs="$tmp_deplibs"
++ 	  done
+ 	  eval cmds=\"$archive_cmds\"
++ 	  deplibs="$save_deplibs"
+ 	fi
+ 
+ 	if len=`expr "X$cmds" : ".*"` &&
+@@ -3635,6 +3646,14 @@
+ 	compile_deplibs=`$echo "X $compile_deplibs" | $Xsed -e 's/ -lc / -framework System /'`
+ 	finalize_deplibs=`$echo "X $finalize_deplibs" | $Xsed -e 's/ -lc / -framework System /'`
+ 	;;
++      esac
++
++      case $host in
++      *darwin*)
++        # Don't allow lazy linking, it breaks C++ global constructors
++        compile_command="$compile_command ${wl}-bind_at_load"
++        finalize_command="$finalize_command ${wl}-bind_at_load"
++        ;;
+       esac
+ 
+       compile_command="$compile_command $compile_deplibs"
+Index: admin/missing
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/admin/missing,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- admin/missing	25 Jun 2002 03:34:27 -0000	1.1.1.1
++++ admin/missing	25 Jun 2002 03:35:36 -0000	1.2
+@@ -87,7 +87,7 @@
+     exit 1
+     ;;
+ 
+-  aclocal)
++  aclocal*)
+     echo 1>&2 "\
+ WARNING: \`$1' is missing on your system.  You should only need it if
+          you modified \`acinclude.m4' or \`${configure_ac}'.  You might want
+@@ -124,7 +124,7 @@
+     touch $touch_files
+     ;;
+ 
+-  automake)
++  automake*)
+     echo 1>&2 "\
+ WARNING: \`$1' is missing on your system.  You should only need it if
+          you modified \`Makefile.am', \`acinclude.m4' or \`${configure_ac}'.
+Index: startkde
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/startkde,v
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- startkde	25 Jun 2002 02:06:32 -0000	1.1.1.2
++++ startkde	25 Jun 2002 02:08:33 -0000	1.3
+@@ -30,6 +30,9 @@
+ # people's heads. We use colours from the standard KDE palette for those with
+ # palettised displays.
+ 
++# we have to unset this for Darwin since it will screw up KDE's dynamic-loading
++unset DYLD_FORCE_FLAT_NAMESPACE
++
+ test "$XDM_MANAGED" || bkg="-solid #C0C0C0"
+ xsetroot -cursor_name left_ptr $bkg
+ 
+@@ -131,7 +134,11 @@
+ fi
+ 
+ # the splashscreen and progress indicator
+-ksplash
++if [ -x "@PREFIX@/bin/ksplashml" ]; then
++	ksplashml
++else
++	ksplash
++fi
+ 
+ # We set LD_BIND_NOW to increase the efficiency of kdeinit.
+ # kdeinit unsets this variable before loading applications.
+Index: debian/kate-dev.install
+===================================================================
+RCS file: debian/kate-dev.install
+diff -N debian/kate-dev.install
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ debian/kate-dev.install	25 Jun 2002 02:03:42 -0000	1.1.1.1
+@@ -0,0 +1,2 @@
++debian/tmp/usr/include/kde/kate
++debian/tmp/usr/lib/libkateinterfaces.so
+Index: debian/kdebase4-bin.install
+===================================================================
+RCS file: debian/kdebase4-bin.install
+diff -N debian/kdebase4-bin.install
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ debian/kdebase4-bin.install	25 Jun 2002 02:03:42 -0000	1.1.1.1
+@@ -0,0 +1,9 @@
++debian/tmp/usr/bin/drkonqi
++debian/tmp/usr/bin/kcheckpass
++debian/tmp/usr/bin/kdesu
++debian/tmp/usr/bin/kdesud
++debian/tmp/usr/bin/kreadconfig
++debian/tmp/usr/bin/kstart
++debian/tmp/usr/bin/ksystraycmd
++debian/tmp/usr/share/apps/drkonqi
++debian/tmp/usr/share/doc/kde/HTML/en/kdesu
+Index: debian/kdebase4-bin.undocumented
+===================================================================
+RCS file: debian/kdebase4-bin.undocumented
+diff -N debian/kdebase4-bin.undocumented
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ debian/kdebase4-bin.undocumented	25 Jun 2002 02:03:42 -0000	1.1.1.1
+@@ -0,0 +1,7 @@
++drkonqi.1
++kcheckpass.1
++kdesu.1
++kdesud.1
++kreadconfig.1
++kstart.1
++ksystraycmd.1
+Index: debian/kdebase4-data.install
+===================================================================
+RCS file: debian/kdebase4-data.install
+diff -N debian/kdebase4-data.install
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ debian/kdebase4-data.install	25 Jun 2002 02:03:42 -0000	1.1.1.1
+@@ -0,0 +1,230 @@
++debian/patches/kdebase4-data/debian.jpg	usr/share/wallpapers/
++debian/patches/kdebase4-data/*.desktop	etc/kde3/debian/
++debian/tmp/usr/share/applnk/.directory
++debian/tmp/usr/share/applnk/Applications/.directory
++debian/tmp/usr/share/applnk/Development/.directory
++debian/tmp/usr/share/applnk/Editors/.directory
++debian/tmp/usr/share/applnk/Edutainment/.directory
++debian/tmp/usr/share/applnk/Games/.directory
++debian/tmp/usr/share/applnk/Games/Arcade/.directory
++debian/tmp/usr/share/applnk/Games/Board/.directory
++debian/tmp/usr/share/applnk/Games/Card/.directory
++debian/tmp/usr/share/applnk/Games/Roguelikes/.directory
++debian/tmp/usr/share/applnk/Games/TacticStrategy/.directory
++debian/tmp/usr/share/applnk/Graphics/.directory
++debian/tmp/usr/share/applnk/Internet/.directory
++debian/tmp/usr/share/applnk/Internet/Terminal/.directory
++debian/tmp/usr/share/applnk/Multimedia/.directory
++debian/tmp/usr/share/applnk/Office/.directory
++debian/tmp/usr/share/applnk/Settings/.directory
++debian/tmp/usr/share/applnk/Settings/Databases/.directory
++debian/tmp/usr/share/applnk/Settings/FileBrowsing/.directory
++debian/tmp/usr/share/applnk/Settings/Help/.directory
++debian/tmp/usr/share/applnk/Settings/Information/.directory
++debian/tmp/usr/share/applnk/Settings/LookNFeel/.directory
++debian/tmp/usr/share/applnk/Settings/Network/.directory
++debian/tmp/usr/share/applnk/Settings/Peripherals/.directory
++debian/tmp/usr/share/applnk/Settings/Personalization/.directory
++debian/tmp/usr/share/applnk/Settings/PowerControl/.directory
++debian/tmp/usr/share/applnk/Settings/Sound/.directory
++debian/tmp/usr/share/applnk/Settings/System/.directory
++debian/tmp/usr/share/applnk/Settings/WebBrowsing/.directory
++debian/tmp/usr/share/applnk/System/.directory
++debian/tmp/usr/share/applnk/System/ScreenSavers/.directory
++debian/tmp/usr/share/applnk/System/Terminal/.directory
++debian/tmp/usr/share/applnk/Toys/.directory
++debian/tmp/usr/share/applnk/Utilities/.directory
++debian/tmp/usr/share/applnk/WordProcessing/.directory
++debian/tmp/usr/share/icons/hicolor/16x16/actions/view_choose.png
++debian/tmp/usr/share/icons/hicolor/16x16/actions/view_detailed.png
++debian/tmp/usr/share/icons/hicolor/16x16/actions/view_icon.png
++debian/tmp/usr/share/icons/hicolor/16x16/actions/view_multicolumn.png
++debian/tmp/usr/share/icons/hicolor/16x16/actions/view_text.png
++debian/tmp/usr/share/icons/hicolor/16x16/actions/view_tree.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/acroread.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/alevt.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/applixware.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/blender.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/designer.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/dlgedit.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/emacs.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/gimp.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/gv.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/gvim.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/kfm_home.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/licq.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/lyx.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/mathematica.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/mozilla.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/nedit.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/netscape.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/opera.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/package_applications.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/package_development.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/package_editors.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/package_edutainment.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/package_games.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/package_games_arcade.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/package_games_board.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/package_games_card.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/package_games_strategy.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/package_graphics.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/package_multimedia.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/package_network.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/package_settings.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/package_system.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/package_toys.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/package_utilities.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/package_wordprocessing.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/penguin.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/plan.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/pybliographic.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/realplayer.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/remote.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/terminal.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/wabi.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/wp.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/xcalc.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/xclipboard.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/xclock.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/xconsole.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/xedit.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/xemacs.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/xeyes.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/xfig.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/xfmail.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/xload.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/xmag.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/xmms.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/xosview.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/xpaint.png
++debian/tmp/usr/share/icons/hicolor/16x16/apps/xv.png
++debian/tmp/usr/share/icons/hicolor/16x16/filesystems/file_important.png
++debian/tmp/usr/share/icons/hicolor/16x16/filesystems/folder_important.png
++debian/tmp/usr/share/icons/hicolor/22x22/actions/view_choose.png
++debian/tmp/usr/share/icons/hicolor/22x22/actions/view_detailed.png
++debian/tmp/usr/share/icons/hicolor/22x22/actions/view_icon.png
++debian/tmp/usr/share/icons/hicolor/22x22/actions/view_multicolumn.png
++debian/tmp/usr/share/icons/hicolor/22x22/actions/view_text.png
++debian/tmp/usr/share/icons/hicolor/22x22/actions/view_tree.png
++debian/tmp/usr/share/icons/hicolor/32x32/actions/view_choose.png
++debian/tmp/usr/share/icons/hicolor/32x32/actions/view_detailed.png
++debian/tmp/usr/share/icons/hicolor/32x32/actions/view_icon.png
++debian/tmp/usr/share/icons/hicolor/32x32/actions/view_multicolumn.png
++debian/tmp/usr/share/icons/hicolor/32x32/actions/view_text.png
++debian/tmp/usr/share/icons/hicolor/32x32/actions/view_tree.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/acroread.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/alevt.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/applixware.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/blender.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/clanbomber.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/designer.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/dlgedit.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/emacs.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/gimp.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/gv.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/gvim.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/kfm_home.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/licq.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/lyx.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/mathematica.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/nedit.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/netscape.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/opera.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/package.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/package_applications.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/package_editors.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/package_edutainment.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/package_games.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/package_games_arcade.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/package_games_board.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/package_games_card.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/package_games_strategy.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/package_graphics.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/package_multimedia.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/package_network.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/package_settings.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/package_system.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/package_toys.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/package_utilities.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/package_wordprocessing.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/penguin.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/plan.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/pybliographic.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/pysol.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/realplayer.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/terminal.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/wabi.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/wp.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/x.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/xapp.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/xawtv.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/xcalc.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/xclipboard.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/xclock.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/xconsole.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/xedit.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/xemacs.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/xeyes.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/xfig.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/xfmail.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/xload.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/xmag.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/xmms.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/xosview.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/xpaint.png
++debian/tmp/usr/share/icons/hicolor/32x32/apps/xv.png
++debian/tmp/usr/share/icons/hicolor/32x32/filesystems/file_important.png
++debian/tmp/usr/share/icons/hicolor/32x32/filesystems/folder_important.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/blender.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/designer.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/emacs.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/gimp.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/gvim.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/kfm_home.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/licq.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/mozilla.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/netscape.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/opera.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/package.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/package_applications.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/package_editors.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/package_edutainment.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/package_games.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/package_games_arcade.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/package_games_board.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/package_games_card.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/package_games_strategy.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/package_graphics.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/package_multimedia.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/package_network.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/package_settings.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/package_system.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/package_toys.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/package_utilities.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/package_wordprocessing.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/remote.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/terminal.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/xedit.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/xemacs.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/xmag.png
++debian/tmp/usr/share/icons/hicolor/48x48/apps/xv.png
++debian/tmp/usr/share/icons/hicolor/48x48/filesystems/file_important.png
++debian/tmp/usr/share/icons/hicolor/48x48/filesystems/folder_important.png
++debian/tmp/usr/share/locale/l10n
++debian/tmp/usr/share/wallpapers/Blkmarble.jpg
++debian/tmp/usr/share/wallpapers/Chicken-Songs-2.jpg
++debian/tmp/usr/share/wallpapers/Circuit.jpg
++debian/tmp/usr/share/wallpapers/Foggy1.jpg
++debian/tmp/usr/share/wallpapers/Marble01.jpg
++debian/tmp/usr/share/wallpapers/No-Ones-Laughing-3.jpg
++debian/tmp/usr/share/wallpapers/Paper01.jpg
++debian/tmp/usr/share/wallpapers/Planning-And-Probing-1.jpg
++debian/tmp/usr/share/wallpapers/Time-For-Lunch-2.jpg
++debian/tmp/usr/share/wallpapers/Totally-New-Product-1.jpg
++debian/tmp/usr/share/wallpapers/Won-Ton-Soup-3.jpg
++debian/tmp/usr/share/wallpapers/default_blue.jpg
++debian/tmp/usr/share/wallpapers/kde_box.png
++debian/tmp/usr/share/wallpapers/kde_passion.jpg
++debian/tmp/usr/share/wallpapers/only_k.jpg
++debian/tmp/usr/share/wallpapers/triplegears.jpg
+Index: debian/kdesktop-dev.install
+===================================================================
+RCS file: debian/kdesktop-dev.install
+diff -N debian/kdesktop-dev.install
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ debian/kdesktop-dev.install	25 Jun 2002 02:03:42 -0000	1.1.1.1
+@@ -0,0 +1,3 @@
++debian/tmp/usr/include/kde/KBackgroundIface.h
++debian/tmp/usr/include/kde/KDesktopIface.h
++debian/tmp/usr/include/kde/KScreensaverIface.h
+Index: debian/konqueror-dev.install
+===================================================================
+RCS file: debian/konqueror-dev.install
+diff -N debian/konqueror-dev.install
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ debian/konqueror-dev.install	25 Jun 2002 02:03:42 -0000	1.1.1.1
+@@ -0,0 +1,3 @@
++debian/tmp/usr/include/kde/KonquerorIface.h
++debian/tmp/usr/include/kde/konqsidebarplugin.h
++debian/tmp/usr/lib/libkonqsidebarplugin.so
+Index: debian/ksysguard-dev.install
+===================================================================
+RCS file: debian/ksysguard-dev.install
+diff -N debian/ksysguard-dev.install
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ debian/ksysguard-dev.install	25 Jun 2002 02:03:43 -0000	1.1.1.1
+@@ -0,0 +1,7 @@
++debian/tmp/usr/include/kde/ccont.h
++debian/tmp/usr/include/kde/ksgrd
++debian/tmp/usr/lib/libccont.a
++debian/tmp/usr/lib/libksgrd.la
++debian/tmp/usr/lib/libksgrd.so
++debian/tmp/usr/lib/libsensordisplays.la
++debian/tmp/usr/lib/libsensordisplays.so
+Index: kate/app/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kate/app/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kate/app/Makefile.am	25 Jun 2002 02:03:44 -0000	1.1.1.1
++++ kate/app/Makefile.am	25 Jun 2002 02:06:13 -0000	1.2
+@@ -7,12 +7,14 @@
+ 	kateviewmanager.cpp kateviewspace.cpp katemain.cpp \
+ 	kateappIface.skel kateIface.skel kategrepdialog.cpp katefiledialog.cpp
+ 
+-kate_la_LIBADD   = ../interfaces/libkateinterfaces.la -lkscript
+-kate_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -module -avoid-version
++kate_la_LIBADD   = ../interfaces/libkateinterfaces.la -lkscript $(LIB_DCOP) $(LIB_QT) $(LIB_KDECORE) \
++	$(LIB_KDEUI) $(LIB_KPARTS) $(LIB_KIO) -lktexteditor
++kate_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -module -avoid-version $(QT_LDFLAGS)
+ 
+ kwrite_la_SOURCES = kwritemain.cpp katefiledialog.cpp
+-kwrite_la_LIBADD   = ../interfaces/libkateinterfaces.la
+-kwrite_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -module -avoid-version
++kwrite_la_LIBADD   = ../interfaces/libkateinterfaces.la $(LIB_DCOP) $(LIB_QT) $(LIB_KDECORE) $(LIB_KDEUI) \
++	$(LIB_KPARTS) $(LIB_KIO)
++kwrite_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -module -avoid-version $(QT_LDFLAGS)
+ 
+ kate_SOURCES = dummy.cpp
+ kate_LDADD = kate.la
+Index: kate/interfaces/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kate/interfaces/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kate/interfaces/Makefile.am	25 Jun 2002 02:03:44 -0000	1.1.1.1
++++ kate/interfaces/Makefile.am	25 Jun 2002 02:06:13 -0000	1.2
+@@ -3,8 +3,8 @@
+ lib_LTLIBRARIES = libkateinterfaces.la
+ 
+ libkateinterfaces_la_SOURCES = interfaces.cpp
+-libkateinterfaces_la_LIBADD   = -lkatepartinterfaces
+-libkateinterfaces_la_LDFLAGS = $(all_libraries) $(KDE_RPATH)
++libkateinterfaces_la_LIBADD   = -lkatepartinterfaces $(LIB_KDECORE) $(LIB_KDEUI) $(LIB_QT)
++libkateinterfaces_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) $(QT_LDFLAGS)
+ 
+ kateinclude_HEADERS = application.h docmanager.h mainwindow.h plugin.h viewmanager.h
+ kateincludedir = $(includedir)/kate
+Index: kcontrol/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/Makefile.am	25 Jun 2002 02:03:44 -0000	1.1.1.1
++++ kcontrol/Makefile.am	25 Jun 2002 02:06:13 -0000	1.2
+@@ -1,5 +1,5 @@
+ # 'colors' and 'fonts' should come after 'krdb'
+-SUBDIRS = bell background filetypes samba krdb input info ioslaveinfo kdm\
++SUBDIRS = bell background filetypes samba krdb input info ioslaveinfo\
+ 	kicker locale launch keys kio konq thememgr style \
+ 	konqhtml email ebrowsing arts kcontrol passwords knotify\
+ 	clock pics $(ACCESS_SUBDIR) colors energy fonts css \
+Index: kcontrol/access/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/access/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/access/Makefile.am	25 Jun 2002 02:03:44 -0000	1.1.1.1
++++ kcontrol/access/Makefile.am	25 Jun 2002 02:06:13 -0000	1.2
+@@ -12,12 +12,12 @@
+ lib_LTLIBRARIES = kaccess.la
+ 
+ kaccess_la_SOURCES = kaccess.cpp main.cpp
+-kaccess_la_LDFLAGS = $(all_libraries) -module -avoid-version
+-kaccess_la_LIBADD = $(LIB_KDEUI)
++kaccess_la_LDFLAGS = $(all_libraries) -module -avoid-version $(QT_LDFLAGS)
++kaccess_la_LIBADD = $(LIB_KDEUI) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE) $(LIB_DCOP)
+ 
+ kcm_access_la_SOURCES = kcmaccess.cpp 
+-kcm_access_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined
+-kcm_access_la_LIBADD = $(LIB_KFILE)
++kcm_access_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined $(QT_LDFLAGS)
++kcm_access_la_LIBADD = $(LIB_KFILE) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE) $(LIB_KDEUI)
+ 
+ noinst_HEADERS = kcmaccess.h
+ 
+Index: kcontrol/arts/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/arts/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/arts/Makefile.am	25 Jun 2002 02:03:44 -0000	1.1.1.1
++++ kcontrol/arts/Makefile.am	25 Jun 2002 02:06:13 -0000	1.2
+@@ -2,8 +2,8 @@
+ 
+ kcm_arts_la_SOURCES = arts.cpp artsconfig.ui
+ 
+-kcm_arts_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined
+-kcm_arts_la_LIBADD = -lkdeui
++kcm_arts_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined $(QT_LDFLAGS)
++kcm_arts_la_LIBADD = $(LIB_KDEUI) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE)
+ 
+ INCLUDES = -I$(kde_includes)/arts  $(all_includes)
+ 
+Index: kcontrol/background/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/background/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/background/Makefile.am	25 Jun 2002 02:03:44 -0000	1.1.1.1
++++ kcontrol/background/Makefile.am	25 Jun 2002 02:06:13 -0000	1.2
+@@ -7,8 +7,9 @@
+ kde_module_LTLIBRARIES = kcm_background.la
+ 
+ kcm_background_la_SOURCES = backgnd.cpp bgdialogs.cpp 
+-kcm_background_la_LDFLAGS = $(KDE_RPATH) -module -avoid-version $(all_libraries) -no-undefined
+-kcm_background_la_LIBADD = $(LIB_KFILE) libbgnd.la
++kcm_background_la_LDFLAGS = $(KDE_RPATH) -module -avoid-version $(all_libraries) -no-undefined $(QT_LDFLAGS)
++kcm_background_la_LIBADD = $(LIB_KFILE) libbgnd.la $(LIB_X11) $(LIB_QT) $(LIB_KDECORE) $(LIB_KDEUI) \
++	$(LIB_DCOP) $(LIB_KDEFX)
+ 
+ METASOURCES = AUTO
+ 
+Index: kcontrol/bell/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/bell/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/bell/Makefile.am	25 Jun 2002 02:03:44 -0000	1.1.1.1
++++ kcontrol/bell/Makefile.am	25 Jun 2002 02:06:13 -0000	1.2
+@@ -3,7 +3,7 @@
+ kcm_bell_la_SOURCES = bell.cpp
+ 
+ kcm_bell_la_LDFLAGS = $(all_libraries) -module -avoid-version -no-undefined
+-kcm_bell_la_LIBADD = -lkdeui
++kcm_bell_la_LIBADD = $(LIB_KDEUI) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE)
+ 
+ INCLUDES= $(all_includes)
+ 
+Index: kcontrol/clock/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/clock/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/clock/Makefile.am	25 Jun 2002 02:03:44 -0000	1.1.1.1
++++ kcontrol/clock/Makefile.am	25 Jun 2002 02:06:13 -0000	1.2
+@@ -2,8 +2,8 @@
+ 
+ kcm_clock_la_SOURCES = dtime.cpp tzone.cpp main.cpp 
+ 
+-kcm_clock_la_LDFLAGS = $(all_libraries) -module -avoid-version -no-undefined
+-kcm_clock_la_LIBADD = -lkdeui
++kcm_clock_la_LDFLAGS = $(all_libraries) -module -avoid-version -no-undefined $(QT_LDFLAGS)
++kcm_clock_la_LIBADD = $(LIB_KDEUI) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE) $(LIB_DCOP)
+ 
+ INCLUDES= $(all_includes)
+  
+Index: kcontrol/colors/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/colors/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/colors/Makefile.am	25 Jun 2002 02:03:44 -0000	1.1.1.1
++++ kcontrol/colors/Makefile.am	25 Jun 2002 02:06:13 -0000	1.2
+@@ -5,8 +5,9 @@
+ kde_module_LTLIBRARIES = kcm_colors.la
+ 
+ kcm_colors_la_SOURCES = colorscm.cpp widgetcanvas.cpp 
+-kcm_colors_la_LDFLAGS = $(KDE_RPATH) -module -avoid-version $(all_libraries) -no-undefined
+-kcm_colors_la_LIBADD = $(LIB_KDEUI) $(top_builddir)/kcontrol/krdb/libkrdb.la
++kcm_colors_la_LDFLAGS = $(KDE_RPATH) -module -avoid-version $(all_libraries) -no-undefined $(QT_LDFLAGS)
++kcm_colors_la_LIBADD = $(LIB_KDEUI) $(top_builddir)/kcontrol/krdb/libkrdb.la $(LIB_X11) $(LIB_QT) \
++	$(LIB_KDECORE) $(LIB_KDEFX)
+ kcm_colors_la_METASOURCES = colorscm.moc widgetcanvas.moc
+ 
+ noinst_HEADERS = colorscm.h widgetcanvas.h
+Index: kcontrol/crypto/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/crypto/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/crypto/Makefile.am	25 Jun 2002 02:03:44 -0000	1.1.1.1
++++ kcontrol/crypto/Makefile.am	25 Jun 2002 02:06:13 -0000	1.2
+@@ -3,8 +3,8 @@
+ 
+ kcm_crypto_la_SOURCES = crypto.cpp certexport.cpp kdatetimedlg.cpp
+ 
+-kcm_crypto_la_LDFLAGS  = $(KDE_RPATH) $(all_libraries) $(SSL_LDFLAGS) -module -avoid-version -no-undefined
+-kcm_crypto_la_LIBADD = -lkdeui $(LIB_KFILE) $(LIBSSL)
++kcm_crypto_la_LDFLAGS  = $(KDE_RPATH) $(all_libraries) $(SSL_LDFLAGS) -module -avoid-version -no-undefined $(QT_LDFLAGS)
++kcm_crypto_la_LIBADD = $(LIB_KDEUI) $(LIB_KFILE) $(LIBSSL) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE)
+ 
+ kcm_crypto_la_METASOURCES = AUTO
+ 
+Index: kcontrol/css/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/css/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/css/Makefile.am	25 Jun 2002 02:03:44 -0000	1.1.1.1
++++ kcontrol/css/Makefile.am	25 Jun 2002 02:06:13 -0000	1.2
+@@ -5,8 +5,8 @@
+ 
+ kde_module_LTLIBRARIES = kcm_css.la
+ kcm_css_la_SOURCES = template.cpp cssconfig.ui kcmcss.cpp preview.ui
+-kcm_css_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined
+-kcm_css_la_LIBADD = -lkdeui $(LIB_KFILE)
++kcm_css_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined $(QT_LDFLAGS)
++kcm_css_la_LIBADD = $(LIB_KDEUI) $(LIB_KFILE) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE)
+ 
+ kcm_css_la_METASOURCES = AUTO
+  
+Index: kcontrol/display/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/display/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/display/Makefile.am	25 Jun 2002 02:03:44 -0000	1.1.1.1
++++ kcontrol/display/Makefile.am	25 Jun 2002 02:06:13 -0000	1.2
+@@ -7,8 +7,8 @@
+ 
+ noinst_LTLIBRARIES = libkrdb.la
+ libkrdb_la_SOURCES = krdb.cpp
+-libkrdb_la_LIBADD = $(LIB_KDECORE)
+-libkrdb_la_LDFLAGS = -no-undefined $(all_libraries) 
++libkrdb_la_LIBADD = $(LIB_X11) $(LIB_QT) $(LIB_KDECORE)
++libkrdb_la_LDFLAGS = -no-undefined $(all_libraries) $(QT_LDFLAGS)
+ 
+ messages:
+ 
+Index: kcontrol/ebrowsing/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/ebrowsing/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/ebrowsing/Makefile.am	25 Jun 2002 02:03:44 -0000	1.1.1.1
++++ kcontrol/ebrowsing/Makefile.am	25 Jun 2002 02:06:13 -0000	1.2
+@@ -10,8 +10,8 @@
+ 
+ kcm_kurifilt_la_SOURCES = filteropts.cpp main.cpp
+ 
+-kcm_kurifilt_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined
+-kcm_kurifilt_la_LIBADD = $(LIB_KSYCOCA)
++kcm_kurifilt_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined $(QT_LDFLAGS)
++kcm_kurifilt_la_LIBADD = $(LIB_KSYCOCA) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE) $(LIB_KDEUI)
+ # Don't link this lib to the plugins. They are dlopened and linking to them
+ # results in crashes when closing kcmshell.
+ # plugins/ikws/libkuriikwsfilter.la plugins/shorturi/libkshorturifilter.la
+Index: kcontrol/ebrowsing/plugins/ikws/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/ebrowsing/plugins/ikws/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/ebrowsing/plugins/ikws/Makefile.am	25 Jun 2002 02:03:44 -0000	1.1.1.1
++++ kcontrol/ebrowsing/plugins/ikws/Makefile.am	25 Jun 2002 02:06:13 -0000	1.2
+@@ -8,10 +8,10 @@
+ kde_module_LTLIBRARIES = libkuriikwsfilter.la libkurisearchfilter.la
+ 
+ libkuriikwsfilter_la_LDFLAGS = -module $(KDE_PLUGIN)
+-libkuriikwsfilter_la_LIBADD = $(LIB_KSYCOCA) $(LIB_KDEUI)
++libkuriikwsfilter_la_LIBADD = $(LIB_KSYCOCA) $(LIB_KDEUI) $(LIB_KDECORE) $(LIB_QT) $(LIB_DCOP)
+ 
+ libkurisearchfilter_la_LDFLAGS = -module $(KDE_PLUGIN)
+-libkurisearchfilter_la_LIBADD = $(LIB_KSYCOCA) $(LIB_KDEUI)
++libkurisearchfilter_la_LIBADD = $(LIB_KSYCOCA) $(LIB_KDEUI) $(LIB_KDECORE) $(LIB_QT) $(LIB_DCOP)
+ 
+ libkuriikwsfilter_la_SOURCES = kuriikwsfiltereng.cpp kuriikwsfilter.skel kuriikwsfilter.cpp searchprovider.cpp
+ libkurisearchfilter_la_SOURCES = kurisearchfilter.cpp kurisearchfilter.skel kuriikwsfiltereng.cpp ikwsopts.cpp searchproviderdlg.cpp searchprovider.cpp
+Index: kcontrol/ebrowsing/plugins/shorturi/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/ebrowsing/plugins/shorturi/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/ebrowsing/plugins/shorturi/Makefile.am	25 Jun 2002 02:03:44 -0000	1.1.1.1
++++ kcontrol/ebrowsing/plugins/shorturi/Makefile.am	25 Jun 2002 02:06:13 -0000	1.2
+@@ -7,8 +7,8 @@
+ 
+ kde_module_LTLIBRARIES = libkshorturifilter.la
+ 
+-libkshorturifilter_la_LDFLAGS = -module $(KDE_PLUGIN)
+-libkshorturifilter_la_LIBADD = $(LIB_KSYCOCA) $(LIB_KDEUI)
++libkshorturifilter_la_LDFLAGS = -module $(KDE_PLUGIN) $(QT_LDFLAGS)
++libkshorturifilter_la_LIBADD = $(LIB_KSYCOCA) $(LIB_KDEUI) $(LIB_KDECORE) $(LIB_QT) $(LIB_DCOP)
+ 
+ libkshorturifilter_la_SOURCES = kshorturifilter.cpp kshorturifilter.skel
+ 
+Index: kcontrol/email/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/email/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/email/Makefile.am	25 Jun 2002 02:03:44 -0000	1.1.1.1
++++ kcontrol/email/Makefile.am	25 Jun 2002 02:06:13 -0000	1.2
+@@ -3,8 +3,8 @@
+ kde_module_LTLIBRARIES = kcm_email.la
+ 
+ kcm_email_la_SOURCES = emailbase.ui email.cpp
+-kcm_email_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined
+-kcm_email_la_LIBADD = -lkdeui $(LIB_KIO) $(LIB_KFILE)
++kcm_email_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined $(QT_LDFLAGS)
++kcm_email_la_LIBADD = $(LIB_KDEUI) $(LIB_KIO) $(LIB_KFILE) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE)
+ INCLUDES= $(all_includes) 
+ 
+ kcm_email_la_METASOURCES = AUTO
+Index: kcontrol/energy/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/energy/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/energy/Makefile.am	25 Jun 2002 02:03:45 -0000	1.1.1.1
++++ kcontrol/energy/Makefile.am	25 Jun 2002 02:06:13 -0000	1.2
+@@ -7,8 +7,8 @@
+ kde_module_LTLIBRARIES = kcm_energy.la
+ 
+ kcm_energy_la_SOURCES = energy.cpp
+-kcm_energy_la_LDFLAGS = -module -avoid-version $(all_libraries) -no-undefined
+-kcm_energy_la_LIBADD = $(DPMSLIB) $(LIB_KDEUI) 
++kcm_energy_la_LDFLAGS = -module -avoid-version $(all_libraries) -no-undefined $(QT_LDFLAGS)
++kcm_energy_la_LIBADD = $(DPMSLIB) $(LIB_KDEUI) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE)
+ kcm_energy_la_METASOURCES = energy.moc
+ 
+ noinst_HEADERS = energy.h
+Index: kcontrol/filetypes/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/filetypes/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/filetypes/Makefile.am	25 Jun 2002 02:03:45 -0000	1.1.1.1
++++ kcontrol/filetypes/Makefile.am	25 Jun 2002 02:06:13 -0000	1.2
+@@ -1,7 +1,7 @@
+ INCLUDES= $(all_includes)
+ 
+-kcm_filetypes_la_LIBADD	= libfiletypes.la $(LIB_KFILE)
+-kcm_filetypes_la_LDFLAGS = -module -avoid-version -no-undefined $(all_libraries)
++kcm_filetypes_la_LIBADD	= libfiletypes.la $(LIB_KFILE) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE) $(LIB_DCOP)
++kcm_filetypes_la_LDFLAGS = -module -avoid-version -no-undefined $(all_libraries) $(QT_LDFLAGS)
+ kcm_filetypes_la_METASOURCES = AUTO
+ 
+ kde_module_LTLIBRARIES = kcm_filetypes.la
+Index: kcontrol/fonts/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/fonts/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/fonts/Makefile.am	25 Jun 2002 02:03:45 -0000	1.1.1.1
++++ kcontrol/fonts/Makefile.am	25 Jun 2002 02:06:13 -0000	1.2
+@@ -5,8 +5,8 @@
+ kde_module_LTLIBRARIES = kcm_fonts.la
+ 
+ kcm_fonts_la_SOURCES = fonts.cpp
+-kcm_fonts_la_LDFLAGS = $(KDE_RPATH) -module -avoid-version $(all_libraries) -no-undefined
+-kcm_fonts_la_LIBADD = $(LIB_KDEUI)
++kcm_fonts_la_LDFLAGS = $(KDE_RPATH) -module -avoid-version $(all_libraries) -no-undefined $(QT_LDFLAGS)
++kcm_fonts_la_LIBADD = $(LIB_KDEUI) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE)
+ kcm_fonts_la_METASOURCES = fonts.moc
+ 
+ noinst_HEADERS = fonts.h
+Index: kcontrol/icons/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/icons/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/icons/Makefile.am	25 Jun 2002 02:03:45 -0000	1.1.1.1
++++ kcontrol/icons/Makefile.am	25 Jun 2002 02:06:13 -0000	1.2
+@@ -5,8 +5,8 @@
+ kde_module_LTLIBRARIES = kcm_icons.la
+ 
+ kcm_icons_la_SOURCES = iconthemes.cpp icons.cpp main.cpp
+-kcm_icons_la_LDFLAGS = -module -avoid-version $(all_libraries) -no-undefined
+-kcm_icons_la_LIBADD = $(LIB_KFILE)
++kcm_icons_la_LDFLAGS = -module -avoid-version $(all_libraries) -no-undefined $(QT_LDFLAGS)
++kcm_icons_la_LIBADD = $(LIB_KFILE) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE) $(LIB_KDEUI)
+ kcm_icons_la_METASOURCES = icons.moc iconthemes.moc main.moc
+ 
+ 
+Index: kcontrol/info/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/info/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/info/Makefile.am	25 Jun 2002 02:03:45 -0000	1.1.1.1
++++ kcontrol/info/Makefile.am	25 Jun 2002 02:06:13 -0000	1.2
+@@ -2,8 +2,8 @@
+ 
+ kcm_info_la_SOURCES = main.cpp memory.cpp
+ 
+-kcm_info_la_LDFLAGS = $(all_libraries) -module -avoid-version -no-undefined
+-kcm_info_la_LIBADD = $(LIBALIB) $(LIB_KDEUI) $(LIB_TRU64_MACH) $(LIBCFG) $(LIBODM) $(LIBKSTAT) $(LIBDEVINFO)
++kcm_info_la_LDFLAGS = $(all_libraries) -module -avoid-version -no-undefined $(QT_LDFLAGS) $(FRAMEWORK_COREAUDIO)
++kcm_info_la_LIBADD = $(LIBALIB) $(LIB_KDEUI) $(LIB_TRU64_MACH) $(LIBCFG) $(LIBODM) $(LIBKSTAT) $(LIBDEVINFO) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE)
+ 
+ INCLUDES= $(all_includes)
+  
+Index: kcontrol/info/info.cpp
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/info/info.cpp,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/info/info.cpp	25 Jun 2002 02:03:45 -0000	1.1.1.1
++++ kcontrol/info/info.cpp	25 Jun 2002 02:06:13 -0000	1.2
+@@ -471,6 +471,8 @@
+ #include "info_svr4.cpp"
+ #elif _AIX
+ #include "info_aix.cpp"
++#elif defined(__APPLE__)
++#include "info_osx.cpp"
+ #else
+ #include "info_generic.cpp"	/* Default for unsupportet systems.... */
+ #endif
+Index: kcontrol/info/info_osx.cpp
+===================================================================
+RCS file: kcontrol/info/info_osx.cpp
+diff -N kcontrol/info/info_osx.cpp
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ kcontrol/info/info_osx.cpp	25 Jun 2002 02:06:13 -0000	1.1
+@@ -0,0 +1,163 @@
++/*
++ * kdebase3-3.0.1-3.patch,v 1.2 2002/06/24 01:48:12 ranger Exp
++ *
++ * info_fbsd.cpp is part of the KDE program kcminfo.  This displays
++ * various information about the system (hopefully a FreeBSD system)
++ * it's running on.
++ */
++
++#define INFO_CPU_AVAILABLE
++//#define INFO_IRQ_AVAILABLE
++//#define INFO_DMA_AVAILABLE
++//#define INFO_PCI_AVAILABLE
++//#define INFO_IOPORTS_AVAILABLE
++#define INFO_SOUND_AVAILABLE
++#define INFO_DEVICES_AVAILABLE
++#define INFO_SCSI_AVAILABLE
++#define INFO_PARTITIONS_AVAILABLE
++#define INFO_XSERVER_AVAILABLE
++
++/*
++ * all following functions should return TRUE, when the Information
++ * was filled into the lBox-Widget. Returning FALSE indicates that
++ * information was not available.
++ */
++
++#include <sys/types.h>
++#include <sys/sysctl.h>
++
++#include <fstab.h>
++#include <stdio.h>
++#include <stdlib.h>
++
++#include <iostream.h>
++
++#include <qdict.h>
++#include <qfile.h>
++#include <qfontmetrics.h>
++#include <qptrlist.h>
++#include <qstring.h>
++#include <qtextstream.h>
++
++#include <kdebug.h>
++
++#include <mach/mach.h>
++#include <mach-o/arch.h>
++
++#ifdef HAVE_COREAUDIO
++#include <CoreAudio/CoreAudio.h>
++#endif
++
++#include <machine/limits.h>
++
++bool GetInfo_CPU (QListView *lBox)
++{
++
++	QString cpustring;
++
++        kern_return_t ret;
++        struct host_basic_info basic_info;
++        unsigned int count=HOST_BASIC_INFO_COUNT;
++
++        ret=host_info(mach_host_self(), HOST_BASIC_INFO, 
++                (host_info_t)&basic_info, &count);
++        if (ret != KERN_SUCCESS) {
++		kdDebug() << "unable to get host information from mach" << endl;
++		return false;
++        } else {
++		kdDebug() << "got Host Info: (" << basic_info.avail_cpus << ") CPUs available" << endl;
++        	const NXArchInfo *archinfo;
++        	archinfo=NXGetArchInfoFromCpuType(basic_info.cpu_type, basic_info.cpu_subtype);
++		new QListViewItem(lBox, i18n("Kernel is configured for %1 CPUs").arg(basic_info.max_cpus));
++		for (int i = 1; i <= basic_info.avail_cpus; i++) {
++			cpustring = i18n("CPU %1: %2").arg(i).arg(archinfo->description);
++			new QListViewItem(lBox, cpustring);
++		}
++		return true;
++	}
++	return false;
++}
++
++bool GetInfo_IRQ (QListView *)
++{
++	return false;
++}
++
++bool GetInfo_DMA (QListView *)
++{
++	return false;
++}
++
++bool GetInfo_PCI (QListView *)
++{
++	return false;
++}
++
++bool GetInfo_IO_Ports (QListView *)
++{
++	return false;
++}
++
++bool GetInfo_Sound (QListView *lBox)
++{
++#ifdef HAVE_COREAUDIO
++#define kMaxStringSize 1024
++	OSStatus status;
++	AudioDeviceID gOutputDeviceID;
++	unsigned long propertySize;
++	char deviceName[kMaxStringSize];
++	char manufacturer[kMaxStringSize];
++	propertySize = sizeof(gOutputDeviceID);
++	status = AudioHardwareGetProperty(kAudioHardwarePropertyDefaultOutputDevice, &propertySize, &gOutputDeviceID);
++	if (status) {
++		kdDebug() << "get default output device failed, status = " << (int)status << endl;
++		return false;
++	}
++
++	if (gOutputDeviceID != kAudioDeviceUnknown) {
++
++		propertySize = kMaxStringSize;
++
++		/* Device Name */
++		status = AudioDeviceGetProperty(gOutputDeviceID, 1, 0, kAudioDevicePropertyDeviceName, &propertySize, deviceName);
++		if (status) {
++			kdDebug() << "get device name failed, status = " << (int)status << endl;
++			return false;
++		}
++		new QListViewItem(lBox, i18n("Device Name: %1").arg(deviceName));
++
++		/* Manufacturer */
++		status = AudioDeviceGetProperty(gOutputDeviceID, 1, 0, kAudioDevicePropertyDeviceManufacturer, &propertySize, manufacturer);
++		if (status) {
++			kdDebug() << "get manufacturer failed, status = " << (int)status << endl;
++			return false;
++		}
++		new QListViewItem(lBox, i18n("Manufacturer: %1").arg(manufacturer));
++		return true;
++	} else {
++		return false;
++	}
++#else
++	return false;
++#endif
++}
++
++bool GetInfo_SCSI (QListView *lbox)
++{
++	return false;
++}
++
++bool GetInfo_Partitions (QListView *lbox)
++{
++	return false;
++}
++
++bool GetInfo_XServer_and_Video (QListView *lBox)
++{
++	return GetInfo_XServer_Generic( lBox );
++}
++
++bool GetInfo_Devices (QListView *lbox)
++{
++	return false;
++}
+Index: kcontrol/info/memory.cpp
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/info/memory.cpp,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/info/memory.cpp	25 Jun 2002 02:03:45 -0000	1.1.1.1
++++ kcontrol/info/memory.cpp	25 Jun 2002 02:06:13 -0000	1.2
+@@ -440,6 +440,8 @@
+ 
+ #ifdef __linux__
+ #include "memory_linux.cpp"
++#elif defined(__APPLE__)
++#include "memory_osx.cpp"
+ #elif sgi
+ #include "memory_sgi.cpp"
+ #elif defined(__svr4__) && defined(sun)
+Index: kcontrol/info/memory_osx.cpp
+===================================================================
+RCS file: kcontrol/info/memory_osx.cpp
+diff -N kcontrol/info/memory_osx.cpp
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ kcontrol/info/memory_osx.cpp	25 Jun 2002 02:06:13 -0000	1.1
+@@ -0,0 +1,72 @@
++#include <unistd.h>
++#include <stdlib.h>
++#include <qfile.h>
++#include <mach/mach_init.h>
++#include <mach/mach_host.h>
++#include <mach/host_info.h>
++#include <sys/stat.h>
++#include <dirent.h>
++#include <kdebug.h>
++
++void KMemoryWidget::update()
++{
++
++	vm_statistics_data_t vm_info;
++	mach_msg_type_number_t info_count;
++	DIR *dirp;
++	struct dirent *dp;
++	off_t total;
++
++	info_count = HOST_VM_INFO_COUNT;
++	if (host_statistics(mach_host_self (), HOST_VM_INFO, (host_info_t)&vm_info, &info_count)) {
++		kdDebug() << "could not get memory statistics" << endl;
++		return;
++	}
++
++	Memory_Info[TOTAL_MEM]    = (vm_info.active_count + vm_info.inactive_count +
++		vm_info.free_count + vm_info.wire_count) * vm_page_size;
++	Memory_Info[FREE_MEM]     = vm_info.free_count * vm_page_size;
++	Memory_Info[SHARED_MEM]   = NO_MEMORY_INFO;
++	Memory_Info[BUFFER_MEM]   = NO_MEMORY_INFO;
++	Memory_Info[CACHED_MEM]   = NO_MEMORY_INFO;
++
++	dirp = opendir("/private/var/vm");
++	if (!dirp) {
++		kdDebug() << "unable to open /private/var/vm" << endl;
++		return;
++	}
++
++	total = 0;
++
++	while ((dp = readdir (dirp)) != NULL) {
++		struct stat sb;
++		char fname [MAXNAMLEN];
++
++		if (strncmp (dp->d_name, "swapfile", 8))
++			continue;
++
++		strcpy (fname, "/private/var/vm/");
++		strcat (fname, dp->d_name);
++		if (stat (fname, &sb) < 0)
++			continue;
++
++		total += sb.st_size;
++	}
++	closedir (dirp);
++
++	info_count = HOST_VM_INFO_COUNT;
++	if (host_statistics (mach_host_self (), HOST_VM_INFO,
++		(host_info_t) &vm_info, &info_count)) {
++			kdDebug() << "unable to get VM info" << endl;
++	}
++
++	Memory_Info[SWAP_MEM]     = total;
++	// off_t used = (vm_info.pageouts - vm_info.pageins) * vm_page_size;
++	Memory_Info[FREESWAP_MEM] = NO_MEMORY_INFO;
++
++	/* free = vm_info.free_count * vm_page_size;
++	   used = vm_info.active_count * vm_page_size;
++	   total = (vm_info.active_count + vm_info.inactive_count +
++		vm_info.free_count + vm_info.wire_count) * vm_page_size; */
++
++}
+Index: kcontrol/input/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/input/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/input/Makefile.am	25 Jun 2002 02:03:45 -0000	1.1.1.1
++++ kcontrol/input/Makefile.am	25 Jun 2002 02:06:13 -0000	1.2
+@@ -4,8 +4,8 @@
+ 
+ kcm_input_la_SOURCES = main.cpp mouse.cpp kmousedlg.ui
+ 
+-kcm_input_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined
+-kcm_input_la_LIBADD = @XTESTLIB@ $(LIB_KIO) $(LIB_KDEUI)
++kcm_input_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined $(QT_LDFLAGS)
++kcm_input_la_LIBADD = $(XTESTLIB) $(LIB_KIO) $(LIB_KDEUI) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE)
+ 
+ INCLUDES= $(all_includes)
+ 
+Index: kcontrol/ioslaveinfo/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/ioslaveinfo/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/ioslaveinfo/Makefile.am	25 Jun 2002 02:03:45 -0000	1.1.1.1
++++ kcontrol/ioslaveinfo/Makefile.am	25 Jun 2002 02:06:13 -0000	1.2
+@@ -2,8 +2,8 @@
+ 
+ kcm_ioslaveinfo_la_SOURCES = kcmioslaveinfo.cpp
+ 
+-kcm_ioslaveinfo_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined
+-kcm_ioslaveinfo_la_LIBADD = -lkdeui $(LIB_KIO)
++kcm_ioslaveinfo_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined $(QT_LDFLAGS)
++kcm_ioslaveinfo_la_LIBADD = $(LIB_KDEUI) $(LIB_KIO) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE)
+ 
+ INCLUDES= $(all_includes)
+ 
+Index: kcontrol/kcontrol/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/kcontrol/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/kcontrol/Makefile.am	25 Jun 2002 02:03:45 -0000	1.1.1.1
++++ kcontrol/kcontrol/Makefile.am	25 Jun 2002 02:06:13 -0000	1.2
+@@ -33,19 +33,19 @@
+ 	quickhelp.cpp moduletreeview.cpp moduleiconview.cpp \
+ 	kecdialog.cpp kcrootonly.cpp moduleIface.cpp moduleIface.skel
+ 
+-kcontrol_la_LIBADD  = $(LIB_KDEUI) $(LIB_KSYCOCA)
+-kcontrol_la_LDFLAGS = $(all_libraries) -module -avoid-version
++kcontrol_la_LIBADD  = $(LIB_KDEUI) $(LIB_KSYCOCA) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE) $(LIB_KDEFX) $(LIB_DCOP)
++kcontrol_la_LDFLAGS = $(all_libraries) -module -avoid-version $(QT_LDFLAGS)
+ 
+ kcmshell_la_SOURCES = kcmshell.cpp moduleinfo.cpp modloader.cpp kecdialog.cpp \
+ 			proxywidget.cpp kcdialog.cpp global.cpp \
+ 			kcdialog.skel
+-kcmshell_la_LIBADD = $(LIB_KDEUI) $(LIB_KSYCOCA)
+-kcmshell_la_LDFLAGS = $(all_libraries) -module -avoid-version
++kcmshell_la_LIBADD = $(LIB_KDEUI) $(LIB_KSYCOCA) $(LIB_DCOP) $(LIB_KDECORE) $(LIB_QT)
++kcmshell_la_LDFLAGS = $(all_libraries) -module -avoid-version $(QT_LDFLAGS)
+ 
+ 
+ kcminit_la_SOURCES = kcminit.cpp global.cpp
+-kcminit_la_LIBADD   = $(LIB_KDEUI) $(LIB_KSYCOCA)
+-kcminit_la_LDFLAGS = $(all_libraries) -module -avoid-version
++kcminit_la_LIBADD   = $(LIB_KDEUI) $(LIB_KSYCOCA) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE) $(LIB_DCOP)
++kcminit_la_LDFLAGS = $(all_libraries) -module -avoid-version $(QT_LDFLAGS)
+ 
+ kcontrol_SOURCES = dummy.cpp
+ kcontrol_LDADD = kcontrol.la
+Index: kcontrol/kdm/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/kdm/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/kdm/Makefile.am	25 Jun 2002 02:03:45 -0000	1.1.1.1
++++ kcontrol/kdm/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -4,8 +4,9 @@
+ 	kdropsite.cpp backgnd.cpp kdm-users.cpp kdm-conv.cpp \
+ 	klanguagebutton.cpp main.cpp bgdialogs.cpp
+ 
+-kcm_kdm_la_LDFLAGS  = $(KDE_RPATH) $(all_libraries) -module -avoid-version -no-undefined
+-kcm_kdm_la_LIBADD = $(LIB_KIO) $(top_builddir)/kcontrol/background/libbgnd.la
++kcm_kdm_la_LDFLAGS  = $(KDE_RPATH) $(all_libraries) -module -avoid-version -no-undefined $(QT_LDFLAGS)
++kcm_kdm_la_LIBADD = $(LIB_KIO) $(top_builddir)/kcontrol/background/libbgnd.la $(LIB_X11) $(LIB_QT) $(LIB_KDECORE) \
++	$(LIB_KDEUI) $(LIB_KDEFX)
+ 
+ INCLUDES= -I$(top_srcdir)/kcontrol/background -I$(top_srcdir)/kdesktop $(all_includes)
+ 
+Index: kcontrol/keys/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/keys/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/keys/Makefile.am	25 Jun 2002 02:03:45 -0000	1.1.1.1
++++ kcontrol/keys/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -1,8 +1,8 @@
+ kde_module_LTLIBRARIES = kcm_keys.la
+ 
+ kcm_keys_la_SOURCES =  shortcuts.cpp modifiers.cpp savescm.cpp main.cpp
+-kcm_keys_la_LIBADD   = -lkdeui
+-kcm_keys_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined
++kcm_keys_la_LIBADD   = $(LIB_KDEUI) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE)
++kcm_keys_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined $(QT_LDFLAGS)
+ 
+ INCLUDES= $(all_includes)
+ 
+Index: kcontrol/kfontinst/kfontinst/FontEngine.cpp
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/kfontinst/kfontinst/FontEngine.cpp,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/kfontinst/kfontinst/FontEngine.cpp	25 Jun 2002 02:03:45 -0000	1.1.1.1
++++ kcontrol/kfontinst/kfontinst/FontEngine.cpp	25 Jun 2002 02:06:14 -0000	1.2
+@@ -26,9 +26,7 @@
+ // (C) Craig Drummond, 2001
+ ////////////////////////////////////////////////////////////////////////////////
+ 
+-#ifdef HAVE_CONFIG_H
+ #include "config.h"
+-#endif
+ 
+ #include "FontEngine.h"
+ #include "KfiGlobal.h"
+@@ -51,11 +49,7 @@
+ //       and some systems have both FreeType1 and FreeType2 installed - if we used <freetype/freetype.h> then it
+ //       is likely that the FreeType1 header would be included!
+ //
+-#ifdef HAVE_FT2_FTSNAMES
+ #include "freetype/ftsnames.h"
+-#else
+-#include "freetype/ftnames.h"
+-#endif
+ #include "freetype/ttnameid.h"
+ #include "freetype/tttables.h"
+ #include "freetype/ftimage.h"
+Index: kcontrol/kfontinst/kfontinst/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/kfontinst/kfontinst/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/kfontinst/kfontinst/Makefile.am	25 Jun 2002 02:03:45 -0000	1.1.1.1
++++ kcontrol/kfontinst/kfontinst/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -56,9 +56,7 @@
+ 	XftConfigIncludesWidget.cpp \
+ 	XftConfigIncludesWidgetData.cpp \
+ 	FontPreview.cpp \
+-	CompressedFile.cpp \
+-	xftgram-kfi.c \
+-	xftlex-kfi.c
++	CompressedFile.cpp
+ 
+ xftparserfiles = xftlex.l xftgram.y
+ 
+Index: kcontrol/kicker/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/kicker/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/kicker/Makefile.am	25 Jun 2002 02:03:45 -0000	1.1.1.1
++++ kcontrol/kicker/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -4,8 +4,8 @@
+ 			positiontab_impl.cpp hidingtab_impl.cpp lookandfeeltab_impl.cpp menutab_impl.cpp \
+ 			extensionstab_impl.cpp  main.cpp
+ 
+-kcm_kicker_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined
+-kcm_kicker_la_LIBADD = $(LIB_KSYCOCA) $(LIB_KFILE)
++kcm_kicker_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined $(QT_LDFLAGS)
++kcm_kicker_la_LIBADD = $(LIB_KSYCOCA) $(LIB_KFILE) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE) $(LIB_KDEUI) $(LIB_DCOP)
+ INCLUDES= $(all_includes) 
+ 
+ kcm_kicker_la_METASOURCES = AUTO
+Index: kcontrol/kio/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/kio/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/kio/Makefile.am	25 Jun 2002 02:03:46 -0000	1.1.1.1
++++ kcontrol/kio/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -13,8 +13,8 @@
+       fakeuaprovider.cpp uagentproviderdlg.cpp netpref.cpp \
+       cache.cpp kproxyexceptiondlg.cpp ksaveioconfig.cpp
+ 
+-kcm_kio_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined
+-kcm_kio_la_LIBADD = $(LIB_KSYCOCA) $(LIB_KFILE)
++kcm_kio_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined $(QT_LDFLAGS)
++kcm_kio_la_LIBADD = $(LIB_KSYCOCA) $(LIB_KFILE) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE) $(LIB_KDEUI) $(LIB_DCOP)
+ 
+ messages: rc.cpp
+ 	$(XGETTEXT) *.cpp -o $(podir)/kcmkio.pot
+Index: kcontrol/knotify/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/knotify/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/knotify/Makefile.am	25 Jun 2002 02:03:46 -0000	1.1.1.1
++++ kcontrol/knotify/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -4,8 +4,8 @@
+ 
+ kcm_knotify_la_SOURCES = knotify.cpp events.cpp
+ 
+-kcm_knotify_la_LDFLAGS = $(all_libraries) -module -avoid-version -no-undefined
+-kcm_knotify_la_LIBADD = $(LIB_KFILE)
++kcm_knotify_la_LDFLAGS = $(all_libraries) -module -avoid-version -no-undefined $(QT_LDFLAGS)
++kcm_knotify_la_LIBADD = $(LIB_KFILE) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE) $(LIB_KDEUI) $(LIB_DCOP)
+ INCLUDES= $(all_includes)
+  
+ kcm_knotify_la_METASOURCES = AUTO
+Index: kcontrol/konq/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/konq/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/konq/Makefile.am	25 Jun 2002 02:03:46 -0000	1.1.1.1
++++ kcontrol/konq/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -9,8 +9,8 @@
+ 		trashopts.cpp fontopts.cpp previews.cpp \
+ 		desktop.cpp uiserver.stub main.cpp
+ 
+-kcm_konq_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined
+-kcm_konq_la_LIBADD = $(LIB_KIO) $(LIB_KDEUI) $(LIB_KSYCOCA)
++kcm_konq_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined $(QT_LDFLAGS)
++kcm_konq_la_LIBADD = $(LIB_KIO) $(LIB_KDEUI) $(LIB_KSYCOCA) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE) $(LIB_DCOP)
+ 
+ kcm_konq_la_DATA = overlapping.png onlyone.png
+ kcm_konq_ladir = $(kde_datadir)/kcontrol/pics
+Index: kcontrol/konqhtml/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/konqhtml/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/konqhtml/Makefile.am	25 Jun 2002 02:03:46 -0000	1.1.1.1
++++ kcontrol/konqhtml/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -9,8 +9,8 @@
+ 			     javaopts.cpp pluginopts.cpp appearance.cpp \
+ 			     khttpoptdlg.cpp policydlg.cpp main.cpp
+ 
+-kcm_konqhtml_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined
+-kcm_konqhtml_la_LIBADD = -lkhtml -lkdeui
++kcm_konqhtml_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined $(QT_LDFLAGS)
++kcm_konqhtml_la_LIBADD = $(LIB_KHTML) $(LIB_KDEUI) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE) $(LIB_DCOP) $(LIB_KIO)
+ 
+ data_DATA = konqhtml.desktop
+ datadir = $(kde_appsdir)/Settings/WebBrowsing
+Index: kcontrol/konsole/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/konsole/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/konsole/Makefile.am	25 Jun 2002 02:03:47 -0000	1.1.1.1
++++ kcontrol/konsole/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -5,8 +5,8 @@
+ kcm_konsole_la_SOURCES =  schemaeditor.cpp sessioneditor.cpp kcmkonsole.cpp \
+ 	schemadialog.ui sessiondialog.ui kcmkonsoledialog.ui
+ 
+-kcm_konsole_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined
+-kcm_konsole_la_LIBADD = -lkdeui $(LIB_KFILE)
++kcm_konsole_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined $(QT_LDFLAGS)
++kcm_konsole_la_LIBADD = $(LIB_KDEUI) $(LIB_KFILE) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE) $(LIB_DCOP) $(LIB_KDEFX)
+ INCLUDES= $(all_includes) 
+ 
+ kcm_konsole_la_METASOURCES = AUTO
+Index: kcontrol/krdb/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/krdb/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/krdb/Makefile.am	25 Jun 2002 02:03:47 -0000	1.1.1.1
++++ kcontrol/krdb/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -7,8 +7,8 @@
+ 
+ noinst_LTLIBRARIES = libkrdb.la
+ libkrdb_la_SOURCES = krdb.cpp
+-libkrdb_la_LIBADD = $(LIB_KDECORE)
+-libkrdb_la_LDFLAGS = -no-undefined $(all_libraries) 
++libkrdb_la_LIBADD = $(LIB_KDECORE) $(LIB_X11) $(LIB_QT)
++libkrdb_la_LDFLAGS = -no-undefined $(all_libraries) $(QT_LDFLAGS)
+ 
+ messages:
+ 
+Index: kcontrol/launch/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/launch/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/launch/Makefile.am	25 Jun 2002 02:03:47 -0000	1.1.1.1
++++ kcontrol/launch/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -2,8 +2,8 @@
+ kde_module_LTLIBRARIES        = kcm_launch.la
+ INCLUDES                      = $(all_includes) 
+ kcm_launch_la_SOURCES      = kcmlaunch.cpp
+-kcm_launch_la_LDFLAGS      = $(all_libraries) $(KDE_PLUGIN) -module
+-kcm_launch_la_LIBADD       = $(LIB_KDEUI)
++kcm_launch_la_LDFLAGS      = $(all_libraries) $(KDE_PLUGIN) -module $(QT_LDFLAGS)
++kcm_launch_la_LIBADD       = $(LIB_KDEUI) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE) $(LIB_DCOP)
+ kcm_launch_la_METASOURCES  = AUTO
+ noinst_HEADERS                = kcmlaunch.h
+ data_DATA                     = kcmlaunch.desktop
+Index: kcontrol/locale/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/locale/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/locale/Makefile.am	25 Jun 2002 02:03:47 -0000	1.1.1.1
++++ kcontrol/locale/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -10,8 +10,8 @@
+ METASOURCES = AUTO
+ noinst_HEADERS = toplevel.h kcmlocale.h klanguagebutton.h klocalesample.h menuitem.h localenum.h localemon.h localetime.h localeother.h kmenubutton.h
+ 
+-kcm_locale_la_LDFLAGS = -module -avoid-version $(all_libraries) -no-undefined
+-kcm_locale_la_LIBADD = $(LIB_KDEUI)
++kcm_locale_la_LDFLAGS = -module -avoid-version $(all_libraries) -no-undefined $(QT_LDFLAGS)
++kcm_locale_la_LIBADD = $(LIB_KDEUI) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE)
+  
+ messages:
+ 	$(XGETTEXT) $(kcm_locale_la_SOURCES) -o $(podir)/kcmlocale.pot
+Index: kcontrol/midi/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/midi/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/midi/Makefile.am	25 Jun 2002 02:03:48 -0000	1.1.1.1
++++ kcontrol/midi/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -3,7 +3,7 @@
+ kcm_midi_la_SOURCES = midi.cpp 
+ 
+ kcm_midi_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined
+-kcm_midi_la_LIBADD = -lkdeui $(LIB_KFILE) -lkmid 
++kcm_midi_la_LIBADD = $(LIB_KDEUI) $(LIB_KFILE) $(LIB_KMID) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE)
+ INCLUDES= $(all_includes) 
+ 
+ kcm_midi_la_METASOURCES = AUTO
+Index: kcontrol/nics/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/nics/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/nics/Makefile.am	25 Jun 2002 02:03:48 -0000	1.1.1.1
++++ kcontrol/nics/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -2,8 +2,8 @@
+ 
+ kcm_nic_la_SOURCES = nic.cpp
+ 
+-kcm_nic_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined
+-kcm_nic_la_LIBADD = -lkdeui $(LIB_KFILE) $(LIBSOCKET)
++kcm_nic_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined $(QT_LDFLAGS)
++kcm_nic_la_LIBADD = $(LIB_KDEUI) $(LIB_KFILE) $(LIBSOCKET) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE)
+ 
+ INCLUDES= $(all_includes)
+ 
+Index: kcontrol/passwords/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/passwords/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/passwords/Makefile.am	25 Jun 2002 02:03:48 -0000	1.1.1.1
++++ kcontrol/passwords/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -5,7 +5,7 @@
+ kde_module_LTLIBRARIES = kcm_passwords.la
+ kcm_passwords_la_SOURCES = passwords.cpp
+ kcm_passwords_la_LDFLAGS = -module -avoid-version $(all_libraries) -no-undefined
+-kcm_passwords_la_LIBADD = $(LIB_KDEUI) -lkdesu
++kcm_passwords_la_LIBADD = $(LIB_KDEUI) $(LIB_KDESU) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE)
+ 
+ METASOURCES = AUTO
+ noinst_HEADERS = passwords.h
+Index: kcontrol/samba/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/samba/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/samba/Makefile.am	25 Jun 2002 02:03:48 -0000	1.1.1.1
++++ kcontrol/samba/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -2,8 +2,8 @@
+ 
+ kcm_samba_la_SOURCES = main.cpp ksmbstatus.cpp kcmsambaimports.cpp kcmsambalog.cpp kcmsambastatistics.cpp
+ 
+-kcm_samba_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined
+-kcm_samba_la_LIBADD = $(LIB_KFILE)
++kcm_samba_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined $(QT_LDFLAGS)
++kcm_samba_la_LIBADD = $(LIB_KFILE) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE) $(LIB_KDEUI)
+ 
+ INCLUDES= $(all_includes)
+ 
+Index: kcontrol/screensaver/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/screensaver/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/screensaver/Makefile.am	25 Jun 2002 02:03:48 -0000	1.1.1.1
++++ kcontrol/screensaver/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -7,8 +7,8 @@
+ kde_module_LTLIBRARIES = kcm_screensaver.la
+ 
+ kcm_screensaver_la_SOURCES = scrnsave.cpp
+-kcm_screensaver_la_LDFLAGS = -module -avoid-version $(all_libraries) -no-undefined
+-kcm_screensaver_la_LIBADD = $(LIB_KSYCOCA) $(DPMSLIB)
++kcm_screensaver_la_LDFLAGS = -module -avoid-version $(all_libraries) -no-undefined $(QT_LDFLAGS)
++kcm_screensaver_la_LIBADD = $(LIB_KSYCOCA) $(DPMSLIB) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE) $(LIB_KDEUI) $(LIB_DCOP)
+ kcm_screensaver_la_METASOURCES = scrnsave.moc
+ 
+ noinst_HEADERS = scrnsave.h
+Index: kcontrol/smartcard/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/smartcard/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/smartcard/Makefile.am	25 Jun 2002 02:03:48 -0000	1.1.1.1
++++ kcontrol/smartcard/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -3,9 +3,9 @@
+ 
+ kcm_smartcard_la_SOURCES = smartcard.cpp smartcardbase.ui nosmartcardbase.ui
+ 
+-kcm_smartcard_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined
++kcm_smartcard_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined $(QT_LDFLAGS)
+ 
+-kcm_smartcard_la_LIBADD = -lkdeui -lksmartcard $(LIB_KFILE)
++kcm_smartcard_la_LIBADD = $(LIB_KDEUI) -lksmartcard $(LIB_KFILE) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE)
+ 
+ kcm_smartcard_la_METASOURCES = AUTO
+ 
+Index: kcontrol/smserver/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/smserver/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/smserver/Makefile.am	25 Jun 2002 02:03:48 -0000	1.1.1.1
++++ kcontrol/smserver/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -1,8 +1,8 @@
+ kde_module_LTLIBRARIES = kcm_smserver.la
+ 
+ kcm_smserver_la_SOURCES = kcmsmserver.cpp smserverconfigdlg.ui smserverconfigimpl.cpp
+-kcm_smserver_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined
+-kcm_smserver_la_LIBADD = -lkdeui
++kcm_smserver_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined $(QT_LDFLAGS)
++kcm_smserver_la_LIBADD = $(LIB_KDEUI) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE)
+ INCLUDES= $(all_includes) 
+ 
+ kcm_smserver_la_METASOURCES = AUTO
+Index: kcontrol/socks/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/socks/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/socks/Makefile.am	25 Jun 2002 02:03:48 -0000	1.1.1.1
++++ kcontrol/socks/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -3,8 +3,8 @@
+ 
+ kcm_socks_la_SOURCES = socks.cpp socksbase.ui 
+ 
+-kcm_socks_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined
+-kcm_socks_la_LIBADD = -lkdeui $(LIB_KFILE)
++kcm_socks_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined $(QT_LDFLAGS)
++kcm_socks_la_LIBADD = $(LIB_KDEUI) $(LIB_KFILE) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE)
+ 
+ kcm_socks_la_METASOURCES = AUTO
+ 
+Index: kcontrol/spellchecking/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/spellchecking/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/spellchecking/Makefile.am	25 Jun 2002 02:03:48 -0000	1.1.1.1
++++ kcontrol/spellchecking/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -2,8 +2,8 @@
+ 
+ kcm_spellchecking_la_SOURCES = spellchecking.cpp
+ 
+-kcm_spellchecking_la_LDFLAGS = $(all_libraries) -module -avoid-version -no-undefined
+-kcm_spellchecking_la_LIBADD = -lkdeui -lkspell
++kcm_spellchecking_la_LDFLAGS = $(all_libraries) -module -avoid-version -no-undefined $(QT_LDFLAGS)
++kcm_spellchecking_la_LIBADD = $(LIB_KDEUI) $(LIB_KSPELL) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE)
+ 
+ INCLUDES= $(all_includes)
+ 
+Index: kcontrol/taskbar/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/taskbar/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/taskbar/Makefile.am	25 Jun 2002 02:03:48 -0000	1.1.1.1
++++ kcontrol/taskbar/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -1,8 +1,8 @@
+ kde_module_LTLIBRARIES = kcm_taskbar.la
+ 
+ kcm_taskbar_la_SOURCES = kcmtaskbarui.ui kcmtaskbar.cpp
+-kcm_taskbar_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined
+-kcm_taskbar_la_LIBADD = -lkdeui
++kcm_taskbar_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined $(QT_LDFLAGS)
++kcm_taskbar_la_LIBADD = $(LIB_KDEUI) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE) $(LIB_DCOP)
+ INCLUDES= $(all_includes) 
+ 
+ kcm_taskbar_la_METASOURCES = AUTO
+Index: kcontrol/thememgr/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/thememgr/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/thememgr/Makefile.am	25 Jun 2002 02:03:48 -0000	1.1.1.1
++++ kcontrol/thememgr/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -13,8 +13,8 @@
+ 	options.h version.h groupdetails.h \
+ 	themecreator.h newthemedlg.h
+ 
+-kcm_themes_la_LIBADD = $(LIB_KFILE) 
+-kcm_themes_la_LDFLAGS = $(all_libraries) $(KDE_PLUGIN) -module
++kcm_themes_la_LIBADD = $(LIB_KFILE) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE) $(LIB_KDEUI) $(LIB_DCOP)
++kcm_themes_la_LDFLAGS = $(all_libraries) $(KDE_PLUGIN) -module $(QT_LDFLAGS)
+ 
+ apps_DATA = kthememgr.desktop
+ appsdir = $(kde_appsdir)/Settings/LookNFeel
+Index: kcontrol/usbview/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kcontrol/usbview/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kcontrol/usbview/Makefile.am	25 Jun 2002 02:03:48 -0000	1.1.1.1
++++ kcontrol/usbview/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -2,8 +2,8 @@
+ 
+ kcm_usb_la_SOURCES = kcmusb.cpp usbdevices.cpp usbdb.cpp
+ 
+-kcm_usb_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined
+-kcm_usb_la_LIBADD = $(LIB_KDEUI)
++kcm_usb_la_LDFLAGS  = $(all_libraries) -module -avoid-version -no-undefined $(QT_LDFLAGS)
++kcm_usb_la_LIBADD = $(LIB_KDEUI) $(LIB_X11) $(LIB_QT) $(LIB_KDECORE)
+ 
+ INCLUDES= $(all_includes) 
+ 
+Index: kdeprint/kjobviewer/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kdeprint/kjobviewer/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kdeprint/kjobviewer/Makefile.am	25 Jun 2002 02:03:49 -0000	1.1.1.1
++++ kdeprint/kjobviewer/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -9,8 +9,8 @@
+ 
+ kjobviewer_la_SOURCES = kjobviewer.cpp main.cpp
+ kjobviewer_la_METASOURCES = AUTO
+-kjobviewer_la_LIBADD = -lkdeprint_management $(LIB_KDEUI)
+-kjobviewer_la_LDFLAGS = -module -avoid-version $(all_libraries) $(KDE_RPATH)
++kjobviewer_la_LIBADD = -lkdeprint_management $(LIB_KDEUI) $(LIB_KDECORE) $(LIB_QT) $(LIB_KDEPRINT) $(LIB_DCOP)
++kjobviewer_la_LDFLAGS = -module -avoid-version $(all_libraries) $(KDE_RPATH) $(QT_LDFLAGS)
+ 
+ noinst_HEADERS = kjobviewer.h
+ 
+Index: khotkeys/khotkeys/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/khotkeys/khotkeys/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- khotkeys/khotkeys/Makefile.am	25 Jun 2002 02:03:52 -0000	1.1.1.1
++++ khotkeys/khotkeys/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -4,7 +4,7 @@
+ lib_LTLIBRARIES = khotkeys.la
+ 
+ khotkeys_la_SOURCES = khotkeys.cpp main.cpp khotkeys.skel
+-khotkeys_la_LIBADD   = ../shared/libshared.la $(LIB_KSYCOCA)
++khotkeys_la_LIBADD   = ../shared/libshared.la $(LIB_KSYCOCA) $(LIB_QT) $(LIB_X11) $(LIB_KDECORE) $(LIB_DCOP)
+ khotkeys_la_LDFLAGS = $(all_libraries) -module -avoid-version
+ 
+ khotkeys_SOURCES = dummy.cpp
+Index: kicker/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kicker/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kicker/Makefile.am	25 Jun 2002 02:03:52 -0000	1.1.1.1
++++ kicker/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -7,8 +7,10 @@
+ 
+ CLEANFILES = dummy.cpp
+ 
+-kicker_la_LIBADD = core/libkicker_core.la  buttons/libkicker_buttons.la \
+-	ui/libkicker_ui.la share/libkickermain.la $(LIB_KIO) 
++kicker_la_LIBADD = $(top_builddir)/kicker/core/libkicker_core.la \
++	$(top_builddir)/kicker/buttons/libkicker_buttons.la \
++	$(top_builddir)/kicker/ui/libkicker_ui.la \
++	$(top_builddir)/kicker/share/libkickermain.la $(LIB_KIO) 
+ 
+ kicker_la_SOURCES = dummy.cpp
+ kicker_la_LDFLAGS = $(KDE_PLUGIN) -no-undefined -module $(all_libraries)
+Index: kicker/menuext/kdeprint/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kicker/menuext/kdeprint/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kicker/menuext/kdeprint/Makefile.am	25 Jun 2002 02:03:52 -0000	1.1.1.1
++++ kicker/menuext/kdeprint/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -4,7 +4,7 @@
+ 
+ kickermenu_kdeprint_la_SOURCES = print_mnu.cpp
+ kickermenu_kdeprint_la_LDFLAGS = $(all_libraries) -module -avoid-version
+-kickermenu_kdeprint_la_LIBADD = $(LIB_KDEUI) $(LIB_KIO) -lkdeprint
++kickermenu_kdeprint_la_LIBADD = $(LIB_KDEUI) $(LIB_KIO) $(LIB_KDEPRINT) $(LIB_KDECORE) $(LIB_QT)
+ 
+ kickermenu_kdeprint_la_METASOURCES = AUTO
+ 
+Index: kicker/ui/konsole_mnu.cpp
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kicker/ui/konsole_mnu.cpp,v
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
+--- kicker/ui/konsole_mnu.cpp	25 Jun 2002 02:06:58 -0000	1.1.1.2
++++ kicker/ui/konsole_mnu.cpp	25 Jun 2002 02:08:33 -0000	1.3
+@@ -21,6 +21,12 @@
+ 
+ ******************************************************************/
+ 
++#ifdef HAVE_CONFIG_H
++#include "config.h"
++#endif
++#ifdef HAVE_SYS_TYPES_H
++#include <sys/types.h>
++#endif
+ #include <stdlib.h>
+ #include <dirent.h>
+ #include <fcntl.h>
+Index: kioslave/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kioslave/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kioslave/Makefile.am	25 Jun 2002 02:03:52 -0000	1.1.1.1
++++ kioslave/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -1,4 +1,4 @@
+ ## kdebase3-3.0.2-1.patch,v 1.1 2002/06/26 03:35:43 ranger Exp
+ 
+-SUBDIRS = floppy filter info man nfs nntp pop3 imap4 smtp \
++SUBDIRS = floppy filter info man nntp pop3 imap4 smtp \
+   smbro sftp tar finger thumbnail $(LDAP_SUBDIR) $(AUDIOCD_SUBDIR) $(SMB_SUBDIR) 
+Index: klipper/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/klipper/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- klipper/Makefile.am	25 Jun 2002 02:03:53 -0000	1.1.1.1
++++ klipper/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -6,11 +6,11 @@
+ 
+ CLEANFILES = dummy.cpp
+ 
+-klipper_la_LIBADD = $(LIB_KDEUI) $(LIB_KSYCOCA) 
++klipper_la_LIBADD = $(LIB_KDEUI) $(LIB_KSYCOCA) $(LIB_QT) $(LIB_KDECORE) $(LIB_X11) $(LIB_DCOP)
+ klipper_la_SOURCES = main.cpp toplevel.cpp urlgrabber.cpp configdialog.cpp toplevel.skel
+ 
+ klipper_la_METASOURCES = AUTO
+-klipper_la_LDFLAGS = $(all_libraries) -module -avoid-version
++klipper_la_LDFLAGS = $(all_libraries) $(QT_LDFLAGS) -module -avoid-version
+ 
+ klipper_LDADD = klipper.la $(LIB_KSYCOCA)
+ klipper_SOURCES = dummy.cpp
+Index: kmenuedit/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kmenuedit/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kmenuedit/Makefile.am	25 Jun 2002 02:03:53 -0000	1.1.1.1
++++ kmenuedit/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -7,8 +7,8 @@
+ 
+ kmenuedit_la_SOURCES = namedlg.cpp basictab.cpp treeview.cpp desktopfileeditor.cpp menueditview.cpp kmenuedit.cpp main.cpp khotkeys.cpp
+ 
+-kmenuedit_la_LIBADD = $(LIB_KDEUI) $(LIB_KFILE)
+-kmenuedit_la_LDFLAGS = $(all_libraries) -module -avoid-version
++kmenuedit_la_LIBADD = $(LIB_KDEUI) $(LIB_KFILE) $(LIB_KDECORE) $(LIB_QT) $(LIB_DCOP)
++kmenuedit_la_LDFLAGS = $(all_libraries) $(QT_LDFLAGS) -module -avoid-version
+ 
+ kmenuedit_SOURCES = dummy.cpp
+ kmenuedit_LDADD   = kmenuedit.la
+Index: konqueror/client/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/konqueror/client/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- konqueror/client/Makefile.am	25 Jun 2002 02:03:53 -0000	1.1.1.1
++++ konqueror/client/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -4,8 +4,8 @@
+ lib_LTLIBRARIES = kfmclient.la
+ 
+ INCLUDES= -I.. $(all_includes)
+-kfmclient_la_LDFLAGS = $(all_libraries) -module -avoid-version
+-kfmclient_la_LIBADD =  $(LIB_KFILE)
++kfmclient_la_LDFLAGS = $(all_libraries) $(QT_LDFLAGS) -module -avoid-version
++kfmclient_la_LIBADD =  $(LIB_KFILE) $(LIB_KDECORE) $(LIB_QT) $(LIB_DCOP)
+ kfmclient_la_SOURCES = kfmclient.cc KonquerorIface.stub KDesktopIface.stub
+ 
+ noinst_HEADERS = kfmclient.h
+Index: konqueror/sidebar/trees/history_module/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/konqueror/sidebar/trees/history_module/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- konqueror/sidebar/trees/history_module/Makefile.am	25 Jun 2002 02:03:53 -0000	1.1.1.1
++++ konqueror/sidebar/trees/history_module/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -6,5 +6,5 @@
+ 
+ konq_sidebartree_history_la_SOURCES = history_module.cpp history_item.cpp \
+ 	history_dlg.ui history_settings.cpp history_settings.skel
+-konq_sidebartree_history_la_LDFLAGS = $(all_libraries) -module $(KDE_PLUGIN)
++konq_sidebartree_history_la_LDFLAGS = $(all_libraries) -no-undefined -module $(KDE_PLUGIN)
+ konq_sidebartree_history_la_LIBADD =  ../../libkonqsidebarplugin.la ../libkonq_sidebar_tree.la
+Index: konqueror/sidebar/trees/history_module/history_module.h
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/konqueror/sidebar/trees/history_module/history_module.h,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- konqueror/sidebar/trees/history_module/history_module.h	25 Jun 2002 02:03:53 -0000	1.1.1.1
++++ konqueror/sidebar/trees/history_module/history_module.h	25 Jun 2002 02:06:14 -0000	1.2
+@@ -55,8 +55,7 @@
+     bool sortsByName() const { return m_sortsByName; }
+ 
+     static QString groupForURL( const KURL& url ) {
+-	static const QString& misc = KGlobal::staticQString(i18n("Miscellaneous"));
+-	return url.host().isEmpty() ? misc : url.host();
++	return url.host().isEmpty() ? KGlobal::staticQString(i18n("Miscellaneous")) : url.host();
+     }
+ 
+ public slots:
+Index: konsole/konsole/TEPty.cpp
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/konsole/konsole/TEPty.cpp,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- konsole/konsole/TEPty.cpp	25 Jun 2002 02:03:53 -0000	1.1.1.1
++++ konsole/konsole/TEPty.cpp	25 Jun 2002 02:06:14 -0000	1.2
+@@ -573,7 +573,7 @@
+ // #define CERASE 0177
+ // #endif
+ 
+-#if defined (__FreeBSD__) || defined (__NetBSD__) || defined (__OpenBSD__) || defined (__bsdi__)
++#if defined (__FreeBSD__) || defined (__NetBSD__) || defined (__OpenBSD__) || defined (__bsdi__) || defined (__APPLE__)
+       ioctl(0,TIOCGETA,(char *)&ttmode);
+ #else
+ #   if defined (_HPUX_SOURCE) || defined(__Lynx__)
+@@ -585,7 +585,7 @@
+       ttmode.c_cc[VINTR] = CTRL('C');
+       ttmode.c_cc[VQUIT] = CTRL('\\');
+       ttmode.c_cc[VERASE] = 0177;
+-#if defined (__FreeBSD__) || defined (__NetBSD__) || defined (__OpenBSD__) || defined (__bsdi__)
++#if defined (__FreeBSD__) || defined (__NetBSD__) || defined (__OpenBSD__) || defined (__bsdi__) || defined (__APPLE__)
+       ioctl(0,TIOCSETA,(char *)&ttmode);
+ #else
+ #   ifdef _HPUX_SOURCE
+Index: ksmserver/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/ksmserver/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- ksmserver/Makefile.am	25 Jun 2002 02:03:54 -0000	1.1.1.1
++++ ksmserver/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -28,9 +28,9 @@
+ ksmserver_la_SOURCES = main.cpp server.cpp shutdown.cpp
+ ksmserver_SOURCES = dummy.cpp
+ 
+-ksmserver_la_LDFLAGS = $(all_libraries) -avoid-version -module
++ksmserver_la_LDFLAGS = $(all_libraries) $(QT_LDFLAGS) -avoid-version -module
+ ksmserver_LDFLAGS = $(all_libraries) $(KDE_RPATH)
+-ksmserver_la_LIBADD = $(LIB_KDEUI)
++ksmserver_la_LIBADD = $(LIB_KDEUI) $(LIB_KDECORE) $(LIB_QT) $(LIB_DCOP) $(LIBSM)
+ ksmserver_LDADD = ksmserver.la
+ 
+ picsdir = $(kde_datadir)/ksmserver/pics
+Index: kwin/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kwin/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kwin/Makefile.am	25 Jun 2002 02:03:54 -0000	1.1.1.1
++++ kwin/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -9,7 +9,7 @@
+ kwin_la_SOURCES = workspace.cpp atoms.cpp  client.cpp main.cpp \
+ 	tabbox.cpp options.cpp plugins.cpp events.cpp KWinInterface.skel \
+ 	killwindow.cpp kwinbutton.cpp
+-kwin_la_LIBADD = $(LIB_KDEUI) $(LIBXINERAMA)
++kwin_la_LIBADD = $(LIB_KDEUI) $(LIBXINERAMA) $(LIB_KDECORE) $(LIB_X11) $(LIB_XEXT) $(LIB_DCOP) $(LIB_QT)
+ kwin_la_LDFLAGS = $(all_libraries) -module -avoid-version
+ 
+ include_HEADERS = KWinInterface.h
+Index: kxkb/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/kxkb/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kxkb/Makefile.am	25 Jun 2002 02:03:54 -0000	1.1.1.1
++++ kxkb/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -16,8 +16,8 @@
+ kcm_keyboard_la_LIBADD = @XTESTLIB@ $(LIB_KFILE)
+ 
+ kxkb_la_SOURCES = rules.cpp kxkb.cpp extension.cpp pixmap.cpp
+-kxkb_la_LDFLAGS = $(all_libraries) -module -avoid-version
+-kxkb_la_LIBADD = -lX11 -lXext $(LIB_KDEUI)
++kxkb_la_LDFLAGS = $(all_libraries) $(QT_LDFLAGS) -module -avoid-version
++kxkb_la_LIBADD = -lX11 -lXext $(LIB_KDEUI) $(LIB_KDECORE) $(LIB_QT) $(LIB_DCOP)
+ 
+ data_DATA = keyboard.desktop
+ datadir = $(kde_appsdir)/Settings/Peripherals
+Index: legacyimport/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/legacyimport/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- legacyimport/Makefile.am	25 Jun 2002 02:03:55 -0000	1.1.1.1
++++ legacyimport/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -4,8 +4,8 @@
+ lib_LTLIBRARIES = klegacyimport.la
+ 
+ klegacyimport_la_SOURCES = legacyimport.cpp
+-klegacyimport_la_LIBADD = $(LIB_KDEUI) $(LIB_KFILE)
+-klegacyimport_la_LDFLAGS = $(all_libraries) -module -avoid-version
++klegacyimport_la_LIBADD = $(LIB_KDEUI) $(LIB_KFILE) $(LIB_KDECORE) $(LIB_QT)
++klegacyimport_la_LDFLAGS = $(all_libraries) $(QT_LDFLAGS) -module -avoid-version
+ 
+ klegacyimport_SOURCES = dummy.cpp
+ klegacyimport_LDADD   = klegacyimport.la
+Index: libkonq/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/libkonq/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- libkonq/Makefile.am	25 Jun 2002 02:03:55 -0000	1.1.1.1
++++ libkonq/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -20,8 +20,8 @@
+ SUBDIRS = pics favicons
+ 
+ lib_LTLIBRARIES = libkonq.la
+-libkonq_la_LDFLAGS = $(all_libraries) -version-info 4:0 -no-undefined
+-libkonq_la_LIBADD = $(LIB_KPARTS)
++libkonq_la_LDFLAGS = $(all_libraries) -version-info 4:0 -no-undefined $(QT_LDFLAGS)
++libkonq_la_LIBADD = $(LIB_KPARTS) $(LIB_KDECORE) $(LIB_QT) $(LIB_MCOP) $(LIB_KDEUI) $(LIB_KIO) $(LIB_DCOP) $(LIB_KDEFX)
+ 
+ libkonq_la_SOURCES = konq_popupmenu.cc knewmenu.cc \
+    konq_xmlguiclient.cc\
+@@ -55,7 +55,7 @@
+ kde_module_LTLIBRARIES = konq_sound.la
+ konq_sound_la_SOURCES = konq_sound.cpp
+ konq_sound_la_LDFLAGS = $(all_libraries) -module $(KDE_PLUGIN)
+-konq_sound_la_LIBADD = -lsoundserver_idl -lartskde
++konq_sound_la_LIBADD = -lsoundserver_idl -lartskde $(LIB_KDECORE) $(LIB_QT) $(LIB_MCOP)
+ 
+ noinst_HEADERS = konq_sound.h
+ 
+Index: libkonq/favicons/Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/kdebase/libkonq/favicons/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- libkonq/favicons/Makefile.am	25 Jun 2002 02:03:55 -0000	1.1.1.1
++++ libkonq/favicons/Makefile.am	25 Jun 2002 02:06:14 -0000	1.2
+@@ -2,8 +2,8 @@
+ 
+ INCLUDES = $(all_includes)
+ kded_favicons_la_SOURCES = favicons.cpp favicons.skel
+-kded_favicons_la_LDFLAGS = $(all_libraries) -module -avoid-version
+-kded_favicons_la_LIBADD = $(LIB_KSYCOCA)
++kded_favicons_la_LDFLAGS = $(all_libraries) -module -avoid-version $(QT_LDFLAGS)
++kded_favicons_la_LIBADD = $(LIB_KSYCOCA) $(LIB_QT) $(LIB_KDECORE) $(LIB_DCOP) $(LIB_KDED)
+ 
+ METASOURCES = AUTO
+ 

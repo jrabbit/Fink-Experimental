@@ -1,0 +1,95 @@
+Package: kdelibs3
+Version: 3.0.2
+Revision: 1
+Replaces: kdelibs3-ssl, kdelibs3-ssl-dev
+Conflicts: kdelibs3-ssl
+Depends: arts (>= 1.0.2-1), libxml2-shlibs, libxslt-shlibs, libtiff-shlibs, pcre-shlibs, dlcompat (>= 20020508), qt3-shlibs (>= 3.0.4-7), cups
+BuildDepends: libtiff, qt3 (>= 3.0.4-7), libxml2, libxslt, arts-dev (>= 1.0.2-1), automake15, autoconf25, libtool14, fink (>= 0.9.12), pcre, dlcompat (>= 20020508), cups
+Maintainer: Benjamin Reed <ranger@befunk.com>
+Source: http://download.kde.org/stable/%v/src/kdelibs-%v.tar.bz2
+Source-MD5: 0ad90a338aed63e54d073f511a99f0f2
+PatchScript: sed 's|@PREFIX@|%p|g' <%a/%f.patch | patch -p0
+SetLDFLAGS: -L%p/lib
+SetCPPFLAGS: -no-cpp-precomp
+ConfigureParams: --prefix=%p --without-ssl-dir --without-ssl --with-qt-dir=%p --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=yes --mandir=%i/share/man --with-xinerama --enable-final $KDEOPTS
+CompileScript: <<
+ make -f Makefile.cvs
+ (export KDEDIR=%p; sh configure %c; make)
+<<
+InstallScript: <<
+ install -d -m 755 %i/etc/profile.d
+ install -m 755 kdelibs.sh %i/etc/profile.d/kdelibs3.sh
+ install -m 755 kdelibs.csh %i/etc/profile.d/kdelibs3.csh
+ make install DESTDIR=%d
+<<
+SplitOff: <<
+ Description: Development files for the KDE libraries
+ Package: %N-dev
+ Depends: %N (= %v-%r)
+ Suggests: arts-dev (>= 1.0.2-1), libxml2, libxslt, libtiff, pcre
+ BuildDependsOnly: true
+ Replaces: kdelibs3-ssl, kdelibs3-ssl-dev
+ Conflicts: kdelibs3-ssl-dev
+ Files: <<
+   bin/dcopidl
+   bin/dcopidl2cpp
+   bin/kde-config
+   bin/meinproc
+   include/
+   lib/*.a
+   lib/kde3/*.a
+   lib/libartskde.dylib
+   lib/libDCOP.dylib
+   lib/libkabc.so
+   lib/libkatepartinterfaces.dylib
+   lib/libkdecore.dylib
+   lib/libkdefx.dylib
+   lib/libkdeprint.dylib
+   lib/libkdeprint_management.dylib
+   lib/libkdesasl.dylib
+   lib/libkdesu.dylib
+   lib/libkdeui.dylib
+   lib/libkhtml.so
+   lib/libkio.dylib
+   lib/libkjava.dylib
+   lib/libkjs.dylib
+   lib/libkmid.dylib
+   lib/libkparts.dylib
+   lib/libkscript.dylib
+   lib/libkspell.dylib
+   lib/libktexteditor.dylib
+   lib/libshellscript.dylib
+   lib/libvcard.dylib
+ <<
+<<
+DocFiles: COPYING COPYING.LIB INSTALL
+Description: KDE - libraries
+DescDetail: <<
+Libraries for the K Desktop Environment.
+
+KDE Libraries included: kdecore (KDE core library), kdeui (user interface),
+kfm (file manager), khtmlw (HTML widget), kio (Input/Output, networking),
+kspell (spelling checker), jscript (javascript), kab (addressbook), and
+kimgio (image manipulation).
+<<
+DescPort: <<
+- A patch to admin to properly build libtool libraries was required.
+- Many small makefile updates were needed because of OSX's aversion
+  to linking indirectly with libraries.  This is really a libtool issue,
+  but it's a suitable workaround for the time being.
+- A patch to kdeui was required to fix some static public definitions
+  that caused symbol errors.
+- A patch to kinit was required to properly access the system environment.
+  FIXME: Kinit is still broken and needs porting, however.
+- The environment patch was needed in kio as well.
+- stdint.h was needed in kio/misc/kpac/dhcp.h for a uint8_t definition.
+  FIXME: This should probably be a generic autoconf macro as well.
+- broken libs (static-only): a couple of the styles; libkdefakes;
+  kscreensaver
+
+NOTE: KDE packages do *not* have an -shlibs because of KDE's use of  
+libltdl!  The .la's *must* be used in conjunction with the dynamic
+libraries, and they are unversioned filenames, so multiple -shlibs would
+conflict.
+<<
+License: GPL/LGPL
