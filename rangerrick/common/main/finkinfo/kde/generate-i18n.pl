@@ -57,7 +57,7 @@ DescDetail: Language files for the K Desktop Environment: $MAPPINGS{$shortname}
 Source-MD5: $md5
 Version: ${KDEVERSION}
 Revision: ${KDEI18NRELNUM}
-Replaces: koffice-i18n-${normalized}
+Replaces: koffice-i18n-${normalized}, khangman, kturtle
 Depends: kdelibs3-ssl (>= %v-${KDERELNUM}) | kdelibs3 (>= %v-${KDERELNUM}), arts (>= ${KDEARTSVER}), xfonts-intl
 BuildDepends: fink (>= 0.17.1-1), kdebase3-ssl-dev (>= %v-${KDERELNUM}) | kdebase3-dev (>= %v-${KDERELNUM}), kdelibs3-ssl-dev (>= %v-${KDERELNUM}) | kdelibs3-dev (>= %v-${KDERELNUM}), arts-dev (>= ${KDEARTSVER}), libxml2, libxslt, xfonts-intl
 Maintainer: Benjamin Reed <kde-i18n-${normalized}\@fink.racoonfink.com>
