@@ -1,5 +1,7 @@
 #!/sw/bin/perl5.8.0
 
+$|++;
+
 use Cwd qw(abs_path);
 use File::Basename;
 use File::Find;
@@ -7,6 +9,7 @@ use XML::RSS;
 use Storable;
 use Fink::Package;
 use Text::Wrap qw(fill $columns);
+use URI::Find;
 
 $columns = 76;
 
@@ -19,7 +22,7 @@ use vars qw(
 	$DOCVS
 	$NOW
 	$PREFIX
-	$SCP
+	$DOSCP
 	$TOPDIR
 
 	@FILES
@@ -36,17 +39,26 @@ use vars qw(
 
 	$basepath
 	$Config
+
+	$URIFINDER
 );
 
 $basepath = '/sw';
 $TOPDIR   = abs_path(dirname($0));
-$DAYS     = 5; # number of days to look back
+$DAYS     = 3; # number of days to look back
 $NOW      = time;
 $CUTOFF   = ($NOW - (60 * 60 * 24 * $DAYS));
 $PREFIX   = '/tmp/fink-rss';
-$SCP      = 1;
+$DOSCP    = 1;
 $DOCVS    = 1;
 $DOCACHE  = 0;
+
+$URIFINDER = URI::Find->new(
+	sub {
+		my($uri, $orig_uri) = @_;
+		return qq|<a href="$uri">$orig_uri</a>|;
+	}
+);
 
 if (-f '/tmp/rss.cache' and $DOCACHE) {
 	$CACHE = retrieve('/tmp/rss.cache');
@@ -61,9 +73,9 @@ unless (-f $PREFIX . '/dists/CVS') {
   unlink($PREFIX . '/dists');
 }
 if (-d $PREFIX . '/dists') {
-	`cd $PREFIX . '/dists'; cvs -d :ext:rangerrick\@cvs.sourceforge.net:/cvsroot/fink up -A >$PREFIX/cvs.log 2>&1`;
+	`cd $PREFIX . '/dists'; CVS_RSH=/Users/ranger/bin/ssh.sh cvs -d :ext:rangerrick\@cvs.sourceforge.net:/cvsroot/fink up -A >$PREFIX/cvs.log 2>&1`;
 } else {
-	`cd $PREFIX; cvs -d :ext:rangerrick\@cvs.sourceforge.net:/cvsroot/fink co dists >$PREFIX/cvs.log 2>&1`;
+	`cd $PREFIX; CVS_RSH=/Users/ranger/bin/ssh.sh cvs -d :ext:rangerrick\@cvs.sourceforge.net:/cvsroot/fink co dists >$PREFIX/cvs.log 2>&1`;
 }
 #`cd $PREFIX; cvs -d :pserver:anonymous\@cvs.sourceforge.net:/cvsroot/fink co dists >$PREFIX/cvs.log 2>&1`;
 #`cd $PREFIX; rsync -azvr rsync://master.us.finkmirrors.net/finkinfo/ dists >$PREFIX/rsync.log 2>&1`;
@@ -91,7 +103,10 @@ if (-f $configpath) {
 }
 
 find(\&find_infofiles, $PREFIX);
+
+print "- getting CVS log info... ";
 get_cvs_log();
+print "done\n";
 
 print "- generating RSS...\n";
 make_rss(\%STABLE_PACKAGES, 'Stable');
@@ -99,7 +114,7 @@ make_rss(\%UNSTABLE_PACKAGES, 'Unstable');
 
 store($CACHE, '/tmp/rss.cache') if ($CACHE and $DOCACHE);
 
-if ($SCP) {
+if ($DOSCP) {
 	print "- copying feeds to the Fink website... ";
 	system('echo > /tmp/rss-rsync.log');
 	my $newfiles;
@@ -150,14 +165,21 @@ sub get_cvs_log {
 	my $spacecount = 100;
 	my @lines;
 	my $pwd = `pwd`;
+	my $count = 0;
 	chdir($PREFIX . '/dists');
-	if (open(CVSLOG, "cvs log @keys |")) {
+	if (open(CVSLOG, "CVS_RSH=/Users/ranger/bin/ssh.sh cvs -d :ext:rangerrick\@cvs.sourceforge.net:/cvsroot/fink log @keys 2>$PREFIX/cvslog.log |")) {
+		$count = 0;
+		open(FILEOUT, ">$PREFIX/cvslog-data.log");
 		while (my $line = <CVSLOG>) {
+			print FILEOUT $line;
+			$count++;
 			if ($line =~ m#\s*RCS file: /cvsroot/fink/dists/(.*),v#) {
 				for my $index (0..$#lines) {
 					$lines[$index] =~ s/^\s{$spacecount}//;
 				}
-				$CVS_FILES{$filename} = [ $author, join('', @lines) ];
+				if (not defined $CVS_FILES{$filename} and defined $author and int(@lines)) {
+					$CVS_FILES{$filename} = [ $author, join('', @lines) ];
+				}
 				$filename = $PREFIX . '/dists/' . $1;
 				$revdone = 0;
 				$lookfordesc = 0;
@@ -185,10 +207,19 @@ sub get_cvs_log {
 			}
 		}
 		close(CVSLOG);
+		close(FILEOUT);
 		for my $index (0..$#lines) {
 			$lines[$index] =~ s/^\s{$spacecount}//;
 		}
-		$CVS_FILES{$filename} = [ $author, join('', @lines) ] unless (defined $CVS_FILES{$filename});
+		if (not defined $CVS_FILES{$filename} and defined $author and int(@lines)) {
+			$CVS_FILES{$filename} = [ $author, join('', @lines) ];
+		}
+	} else {
+		die "unable to do 'cvs log': $!\n";
+	}
+
+	if ($count < 10) {
+		die "cvs log was incomplete!\n";
 	}
 
 	chdir($pwd);
@@ -233,17 +264,18 @@ sub make_rss {
 			$description = $package->{'descdetail'};
 		}
 
-		$description =~ s/<(http:\/\/[^>]+)>/<a href="$1">$1<\/a>/gsi;
-		$description =~ s/<(.+\@[^\@]+)>/<a href="mailto:$1">$1<\/a>/gsi;
 		$description =~ s/[\r\n]+$//gsi;
+		$description =~ s/<(http:\/\/[^>]+)>/$1/gsi;
+		$description =~ s/<(.+\@[^\@]+)>/mailto:$1"/gsi;
 		$description = encode_entities($description);
+		$URIFINDER->find(\$description);
 		if ($DOCVS) {
 			if (exists $CVS_FILES{$package->get_info_filename()}) {
-				$CVS_FILES{$package->get_info_filename()}->[1] =~ s/!\p{IsASCII}//gs;
-				$CVS_FILES{$package->get_info_filename()}->[1] = fill("", "", $CVS_FILES{$package->get_info_filename()}->[1]);
+				my $content = $CVS_FILES{$package->get_info_filename()}->[1];
+				$content = encode_entities($content);
 				$description = $description . "\n\ncommit log from " .
 					$CVS_FILES{$package->get_info_filename()}->[0] . ":\n" .
-					$CVS_FILES{$package->get_info_filename()}->[1];
+					$content;
 			} else {
 				warn "no CVS information for " . $package->get_info_filename() . "\n";
 			}
@@ -326,5 +358,6 @@ sub encode_entities {
 	if ($linelength > 90) {
 		$lines = fill("", "", $lines);
 	}
+	$lines =~ s/(<a)[\s\n]+(href=.*?)\n*(.*?<\/a>)/$1 $2$3/gsi;
 	return($lines);
 }
