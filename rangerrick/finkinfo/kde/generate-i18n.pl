@@ -1,14 +1,14 @@
 #!/usr/bin/perl
 
 my $KOI18NRELNUM  = 1;
-my $KDEVERSION    = '3.1.2';
+my $KDEVERSION    = '3.1.3';
 my $KDEDIRECTORY  = 'stable/%v/src/';
 my $KDERELNUM     = 1;
-my $KDEARTSVER    = '1.1.2-1';
+my $KDEARTSVER    = '1.1.3-1';
 my $KDEI18NRELNUM = 1;
-my $KOVERSION     = '1.2.90';
-my $KODIRECTORY   = 'stable/koffice-%v/src/';
-my $KORELNUM      = 1;
+my $KOVERSION     = '1.2.92';
+my $KODIRECTORY   = 'unstable/koffice-%v/src/';
+my $KORELNUM      = '1';
 my $VERBOSE       = 0;
 my $DRYRUN        = 0;
 
@@ -38,7 +38,7 @@ while (my $line = <MAPPING>) {
 close(MAPPING);
 
 for my $i18n (@KDEI18N) {
-	my ($shortname) = $i18n =~ /kde-i18n-(.+)-${KDEVERSION}.*.tar.(gz|bz2)/;
+	my ($shortname) = $i18n =~ /kde-i18n-([^\-]+)-${KDEVERSION}.*.tar.(gz|bz2)/;
 	if (exists $MAPPINGS{$shortname}) {
 		chomp(my $md5 = `md5 /sw/src/$i18n`);
 		$md5 =~ s/^.*\s*=\s*//;
@@ -50,7 +50,7 @@ for my $i18n (@KDEI18N) {
 		my $contents = <<END;
 Package: kde-i18n-${normalized}
 Source: mirror:kde:${KDEDIRECTORY}kde-i18n/${filename}
-SourceDirectory: kde-i18n-${shortname}
+SourceDirectory: kde-i18n-${shortname}-${KDEVERSION}
 Description: KDE - language files for $MAPPINGS{$shortname}
 DescDetail: Language files for the K Desktop Environment: $MAPPINGS{$shortname}
 Source-MD5: $md5
@@ -81,7 +81,7 @@ END
 }
 
 for my $i18n (@KOI18N) {
-	my ($shortname) = $i18n =~ /koffice-i18n-(.+)-${KOVERSION}.*.tar.(gz|bz2)/;
+	my ($shortname) = $i18n =~ /koffice-i18n-([^\-]+)-${KOVERSION}.*.tar.(gz|bz2)/;
 	if (exists $MAPPINGS{$shortname}) {
 		chomp(my $md5 = `md5 /sw/src/$i18n`);
 		$md5 =~ s/^.*\s*=\s*//;
@@ -132,7 +132,7 @@ Version: ${KDEVERSION}
 Revision: ${KDEI18NRELNUM}
 Type: bundle
 Depends: $packagelist
-Description: KDE convenience package: all language files
+Description: KDE - Convenience package: all language files
 DescDetail: <<
 This package doesn't install any files of itself, but instead makes
 sure that all KDE language files get installed.
@@ -149,7 +149,7 @@ Version: ${KOVERSION}
 Revision: ${KOI18NRELNUM}
 Type: bundle
 Depends: $packagelist
-Description: KOffice convenience package: all language files
+Description: KDE - KOffice convenience package: all language files
 DescDetail: <<
 This package doesn't install any files of itself, but instead makes
 sure that all KOffice language files get installed.
