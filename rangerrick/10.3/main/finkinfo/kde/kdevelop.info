@@ -5,8 +5,8 @@ Description: KDE - development IDE
 License: GPL/LGPL
 Maintainer: Benjamin Reed <ranger@befunk.com>
 
-Depends: kdelibs3-ssl (>= 3.2.0-21) | kdelibs3 (>= 3.2.0-21), libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.3-21), python23 | python23-nox, graphviz
-BuildDepends: arts-dev (>= 1.2.0-21), autoconf2.5 (>= 2.58-1), automake1.8, cctools (>= 446-1) | cctools-single-module, db42, doxygen, fink (>= 0.17.3-1), flex (>= 2.5.31-1), graphviz, kdelibs3-ssl-dev (>= 3.2.0-21) | kdelibs3-dev (>= 3.2.0-21), libart2, libjpeg, libpng3 (>= 1.2.5-4), libtool14, pcre, python23 | python23-nox, qt3 (>= 3.2.3-21)
+Depends: kdelibs3-ssl (>= 3.2.0-21) | kdelibs3 (>= 3.2.0-21), db42-ssl-shlibs | db42-shlibs, libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.3-21), python23 | python23-nox, graphviz
+BuildDepends: arts-dev (>= 1.2.0-21), autoconf2.5 (>= 2.58-1), automake1.8, cctools (>= 446-1) | cctools-single-module, db42-ssl | db42, doxygen, fink (>= 0.17.3-1), flex-devel (>= 2.5.31-1), graphviz, kdelibs3-ssl-dev (>= 3.2.0-21) | kdelibs3-dev (>= 3.2.0-21), libart2, libjpeg, libpng3 (>= 1.2.5-4), pcre, python23 | python23-nox, qt3 (>= 3.2.3-21)
 Recommends: kdebase3-ssl (>= %v-1) | kdebase3 (>= %v-1)
 GCC: 3.3
 
@@ -28,11 +28,12 @@ PatchScript: <<
   perl -pi -e 's,doc/HTML,doc/kde,g' admin/acinclude.m4.in
 <<
 
-SetCPPFLAGS: -fno-common -no-cpp-precomp -I/usr/X11R6/include -I%p/include -I%p/include/db4
+SetCPPFLAGS: -fno-common -no-cpp-precomp -I%p/lib/flex/include -I/usr/X11R6/include -I%p/include -I%p/include/db4
 SetLIBS: -L%p/lib
 NoSetLDFLAGS: true
+SetLDFLAGS: -L%p/lib/flex/lib
 SetMACOSX_DEPLOYMENT_TARGET: 10.3
-ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --disable-final --with-pythondir=%p --with-qtdoc-dir=%p/share/doc/qt3/html --with-kdelibsdoxy-dir=%p/share/doc/kde/en/kdelibs-apidocs --with-kdelibsdoc-dir=%p/share/doc/kde/en/kdelibs-apidocs --enable-debug --with-distribution='Fink/Mac OS X' --enable-scripting --enable-autoproject --enable-scriptproject --enable-trollproject --enable-customproject --enable-cvs 
+ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --disable-final --with-pythondir=%p --with-qtdoc-dir=%p/share/doc/qt3/html --with-kdelibsdoxy-dir=%p/share/doc/kde/en/kdelibs-apidocs --with-kdelibsdoc-dir=%p/share/doc/kde/en/kdelibs-apidocs --enable-debug --with-distribution='Fink/Mac OS X' --enable-scripting --enable-autoproject --enable-scriptproject --enable-trollproject --enable-customproject --enable-cvs --disable-java 
 CompileScript: <<
 #!/bin/sh -e
   mkdir -p /tmp/kde-build
@@ -48,7 +49,7 @@ CompileScript: <<
   date > /tmp/kde-build/%N-%v-%r.make
   find . -name \*.l -exec touch {} \;
   find . -name \*.ll -exec touch {} \;
-  make LEXLIB="" >> /tmp/kde-build/%N-%v-%r.make
+  make LEX=%p/lib/flex/bin/flex LEXLIB="" USE_EXCEPTIONS="-fexceptions -fno-coalesce" >> /tmp/kde-build/%N-%v-%r.make
 <<
 
 InstallScript: <<
