@@ -1,6 +1,6 @@
 diff -uNr bash_completion/bash-completion.sh bash_completion-new/bash-completion.sh
 --- bash_completion/bash-completion.sh	Wed Dec 31 19:00:00 1969
-+++ bash_completion-new/bash-completion.sh	Mon Jul 21 17:48:48 2003
++++ bash_completion-new/bash-completion.sh	Thu May 13 12:19:52 2004
 @@ -0,0 +1,14 @@
 +#!/bin/sh
 +
@@ -17,10 +17,10 @@ diff -uNr bash_completion/bash-completion.sh bash_completion-new/bash-completion
 +       unset bash bmajor bminor
 +fi
 diff -uNr bash_completion/bash_completion bash_completion-new/bash_completion
---- bash_completion/bash_completion	Mon Jul 21 03:59:24 2003
-+++ bash_completion-new/bash_completion	Mon Jul 21 17:50:34 2003
-@@ -27,14 +27,14 @@
- if [ -n "$FUNCNAME" ]; then
+--- bash_completion/bash_completion	Wed Mar 31 12:45:32 2004
++++ bash_completion-new/bash_completion	Thu May 13 12:29:24 2004
+@@ -31,14 +31,14 @@
+ if [ -n "${FUNCNAME:-}" ]; then
  	# we're being sourced from within a function, so we can't use
  	# 'declare', as this will create local variables within a function
 -	BASH_COMPLETION=${BASH_COMPLETION:-/etc/bash_completion} 2>/dev/null
@@ -38,7 +38,16 @@ diff -uNr bash_completion/bash_completion bash_completion-new/bash_completion
  	  2>/dev/null
  fi
  
-@@ -375,7 +375,7 @@
+@@ -161,7 +161,7 @@
+ 
+ # use GNU sed if we have it, since its extensions are still used in our code
+ #
+-[ $UNAME != Linux ] && have gsed && alias sed=gsed
++[ $UNAME != Linux ] && [ $UNAME != Darwin ] && have gsed && alias sed=gsed
+ 
+ # This function performs file and directory completion. It's better than
+ # simply using 'compgen -f', because it honours spaces in filenames.
+@@ -446,7 +446,7 @@
  # 'service' command and/or the SysV init.d directory, followed by
  # that script's available commands
  #
@@ -47,9 +56,9 @@ diff -uNr bash_completion/bash_completion bash_completion-new/bash_completion
  _service()
  {
  	local cur sysvdir
-@@ -388,8 +388,8 @@
- 	# the standalone command, rather than the init script
- 	[[ ${COMP_WORDS[0]} != @(*init.d*|service) ]] && return 0
+@@ -462,8 +462,8 @@
+ 	# don't complete past 2nd token
+ 	[ $COMP_CWORD -gt 2 ] && return 0
  
 -	[ -d /etc/rc.d/init.d ] && sysvdir=/etc/rc.d/init.d \
 -				|| sysvdir=/etc/init.d
@@ -58,7 +67,7 @@ diff -uNr bash_completion/bash_completion bash_completion-new/bash_completion
  
  	if [[ $COMP_CWORD -eq 1 ]] && [[ $prev == "service" ]]; then
  		COMPREPLY=( $( compgen -W '`echo $sysvdir/!(*.rpmsave|*.rpmorig)`' ) )
-@@ -405,8 +405,8 @@
+@@ -479,8 +479,8 @@
  	return 0
  }
  [ -n "${have:-}" ] && complete -F _service service
@@ -69,25 +78,7 @@ diff -uNr bash_completion/bash_completion bash_completion-new/bash_completion
  
  # chown(1) completion
  #
-@@ -752,7 +752,7 @@
- 		;;
- 	-gid)
- 		COMPREPLY=( $( awk 'BEGIN {FS=":"} \
--				{if ($3 ~ /^'$ncur'/) print $3}' /etc/group ) )
-+				{if ($3 ~ /^'$ncur'/) print $3}' @PREFIX@/etc/group ) )
- 		return 0
- 		;;
- 	-group)
-@@ -766,7 +766,7 @@
- 		;;
- 	-uid)
- 		COMPREPLY=( $( awk 'BEGIN {FS=":"} \
--				{if ($3 ~ /^'$ncur'/) print $3}' /etc/passwd ) )
-+				{if ($3 ~ /^'$ncur'/) print $3}' @PREFIX@/etc/passwd ) )
- 		return 0
- 		;;
- 	-user)
-@@ -1549,7 +1549,7 @@
+@@ -1742,7 +1742,7 @@
  	if [ -n "$special" ]; then
  		case $special in
  		remove)
@@ -96,7 +87,25 @@ diff -uNr bash_completion/bash_completion bash_completion-new/bash_completion
  				# Debian system
  				COMPREPLY=( $( _comp-dpkg-installed-packages \
  						$cur ) )
-@@ -1916,8 +1916,10 @@
+@@ -1879,7 +1879,7 @@
+ have aptitude && {
+ _comp_dpkg_hold_packages()
+ {
+-	grep -B 2 'hold' /var/lib/dpkg/status | grep "Package: $1" \
++	grep -B 2 'hold' @PREFIX@/var/lib/dpkg/status | grep "Package: $1" \
+ 		| cut -d\  -f2
+ }
+ 
+@@ -2027,7 +2027,7 @@
+ 	prev=${COMP_WORDS[COMP_CWORD-1]}
+ 
+ 	if [ "$prev" = "-s" ]; then
+-	  if [ -f /etc/debian_version ]; then
++	  if [ -f /etc/debian_version ] || [ -x @PREFIX@/bin/fink ]; then
+ 	    COMPREPLY=( $( </etc/shells ) )
+ 	  else
+ 	    COMPREPLY=( $( chsh -l | grep "^$cur" ) )
+@@ -2114,8 +2114,10 @@
  	kh=()
  
  	# ssh config files
@@ -109,7 +118,25 @@ diff -uNr bash_completion/bash_completion bash_completion-new/bash_completion
  
  	if [ ${#config[@]} -gt 0 ]; then
  	    # expand path (if present) to global known hosts file
-@@ -3862,7 +3864,9 @@
+@@ -3034,7 +3036,7 @@
+ 			;;
+ 		-s)
+ 			# shells
+-			COMPREPLY=( $( grep ^${cur:-[^#]} /etc/shells ) )
++			COMPREPLY=( $( grep ^${cur:-[^#]} @PREFIX@/etc/shells ) )
+ 			;;
+ 		*)
+ 			;;
+@@ -3344,7 +3346,7 @@
+ have dpkg && {
+ _comp-dpkg-installed-packages()
+ {
+-	grep -A 2 "Package: $1" /var/lib/dpkg/status | \
++	grep -A 2 "Package: $1" @PREFIX@/var/lib/dpkg/status | \
+ 		grep -B 2 'ok installed' | grep "Package: $1" | cut -d\  -f2
+ }
+ 
+@@ -4026,7 +4028,9 @@
  	{
  		local admindir
  		# find wich admin dir to use
