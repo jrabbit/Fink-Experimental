@@ -9,13 +9,21 @@ Depends: base-files
 #Patch: %f.patch
 ConfigureParams: --without-ada --with-shared --without-debug --enable-termcap --mandir=%p/share/man --with-terminfo-dirs="%p/share/terminfo:/usr/share/terminfo" --with-default-terminfo-dir="%p/share/terminfo"
 SetCFLAGS: -no-cpp-precomp -Wno-deprecated
+NoSetCPPFLAGS: true
 SetCPP: cpp -no-cpp-precomp -E
+SetCXXCPP: c++ -no-cpp-precomp -E
+CompileScript: <<
+CXXCPP='c++ -no-cpp-precomp -E' ./configure %c
+make
+<<
+
 InstallScript: <<
   make install DESTDIR=%d DYLD_LIBRARY_PATH=`pwd`/lib
   mkdir -p %i/share/doc/%n
   cp README ANNOUNCE NEWS %i/share/doc/%n/
   cp tack/README %i/share/doc/%n/README.tack
   cp tack/COPYING %i/share/doc/%n/COPYING.tack
+  ln -s %p/lib/libncurses.5.dylib %i/lib/libncurses.dylib.5
 <<
 Description: Full-screen ascii drawing library
 DescPort: <<
