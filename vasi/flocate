@@ -1,0 +1,173 @@
+#!/usr/bin/perl -w
+use strict;
+
+use File::Find;
+use Fink::Services qw(&version_cmp);
+use Getopt::Long;
+
+
+my $prefix = "/sw";
+my $frcode = "$prefix/lib/locate/frcode";
+my $dpkg_info_dir = "$prefix/var/lib/dpkg/info";
+
+my @deb_dirs = ();
+my $flocate_dir = "$prefix/var/lib/flocate";
+my $idx = 0;
+my $no_installed_index = 0;
+my $no_deb_index = 0;
+
+
+GetOptions(
+    "flocate_dir=s" => \$flocate_dir,
+    "index" => \$idx,
+    "deb-dir=s" => \@deb_dirs,
+    "no-installed-index" => \$no_installed_index,
+    "no-deb-index" => \$no_deb_index,
+);
+
+
+@deb_dirs = ( "$prefix/fink/debs" ) unless @deb_dirs; 
+@deb_dirs = split(/,/ , join(",", @deb_dirs));
+
+my $flocate_db = "$flocate_dir/flocatedb";
+
+
+if ($idx) { # Indexing:
+
+    unless ( -d $flocate_dir ) {
+        mkdir($flocate_dir) or
+            die "Couldn't make flocate directory at `$flocate_dir': $!";
+    }
+    
+    my %pkgversions; # Just one per pkg:vers
+    
+    unless ( $no_deb_index ) {
+        # Queue .deb's
+        find({ follow => 1, follow_skip => 2, no_chdir => 1,
+            wanted => sub {
+                if ( m,/([^/_]+)_([^/_]+)_[^/_]+\.deb$, ) {
+                    my ($pkg, $vers) = ($1, $2);
+                    $pkgversions{"$pkg:$vers"} = {
+                        pkg => $pkg,
+                        vers => $vers,
+                        file => $_
+                    };
+                }
+            }
+        }, @deb_dirs);
+    }
+    
+    unless ( $no_installed_index ) {
+        # Get package versions from dpkg
+        open DPKG_l, "-|", "COLUMNS=400 dpkg -l" or
+            die "Couldn't get installed packages: $!";
+        my %inst_versions;
+        while ( my $dpkg_line = <DPKG_l> ) {
+            chomp $dpkg_line;
+            if ( $dpkg_line =~ m/^\w\w\s\s(\S+)\s+(\S+)/ ) {
+                $inst_versions{$1} = $2;
+            }
+        }
+        
+        # Queue installed packages
+        opendir DPKG_INFO_DIR, $dpkg_info_dir or
+            die "Couldn't open dpkg info directory `$dpkg_info_dir': $!";
+        foreach my $list_file ( readdir(DPKG_INFO_DIR) ) {
+            if ( $list_file =~ /^(.*).list$/ ) {
+                my $pkg = $1;
+                my $vers = $inst_versions{$1};
+                $pkgversions{"$pkg:$vers"} = {
+                    pkg => $pkg,
+                    vers => $vers,
+                    file => "$dpkg_info_dir/$list_file"
+                };
+            }
+        }
+        closedir DPKG_INFO_DIR;
+    }
+    
+    # Make sorted list:
+    my @pkgversions = sort {
+                            $a->{pkg} cmp $b->{pkg}
+                            or &version_cmp($a->{vers}, "<=>", $b->{vers})
+                        }
+                        values %pkgversions;
+    
+    open FLOCATE_DB, "|-", "$frcode > $flocate_db" or
+        die "Couldn't open flocate DB `$flocate_db' for writing: $!";
+#    open FLOCATE_DB, ">", "$flocate_db" or
+#        die "Couldn't open flocate DB `$flocate_db' for writing: $!";
+    
+    # Index the queued packages
+    for my $pv ( @pkgversions ) {
+        if ( $pv->{file} =~ /.list$/ ) {
+            open LIST, "<", $pv->{file} or
+                die "Couldn't open file `$pv->{file}': $!";
+            while ( my $content_file_newline = <LIST> ) {
+                print FLOCATE_DB
+                        "i $pv->{pkg} $pv->{vers} : $content_file_newline";
+            }
+            close LIST;
+        } elsif ( $pv->{file} =~ /.deb$/ ) {
+            unless ( open DEB_CONTENTS, "-|", 
+                    "dpkg-deb --fsys-tarfile \Q$pv->{file}\E | tar -t" ) {
+                print "WARNING: Couldn't read deb `$pv->{file}': $!.\n";
+            } else {
+                while ( my $file = <DEB_CONTENTS> ) {
+                    # Make the format the same as dpkg's .lists
+                    chomp $file;
+                    $file =~ s/^\.//;
+                    $file =~ s,/$,,;
+                    if ( $file eq "" ) {
+                        $file = "/.";
+                    }
+                    print FLOCATE_DB "  $pv->{pkg} $pv->{vers} : $file\n";
+                }
+                close DEB_CONTENTS;
+            }
+        }
+    }
+    
+    close FLOCATE_DB;
+    
+} else { # Searching:
+
+    system("/sw/bin/locate -d $flocate_db '$_'") for @ARGV;
+    exit;
+    
+    # SLOWER
+    my @patterns = map { &glob2re($_) } @ARGV;
+    
+    open FLOCATE_DB, "<", $flocate_db;
+    while ( my $pkg_file = <FLOCATE_DB> ) {
+        chomp $pkg_file;
+        my ($pkg, $vers, $file) = split(/:/, $pkg_file);
+        
+        foreach my $pattern ( @patterns ) {
+            if ( $file =~ m/$pattern/ ) {
+                print "$pkg $vers: $file\n";
+                last;
+            }
+        }
+    }
+    close FLOCATE_DB;
+
+}
+
+# Turn a glob into a regex
+sub glob2re {
+    my $globstr = shift;
+    if ( $globstr =~ m/[\][*?]/ ) {
+        my %patmap = (
+            '*' => '.*',
+            '?' => '.',
+            '[' => '[',
+            ']' => ']',
+        );
+        $globstr =~ s{(.)} { $patmap{$1} || "\Q$1" }ge;
+        $globstr = '^' . $globstr . '$';
+    } else {    # A non-wildcard string matches anywhere
+        $globstr = "\Q$globstr";
+    }
+    return qr/$globstr/;
+}
