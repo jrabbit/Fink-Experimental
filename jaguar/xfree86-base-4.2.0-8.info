@@ -2,7 +2,7 @@ Package: xfree86-base
 Version: 4.2.0
 Revision: 8
 BuildDepends: gdbm
-Depends: gdbm-shlibs,dlcompat
+Depends: gdbm-shlibs, dlcompat
 Provides: x11, rman
 Conflicts: x11
 Replaces: x11
@@ -14,12 +14,12 @@ SourceDirectory: xc
 Patch: %f.patch
 PatchScript: <<
  echo '#define EtcX11Directory ProjectRoot/etc' >config/cf/host.def
- echo '#define BuildGLXLibrary NO' >>config/cf/host.def
- echo '#define BuildGLULibrary NO' >>config/cf/host.def
+ echo '#define BuildGLXLibrary YES' >>config/cf/host.def
+ echo '#define BuildGLULibrary YES' >>config/cf/host.def
  echo '#define HasPosixThreads       YES' >>config/cf/host.def
  echo '#define ThreadedX             YES' >>config/cf/host.def
  echo '#define HasThreadSafeAPI      YES' >>config/cf/host.def
- echo '#define SystemMTDefines	-D_REENTRANT' >>config/cf/host.def
+ echo '#define SystemMTDefines	-D_REENTRANT -D_PTHREADS' >>config/cf/host.def
  echo '#define MTSafeAPIDefines	-DXUSE_MTSAFE_API -DXNO_MTSAFE_PWDAPI' >>config/cf/host.def
  echo '#define TclLibDir              /usr/lib' >> config/cf/host.def
  echo '#define TclIncDir              /usr/include' >>config/cf/host.def
@@ -27,16 +27,44 @@ PatchScript: <<
  echo '#define HasDlopen		YES' >>config/cf/host.def
  echo '#define DlLibrary		-L%p/lib -ldl' >>config/cf/host.def
  echo '#define HasNCurses		YES' >>config/cf/host.def
- sed -e 's;@prefix@;%p;g' -e 's;-fno-common;-fno-common -mno-dynamic-no-pic;g' < config/cf/darwin.cf > config/cf/darwin-tmp
+ echo '#define PositionIndependentCFlags -dynamic -fno-common -fPIC -mno-dynamic-no-pic' >>config/cf/host.def
+ sed -e 's;@prefix@;%p;g' < config/cf/darwin.cf > config/cf/darwin-tmp
  mv config/cf/darwin-tmp config/cf/darwin.cf
 <<
 CompileScript: <<
  make MAKE=/usr/bin/gnumake World WORLDOPTS=-S
 <<
+SplitOff: <<
+ Package: xfree86-rootless
+ Depends: xfree86-base  (= 4.2.0-8)
+ Provides: libgl
+ Files: <<
+ ../Applications/XDarwin.app 
+ ../usr/X11R6/include/GL
+ ../usr/X11R6/lib/libGL.1.2.dylib
+ ../usr/X11R6/lib/libGL.1.dylib
+ ../usr/X11R6/lib/libGL.a
+ ../usr/X11R6/lib/libGL.dylib
+ ../usr/X11R6/lib/libGLU.1.3.dylib
+ ../usr/X11R6/lib/libGLU.1.dylib
+ ../usr/X11R6/lib/libGLU.a
+ ../usr/X11R6/lib/libGLU.dylib
+ ../usr/X11R6/lib/libGLw.a 
+ ../usr/X11R6/man/man1/XDarwin.1
+ ../usr/X11R6/man/man1/XFree86.1
+ ../usr/X11R6/man/man1/dumpkeymap.1
+ ../usr/X11R6/lib/X11/doc/html/XDarwin.1.html
+ ../usr/X11R6/lib/X11/doc/html/XFree86.1.html
+ ../usr/X11R6/lib/X11/doc/html/dumpkeymap.1.html
+ ../usr/X11R6/bin/X
+ ../usr/X11R6/bin/XDarwin
+ ../usr/X11R6/bin/XDarwinQuartz
+ ../usr/X11R6/bin/XDarwinStartup
+ ../usr/X11R6/bin/dumpkeymap
+ <<
+<<
 InstallScript: <<
  make MAKE=/usr/bin/gnumake install install.man WORLDOPTS=-S DESTDIR=%d
- rm -rf %d/usr/X11R6/include/GL
- rm -f %d/usr/X11R6/lib/libz.a
 <<
 #
 PreInstScript: <<
