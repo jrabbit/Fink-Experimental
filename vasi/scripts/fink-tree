@@ -1,0 +1,48 @@
+#!/bin/sh
+
+# Usage:
+#
+# fink-tree foo		Move the current /sw to the storage folder, replace
+#					with tree "foo" from storage.
+#
+# fink-tree none		Just move the current /sw to storage.
+#
+# fink-tree			Display the current and available trees.
+
+storage="/Applications/Fink-Folders"
+
+
+newtree="$1"
+
+if [ -f /sw/etc/fink-tree-name ]; then
+	oldtree="`cat \"/sw/etc/fink-tree-name\" | head -n 1`"
+fi
+if [ -d /sw -a "x$oldtree" = "x" ]; then
+	echo -n "Current tree has no name! Name it by creating "
+	echo "/sw/etc/fink-tree-name, containing the tree's name."
+	exit 2
+fi
+
+if [ "x$newtree" = "x" ]; then
+	echo "Current tree: ${oldtree:-none}"
+	echo -n "Available trees: "
+	(ls -d "$storage"/sw-* | sed -e "s,$storage/sw-,," ; echo $oldtree ) | sort | xargs echo
+	exit 0
+fi
+
+if [ -d /sw -a "x$oldtree" = "x$newtree" ]; then
+	exit 0
+fi
+
+if [ "x$newtree" != "xnone" -a \! -d "$storage/sw-$newtree" ]; then
+	echo -n "Tree \"$newtree\" doesn't exist. It should be at "
+	echo "$storage/sw-$newtree"
+	exit 3
+fi
+
+if [ -d /sw ]; then
+	sudo mv /sw "$storage/sw-$oldtree"
+fi
+if [ "x$newtree" != "xnone" ]; then
+	sudo mv "$storage/sw-$newtree" /sw
+fi

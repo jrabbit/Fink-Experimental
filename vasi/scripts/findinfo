@@ -1,0 +1,32 @@
+#!/usr/bin/perl -w
+
+use strict;
+use Fink::Services "read_config";
+use Fink::Package;
+
+(my $basepath = `which fink`) =~ s/bin.*//s;
+read_config("$basepath/etc/fink.conf");
+
+open OLDERR, ">&STDERR";
+close STDERR; # stop indexing output
+Fink::Package->require_packages; 
+open STDERR, ">&OLDERR";
+close OLDERR;
+
+my @packages = grep { /$ARGV[0]/ } Fink::Package->list_packages;
+my %infos;
+for my $pkg (@packages) {
+	for my $pv (Fink::Package->package_by_name($pkg)->get_all_providers) {
+		my $info;
+		push @{$infos{$pkg}}, $info if $info = $pv->get_info_filename;
+	}
+}
+
+my $first = 1;
+for my $pkg (sort keys %infos) {
+	print $first ? "" : "\n", "$pkg:\n";
+	$first = 0;
+	for my $info ( sort @{$infos{$pkg}} ) {
+		print "\t$info\n";
+	}
+}

@@ -73,7 +73,7 @@ Display this help.
 =item B<-c> DIR, B<--flocate-dir>=DIR
 
 The directory in which to store index and cache files. You'll need a few
-megabytes of space. Default is /sw/var/lib/flocate.
+megabytes of space. Default is PREFIX/var/lib/flocate.
 
 =back
 
@@ -88,11 +88,11 @@ Update the index, using the currently installed dpkg packages and .deb archives
 on disk. The other options in this section do nothing if this option is not
 provided.
 
-=item B<-d> DIR, B<--deb-dir>=DIR
+=item B<-dd> DIR, B<--deb-dir>=DIR
 
 When indexing, look for .deb archives in this directory. This flag can be used
 multiple times, in which case all directories given are searched. If this flag
-is omitted, the directory /sw/fink/debs will be used.
+is omitted, the directory PREFIX/fink/debs will be used.
 
 =item B<-ni>, B<--no-installed-index>
 
@@ -113,6 +113,11 @@ megabytes of disk space but taking much longer to index.
 
 =back
 
+=head1 ENVIRONMENT
+
+If the environment variable B<FLOCATE_DIR> is set, it will be used as the path
+to the flocate directory. This can be overridden with the --flocate-dir flag.
+
 =cut
 
 
@@ -122,12 +127,13 @@ use Getopt::Long;
 use Pod::Usage;
 
 
-my $prefix = "/sw";
+my $prefix = "/Applications/Fink-Folders/permanent";
 my $frcode = "$prefix/lib/locate/frcode";
 my $dpkg_info_dir = "$prefix/var/lib/dpkg/info";
 
 my @deb_dirs = ();
-my $flocate_dir = "$prefix/var/lib/flocate";
+my $flocate_dir = exists $ENV{FLOCATE_DIR} ? $ENV{FLOCATE_DIR}
+					: "$prefix/var/lib/flocate";
 my $idx = 0;
 my $no_installed_index = 0;
 my $no_deb_index = 0;
@@ -136,9 +142,9 @@ my $help = 0;
 my $man = 0;
 
 GetOptions(
-    "c|flocate_dir=s" => \$flocate_dir,
+    "c|flocate-dir=s" => \$flocate_dir,
     "i|index" => \$idx,
-    "d|deb-dir=s" => \@deb_dirs,
+    "dd|deb-dir=s" => \@deb_dirs,
     "ni|no-installed-index" => \$no_installed_index,
     "nd|no-deb-index" => \$no_deb_index,
     "nc|no-deb-cache" => \$no_deb_cache,
@@ -236,10 +242,10 @@ if ($idx) { # Indexing:
                         }
                         values %pkgversions;
     
-    open FLOCATE_DB, "|-", "$frcode > $flocate_db" or
-        die "Couldn't open flocate DB `$flocate_db' for writing: $!";
-#    open FLOCATE_DB, ">", "$flocate_db" or
+#    open FLOCATE_DB, "|-", "$frcode > $flocate_db" or
 #        die "Couldn't open flocate DB `$flocate_db' for writing: $!";
+    open FLOCATE_DB, ">", "$flocate_db" or
+        die "Couldn't open flocate DB `$flocate_db' for writing: $!";
     
     # Index the queued packages
     foreach my $pv ( @pkgversions ) {
@@ -286,8 +292,8 @@ if ($idx) { # Indexing:
                         if ( $file eq "" ) {
                             $file = "/.";
                         }
-                        print FLOCATE_DB "  $pv->{pkg} $pv->{vers}: $file\n";
-                        print DEBLIST "  $pv->{pkg} $pv->{vers}: $file\n"
+                        print FLOCATE_DB "$pv->{pkg} $pv->{vers}: $file\n";
+                        print DEBLIST "$pv->{pkg} $pv->{vers}: $file\n"
                             if $cache_update;
                     }
                     close DEB_CONTENTS;
@@ -323,7 +329,7 @@ if ($idx) { # Indexing:
         exit(2);
     }
     
-    system("/sw/bin/locate -d $flocate_db '$_'") for @ARGV;
+    system("$prefix/bin/locate -d $flocate_db '$_'") for @ARGV;
     exit;
     
     # SLOWER

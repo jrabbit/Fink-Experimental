@@ -1,0 +1,52 @@
+#!/usr/bin/perl -w
+use strict;
+
+my $finksrc =	"/Applications/Fink-Folders/src";
+my $sharedsrc =	"/Users/vasi/Shared/Source";
+my @newids =		(501, 80);
+my $sizelimit = 	250;		# megabytes
+
+opendir FINK, $finksrc or die "Couldn't read `$finksrc': $!";
+my @finkfiles = readdir FINK;
+closedir FINK;
+@finkfiles = map {
+		my $name = $_;
+		s,^,$finksrc/,;
+		(-f $_) ? { path => $_, size => -s _, age => -M _, name => $name } : ()
+	} @finkfiles;
+
+opendir SHARED, $sharedsrc or die "Couldn't read `$sharedsrc': $!";
+my @sharedfiles = readdir SHARED;
+closedir SHARED;
+@sharedfiles = map {
+		s,^,$sharedsrc/,;
+		(-f $_) ? { path => $_, size => -s _, age => -M _ } : ()
+	} @sharedfiles;
+
+my $size = 0;
+$size += $_->{size} for @finkfiles;
+$size += $_->{size} for @sharedfiles;
+@finkfiles = sort { $b->{age} <=> $a->{age} } @finkfiles;
+@sharedfiles = sort { $b->{age} <=> $a->{age} } @sharedfiles;
+
+my @delfiles;
+while ($size > $sizelimit * 1024 * 1024 and @sharedfiles) {
+	my $del = shift @sharedfiles;
+	$size -= $del->{size};
+	push @delfiles, $del;
+}
+while ($size > $sizelimit * 1024 * 1024 and @finkfiles) {
+	my $del = shift @finkfiles;
+	$size -= $del->{size};
+}
+
+for (@delfiles) {
+#	print "rm $_->{path}\n";
+	unlink $_->{path};
+}
+for (@finkfiles) {
+	my $newpath = "$sharedsrc/$_->{name}";
+#	print "mv $_->{path} $newpath ; chown vasi:admin $newpath\n";
+	rename $_->{path}, $newpath;
+	chown @newids, $newpath;
+}

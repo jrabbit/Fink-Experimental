@@ -1,0 +1,102 @@
+#!/usr/bin/perl -w
+use strict;
+
+
+=head1 NAME
+
+undmg - Extract from a .dmg disk image.
+
+=head1 SYNOPSIS
+
+undmg [-sv] [-o DIR] foo.dmg ...
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<-o> DIR
+
+Existing directory in which to put image contents. Defaults to current directory.
+
+=back
+
+=item B<-v> DIR
+
+Be verbose.
+
+=back
+
+=head1 DESCRIPTION
+
+B<cdfit> organizes a list of files/directories into groups, each of which fits
+on one disc. The grouping is optimized to minimize the number of CDs necessary.
+
+=cut
+
+use Getopt::Long;
+use Pod::Usage;
+my ($odir, $help, $v) = (".", 0, 0);
+GetOptions('o=s' => \$odir, 'help|?' => \$help, 'v' => \$v) or pod2usage(2);
+pod2usage(-exitval => 1, -verbose => 2) if $help;
+
+if ( system("which hdiutil ditto" . ($v ? "" : " > /dev/null")) != 0 ) {
+	die "undmg: Both hdiutil and ditto must be in your PATH for this program to work.";
+}
+
+use File::Temp qw( tempdir );
+
+my $tmpdir = tempdir("dmg-extract-XXXXXXXXXX", TMPDIR => 1);
+my $dmg = shift @ARGV;
+
+eval {
+	system("hdiutil attach \Q$dmg\E -readonly -private -nobrowse -noautoopen " .
+		" -mountroot \Q$tmpdir\E" . ($v ? "" : " > /dev/null")) == 0
+		or die "undmg: Couldn't mount the disk image.";
+	
+	eval {
+		opendir(DIR, $tmpdir) or
+			die "undmg: Couldn't detect any volumes on the disk image: $!";
+		my @volumes = grep { not /^\.\.?$/ } readdir(DIR);
+		closedir(DIR);
+		
+		if (@volumes == 0) {
+			die "undmg: There are no volumes on the disk image.\n";
+		}
+		
+		if (@volumes > 1) {
+			use File::Basename;
+			$odir .= "/" . basename($dmg);
+		}
+		if ( system("ditto -rsrc " . ($v ? "-V " : "") . 
+				"\Q$tmpdir\E \Q$odir\E") != 0 ) {
+			die "undmg: An error occurred reading the disk image.\n";
+		}
+	};
+	print "$@\n" if $@;
+	
+	open(HDIUTIL, "hdiutil info |") or
+		die "undmg: Couldn't unmount the disk image: $!";
+	my $ino = (stat($dmg))[1];
+	my $dev = "";
+	while (<HDIUTIL>) {
+		chomp;
+		if ( (s/^image-path\s*:\s(.+)$/$1/ && $ino == (stat($_))[1])../^=+$/ ) {
+			if ( m,^/dev/(disk\d+), ) {
+				$dev = $1;
+				last;
+			}
+		}
+	}
+	close(HDIUTIL);
+	
+	if ( not $dev ) {
+		die "undmg: Couldn't unmount the disk image.";
+	} else {
+		system("hdiutil detach $dev" . ($v ? "" : " > /dev/null")) == 0 or
+			die "undmg: Couldn't unmount the disk image.";
+	}
+};
+print "$@\n" if $@;
+
+system("rm -rf -- \Q$tmpdir\E") == 0 or
+	die "undmg: Couldn't remove temporary directory.";

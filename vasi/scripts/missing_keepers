@@ -1,0 +1,34 @@
+#!/usr/bin/perl -w
+use strict;
+
+use Fink::Package;
+use Fink::Services qw(read_config latest_version);
+use Data::Dumper;
+
+(my $basepath = `which fink`) =~ s/bin.*//s;
+read_config("$basepath/etc/fink.conf");
+open OLDERR, ">&STDERR";
+close STDERR; # stop indexing output
+Fink::Package->require_packages; 
+open STDERR, ">&OLDERR";
+close OLDERR;
+
+
+my @results;
+open KEEPERS, "/sw/var/lib/debfoster/keepers" or die "Couldn't open keepers: $!";
+while (<KEEPERS>) {
+    if ( m/^\s*(\S+)\s*$/ ) {
+        my $keeper = $1;
+        my $po = Fink::Package->package_by_name($keeper);
+        if (not defined $po) {
+            print "WARNING: No package $keeper!\n";
+            next;
+        }
+        if (not $po->is_any_installed) {
+            push @results, $keeper;
+        }
+    }
+}
+close KEEPERS;
+
+print(join(" ", sort @results), "\n");

@@ -1,0 +1,79 @@
+#!/usr/bin/perl -w
+
+use strict;
+use English;
+use Expect;
+use POSIX qw/ceil/;
+
+if ( $EUID != 0 ) {
+  # We need root
+  exec('/usr/bin/sudo', '-H', $0, @ARGV)
+    or die "$0: couldn't become root: $!";
+}
+
+my $exp = new Expect;
+$exp->log_stdout(0);
+$exp->spawn("debfoster");
+die "Couldn't start debfoster: $!" if not defined $exp;
+
+my @pkgs;
+my ($patnum, $err, $before);
+my ($saved, $blocksize, %changedfiles) = (0, 512);
+while (1) {
+  ($patnum, $err, undef, $before) =
+    $exp->expect(1200,
+                 '? [Ynpsiuqx?], [H]elp: ',
+                 'Do you want to continue? [Y/n]');
+
+  if (%changedfiles) {
+    for (keys %changedfiles) {
+#      print("Subtract: $_ => " . fileblocks($_) . "\n");
+      $saved -= fileblocks($_);
+    }
+    %changedfiles = ();
+  }
+  
+  last if defined $err;
+  
+  if ($patnum == 1) {
+    $exp->send("p");
+  } elsif ($patnum == 2) {
+    $before =~ s/\A.*REMOVED:\s*\n((?:^\s[^\n]*$ \n)*).*\z/$1/smx;
+    $before =~ s/\*//g;
+    
+    my @newpkgs = split(' ', $before);
+    push @pkgs, @newpkgs;
+    
+    %changedfiles = ();
+    for (@newpkgs) {
+      open DPKG, "dpkg -L \Q$_\E |"
+        or die "Dpkg won't give me sizes: $!";
+      while (<DPKG>) {
+        chomp;
+        if ($_ and not exists $changedfiles{$_}) {
+          $changedfiles{$_} = 1;          
+#          print("Add: $_ => " . fileblocks($_) . "\n");
+          $saved += fileblocks($_);
+        }
+      }
+      close DPKG;
+    }
+    
+    $exp->send("y\n");
+  }
+}
+die "$err" if $err !~ /^3/;
+
+my $quiet = shift || 0;
+if ( $quiet ne "--quiet" ) {
+  for (sort @pkgs) {
+    print "$_\n";
+  }
+} else {
+  print( $saved*$blocksize . "\n" );
+}
+
+sub fileblocks {
+  -l $_[0];
+  return ceil((-s _ || 0) / $blocksize);
+}

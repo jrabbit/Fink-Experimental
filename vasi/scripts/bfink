@@ -1,0 +1,46 @@
+#!/usr/bin/perl -w
+
+use strict;
+use English;
+
+if ($EUID != 0) {
+  # We need root
+  exec('/usr/bin/sudo', '-H', $0, @ARGV)
+    or die "$0: exec '/usr/bin/sudo -H $0 @ARGV' failed: $!";
+}
+
+my $keepers = "/sw/var/lib/debfoster/keepers";
+
+system('/sw/bin/fink', @ARGV) == 0
+  or exit($? >> 8);
+
+my $cmd = shift @ARGV;
+if ( grep { $cmd eq $_ } qw/install remove purge/ ) {
+  open KEEP, "<", $keepers
+    or die "$0: cannot open '$keepers' for reading: $!";
+  my %keepers = map { chomp; $_ => 1 } <KEEP>;
+  close KEEP
+    or die "$0: error in closing '$keepers' for reading: $!";
+
+  if ( $cmd eq "install" ) {
+    @keepers{@ARGV} = (1) x @ARGV;
+  } else {
+    delete @keepers{@ARGV};
+  }
+
+  my $temp_keepers = "$keepers.tmp";
+  open KEEP2, ">", $temp_keepers
+    or die "$0: cannot open '$temp_keepers' for writing: $!";
+  for (sort keys %keepers) {
+    print KEEP2 "$_\n";
+  }
+  close KEEP2
+    or die "$0: cannot close '$temp_keepers' for writing: $!";
+
+  rename($temp_keepers, $keepers)
+    or die "$0: cannot rename '$temp_keepers' to 'keepers': $!\n";
+}
+
+print "\nRemoved the following orphan packages:\n";
+system('/sw/bin/fink_rm_orphans') == 0 or
+  die "$0: system('fink_rm_orphans') failed.\n";

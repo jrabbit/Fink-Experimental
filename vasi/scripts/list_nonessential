@@ -1,0 +1,32 @@
+#!/usr/bin/perl -w
+use strict;
+
+use Fink::Package;
+use Fink::Services qw(read_config latest_version);
+use Data::Dumper;
+
+(my $basepath = `which fink`) =~ s/bin.*//s;
+read_config("$basepath/etc/fink.conf");
+
+# Be quiet about indexing output.
+open OLDERR, ">&STDERR";
+close STDERR; # stop indexing output
+Fink::Package->require_packages; 
+open STDERR, ">&OLDERR";
+close OLDERR;
+
+my @remove;
+
+for my $pkg ( grep { !/^(apt(|-shlibs)|ccache(|-default)|debfoster)$/ } Fink::Package->list_packages() ) {
+  my $po = Fink::Package->package_by_name($pkg);
+  my @inst = $po->list_installed_versions();
+  if (@inst) {
+    my $pv = $po->get_version(latest_version(@inst));
+    unless ($pv->param_boolean("Essential") or
+            $pv->is_type("dummy")) {
+      push @remove, $pkg;
+    }
+  }
+}
+
+print "$_\n" for sort @remove;
