@@ -67,3 +67,68 @@
  PACKAGES=$(dpkg-awk "Status: .* installed" -- Package \
  		| grep '^Package:' | sed 's/^Package: //')
  
+--- popularity-contest-1.3/popanal.py	2001-08-19 11:30:03.000000000 -0700
++++ popularity-contest-1.3-patched/popanal.py	2002-11-02 16:00:53.000000000 -0800
+@@ -144,7 +144,7 @@
+ 	    if not votelist.has_key(package):
+ 		if not complained.has_key(package):
+ 			ewrite(('Warning: package %s not in '
+-				+ '/var/lib/dpkg/available')  % package)
++				+ '@PREFIX@/var/lib/dpkg/available')  % package)
+ 			complained[package] = 1
+ 		votelist[package] = Vote()
+ 		sectlist[UNKNOWN].append(package)
+@@ -198,9 +198,9 @@
+
+ # main program
+
+-for d in glob.glob('/org/ftp.debian.org/ftp/dists/stable/*/binary-i386/Packages'):
++for d in glob.glob('@PREFIX@/fink/10.2/stable/*/binary-darwin-powerpc/Packages'):
+     read_depends(d)
+-for d in glob.glob('/org/ftp.debian.org/ftp/dists/unstable/*/binary-i386/Packages'):
++for d in glob.glob('@PREFIX@/fink/10.2/unstable/*/binary-darwin-powerpc/Packages'):
+     read_depends(d)
+ read_submissions(sys.stdin)
+
+--- popularity-contest-1.3/popcon-process.sh	2000-11-01 08:47:50.000000000 -0800
++++ popularity-contest-1.3-patched/popcon-process.sh	2002-11-08 21:01:20.000000000 -0800
+@@ -1,7 +1,8 @@
+ #!/bin/bash
+ set -e
+ PATH=$HOME/bin:$PATH
+-cd $HOME
++POPDIR=/Library/WebServer/Documents/popcon
++cd $POPDIR
+ 
+ # rotate files
+ rm -rf popcon-entries.old
+@@ -12,21 +13,21 @@
+ chmod og-rwx new-popcon-entries
+ 
+ # process entries
+-prepop.py <new-popcon-entries.old >$HOME/prepop.out
++@PREFIX@/share/popularity-contest/scripts/prepop.py <new-popcon-entries.old >$POPDIR/prepop.out
+ 
+ # delete outdated entries
+-find $HOME/popcon-entries -type f -mtime +10 | xargs rm -f
++find $POPDIR/popcon-entries -type f -mtime +10 | xargs rm -f
+ 
+ # analyze results
+-cd public_html/popcon/results
++cd $POPDIR/results
+ rm -f results.*
+-find $HOME/popcon-entries -type f | wc -l >../num-submissions
+-find $HOME/popcon-entries -type f | xargs cat \
+-	| nice -15 popanal.py >$HOME/popanal.out 2>&1
++find $POPDIR/popcon-entries -type f | wc -l >../num-submissions
++find $POPDIR/popcon-entries -type f | xargs cat \
++	| nice -15 @PREFIX@/share/popularity-contest/scripts/popanal.py >$POPDIR/popanal.out 2>&1
+ cd ..
+ make clean >/dev/null
+ make >/dev/null
+ 
+ # upload web page to www.debian.org
+-cd $HOME
+-rsync -aze ssh public_html people.debian.org: </dev/null
++#cd $HOME
++#rsync -aze ssh public_html people.debian.org: </dev/null
