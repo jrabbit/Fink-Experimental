@@ -1,0 +1,560 @@
+diff -ruN mozilla.orig/.mozconfig mozilla/.mozconfig
+--- mozilla.orig/.mozconfig	Wed Dec 31 17:00:00 1969
++++ mozilla/.mozconfig	Sun Jul 28 09:56:29 2002
+@@ -0,0 +1,13 @@
++ac_add_options	--libdir=/sw/lib/mozilla
++ac_add_options	--includedir=/sw/include/mozilla
++ac_add_options	--with-pthreads
++ac_add_options	--with-system-jpeg=/sw
++ac_add_options	--with-system-zlib=/sw
++ac_add_options	--with-system-png=/sw
++ac_add_options	--enable-xft
++ac_add_options	--enable-crypto
++ac_add_options	--disable-tests
++ac_add_options	--disable-debug
++ac_add_options	--enable-optimize
++ac_add_options	--with-default-mozilla-five-home=/sw/lib/mozilla
++
+diff -ruN mozilla.orig/config/prebind-address-table mozilla/config/prebind-address-table
+--- mozilla.orig/config/prebind-address-table	Thu Jun 13 02:52:55 2002
++++ mozilla/config/prebind-address-table	Sun Jul 28 09:56:29 2002
+@@ -1,9 +1,9 @@
+-0x01000000       @executable_path/libnspr4.dylib
+-0x02000000       @executable_path/libplds4.dylib
+-0x03000000       @executable_path/libplc4.dylib
+-0x04000000       @executable_path/libmozjs.dylib
+-0x05000000       @executable_path/libxpcom.dylib
+-0x06000000       @executable_path/libssl3.dylib
+-0x07000000       @executable_path/libnss3.dylib
+-0x08000000       @executable_path/libsmime3.dylib
+-0x09000000       @executable_path/libsoftokn3.dylib
++0x01000000       @PREFIX@/lib/mozilla/libnspr4.dylib
++0x02000000       @PREFIX@/lib/mozilla/libplds4.dylib
++0x03000000       @PREFIX@/lib/mozilla/libplc4.dylib
++0x04000000       @PREFIX@/lib/mozilla/libmozjs.dylib
++0x05000000       @PREFIX@/lib/mozilla/libxpcom.dylib
++0x06000000       @PREFIX@/lib/mozilla/libssl3.dylib
++0x07000000       @PREFIX@/lib/mozilla/libnss3.dylib
++0x08000000       @PREFIX@/lib/mozilla/libsmime3.dylib
++0x09000000       @PREFIX@/lib/mozilla/libsoftokn3.dylib
+diff -ruN mozilla.orig/config/rules.mk mozilla/config/rules.mk
+--- mozilla.orig/config/rules.mk	Sun Jun 30 20:34:57 2002
++++ mozilla/config/rules.mk	Sun Jul 28 09:56:29 2002
+@@ -449,7 +449,9 @@
+ ifdef IS_COMPONENT
+ EXTRA_DSO_LDOPTS	+= -bundle
+ else
+-EXTRA_DSO_LDOPTS	+= -dynamiclib -install_name @executable_path/\$@
++ifndef PROGRAM
++EXTRA_DSO_LDOPTS	+= -dynamiclib -install_name /sw/lib/mozilla/\$@
++endif
+ endif
+ endif
+ 
+diff -ruN mozilla.orig/configure mozilla/configure
+--- mozilla.orig/configure	Wed Jul 17 22:25:47 2002
++++ mozilla/configure	Sun Jul 28 21:31:57 2002
+@@ -4523,36 +4523,62 @@
+     esac
+     ;;
+ 
+-*-darwin*) 
++*-darwin6*)
+     _PEDANTIC=
+-    CFLAGS="$CFLAGS -fpascal-strings -traditional-cpp -fno-common"
+-    CXXFLAGS="$CXXFLAGS -fpascal-strings -traditional-cpp -fno-common"
++    CFLAGS="$CFLAGS -fpascal-strings -no-cpp-precomp -fno-common"
++    CXXFLAGS="$CXXFLAGS -fpascal-strings -no-cpp-precomp -fno-common"
+     DLL_SUFFIX=".dylib"
+     DSO_LDOPTS='-compatibility_version 1 -current_version 1'
+     STRIP="$STRIP -x -S"
+     case "${target_cpu}" in
+     powerpc*)
+         cat >> confdefs.h <<\EOF
+-#define XP_MACOSX 1
++#define DARWIN6 1
+ EOF
+ 
+-        cat >> confdefs.h <<\EOF
+-#define TARGET_CARBON 1
+-EOF
++#        no_x=yes
++        MACOSX=1
++#        _PLATFORM_DEFAULT_TOOLKIT='mac'
++        DSO_LDOPTS="$DSO_LDOPTS -arch ppc"
++#        TK_LIBS='-framework Carbon /System/Library/Frameworks/Carbon.framework/Carbon'
++#        TK_CFLAGS="-I/Developer/Headers/FlatCarbon -F/System/Library/Frameworks"
++#        CFLAGS="$CFLAGS $TK_CFLAGS"
++#        CXXFLAGS="$CXXFLAGS $TK_CFLAGS"
++#        MOZ_ENABLE_POSTSCRIPT=
++        ;;
++    esac
++    ;;
+ 
+-        cat >> confdefs.h <<\EOF
+-#define TARGET_API_MAC_CARBON 1
+-EOF
++*-darwin*) 
++    _PEDANTIC=
++    CFLAGS="$CFLAGS -fpascal-strings -no-cpp-precomp -fno-common"
++    CXXFLAGS="$CXXFLAGS -fpascal-strings -no-cpp-precomp -fno-common"
++    DLL_SUFFIX=".dylib"
++    DSO_LDOPTS='-compatibility_version 1 -current_version 1'
++    STRIP="$STRIP -x -S"
++    case "${target_cpu}" in
++    powerpc*)
++#        cat >> confdefs.h <<\EOF
++##define XP_MACOSX 1
++#EOF
++
++#        cat >> confdefs.h <<\EOF
++##define TARGET_CARBON 1
++#EOF
++
++#        cat >> confdefs.h <<\EOF
++##define TARGET_API_MAC_CARBON 1
++#EOF
+ 
+-        no_x=yes
++#        no_x=yes
+         MACOSX=1
+-        _PLATFORM_DEFAULT_TOOLKIT='mac'
++#        _PLATFORM_DEFAULT_TOOLKIT='mac'
+         DSO_LDOPTS="$DSO_LDOPTS -arch ppc"
+-        TK_LIBS='-framework Carbon /System/Library/Frameworks/Carbon.framework/Carbon'
+-        TK_CFLAGS="-I/Developer/Headers/FlatCarbon -F/System/Library/Frameworks"
+-        CFLAGS="$CFLAGS $TK_CFLAGS"
+-        CXXFLAGS="$CXXFLAGS $TK_CFLAGS"
+-        MOZ_ENABLE_POSTSCRIPT=
++#        TK_LIBS='-framework Carbon /System/Library/Frameworks/Carbon.framework/Carbon'
++#        TK_CFLAGS="-I/Developer/Headers/FlatCarbon -F/System/Library/Frameworks"
++#        CFLAGS="$CFLAGS $TK_CFLAGS"
++#        CXXFLAGS="$CXXFLAGS $TK_CFLAGS"
++#        MOZ_ENABLE_POSTSCRIPT=
+         ;;
+     esac
+     ;;
+@@ -6128,7 +6154,7 @@
+ 
+ echo "$ac_t""$ac_cv_have_usable_wchar_option" 1>&6
+ 
+-    if test "$ac_cv_have_usable_wchar_option" = "yes"; then
++    if test "$ac_cv_have_usable_wchar_option" = "yes" -a "$OS_ARCH" = "Darwin"; then
+         cat >> confdefs.h <<\EOF
+ #define HAVE_CPP_2BYTE_WCHAR_T 1
+ EOF
+@@ -14130,9 +14156,9 @@
+ #define XP_UNIX 1
+ EOF
+ 
+-  cat >> confdefs.h <<\EOF
+-#define UNIX_EMBED 1
+-EOF
++#  cat >> confdefs.h <<\EOF
++##define UNIX_EMBED 1
++#EOF
+ 
+   cat >> confdefs.h <<\EOF
+ #define UNIX_LDAP 1
+@@ -15158,7 +15184,7 @@
+ fi
+ 
+     fi
+-    ac_configure_args="$ac_configure_args --includedir=$MOZ_BUILD_ROOT/dist/include/expat-1.95"
++    ac_configure_args="$ac_configure_args --includedir=$MOZ_BUILD_ROOT/dist/include/expat-1.95 --libdir=$MOZ_BUILD_ROOT/dist/lib/"
+     
+ if test "$no_recursion" != yes; then
+ 
+diff -ruN mozilla.orig/directory/c-sdk/config/config.mk mozilla/directory/c-sdk/config/config.mk
+--- mozilla.orig/directory/c-sdk/config/config.mk	Tue Mar 26 14:51:57 2002
++++ mozilla/directory/c-sdk/config/config.mk	Sun Jul 28 09:56:30 2002
+@@ -60,10 +60,10 @@
+ 
+ NFSPWD		= $(MOD_DEPTH)/config/nfspwd
+ 
+-CFLAGS		= $(CC_ONLY_FLAGS) $(OPTIMIZER) $(OS_CFLAGS)\
+-		  $(XP_DEFINE) $(DEFINES) $(INCLUDES) $(XCFLAGS)
+-CCCFLAGS	= $(CCC_ONLY_FLAGS) $(OPTIMIZER) $(OS_CFLAGS)\
+-		  $(XP_DEFINE) $(DEFINES) $(INCLUDES) $(XCFLAGS)
++CFLAGS		= $(CC_ONLY_FLAGS) $(OPTIMIZER) $(XP_DEFINE)\
++		  $(DEFINES) $(INCLUDES) $(XCFLAGS) $(OS_CFLAGS)
++CCCFLAGS	= $(CCC_ONLY_FLAGS) $(OPTIMIZER) $(XP_DEFINE)\
++		  $(DEFINES) $(INCLUDES) $(XCFLAGS) $(OS_CFLAGS)
+ # For purify
+ NOMD_CFLAGS	= $(CC_ONLY_FLAGS) $(OPTIMIZER) $(NOMD_OS_CFLAGS)\
+ 		  $(XP_DEFINE) $(DEFINES) $(INCLUDES) $(XCFLAGS)
+diff -ruN mozilla.orig/directory/c-sdk/configure mozilla/directory/c-sdk/configure
+--- mozilla.orig/directory/c-sdk/configure	Tue Jun 18 15:34:56 2002
++++ mozilla/directory/c-sdk/configure	Sun Jul 28 17:20:58 2002
+@@ -3347,7 +3347,7 @@
+ 
+         CPU_ARCH=ppc
+     fi
+-    DSO_LDOPTS='-dynamiclib -compatibility_version 1 -current_version 1 -all_load -install_name @executable_path/$@'
++    DSO_LDOPTS='-dynamiclib -compatibility_version 1 -current_version 1 -all_load -install_name @PREFIX@/lib/mozilla/$@'
+     # Use the standard preprocessor (cpp)
+     CFLAGS="$CFLAGS -no-cpp-precomp"
+     MKSHLIB='$(CC) -arch $(CPU_ARCH) $(DSO_LDOPTS) -o $@'
+diff -ruN mozilla.orig/fink/mozilla mozilla/fink/mozilla
+--- mozilla.orig/fink/mozilla	Wed Dec 31 17:00:00 1969
++++ mozilla/fink/mozilla	Sun Jul 28 09:56:30 2002
+@@ -0,0 +1,99 @@
++#!/bin/sh
++#
++# The contents of this file are subject to the Netscape Public
++# License Version 1.1 (the "License"); you may not use this file
++# except in compliance with the License. You may obtain a copy of
++# the License at http://www.mozilla.org/NPL/
++#
++# Software distributed under the License is distributed on an "AS
++# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
++# implied. See the License for the specific language governing
++# rights and limitations under the License.
++#
++# The Original Code is mozilla.org code.
++#
++# The Initial Developer of the Original Code is Netscape
++# Communications Corporation.  Portions created by Netscape are
++# Copyright (C) 1998 Netscape Communications Corporation. All
++# Rights Reserved.
++#
++# Contributor(s): 
++#
++
++## 
++## Usage:
++##
++## $ mozilla
++##
++## This script is meant to run a mozilla program from the mozilla
++## rpm installation.
++##
++## The script will setup all the environment voodoo needed to make
++## mozilla work.
++
++##
++## Variables
++##
++MOZ_PROGRAM="@PREFIX@/lib/mozilla/mozilla-bin"
++
++##
++## Set MOZILLA_FIVE_HOME
++##
++MOZILLA_FIVE_HOME="@PREFIX@/lib/mozilla"
++export MOZILLA_FIVE_HOME
++
++##
++## Set DYLD_LIBRARY_PATH
++##
++DYLD_LIBRARY_PATH=@PREFIX@/lib/mozilla:$DYLD_LIBRARY_PATH
++export DYLD_LIBRARY_PATH
++
++# If there is no command line argument at all then try to open a new
++# window in an already running instance.
++
++if [ -z "$1" ]; then
++  $MOZ_PROGRAM -remote "openurl(about:blank,new-window)" 2>/dev/null 1>/dev/null
++  RETURN_VAL=$?
++  if [ "$RETURN_VAL" -eq "2" ]; then
++    $MOZ_PROGRAM ${1+"$@"}
++    RETURN_VAL=$?
++  fi
++  exit $RETURN_VAL
++fi
++
++# If there's a command line argument but it doesn't begin with a -
++# it's probably a url.  Try to send it to a running instance.
++
++USE_EXIST=0
++opt="$1"
++case "$opt" in
++  -*) ;;
++  *) USE_EXIST=1 ;;
++esac
++
++if [ "${USE_EXIST}" -eq "1" ]; then
++  # check to make sure that the command contains at least a :/ in it.
++  echo $opt | grep -e ':/' 2>/dev/null > /dev/null
++  RETURN_VAL=$?
++  if [ "$RETURN_VAL" -eq "1" ]; then
++    # does it begin with a / ?
++    echo $opt | grep -e '^/' 2>/dev/null > /dev/null
++    RETURN_VAL=$?
++    if [ "$RETURN_VAL" -eq "0" ]; then
++      opt="file:$opt"
++    elif [ -e `pwd`/$opt ]; then
++      opt="`pwd`/$opt"
++    else
++      opt="http://$opt"
++    fi
++  fi
++  $MOZ_PROGRAM -remote "openurl($opt,new-window)" 2>/dev/null >/dev/null
++  RETURN_VAL=$?
++  if [ "$RETURN_VAL" -eq "2" ]; then
++    $MOZ_PROGRAM ${1+"$@"}
++    RETURN_VAL=$?
++  fi
++  exit $RETURN_VAL
++fi
++
++$MOZ_PROGRAM ${1+"$@"}
+diff -ruN mozilla.orig/fink/mozilla-address.desktop mozilla/fink/mozilla-address.desktop
+--- mozilla.orig/fink/mozilla-address.desktop	Wed Dec 31 17:00:00 1969
++++ mozilla/fink/mozilla-address.desktop	Sun Jul 28 09:56:30 2002
+@@ -0,0 +1,8 @@
++[Desktop Entry]
++Name=Mozilla Addressbook
++Comment=Addressbook from Mozilla Mailnews
++Exec=mozilla -addressbook
++Icon=gnome-calendar.png
++Terminal=false
++MultipleArgs=false
++Type=Application
+diff -ruN mozilla.orig/fink/mozilla-chatzilla.desktop mozilla/fink/mozilla-chatzilla.desktop
+--- mozilla.orig/fink/mozilla-chatzilla.desktop	Wed Dec 31 17:00:00 1969
++++ mozilla/fink/mozilla-chatzilla.desktop	Sun Jul 28 09:56:30 2002
+@@ -0,0 +1,8 @@
++[Desktop Entry]
++Name=Chatzilla
++Comment=IRC client
++Exec=mozilla -chat
++Icon=gnome-irc.png
++Terminal=false
++MultipleArgs=false
++Type=Application
+diff -ruN mozilla.orig/fink/mozilla-editor.desktop mozilla/fink/mozilla-editor.desktop
+--- mozilla.orig/fink/mozilla-editor.desktop	Wed Dec 31 17:00:00 1969
++++ mozilla/fink/mozilla-editor.desktop	Sun Jul 28 09:56:30 2002
+@@ -0,0 +1,8 @@
++[Desktop Entry]
++Name=Mozilla Editor
++Comment=HTML Composer
++Exec=mozilla -edit
++Icon=gnome-word.png
++Terminal=false
++MultipleArgs=false
++Type=Application
+diff -ruN mozilla.orig/fink/mozilla-mail-composer.desktop mozilla/fink/mozilla-mail-composer.desktop
+--- mozilla.orig/fink/mozilla-mail-composer.desktop	Wed Dec 31 17:00:00 1969
++++ mozilla/fink/mozilla-mail-composer.desktop	Sun Jul 28 09:56:30 2002
+@@ -0,0 +1,8 @@
++[Desktop Entry]
++Name=Mozilla Mail Composer
++Comment=Mozilla Mail Composer
++Exec=mozilla -compose
++Icon=mozilla-mail-composer.gif
++Terminal=false
++MultipleArgs=false
++Type=Application
+diff -ruN mozilla.orig/fink/mozilla-mail.desktop mozilla/fink/mozilla-mail.desktop
+--- mozilla.orig/fink/mozilla-mail.desktop	Wed Dec 31 17:00:00 1969
++++ mozilla/fink/mozilla-mail.desktop	Sun Jul 28 09:56:30 2002
+@@ -0,0 +1,8 @@
++[Desktop Entry]
++Name=Mozilla Mail
++Comment=Mozilla Mail
++Exec=mozilla -mail
++Icon=mozilla-mail.gif
++Terminal=false
++MultipleArgs=false
++Type=Application
+diff -ruN mozilla.orig/fink/mozilla-news.desktop mozilla/fink/mozilla-news.desktop
+--- mozilla.orig/fink/mozilla-news.desktop	Wed Dec 31 17:00:00 1969
++++ mozilla/fink/mozilla-news.desktop	Sun Jul 28 09:56:30 2002
+@@ -0,0 +1,8 @@
++[Desktop Entry]
++Name=Mozilla News
++Comment=Mozilla Mail
++Exec=mozilla -news
++Icon=gnome-news.png
++Terminal=false
++MultipleArgs=false
++Type=Application
+diff -ruN mozilla.orig/fink/mozilla.desktop mozilla/fink/mozilla.desktop
+--- mozilla.orig/fink/mozilla.desktop	Wed Dec 31 17:00:00 1969
++++ mozilla/fink/mozilla.desktop	Sun Jul 28 09:56:30 2002
+@@ -0,0 +1,8 @@
++[Desktop Entry]
++Name=Mozilla
++Comment=Mozilla Web Browser
++Exec=mozilla 
++Icon=mozilla.png
++Terminal=false
++MultipleArgs=false
++Type=Application
+diff -ruN mozilla.orig/gfx/src/gtk/Makefile.in mozilla/gfx/src/gtk/Makefile.in
+--- mozilla.orig/gfx/src/gtk/Makefile.in	Tue May  7 06:02:50 2002
++++ mozilla/gfx/src/gtk/Makefile.in	Sun Jul 28 09:56:30 2002
+@@ -177,6 +177,8 @@
+ ifdef MOZ_ENABLE_FREETYPE2
+ DEFINES         += -DMOZ_ENABLE_FREETYPE2
+ INCLUDES        += $(FT2_CFLAGS)
++CC              += $(FT2_CFLAGS)
++CXX             += $(FT2_CFLAGS)
+ # due to runtime linking with PR_LoadLibrary
+ # EXTRA_DSO_LDOPTS does not need $(FT2_LIBS)
+ endif
+diff -ruN mozilla.orig/nsprpub/configure mozilla/nsprpub/configure
+--- mozilla.orig/nsprpub/configure	Tue Jun 18 15:34:50 2002
++++ mozilla/nsprpub/configure	Sun Jul 28 21:32:44 2002
+@@ -3197,6 +3197,48 @@
+ 
+     ;;
+ 
++*-darwin6*)
++    cat >> confdefs.h <<\EOF
++#define DARWIN6 1
++EOF
++
++    cat >> confdefs.h <<\EOF
++#define XP_UNIX 1
++EOF
++
++    cat >> confdefs.h <<\EOF
++#define DARWIN 1 
++EOF
++
++    cat >> confdefs.h <<\EOF
++#define HAVE_BSD_FLOCK 1
++EOF
++
++    CFLAGS="$CFLAGS -Wmost -fno-common"
++    if echo $OS_TEST | grep -c 86 2>/dev/null; then
++        cat >> confdefs.h <<\EOF
++#define i386 1
++EOF
++
++        CPU_ARCH=i386
++    else
++        cat >> confdefs.h <<\EOF
++#define ppc 1
++EOF
++
++        CPU_ARCH=ppc
++    fi
++    DSO_LDOPTS='-dynamiclib -compatibility_version 1 -current_version 1 -all_load -install_name @PREFIX@/lib/mozilla/$@'
++    # Use the standard preprocessor (cpp)
++    CFLAGS="$CFLAGS -no-cpp-precomp"
++    MKSHLIB='$(CC) -arch $(CPU_ARCH) $(DSO_LDOPTS) -o $@'
++    STRIP="$STRIP -x -S"
++    DLL_SUFFIX=dylib
++    USE_PTHREADS=1
++    MDCPUCFG_H=_darwin.cfg
++    PR_MD_CSRCS=darwin.c
++    ;;
++
+ *-darwin*)
+     cat >> confdefs.h <<\EOF
+ #define XP_UNIX 1
+@@ -3224,7 +3266,7 @@
+ 
+         CPU_ARCH=ppc
+     fi
+-    DSO_LDOPTS='-dynamiclib -compatibility_version 1 -current_version 1 -all_load -install_name @executable_path/$@'
++    DSO_LDOPTS='-dynamiclib -compatibility_version 1 -current_version 1 -all_load -install_name @PREFIX@/lib/mozilla/$@'
+     # Use the standard preprocessor (cpp)
+     CFLAGS="$CFLAGS -no-cpp-precomp"
+     MKSHLIB='$(CC) -arch $(CPU_ARCH) $(DSO_LDOPTS) -o $@'
+diff -ruN mozilla.orig/nsprpub/pr/src/md/unix/darwin.c mozilla/nsprpub/pr/src/md/unix/darwin.c
+--- mozilla.orig/nsprpub/pr/src/md/unix/darwin.c	Thu Mar 14 16:20:54 2002
++++ mozilla/nsprpub/pr/src/md/unix/darwin.c	Sun Jul 28 21:12:02 2002
+@@ -119,7 +119,9 @@
+     return ENOSYS;
+ }
+ 
+-typedef struct siginfo_t siginfo_t;
++#ifndef DARWIN6
++ typedef struct siginfo_t siginfo_t;
++#endif /* DARWIN6 */
+ 
+ int sigtimedwait(const sigset_t *set, siginfo_t *info,
+     const struct timespec *timeout)
+diff -ruN mozilla.orig/other-licenses/Xft/Xft/Makefile.in mozilla/other-licenses/Xft/Xft/Makefile.in
+--- mozilla.orig/other-licenses/Xft/Xft/Makefile.in	Wed Feb 27 23:59:01 2002
++++ mozilla/other-licenses/Xft/Xft/Makefile.in	Sun Jul 28 09:56:31 2002
+@@ -44,4 +44,6 @@
+ 
+ ifdef MOZ_XFT_SYSTEM_FREETYPE2
+ CFLAGS		+= $(FT2_CFLAGS)
++CC		+= $(FT2_CFLAGS)
++CXX		+= $(FT2_CFLAGS)
+ endif
+diff -ruN mozilla.orig/other-licenses/Xft/fontconfig/src/Makefile.in mozilla/other-licenses/Xft/fontconfig/src/Makefile.in
+--- mozilla.orig/other-licenses/Xft/fontconfig/src/Makefile.in	Thu Apr 25 13:03:35 2002
++++ mozilla/other-licenses/Xft/fontconfig/src/Makefile.in	Sun Jul 28 09:56:31 2002
+@@ -45,4 +45,6 @@
+ 
+ ifdef MOZ_XFT_SYSTEM_FREETYPE2
+ CFLAGS		+= $(FT2_CFLAGS)
++CC		+= $(FT2_CFLAGS)
++CXX		+= $(FT2_CFLAGS)
+ endif
+diff -ruN mozilla.orig/other-licenses/expat/xmlwf/Makefile.in mozilla/other-licenses/expat/xmlwf/Makefile.in
+--- mozilla.orig/other-licenses/expat/xmlwf/Makefile.in	Sun Feb 24 23:53:11 2002
++++ mozilla/other-licenses/expat/xmlwf/Makefile.in	Sun Jul 28 09:56:31 2002
+@@ -23,7 +23,7 @@
+ LIBDIR= ../lib/.libs
+ INCDIR= ../lib
+ 
+-LDFLAGS= @LDFLAGS@ -static
++LDFLAGS= @LDFLAGS@
+ CFLAGS= @CFLAGS@ -I$(INCDIR)
+ CC = @CC@
+ 
+diff -ruN mozilla.orig/security/coreconf/Darwin.mk mozilla/security/coreconf/Darwin.mk
+--- mozilla.orig/security/coreconf/Darwin.mk	Tue Jun 11 18:22:41 2002
++++ mozilla/security/coreconf/Darwin.mk	Sun Jul 28 09:56:31 2002
+@@ -57,7 +57,7 @@
+ # definitions so that the linker can catch multiply-defined symbols.
+ # Also, common symbols are not allowed with Darwin dynamic libraries.
+ 
+-OS_CFLAGS	= $(DSO_CFLAGS) $(OS_REL_CFLAGS) -Wmost -fpascal-strings -traditional-cpp -fno-common -pipe -DDARWIN -DHAVE_STRERROR -DHAVE_BSD_FLOCK
++OS_CFLAGS	= $(DSO_CFLAGS) $(OS_REL_CFLAGS) -Wmost -fpascal-strings -no-cpp-precomp -fno-common -pipe -DDARWIN -DHAVE_STRERROR -DHAVE_BSD_FLOCK
+ 
+ ifdef BUILD_OPT
+ OPTIMIZER	= -O2
+@@ -66,7 +66,7 @@
+ ARCH		= darwin
+ 
+ # May override this with -bundle to create a loadable module.
+-DSO_LDOPTS	= -dynamiclib -compatibility_version 1 -current_version 1 -install_name @executable_path/$(notdir $@)
++DSO_LDOPTS	= -dynamiclib -compatibility_version 1 -current_version 1 -install_name @PREFIX@/lib/mozilla/$(notdir $@)
+ 
+ MKSHLIB		= $(CC) -arch $(CPU_ARCH) $(DSO_LDOPTS)
+ DLL_SUFFIX	= dylib
+diff -ruN mozilla.orig/security/nss/cmd/platlibs.mk mozilla/security/nss/cmd/platlibs.mk
+--- mozilla.orig/security/nss/cmd/platlibs.mk	Thu Apr  4 20:30:35 2002
++++ mozilla/security/nss/cmd/platlibs.mk	Sun Jul 28 09:56:32 2002
+@@ -177,7 +177,7 @@
+ endif
+ 
+ ifeq ($(OS_ARCH), Darwin)
+-EXTRA_SHARED_LIBS += -dylib_file @executable_path/libsoftokn3.dylib:$(DIST)/lib/libsoftokn3.dylib
++EXTRA_SHARED_LIBS += -dylib_file @PREFIX@/lib/mozilla/libsoftokn3.dylib:$(DIST)/lib/libsoftokn3.dylib
+ endif
+ 
+ # $(PROGRAM) has NO explicit dependencies on $(EXTRA_SHARED_LIBS)
+diff -ruN mozilla.orig/security/nss/lib/smime/config.mk mozilla/security/nss/lib/smime/config.mk
+--- mozilla.orig/security/nss/lib/smime/config.mk	Fri Feb 15 16:38:43 2002
++++ mozilla/security/nss/lib/smime/config.mk	Sun Jul 28 09:56:32 2002
+@@ -60,7 +60,7 @@
+ 	$(NULL)
+ 
+ ifeq ($(OS_ARCH), Darwin)
+-EXTRA_SHARED_LIBS += -dylib_file @executable_path/libsoftokn3.dylib:$(DIST)/lib/libsoftokn3.dylib
++EXTRA_SHARED_LIBS += -dylib_file @PREFIX@/lib/mozilla/libsoftokn3.dylib:$(DIST)/lib/libsoftokn3.dylib
+ endif
+ 
+ endif
+diff -ruN mozilla.orig/security/nss/lib/ssl/config.mk mozilla/security/nss/lib/ssl/config.mk
+--- mozilla.orig/security/nss/lib/ssl/config.mk	Thu Feb 21 21:23:22 2002
++++ mozilla/security/nss/lib/ssl/config.mk	Sun Jul 28 09:56:32 2002
+@@ -64,7 +64,7 @@
+ endif
+ 
+ ifeq ($(OS_ARCH), Darwin)
+-EXTRA_SHARED_LIBS += -dylib_file @executable_path/libsoftokn3.dylib:$(DIST)/lib/libsoftokn3.dylib
++EXTRA_SHARED_LIBS += -dylib_file @PREFIX@/lib/mozilla/libsoftokn3.dylib:$(DIST)/lib/libsoftokn3.dylib
+ endif
+ 
+ endif
