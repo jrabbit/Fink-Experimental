@@ -1,0 +1,434 @@
+diff -ruN hammerhead-2.1.2/configure hammerhead-2.1.2.new/configure
+--- hammerhead-2.1.2/configure	2002-11-13 06:40:14.000000000 -0500
++++ hammerhead-2.1.2.new/configure	2002-12-10 16:58:37.000000000 -0500
+@@ -716,6 +716,18 @@
+ 	TARGET_OS=FreeBSD
+ 	
+ 	;;
++*darwin*)
++	cat >> confdefs.h <<\EOF
++#define BSD 1
++EOF
++
++	cat >> confdefs.h <<\EOF
++#define USE_BPF 1
++EOF
++
++	TARGET_OS=Darwin
++	
++	;;
+ *linux*) 
+ 	cat >> confdefs.h <<\EOF
+ #define LINUX 1
+diff -ruN hammerhead-2.1.2/hammer.mk.in hammerhead-2.1.2.new/hammer.mk.in
+--- hammerhead-2.1.2/hammer.mk.in	2002-12-10 16:57:51.000000000 -0500
++++ hammerhead-2.1.2.new/hammer.mk.in	2002-12-10 16:58:48.000000000 -0500
+@@ -63,6 +63,10 @@
+     LIBS=-lsocket -lnsl -lc -ldl -lpthread
+     CFLAGS=-g -O3 -fomit-frame-pointer -Wall $(INCLUDE)
+ endif
++ifeq ($(TARGET_OS),Darwin)
++    LIBS=-lc -ldl -lpthread
++    CFLAGS=-g -O3 -fomit-frame-pointer -Wall $(INCLUDE)
++endif
+ 
+ #
+ # Random collection of suffixes.
+diff -ruN hammerhead-2.1.2/src/Makefile hammerhead-2.1.2.new/src/Makefile
+--- hammerhead-2.1.2/src/Makefile	2002-11-13 06:40:15.000000000 -0500
++++ hammerhead-2.1.2.new/src/Makefile	2002-12-10 17:02:34.000000000 -0500
+@@ -58,6 +58,12 @@
+ 	INCLUDE=$(SSL_INCLUDE)
+ 	CFLAGS=-g -Wall $(INCLUDE)
+ endif
++
++ifeq ($(OS),Darwin)
++        LIBS=$(SSL_LIB_PATH) -lc -ldl -lpthread $(SSL_LIB)
++        INCLUDE=$(SSL_INCLUDE)
++        CFLAGS=-g -Wall $(INCLUDE)
++endif
+  
+ #
+ # Hammerhead
+diff -ruN hammerhead-2.1.2/src/config.cc hammerhead-2.1.2.new/src/config.cc
+--- hammerhead-2.1.2/src/config.cc	2001-12-05 07:51:21.000000000 -0500
++++ hammerhead-2.1.2.new/src/config.cc	2002-12-10 17:19:46.000000000 -0500
+@@ -23,6 +23,11 @@
+ 
+ /* for DNS resolutions */
+ /* #include <arpa/nameser.h> */
++
++#ifdef Darwin
++#include <arpa/nameser.h>
++#endif
++
+ #include <resolv.h>
+ 
+ #include "str.h"
+diff -ruN hammerhead-2.1.2/src/obj/Darwin/.sdepend hammerhead-2.1.2.new/src/obj/Darwin/.sdepend
+--- hammerhead-2.1.2/src/obj/Darwin/.sdepend	1969-12-31 19:00:00.000000000 -0500
++++ hammerhead-2.1.2.new/src/obj/Darwin/.sdepend	2002-12-10 17:13:18.000000000 -0500
+@@ -0,0 +1,294 @@
++obj/Darwin/config.o: config.cc /usr/include/stdlib.h /usr/include/machine/ansi.h \
++  /usr/include/ppc/ansi.h /usr/include/machine/types.h \
++  /usr/include/ppc/types.h /usr/include/sys/cdefs.h /usr/include/stdio.h \
++  /usr/include/sys/types.h /usr/include/sys/appleapiopts.h \
++  /usr/include/machine/endian.h /usr/include/ppc/endian.h \
++  /usr/include/string.h /usr/include/strings.h /usr/include/sys/socket.h \
++  /usr/include/machine/param.h /usr/include/ppc/param.h \
++  /usr/include/netinet/in.h /usr/include/netinet6/in6.h \
++  /usr/include/arpa/inet.h /usr/include/sys/param.h \
++  /usr/include/sys/syslimits.h /usr/include/machine/limits.h \
++  /usr/include/ppc/limits.h /usr/include/sys/signal.h \
++  /usr/include/machine/signal.h /usr/include/ppc/signal.h \
++  /usr/include/netdb.h /usr/include/resolv.h str.h /usr/include/regex.h \
++  String.h /usr/include/unistd.h /usr/include/sys/unistd.h \
++  /usr/include/signal.h config.h distribution.h target.h hrtime.h \
++  reader.h
++obj/Darwin/hammerhead.o: hammerhead.cc /usr/include/time.h \
++  /usr/include/machine/ansi.h /usr/include/ppc/ansi.h \
++  /usr/include/machine/limits.h /usr/include/ppc/limits.h \
++  /usr/include/sys/cdefs.h /usr/include/sys/time.h \
++  /usr/include/sys/appleapiopts.h /usr/include/sys/types.h \
++  /usr/include/machine/types.h /usr/include/ppc/types.h \
++  /usr/include/machine/endian.h /usr/include/ppc/endian.h \
++  /usr/include/dirent.h /usr/include/sys/dirent.h /usr/include/unistd.h \
++  /usr/include/sys/unistd.h /usr/include/signal.h \
++  /usr/include/sys/signal.h /usr/include/machine/signal.h \
++  /usr/include/ppc/signal.h /usr/include/sys/resource.h \
++  /usr/include/errno.h /usr/include/sys/errno.h dictionary.h \
++  /usr/include/assert.h /usr/include/stdlib.h /usr/include/stdio.h str.h \
++  /usr/include/regex.h String.h scenario.h result.h session.h hrtime.h \
++  if.h /usr/include/syslog.h /usr/include/sys/syslog.h \
++  /usr/include/sys/socket.h /usr/include/machine/param.h \
++  /usr/include/ppc/param.h /usr/include/net/if.h \
++  /usr/include/net/if_var.h /usr/include/sys/queue.h \
++  /usr/include/sys/ioctl.h /usr/include/sys/ttycom.h \
++  /usr/include/sys/ioccom.h /usr/include/sys/filio.h \
++  /usr/include/sys/sockio.h /usr/include/arpa/inet.h \
++  /usr/include/sys/param.h /usr/include/netinet/in.h \
++  /usr/include/netinet6/in6.h config.h distribution.h target.h \
++  connection.h ../config.h /usr/include/openssl/ssl.h \
++  /usr/include/openssl/comp.h /usr/include/openssl/crypto.h \
++  /usr/include/openssl/stack.h /usr/include/openssl/safestack.h \
++  /usr/include/openssl/opensslv.h /usr/include/openssl/symhacks.h \
++  /usr/include/openssl/bio.h /usr/include/stdarg.h \
++  /usr/include/openssl/x509.h /usr/include/openssl/buffer.h \
++  /usr/include/openssl/evp.h /usr/include/openssl/opensslconf.h \
++  /usr/include/openssl/md2.h /usr/include/openssl/md4.h \
++  /usr/include/openssl/md5.h /usr/include/openssl/sha.h \
++  /usr/include/openssl/ripemd.h /usr/include/openssl/des.h \
++  /usr/include/openssl/e_os2.h /usr/include/openssl/rc4.h \
++  /usr/include/openssl/rc2.h /usr/include/openssl/rc5.h \
++  /usr/include/openssl/blowfish.h /usr/include/openssl/cast.h \
++  /usr/include/openssl/idea.h /usr/include/openssl/mdc2.h \
++  /usr/include/openssl/rsa.h /usr/include/openssl/bn.h \
++  /usr/include/openssl/dsa.h /usr/include/openssl/dh.h \
++  /usr/include/openssl/objects.h /usr/include/openssl/obj_mac.h \
++  /usr/include/openssl/asn1.h /usr/include/openssl/x509_vfy.h \
++  /usr/include/openssl/lhash.h /usr/include/openssl/pkcs7.h \
++  /usr/include/openssl/pem.h /usr/include/openssl/pem2.h \
++  /usr/include/openssl/ssl2.h /usr/include/openssl/ssl3.h \
++  /usr/include/openssl/tls1.h /usr/include/openssl/ssl23.h statistics.h \
++  cmdline.h
++obj/Darwin/if.o: if.cc if.h /usr/include/stdio.h /usr/include/sys/types.h \
++  /usr/include/sys/appleapiopts.h /usr/include/sys/cdefs.h \
++  /usr/include/machine/types.h /usr/include/ppc/types.h \
++  /usr/include/machine/ansi.h /usr/include/ppc/ansi.h \
++  /usr/include/machine/endian.h /usr/include/ppc/endian.h \
++  /usr/include/errno.h /usr/include/sys/errno.h /usr/include/syslog.h \
++  /usr/include/sys/syslog.h /usr/include/sys/socket.h \
++  /usr/include/machine/param.h /usr/include/ppc/param.h \
++  /usr/include/net/if.h /usr/include/sys/time.h /usr/include/time.h \
++  /usr/include/machine/limits.h /usr/include/ppc/limits.h \
++  /usr/include/net/if_var.h /usr/include/sys/queue.h \
++  /usr/include/sys/ioctl.h /usr/include/sys/ttycom.h \
++  /usr/include/sys/ioccom.h /usr/include/sys/filio.h \
++  /usr/include/sys/sockio.h /usr/include/arpa/inet.h \
++  /usr/include/sys/param.h /usr/include/sys/syslimits.h \
++  /usr/include/sys/signal.h /usr/include/machine/signal.h \
++  /usr/include/ppc/signal.h /usr/include/netinet/in.h \
++  /usr/include/netinet6/in6.h config.h String.h /usr/include/regex.h \
++  distribution.h target.h hrtime.h
++obj/Darwin/scenario.o: scenario.cc /usr/include/stdlib.h /usr/include/machine/ansi.h \
++  /usr/include/ppc/ansi.h /usr/include/machine/types.h \
++  /usr/include/ppc/types.h /usr/include/sys/cdefs.h /usr/include/unistd.h \
++  /usr/include/sys/types.h /usr/include/sys/appleapiopts.h \
++  /usr/include/machine/endian.h /usr/include/ppc/endian.h \
++  /usr/include/sys/unistd.h /usr/include/signal.h \
++  /usr/include/sys/signal.h /usr/include/machine/signal.h \
++  /usr/include/ppc/signal.h /usr/include/string.h \
++  /usr/include/sys/socket.h /usr/include/machine/param.h \
++  /usr/include/ppc/param.h /usr/include/netinet/in.h \
++  /usr/include/netinet6/in6.h /usr/include/time.h \
++  /usr/include/machine/limits.h /usr/include/ppc/limits.h \
++  /usr/include/sys/errno.h result.h String.h /usr/include/regex.h str.h \
++  scenario.h session.h hrtime.h if.h /usr/include/syslog.h \
++  /usr/include/sys/syslog.h /usr/include/net/if.h \
++  /usr/include/net/if_var.h /usr/include/sys/queue.h \
++  /usr/include/sys/ioctl.h /usr/include/sys/ttycom.h \
++  /usr/include/sys/ioccom.h /usr/include/sys/filio.h \
++  /usr/include/sys/sockio.h /usr/include/arpa/inet.h \
++  /usr/include/sys/param.h config.h distribution.h target.h dictionary.h \
++  connection.h ../config.h /usr/include/openssl/ssl.h \
++  /usr/include/openssl/comp.h /usr/include/openssl/crypto.h \
++  /usr/include/openssl/stack.h /usr/include/openssl/safestack.h \
++  /usr/include/openssl/opensslv.h /usr/include/openssl/symhacks.h \
++  /usr/include/openssl/bio.h /usr/include/stdarg.h \
++  /usr/include/openssl/x509.h /usr/include/openssl/buffer.h \
++  /usr/include/openssl/evp.h /usr/include/openssl/opensslconf.h \
++  /usr/include/openssl/md2.h /usr/include/openssl/md4.h \
++  /usr/include/openssl/md5.h /usr/include/openssl/sha.h \
++  /usr/include/openssl/ripemd.h /usr/include/openssl/des.h \
++  /usr/include/openssl/e_os2.h /usr/include/openssl/rc4.h \
++  /usr/include/openssl/rc2.h /usr/include/openssl/rc5.h \
++  /usr/include/openssl/blowfish.h /usr/include/openssl/cast.h \
++  /usr/include/openssl/idea.h /usr/include/openssl/mdc2.h \
++  /usr/include/openssl/rsa.h /usr/include/openssl/bn.h \
++  /usr/include/openssl/dsa.h /usr/include/openssl/dh.h \
++  /usr/include/openssl/objects.h /usr/include/openssl/obj_mac.h \
++  /usr/include/openssl/asn1.h /usr/include/openssl/x509_vfy.h \
++  /usr/include/openssl/lhash.h /usr/include/openssl/pkcs7.h \
++  /usr/include/openssl/pem.h /usr/include/openssl/pem2.h \
++  /usr/include/openssl/ssl2.h /usr/include/openssl/ssl3.h \
++  /usr/include/openssl/tls1.h /usr/include/openssl/ssl23.h statistics.h
++obj/Darwin/str.o: str.cc /usr/include/stdio.h /usr/include/sys/types.h \
++  /usr/include/sys/appleapiopts.h /usr/include/sys/cdefs.h \
++  /usr/include/machine/types.h /usr/include/ppc/types.h \
++  /usr/include/machine/ansi.h /usr/include/ppc/ansi.h \
++  /usr/include/machine/endian.h /usr/include/ppc/endian.h \
++  /usr/include/stdlib.h str.h /usr/include/regex.h String.h
++obj/Darwin/thread.o: thread.cc /usr/include/stdio.h /usr/include/sys/types.h \
++  /usr/include/sys/appleapiopts.h /usr/include/sys/cdefs.h \
++  /usr/include/machine/types.h /usr/include/ppc/types.h \
++  /usr/include/machine/ansi.h /usr/include/ppc/ansi.h \
++  /usr/include/machine/endian.h /usr/include/ppc/endian.h \
++  /usr/include/unistd.h /usr/include/sys/unistd.h /usr/include/signal.h \
++  /usr/include/sys/signal.h /usr/include/machine/signal.h \
++  /usr/include/ppc/signal.h /usr/include/string.h session.h \
++  /usr/include/time.h /usr/include/machine/limits.h \
++  /usr/include/ppc/limits.h hrtime.h String.h /usr/include/regex.h \
++  result.h if.h /usr/include/syslog.h /usr/include/sys/syslog.h \
++  /usr/include/sys/socket.h /usr/include/machine/param.h \
++  /usr/include/ppc/param.h /usr/include/net/if.h \
++  /usr/include/net/if_var.h /usr/include/sys/queue.h \
++  /usr/include/sys/ioctl.h /usr/include/sys/ttycom.h \
++  /usr/include/sys/ioccom.h /usr/include/sys/filio.h \
++  /usr/include/sys/sockio.h /usr/include/arpa/inet.h \
++  /usr/include/sys/param.h /usr/include/netinet/in.h \
++  /usr/include/netinet6/in6.h config.h distribution.h target.h scenario.h \
++  dictionary.h connection.h ../config.h /usr/include/openssl/ssl.h \
++  /usr/include/openssl/comp.h /usr/include/openssl/crypto.h \
++  /usr/include/openssl/stack.h /usr/include/openssl/safestack.h \
++  /usr/include/openssl/opensslv.h /usr/include/openssl/symhacks.h \
++  /usr/include/openssl/bio.h /usr/include/stdarg.h \
++  /usr/include/openssl/x509.h /usr/include/openssl/buffer.h \
++  /usr/include/openssl/evp.h /usr/include/openssl/opensslconf.h \
++  /usr/include/openssl/md2.h /usr/include/openssl/md4.h \
++  /usr/include/openssl/md5.h /usr/include/openssl/sha.h \
++  /usr/include/openssl/ripemd.h /usr/include/openssl/des.h \
++  /usr/include/openssl/e_os2.h /usr/include/openssl/rc4.h \
++  /usr/include/openssl/rc2.h /usr/include/openssl/rc5.h \
++  /usr/include/openssl/blowfish.h /usr/include/openssl/cast.h \
++  /usr/include/openssl/idea.h /usr/include/openssl/mdc2.h \
++  /usr/include/openssl/rsa.h /usr/include/openssl/bn.h \
++  /usr/include/openssl/dsa.h /usr/include/openssl/dh.h \
++  /usr/include/openssl/objects.h /usr/include/openssl/obj_mac.h \
++  /usr/include/openssl/asn1.h /usr/include/openssl/x509_vfy.h \
++  /usr/include/openssl/lhash.h /usr/include/openssl/pkcs7.h \
++  /usr/include/openssl/pem.h /usr/include/openssl/pem2.h \
++  /usr/include/openssl/ssl2.h /usr/include/openssl/ssl3.h \
++  /usr/include/openssl/tls1.h /usr/include/openssl/ssl23.h statistics.h \
++  /usr/include/netdb.h str.h
++obj/Darwin/session.o: session.cc /usr/include/sys/types.h \
++  /usr/include/sys/appleapiopts.h /usr/include/sys/cdefs.h \
++  /usr/include/machine/types.h /usr/include/ppc/types.h \
++  /usr/include/machine/ansi.h /usr/include/ppc/ansi.h \
++  /usr/include/machine/endian.h /usr/include/ppc/endian.h \
++  /usr/include/unistd.h /usr/include/sys/unistd.h /usr/include/signal.h \
++  /usr/include/sys/signal.h /usr/include/machine/signal.h \
++  /usr/include/ppc/signal.h str.h /usr/include/regex.h \
++  /usr/include/string.h String.h session.h hrtime.h result.h if.h \
++  /usr/include/syslog.h /usr/include/sys/syslog.h \
++  /usr/include/sys/socket.h /usr/include/machine/param.h \
++  /usr/include/ppc/param.h /usr/include/net/if.h \
++  /usr/include/net/if_var.h /usr/include/sys/queue.h \
++  /usr/include/sys/ioctl.h /usr/include/sys/ttycom.h \
++  /usr/include/sys/ioccom.h /usr/include/sys/filio.h \
++  /usr/include/sys/sockio.h /usr/include/arpa/inet.h \
++  /usr/include/sys/param.h /usr/include/netinet/in.h \
++  /usr/include/netinet6/in6.h config.h distribution.h target.h scenario.h \
++  dictionary.h connection.h ../config.h /usr/include/openssl/ssl.h \
++  /usr/include/openssl/comp.h /usr/include/openssl/crypto.h \
++  /usr/include/openssl/stack.h /usr/include/openssl/safestack.h \
++  /usr/include/openssl/opensslv.h /usr/include/openssl/symhacks.h \
++  /usr/include/openssl/bio.h /usr/include/stdarg.h \
++  /usr/include/openssl/x509.h /usr/include/openssl/buffer.h \
++  /usr/include/openssl/evp.h /usr/include/openssl/opensslconf.h \
++  /usr/include/openssl/md2.h /usr/include/openssl/md4.h \
++  /usr/include/openssl/md5.h /usr/include/openssl/sha.h \
++  /usr/include/openssl/ripemd.h /usr/include/openssl/des.h \
++  /usr/include/openssl/e_os2.h /usr/include/openssl/rc4.h \
++  /usr/include/openssl/rc2.h /usr/include/openssl/rc5.h \
++  /usr/include/openssl/blowfish.h /usr/include/openssl/cast.h \
++  /usr/include/openssl/idea.h /usr/include/openssl/mdc2.h \
++  /usr/include/openssl/rsa.h /usr/include/openssl/bn.h \
++  /usr/include/openssl/dsa.h /usr/include/openssl/dh.h \
++  /usr/include/openssl/objects.h /usr/include/openssl/obj_mac.h \
++  /usr/include/openssl/asn1.h /usr/include/openssl/x509_vfy.h \
++  /usr/include/openssl/lhash.h /usr/include/openssl/pkcs7.h \
++  /usr/include/openssl/pem.h /usr/include/openssl/pem2.h \
++  /usr/include/openssl/ssl2.h /usr/include/openssl/ssl3.h \
++  /usr/include/openssl/tls1.h /usr/include/openssl/ssl23.h
++obj/Darwin/statistics.o: statistics.cc /usr/include/stdio.h /usr/include/sys/types.h \
++  /usr/include/sys/appleapiopts.h /usr/include/sys/cdefs.h \
++  /usr/include/machine/types.h /usr/include/ppc/types.h \
++  /usr/include/machine/ansi.h /usr/include/ppc/ansi.h \
++  /usr/include/machine/endian.h /usr/include/ppc/endian.h \
++  /usr/include/time.h /usr/include/machine/limits.h \
++  /usr/include/ppc/limits.h /usr/include/machine/param.h \
++  /usr/include/ppc/param.h /usr/include/unistd.h \
++  /usr/include/sys/unistd.h /usr/include/signal.h \
++  /usr/include/sys/signal.h /usr/include/machine/signal.h \
++  /usr/include/ppc/signal.h /usr/include/sys/ipc.h /usr/include/sys/shm.h \
++  /usr/include/sys/param.h /usr/include/sys/syslimits.h statistics.h \
++  config.h String.h /usr/include/regex.h distribution.h target.h hrtime.h \
++  spinlock.h
++obj/Darwin/hrtime.o: hrtime.cc /usr/include/stdlib.h /usr/include/machine/ansi.h \
++  /usr/include/ppc/ansi.h /usr/include/machine/types.h \
++  /usr/include/ppc/types.h /usr/include/sys/cdefs.h \
++  /usr/include/sys/time.h /usr/include/sys/appleapiopts.h \
++  /usr/include/sys/types.h /usr/include/machine/endian.h \
++  /usr/include/ppc/endian.h /usr/include/time.h \
++  /usr/include/machine/limits.h /usr/include/ppc/limits.h hrtime.h
++obj/Darwin/spinlock.o: spinlock.cc spinlock.h
++obj/Darwin/connection.o: connection.cc /usr/include/stdlib.h \
++  /usr/include/machine/ansi.h /usr/include/ppc/ansi.h \
++  /usr/include/machine/types.h /usr/include/ppc/types.h \
++  /usr/include/sys/cdefs.h /usr/include/unistd.h /usr/include/sys/types.h \
++  /usr/include/sys/appleapiopts.h /usr/include/machine/endian.h \
++  /usr/include/ppc/endian.h /usr/include/sys/unistd.h \
++  /usr/include/signal.h /usr/include/sys/signal.h \
++  /usr/include/machine/signal.h /usr/include/ppc/signal.h \
++  /usr/include/string.h /usr/include/sys/socket.h \
++  /usr/include/machine/param.h /usr/include/ppc/param.h \
++  /usr/include/netinet/in.h /usr/include/netinet6/in6.h \
++  /usr/include/time.h /usr/include/machine/limits.h \
++  /usr/include/ppc/limits.h /usr/include/sys/errno.h str.h \
++  /usr/include/regex.h String.h config.h distribution.h target.h hrtime.h \
++  scenario.h result.h session.h if.h /usr/include/syslog.h \
++  /usr/include/sys/syslog.h /usr/include/net/if.h \
++  /usr/include/net/if_var.h /usr/include/sys/queue.h \
++  /usr/include/sys/ioctl.h /usr/include/sys/ttycom.h \
++  /usr/include/sys/ioccom.h /usr/include/sys/filio.h \
++  /usr/include/sys/sockio.h /usr/include/arpa/inet.h \
++  /usr/include/sys/param.h dictionary.h connection.h ../config.h \
++  /usr/include/openssl/ssl.h /usr/include/openssl/comp.h \
++  /usr/include/openssl/crypto.h /usr/include/openssl/stack.h \
++  /usr/include/openssl/safestack.h /usr/include/openssl/opensslv.h \
++  /usr/include/openssl/symhacks.h /usr/include/openssl/bio.h \
++  /usr/include/stdarg.h /usr/include/openssl/x509.h \
++  /usr/include/openssl/buffer.h /usr/include/openssl/evp.h \
++  /usr/include/openssl/opensslconf.h /usr/include/openssl/md2.h \
++  /usr/include/openssl/md4.h /usr/include/openssl/md5.h \
++  /usr/include/openssl/sha.h /usr/include/openssl/ripemd.h \
++  /usr/include/openssl/des.h /usr/include/openssl/e_os2.h \
++  /usr/include/openssl/rc4.h /usr/include/openssl/rc2.h \
++  /usr/include/openssl/rc5.h /usr/include/openssl/blowfish.h \
++  /usr/include/openssl/cast.h /usr/include/openssl/idea.h \
++  /usr/include/openssl/mdc2.h /usr/include/openssl/rsa.h \
++  /usr/include/openssl/bn.h /usr/include/openssl/dsa.h \
++  /usr/include/openssl/dh.h /usr/include/openssl/objects.h \
++  /usr/include/openssl/obj_mac.h /usr/include/openssl/asn1.h \
++  /usr/include/openssl/x509_vfy.h /usr/include/openssl/lhash.h \
++  /usr/include/openssl/pkcs7.h /usr/include/openssl/pem.h \
++  /usr/include/openssl/pem2.h /usr/include/openssl/ssl2.h \
++  /usr/include/openssl/ssl3.h /usr/include/openssl/tls1.h \
++  /usr/include/openssl/ssl23.h /usr/include/openssl/err.h
++obj/Darwin/reader.o: reader.cc reader.h /usr/include/stdio.h \
++  /usr/include/sys/types.h /usr/include/sys/appleapiopts.h \
++  /usr/include/sys/cdefs.h /usr/include/machine/types.h \
++  /usr/include/ppc/types.h /usr/include/machine/ansi.h \
++  /usr/include/ppc/ansi.h /usr/include/machine/endian.h \
++  /usr/include/ppc/endian.h String.h /usr/include/unistd.h \
++  /usr/include/sys/unistd.h /usr/include/signal.h \
++  /usr/include/sys/signal.h /usr/include/machine/signal.h \
++  /usr/include/ppc/signal.h /usr/include/regex.h
++obj/Darwin/cmdline.o: cmdline.cc /usr/include/unistd.h /usr/include/sys/cdefs.h \
++  /usr/include/sys/types.h /usr/include/sys/appleapiopts.h \
++  /usr/include/machine/types.h /usr/include/ppc/types.h \
++  /usr/include/machine/ansi.h /usr/include/ppc/ansi.h \
++  /usr/include/machine/endian.h /usr/include/ppc/endian.h \
++  /usr/include/sys/unistd.h /usr/include/signal.h \
++  /usr/include/sys/signal.h /usr/include/machine/signal.h \
++  /usr/include/ppc/signal.h /usr/include/stdlib.h cmdline.h String.h \
++  /usr/include/regex.h
+diff -ruN hammerhead-2.1.2/src/scenario.cc hammerhead-2.1.2.new/src/scenario.cc
+--- hammerhead-2.1.2/src/scenario.cc	2002-11-13 06:40:15.000000000 -0500
++++ hammerhead-2.1.2.new/src/scenario.cc	2002-12-10 17:06:19.000000000 -0500
+@@ -651,7 +651,7 @@
+     char timeBuf[MAX_DATE];
+     time_t logTime = time(0);
+ 
+-#ifdef FreeBSD
++#if defined( FreeBSD ) || defined( Darwin )
+     struct tm tm;
+     localtime_r(&logTime, &tm);
+ 
+diff -ruN hammerhead-2.1.2/src/statistics.cc hammerhead-2.1.2.new/src/statistics.cc
+--- hammerhead-2.1.2/src/statistics.cc	2001-08-29 11:20:47.000000000 -0400
++++ hammerhead-2.1.2.new/src/statistics.cc	2002-12-10 17:07:51.000000000 -0500
+@@ -17,7 +17,7 @@
+ #include <stdio.h>
+ #include <time.h>
+ #include <sys/types.h>
+-#ifdef FreeBSD
++#if defined( FreeBSD ) || defined( Darwin )
+ #include <machine/param.h>
+ #endif
+ #include <unistd.h>
+@@ -191,7 +191,7 @@
+ 	if (in_output) return;
+     in_output = 1;
+ 
+-#ifdef FreeBSD
++#if defined( FreeBSD ) || defined( Darwin )
+     ctm = time(NULL);
+ 	struct tm tm;
+ 	localtime_r(&ctm, &tm);
+diff -ruN hammerhead-2.1.2/utils/Makefile hammerhead-2.1.2.new/utils/Makefile
+--- hammerhead-2.1.2/utils/Makefile	2002-11-19 21:10:02.000000000 -0500
++++ hammerhead-2.1.2.new/utils/Makefile	2002-12-10 17:08:56.000000000 -0500
+@@ -66,6 +66,11 @@
+ 	CFLAGS=-g -Wall $(INCLUDE)
+ endif
+  
++ifeq ($(OS),Darwin)
++	LIBS=$(SSL_LIB_PATH) -lc -ldl -lpthread $(SSL_LIB)
++	INCLUDE=$(SSL_INCLUDE) $(SRC_INCLUDE)
++	CFLAGS=-g -Wall $(INCLUDE)
++endif
+ #
+ # Hammerhead
+ #
+diff -ruN hammerhead-2.1.2/utils/str.cc hammerhead-2.1.2.new/utils/str.cc
+--- hammerhead-2.1.2/utils/str.cc	2000-11-29 08:21:08.000000000 -0500
++++ hammerhead-2.1.2.new/utils/str.cc	2002-12-10 17:09:47.000000000 -0500
+@@ -103,7 +103,7 @@
+ 
+ int gsub(String& str, const String& pat, const String& repl)
+ {
+-#ifdef FreeBSD
++#if defined( FreeBSD ) || defined( Darwin )
+ 	return str.gsub(pat, repl);
+ #else
+ 	int x = 0;
+@@ -122,7 +122,7 @@
+ 
+ int reggsub(String& str, const String& regpat, const String& repl)
+ {
+-#ifdef FreeBSD
++#if defined( FreeBSD ) || defined( Darwin )
+ 	Regex rstr = regpat.c_str();
+ 	return str.gsub(rstr, repl);
+ #else
