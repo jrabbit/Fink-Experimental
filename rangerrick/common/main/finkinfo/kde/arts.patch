@@ -1,46 +1,28 @@
-diff -uNr arts-1.1.94/flow/audioioesd.cc arts-1.1.94-new/flow/audioioesd.cc
---- arts-1.1.94/flow/audioioesd.cc	Fri Feb 14 06:15:18 2003
-+++ arts-1.1.94-new/flow/audioioesd.cc	Tue Dec  2 13:47:13 2003
-@@ -53,6 +53,12 @@
+Index: qtmcop/Makefile.am
+===================================================================
+RCS file: /home/kde/arts/qtmcop/Makefile.am,v
+retrieving revision 1.14
+diff -u -u -r1.14 Makefile.am
+--- qtmcop/Makefile.am	13 Feb 2002 20:54:53 -0000	1.14
++++ qtmcop/Makefile.am	19 Jan 2004 17:44:04 -0000
+@@ -4,8 +4,8 @@
+ KDE_OPTIONS = qtonly
  
- #include <esd.h>
+ libqtmcop_la_SOURCES = qiomanager.cc
+-libqtmcop_la_LIBADD = $(top_builddir)/mcop/libmcop.la $(LIB_QT)
+-libqtmcop_la_LDFLAGS = -no-undefined -version-info 1:0 $(KDE_RPATH) $(KDE_MT_LDFLAGS) $(QT_LDFLAGS) \
++libqtmcop_la_LIBADD = $(top_builddir)/mcop/libmcop.la $(QT_LDFLAGS) $(LIB_QT)
++libqtmcop_la_LDFLAGS = -no-undefined -version-info 1:0 $(KDE_RPATH) $(KDE_MT_LDFLAGS) \
+   $(X_LDFLAGS) $(USER_LDFLAGS)
  
-+#ifdef __BIG_ENDIAN__
-+#define _format_bits 17
-+#else
-+#define _format_bits 16
-+#endif
-+
- namespace Arts {
- 
- class AudioIOESD : public AudioIO, public IONotify {
-@@ -88,7 +94,7 @@
- 	paramStr(deviceName) = "null";
- 	param(fragmentSize) = 1024;
- 	param(fragmentCount) = 7;
--	param(format) = 16;
-+	param(format) = _format_bits;
- 	param(channels) = 2;
- 	param(direction) = 2;
- 
-@@ -125,8 +131,8 @@
- 	esd_format_t server_format = server_info->format;
- 
- 	_samplingRate = server_info->rate;
--	_channels     = (server_format & ESD_STEREO) ? 2  : 1;
--	_format       = (server_format & ESD_BITS16) ? 16 : 8;
-+	_channels     = (server_format & ESD_STEREO) ? 2            : 1;
-+	_format       = (server_format & ESD_BITS16) ? _format_bits : 8;
- 
- 	esd_free_server_info(server_info);
- 	
-@@ -209,6 +215,9 @@
- 		// ESD handles are actually socket descriptors, and I know not
- 		// of any portable way to peek at the socket's send or receive
- 		// buffers.
-+
-+	case autoDetect:
-+		return 12;
- 
- 	default:
- 		return param(p);
+ METASOURCES = qiomanager_p.moc
+Index: x11/configure.in.in
+===================================================================
+RCS file: x11/configure.in.in
+diff -N x11/configure.in.in
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ x11/configure.in.in	19 Jan 2004 17:44:04 -0000
+@@ -0,0 +1,3 @@
++if test "x$kde_use_qt_mac" = "xyes"; then
++	DO_NOT_COMPILE="$DO_NOT_COMPILE x11"
++fi

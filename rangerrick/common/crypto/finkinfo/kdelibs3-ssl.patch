@@ -1,10 +1,6 @@
-Index: kdecore/Makefile.am
-===================================================================
-RCS file: /home/kde/kdelibs/kdecore/Makefile.am,v
-retrieving revision 1.343
-diff -u -u -r1.343 Makefile.am
---- kdecore/Makefile.am	2 Oct 2003 14:42:21 -0000	1.343
-+++ kdecore/Makefile.am	20 Nov 2003 00:43:48 -0000
+diff -uNr ../kdelibs-3.2.0/kdecore/Makefile.am ./kdecore/Makefile.am
+--- ../kdelibs-3.2.0/kdecore/Makefile.am	Sun Nov 30 04:46:42 2003
++++ ./kdecore/Makefile.am	Tue Jan 27 10:31:17 2004
 @@ -24,7 +24,7 @@
  
  if include_SVGICONS
@@ -14,13 +10,9 @@ diff -u -u -r1.343 Makefile.am
  endif
  
  SUBDIRS = malloc $(SVGICONS) . kconfig_compiler tests
-Index: kdecore/kglobalsettings.cpp
-===================================================================
-RCS file: /home/kde/kdelibs/kdecore/kglobalsettings.cpp,v
-retrieving revision 1.76
-diff -u -u -r1.76 kglobalsettings.cpp
---- kdecore/kglobalsettings.cpp	26 Oct 2003 20:42:15 -0000	1.76
-+++ kdecore/kglobalsettings.cpp	20 Nov 2003 00:43:49 -0000
+diff -uNr ../kdelibs-3.2.0/kdecore/kglobalsettings.cpp ./kdecore/kglobalsettings.cpp
+--- ../kdelibs-3.2.0/kdecore/kglobalsettings.cpp	Mon Oct 27 09:16:00 2003
++++ ./kdecore/kglobalsettings.cpp	Tue Jan 27 10:31:17 2004
 @@ -466,7 +466,7 @@
        s_desktopPath->append('/');
  
@@ -30,68 +22,28 @@ diff -u -u -r1.76 kglobalsettings.cpp
      *s_trashPath = config->readPathEntry( "Trash" , *s_trashPath);
      if ( !s_trashPath->startsWith("/") )
        s_trashPath->prepend( QDir::homeDirPath() + "/" );
-Index: kdecore/kpty.cpp
-===================================================================
-RCS file: /home/kde/kdelibs/kdecore/kpty.cpp,v
-retrieving revision 1.9
-diff -u -u -r1.9 kpty.cpp
---- kdecore/kpty.cpp	29 Sep 2003 08:52:52 -0000	1.9
-+++ kdecore/kpty.cpp	20 Nov 2003 00:43:49 -0000
-@@ -225,6 +225,7 @@
-       struct group* p = getgrnam(TTY_GROUP);    /* posix */
-       gid_t gid = p ? p->gr_gid : getgid ();    /* posix */
- 
-+#if !defined(__APPLE__)
-       if (fchown(d->slaveFd, (uid_t) -1, gid) < 0)
-       {
-          int e = errno;
-@@ -239,6 +240,7 @@
-          kdWarning(175) << "Cannot chmod " << d->ttyName << endl
-                         << "Reason " << strerror(e) << endl;
-       }
-+#endif
-       goto gotpty;
-     }
- #endif
-Index: kdecore/svgicons/Makefile.am
-===================================================================
-RCS file: /home/kde/kdelibs/kdecore/svgicons/Makefile.am,v
-retrieving revision 1.7
-diff -u -u -r1.7 Makefile.am
---- kdecore/svgicons/Makefile.am	24 Aug 2003 09:58:48 -0000	1.7
-+++ kdecore/svgicons/Makefile.am	20 Nov 2003 00:43:49 -0000
+diff -uNr ../kdelibs-3.2.0/kdecore/svgicons/Makefile.am ./kdecore/svgicons/Makefile.am
+--- ../kdelibs-3.2.0/kdecore/svgicons/Makefile.am	Tue Sep  2 04:47:43 2003
++++ ./kdecore/svgicons/Makefile.am	Tue Jan 27 10:31:17 2004
 @@ -4,3 +4,4 @@
  
  include_HEADERS = ksvgiconengine.h
  libkdesvgicons_la_SOURCES = ksvgiconengine.cpp ksvgiconpainter.cpp
 +libkdesvgicons_la_LIBADD = $(LIBZ)
-Index: kparts/Makefile.am
-===================================================================
-RCS file: /home/kde/kdelibs/kparts/Makefile.am,v
-retrieving revision 1.49
-diff -u -r1.49 Makefile.am
---- kparts/Makefile.am	20 Aug 2003 09:19:41 -0000	1.49
-+++ kparts/Makefile.am	22 Nov 2003 14:08:29 -0000
-@@ -1,5 +1,7 @@
- ####### General stuff
+diff -uNr ../kdelibs-3.2.0/kdeui/Makefile.am ./kdeui/Makefile.am
+--- ../kdelibs-3.2.0/kdeui/Makefile.am	Sat Jan 17 07:53:04 2004
++++ ./kdeui/Makefile.am	Tue Jan 27 11:53:43 2004
+@@ -23,11 +23,11 @@
+ INCLUDES= -I$(top_srcdir)/kdefx -I$(top_srcdir)/interfaces $(all_includes)
  
-+KDE_CXXFLAGS = $(USE_EXCEPTIONS)
-+
- INCLUDES= -I$(srcdir)/../ -I$(top_srcdir)/kio/ -I$(top_srcdir)/libltdl \
- 	-I$(top_srcdir)/kfile $(all_includes)
- libkparts_la_LDFLAGS = $(KDE_MT_LDFLAGS) -version-info 3:0:1 -no-undefined
-Index: kio/kio/Makefile.am
-===================================================================
-RCS file: /home/kde/kdelibs/kio/kio/Makefile.am,v
-retrieving revision 1.208
-diff -u -r1.208 Makefile.am
---- kio/kio/Makefile.am	18 Oct 2003 19:45:40 -0000	1.208
-+++ kio/kio/Makefile.am	22 Nov 2003 14:08:29 -0000
-@@ -17,6 +17,7 @@
- #    Boston, MA 02111-1307, USA.
+ lib_LTLIBRARIES = libkdeui.la libkspell.la
+-libkdeui_la_LDFLAGS = $(KDE_MT_LDFLAGS) -no-undefined -version-info 6:0:2
++libkdeui_la_LDFLAGS = $(KDE_MT_LDFLAGS) $(all_libraries) -no-undefined -version-info 6:0:2
+ # we should get this to work when libtool 1.3 is released
+ libkdeui_la_LIBADD = ../kdecore/libkdecore.la
  
- AM_CPPFLAGS = -D_LARGEFILE64_SOURCE
-+KDE_CXXFLAGS = $(USE_EXCEPTIONS)
- 
- INCLUDES=  -I$(top_srcdir) -I$(srcdir)/.. -I$(srcdir)/../kssl -I../kssl -I$(srcdir)/../../interfaces  $(all_includes) $(SSL_INCLUDES)
+-libkspell_la_LDFLAGS = $(KDE_MT_LDFLAGS) -version-info 6:0:2 -no-undefined
++libkspell_la_LDFLAGS = $(KDE_MT_LDFLAGS) $(all_libraries) -version-info 6:0:2 -no-undefined
+ libkspell_la_LIBADD = libkdeui.la
+ libkspell_la_SOURCES = dummy.cpp
  
