@@ -1,0 +1,94 @@
+Package: gconf2
+Version: 2.8.0.1
+Revision: 3
+Depends: <<
+	%N-shlibs (>= %v-%r), 
+	atk1-shlibs (>= 1.7.3-1), 
+	gettext, 
+	gtk+2-shlibs,
+	glib2-shlibs, 
+	libiconv, 
+	libxml2-shlibs (>= 2.6.12-1), 
+	orbit2-shlibs (>= 2.11.2-1), 
+	popt-shlibs
+<<
+BuildDepends: <<
+	glib2-dev, 
+	atk1-dev (>= 1.7.3-1), 
+	pango1-xft2-dev (>= 1.5.2-1), 
+	gtk+2-dev, 
+	orbit2-dev (>= 2.11.2-1), 
+	libxml2-dev (>= 2.6.12-1), 
+	gtk-doc (>= 1.2-1), 
+	pkgconfig, 
+	gettext-dev, 
+	gettext-bin, 
+	libiconv-dev,
+	popt
+<<
+Source: mirror:gnome:sources/GConf/2.8/GConf-%v.tar.bz2
+Source-MD5: 54276dd7d6d50c96f77dc46da2bf5edf
+Patch: %n.patch
+SetCPPFLAGS: -no-cpp-precomp
+SetLDFLAGS: -no-undefined
+ConfigureParams: --mandir=%p/share/man --libexecdir=%p/lib/%n --enable-debug
+InstallScript: make install DESTDIR=%d
+SplitOff: <<
+  Package: %N-shlibs
+  Description: GNOME Configuration System - Shared libraries
+  Depends: <<
+  	atk1-shlibs (>= 1.7.3-1), 
+  	gettext, 
+  	glib2-shlibs, 
+  	libiconv, 
+  	libxml2-shlibs (>= 2.6.12-1), 
+  	orbit2-shlibs (>= 2.11.2-1), 
+  	popt-shlibs
+  <<
+  Files: <<
+  	lib/libgconf-2.4.dylib
+  	lib/Gconf/2/*.so
+  <<
+  Shlibs: %p/lib/libgconf-2.4.1.0.dylib 6.0.0 %n (>= 2.7.92-1)
+  DocFiles: AUTHORS COPYING ChangeLog NEWS README TODO
+<<
+SplitOff2: <<
+  Package: %N-dev
+  Description: GNOME Configuration System - Development headers and resources
+  Depends: <<
+  	%N-shlibs (= %v-%r),
+  	pkgconfig
+  <<
+  DescPackaging: <<
+    Uses pkgconfig.
+    Any package which BuildDepends on this one must also BuildDepend on:
+      glib2-dev, glib2, orbit2-dev (>= 2.11.2-1)
+  <<
+  BuildDependsOnly: True
+  Files: <<
+  	include/gconf/2
+  	lib/Gconf/2/*.a
+  	lib/Gconf/2/*.la
+  	lib/*.a
+  	lib/*.la
+  	lib/libgconf-2.dylib
+  	lib/pkgconfig/*.pc
+  	share/aclocal/*.m4
+  	share/gtk-doc/html/gconf
+  <<
+  DocFiles: AUTHORS COPYING ChangeLog NEWS README TODO
+<<
+ConfFiles: %p/etc/gconf/2/path
+DocFiles: AUTHORS COPYING ChangeLog NEWS README TODO
+Description: GNOME Configuration System
+DescDetail: <<
+GConf is the GNOME Configuration database system.
+<<
+DescPort: <<
+Causing kernel panics. Removing fsync from gconf_get_lock_or_current_holder to see if that is the cause.
+
+Patched gconf_get_lock_or_current_holder() to call sync() after ior was written in lockfile.
+<<
+License: LGPL
+Maintainer: GNOME Core Team <fink-gnome-core@lists.sourceforge.net>
+Homepage: http://www.gnome.org/

@@ -1,0 +1,152 @@
+diff -Naur libgnomeui-2.7.91.old/config.h.in libgnomeui-2.7.91.new/config.h.in
+--- libgnomeui-2.7.91.old/config.h.in	2004-08-16 21:39:41.000000000 +1000
++++ libgnomeui-2.7.91.new/config.h.in	2004-08-30 11:01:51.000000000 +1000
+@@ -15,6 +15,9 @@
+ /* Define to 1 if you have the `bind_textdomain_codeset' function. */
+ #undef HAVE_BIND_TEXTDOMAIN_CODESET
+ 
++/* Define if you have the `strtok_r' function. */
++#undef HAVE_STRTOK_R
++
+ /* Define to 1 if you have the `dcgettext' function. */
+ #undef HAVE_DCGETTEXT
+ 
+diff -Naur libgnomeui-2.7.91.old/configure libgnomeui-2.7.91.new/configure
+--- libgnomeui-2.7.91.old/configure	2004-08-16 21:39:40.000000000 +1000
++++ libgnomeui-2.7.91.new/configure	2004-08-30 11:02:22.000000000 +1000
+@@ -20785,7 +20785,7 @@
+ 
+       if test "$gt_cv_func_ngettext_libc" = "yes" ; then
+ 
+-for ac_func in bind_textdomain_codeset
++for ac_func in bind_textdomain_codeset strtok_r
+ do
+ as_ac_var=`echo "ac_cv_func_$ac_func" | $as_tr_sh`
+ echo "$as_me:$LINENO: checking for $ac_func" >&5
+diff -Naur libgnomeui-2.7.91.old/doc/reference/Makefile.in libgnomeui-2.7.91.new/doc/reference/Makefile.in
+--- libgnomeui-2.7.91.old/doc/reference/Makefile.in	2004-08-16 21:39:44.000000000 +1000
++++ libgnomeui-2.7.91.new/doc/reference/Makefile.in	2004-08-30 11:03:30.000000000 +1000
+@@ -227,8 +227,8 @@
+ 
+ # CFLAGS and LDFLAGS for compiling scan program. Only needed if your app/lib
+ # contains GtkObjects/GObjects and you want to document signals and properties.
+-INCLUDES = -I$(top_builddir) -I$(top_srcdir) $(LIBGNOMEUI_CFLAGS)
+-GTKDOC_LIBS = $(top_builddir)/libgnomeui/libgnomeui-2.la
++INCLUDES = -I$(top_builddir) -I$(top_srcdir) $(LIBGNOMEUI_CFLAGS) $(CFLAGS) $(CPPFLAGS)
++GTKDOC_LIBS = $(top_builddir)/libgnomeui/libgnomeui-2.la $(LIBGNOMEUI_LIBS) $(SM_LIBS) $(LDFLAGS)
+ 
+ # Extra options to supply to gtkdoc-mkdb.
+ MKDB_OPTIONS = --output-format=xml
+diff -Naur libgnomeui-2.7.91.old/libgnomeui/Makefile.in libgnomeui-2.7.91.new/libgnomeui/Makefile.in
+--- libgnomeui-2.7.91.old/libgnomeui/Makefile.in	2004-08-16 21:39:46.000000000 +1000
++++ libgnomeui-2.7.91.new/libgnomeui/Makefile.in	2004-08-30 11:03:59.000000000 +1000
+@@ -381,7 +381,7 @@
+ 
+ 
+ LDADD = \
+-	libgnomeui-2.la $(LIBGNOMEUI_LIBS)
++	libgnomeui-2.la $(LIBGNOMEUI_LIBS) $(SM_LIBS)
+ 
+ 
+ pkgconfigdir = $(libdir)/pkgconfig
+diff -Naur libgnomeui-2.7.91.old/libgnomeui/gnome-dateedit.c libgnomeui-2.7.91.new/libgnomeui/gnome-dateedit.c
+--- libgnomeui-2.7.91.old/libgnomeui/gnome-dateedit.c	2003-05-02 02:31:04.000000000 +1000
++++ libgnomeui-2.7.91.new/libgnomeui/gnome-dateedit.c	2004-08-30 11:05:20.000000000 +1000
+@@ -101,6 +101,31 @@
+ /* to get around warnings */
+ static const char *strftime_date_format = "%x";
+ 
++#ifndef HAVE_STRTOK_R
++static char *
++strtok_r (char *s, const char *delim, char **save_ptr)
++{
++	char *token;
++
++	if (s == NULL)
++		s = *save_ptr;
++
++	s += strspn (s, delim);
++	if (*s == '\0')
++		return NULL;
++
++	token = s;
++	s = strpbrk (token, delim);
++	if (s == NULL) {
++		*save_ptr = strchr (token, '\0');
++	} else {
++		*s = '\0';
++		*save_ptr = s + 1;	
++	}
++	return token;
++}
++#endif
++
+ /**
+  * gnome_date_edit_get_type:
+  *
+diff -Naur libgnomeui-2.7.91.old/libgnomeui/gnome-multiscreen.c libgnomeui-2.7.91.new/libgnomeui/gnome-multiscreen.c
+--- libgnomeui-2.7.91.old/libgnomeui/gnome-multiscreen.c	2003-12-17 23:19:09.000000000 +1100
++++ libgnomeui-2.7.91.new/libgnomeui/gnome-multiscreen.c	2004-08-30 11:05:39.000000000 +1000
+@@ -25,6 +25,8 @@
+ #include "gnome-help.h"
+ 
+ #include <string.h>
++#include <crt_externs.h>
++#define environ (*_NSGetEnviron())
+ 
+ extern char **environ;
+ 
+diff -Naur libgnomeui-2.7.91.old/libgnomeui/libgnomeui-access.c libgnomeui-2.7.91.new/libgnomeui/libgnomeui-access.c
+--- libgnomeui-2.7.91.old/libgnomeui/libgnomeui-access.c	2003-10-24 01:27:14.000000000 +1000
++++ libgnomeui-2.7.91.new/libgnomeui/libgnomeui-access.c	2004-08-30 11:06:07.000000000 +1000
+@@ -28,7 +28,7 @@
+ static gint is_gail_loaded (GtkWidget *widget);
+ 
+ /* variable that indicates whether GAIL is loaded or not */
+-gint gail_loaded = -1;
++static gint gail_loaded = -1;
+ 
+ /* Accessibility support routines for libgnomeui */
+ static gint
+diff -Naur libgnomeui-2.7.91.old/ltmain.sh libgnomeui-2.7.91.new/ltmain.sh
+--- libgnomeui-2.7.91.old/ltmain.sh	2004-07-06 13:30:16.000000000 +1000
++++ libgnomeui-2.7.91.new/ltmain.sh	2004-08-30 11:06:59.000000000 +1000
+@@ -3763,6 +3763,11 @@
+ 	  eval test_cmds=\"$archive_expsym_cmds\"
+ 	  cmds=$archive_expsym_cmds
+ 	else
++      if test "x$verstring" = "x0.0"; then
++            tmp_verstring=
++          else
++            tmp_verstring="$verstring"
++          fi
+ 	  eval test_cmds=\"$archive_cmds\"
+ 	  cmds=$archive_cmds
+ 	  fi
+@@ -5266,10 +5271,10 @@
+ 
+ # Directory that this library needs to be installed in:
+ libdir='$install_libdir'"
+-	  if test "$installed" = no && test "$need_relink" = yes; then
+-	    $echo >> $output "\
+-relink_command=\"$relink_command\""
+-	  fi
++#	  if test "$installed" = no && test "$need_relink" = yes; then
++#	    $echo >> $output "\
++#relink_command=\"$relink_command\""
++#	  fi
+ 	done
+       fi
+ 
+diff -Naur libgnomeui-2.7.91.old/test-gnome/Makefile.in libgnomeui-2.7.91.new/test-gnome/Makefile.in
+--- libgnomeui-2.7.91.old/test-gnome/Makefile.in	2004-08-16 21:39:47.000000000 +1000
++++ libgnomeui-2.7.91.new/test-gnome/Makefile.in	2004-08-30 11:07:25.000000000 +1000
+@@ -208,7 +208,7 @@
+ 
+ 
+ LDADD = \
+-	$(top_builddir)/libgnomeui/libgnomeui-2.la $(LIBGNOMEUI_LIBS)
++	$(top_builddir)/libgnomeui/libgnomeui-2.la $(LIBGNOMEUI_LIBS) $(SM_LIBS)
+ 
+ 
+ noinst_PROGRAMS = \

@@ -1,0 +1,75 @@
+diff -Naur libcroco-0.6.0.old/configure libcroco-0.6.0.new/configure
+--- libcroco-0.6.0.old/configure	2004-06-09 09:11:59.000000000 +1000
++++ libcroco-0.6.0.new/configure	2004-09-08 12:02:18.000000000 +1000
+@@ -7344,17 +7344,8 @@
+ 	allow_undefined_flag='-undefined suppress'
+ 	;;
+       *) # Darwin 1.3 on
+-      if test -z ${MACOSX_DEPLOYMENT_TARGET} ; then
+-      	allow_undefined_flag='-flat_namespace -undefined suppress'
+-      else
+-        case ${MACOSX_DEPLOYMENT_TARGET} in
+-          10.[012])
+-            allow_undefined_flag='-flat_namespace -undefined suppress'
+-            ;;
+-          10.*)
+-            allow_undefined_flag='-undefined dynamic_lookup'
+-            ;;
+-        esac
++      if test -z ${LD_TWOLEVEL_NAMESPACE}; then
++      	allow_undefined_flag='-undefined dynamic_lookup'
+       fi
+ 	;;
+       esac
+diff -Naur libcroco-0.6.0.old/ltmain.sh libcroco-0.6.0.new/ltmain.sh
+--- libcroco-0.6.0.old/ltmain.sh	2004-05-21 18:48:29.000000000 +1000
++++ libcroco-0.6.0.new/ltmain.sh	2004-09-08 12:04:56.000000000 +1000
+@@ -5280,10 +5280,10 @@
+ 
+ # Directory that this library needs to be installed in:
+ libdir='$install_libdir'"
+-	  if test "$installed" = no && test "$need_relink" = yes; then
+-	    $echo >> $output "\
+-relink_command=\"$relink_command\""
+-	  fi
++#	  if test "$installed" = no && test "$need_relink" = yes; then
++#	    $echo >> $output "\
++#relink_command=\"$relink_command\""
++#	  fi
+ 	done
+       fi
+ 
+diff -Naur libcroco-0.6.0.old/src/Makefile.in libcroco-0.6.0.new/src/Makefile.in
+--- libcroco-0.6.0.old/src/Makefile.in	2004-06-09 10:12:18.000000000 +1000
++++ libcroco-0.6.0.new/src/Makefile.in	2004-09-08 12:21:29.000000000 +1000
+@@ -95,6 +95,9 @@
+ LIBXML2_CFLAGS = @LIBXML2_CFLAGS@
+ LIBXML2_LIBS = @LIBXML2_LIBS@
+ LIBXML2_VERSION = @LIBXML2_VERSION@
++GLIB2_CFLAGS = @GLIB2_CFLAGS@
++GLIB2_LIBS = @GLIB2_LIBS@
++GLIB_VERSION = @GLIB2_VERSION@
+ LN_S = @LN_S@
+ LTLIB = @LTLIB@
+ MAINT = @MAINT@
+@@ -121,9 +124,10 @@
+ lib_LTLIBRARIES = libcroco-0.6.la
+ libcroco_0_6_la_SOURCES = $(SRCS)
+ 
+-INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/intl @GLIB2_CFLAGS@ @LIBXML2_CFLAGS@
++INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/intl $(GLIB2_CFLAGS) $(LIBXML2_CFLAGS)
+ 
+-libcroco_0_6_la_LDFLAGS = -version-info @LIBCROCO_VERSION_INFO@ @GLIB2_CFLAGS@
++libcroco_0_6_la_LDFLAGS = -version-info $(LIBCROCO_VERSION_INFO)
++libcroco_0_6_la_LIBADD = $(GLIB2_LIBS) $(LIBXML2_LIBS)
+ 
+ mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
+ CONFIG_HEADER = ../config.h
+@@ -134,7 +138,6 @@
+ DEFS = @DEFS@ -I. -I$(srcdir) -I..
+ CPPFLAGS = @CPPFLAGS@
+ LIBS = @LIBS@
+-libcroco_0_6_la_LIBADD = 
+ libcroco_0_6_la_OBJECTS =  cr-utils.lo cr-input.lo cr-enc-handler.lo \
+ cr-num.lo cr-rgb.lo cr-token.lo cr-tknzr.lo cr-term.lo cr-attr-sel.lo \
+ cr-pseudo.lo cr-additional-sel.lo cr-simple-sel.lo cr-selector.lo \

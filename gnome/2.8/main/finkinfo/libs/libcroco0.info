@@ -1,0 +1,56 @@
+Package: libcroco0
+Version: 0.6.0
+Revision: 1
+Source: mirror:gnome:sources/libcroco/0.6/libcroco-%v.tar.bz2
+Source-MD5: 78fb2bf78d469df83b1fc94ce196c1c4
+PatchScript: perl -pi -e 's,need_relink=yes,need_relink=no,g' ltmain.sh
+Depends: <<
+	%N-shlibs (>= %v-%r), 
+	gettext,
+	libiconv
+<<
+BuildDepends: <<
+	gettext-bin, 
+	gettext-dev, 
+	libiconv-dev, 
+	pkgconfig
+<<
+SetCPPFLAGS: -no-cpp-precomp
+NoSetLDFLAGS: true
+Patch: %n.patch
+SetLDFLAGS: -L../src/.libs -L%p/lib -no-undefined
+ConfigureParams: --infodir=%p/share/info --mandir=%p/share/man --enable-seleng=yes --enable-layeng=yes
+CompileScript: export LD_TWOLEVEL_NAMESPACE=1; ./configure %c; make
+InstallScript: make install DESTDIR=%d
+BuildDependsOnly: false
+SplitOff: <<
+  Package: %N-shlibs 
+  Description: CSS parsing and manipulation library - Shared libraries
+  Depends: <<
+  	gettext,
+	libiconv
+  <<
+  Files: lib/libcroco-0.6.*.dylib
+  Shlibs: %p/lib/libcroco-0.6.3.0.0.dylib 4.0.0 %n (>= 0.6.0-2)
+<<
+SplitOff2: <<
+  Package: %N-dev
+  Description: CSS parsing and manipulation library - Development headers and resources
+  Files: <<
+  	bin/croco-0.6-config
+  	include
+  	lib/pkgconfig
+  	lib/libcroco-0.*
+  <<
+  Depends: %N-shlibs (>= %v-%r), pkgconfig
+<<
+DocFiles: ABOUT* AUTHORS COPYING* ChangeLog HACKING INSTALL
+Description: CSS parsing and manipulation library
+DescDetail: <<
+The Libcroco project is an effort to build a generic Cascading
+Style Sheet (CSS) parsing and manipulation toolkit that can be
+used by GNOME applications in need of CSS support.
+<<
+License: LGPL
+Maintainer: GNOME core team <fink-gnome-core@lists.sourceforge.net>
+Homepage: http://www.gnome.org/

@@ -1,0 +1,61 @@
+diff -Naur GConf-2.8.0.1.old/doc/gconf/Makefile.in GConf-2.8.0.1.new/doc/gconf/Makefile.in
+--- GConf-2.8.0.1.old/doc/gconf/Makefile.in	2004-09-15 05:36:46.000000000 +1000
++++ GConf-2.8.0.1.new/doc/gconf/Makefile.in	2004-09-17 17:10:25.000000000 +1000
+@@ -236,7 +236,7 @@
+ 
+ # CFLAGS and LDFLAGS for compiling scan program. Only needed
+ # if $(DOC_MODULE).types is non-empty.
+-GTKDOC_CFLAGS = -I$(top_srcdir) $(CFLAGS) $(DEPENDENT_CFLAGS)
++GTKDOC_CFLAGS = -I$(top_srcdir) $(CFLAGS) $(CPPFLAGS) $(DEPENDENT_CFLAGS)
+ 
+ GTKDOC_LIBS = $(LDFLAGS) $(DEPENDENT_LIBS) $(top_builddir)/gconf/libgconf-$(MAJOR_VERSION).la
+ @GTK_DOC_USE_LIBTOOL_FALSE@GTKDOC_CC = $(CC) $(INCLUDES) $(AM_CFLAGS) $(CFLAGS)
+diff -Naur GConf-2.8.0.1.old/gconf/Makefile.in GConf-2.8.0.1.new/gconf/Makefile.in
+--- GConf-2.8.0.1.old/gconf/Makefile.in	2004-09-15 05:36:47.000000000 +1000
++++ GConf-2.8.0.1.new/gconf/Makefile.in	2004-09-17 17:13:45.000000000 +1000
+@@ -256,7 +256,7 @@
+ 	gconfd.c
+ 
+ 
+-gconfd_2_LDADD = $(EFENCE) $(INTLLIBS) $(DEPENDENT_LIBS) libgconf-$(MAJOR_VERSION).la
++gconfd_2_LDADD = libgconf-$(MAJOR_VERSION).la $(EFENCE) $(INTLLIBS) $(DEPENDENT_LIBS) 
+ 
+ 
+ # gconf_testclient_SOURCES = \
+@@ -267,13 +267,13 @@
+ 	gconftool.c
+ 
+ 
+-gconftool_2_LDADD = $(EFENCE) $(INTLLIBS) $(DEPENDENT_WITH_XML_LIBS) $(POPT_LIBS) libgconf-$(MAJOR_VERSION).la
++gconftool_2_LDADD = libgconf-$(MAJOR_VERSION).la $(EFENCE) $(INTLLIBS) $(DEPENDENT_WITH_XML_LIBS) $(POPT_LIBS) 
+ 
+ gconf_sanity_check_2_SOURCES = \
+ 	gconf-sanity-check.c
+ 
+ 
+-gconf_sanity_check_2_LDADD = $(EFENCE) $(INTLLIBS) $(DEPENDENT_WITH_XML_AND_GTK_LIBS) $(POPT_LIBS) libgconf-$(MAJOR_VERSION).la
++gconf_sanity_check_2_LDADD = libgconf-$(MAJOR_VERSION).la $(EFENCE) $(INTLLIBS) $(DEPENDENT_WITH_XML_AND_GTK_LIBS) $(POPT_LIBS)
+ 
+ libgconf_2_la_SOURCES = \
+ 	gconf-internals.c	\
+diff -Naur GConf-2.8.0.1.old/gconf/gconf-internals.c GConf-2.8.0.1.new/gconf/gconf-internals.c
+--- GConf-2.8.0.1.old/gconf/gconf-internals.c	2004-08-17 00:23:08.000000000 +1000
++++ GConf-2.8.0.1.new/gconf/gconf-internals.c	2004-09-18 08:29:14.000000000 +1000
+@@ -26,6 +26,7 @@
+ #include <string.h>
+ #include <sys/stat.h>
+ #include <sys/types.h>
++#include <sys/socket.h>
+ #include <unistd.h>
+ #include <stdlib.h>
+ #include <stdio.h>
+@@ -2612,7 +2613,8 @@
+           return NULL;
+         }
+     }
+-
++	/* needed on Darwin */
++	fsync (lock->lock_fd);
+   return lock;
+ }
+ 
