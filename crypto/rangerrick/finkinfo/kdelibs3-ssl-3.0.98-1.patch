@@ -666,8 +666,8 @@
      static const QString &str_unknown = KGlobal::staticQString("unknown");
  
 --- ./kdecore/klibloader.cpp	10 Jul 2002 04:43:40 -0000	1.1.1.2
-+++ ./kdecore/klibloader.cpp	7 Nov 2002 20:51:37 -0000	1.2
-@@ -365,14 +365,29 @@
++++ ./kdecore/klibloader.cpp	8 Nov 2002 03:50:16 -0000	1.3
+@@ -365,14 +365,19 @@
        libfile = libname;
      else
      {
@@ -675,30 +675,22 @@
 -      if ( libfile.isEmpty() )
 -      {
 -        libfile = instance->dirs()->findResource( "lib", libname );
-+      if (libname.find('lib', pos) != 0) {
-+        libfile = instance->dirs()->findResource( "module", "lib" + libname );
-+        if ( libfile.isEmpty() )
-+        {
-+          libfile = instance->dirs()->findResource( "lib", "lib" + libname );
-+          if ( libfile.isEmpty() )
-+          {
-+            // kdDebug() << "library " << libname << " not found with lib prefix" << endl;
-+          }
-+        }
-+      }
+-#ifndef NDEBUG
+-        if ( !libfile.isEmpty() && libname.left(3) == "lib" ) // don't warn for kdeinit modules
+-          kdDebug(150) << "library " << libname << " not found under 'module' but under 'lib'" << endl;
+-#endif
 +      if ( libfile.isEmpty() ) {
 +        libfile = instance->dirs()->findResource( "module", libname );
 +        if ( libfile.isEmpty() )
 +        {
 +          libfile = instance->dirs()->findResource( "lib", libname );
-+          if ( libfile.isEmpty() ) {
- #ifndef NDEBUG
--        if ( !libfile.isEmpty() && libname.left(3) == "lib" ) // don't warn for kdeinit modules
--          kdDebug(150) << "library " << libname << " not found under 'module' but under 'lib'" << endl;
-+            if ( !libfile.isEmpty() && libname.left(3) == "lib" ) // don't warn for kdeinit modules
-+              kdDebug(150) << "library " << libname << " not found under 'module' but under 'lib'" << endl;
- #endif
-+          }
++        }
++      }
++      if ( libfile.isEmpty() && libname.left(3) == "lib" ) {
++        libfile = instance->dirs()->findResource( "module", "lib" + libname );
++        if ( libfile.isEmpty() )
++        {
++          libfile = instance->dirs()->findResource( "lib", "lib" + libname );
 +        }
        }
        if ( libfile.isEmpty() )
@@ -1013,7 +1005,7 @@
  include_HEADERS = kscreensaver.h kscreensaver_vroot.h
  
 --- ./libltdl/ltdl.c	10 Jul 2002 04:51:21 -0000	1.1.1.2
-+++ ./libltdl/ltdl.c	7 Nov 2002 20:52:31 -0000
++++ ./libltdl/ltdl.c	7 Nov 2002 20:54:56 -0000	1.5
 @@ -63,6 +63,11 @@
  #include <sys/ldr.h>
  #endif /* _AIX */
