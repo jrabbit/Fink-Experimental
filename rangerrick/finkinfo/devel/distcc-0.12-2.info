@@ -1,17 +1,24 @@
 Package: distcc
 Version: 0.12
-Revision: 1
+Revision: 2
 Depends: popt-shlibs
 BuildDepends: popt
 BuildDependsOnly: true
 Maintainer: Benjamin Reed <ranger@befunk.com>
 Source: http://%n.samba.org/ftp/%n/%n-%v.tar.gz
-Patch: %f.patch
+PatchScript: sed 's|@PREFIX@|%p|g' <%a/%f.patch | patch -p1
 Source-MD5: 4fa9d4f77bbaeaa615e3872bb4688ba3
 ConfigureParams: --mandir=%i/share/man --infodir=%i/share/info
 SetCPPFLAGS: -no-cpp-precomp -I%p/include
 SetLDFLAGS: -L%p/lib
+InstallScript: <<
+  make install prefix=%i
+  install -d -m 755 %i/etc
+  install -d -m 755 %i/var/log
+  echo "localhost" > %i/etc/distcc-hosts
+  install -m 755 distcc-helper %i/bin/
 <<
+ConfFiles: %p/etc/distcc-hosts
 DocFiles: AUTHORS COPYING* DEPENDENCIES INSTALL *NEWS README
 Description: distributed compilation tool
 DescDetail: <<
