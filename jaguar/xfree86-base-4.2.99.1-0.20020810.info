@@ -1,19 +1,21 @@
 Package: xfree86-base
-Version: 4.2.0
-Revision: 10
+Version: 4.2.99.1
+Revision: 0.20020810
 Depends: dlcompat
 Provides: x11
 Conflicts: x11
 Replaces: x11
 Suggests: xfree86-rootless (= %v-%r)
-Source: mirror:sourceforge:fink/X420src-1.tgz
-Source2: mirror:sourceforge:fink/X420src-2.tgz
-Source3: mirror:sourceforge:fink/X420src-3.tgz
+Source: http://fink.befunk.com/source/xc-20020810.tar.bz2
+#Source: mirror:sourceforge:fink/X420src-1.tgz
+#Source2: mirror:sourceforge:fink/X420src-2.tgz
+#Source3: mirror:sourceforge:fink/X420src-3.tgz
 SourceDirectory: xc
 PatchScript: <<
  sed -e s,@FINKPREFIX@,%p, %a/%f.patch | patch -p1
  echo '#define ExtraIncDir	%p/include' > config/cf/host.def
  echo '#define EtcX11Directory	ProjectRoot/etc' >> config/cf/host.def
+ echo '#define FontconfigDir	EtcX11Directory' >> config/cf/host.def
 <<
 CompileScript: <<
  make MAKE=/usr/bin/gnumake World WORLDOPTS=-S
@@ -21,6 +23,12 @@ CompileScript: <<
 SplitOff: <<
  Package: xfree86-rootless
  Depends: xfree86-base (= %v-%r)
+ Description: <<
+This package contains the OpenGL libraries and an X11R6 display
+server for use in MacOSX or Darwin.  It supports both fullscreen
+and "rootless" mode (instead of a root window, you can see your
+Aqua desktop).
+<<
  Provides: libgl
  Files: <<
  ../Applications
@@ -105,6 +113,13 @@ Description: XFree86 libraries, utilities, clients and data.
 DescDetail: <<
 XFree86 is a free X11 implementation that supports Darwin and Mac OS X.
 This will let you run X11 applications and desktop environments.
+
+This is an XFree86 snapshot of the upcoming 4.3.0 release.  It includes a
+lot of fixes and optimizations for Darwin, but is an ALPHA release, so is
+not suggested for production use.
+
+There is at least one known issue -- You MUST run in "millions of colors"
+mode because of a bug in the color handling.
 <<
 DescPackaging: <<
 This package builds the libraries, common clients (e.g. xterm), fonts
@@ -116,14 +131,8 @@ in. It will always install into /usr/X11R6. This is by design. The
 preinst script checks to make sure it doesn't overwrite existing
 files.
 
-Previous versions by Christoph Pfisterer.
-<<
-DescPort: <<
-OpenGL stuff is disabled. "libgl" is provided by the xfree86-rootless package
-in order to preserve an upgrade path from the xfree86 v4.1 packages.
-
-Patched to use pthreads.
+Previous versions by Christoph Pfisterer and Jeffrey Whitaker.
 <<
 License: BSD
 Homepage: http://www.xfree86.org/
-Maintainer: Jeffrey Whitaker <jsw@cdc.noaa.gov>
+Maintainer: Benjamin Reed <ranger@befunk.com>
