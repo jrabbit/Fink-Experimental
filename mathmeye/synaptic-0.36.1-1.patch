@@ -1,0 +1,125 @@
+diff -ru synaptic-0.36.1/common/rcdscanner.cc synaptic-0.36.1_patched/common/rcdscanner.cc
+--- synaptic-0.36.1/common/rcdscanner.cc	Mon Mar 10 21:40:44 2003
++++ synaptic-0.36.1_patched/common/rcdscanner.cc	Sat Jun 21 00:58:28 2003
+@@ -19,7 +19,7 @@
+  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+  * USA
+  */
+-
++#include <sys/mount.h>
+ 
+ #include <sys/stat.h>
+ #include <sys/fcntl.h>
+@@ -284,7 +284,7 @@
+ 				 DFile.c_str());
+ 	}
+     }
+-   
++#ifndef __APPLE__
+     // Unmount the CD and get the user to put in the one they want
+     _cdromMounted = false;
+     if (_config->FindB("APT::CDROM::NoMount",false) == false)
+@@ -303,7 +303,37 @@
+ 	    return _error->Error(_("Failed to mount the cdrom."));
+         _cdromMounted = true;
+     }
++#else
++    struct statfs fsinfo;
++    DIR *D = opendir("/Volumes");
++    if (D == 0)
++        return _error->Error(_("Unable to read %s"));
++
++    CDROM = "";
++
++    progress->update(_("Waiting for disc..."), STEP_WAIT);
++
++    // currently takes only the first CDROM found as we break on first match.
++    for (struct dirent *Dir = readdir(D); Dir != 0; Dir = readdir(D))
++    {
++        // Skip those..
++        if (strcmp(Dir->d_name,".") == 0 || strcmp(Dir->d_name,"..") == 0)
++            continue;
++
++        int ret = statfs( ((string)"/Volumes/" + Dir->d_name).c_str() , &fsinfo);
++
++        if(strcmp(fsinfo.f_fstypename, "cd9660") == 0){
++            CDROM = fsinfo.f_mntonname;
++            break;
++        }
++    };
++    closedir(D);
++
++    if(CDROM == ""){
++        return _error->Error(_("No disc found! Insert a disc in the drive."));
++    }
+     
++#endif 
+     progress->update(_("Identifying disc..."), STEP_IDENT);
+ 
+     if (!IdentCdrom(CDROM, _cdId)) {
+@@ -331,6 +361,7 @@
+     cleanSrcList(_srcList);
+ 
+     if (_pkgList.size() == 0 && _srcList.size() == 0) {
++#ifndef __APPLE__
+         progress->update(_("Unmounting CD-ROM..."), STEP_UNMOUNT2);
+ 
+ 	if (_cdromMounted
+@@ -338,6 +369,7 @@
+ 	    UnmountCdrom(CDROM);
+ 	    _cdromMounted = false;
+ 	}
++#endif
+ 	return _error->Error(_("Unable to locate any package files. "
+ 			       "Perhaps this is not an APT enabled disc."));
+     }
+@@ -431,12 +463,12 @@
+ 	|| !writeSourceList(_srcList, false)) {
+ 	    return false;
+     }
+-
++#ifndef __APPLE__
+     if (_cdromMounted) {
+         progress->update(_("Unmounting CD-ROM..."), STEP_UNMOUNT3);
+         UnmountCdrom(CDROM);
+     }
+-
++#endif
+     progress->update(_("Done!"), STEP_LAST);
+     
+     return true;
+@@ -444,9 +476,11 @@
+ 
+ void RCDScanner::unmount()
+ {
++#ifndef __APPLE__
+     string CDROM = _config->FindDir("Acquire::cdrom::mount", "/cdrom/");
+     if (_cdromMounted)
+         UnmountCdrom(CDROM);
++#endif
+ }
+ 
+ // DropBinaryArch - Dump dirs with a string like /binary-<foo>/		/*{{{*/
+diff -ru synaptic-0.36.1/gtk/Makefile.in synaptic-0.36.1_patched/gtk/Makefile.in
+--- synaptic-0.36.1/gtk/Makefile.in	Tue Apr 15 22:16:46 2003
++++ synaptic-0.36.1_patched/gtk/Makefile.in	Tue Jun 17 19:08:39 2003
+@@ -112,7 +112,7 @@
+ 
+ sbin_PROGRAMS = synaptic 
+ 
+-synaptic_LDFLAGS = -export-dynamic
++synaptic_LDFLAGS = -module
+ 
+ synaptic_LDADD =  	${top_builddir}/common/libsynaptic.a 	-lapt-pkg @RPM_LIBS@ @DEB_LIBS@ 	@PACKAGE_LIBS@ @ZVT_LIBS@ 	-lpthread
+ 
+diff -ru synaptic-0.36.1/gtk/gtkpkgtree.cc synaptic-0.36.1_patched/gtk/gtkpkgtree.cc
+--- synaptic-0.36.1/gtk/gtkpkgtree.cc	Sat Mar 29 12:58:17 2003
++++ synaptic-0.36.1_patched/gtk/gtkpkgtree.cc	Tue Jun 17 19:08:39 2003
+@@ -22,6 +22,7 @@
+ #include <apt-pkg/configuration.h>
+ #include "gtkpkgtree.h"
+ #include "gsynaptic.h"
++#include <iostream.h>
+ 
+ using namespace std;
+ 
