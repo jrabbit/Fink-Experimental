@@ -2,19 +2,22 @@ Package: config.site
 Version: 1.0
 Revision: 1
 Type: nosource
+HomePage: http://cclib.nsu.ru/projects/gnudocs/gnudocs/autoconf/autoconf_79.html
 CompileScript: echo "Nothing to compile."
 InstallScript: <<
 #!/bin/sh
- dir=%i/var/cache/automake
- cachef=${dir}/config.site
+ dir=%i/var/cache
+ cachef=${dir}/config.cache
  mkdir -p ${dir}
  touch ${cachef}
  chown -R root:staff ${dir}
  chmod 775 ${dir}
  chmod 664 ${cachef}
+ mkdir -p %i/share
+ cat %a/%n.patch | sed s,@PREFIX@,%p, > %i/share/config.site
 <<
-ConfFiles: %p/var/cache/automake/config.site
-RuntimeVars: CONFIG_SITE: %p/var/cache/automake/config.site
+ConfFiles: %p/var/cache/config.cache
+RuntimeVars: CONFIG_SITE: %p/share/config.site
 Description: Site config.cache for automake configure results
 DescDetail: <<
  By default, configure uses ./config.cache as the cache file, creating
@@ -40,21 +43,21 @@ be problematic with fink.
 Try 'unsetenv CACHE_SITE' and build again.
 
 Failing that:
-- manually edit /sw/var/cache/automake/config.site
+- manually edit /sw/var/cache/config.cache
 - delete CFLAGS lines (or whichever indicated by the ./configure
   error) or substitute those two lines with:
   ac_cv_env_CFLAGS_set=${ac_cv_env_CFLAGS_set=set}
   ac_cv_env_CFLAGS_value=${ac_cv_env_CFLAGS_value=-I/sw/include}
   (maybe a better PostInstScript to automate this)
 Failing that:
-- Delete /sw/var/cache/automake/config.site
+- Delete /sw/var/cache/config.cache
 - Try again
 Finally, uninstall via: sudo fink purge %n
 <<
 PostInstScript: <<
 #!/bin/sh
- dir=%p/var/cache/automake
- cachef=${dir}/config.site
+ dir=%p/var/cache
+ cachef=${dir}/config.cache
  bak=${cachef}-bak
  echo "*"
  echo "* Checking: ${cachef}"
@@ -70,10 +73,11 @@ PostInstScript: <<
  echo " "
  echo "  sudo fink purge %n"
  echo " "
+ echo "*** Site config.cache will be active in new terminal windows."
  echo " "
  echo "***************************************************"
  echo "* WARNING: Read the DescUsage for troubleshooting *"
- echo "*          any cache problems in ./configure.     *"
+ echo "*          any cache problems of ./configure.     *"
  echo "***************************************************"
 <<
 License: GPL
