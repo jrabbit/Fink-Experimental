@@ -1,13 +1,14 @@
 Package: distcc
-Version: 2.8
+Version: 2.12
 Revision: 1
-Depends: popt-shlibs
+Depends: daemonic, popt-shlibs, passwd (>= 20031013-1)
 Suggests: ccache
-BuildDepends: popt
+BuildDepends: gettext-dev, libiconv-dev, libxml2, passwd (>= 20031013-1), popt
 BuildDependsOnly: true
 Maintainer: Benjamin Reed <ranger@befunk.com>
 Source: http://%n.samba.org/ftp/%n/%n-%v.tar.bz2
-Source-MD5: da86497ab23f34a8630a2758d3c1b8cc
+Source-MD5: f258778811c8610453471ea89faeaac6
+Patch: %n.patch
 ConfigureParams: --mandir=%p/share/man --infodir=%p/share/info
 SetCPPFLAGS: -no-cpp-precomp -I%p/include
 SetLDFLAGS: -L%p/lib
@@ -15,7 +16,9 @@ CompileScript: <<
 #!/bin/sh
   unset DISTCC_HOSTS
   unset CCACHE_PREFIX
-  ./configure %c && make
+  ./configure %c
+  perl -pi -e 's,#define WITH_GNOME.*,#undef WITH_GNOME,g; s,#define WITH_GTK.*,#undef WITH_GTK,g;' src/config.h
+  make
 <<
 InstallScript: <<
 #!/bin/sh
@@ -43,6 +46,62 @@ DISTCC_TCP_CORK=1
 #MAKEFLAGS=-j4
 END
 
+  cat <<END > %i/etc/distccd.conf
+# how nice should distccd be?
+DISTCCD_NICENESS=5
+
+# the port to listen on
+DISTCCD_PORT=3632
+
+# the IP address to listen on
+# 0.0.0.0 = all
+DISTCCD_LISTEN=0.0.0.0
+
+# the user to run as
+DISTCCD_USER=distcc
+
+# hosts to allow to connect to this distccd instance
+# format: 0.0.0.0[/CIDR_BITMASK] [0.0.0.0[/CIDR_BITMASK]] ...
+# empty string = all
+DISTCCD_ALLOW=""
+
+# whether to be verbose in the logs
+# "" = no, anything else = yes
+DISTCCD_VERBOSE="true"
+
+# the log file to write to
+DISTCCD_LOGFILE="%p/var/log/distccd.log"
+
+END
+
+  cat <<END > %i/bin/distccd-fink.sh
+#!/bin/sh
+
+source %p/etc/distccd.conf
+
+DISTCCD_COMMAND="%p/bin/distccd --daemon --pid-file %p/var/run/distccd.pid"
+
+[ -n "\$DISTCCD_NICENESS" ] && DISTCCD_COMMAND="\$DISTCCD_COMMAND --nice \$DISTCCD_NICENESS"
+[ -n "\$DISTCCD_PORT"     ] && DISTCCD_COMMAND="\$DISTCCD_COMMAND --port \$DISTCCD_PORT"
+[ -n "\$DISTCCD_LISTEN"   ] && DISTCCD_COMMAND="\$DISTCCD_COMMAND --listen \$DISTCCD_LISTEN"
+[ -n "\$DISTCCD_USER"     ] && DISTCCD_COMMAND="\$DISTCCD_COMMAND --user \$DISTCCD_USER"
+[ -n "\$DISTCCD_VERBOSE"  ] && DISTCCD_COMMAND="\$DISTCCD_COMMAND --verbose"
+[ -n "\$DISTCCD_LOGFILE"  ] && DISTCCD_COMMAND="\$DISTCCD_COMMAND --log-file \$DISTCCD_LOGFILE"
+
+for allow in \$DISTCCD_ALLOW; do
+	DISTCCD_COMMAND="\$DISTCCD_COMMAND --allow \$allow"
+done
+
+rm -f "%p/var/log/distccd.log"
+touch "%p/var/log/distccd.log"
+touch "%p/var/run/distccd.pid"
+chown distcc "%p/var/log/distccd.log"
+chown distcc "%p/var/run/distccd.pid"
+
+\$DISTCCD_COMMAND
+END
+
+  chmod 755 %i/bin/distccd-fink.sh
   install -d -m 755 %i/etc/profile.d
   cat <<END > %i/etc/profile.d/distcc.sh
 #### DO NOT EDIT BELOW HERE ####
@@ -63,6 +122,19 @@ END
 
  chmod 755 %i/etc/profile.d/*
 <<
+DaemonicFile: <<
+<service>
+<description>distributed compiling daemon</description>
+<message>distributed compiling daemon</message>
+
+<daemon name="distccd">
+<executable checkexit="true">%p/bin/distccd</executable>
+<configfile>%p/etc/distccd.conf</configfile>
+<pidfile>%p/var/run/distccd.pid</pidfile>
+</daemon>
+
+</service>
+<<
 SplitOff: <<
   Package: %N-default
   Depends: %N (>= %v-%r), ccache (>= 2.2), ccache-default (>= 2.2)
@@ -72,8 +144,8 @@ SplitOff: <<
     CCACHE_PREFIX: distcc
   <<
 <<
-ConfFiles: %p/etc/distcc.conf
-DocFiles: AUTHORS COPYING* DEPENDENCIES INSTALL *NEWS README
+ConfFiles: %p/etc/distcc.conf %p/etc/distccd.conf
+DocFiles: AUTHORS COPYING* INSTALL NEWS README*
 Description: Distributed compilation tool
 DescDetail: <<
 distcc is a program to distribute compilation of C or C++ code
