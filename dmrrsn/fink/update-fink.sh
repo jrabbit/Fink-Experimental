@@ -29,9 +29,11 @@ fink scanpackages
 
 ./inject.pl
 
-sudo apt-get update
-
 fink selfupdate-cvs
+
+fink scanpackages
+
+sudo apt-get update
 
 exit 0
 
