@@ -30,11 +30,11 @@
 	DataStore.Set("Internet.MainQueryField.updateValueOnTextChanged", true);
 		
 	/* Customize the NSTableView a bit */
-	{-- DataStore.Set("Internet.SearchResultsTable.columns.relevance.dataCellType", "RankCell"); --}
+	{-- DataStore.Set("Internet.SearchResultsTable.columns.description.dataCellType", "RankCell"); --}
 	DataStore.Set("Internet.SearchResultsTable.pasteboardTypes.NSStringPboardType", "RankCell");
-        DataStore.Set("Internet.SearchResultsTable.pasteboardTypes.NSStringPboardType", "description.URL.objectValue");
+        DataStore.Set("Internet.SearchResultsTable.pasteboardTypes.NSStringPboardType", "name.URL.objectValue");
 	DataStore.Set("Internet.SearchResultsTable.pasteboardTypes.NSURLPboardType", "doubleClickURL");
-	DataStore.Set("Internet.SearchResultsTable.visibleDragColumns", "description");
+	DataStore.Set("Internet.SearchResultsTable.visibleDragColumns", "name");
 
 	/* Initialize this with an empty document, so it fills in with white */
 	DataStore.Set("Internet.DetailHTMLView.HTMLData", "");
@@ -88,6 +88,11 @@
 	{-- Since XQuery is case-sensitive, we need to look for all upper and
 		lower case anchor tags (both a and A).
 	--}
+	let $listitems := ($html//li, $html//LI)
+
+	{-- let $divs := ($html//div, $html//DIV) --}
+        {-- let $d := count($divs) --}
+
 	let $anchors := ($html//a, $html//A)
 	{-- grab only links that are fink packages --}
         let $anchors := for $item in $anchors where (contains($item/@href, "package.php"))
@@ -95,8 +100,8 @@
 	
 	{-- Create a list of search results. Each result is a dictionary with a few
 		entries:
-					description - title shown to user
-					relevance - a relevance shown to the user
+					name - title shown to user
+					description - a description shown to the user
 					doubleClickURL - url opened when the user double-clicks on a result
 									 (also used to display HTML when the user selects a result)
 		
@@ -104,14 +109,13 @@
 		Interface Builder) as appropriate.
 	--}
         
-        let $j := count($anchors)
         let $i := to(1,count($anchors))
         
 	{--let $results := for $item in $anchors--}
 	let $results := for $num in $i
 
 		{-- Result name is the anchor title --}
-		let $description := string-combine($anchors[$num]//text()/convert-html(.), "")
+		let $name := string-combine($anchors[$num]//text()/convert-html(.), "")
 		
 		{-- Note that the href can also be upper or lower case; need to test for either --}
 		let $href := $anchors[$num]/@href
@@ -127,26 +131,32 @@
 		{-- Compute a fake relevance using the item's index --}
 		{-- let $relevance := 100-rank() --}
 
-                let $relevance := string-combine($anchors[$num]//text()/convert-html(.), "")
-                let $relevance := string-separate($relevance, "- ")[2]
+                let $description := string-combine($listitems[$num]//text()/convert-html(.), "")
+                let $description := string-separate($description, "- ")[2]
 
 		return dictionary(
-			("relevance", $relevance),
 			("description", $description),
+			("name", $name),
 			("doubleClickURL", $url))
 
 
 	{-- Filter out any results which don't have a title (image links, for example) --}
-	let $results := for $item in $results where ($item/description)
+	let $results := for $item in $results where ($item/name)
 		return $item
 
 	{-- From the trigger, return a dictionary with key/value pairs representing
 		data store locations and their values.
 	--}
+	
+	{-- let $date := string-combine($divs[$d-1]//text()/convert-html(.), "") --}
+	
 	return dictionary(
 		("Internet.SearchResultsTable.dataValue", $results),
 		("Internet.SearchResultsTable.selectedRows", null()),
 		("Internet.NetworkArrows.animating", false()) )
+
+	{-- ("Internet.date.htmlData", $date), --}
+
  </trigger>
 
 
