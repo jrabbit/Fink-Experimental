@@ -1,0 +1,39 @@
+Package: gphoto2
+Version: 2.1.1
+Revision: 1
+Maintainer: Peter O'Gorman <peter@pogma.com> 
+Depends: %N-shlibs (= %v-%r)
+BuildDepends: libgphoto2, libjpeg, libusb, aalib, libexif, dlcompat-dev, readline (>= 4.3-5), libcdk
+Depends: libgphoto2-shlibs, aalib-shlibs, readline-shlibs (>= 4.3-5), libjpeg-shlibs, libcdk-shlibs
+Source: mirror:sourceforge:/gphoto/%n-%v.tar.bz2
+Source-MD5: ce77b9c9ce25a57990c61f9e301e74b9
+Patch: %f.patch 
+NoSetLDFlags: true
+SetLDFLAGS: -Wl,-stack_size -Wl,4048000
+SetLIBS: -lgphoto2_port
+NoSetCPPFlags: true
+SetCPPFlags: -no-cpp-precomp
+Configureparams: --with-jpeg-prefix=%p --mandir=%p/share/man --disable-dependency-tracking --with-libiconv-prefix=%p --without-xmlto
+CompileScript: <<
+#!/bin/sh
+# Just bacuase this is the way I have been building it
+DYLD_LIBRARY_PATH=%p/lib
+LIBRARY_PATH=%p/lib
+CPATH=%p/include
+CPPFLAGS="-I%p/include/cdk -no-cpp-precomp"
+export DYLD_LIBRARY_PATH
+export LIBRARY_PATH
+export CPATH
+export CPPFLAGS
+./configure %c
+# remove all traces of -lm -lpthread -lc and -L%p/lib and -I%p/include from the Makefiles
+#find . -name Makefile -exec perl -pi.bak -e 's#-[Ll](%p/lib|%p/include|m|pthread|c)\s# #g' {} \;
+make
+<<
+Installscript: <<
+make install DESTDIR=%d
+<<
+DocFiles: AUTHORS ChangeLog NEWS README COPYING
+Description: Frontend for libgphoto2
+Homepage: http://gphoto2.sf.net
+License: GPL
