@@ -1,0 +1,39 @@
+Package: xrender1
+Version: 0.8.4
+Revision: 1
+BuildDepends: render1-dev (>= 0.8-1), x11-dev
+Depends: %N-shlibs
+Source: http://freedesktop.org/~xlibs/release/libXrender-%v.tar.bz2
+Source-MD5: c745339dbe5f05cff8950b71a739e34c
+ConfigureParams: --prefix=%p/lib/%N --sysconfdir=/private/etc --bindir=%p/bin --mandir=%p/share/man
+CompileScript: <<
+#!/bin/sh
+
+  export PKG_CONFIG_PATH=%p/lib/render1/lib/pkgconfig
+  ./configure %c
+  make
+<<
+InstallScript: <<
+ make -j1 install DESTDIR=%d
+ install -d -m 755 %i/share/doc/%n
+<<
+SplitOff: <<
+  Package: %N-shlibs
+  Files: lib/%N/lib/libXrender.*.dylib
+  Shlibs: %p/lib/%N/lib/libXrender.1.dylib 4.0.0 (%n >= 0.8.4-1)
+  Description: Shared libraries for libXrender
+<<
+DocFiles: AUTHORS COPYING ChangeLog INSTALL NEWS README
+License: OSI-Approved
+Description: Libraries and development headers for the X render extension
+Maintainer: Benjamin Reed <ranger@befunk.com>
+Homepage: http://freedesktop.org/~xlibs/
+DescPackaging: <<
+This package should not be linked against unless absolutely
+necessary.  If you must link against it, you need to set
+some variables.
+
+  CPPFLAGS:        add -I%p/lib/%N/include
+  CFLAGS:          you might need the same as CPPFLAGS
+  PKG_CONFIG_PATH: add %p/lib/%N/lib/pkgconfig
+<<
