@@ -1,0 +1,33 @@
+Package: cyrus-imapd
+Version: 2.1.12
+Revision: 1
+Maintainer: Matt Stephenson <cattrap@users.sourceforge.net>
+Depends: cyrus-sasl2-shlibs
+BuildDepends: openssl097-dev, db41 | db41-ssl, cyrus-sasl2-dev
+Source: ftp://ftp.andrew.cmu.edu/pub/cyrus-mail/%n-%v.tar.gz
+Source-MD5: dc3355d0170509ccebd9788ed2daad39
+PatchScript: sed 's|@prefix@|%p|g' <%a/%f.patch | patch -p1
+UpdateConfigGuess: true
+ConfigureParams: --with-bdb-incdir=%p/include/db4 --with-cyrus-prefix=%p
+InstallScript: <<
+#!/bin/sh
+  #
+  mkdir -p %i/share/man/man1
+  mkdir -p %i/share/man/man3
+  mkdir -p %i/share/man/man5
+  mkdir -p %i/share/man/man8
+  mkdir -p %i/share/podfiles
+  #
+  make install DESTDIR=%d INSTALLPRIVLIB=%i/lib/perl5 INSTALLARCHLIB=%i/lib/perl5/darwin INSTALLSITELIB=%i/lib/perl5 INSTALLSITEARCH=%i/lib/perl5/darwin INSTALLMAN1DIR=%i/share/man/man1 INSTALLMAN3DIR=%i/share/man/man3
+  #
+  cat %i/lib/perl5/darwin/perllocal.pod | sed -e s,%i/lib/perl5,%p/lib/perl5, > %i/share/podfiles/perllocal.%n.pod
+  #
+  mv %i/share/man/man8/master.8 %i/share/man/man8/master_imapd.8
+  rm -rf %i/lib/perl5/darwin/perllocal.pod
+  rm -rf %i/man
+
+<<
+DocFiles: COPYRIGHT README
+Description: Cyrus IMAP Server
+License: Restrictive/Distributable
+Homepage: http://asg.web.cmu.edu/cyrus/imapd
