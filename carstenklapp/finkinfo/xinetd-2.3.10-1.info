@@ -1,0 +1,93 @@
+Package: xinetd
+Version: 2.3.10
+Revision: 1
+Maintainer: Carsten Klapp <carstenklapp@users.sourceforge.net>
+Homepage: http://www.synack.net/xinetd/
+License: Restrictive
+Description: Secure replacement for inetd
+BuildDepends: libwrap
+DescDetail: <<
+  Released 24 Sep 2002
+  Will be compiled with built-in libwrap support. IPv6 is also built-in
+  as of version 2.3.8.
+
+  Apple's version in 10.2 is quite recent, 2.3.5. Still there are numerous
+  minor fixes.
+<<
+Source: http://www.synack.net/%n/%n-%v.tar.gz
+Source-MD5: c5178a634c0e621d644119f24d274885
+ConfigureParams: --with-libwrap=%p/lib --mandir='${prefix}/share/man' --libdir=%p/lib
+PostInstScript: <<
+  # Import existing %n.conf, %n.d or inetd.conf from /etc
+  if [ -f '%p/etc/%n.conf' ]; then
+     echo "/etc/inetd.conf file not imported, an existing %p/etc/%n.conf was found."
+  else
+     if [ -f '/etc/%n.conf' ]; then
+        # Import existing %n.conf
+        sed 's| /etc/%n.d| %p/etc/%n.d|g' < /etc/%n.conf > %p/etc/%n.conf
+        chmod 644 %p/etc/%n.conf
+        echo "Imported /etc/%n.conf to %p/etc/%n.conf."
+        if [ -d '%p/etc/%n.d' ]; then
+           echo "An existing %p/etc/%n.d directory was found."
+        else
+           if [ -d '/etc/%n.d' ]; then
+              # Import existing %n.d
+              mkdir -p %p/etc/%n.d
+              install -m 644 /etc/%n.d/* %p/etc/%n.d/
+              echo "Imported /etc/%n.d/ to %p/etc/%n.d."
+           fi
+        fi
+     else
+        # Import existing inetd.conf
+        %n/xconv.pl < /etc/inetd.conf > %p/etc/%n.conf
+        echo "Imported /etc/inetd.conf to %p/etc/%n.conf."
+     fi
+  fi
+  echo "Please take a look at the %p/etc/%n.conf file before using %n."
+  # update init script if necessary
+  daemonic update %n
+<<
+DescUsage: <<
+ Preparation:
+  Kill off any currently running %n:
+  sudo kill `cat /var/run/%n.pid`
+  sudo daemonic install %n
+  sudo daemonic enable %n
+
+ Start:
+  sudo /Library/StartupItems/daemonic-%n/daemonic-%n start
+ Stop:
+  sudo kill `cat /sw/var/run/%n.pid`
+
+ Fink already imports any existing inetd configuration. If you need to
+ import another inetd configuration file:
+ %n/xconv.pl < /etc/inetd.conf > %p/etc/%n.conf
+ Edit the %p/etc/%n.conf file to your liking.
+
+ Please take a look at the config file before using it. A default
+ config file is in %p/share/doc/%n/sample.conf. I can almost
+ guarantee you'll have problems if you use the default config file.
+<<
+DocFiles: <<
+  %n/sample.conf AUDIT CHANGELOG COPYRIGHT INSTALL README TODO
+<<
+DaemonicFile: <<
+<service>
+ <description>%n</description>
+ <message>%n</message>
+
+ <daemon name="%n">
+  <executable>%p/sbin/%n</executable>
+  <parameters>-pidfile %p/var/run/%n.pid</parameters>
+  <configfile>%p/etc/%n.conf</configfile>
+  <pidfile>%p/var/run/%n.pid</pidfile>
+ </daemon>
+
+</service>
+<<
+PreRmScript: <<
+# clean up
+if [ $1 != "upgrade" ]; then
+  daemonic remove %n
+fi
+<<
