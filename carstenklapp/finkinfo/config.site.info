@@ -5,15 +5,16 @@ Type: nosource
 CompileScript: echo "Nothing to compile."
 InstallScript: <<
 #!/bin/sh
- c=%i/var/cache/automake
- mkdir -p ${c}
- touch ${c}/%n
- chown -R root:staff ${c}
- chmod 775 ${c}
- chmod 664 ${c}/%n
+ dir=%i/var/cache/automake
+ cachef=${dir}/config.site
+ mkdir -p ${dir}
+ touch ${cachef}
+ chown -R root:staff ${dir}
+ chmod 775 ${dir}
+ chmod 664 ${cachef}
 <<
-ConfFiles: %p/var/cache/automake/%n
-RuntimeVars: CONFIG_SITE: %p/var/cache/automake/%n
+ConfFiles: %p/var/cache/automake/config.site
+RuntimeVars: CONFIG_SITE: %p/var/cache/automake/config.site
 Description: Site config.cache for automake configure results
 DescDetail: <<
  By default, configure uses ./config.cache as the cache file, creating
@@ -27,34 +28,45 @@ DescDetail: <<
  give it the --recheck option to rerun configure.
 <<
 DescUsage: <<
+After installation, CACHE_SITE will be active in new terminal windows.
+
 Some Suggestions If You Have Any ./configure Errors:
 
-Try 'fink reinstall %n'. This will filter some cache entries known to be problematic with fink.
+Not all configure scripts look for a config.site.
+
+Try 'fink reinstall %n'. This will filter some cache entries known to
+be problematic with fink.
+
 Try 'unsetenv CACHE_SITE' and build again.
+
 Failing that:
-- manually edit %p/var/cache/automake/%n
-- delete CFLAGS lines (or whichever indicated by the ./configure error)
-  or substitute those two lines with:
+- manually edit /sw/var/cache/automake/config.site
+- delete CFLAGS lines (or whichever indicated by the ./configure
+  error) or substitute those two lines with:
   ac_cv_env_CFLAGS_set=${ac_cv_env_CFLAGS_set=set}
   ac_cv_env_CFLAGS_value=${ac_cv_env_CFLAGS_value=-I/sw/include}
   (maybe a better PostInstScript to automate this)
+Failing that:
+- Delete /sw/var/cache/automake/config.site
 - Try again
-Finally, uninstall via: sudo fink purge config.site
+Finally, uninstall via: sudo fink purge %n
 <<
 PostInstScript: <<
 #!/bin/sh
- c=%p/var/cache/automake
+ dir=%p/var/cache/automake
+ cachef=${dir}/config.site
+ bak=${cachef}-bak
  echo "*"
- echo "* Checking: ${c}/%n"
- [ -f ${c}/%n ] && echo "* Backing up to: ${c}/%n-bak"; mv ${c}/%n ${c}/%n-bak
- [ -f ${c}/%n-bak ] && echo "* Filtering: ${c}/%n"; grep -v ac_cv_env_CFLAGS_set ${c}/%n-bak | grep -v ac_cv_env_CFLAGS_value > ${c}/%n
- echo "* Setting permissions g+rw for staff on: ${c}/*"
- chown -R root:staff ${c}
- chmod 775 ${c}
- chmod 664 ${c}/%n
+ echo "* Checking: ${cachef}"
+ [ -f ${cachef} ] && echo "* Backing up to: ${bak}"; mv ${cachef} ${bak}
+ [ -f ${bak} ] && echo "* Filtering: ${cachef}"; grep -v ac_cv_env_CFLAGS_set ${bak} | grep -v ac_cv_env_CFLAGS_value > ${cachef}
+ echo "* Setting permissions g+rw for staff on: ${dir}/*"
+ chown -R root:staff ${dir}
+ chmod 775 ${dir}
+ chmod 664 ${cachef}
  echo "*"
  echo "*** To completely remove this package"
- echo "    and delete the site cache ${c}/%n:"
+ echo "    along with the site cache ${cachef}:"
  echo " "
  echo "  sudo fink purge %n"
  echo " "
@@ -63,6 +75,6 @@ PostInstScript: <<
  echo "* WARNING: Read the DescUsage for troubleshooting *"
  echo "*          any cache problems in ./configure.     *"
  echo "***************************************************"
- <<
+<<
 License: GPL
 Maintainer: Carsten Klapp <carstenklapp@users.sourceforge.net>
