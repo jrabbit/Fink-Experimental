@@ -1,0 +1,279 @@
+diff -uNbr tomcat-orig/build.properties tomcat-patched/build.properties
+--- tomcat-orig/build.properties	Wed Dec 31 19:00:00 1969
++++ tomcat-patched/build.properties	Sun Mar 24 14:11:24 2002
+@@ -0,0 +1,128 @@
++# -----------------------------------------------------------------------------
++# build.properties.sample
++#
++# This is an example "build.properties" file, used to customize building Tomcat
++# for your local environment.  It defines the location of all external
++# modules that Tomcat depends on.  Copy this file to "build.properties"
++# in the top-level source directory, and customize it as needed.
++#
++# tomcat-4.0.2-0b2.patch,v 1.1 2002/03/24 15:25:23 ranger Exp
++# -----------------------------------------------------------------------------
++
++
++# ----- Compile Control Flags -----
++compile.debug=on
++compile.deprecation=off
++compile.optimize=on
++
++
++# ----- Build Control Flags
++full.dist=on
++#build.sysclasspath=ignore
++#flags.hide=on
++
++
++# ----- Default Base Path for Dependent Packages -----
++base.path=/sw
++
++
++# ----- Jakarta Tomcat Connectors path -----
++jakarta-tomcat-connector.home=../../jakarta-tomcat-connectors
++
++
++# ----- Tomcat utils -----
++tomcat-util.jar=../lib/tomcat-util.jar
++
++
++# ----- JK 1.3 connector for Tomcat 4.0 -----
++tomcat-ajp.jar=../lib/tomcat-ajp.jar
++
++
++# ----- Coyote connector for Tomcat 4.0 -----
++commons-logging.jar=../lib/commons-logging.jar
++tomcat-coyote.jar=../lib/tomcat-coyote.jar
++tomcat-http11.jar=../lib/tomcat-http11.jar
++
++
++# ----- Jakarta Regular Expressions Library, version 1.2 -----
++regexp.jar=../lib/jakarta-regexp-1.2.jar
++
++
++# ----- Jakarta Servlet API Classes (Servlet 2.3 / JSP 1.2) -----
++servlet.home=${base.path}
++servlet.lib=${servlet.home}/lib/jakarta-servletapi
++servlet.jar=${servlet.lib}/servlet.jar
++
++
++# ----- Java Activation Framework (JAF), version 1.0.1 or later -----
++activation.home=${base.path}
++activation.lib=${activation.home}/lib/jaf
++activation.jar=${activation.lib}/activation.jar
++
++
++# ----- Java API for XML Processing (JAXP), version 1.1 or later -----
++jaxp.home=${base.path}/lib/ant
++jaxp.lib=${jaxp.home}/lib
++#crimson.jar=${jaxp.lib}/crimson.jar
++#jaxp.jar=${jaxp.lib}/jaxp.jar
++xalan.jar=${base.path}/lib/xalan-j/xalan.jar
++xalan.xml-apis.jar=${basepath}/lib/xalan-j/xml-apis.jar
++
++
++# ----- Java Database Connectivity (JDBC) Optional Package, version 2.0 -----
++jdbc20ext.home=${base.path}
++jdbc20ext.lib=${jdbc20ext.home}/lib/jdbc-optional
++jdbc20ext.jar=${jdbc20ext.lib}/jdbc2_0-stdext.jar
++
++
++
++# ----- Java Mail, version 1.2 or later -----
++mail.home=${base.path}/
++mail.lib=${mail.home}/lib/javamail
++mail.jar=${mail.lib}/mail.jar
++
++
++# ----- Java Management Extensions (JMX) RI, version 1.0.1 or later -----
++jmx.home=${base.path}
++jmx.lib=${jmx.home}/lib/jmx
++jmxri.jar=${jmx.lib}/jmxinstr.jar
++
++
++# ----- Java Naming and Directory Interface (JNDI), version 1.2 or later -----
++jndi.home=${base.path}
++jndi.lib=${jndi.home}/lib/jndi
++jndi.jar=${jndi.lib}/jndi.jar
++ldap.jar=${jndi.lib}-ldap/ldap.jar
++
++
++# ----- Java Secure Sockets Extension (JSSE), version 1.0.2 or later -----
++jsse.home=/Library/Java/Home
++jsse.lib=${jsse.home}/lib/ext
++jcert.jar=${jsse.lib}/jcert.jar
++jnet.jar=${jsse.lib}/jnet.jar
++jsse.jar=${jsse.lib}/jsse.jar
++
++
++# ----- Java Transaction API (JTA), version 1.0.1 or later -----
++jta.home=${base.path}
++jta.lib=${jta.home}/lib/jta-spec
++jta.jar=${jta.lib}/jta-spec1_0_1.jar
++
++
++# ----- JUnit Unit Test Suite, version 3.7 or later -----
++junit.home=${base.path}
++junit.lib=${junit.home}/lib/junit
++junit.jar=${junit.lib}/junit.jar
++
++
++# ----- Tyrex Data Source, version 0.9.7 -----
++tyrex.home=${base.path}
++tyrex.lib=${tyrex.home}/lib/tyrex
++tyrex.jar=${tyrex.lib}/tyrex-0.9.7.0.jar
++
++
++# ----- Xerces XML Parser, version 1.4.3 or later -----
++xerces.home=${base.path}
++xerces.lib=${xerces.home}/lib/xerces-j
++xerces.jar=${xerces.lib}/xercesImpl.jar
++xerces.parser.jar=${xerces.lib}/xmlParserAPIs.jar
+diff -uNbr tomcat-orig/build.sh tomcat-patched/build.sh
+--- tomcat-orig/build.sh	Wed Dec 31 19:00:00 1969
++++ tomcat-patched/build.sh	Sun Mar 24 14:10:26 2002
+@@ -0,0 +1,7 @@
++#!/bin/sh
++
++for i in @PREFIX@/etc/profile.d/*.sh; do
++	source $i
++done
++
++ant dist
+diff -uNbr tomcat-orig/build.xml tomcat-patched/build.xml
+--- tomcat-orig/build.xml	Sun Mar 24 01:05:20 2002
++++ tomcat-patched/build.xml	Sun Mar 24 14:10:26 2002
+@@ -187,7 +187,7 @@
+     </copy>
+     <mkdir  dir="${tomcat.dist}/webapps/tomcat-docs/servletapi"/>
+     <copy todir="${tomcat.dist}/webapps/tomcat-docs/servletapi">
+-      <fileset dir="${servlet.home}/docs/api" />
++      <fileset dir="${servlet.home}/share/doc/jakarta-servletapi/api" />
+     </copy>
+   </target>
+ 
+diff -uNbr tomcat-orig/catalina/build.xml tomcat-patched/catalina/build.xml
+--- tomcat-orig/catalina/build.xml	Sun Mar 24 01:05:18 2002
++++ tomcat-patched/catalina/build.xml	Sun Mar 24 14:10:24 2002
+@@ -21,6 +21,7 @@
+ 
+   <!-- Construct Catalina classpath -->
+   <path id="catalina.classpath">
++    <pathelement location="${xerces.parser.jar}"/>
+     <pathelement location="${activation.jar}"/>
+     <pathelement location="${jcert.jar}"/>
+     <pathelement location="${jdbc20ext.jar}"/>
+@@ -41,6 +42,7 @@
+   <!-- Construct unit tests classpath -->
+   <path id="test.classpath">
+     <pathelement location="${junit.jar}"/>
++    <pathelement location="${xerces.parser.jar}"/>
+     <pathelement location="${activation.jar}"/>
+     <pathelement location="${jcert.jar}"/>
+     <pathelement location="${jdbc20ext.jar}"/>
+@@ -77,9 +79,9 @@
+     <condition property="jaxp.present">
+       <and>
+         <available classname="javax.xml.parsers.SAXParser"
+-         classpath="${xerces.jar}" />
++         classpath="${xerces.jar}:${xerces.parser.jar}" />
+         <available classname="org.xml.sax.ContentHandler"
+-         classpath="${xerces.jar}" />
++         classpath="${xerces.jar}:${xerces.parser.jar}" />
+       </and>
+     </condition>
+     <condition property="javamail.present">
+@@ -131,7 +133,7 @@
+      classpath="${tyrex.jar}" />
+     <available property="xerces.present"
+      classname="org.apache.xerces.parsers.SAXParser"
+-     classpath="${xerces.jar}" />
++     classpath="${xerces.jar}:${xerces.parser.jar}" />
+ 
+     <!-- JAR files availability flags -->
+     <available property="tomcat-ajp.jar.present" file="${tomcat-ajp.jar}" />
+@@ -474,6 +476,7 @@
+   </target>
+   <target name="copy-xerces.jar" if="copy.xerces.jar">
+     <copy todir="${catalina.build}/common/lib" file="${xerces.jar}"/>
++    <copy todir="${catalina.build}/common/lib" file="${xerces.parser.jar}"/>
+   </target>
+ 
+ 
+diff -uNbr tomcat-orig/jasper/build.xml tomcat-patched/jasper/build.xml
+--- tomcat-orig/jasper/build.xml	Sun Mar 24 01:05:18 2002
++++ tomcat-patched/jasper/build.xml	Sun Mar 24 14:10:47 2002
+@@ -23,6 +23,7 @@
+     <pathelement location="${servlet.jar}"/>
+     <pathelement location="${tools.jar}"/>
+     <pathelement location="${xerces.jar}"/>
++    <pathelement location="${xerces.parser.jar}"/>
+     <pathelement location="${jasper.build}/classes"/>
+   </path>
+ 
+@@ -32,6 +33,7 @@
+     <pathelement location="${servlet.jar}"/>
+     <pathelement location="${tools.jar}"/>
+     <pathelement location="${xerces.jar}"/>
++    <pathelement location="${xerces.parser.jar}"/>
+     <pathelement location="${jasper.build}/classes"/>
+     <pathelement location="${jasper.build}/tests"/>
+   </path>
+diff -uNbr tomcat-orig/tomcat tomcat-patched/tomcat
+--- tomcat-orig/tomcat	Wed Dec 31 19:00:00 1969
++++ tomcat-patched/tomcat	Sun Mar 24 14:10:26 2002
+@@ -0,0 +1,53 @@
++#!/bin/sh
++# wrapper script for tomcat startup
++
++JAVA_HOME=/Library/Java/Home		export JAVA_HOME
++JSSE_HOME=$JAVA_HOME/lib/ext		export JSSE_HOME
++CATALINA_HOME=@PREFIX@/var/tomcat4	export CATALINA_HOME
++CATALINA_OPTS="-DTOMCATLAUNCH=true"	export CATALINA_OPTS
++
++tcproccount() {
++	ps -auxwww | grep TOMCATLAUNCH | grep -v grep | wc -l
++}
++
++case "$1" in
++	start)
++		echo -n "Starting Tomcat: "
++		$CATALINA_HOME/bin/catalina.sh start >>@PREFIX@/var/tomcat4/logs/tomcat.log 2>&1
++		echo "ok"
++		;;
++
++	stop)
++		$CATALINA_HOME/bin/catalina.sh stop >>@PREFIX@/var/tomcat4/logs/tomcat.log 2>&1
++		;;
++
++	restart)
++		$0 stop
++
++		# wait 20 seconds and if tomcat hasn't shut down, error out
++		TCDONE=0
++		for i in 1 2 3 4 5 6 7 8 9 10; do
++			if [ "`tcproccount`" -ge 1 ]; then
++				sleep 2
++			else
++				TCDONE=1
++				break
++			fi
++		done
++		if [ "$TCDONE" = "1" ]; then
++			start
++		else
++			echo ""
++			echo "Tomcat is not shutting down properly.  Please check"
++			echo "your logs and try again."
++			echo ""
++			exit 1
++		fi
++		;;
++
++	*)
++		echo "Usage: $0 {start|stop|restart}"
++		exit 1
++		;;
++
++esac

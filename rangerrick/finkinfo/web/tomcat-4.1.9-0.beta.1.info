@@ -1,0 +1,80 @@
+Package: tomcat
+Version: 4.1.9
+Revision: 0.beta.1
+Source: http://jakarta.apache.org/builds/jakarta-tomcat-4.0/release/v%v/src/jakarta-%n-%v-src.tar.gz
+SourceDirectory: jakarta-%n-%v-src
+BuildDepends: ant (>= 1.5), xalan-j (>= 2.2), xerces-j (>= 2.0), jaf, jakarta-servletapi, javamail, jdbc-optional, jmx, jndi, jndi-ldap, jta-spec, tyrex, passwd (>= 20020106), daemonic
+Depends: xalan-j (>= 2.2), xerces-j (>= 2.0), jaf, jakarta-servletapi, javamail, jdbc-optional, jmx, jndi, jndi-ldap, jta-spec, tyrex, passwd (>= 20020106), daemonic
+ConfFiles: <<
+  %p/var/tomcat4/conf/catalina.policy
+  %p/var/tomcat4/conf/server.xml
+  %p/var/tomcat4/conf/web.xml
+  %p/var/tomcat4/conf/tomcat-users.xml
+<<
+PatchScript: sed 's:@PREFIX@:%p:g' <%a/%f.patch | patch -p1
+CompileScript: sh build.sh deploy detect
+InstallScript: mkdir -p %i/var/tomcat4
+ cp -R dist/* %i/var/tomcat4/
+ find %i/var/tomcat4 -type d -exec chmod 755 {} \;
+ find %i/var/tomcat4 -type f -exec chmod 644 {} \;
+ chmod 755 %i/var/tomcat4/bin/*.sh
+ rm -rf %i/var/tomcat4/bin/*.bat
+ mkdir -p %i/share/doc/%n
+ mv %i/var/tomcat4/*.txt %i/var/tomcat4/LICENSE %i/share/doc/%n/
+ chown -R tomcat:tomcat %i/var/tomcat4
+ mkdir -p %i/bin
+ cp tomcat %i/bin
+ chmod 755 %i/bin/tomcat
+ mkdir -p %i/var/log
+ ln -sf %p/var/tomcat4/logs %i/var/log/tomcat4
+
+DaemonicFile: <<
+<service>
+ <description>Tomcat servlet engine</description>
+ <message>Tomcat servlet engine</message>
+ <daemon name="tomcat">
+  <executable background="no">/usr/bin/sudo</executable>
+  <parameters>-u tomcat %p/bin/tomcat start</parameters>
+ </daemon>
+</service>
+<<
+
+PostInstScript: <<
+# update daemonic init script if necessary
+daemonic install tomcat
+<<
+PreRmScript: <<
+# clean up
+if [ $1 != "upgrade" ]; then
+  daemonic remove tomcat
+  rm -rf %p/tomcat4/work/*
+  rm -rf %p/tomcat4/logs/*
+fi
+<<
+
+Homepage: http://jakarta.apache.org/tomcat/index.html
+Maintainer: Benjamin Reed <ranger@befunk.com>
+Description: Java Servlet 2.3 Container and Web Server
+DescDetail: <<
+Tomcat is the servlet container that is used in the official Reference
+Implementation for the Java Servlet and JavaServer Pages technologies.
+The Java Servlet and JavaServer Pages specifications are developed by
+Sun under the Java Community Process. 
+
+Tomcat 4.0 implements a new servlet container (called Catalina) that is
+based on completely new architecture.  The 4.0 release implements the
+Servlet 2.3 and JSP 1.2 specifications. 
+<<
+DescPackaging: <<
+Tomcat is designed to be somewhat self-contained, and so does not fit
+the fink (and debian, for that matter) packaging guidelines.  I followed
+the way it's set up in the RedHat packages and put it in /var/tomcat4
+(I think debian does it this way as well for tomcat3, there is no
+tomcat4 package for debian yet).
+<<
+DescPort: <<
+All that has changed is the defaults for building, and a wrapper script
+for starting/stopping tomcat that goes in the %p/bin directory, along
+with a daemonic config.
+<<
+License: BSD
