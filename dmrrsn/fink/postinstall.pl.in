@@ -32,6 +32,9 @@ use Fink::Services qw(&print_breaking &prompt &prompt_boolean
 
 use Fink::Config qw($config $basepath $libpath);
 
+use File::Find;
+use File::Basename;
+
 # read the configuration file
 my ($config, $configpath);
 $configpath = "@PREFIX@/etc/fink.conf";
@@ -101,10 +104,14 @@ if (-d "$distdir/CVS") {
     }
 }
 
-### move the old dists directory to $basepath/fink/10.1, if its not already 
-### there, and add symlinks; also add a line to $basepath/etc/apt/sources.list
+### If the old dists directory has not yet been moved to $basepath/fink/10.1:
+###  1) move it there, add appropriate symlinks to dists
+###  2) add a line to $basepath/etc/apt/sources.list so that apt finds old
+###     debs
+###  3) re-do the symlinks in /sw/fink/debs to point to the new locations
 
-my ($aptfile) ;
+
+my ($aptfile, $basenm) ;
 
 $aptfile = "$basepath/etc/apt/sources.list" ;
 
@@ -208,6 +215,20 @@ EOF
 		exit 1;
 	    }
 	}
+
+### We create new symlinks in $basepath/fink/debs to point to the existing
+### debs in the 10.1 tree
+
+    find ({ wanted => \&process, follow => 1,  no_chdir => 1 }, "$basepath/fink/10.1");
+sub process {
+        if (($File::Find::fullname =~ /\.deb$/)) {    
+	    $basenm = basename($File::Find::fullname);
+	    unlink "$basepath/fink/debs/$basenm" ;
+	    symlink "$File::Find::fullname", "$basepath/fink/debs/$basenm" or die "ERROR: Can't create link from $File::Find::fullname to $basepath/fink/debs/$basenm";
+	}
+    }
+
+
 }
 
 ### Now, if we are running 10.2, we need to create $basepath/fink/10.2 if
