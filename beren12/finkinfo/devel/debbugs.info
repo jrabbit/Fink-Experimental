@@ -1,0 +1,72 @@
+Package: debbugs
+Version: 2.4.2
+Revision: 1
+Source: %n-%v.tar.bz2
+SourceDirectory: %n
+PatchScript: sed -e s,@FINKPREFIX@,%p, %a/%n.patch | patch -p1
+Depends: perl584, mime-tools-pm, mailtools-pm, mldbm-pm, io-stringy-pm
+BuildDepends: fileutils
+CompileScript: <<
+  echo foo
+<<
+
+InstallScript: <<
+make install_mostfiles DESTDIR=%i
+cd %i/var/lib/debbugs/spool/db-h && perl -e 'map { mkdir $_ } (0..99)'
+<<
+
+ConfFiles: %p/etc/debbugs/html/Access.html.in %p/etc/debbugs/html/Developer.html.in %p/etc/debbugs/html/Reporting.html.in %p/etc/debbugs/html/index.html.in %p/etc/debbugs/html/server-control.html.in %p/etc/debbugs/html/server-refcard.html.in %p/etc/debbugs/html/server-request.html.in
+
+DocFiles: COPYING UPGRADE README debian/README.mail debian/README.Debian debian/TODO debian/changelog debian/copyright
+PostInstScript: <<
+#!/bin/sh -e
+
+if [ "$1" = "configure" ]; then
+  %p/sbin/debbugsconfig
+  if dpkg --compare-versions "$2" lt 2.4; then
+    spool=`perl -e 'require "%p/etc/debbugs/config"; print $gSpoolDir;'`
+    if [ -d "$spool/db" ]; then
+      if [ -d "$spool/db-h" ]; then
+        echo "Cannot migrate bug database to hashed format, because" >&2
+        echo "$spool/db-h already exists." >&2
+        echo "Rectify the situation and run the following command by hand:" >&2
+        echo "  %p/sbin/debbugs-dbhash \"$spool/db\" \"$spool/db-h\"" >&2
+      else
+        echo "Migrating bug database to hashed format." >&2
+        %p/sbin/debbugs-dbhash "$spool/db" "$spool/db-h"
+        echo "You can remove bug logs from $spool/db" >&2
+        echo "after ensuring that the new database works." >&2
+      fi
+    fi
+  fi
+fi
+
+if [ -f %p/etc/debbugs/nextnumber ]; then
+  rm -f %p/etc/debbugs/nextnumber
+fi
+<<
+
+PostRmScript: <<
+#!/bin/sh
+
+if [ "$1" = "purge" ]; then
+  rm -rf %p/etc/debbugs %p/var/lib/debbugs
+fi
+<<
+
+Description: The bug tracking system based on the active Debian BTS
+DescDetail: <<
+Debian has a bug tracking system which files details of bugs reported by
+users and developers. Each bug is given a number, and is kept on file until
+it is marked as having been dealt with. The system is mainly controlled by
+e-mail, but the bug reports can be viewed using the WWW.
+
+This version is fully functional, but it does not automatically configure.
+See /sw/share/doc/debbugs/README.Debian after installation.
+
+Note: there might be various issues with this package, caveat emptor.
+<<
+License: GPL
+Maintainer: Chris Zubrzycki <beren12@users.sourceforge.net>
+Homepage: http://
+Source-MD5: dab04deabb0aab2d2d1eb58759b829b8

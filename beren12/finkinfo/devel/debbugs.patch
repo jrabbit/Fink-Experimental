@@ -1,0 +1,1149 @@
+diff -ruN debbugs/Debbugs/CVS/Entries debbugs.new/Debbugs/CVS/Entries
+--- debbugs/Debbugs/CVS/Entries	Sun Sep  5 19:28:23 2004
++++ debbugs.new/Debbugs/CVS/Entries	Thu Sep  9 19:01:14 2004
+@@ -5,4 +5,5 @@
+ /Log.pm/1.3/Mon Jul 14 18:50:51 2003//
+ /MIME.pm/1.1/Sun Aug  3 09:46:30 2003//
+ /Versions.pm/1.2/Tue Jul 15 09:40:00 2003//
+-D
++D/DBase////
++D/Versions////
+diff -ruN debbugs/Debbugs/CVS/Entries.Log debbugs.new/Debbugs/CVS/Entries.Log
+--- debbugs/Debbugs/CVS/Entries.Log	Sun Sep  5 19:28:24 2004
++++ debbugs.new/Debbugs/CVS/Entries.Log	Wed Dec 31 16:00:00 1969
+@@ -1,2 +0,0 @@
+-A D/DBase////
+-A D/Versions////
+diff -ruN debbugs/Debbugs/DBase/CVS/Entries debbugs.new/Debbugs/DBase/CVS/Entries
+--- debbugs/Debbugs/DBase/CVS/Entries	Sun Sep  5 19:28:23 2004
++++ debbugs.new/Debbugs/DBase/CVS/Entries	Thu Sep  9 19:01:14 2004
+@@ -1,3 +1,3 @@
+ /Log.pm/1.1/Mon May  1 23:28:03 2000//
+ /LogEntry.pm/1.1/Mon May  1 23:28:03 2000//
+-D
++D/Log////
+diff -ruN debbugs/Debbugs/DBase/CVS/Entries.Log debbugs.new/Debbugs/DBase/CVS/Entries.Log
+--- debbugs/Debbugs/DBase/CVS/Entries.Log	Sun Sep  5 19:28:23 2004
++++ debbugs.new/Debbugs/DBase/CVS/Entries.Log	Wed Dec 31 16:00:00 1969
+@@ -1 +0,0 @@
+-A D/Log////
+diff -ruN debbugs/Makefile debbugs.new/Makefile
+--- debbugs/Makefile	Sun Jan 11 02:42:58 2004
++++ debbugs.new/Makefile	Thu Sep  9 20:38:53 2004
+@@ -1,13 +1,13 @@
+ # top-level Makefile for debbugs
+ # probably requires GNU make to run properly
+ 
+-sbin_dir	:= $(DESTDIR)/usr/sbin
++sbin_dir	:= $(DESTDIR)/sbin
+ etc_dir		:= $(DESTDIR)/etc/debbugs
+ var_dir		:= $(DESTDIR)/var/lib/debbugs
+-scripts_dir	:= $(DESTDIR)/usr/lib/debbugs
+-perl_dir	:= $(DESTDIR)/usr/share/perl5/Debbugs
+-doc_dir		:= $(DESTDIR)/usr/share/doc/debbugs
+-man_dir		:= $(DESTDIR)/usr/share/man
++scripts_dir	:= $(DESTDIR)/lib/debbugs
++perl_dir	:= $(DESTDIR)/lib/perl5/Debbugs
++doc_dir		:= $(DESTDIR)/share/doc/debbugs
++man_dir		:= $(DESTDIR)/share/man
+ man8_dir	:= $(man_dir)/man8
+ examples_dir	:= $(doc_dir)/examples
+ 
+@@ -41,6 +41,7 @@
+ 	# install examples
+ 	$(install_data) scripts/config.in $(examples_dir)/config
+ 	$(install_data) scripts/config.debian $(examples_dir)/config.debian
++	$(install_data) scripts/config.fink $(examples_dir)/config.fink
+ 	$(install_data) scripts/text.in $(examples_dir)/text
+ 	$(install_data) debian/crontab misc/nextnumber misc/Maintainers \
+ 	  misc/Maintainers.override misc/pseudo-packages.description \
+diff -ruN debbugs/README debbugs.new/README
+--- debbugs/README	Fri Aug 27 16:36:44 2004
++++ debbugs.new/README	Thu Sep  9 19:01:14 2004
+@@ -34,13 +34,13 @@
+ INSTALLATION INSTRUCTIONS
+ =============================================================================
+ 
+-Install the Debian package and read /usr/share/doc/debbugs/README.Debian file.
++Install the Fink package and read @FINKPREFIX@/share/doc/debbugs/README.Debian file.
+ 
+ If you can't use the .deb, do the following:
+ 
+ 1. Run "make install" from the source directory.
+ 
+-2. Edit the config files in /etc/debbugs/ directory to suit your needs.
++2. Edit the config files in @FINKPREFIX@/etc/debbugs/ directory to suit your needs.
+ Re-run debbugsconfig when you're finished to regenerate the
+ documentation.
+ 
+@@ -50,25 +50,25 @@
+ All other email should be piped into the receive script.
+ 
+ 4. Set up your HTTP server to point people looking for bug reports to
+-/var/lib/debbugs/www and set /var/lib/debbugs/www/cgi as a valid CGI
++@FINKPREFIX@/var/lib/debbugs/www and set @FINKPREFIX@/var/lib/debbugs/www/cgi as a valid CGI
+ directory.
+ 
+ 5. Test things a bit, by sending mail messages to the bug system and
+-running /usr/lib/debbugs/processall and/or /usr/lib/debbugs/rebuild.
++running @FINKPREFIX@/lib/debbugs/processall and/or @FINKPREFIX@/lib/debbugs/rebuild.
+ The latter updates index files used by the CGI scripts.  If you're
+-feeling brave, you can link /var/lib/debbugs/spool/index.db to
++feeling brave, you can link @FINKPREFIX@/var/lib/debbugs/spool/index.db to
+ index.db.realtime and .../index.archive to index.archive.realtime to
+ remove the need for the rebuild script; this is still semi-experimental.
+ 
+ 6. If all seems well then install the crontab from
+-/usr/share/doc/debbugs/examples/crontab.
++@FINKPREFIX@/share/doc/debbugs/examples/crontab.
+ 
+ Notes:
+ 
+-Each line of /etc/debbugs/Maintainers file needs to be formatted like
++Each line of @FINKPREFIX@/etc/debbugs/Maintainers file needs to be formatted like
+ this: "package       maintainer name <e-mail@address>".
+ 
+-If you need a template, look in /usr/share/doc/debbugs/examples/ directory.
++If you need a template, look in @FINKPREFIX@/share/doc/debbugs/examples/ directory.
+ 
+ =============================================================================
+ FURTHER INFORMATION
+diff -ruN debbugs/cgi/bugreport.cgi debbugs.new/cgi/bugreport.cgi
+--- debbugs/cgi/bugreport.cgi	Mon May 31 17:41:26 2004
++++ debbugs.new/cgi/bugreport.cgi	Thu Sep  9 19:01:14 2004
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl -wT
++#!@FINKPREFIX@/bin/perl -wT
+ 
+ package debbugs;
+ 
+@@ -9,11 +9,11 @@
+ use IO::Scalar;
+ use IO::Lines;
+ 
+-#require '/usr/lib/debbugs/errorlib';
++#require '@FINKPREFIX@/lib/debbugs/errorlib';
+ require './common.pl';
+ 
+-require '/etc/debbugs/config';
+-require '/etc/debbugs/text';
++require '@FINKPREFIX@/etc/debbugs/config';
++require '@FINKPREFIX@/etc/debbugs/text';
+ 
+ use vars(qw($gEmailDomain $gHTMLTail $gSpoolDir $gWebDomain));
+ 
+@@ -246,7 +246,7 @@
+ 
+ if ($buglog =~ m/\.gz$/) {
+     my $oldpath = $ENV{'PATH'};
+-    $ENV{'PATH'} = '/bin:/usr/bin';
++    $ENV{'PATH'} = '@FINKPREFIX@/bin:/bin:/usr/bin';
+     open L, "zcat $buglog |" or &quitcgi("open log for $ref: $!");
+     $ENV{'PATH'} = $oldpath;
+ } else {
+diff -ruN debbugs/cgi/bugs-fetch2.pl.in debbugs.new/cgi/bugs-fetch2.pl.in
+--- debbugs/cgi/bugs-fetch2.pl.in	Mon Apr 19 06:09:27 2004
++++ debbugs.new/cgi/bugs-fetch2.pl.in	Thu Sep  9 19:01:14 2004
+@@ -1,8 +1,8 @@
+-#!/usr/bin/perl
++#!@FINKPREFIX@/bin/perl
+ 
+ require './common.pl';
+ 
+-require '/etc/debbugs/config';
++require '@FINKPREFIX@/etc/debbugs/config';
+ 
+ %map= ($gMirrors);
+ 
+diff -ruN debbugs/cgi/common.pl debbugs.new/cgi/common.pl
+--- debbugs/cgi/common.pl	Sat Mar 27 22:02:45 2004
++++ debbugs.new/cgi/common.pl	Thu Sep  9 19:01:14 2004
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl -w
++#!@FINKPREFIX@/bin/perl -w
+ 
+ use DB_File;
+ use Fcntl qw/O_RDONLY/;
+@@ -6,8 +6,8 @@
+ use MLDBM qw/DB_File/;
+ use POSIX qw/ceil/;
+ 
+-$config_path = '/etc/debbugs';
+-$lib_path = '/usr/lib/debbugs';
++$config_path = '@FINKPREFIX@/etc/debbugs';
++$lib_path = '@FINKPREFIX@/lib/debbugs';
+ require "$lib_path/errorlib";
+ 
+ use Debbugs::Versions;
+diff -ruN debbugs/cgi/pkgindex.cgi debbugs.new/cgi/pkgindex.cgi
+--- debbugs/cgi/pkgindex.cgi	Wed Aug  6 16:35:55 2003
++++ debbugs.new/cgi/pkgindex.cgi	Thu Sep  9 19:01:14 2004
+@@ -1,15 +1,15 @@
+-#!/usr/bin/perl -wT
++#!@FINKPREFIX@/bin/perl -wT
+ 
+ package debbugs;
+ 
+ use strict;
+ use POSIX qw(strftime tzset nice);
+ 
+-#require '/usr/lib/debbugs/errorlib';
++#require '@FINKPREFIX@/lib/debbugs/errorlib';
+ require './common.pl';
+ 
+-require '/etc/debbugs/config';
+-require '/etc/debbugs/text';
++require '@FINKPREFIX@/etc/debbugs/config';
++require '@FINKPREFIX@/etc/debbugs/text';
+ 
+ nice(5);
+ 
+diff -ruN debbugs/cgi/pkgreport.cgi debbugs.new/cgi/pkgreport.cgi
+--- debbugs/cgi/pkgreport.cgi	Mon Apr 19 03:30:42 2004
++++ debbugs.new/cgi/pkgreport.cgi	Thu Sep  9 19:01:14 2004
+@@ -1,15 +1,15 @@
+-#!/usr/bin/perl -wT
++#!@FINKPREFIX@/bin/perl -wT
+ 
+ package debbugs;
+ 
+ use strict;
+ use POSIX qw(strftime tzset nice);
+ 
+-#require '/usr/lib/debbugs/errorlib';
++#require '@FINKPREFIX@/lib/debbugs/errorlib';
+ require './common.pl';
+ 
+-require '/etc/debbugs/config';
+-require '/etc/debbugs/text';
++require '@FINKPREFIX@/etc/debbugs/config';
++require '@FINKPREFIX@/etc/debbugs/text';
+ 
+ use vars qw($gPackagePages $gWebDomain);
+ 
+diff -ruN debbugs/debbugs-dump debbugs.new/debbugs-dump
+--- debbugs/debbugs-dump	Mon May  1 16:29:49 2000
++++ debbugs.new/debbugs-dump	Thu Sep  9 19:01:14 2004
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl -w
++#!@FINKPREFIX@/bin/perl -w
+ 
+ push(@INC,'.');
+ use strict;
+diff -ruN debbugs/debbugs-service debbugs.new/debbugs-service
+--- debbugs/debbugs-service	Sat Jun 17 22:03:23 2000
++++ debbugs.new/debbugs-service	Thu Sep  9 19:01:14 2004
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl -w
++#!@FINKPREFIX@/bin/perl -w
+ # Usage: service <code>.nn
+ # Temps:  incoming/P<code>.nn
+ 
+diff -ruN debbugs/debian/README.Debian debbugs.new/debian/README.Debian
+--- debbugs/debian/README.Debian	Sat Jan 27 14:09:01 2001
++++ debbugs.new/debian/README.Debian	Thu Sep  9 19:01:14 2004
+@@ -4,25 +4,25 @@
+ Configuration
+ -------------
+ On initial installation, debbugsconfig will be run, and it will copy the
+-basic configuration files to /etc/debbugs. Edit those files to suit your
++basic configuration files to @FINKPREFIX@/etc/debbugs. Edit those files to suit your
+ needs, and re-run debbugsconfig.
+ 
+ WWW
+ ---
+ It's up to you to set up the httpd.  The basics: web files are located into 
+-/var/lib/debbugs/www and the CGI scripts are in /var/lib/debbugs/www/cgi.
++@FINKPREFIX@/var/lib/debbugs/www and the CGI scripts are in @FINKPREFIX@/var/lib/debbugs/www/cgi.
+ Point your server's configuration to these places.
+ 
+ Mail
+ ----
+ It's up to you to set up the MTA.  The basics: mail has to be DELIVERED to
+-the script /usr/lib/debbugs/receive via stdin.  Important environment
++the script @FINKPREFIX@/lib/debbugs/receive via stdin.  Important environment
+ variables set by the MTA are used so it has to be processed from within the
+ MTA. See README.mail for more information.
+ 
+ Cron
+ ----
+-Check the sample crontab in /usr/share/doc/debbugs/examples for what should
++Check the sample crontab in @FINKPREFIX@/share/doc/debbugs/examples for what should
+ be run, in what order and how often.
+ 
+ Summary
+diff -ruN debbugs/debian/README.mail debbugs.new/debian/README.mail
+--- debbugs/debian/README.mail	Sat Aug 23 05:55:41 2003
++++ debbugs.new/debian/README.mail	Thu Sep  9 19:01:14 2004
+@@ -3,7 +3,7 @@
+ 
+ Config
+ ------
+-Be sure to set the $gMailer variable correctly in /etc/debbugs/config.
++Be sure to set the $gMailer variable correctly in @FINKPREFIX@/etc/debbugs/config.
+ The options are (all lower case) exim, qmail and sendmail.
+ 
+ Exim
+@@ -17,7 +17,7 @@
+   driver = pipe
+   user = <some non-root user>
+   group = <some non-root group>
+-  command = /usr/lib/debbugs/receive
++  command = @FINKPREFIX@/lib/debbugs/receive
+   return_output
+ 
+     Do not use root user/group, it is very unsafe. You could even add a new
+@@ -53,13 +53,13 @@
+ 
+ debbugs_transport:
+   driver = pipe
+-  command = /usr/lib/debbugs/receive
++  command = @FINKPREFIX@/lib/debbugs/receive
+   user = <some non-root user>
+   group = <some non-root group>
+-  current_directory = /etc/debbugs
+-  home_directory = /var/lib/debbugs/spool
++  current_directory = @FINKPREFIX@/etc/debbugs
++  home_directory = @FINKPREFIX@/var/lib/debbugs/spool
+ 
+-    (current_directory may need to be /var/lib/debbugs/spool, depending on
++    (current_directory may need to be @FINKPREFIX@/var/lib/debbugs/spool, depending on
+     your setup.)
+ 
+     Next, the mail domains MUST NOT be in the "local_domains" list!
+@@ -77,17 +77,17 @@
+ Here's my suggestion for safe & secure installation under qmail:
+         
+ Create a separate user for the debbugs system.
+-	# adduser --system --group --home /home/misc/debbugs debbugs
++	# adduser --system --group --home /Users/misc/debbugs debbugs
+ Give control of a virtual domain to that user
+-	# echo bugs.example.com:debbugs >>/etc/qmail/virtualdomains
++	# echo bugs.example.com:debbugs >>@FINKPREFIX@/etc/qmail/virtualdomains
+ Give the user access to the bug databases
+-	# chown -R debbugs:debbugs /var/lib/debbugs/*
++	# chown -R debbugs:debbugs @FINKPREFIX@/var/lib/debbugs/*
+ Set the BTS owner address
+ 	# echo '&me@my.example.com' >~debbugs/.qmail-owner
+ Make the BTS handle it's mail
+-	# echo '|/usr/lib/debbugs/receive' >~debbugs/.qmail-default
++	# echo '|@FINKPREFIX@/lib/debbugs/receive' >~debbugs/.qmail-default
+ Reload the virtualdomains config file
+-	# /etc/init.d/qmail reload
++	# @FINKPREFIX@/etc/init.d/qmail reload
+ That's it!
+         
+ Sendmail
+@@ -95,7 +95,7 @@
+ From Wichert Akkerman (wakkerma@debian.org):
+ 
+ First of all make sure that debbugs is configured for sendmail: look
+-at /etc/debbugs/config for the $gMailer variable and make sure it is
++at @FINKPREFIX@/etc/debbugs/config for the $gMailer variable and make sure it is
+ set to 'sendmail'.
+ 
+ Next make sure that your DNS is configured properly. For sendmail
+@@ -105,7 +105,7 @@
+ 
+         bugs            IN      192.168.2.100
+                                 0 MX mailgate.mors.net
+-                                HINFO "PC Pentium" "Debbugs 2.0"
++                                HINFO "PPC" "Debbugs 2.0"
+ 
+ Now that that is finished it is time to configure sendmail itself. First
+ make sure that sendmail does not consider the debbugs-domain as local by
+@@ -118,14 +118,14 @@
+ 
+ To enable the mailertable put the following line in your sendmail.mc file:
+ 
+-        FEATURE(mailertable, `text -o /etc/mail/mailertable')dnl
++        FEATURE(mailertable, `text -o @FINKPREFIX@/etc/mail/mailertable')dnl
+ 
+-This tells sendmail to use the textfile /etc/mail/mailertable as the
++This tells sendmail to use the textfile @FINKPREFIX@/etc/mail/mailertable as the
+ database containing the table. You can also use a db database if you
+ want to add a lot of entries in there since that is faster. If you
+ want to do that use the following line instead:
+ 
+-        FEATURE(mailertable, `hash -o /etc/mail/mailertable.db')dnl
++        FEATURE(mailertable, `hash -o @FINKPREFIX@/etc/mail/mailertable.db')dnl
+ 
+ You can create the database using the following command:
+ 
+@@ -137,14 +137,14 @@
+ agent. To do this add the following two lines to your sendmail.mc file,
+ preferably just after the MAILER commands:
+ 
+-Mdebbugs,       P=/usr/lib/debbugs/receive, F=SDFMlhudb80, U=<uid>:<gid>,
++Mdebbugs,       P=@FINKPREFIX@/lib/debbugs/receive, F=SDFMlhudb80, U=<uid>:<gid>,
+                 S=10/30, R=20/30, D=/tmp, T=DNS/RFC822/X-Unix, A=receive $u
+ 
+ Where <uid> and <gid> should be replaced with the user and group you
+ use for debbugs.
+ 
+ Okay, we are now done with sendmail.mc and are ready to add the entry
+-in your mailertable. Save sendmail.mc and load /etc/mail/mailertable in
++in your mailertable. Save sendmail.mc and load @FINKPREFIX@/etc/mail/mailertable in
+ your editor. Put a single line in there just like this one:
+ 
+         bugs.your.net           debbugs:yournet
+@@ -172,12 +172,12 @@
+ 
+ 	bugs.domain.net		MX	50	master.domain.net.
+ 
+-In /etc/postfix/main.cf enable the transport maps by inserting the
++In @FINKPREFIX@/etc/postfix/main.cf enable the transport maps by inserting the
+ following line:
+ 
+-	transport_maps = hash:/etc/postfix/transport
++	transport_maps = hash:@FINKPREFIX@/etc/postfix/transport
+ 
+-Now create /etc/postfix/transport and insert:
++Now create @FINKPREFIX@/etc/postfix/transport and insert:
+ 
+ 	bugs.domain.net        debbugs:
+ 
+@@ -185,16 +185,16 @@
+ mail send to bugs.domain.net. Now we need to make a database from that
+ that postfix can use:
+ 
+-	# makemap hash transport
++	# postmap hash:transport
+ 
+ Now we need to teach postfix what the debbugs transport agent is. Edit
+-/etc/postfix/master.cf and add:
++@FINKPREFIX@/etc/postfix/master.cf and add:
+ 
+ 	debbugs   unix  -       n       n       -       -       pipe
+-		flags=F user=debbugs argv=/usr/lib/debbugs/receive $recipient
++		flags=F user=debbugs argv=@FINKPREFIX@/lib/debbugs/receive ${recipient}
+ 
+ This assumes that you are running debbugs with uid debbugs (the package
+-doesn't do that by default, but I generally chown /var/lib/debbugs/*
++doesn't do that by default, but I generally chown @FINKPREFIX@/var/lib/debbugs/*
+ to a new debbugs account just to be safe).
+ 
+ Finally add bugs.domain.net to mydestination in main.cf:
+@@ -230,7 +230,7 @@
+         LOGFILE=$MAILDIR/.logfile
+         COMSAT=no
+         UMASK=003
+-        SPAMC=/usr/bin/spamc
++        SPAMC=@FINKPREFIX@/bin/spamc
+         SENDMAIL=/usr/sbin/sendmail
+         YEARMONTH=`/bin/date +%Y-%m`
+         YEAR=`/bin/date +%Y`
+@@ -276,7 +276,7 @@
+         receive/receive.$YEARMONTH
+ 
+         :0
+-        |/usr/lib/debbugs/receive
++        |@FINKPREFIX@/lib/debbugs/receive
+ 
+ This should be sufficient, or even overkill, for a small installation.
+ 
+diff -ruN debbugs/debian/crontab debbugs.new/debian/crontab
+--- debbugs/debian/crontab	Tue Jan 13 17:40:43 2004
++++ debbugs.new/debian/crontab	Thu Sep  9 19:01:14 2004
+@@ -1,13 +1,13 @@
+ # Example crontab for bugs system. Install this as a user crontab for the
+-# user who owns /var/lib/debbugs/spool (for example, debbugs).
++# user who owns @FINKPREFIX@/var/lib/debbugs/spool (for example, debbugs).
+ MAILTO=owner@bugs.example.org
+-*/5		*	* * *	/usr/lib/debbugs/spamscan >/dev/null
+-3,18,33,48 	*	* * *	/usr/lib/debbugs/processall >/dev/null
+-7,22,37,52	*	* * *	/usr/lib/debbugs/rebuild db-h
+-9,39 		*	* * *	/usr/lib/debbugs/html-control >/dev/null
+-22 			7	* * *	touch /var/lib/debbugs/spool/db-h
+-23 			7	* * 3	/usr/lib/debbugs/age-1
+-24 			7	* * *	/usr/lib/debbugs/expire >/dev/null
+-25			8	* * *	/usr/lib/debbugs/rebuild archive
+-23 			16	* * 5	/usr/lib/debbugs/mailsummary undone >/dev/null
+-23 			16	* * 2	/usr/lib/debbugs/mailsummary bymaint >/dev/null
++*/5		*	* * *	@FINKPREFIX@/lib/debbugs/spamscan >/dev/null
++3,18,33,48 	*	* * *	@FINKPREFIX@/lib/debbugs/processall >/dev/null
++7,22,37,52	*	* * *	@FINKPREFIX@/lib/debbugs/rebuild db-h
++9,39 		*	* * *	@FINKPREFIX@/lib/debbugs/html-control >/dev/null
++22 			7	* * *	touch @FINKPREFIX@/var/lib/debbugs/spool/db-h
++23 			7	* * 3	@FINKPREFIX@/lib/debbugs/age-1
++24 			7	* * *	@FINKPREFIX@/lib/debbugs/expire >/dev/null
++25			8	* * *	@FINKPREFIX@/lib/debbugs/rebuild archive
++23 			16	* * 5	@FINKPREFIX@/lib/debbugs/mailsummary undone >/dev/null
++23 			16	* * 2	@FINKPREFIX@/lib/debbugs/mailsummary bymaint >/dev/null
+diff -ruN debbugs/debian/debbugsconfig debbugs.new/debian/debbugsconfig
+--- debbugs/debian/debbugsconfig	Mon Nov 25 04:34:56 2002
++++ debbugs.new/debian/debbugsconfig	Thu Sep  9 19:01:14 2004
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl
++#!@FINKPREFIX@/bin/perl
+ # debbugsconfig: copies debbugs configuration files from templates, and
+ #                creates documentation in HTML and text
+ # Copyright (C) 1999 Darren Benham
+@@ -21,7 +21,7 @@
+   exit(0);
+ }
+ 
+-$gConfigDir = "/etc/debbugs" if (!defined($gConfigDir));
++$gConfigDir = "@FINKPREFIX@/etc/debbugs" if (!defined($gConfigDir));
+ &template("config", $gConfigDir);
+ require "$gConfigDir/config";
+ unshift @INC, $gConfigDir;
+@@ -72,7 +72,7 @@
+ sub template {
+   my ($name, $destdir) = @_;
+   if (! -f "$destdir/$name") {
+-  system("cp /usr/share/doc/debbugs/examples/$name $destdir/$name") == 0 ||
++  system("cp @FINKPREFIX@/share/doc/debbugs/examples/$name $destdir/$name") == 0 ||
+ 	die "$!";
+   print "created $destdir/$name from template.\n";
+   }
+@@ -106,12 +106,12 @@
+   unlink("$gDocDir/$text.txt");
+   $ENV{'HOME'} = "/tmp";
+   $ENV{'TERM'} = "linux";
+-  if (-x "/usr/bin/links") {
++  if (-x "@FINKPREFIX@/bin/links") {
+     system ("rm -rf /tmp/.links/") == 0 || die;
+     system ("links -dump $gDocDir/$text.html > $gDocDir/$text.txt") == 0 ||
+       die "\nunable to write $gDocDir/$text.txt\n";
+     system ("rm -rf /tmp/.links/");
+-  } elsif (-x "/usr/bin/lynx") {
++  } elsif (-x "@FINKPREFIX@/bin/lynx") {
+     system ("lynx -nolist -dump -cfg=/dev/null $gDocDir/$text.html > $gDocDir/$text.txt") == 0 ||
+       die "\nunable to write $gDocDir/$text.txt\n";
+   } else {
+diff -ruN debbugs/debian/debbugsconfig.8 debbugs.new/debian/debbugsconfig.8
+--- debbugs/debian/debbugsconfig.8	Mon Nov 25 04:33:55 2002
++++ debbugs.new/debian/debbugsconfig.8	Thu Sep  9 19:01:14 2004
+@@ -9,15 +9,15 @@
+ do not already exist, and will also create BTS user documentation in
+ HTML and text.
+ It should be run on installation and whenever
+-.I /etc/debbugs/config
++.I @FINKPREFIX@/etc/debbugs/config
+ or
+-.I /etc/debbugs/text
++.I @FINKPREFIX@/etc/debbugs/text
+ are changed.
+ .SH FILES
+ .B debbugsconfig
+ creates the following template configuration files in
+ .I $gConfigDir
+-.RI ( /etc/debbugs
++.RI ( @FINKPREFIX@/etc/debbugs
+ by default):
+ .RS
+ .TP
+@@ -51,7 +51,7 @@
+ .B debbugsconfig
+ creates the following template state files in
+ .I $gSpoolDir
+-.RI ( /var/lib/debbugs/spool
++.RI ( @FINKPREFIX@/var/lib/debbugs/spool
+ by default):
+ .RS
+ .TP
+@@ -71,7 +71,7 @@
+ .B debbugsconfig
+ creates the following documents in
+ .I $gWebDir
+-.RI ( /var/lib/debbugs/www
++.RI ( @FINKPREFIX@/var/lib/debbugs/www
+ by default):
+ .RS
+ .TP
+diff -ruN debbugs/debian/postinst debbugs.new/debian/postinst
+--- debbugs/debian/postinst	Tue May 27 16:49:20 2003
++++ debbugs.new/debian/postinst	Thu Sep  9 19:01:14 2004
+@@ -1,18 +1,18 @@
+ #!/bin/sh -e
+ 
+ if [ "$1" = "configure" ]; then
+-  /usr/sbin/debbugsconfig
++  @FINKPREFIX@/sbin/debbugsconfig
+   if dpkg --compare-versions "$2" lt 2.4; then
+-    spool=`perl -e 'require "/etc/debbugs/config"; print $gSpoolDir;'`
++    spool=`perl -e 'require "@FINKPREFIX@/etc/debbugs/config"; print $gSpoolDir;'`
+     if [ -d "$spool/db" ]; then
+       if [ -d "$spool/db-h" ]; then
+         echo "Cannot migrate bug database to hashed format, because" >&2
+         echo "$spool/db-h already exists." >&2
+         echo "Rectify the situation and run the following command by hand:" >&2
+-        echo "  /usr/sbin/debbugs-dbhash \"$spool/db\" \"$spool/db-h\"" >&2
++        echo "  @FINKPREFIX@/sbin/debbugs-dbhash \"$spool/db\" \"$spool/db-h\"" >&2
+       else
+         echo "Migrating bug database to hashed format." >&2
+-        /usr/sbin/debbugs-dbhash "$spool/db" "$spool/db-h"
++        @FINKPREFIX@/sbin/debbugs-dbhash "$spool/db" "$spool/db-h"
+         echo "You can remove bug logs from $spool/db" >&2
+         echo "after ensuring that the new database works." >&2
+       fi
+@@ -20,8 +20,8 @@
+   fi
+ fi
+ 
+-if [ -f /etc/debbugs/nextnumber ]; then
+-  rm -f /etc/debbugs/nextnumber
++if [ -f @FINKPREFIX@/etc/debbugs/nextnumber ]; then
++  rm -f @FINKPREFIX@/etc/debbugs/nextnumber
+ fi
+ 
+ #DEBHELPER#
+diff -ruN debbugs/debian/postrm debbugs.new/debian/postrm
+--- debbugs/debian/postrm	Wed Nov 15 13:53:39 2000
++++ debbugs.new/debian/postrm	Thu Sep  9 19:01:14 2004
+@@ -1,7 +1,7 @@
+ #!/bin/sh
+ 
+ if [ "$1" = "purge" ]; then
+-  rm -rf /etc/debbugs /var/lib/debbugs
++  rm -rf @FINKPREFIX@/etc/debbugs @FINKPREFIX@/var/lib/debbugs
+ fi
+ 
+ #DEBHELPER#
+diff -ruN debbugs/examples/debbugs.cfg debbugs.new/examples/debbugs.cfg
+--- debbugs/examples/debbugs.cfg	Wed May  3 10:04:21 2000
++++ debbugs.new/examples/debbugs.cfg	Thu Sep  9 19:01:14 2004
+@@ -9,20 +9,20 @@
+ ##########################################################################
+ # Identification                                                         #
+ ##########################################################################
+-Short Name = Debian
+-Long Name = Debian GNU/Linux
+-Owner Name = Darren Benham
++Short Name = Fink
++Long Name = Fink Developer Network
++Owner Name = Chris Zubrzycki
+ Owner Email = owner@bugs.somewhere.com
+ 
+ ##########################################################################
+ # Paths/files                                                            #
+ ##########################################################################
+-Spool Dir = /var/lib/debbugs/spool/incoming
+-Work Dir = /var/lib/debbugs/spool
+-Web Dir = /var/lib/debbugs/www
+-Doc Dir = /var/lib/debbugs/www/txt
+-Template Dir = /etc/debbugs/emails
+-Maintainer File = /etc/debbugs/Maintainers
++Spool Dir = @FINKPREFIX@/var/lib/debbugs/spool/incoming
++Work Dir = @FINKPREFIX@/var/lib/debbugs/spool
++Web Dir = @FINKPREFIX@/var/lib/debbugs/www
++Doc Dir = @FINKPREFIX@/var/lib/debbugs/www/txt
++Template Dir = @FINKPREFIX@/etc/debbugs/emails
++Maintainer File = @FINKPREFIX@/etc/debbugs/Maintainers
+ 
+ ##########################################################################
+ # Emails                                                                 #
+diff -ruN debbugs/examples/debbugs.cfg.2 debbugs.new/examples/debbugs.cfg.2
+--- debbugs/examples/debbugs.cfg.2	Mon May  1 14:46:38 2000
++++ debbugs.new/examples/debbugs.cfg.2	Thu Sep  9 19:01:14 2004
+@@ -7,12 +7,12 @@
+ Owner Name = Adam Heath
+ Owner Email = adam@doogie.org
+ Owner Webpage = http://doogie.org/adam
+-Spool Dir = /var/lib/debbugs/spool/incoming
+-Work Dir = /var/lib/debbugs/spool
+-Web Dir = /var/lib/debbugs/www
+-Doc Dir = /var/lib/debbugs/www/txt
+-Maintainer File = /etc/debbugs/Maintainers
+-Pseudo Description File = /etc/debbugs/pseudo-packages.description
++Spool Dir = @FINKPREFIX@/var/lib/debbugs/spool/incoming
++Work Dir = @FINKPREFIX@/var/lib/debbugs/spool
++Web Dir = @FINKPREFIX@/var/lib/debbugs/www
++Doc Dir = @FINKPREFIX@/var/lib/debbugs/www/txt
++Maintainer File = @FINKPREFIX@/etc/debbugs/Maintainers
++Pseudo Description File = @FINKPREFIX@/etc/debbugs/pseudo-packages.description
+ Maint List = doogbugs-maint
+ Quiet List = doogbugs-quiet
+ Forwarded List = doogbugs-forwarded
+diff -ruN debbugs/migrate/debbugs-dbhash debbugs.new/migrate/debbugs-dbhash
+--- debbugs/migrate/debbugs-dbhash	Sun Nov 17 08:04:16 2002
++++ debbugs.new/migrate/debbugs-dbhash	Thu Sep  9 19:01:14 2004
+@@ -1,4 +1,4 @@
+-#! /usr/bin/perl -w
++#!@FINKPREFIX@/bin/perl -w
+ # Migrate an old-style database to the new hashed (db-h) form.
+ 
+ use strict;
+diff -ruN debbugs/migrate/debbugs-makeversions debbugs.new/migrate/debbugs-makeversions
+--- debbugs/migrate/debbugs-makeversions	Sun Aug  3 02:49:22 2003
++++ debbugs.new/migrate/debbugs-makeversions	Thu Sep  9 19:01:14 2004
+@@ -1,4 +1,4 @@
+-#! /usr/bin/perl -w
++#!@FINKPREFIX@/bin/perl -w
+ # Extract version information from an existing non-versioned database by
+ # guesswork, based on Version: pseudo-headers and closing mails that look
+ # like Debian changelogs. The latter in particular is somewhat heuristic.
+diff -ruN debbugs/migrate/debbugs-upgradestatus debbugs.new/migrate/debbugs-upgradestatus
+--- debbugs/migrate/debbugs-upgradestatus	Sat Aug 23 08:12:57 2003
++++ debbugs.new/migrate/debbugs-upgradestatus	Thu Sep  9 19:01:14 2004
+@@ -1,11 +1,11 @@
+-#! /usr/bin/perl -w
++#!@FINKPREFIX@/bin/perl -w
+ # Migrate from .status format version 1 to version 2. The new format uses
+ # RFC822-style name/value pairs to allow new fields to be added more easily.
+ 
+ use vars qw($gSpoolDir);
+ 
+-my $config_path = '/etc/debbugs';
+-my $lib_path = '/usr/lib/debbugs';
++my $config_path = '@FINKPREFIX@/etc/debbugs';
++my $lib_path = '@FINKPREFIX@/lib/debbugs';
+ 
+ require "$config_path/config";
+ require "$lib_path/errorlib";
+diff -ruN debbugs/scripts/age-1.in debbugs.new/scripts/age-1.in
+--- debbugs/scripts/age-1.in	Sun Jan  6 02:46:24 2002
++++ debbugs.new/scripts/age-1.in	Thu Sep  9 19:01:14 2004
+@@ -1,7 +1,7 @@
+ #!/bin/sh
+ # $Id$
+ set -e
+-cd /var/lib/debbugs/spool/db-h
++cd @FINKPREFIX@/var/lib/debbugs/spool/db-h
+ test -f ./-3.log && rm ./-3.log
+ test -f ./-2.log && mv ./-2.log ./-3.log
+ test -f ./-1.log && mv ./-1.log ./-2.log
+diff -ruN debbugs/scripts/config.debian debbugs.new/scripts/config.debian
+--- debbugs/scripts/config.debian	Tue Feb  3 13:50:24 2004
++++ debbugs.new/scripts/config.debian	Thu Sep  9 19:12:05 2004
+@@ -33,6 +33,7 @@
+ 
+ # Various configurable options
+ $gMailer = "exim";				# valid: exim, qmail and sendmail
++$gSendmailBin = "/usr/lib/sendmail";		# path to sendmail binary
+ $gBug = "Bug";					# how to spell `bug'
+ $gBugs = "Bugs";				# how to spell `bugs'
+ $gRemoveAge = 28;				# days after closed bugs are cleaned out,
+diff -ruN debbugs/scripts/config.fink debbugs.new/scripts/config.fink
+--- debbugs/scripts/config.fink	Wed Dec 31 16:00:00 1969
++++ debbugs.new/scripts/config.fink	Thu Sep  9 19:40:47 2004
+@@ -0,0 +1,82 @@
++# This is the bugs.finkproject.org debbugs configuration file.
++# $Id$
++
++# Domains
++$gEmailDomain = "bugs.finkproject.org";
++$gListDomain = "lists.finkproject.org";
++$gWebDomain = "bugs.finkproject.org/";
++$gHTMLSuffix = ".html";
++$gPackagePages = "www.finkproject.org/pdb";
++$gCGIDomain = "bugs.finkproject.org/cgi-bin";
++$gMirrors = "";						# comma separated list
++$gSubscriptionDomain = "www.finkproject.org/pdb";
++
++# Project identification
++$gProject = "Fink";
++$gProjectTitle = "The Fink Project";
++# Person(s) responsible for this installation
++$gMaintainer = "finkproject bug tracking system administrator"; # should be plural but that would require changes to other scripts
++$gMaintainerEmail = "owner\@bugs.finkproject.org";
++
++# BTS mailing lists, at $gListDomain
++$gSubmitList = "finkproject-bugs-dist";
++$gMaintList = "finkproject-bugs-dist";
++$gQuietList = "finkproject-bugs-dist";
++$gForwardList = "finkproject-bugs-forwarded";
++$gDoneList = "finkproject-bugs-closed";
++$gRequestList = "finkproject-bugs-dist";
++$gSubmitterList = "finkproject-bugs-dist";
++$gControlList = "finkproject-bugs-dist";
++$gSummaryList = "finkproject-bugs-reports";
++$gMirrorList = "finkproject-bugs-mirror";			# sends to all mirrors
++$gStrongList = "finkproject-bugs-rc";
++
++# Various configurable options
++$gMailer = "sendmail";				# valid: exim, qmail and sendmail
++$gSendmailBin = "/usr/sbin/sendmail";		# Path to `sendmail' executable
++$gBug = "Bug";					# how to spell `bug'
++$gBugs = "Bugs";				# how to spell `bugs'
++$gRemoveAge = 28;				# days after closed bugs are cleaned out,
++						# 0 disables
++$gSaveOldBugs = 1;				# whether to archive such bugs
++$gDefaultSeverity = "normal";
++$gShowSeverities = "critical, grave, serious, important, normal, minor, wishlist, fixed";
++@gStrongSeverities = ( "critical", "grave", "serious" );
++@gSeverityList = ( "critical", "grave", "serious", "important", "normal",
++                   "minor", "wishlist", "fixed"
++                 );
++%gObsoleteSeverities = ( fixed => 'Use the fixed tag instead.' );
++%gSeverityDisplay = ( "critical", "Critical bugs",
++                      "grave", "Grave functionality bugs",
++                      "serious", "Serious policy violations",
++                      "important", "Important bugs",
++                      "normal", "Normal bugs",
++                      "minor", "Minor bugs",
++                      "fixed", "NMU Fixed bugs",
++                      "wishlist", "Wishlist items"
++                    );
++@gTags = ( "patch", "wontfix", "moreinfo", "unreproducible", "fixed",
++           "potato", "woody", "sid", "help", "security", "upstream",
++           "pending", "sarge", "sarge-ignore", "experimental", "d-i",
++           "confirmed", "ipv6", "lfs", "fixed-in-experimental",
++           "fixed-upstream", "l10n"
++         );
++
++# better don't change this
++$gBounceFroms = "^mailer|^da?emon|^post.*mast|^root|^wpuser|^mmdf|^smt.*|^mrgate|^vmmail|^mail.*system|^uucp|-maiser-|^mal\@|^mail.*agent|^tcpmail|^bitmail|^mailman";
++
++# Directories -- do _not_ change their locations.
++# They are currently hardcoded, variables are here for future expansion.
++$gConfigDir = "/sw/etc/debbugs";		# directory where this file is
++$gSpoolDir = "/sw/var/lib/debbugs/spool";		# working directory
++$gIncomingDir = "incoming";				# unprocessed e-mails
++$gWebDir = "/sw/var/lib/debbugs/www";			# base location of web pages
++$gDocDir = "/sw/var/lib/debbugs/www/txt";		# location of text doc files
++
++# Required data files
++$gMaintainerFile = "$gConfigDir/Maintainers";
++$gMaintainerFileOverride = "$gConfigDir/Maintainers.override";
++$gUnknownMaintainerEmail = "None \<fink-devel\@lists.sourceforge.net\>";
++
++$gPseudoDescFile = "$gConfigDir/pseudo-packages.description";
++$gPackageSource = "$gConfigDir/indices/sources";
+diff -ruN debbugs/scripts/config.in debbugs.new/scripts/config.in
+--- debbugs/scripts/config.in	Sun Aug 24 09:10:18 2003
++++ debbugs.new/scripts/config.in	Thu Sep  9 19:01:14 2004
+@@ -39,7 +39,8 @@
+ $gMirrorList = "bug-mirrors-list";		# sends to all mirrors
+ 
+ # Various configurable options
+-$gMailer = "exim";				# valid: exim, qmail and sendmail
++$gMailer = "sendmail";				# valid: exim, qmail and sendmail
++$gSendmailBin = "/usr/sbin/sendmail";		# path to `sendmail' executable
+ $gBug = "bug";					# how to spell `bug'
+ $gBugs = "bugs";				# how to spell `bugs'
+ $gRemoveAge = 28;				# days after closed bugs are cleaned out,
+@@ -60,11 +61,11 @@
+ 
+ # Directories -- do _not_ change their locations.
+ # They are currently hardcoded, variables are here for future expansion.
+-$gConfigDir = "/etc/debbugs";				# directory where this file is
+-$gSpoolDir = "/var/lib/debbugs/spool";			# working directory
++$gConfigDir = "@FINKPREFIX@/etc/debbugs";				# directory where this file is
++$gSpoolDir = "@FINKPREFIX@/var/lib/debbugs/spool";			# working directory
+ $gIncomingDir = "incoming";				# unprocessed e-mails
+-$gWebDir = "/var/lib/debbugs/www";			# base location of web pages
+-$gDocDir = "/var/lib/debbugs/www/txt";			# location of text doc files
++$gWebDir = "@FINKPREFIX@/var/lib/debbugs/www";			# base location of web pages
++$gDocDir = "@FINKPREFIX@/var/lib/debbugs/www/txt";			# location of text doc files
+ 
+ # Required data files
+ $gMaintainerFile = "$gConfigDir/Maintainers";
+diff -ruN debbugs/scripts/config.in.default debbugs.new/scripts/config.in.default
+--- debbugs/scripts/config.in.default	Sat Aug 23 06:50:45 2003
++++ debbugs.new/scripts/config.in.default	Thu Sep  9 19:01:14 2004
+@@ -15,15 +15,15 @@
+ $gMaintainerEmail = "address";			#ownder@bugs.debian.org
+ 
+ #directories
+-$gSpoolDir = "/var/lib/debbugs/spool";	#working directory
++$gSpoolDir = "@FINKPREFIX@/var/lib/debbugs/spool";	#working directory
+ $gIncomingDir = "incoming";				#unprocessed emails
+-$gWebDir = "/var/lib/debbugs/www";		#base location of web pages
+-$gDocDir = "/usr/lib/debbugs";			#location of doc files
++$gWebDir = "@FINKPREFIX@/var/lib/debbugs/www";		#base location of web pages
++$gDocDir = "@FINKPREFIX@/lib/debbugs";			#location of doc files
+ 
+ #data files
+-$gMaintainerFile = "/etc/debbugs/Maintainers";
+-$gMaintainerFileOverride = "/etc/debbugs/Maintainers.override";
+-$gPseudoDescFile = "/etc/debbugs/pseudo-packages.description";
++$gMaintainerFile = "@FINKPREFIX@/etc/debbugs/Maintainers";
++$gMaintainerFileOverride = "@FINKPREFIX@/etc/debbugs/Maintainers.override";
++$gPseudoDescFile = "@FINKPREFIX@/etc/debbugs/pseudo-packages.description";
+ 
+ #lists
+ $gSubmitList = "submit.list";			#debian-bugs-dist@lists
+diff -ruN debbugs/scripts/db2html.in debbugs.new/scripts/db2html.in
+--- debbugs/scripts/db2html.in	Mon Apr 19 03:03:53 2004
++++ debbugs.new/scripts/db2html.in	Thu Sep  9 19:01:14 2004
+@@ -1,10 +1,10 @@
+-#!/usr/bin/perl
++#!@FINKPREFIX@/bin/perl
+ # $Id$
+ # usage: db2html [-diff] [-stampfile=<stampfile>] [-lastrun=<days>] <wwwbase>
+ 
+ #load the necessary libraries/configuration
+-$config_path = '/etc/debbugs';
+-$lib_path = '/usr/lib/debbugs';
++$config_path = '@FINKPREFIX@/etc/debbugs';
++$lib_path = '@FINKPREFIX@/lib/debbugs';
+ 
+ require("$config_path/config");
+ require("$config_path/text");
+diff -ruN debbugs/scripts/errorlib.in debbugs.new/scripts/errorlib.in
+--- debbugs/scripts/errorlib.in	Sun Feb 15 08:12:00 2004
++++ debbugs.new/scripts/errorlib.in	Thu Sep  9 19:24:14 2004
+@@ -3,8 +3,11 @@
+ 
+ use Mail::Address;
+ 
+-sub F_SETLK { 6; } sub F_WRLCK{ 1; }
+-$flockstruct= 'sslll'; # And there ought to be something for this too.
++sub F_SETLK { 8; } sub F_WRLCK{ 3; } # FreeBSD/Darwin
++$flockstruct= 'lllliss'; # FreeBSD/Darwin
++
++#sub F_SETLK { 6; } sub F_WRLCK{ 1; }
++#$flockstruct= 'sslll'; # And there ought to be something for this too.
+ 
+ sub get_hashname {
+     return "" if ( $_[ 0 ] < 0 );
+@@ -203,7 +206,8 @@
+     for (;;) {
+         $evalstring= "
+             open(FLOCK${flockpushno},\"> \$lockfile\") || die \"open: \$!\";
+-            \$flockwant= pack(\$flockstruct,&F_WRLCK,0,0,1,0);".
++	    \$flockwant= pack($flockstruct,0,0,0,1,0,&F_WRLCK,0);". # FreeBSD/Darwin
++#	    \$flockwant= pack(\$flockstruct,&F_WRLCK,0,0,1,0);".
+                 ($] >= 5.000 ? "
+             fcntl(FLOCK$flockpushno,&F_SETLK,\$flockwant) || die \"setlk: \$!\";" : "
+             \$z= syscall(&SYS_fcntl,fileno(FLOCK$flockpushno),&F_SETLK,\$flockwant) < 0
+diff -ruN debbugs/scripts/expire.in debbugs.new/scripts/expire.in
+--- debbugs/scripts/expire.in	Tue Jan 13 10:48:22 2004
++++ debbugs.new/scripts/expire.in	Thu Sep  9 19:01:14 2004
+@@ -1,10 +1,10 @@
+-#!/usr/bin/perl
++#!@FINKPREFIX@/bin/perl
+ # $Id$
+ 
+ # Load modules and set environment
+ use File::Copy;
+-$config_path = '/etc/debbugs';
+-$lib_path = '/usr/lib/debbugs';
++$config_path = '@FINKPREFIX@/etc/debbugs';
++$lib_path = '@FINKPREFIX@/lib/debbugs';
+ 
+ require("$config_path/config");
+ require("$config_path/text");
+diff -ruN debbugs/scripts/html-control.in debbugs.new/scripts/html-control.in
+--- debbugs/scripts/html-control.in	Fri Jun  6 01:23:00 2003
++++ debbugs.new/scripts/html-control.in	Thu Sep  9 19:01:14 2004
+@@ -1,12 +1,12 @@
+-#!/usr/bin/perl
++#!@FINKPREFIX@/bin/perl
+ # $Id$
+ 
+ use POSIX qw(strftime tzset ENOENT);
+ $ENV{"TZ"} = 'UTC';
+ tzset();
+ 
+-$config_path = '/etc/debbugs';
+-$lib_path = '/usr/lib/debbugs';
++$config_path = '@FINKPREFIX@/etc/debbugs';
++$lib_path = '@FINKPREFIX@/lib/debbugs';
+ 
+ require("$config_path/config");
+ require("$lib_path/errorlib");
+@@ -85,7 +85,7 @@
+ runshell("$lib_path/html-install $gWebDir/db <html-data 2>&1",sub { &quit; });
+ #runshell("gzip -9 html-data 2>&1",sub { &quit; });
+ #runshell("btoa 2>&1 <html-data.gz >>html-data.mail",sub { &quit; });
+-#runshell('2>&1 '.join(' ',('/usr/lib/sendmail','-f'."$gMaintainerEmail")).' -oem -oi -t <html-data.mail',
++#runshell('2>&1 '.join(' ',("$gSendmailBin",'-f'."$gMaintainerEmail")).' -oem -oi -t <html-data.mail',
+ #         sub { &quit; });
+ 
+ rename("stamp.html.new","stamp.html") or &quit("install new stamp.html: $!");
+diff -ruN debbugs/scripts/html-install.in debbugs.new/scripts/html-install.in
+--- debbugs/scripts/html-install.in	Sun Nov 17 14:45:16 2002
++++ debbugs.new/scripts/html-install.in	Thu Sep  9 19:01:14 2004
+@@ -1,10 +1,10 @@
+-#!/usr/bin/perl
++#!@FINKPREFIX@/bin/perl
+ # $Id$
+ # Takes 1 argument - directory tree to install into
+ # Tree _must_ be synch'd with one used by db2html to generate file
+ 
+ use POSIX;
+-$config_path = '/etc/debbugs';
++$config_path = '@FINKPREFIX@/etc/debbugs';
+ 
+ require("$config_path/config");
+ $ENV{'PATH'} = $lib_path.':'.$ENV{'PATH'};
+diff -ruN debbugs/scripts/mailsummary.in debbugs.new/scripts/mailsummary.in
+--- debbugs/scripts/mailsummary.in	Mon Apr 28 16:51:15 2003
++++ debbugs.new/scripts/mailsummary.in	Thu Sep  9 19:01:14 2004
+@@ -1,8 +1,8 @@
+-#!/usr/bin/perl
++#!@FINKPREFIX@/bin/perl
+ # $Id$
+ 
+-$config_path = '/etc/debbugs';
+-$lib_path = '/usr/lib/debbugs';
++$config_path = '@FINKPREFIX@/etc/debbugs';
++$lib_path = '@FINKPREFIX@/lib/debbugs';
+ 
+ require("$config_path/config");
+ require("$lib_path/errorlib");
+@@ -59,7 +59,7 @@
+ $v= $vdef if $v eq '';
+ exit 0 if $v eq '';
+ 
+-open(D, '| '.join(' ',('/usr/lib/sendmail','-f'.$gMaintainerEmail)).' -odq -oem -oi -t') ||
++open(D, '| '.join(' ',("$gSendmailBin",'-f'.$gMaintainerEmail)).' -odq -oem -oi -t') ||
+     die "start sendmail: $!";
+ 
+ print D <<END || die "complete sendmail";
+diff -ruN debbugs/scripts/process.in debbugs.new/scripts/process.in
+--- debbugs/scripts/process.in	Thu Aug  5 08:09:30 2004
++++ debbugs.new/scripts/process.in	Thu Sep  9 19:01:16 2004
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl
++#!@FINKPREFIX@/bin/perl
+ # $Id$
+ #
+ # Usage: process nn
+@@ -10,8 +10,8 @@
+ 
+ use MIME::Parser;
+ 
+-$config_path = '/etc/debbugs';
+-$lib_path = '/usr/lib/debbugs';
++$config_path = '@FINKPREFIX@/etc/debbugs';
++$lib_path = '@FINKPREFIX@/lib/debbugs';
+ 
+ require "$config_path/config";
+ require "$lib_path/errorlib";
+@@ -1033,7 +1033,7 @@
+ 	#print DEBUG "mailing child forked again ok $c<\n";
+         if (!$c) { # ie, we are the child process
+ 	    #print DEBUG "mailing grandchild<\n";
+-            exec '/usr/lib/sendmail','-f'."$gMaintainerEmail",'-odq','-oem','-oi',get_addresses(@$recips);
++            exec "$gSendmailBin",'-f'."$gMaintainerEmail",'-odq','-oem','-oi',get_addresses(@$recips);
+ 	    #print DEBUG "mailing grandchild exec failed<\n";
+             die $!;
+ 	    #print DEBUG "mailing grandchild died !?<\n";
+diff -ruN debbugs/scripts/processall.in debbugs.new/scripts/processall.in
+--- debbugs/scripts/processall.in	Sat Mar 20 07:13:52 2004
++++ debbugs.new/scripts/processall.in	Thu Sep  9 19:01:16 2004
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl
++#!@FINKPREFIX@/bin/perl
+ # $Id$
+ #
+ # Usage: processall
+@@ -8,8 +8,8 @@
+ # Creates: incoming/E.nn
+ # Stop:    stop
+ 
+-$config_path = '/etc/debbugs';
+-$lib_path = '/usr/lib/debbugs';
++$config_path = '@FINKPREFIX@/etc/debbugs';
++$lib_path = '@FINKPREFIX@/lib/debbugs';
+ 
+ require "$config_path/config";
+ require "$lib_path/errorlib";
+diff -ruN debbugs/scripts/rebuild.in debbugs.new/scripts/rebuild.in
+--- debbugs/scripts/rebuild.in	Sat Aug 23 08:12:57 2003
++++ debbugs.new/scripts/rebuild.in	Thu Sep  9 19:01:16 2004
+@@ -1,10 +1,10 @@
+-#!/usr/bin/perl -w
++#!@FINKPREFIX@/bin/perl -w
+ # $Id$
+ 
+ # Load modules and set environment
+ use File::Copy;
+-$config_path = '/etc/debbugs';
+-$lib_path = '/usr/lib/debbugs';
++$config_path = '@FINKPREFIX@/etc/debbugs';
++$lib_path = '@FINKPREFIX@/lib/debbugs';
+ 
+ require("$config_path/config");
+ require("$lib_path/errorlib");
+diff -ruN debbugs/scripts/receive.in debbugs.new/scripts/receive.in
+--- debbugs/scripts/receive.in	Tue Jan 13 10:55:53 2004
++++ debbugs.new/scripts/receive.in	Thu Sep  9 19:01:16 2004
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl
++#!@FINKPREFIX@/bin/perl
+ # $Id$
+ # usage: mail is piped directly into program
+ 
+@@ -6,11 +6,11 @@
+ #umask(002);
+ 
+ #load configuration file
+-$config_path = '/etc/debbugs';
+-#$lib_path = '/usr/lib/debbugs';
++$config_path = '@FINKPREFIX@/etc/debbugs';
++#$lib_path = '@FINKPREFIX@/lib/debbugs';
+ 
+ require "$config_path/config";
+-$ENV{'PATH'} = '/usr/lib/debbugs:'.$ENV{'PATH'};
++$ENV{'PATH'} = '@FINKPREFIX@/lib/debbugs:'.$ENV{'PATH'};
+ 
+ #set source of mail delivery
+ #sets any prefix needed to get mailer to add it to error mail
+@@ -28,7 +28,7 @@
+ 	s/\>//;
+ 	s/\<//;
+ }
+-require("/etc/debbugs/text");
++require("@FINKPREFIX@/etc/debbugs/text");
+ 
+ #remove everything from @ to end of line
+ s/\@.*$//;
+diff -ruN debbugs/scripts/service.in debbugs.new/scripts/service.in
+--- debbugs/scripts/service.in	Thu Feb 26 18:05:17 2004
++++ debbugs.new/scripts/service.in	Thu Sep  9 19:01:16 2004
+@@ -1,4 +1,4 @@
+-#!/usr/bin/perl
++#!@FINKPREFIX@/bin/perl
+ # $Id$
+ #
+ # Usage: service <code>.nn
+@@ -7,8 +7,8 @@
+ use File::Copy;
+ use MIME::Parser;
+ 
+-$config_path = '/etc/debbugs';
+-$lib_path = '/usr/lib/debbugs';
++$config_path = '@FINKPREFIX@/etc/debbugs';
++$lib_path = '@FINKPREFIX@/lib/debbugs';
+ 
+ require "$config_path/config";
+ require "$lib_path/errorlib";
+@@ -753,7 +753,7 @@
+     $c= open(D,"|-");
+     defined($c) || &quit("mailing forking for sendmail: $!");
+     if (!$c) { # ie, we are the child process
+-        exec '/usr/lib/sendmail','-f'."$gMaintainerEmail",'-odb','-oem','-oi',get_addresses(@recips);
++        exec "$gSendmailBin",'-f'."$gMaintainerEmail",'-odb','-oem','-oi',get_addresses(@recips);
+         die $!;
+     }
+     print(D $message) || &quit("writing to sendmail process: $!");
+diff -ruN debbugs/scripts/spamscan.in debbugs.new/scripts/spamscan.in
+--- debbugs/scripts/spamscan.in	Wed Jan 14 11:41:18 2004
++++ debbugs.new/scripts/spamscan.in	Thu Sep  9 19:01:16 2004
+@@ -1,4 +1,4 @@
+-#! /usr/bin/perl -T
++#!@FINKPREFIX@/bin/perl -T
+ # $Id$
+ #
+ # Usage: spamscan
+@@ -11,8 +11,8 @@
+ # Creates: incoming/I.nn
+ # Stop:    spamscan-stop
+ 
+-$config_path = '/etc/debbugs';
+-$lib_path = '/usr/lib/debbugs';
++$config_path = '@FINKPREFIX@/etc/debbugs';
++$lib_path = '@FINKPREFIX@/lib/debbugs';
+ 
+ require "$config_path/config";
+ require "$lib_path/errorlib";
+diff -ruN debbugs/scripts/summary.in debbugs.new/scripts/summary.in
+--- debbugs/scripts/summary.in	Sat Apr 17 10:31:04 2004
++++ debbugs.new/scripts/summary.in	Thu Sep  9 19:01:16 2004
+@@ -1,8 +1,8 @@
+-#!/usr/bin/perl
++#!@FINKPREFIX@/bin/perl
+ # $Id$
+ 
+-$config_path = '/etc/debbugs';
+-$lib_path = '/usr/lib/debbugs';
++$config_path = '@FINKPREFIX@/etc/debbugs';
++$lib_path = '@FINKPREFIX@/lib/debbugs';
+ 
+ require("$config_path/config");
+ require("$lib_path/errorlib");
