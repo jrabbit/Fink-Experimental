@@ -1,0 +1,159 @@
+Package: kdeextragear-2
+Version: 1
+Revision: 20030131
+Description: KDE - extra KDE apps (part 2)
+License: GPL/LGPL
+Maintainer: Benjamin Reed <ranger@befunk.com>
+
+Depends: kcpuload (>= %v-%r), knetload (>= %v-%r), kfish (>= %v-%r), kdebase3-ssl (>= 3.1-11) | kdebase3 (>= 3.1-11), kdelibs3-ssl (>= 3.1-11) | kdelibs3 (>= 3.1-11), %N-base (>= %v-%r)
+BuildDepends: 
+GCC: 3.1
+
+CustomMirror: <<
+  nam-US: http://ranger.befunk.com/fink
+  nam-CA: http://www.southofheaven.net/befunk
+<<
+Source: mirror:custom:kdeextragear-2-%r.tar.bz2
+Source-MD5: 35a1bc6a7882e887b393ac6e1aa09cef
+SourceDirectory: %n
+Source2: mirror:custom:kde-admindir-20030128.tar.bz2
+Source2-MD5: 13c8b63649e8e635c409ab5e7d538681
+Source2ExtractDir: %n
+
+SetCFLAGS: -fno-common
+SetCPPFLAGS: -no-cpp-precomp -isystem %p/include -I%p/include
+SetLIBS: -L%p/lib
+SetMACOSX_DEPLOYMENT_TARGET: 10.2
+ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%p/share/man --with-xinerama --with-pam --enable-final --disable-dependency-tracking
+CompileScript: <<
+#!/bin/sh
+  export KDEDIR=%p
+  make -f Makefile.cvs
+  [ $? = 0 ] && sh ./configure %c
+  [ $? = 0 ] && make -j2
+<<
+
+InstallScript: <<
+  make install DESTDIR=%d
+  mkdir -p %i/share/doc/kde-installed-packages
+  touch %i/share/doc/kde-installed-packages/%N
+  touch %i/share/doc/kde-installed-packages/%N-base
+<<
+SplitOff: <<
+  Package: kcpuload
+  Description: KDE - CPU usage monitor
+  Depends: %N-base (>= %v-%r)
+  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r)
+  Recommends: kdeextragear-2 (>= 1-%r)
+  BuildDependsOnly: true
+  Files: <<
+    bin/kcpuload
+    share/applnk/System/kcpuload.desktop
+    share/apps/kcpuload
+    share/doc/HTML/en/kcpuload
+    share/icons/crystalsvg/16x16/apps/kcpuload.png
+    share/icons/crystalsvg/32x32/apps/kcpuload.png
+    share/icons/crystalsvg/48x48/apps/kcpuload.png
+    share/icons/locolor/16x16/apps/kcpuload.png
+    share/icons/locolor/32x32/apps/kcpuload.png
+  <<
+<<
+SplitOff2: <<
+  Package: knetload
+  Description: KDE - network usage monitor
+  Depends: %N-base (>= %v-%r)
+  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r)
+  Recommends: kdeextragear-2 (>= 1-%r)
+  BuildDependsOnly: true
+  Files: <<
+    bin/knetload
+    share/applnk/System/knetload.desktop
+    share/apps/knetload
+    share/doc/HTML/en/knetload
+    share/icons/crystalsvg/16x16/apps/knetload.png
+    share/icons/crystalsvg/32x32/apps/knetload.png
+    share/icons/crystalsvg/48x48/apps/knetload.png
+    share/icons/locolor/16x16/apps/knetload.png
+    share/icons/locolor/32x32/apps/knetload.png
+  <<
+<<
+SplitOff3: <<
+  Package: kfish
+  Description: KDE - swimming fish panel applet  =)
+  Depends: %N-base (>= %v-%r)
+  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r)
+  Recommends: kdeextragear-2 (>= 1-%r)
+  BuildDependsOnly: true
+  Files: <<
+    lib/kde3/kfish_panelapplet.1.0.0.so
+    lib/kde3/kfish_panelapplet.1.so
+    lib/kde3/kfish_panelapplet.la
+    lib/kde3/kfish_panelapplet.so
+    share/apps/kfish
+    share/apps/kicker/applets/kfish.desktop
+  <<
+<<
+SplitOff4: <<
+  Package: %N-base
+  Description: KDE - kdeextragear-2 base package
+  Replaces: <<
+    %N (<< %v-%r),
+    %N-dev (<< %v-%r)
+  <<
+  BuildDependsOnly: true
+  Depends: arts (>= 1.1.0-11), kdelibs3-ssl (>= 3.1-11) | kdelibs3 (>= 3.1-11), kdebase3-ssl (>= 3.1-11) | kdebase3 (>= 3.1-11)
+  Files: <<
+    share/doc/kde-installed-packages/%N-base
+  <<
+<<
+
+DescDetail: <<
+Miscellaneous applications for KDE (part 2).
+
+Install the kdeextragear-2 package if you want to install all of the
+kdeextragear-2 packages.  kdeextragear-2 contains:
+
+  kcpuload
+  knetload
+  kfish
+<<
+DescUsage: <<
+---[ Installation ]---------------------------------------------------
+
+To install all of the official KDE packages, install "bundle-kde" or
+"bundle-kde-ssl" (depending on whether crypotgraphic laws permit
+downloading strong cryptography).
+
+---[ Configuration ]--------------------------------------------------
+
+To use KDE as your windowing system in XDarwin, create a file called
+".xinitrc" in your home directory, with the following commands (it is
+safe to cut and paste these):
+
+  echo "source /sw/bin/init.sh" > ~/.xinitrc
+  echo "/sw/bin/startkde >/tmp/kde.log 2>&1" >> ~/.xinitrc
+
+Note that this will overwrite an existing .xinitrc file!
+
+---[ Startup ]--------------------------------------------------------
+
+Once you have created an ~/.xinitrc file, you should be able to start
+KDE by clicking on the "XDarwin" icon in your Applications folder.  
+   
+NOTE: If you plan on running in rootless mode, you will likely want to
+disable desktop icons, or else the root window desktop will cover up
+your Aqua destkop.  You can do this by starting the KDE control
+center, expanding the "Desktop" list, click "Behavior", and uncheck   
+the "Enable icons on desktop" checkbox.
+   
+---[ Removal ]--------------------------------------------------------
+   
+To remove all of the official KDE packages, you can remove aRts and
+anything that depends on it, by running (in a terminal):
+   
+  sudo apt-get remove arts
+
+To remove just the kdeutils packages, run:
+
+  sudo apt-get remove kdeextragear-2-base
+<<
