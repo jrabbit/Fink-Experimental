@@ -1,16 +1,48 @@
+diff -Naur -x .DS_Store -x mk-patch -x design.ooutline fink-lisp-manager.orig/LICENSE fink-lisp-manager/LICENSE
+--- fink-lisp-manager.orig/LICENSE	1969-12-31 16:00:00.000000000 -0800
++++ fink-lisp-manager/LICENSE	2004-09-22 13:07:06.000000000 -0700
+@@ -0,0 +1,19 @@
++Copyright (c) 2004 Lars Rosengreen
++
++Permission is hereby granted, free of charge, to any person obtaining a
++copy of this software and associated documentation files (the "Software"),
++to deal in the Software without restriction, including without limitation
++the rights to use, copy, modify, merge, publish, distribute, sublicense,
++and/or sell copies of the Software, and to permit persons to whom the
++Software is furnished to do so, subject to the following conditions: 
++
++The above copyright notice and this permission notice shall be included in
++all copies or substantial portions of the Software. 
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
++THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
++DEALINGS IN THE SOFTWARE. 
 diff -Naur -x .DS_Store -x mk-patch -x design.ooutline fink-lisp-manager.orig/design.txt fink-lisp-manager/design.txt
 --- fink-lisp-manager.orig/design.txt	1969-12-31 16:00:00.000000000 -0800
-+++ fink-lisp-manager/design.txt	2004-09-22 00:49:49.000000000 -0700
-@@ -0,0 +1,47 @@
++++ fink-lisp-manager/design.txt	2004-09-22 01:00:14.000000000 -0700
+@@ -0,0 +1,56 @@
 +Fink Lisp Manager
 +- Purpose
-+  To make Common Lisp libraries and applications ("systems") available
-+  through fink with an absolute minimum of complexity and fragility
++    - To make Common Lisp libraries and applications ("systems")
++      available through fink with an absolute minimum of complexity and
++      fragility
++- Prior Art
++    - Peter Van Endye and Kevin M. Rosenberg's Common Lisp Controller
++      for Debian
++    - Debian Emacs policy
 +- Scope
-+    - Supported Common Lisp implementations ("flavors"): OpenMCL, SBCL
-+      (support planned for CMUCL, CLISP, Franz Allegro CL and Xanalys
-+      LispWorks)
++    - Supported Common Lisp implementations ("flavors"): OpenMCL and
++      SBCL (support planned for CMUCL, CLISP, Franz Allegro CL and
++      Xanalys LispWorks)
 +    - Upon completion, roughly 50 packaged lisp systems
++- Todo
++    - More gracefully handle error conditions
++    - Do more of the heavy lifting in lisp itself, instead of in shell
++      scripts
 +- Lisp flavors packaged in Fink
 +    - Must depend on the fink-lisp-manager package
 +    - Must call %p/common-lisp/scripts/recompile-all %n in their
@@ -51,8 +83,8 @@ diff -Naur -x .DS_Store -x mk-patch -x design.ooutline fink-lisp-manager.orig/de
 +    - install {flavor} {system} {location}
 diff -Naur -x .DS_Store -x mk-patch -x design.ooutline fink-lisp-manager.orig/scripts/clean fink-lisp-manager/scripts/clean
 --- fink-lisp-manager.orig/scripts/clean	1969-12-31 16:00:00.000000000 -0800
-+++ fink-lisp-manager/scripts/clean	2004-09-22 00:24:58.000000000 -0700
-@@ -0,0 +1,28 @@
++++ fink-lisp-manager/scripts/clean	2004-09-22 13:02:23.000000000 -0700
+@@ -0,0 +1,29 @@
 +#! /bin/sh
 +
 +FLAVOR=$1
@@ -79,8 +111,10 @@ diff -Naur -x .DS_Store -x mk-patch -x design.ooutline fink-lisp-manager.orig/sc
 +
 +esac
 +
-+[ -d @PREFIX@/lib/common-lisp/$FLAVOR/source/$SYSTEM ] && \
-+find @PREFIX@/lib/common-lisp/$FLAVOR/source/$SYSTEM -name "*.$FEXT" -type f -exec rm -fv {} \;
++if [ -d @PREFIX@/lib/common-lisp/$FLAVOR/source/$SYSTEM ]; then
++  find @PREFIX@/lib/common-lisp/$FLAVOR/source/$SYSTEM -name "*.$FEXT" -type f -exec rm -fv {} \;
++fi
+\ No newline at end of file
 diff -Naur -x .DS_Store -x mk-patch -x design.ooutline fink-lisp-manager.orig/scripts/clean-all fink-lisp-manager/scripts/clean-all
 --- fink-lisp-manager.orig/scripts/clean-all	1969-12-31 16:00:00.000000000 -0800
 +++ fink-lisp-manager/scripts/clean-all	2004-09-20 23:58:44.000000000 -0700
@@ -194,9 +228,9 @@ diff -Naur -x .DS_Store -x mk-patch -x design.ooutline fink-lisp-manager.orig/sc
 +
 +echo
 +echo "All systems recompiled"
-diff -Naur -x .DS_Store -x mk-patch -x design.ooutline fink-lisp-manager.orig/tools/LICENSE.asdf fink-lisp-manager/tools/LICENSE.asdf
---- fink-lisp-manager.orig/tools/LICENSE.asdf	1969-12-31 16:00:00.000000000 -0800
-+++ fink-lisp-manager/tools/LICENSE.asdf	2004-09-21 10:06:04.000000000 -0700
+diff -Naur -x .DS_Store -x mk-patch -x design.ooutline fink-lisp-manager.orig/tools/LICENSE-asdf fink-lisp-manager/tools/LICENSE-asdf
+--- fink-lisp-manager.orig/tools/LICENSE-asdf	1969-12-31 16:00:00.000000000 -0800
++++ fink-lisp-manager/tools/LICENSE-asdf	2004-09-21 10:06:04.000000000 -0700
 @@ -0,0 +1,24 @@
 +
 +(This is the MIT / X Consortium license as taken from 
