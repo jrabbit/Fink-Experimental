@@ -1,3 +1,12 @@
+# TODOs
+#
+# - Fix python path. Either use correct python var to configure
+#   or use python standard make tools
+#
+# - Check where '/sw/share/doc/svn-ssl/' has gone
+#
+# - Check the new swig-py, swig-perl and javahl build targets
+
 Package: svn-ssl
 Version: 1.1.0-rc1
 Revision: 11
@@ -36,7 +45,18 @@ CompileScript: <<
  
  ### make everything shared
  make
+ 
+ ### Run tests over ra_local:
  make check
+
+ ### Run tests over ra_svn:
+ subversion/svnserve/svnserve -d -r `pwd`/subversion/tests/clients/cmdline
+ make check BASE_URL=svn://localhost
+ killall -v -u root svnserve
+
+ ### Run tests over ra_dav:
+ # See DescPackaging on how to set up for tests over ra_dav
+ make check BASE_URL=http://localhost
 
  ### Build swig python bindings
  make swig-py
@@ -50,9 +70,6 @@ CompileScript: <<
 
  ### Build javahl bindings
  make javahl
- cd subversion/bindings/java/javahl; ./autogen.sh
- cd subversion/bindings/java/javahl; CPPFLAGS='-I/System/Library/Frameworks/JavaVM.framework/Versions/CurrentJDK/Home/include' ./configure --prefix=%p --datadir='${prefix}/share/java/%n-javahl' --libexecdir='${prefix}/lib/svn' --mandir='${prefix}/share/man' --infodir='${prefix}/share/info' --with-neon=%p --with-apr=%p --with-apr-util=%p --enable-shared --with-jdk=/System/Library/Frameworks/JavaVM.framework/Versions/CurrentJDK/Home --with-swig --with-python=%p/bin/python2.3 --with-perl=perl5.8.1
- cd subversion/bindings/java/javahl; make
 <<
 
 # Install Phase:
@@ -544,6 +561,23 @@ DescUsage: <<
  document for documentation on how to update an old repos.
  Also located here:
   <http://svn.collab.net/repos/svn/trunk/notes/repos_upgrade_HOWTO>
+<<
+DescPackaging: <<
+ To run the tests over ra_dav apache2 must be running with (an older) 
+ fink 'libapache2-ssl-mod-svn' already installed. You need to add the
+ following to your '/sw/etc/apache2/httpd.conf' file:
+ 
+ <Location /repositories>
+  DAV svn
+  SVNParentPath /sw/src/svn-ssl-%v-%r/subversion-%v/subversion/tests/clients/cmdline/repositories
+ </Location>
+ <Location /local_tmp/repos>
+  DAV svn
+  SVNPath /sw/src/svn-ssl-%v-%r/subversion-%v/subversion/tests/clients/cmdline/local_tmp/repos
+ </Location>
+ 
+ where %v and %r are replaced with the current versions. Then do
+ 'sudo apachectl -k graceful' to enable the mod_svn support.
 <<
 DescPort: <<
 Patch needed to stop relinking a .dylib in the install path, 
