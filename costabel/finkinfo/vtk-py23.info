@@ -1,10 +1,8 @@
 Package: vtk-py23
-Version: 4.4
-Revision: 1.20040120cvs
-#Source: http://www.vtk.org/files/release/4.2/VTK-%v.tar.gz
-#Source-MD5: 531b3eb03f5041e5d04fed6b0b9b4c87
-Source: http://perso.wanadoo.fr/costabel/vtk/VTK-%r.tar.bz2
-Source-MD5: d44559518f07e2d5f89f14ce5869d3f7
+Version: 4.4.0
+Revision: 1
+Source: http://www.vtk.org/files/release/4.4/VTK-%v.tar.gz
+Source-MD5: 8db586018e08a112973235a62103aa39
 SourceDirectory: VTK
 License: GPL
 GCC: 3.3
@@ -17,6 +15,7 @@ Recommends: vtkdata
 PatchScript: <<
  perl -pi.bak -e 's|/usr/local/lib|%p/lib/vtk|g' Wrapping/Python/vtk/tk/vtkLoadPythonTkWidgets.py
  perl -pi.bak -e 's|/usr/local|%p|g' Wrapping/Tcl/vtkbase/vtkbase.tcl
+ perl -pi.bak -e 's|(\-no\-cpp\-precomp)|\-O3 \-mcpu=G3 \-mtune=G4 \-funroll\-loops \-Wno\-long\-double $1|g' CMakeLists.txt
 <<
 CompileScript: <<
 #!/bin/sh
@@ -51,7 +50,7 @@ CompileScript: <<
        -DVTK_USE_SYSTEM_TIFF:BOOL=ON \
        -DVTK_USE_SYSTEM_ZLIB:BOOL=ON \
        -DVTK_DATA_ROOT:PATH=%p/share/VTKData \
-       -DVTK_USE_PARALLEL:BOOL=OFF \
+       -DVTK_USE_PARALLEL:BOOL=ON \
        -DVTK_USE_PATENTED:BOOL=ON \
        .
  make
@@ -61,6 +60,14 @@ InstallScript: <<
  make install DESTDIR=%d
  pushd Wrapping/Python
  %p/bin/python2.3 setup.py install --root=%d
+ if test -L %i/lib/python2.3/site-packages/vtk_python/libvtkCommonPython.so; then
+    echo symlinks seem OK
+ else
+    echo creating forgotten symlinks
+    for kit in Common Filtering Graphics Hybrid IO Imaging Parallel Patented Rendering; do
+	ln -s %p/lib/vtk/libvtk${kit}Python.so %i/lib/python2.3/site-packages/vtk_python/
+    done
+ fi
  popd
  /usr/bin/install -d %i/share/doc/%n
  /bin/cp -R Examples %i/share/doc/%n/
@@ -104,9 +111,6 @@ DescUsage: <<
  For documentation see the vtk web site. 
 <<
 DescPort: <<
- Sources are a cvs snapshot I took myself, because the VTK site has no 
- released version that contains the Panther fixes. 
- 
  Java wrapper disabled in this version. 
  
  Python wrapper should work in this version. It uses Fink's python23 package.
