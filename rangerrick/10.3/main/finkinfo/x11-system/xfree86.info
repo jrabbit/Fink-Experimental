@@ -1,30 +1,34 @@
 Package: xfree86
-Version: 4.4.0
-Revision: 2
+Version: 4.4.99.13
+Revision: 11
 Depends: %N-shlibs (>= %v-%r)
-Replaces: x11
-Provides: xserver, x11-dev, x11, rman, libgl-dev, libgl, xfree86-base-threaded, xfree86-rootless-threaded, xft2-dev, xft2, fontconfig1-dev, fontconfig1
+Provides: xserver, x11-dev, x11, rman, libgl-dev, libgl, xft2-dev, xft2, fontconfig1-dev, fontconfig1
 Conflicts: xfree86-base, xfree86-base-threaded, xfree86-rootless, xfree86-rootless-threaded, xorg, system-xfree86, xfree86
+Replaces: xfree86-base, xfree86-base-threaded, xfree86-rootless, xfree86-rootless-threaded, xorg, system-xfree86, xfree86
 GCC: 3.3
-Source: ftp://ftp.xfree86.org/pub/XFree86/%v/source/XFree86-%v-src-1.tgz
+Source: ftp://ftp.xfree86.org/pub/XFree86/develsnaps/XFree86-%v.tar.bz2
 Source-MD5: 97cea3d9e1197dde32ca34e3b6086469
-Source2: ftp://ftp.xfree86.org/pub/XFree86/%v/source/XFree86-%v-src-2.tgz
-Source2-MD5: b9b6c74a03e314569e01d5fd4ff59523
-Source3: ftp://ftp.xfree86.org/pub/XFree86/%v/source/XFree86-%v-src-3.tgz
-Source3-MD5: 703404f48d3a15f58389a879d47c769d
-Source4: ftp://ftp.xfree86.org/pub/XFree86/%v/source/XFree86-%v-src-4.tgz
-Source4-MD5: 5d1792f5c154c7462c6aef39c7853b3b
-Source5: ftp://ftp.xfree86.org/pub/XFree86/%v/source/XFree86-%v-src-5.tgz
-Source5-MD5: 5c37f028efc6d54a9c725e333f9cc8ae
-Source6: ftp://ftp.xfree86.org/pub/XFree86/%v/source/XFree86-%v-src-6.tgz
-Source6-MD5: d1e12c33e9756d5143004a69f2cdac81
-Source7: ftp://ftp.xfree86.org/pub/XFree86/%v/source/XFree86-%v-src-7.tgz
-Source7-MD5: 947a34279a0ca2da2f300719c583845e
+#Source: ftp://ftp.xfree86.org/pub/XFree86/%v/source/XFree86-%v-src-1.tgz
+#Source-MD5: 97cea3d9e1197dde32ca34e3b6086469
+#Source2: ftp://ftp.xfree86.org/pub/XFree86/%v/source/XFree86-%v-src-2.tgz
+#Source2-MD5: b9b6c74a03e314569e01d5fd4ff59523
+#Source3: ftp://ftp.xfree86.org/pub/XFree86/%v/source/XFree86-%v-src-3.tgz
+#Source3-MD5: 703404f48d3a15f58389a879d47c769d
+#Source4: ftp://ftp.xfree86.org/pub/XFree86/%v/source/XFree86-%v-src-4.tgz
+#Source4-MD5: 5d1792f5c154c7462c6aef39c7853b3b
+#Source5: ftp://ftp.xfree86.org/pub/XFree86/%v/source/XFree86-%v-src-5.tgz
+#Source5-MD5: 5c37f028efc6d54a9c725e333f9cc8ae
+#Source6: ftp://ftp.xfree86.org/pub/XFree86/%v/source/XFree86-%v-src-6.tgz
+#Source6-MD5: d1e12c33e9756d5143004a69f2cdac81
+#Source7: ftp://ftp.xfree86.org/pub/XFree86/%v/source/XFree86-%v-src-7.tgz
+#Source7-MD5: 947a34279a0ca2da2f300719c583845e
 SourceDirectory: xc
 PatchScript: <<
  echo '#define ExtraIncDir      %p/include'       > config/cf/host.def
  echo '#define EtcX11Directory  ProjectRoot/etc' >> config/cf/host.def
- patch -p0 < %a/%n.patch
+ echo '#define CcCmd            gcc'             >> config/cf/host.def
+ echo '#define CplusplusCmd     g++'             >> config/cf/host.def
+ echo '#define BuildFontCache   YES'             >> config/cf/host.def
 <<
 CompileScript: <<
 #!/bin/sh -e
@@ -43,7 +47,8 @@ CompileScript: <<
 SplitOff: <<
  Package: %N-shlibs 
  Conflicts: xfree86-base-shlibs, xfree86-base-threaded-shlibs, xfree86-rootless-shlibs, xfree86-rootless-threaded-shlibs, xorg-shlibs, system-xfree86, xfree86-shlibs
- Provides: libgl-shlibs, xfree86-base-threaded-shlibs, xfree86-rootless-threaded-shlibs, x11-shlibs, xft1-shlibs, xft2-shlibs, fontconfig1-shlibs
+ Replaces: xfree86-base-shlibs, xfree86-base-threaded-shlibs, xfree86-rootless-shlibs, xfree86-rootless-threaded-shlibs, xorg-shlibs, system-xfree86, xfree86-shlibs
+ Provides: libgl-shlibs, x11-shlibs, xft1-shlibs, xft2-shlibs, fontconfig1-shlibs
  Files: <<
    /usr/X11R6/lib/libAppleWM.*.dylib
    /usr/X11R6/lib/libFS.*.dylib
@@ -87,49 +92,52 @@ SplitOff: <<
    /usr/X11R6/lib/libxkbui.*.dylib
  <<
  Shlibs: <<
-   /usr/X11R6/lib/libAppleWM.1.dylib 1.0.0 %n (>= 4.3.99.15-1)
-   /usr/X11R6/lib/libFS.6.dylib 6.0.0 %n (>= 4.3.99.15-1)
-   /usr/X11R6/lib/libGL.1.dylib 1.2.0 xfree86 (>= 4.3.0-13) | system-xfree86 (>= 2:4.3-1)
-   /usr/X11R6/lib/libGLU.1.dylib 1.3.0 xfree86 (>= 4.3.0-13) | system-xfree86 (>= 2:4.3-1)
-   /usr/X11R6/lib/libICE.6.dylib 6.3.0 xfree86 (>= 4.3.0-13) | system-xfree86 (>= 2:4.3-1)
-   /usr/X11R6/lib/libOSMesa.4.dylib 4.0.0 %n (>= 4.3.0-13) | system-xfree86 (>= 2:4.3-1)
-   /usr/X11R6/lib/libSM.6.dylib 6.0.0 xfree86 (>= 4.3.0-13) | system-xfree86 (>= 2:4.3-1)
-   /usr/X11R6/lib/libX11.6.dylib 6.2.0 xfree86 (>= 4.3.0-13) | system-xfree86 (>= 2:4.3-1)
-   /usr/X11R6/lib/libXRes.1.dylib 1.0.0 %n (>= 4.3.99.15-1)
-   /usr/X11R6/lib/libXTrap.6.dylib 6.4.0 xfree86 (>= 4.3.0-13) | system-xfree86 (>= 2:4.3-1)
-   /usr/X11R6/lib/libXaw.6.dylib 6.1.0 xfree86 (>= 4.3.0-13) | system-xfree86 (>= 2:4.3-1)
-   /usr/X11R6/lib/libXaw.7.dylib 7.0.0 xfree86 (>= 4.3.0-13) | system-xfree86 (>= 2:4.3-1)
-   /usr/X11R6/lib/libXcursor.1.dylib 1.0.0 xfree86 (>= 4.3.0-13) | system-xfree86 (>= 2:4.3-1)
-   /usr/X11R6/lib/libXext.6.dylib 6.4.0 xfree86 (>= 4.3.0-13) | system-xfree86 (>= 2:4.3-1)
-   /usr/X11R6/lib/libXfont.1.dylib 1.5.0 %n (>= 4.3.99.15-1)
-   /usr/X11R6/lib/libXfontcache.1.dylib 1.2.0 %n (>= 4.3.99.902-1)
-   /usr/X11R6/lib/libXft.1.dylib 1.1.0 xfree86 (>= 4.3.0-13) | system-xfree86 (>= 2:4.3-1)
-   /usr/X11R6/lib/libXft.2.dylib 2.1.0 %n (>= 4.3.99.15-1)
-   /usr/X11R6/lib/libXi.6.dylib 6.0.0 xfree86 (>= 4.3.0-13) | system-xfree86 (>= 2:4.3-1)
-   /usr/X11R6/lib/libXinerama.1.dylib 1.0.0 %n (>= 4.3.99.15-1)
-   /usr/X11R6/lib/libXmu.6.dylib 6.2.0 xfree86 (>= 4.3.0-13) | system-xfree86 (>= 2:4.3-1)
-   /usr/X11R6/lib/libXmuu.1.dylib 1.0.0 xfree86 (>= 4.3.0-13) | system-xfree86 (>= 2:4.3-1)
-   /usr/X11R6/lib/libXp.6.dylib 6.2.0 xfree86 (>= 4.3.0-13) | system-xfree86 (>= 2:4.3-1)
-   /usr/X11R6/lib/libXpm.4.dylib 4.11.0 xfree86 (>= 4.3.0-13) | system-xfree86 (>= 2:4.3-1)
-   /usr/X11R6/lib/libXrandr.2.dylib 2.0.0 xfree86 (>= 4.3.0-13) | system-xfree86 (>= 2:4.3-1)
-   /usr/X11R6/lib/libXrender.1.dylib 1.2.0 xfree86 (>= 4.3.0-13) | system-xfree86 (>= 2:4.3-1)
-   /usr/X11R6/lib/libXss.1.dylib 1.0.0 %n (>= 4.3.99.15-1)
-   /usr/X11R6/lib/libXt.6.dylib 6.0.0 xfree86 (>= 4.3.0-13) | system-xfree86 (>= 2:4.3-1)
-   /usr/X11R6/lib/libXtst.6.dylib 6.1.0 xfree86 (>= 4.3.0-13) | system-xfree86 (>= 2:4.3-1)
-   /usr/X11R6/lib/libXv.1.dylib 1.0.0 xfree86 (>= 4.3.0-13) | system-xfree86 (>= 2:4.3-1)
-   /usr/X11R6/lib/libXvMC.1.dylib 1.0.0 %n (>= 4.3.99.15-1)
-   /usr/X11R6/lib/libXxf86misc.1.dylib 1.1.0 %n (>= 4.3.99.15-1)
-   /usr/X11R6/lib/libXxf86vm.1.dylib 1.0.0 %n (>= 4.3.99.15-1)
-   /usr/X11R6/lib/libdps.1.dylib 1.0.0 xfree86 (>= 4.3.0-13) | system-xfree86 (>= 2:4.3-1)
-   /usr/X11R6/lib/libdpstk.1.dylib 1.0.0 xfree86 (>= 4.3.0-13) | system-xfree86 (>= 2:4.3-1)
-   /usr/X11R6/lib/libexpat.0.dylib 0.4.0 %n (>= 4.3.99.15-1)
-   /usr/X11R6/lib/libfontconfig.1.dylib 1.0.0 xfree86 (>= 4.3.0-13) | system-xfree86 (>= 2:4.3-1)
-   /usr/X11R6/lib/libfontenc.1.dylib 1.0.0 %n (>= 4.3.99.15-1)
-   /usr/X11R6/lib/libfreetype.6.dylib 6.3.0 xfree86 (>= 4.3.0-13) | system-xfree86 (>= 2:4.3-1)
-   /usr/X11R6/lib/liboldX.6.dylib 6.0.0 xfree86 (>= 4.3.0-13) | system-xfree86 (>= 2:4.3-1)
-   /usr/X11R6/lib/libpsres.1.dylib 1.0.0 xfree86 (>= 4.3.0-13) | system-xfree86 (>= 2:4.3-1)
-   /usr/X11R6/lib/libxkbfile.1.dylib 1.0.0 %n (>= 4.3.99.15-1)
-   /usr/X11R6/lib/libxkbui.1.dylib 1.0.0 %n (>= 4.3.99.15-1)
+   /usr/X11R6/lib/libAppleWM.1.dylib    1.0.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.4-1)    | system-xfree86 (>= 4.4-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libFS.6.dylib         6.0.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.4-1)    | system-xfree86 (>= 4.4-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libGL.1.dylib         1.2.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.3.0-13) | system-xfree86 (>= 4.3-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libGLU.1.dylib        1.3.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.3.0-13) | system-xfree86 (>= 4.3-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libICE.6.dylib        6.3.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.3.0-13) | system-xfree86 (>= 4.3-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libOSMesa.4.dylib     4.0.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.3.0-13) | system-xfree86 (>= 4.3-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libSM.6.dylib         6.0.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.3.0-13) | system-xfree86 (>= 4.3-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libX11.6.dylib        6.2.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.3.0-13) | system-xfree86 (>= 4.3-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libXRes.1.dylib       1.0.0  xorg-shlibs (>= 6.8.0-1) | xfree86-shlibs (>= 4.4-1)    | system-xfree86 (>= 4.4-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libXTrap.6.dylib      6.4.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.3.0-13) | system-xfree86 (>= 4.3-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libXaw.6.dylib        6.1.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.3.0-13) | system-xfree86 (>= 4.3-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libXaw.7.dylib        7.0.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.3.0-13) | system-xfree86 (>= 4.3-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libXaw.8.dylib        8.0.0  xorg-shlibs (>= 6.8.0-1)                                                            | system-xorg (>= 6.8.0-1)
+   /usr/X11R6/lib/libXcomposite.1.dylib 1.0.0  xorg-shlibs (>= 6.8.0-1)                                                            | system-xorg (>= 6.8.0-1)
+   /usr/X11R6/lib/libXcursor.1.dylib    1.0.2  xorg-shlibs (>= 6.8.0-1)                                                            | system-xorg (>= 6.8.0-1)
+   /usr/X11R6/lib/libXdamage.1.dylib    1.0.0  xorg-shlibs (>= 6.8.0-1)                                                            | system-xorg (>= 6.8.0-1)
+   /usr/X11R6/lib/libXext.6.dylib       6.4.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.3.0-13) | system-xfree86 (>= 4.3-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libXfixes.3.dylib     3.0.0  xorg-shlibs (>= 6.8.0-1)                                                            | system-xorg (>= 6.8.0-1)
+   /usr/X11R6/lib/libXfont.1.dylib      1.5.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.4-1)    | system-xfree86 (>= 4.4-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libXft.1.dylib        1.1.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.3.0-13) | system-xfree86 (>= 4.3-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libXft.2.dylib        2.1.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.4-1)    | system-xfree86 (>= 4.4-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libXi.6.dylib         6.0.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.3.0-13) | system-xfree86 (>= 4.3-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libXinerama.1.dylib   1.0.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.4-1)    | system-xfree86 (>= 4.4-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libXmu.6.dylib        6.2.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.3.0-13) | system-xfree86 (>= 4.3-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libXmuu.1.dylib       1.0.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.3.0-13) | system-xfree86 (>= 4.3-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libXp.6.dylib         6.2.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.3.0-13) | system-xfree86 (>= 4.3-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libXpm.4.dylib        4.11.0 xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.3.0-13) | system-xfree86 (>= 4.3-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libXrandr.2.dylib     2.0.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.3.0-13) | system-xfree86 (>= 4.3-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libXrender.1.dylib    1.2.2  xorg-shlibs (>= 6.8.0-1)                                                            | system-xorg (>= 6.8.0-1)
+   /usr/X11R6/lib/libXss.1.dylib        1.0.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.4-1)    | system-xfree86 (>= 4.4-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libXt.6.dylib         6.0.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.3.0-13) | system-xfree86 (>= 4.3-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libXtst.6.dylib       6.1.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.3.0-13) | system-xfree86 (>= 4.3-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libXv.1.dylib         1.0.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.3.0-13) | system-xfree86 (>= 4.3-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libXvMC.1.dylib       1.0.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.4-1)    | system-xfree86 (>= 4.4-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libXxf86misc.1.dylib  1.1.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.4-1)    | system-xfree86 (>= 4.4-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libXxf86vm.1.dylib    1.0.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.4-1)    | system-xfree86 (>= 4.4-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libdps.1.dylib        1.0.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.3.0-13) | system-xfree86 (>= 4.3-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libdpstk.1.dylib      1.0.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.3.0-13) | system-xfree86 (>= 4.3-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libexpat.0.dylib      0.4.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.4-1)    | system-xfree86 (>= 4.4-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libfontconfig.1.dylib 1.0.4  xorg-shlibs (>= 6.8.0-1)                                                            | system-xorg (>= 6.8.0-1)
+   /usr/X11R6/lib/libfontenc.1.dylib    1.0.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.4-1)    | system-xfree86 (>= 4.4-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libfreetype.6.dylib   6.3.5  xorg-shlibs (>= 6.8.0-1)                                                            | system-xorg (>= 6.8.0-1)
+   /usr/X11R6/lib/liboldX.6.dylib       6.0.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.3.0-13) | system-xfree86 (>= 4.3-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libpsres.1.dylib      1.0.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.3.0-13) | system-xfree86 (>= 4.3-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libxkbfile.1.dylib    1.0.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.4-1)    | system-xfree86 (>= 4.4-1) | system-xorg (>= 6.7.0-1)
+   /usr/X11R6/lib/libxkbui.1.dylib      1.0.0  xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.4-1)    | system-xfree86 (>= 4.4-1) | system-xorg (>= 6.7.0-1)
  <<
  PreInstScript: <<
     case "$1" in
