@@ -1,8 +1,14 @@
-#!/usr/bin/perl
+#!/sw/bin/perl5.8.0
 
+use Cwd qw(abs_path);
+use File::Basename;
 use File::Find;
 use XML::RSS;
 use Storable;
+use Fink::Package;
+use Text::Wrap qw(fill $columns);
+
+$columns = 76;
 
 #use utf8;
 use strict;
@@ -14,6 +20,7 @@ use vars qw(
 	$NOW
 	$PREFIX
 	$SCP
+	$TOPDIR
 
 	@FILES
 
@@ -22,35 +29,75 @@ use vars qw(
 	%STABLE_PACKAGES
 	%UNSTABLE_PACKAGES
 
+	%CVS_FILES
+
 	$CACHE
+	$DOCACHE
+
+	$basepath
+	$Config
 );
 
-$DAYS   = 1.5; # number of days to look back
-$NOW    = time;
-$CUTOFF = ($NOW - (60 * 60 * 24 * $DAYS));
-$PREFIX = '/tmp/fink-rss';
-$SCP    = 1;
-$DOCVS  = 0;
+$basepath = '/sw';
+$TOPDIR   = abs_path(dirname($0));
+$DAYS     = 5; # number of days to look back
+$NOW      = time;
+$CUTOFF   = ($NOW - (60 * 60 * 24 * $DAYS));
+$PREFIX   = '/tmp/fink-rss';
+$SCP      = 1;
+$DOCVS    = 1;
+$DOCACHE  = 0;
 
-if (-f '/tmp/rss.cache') {
+if (-f '/tmp/rss.cache' and $DOCACHE) {
 	$CACHE = retrieve('/tmp/rss.cache');
 }
 
 $ENV{CVS_RSH} = '/Users/ranger/bin/ssh.sh';
+#$ENV{CVS_RSH} = 'ssh';
 
 print "- updating cvs repository... ";
 `mkdir -p '$PREFIX'`;
-`cd $PREFIX; rsync -azvr rsync://master.us.finkmirrors.net/finkinfo/ dists >$PREFIX/rsync.log 2>&1`;
+unless (-f $PREFIX . '/dists/CVS') {
+  unlink($PREFIX . '/dists');
+}
+if (-d $PREFIX . '/dists') {
+	`cd $PREFIX . '/dists'; cvs -d :ext:rangerrick\@cvs.sourceforge.net:/cvsroot/fink up -A >$PREFIX/cvs.log 2>&1`;
+} else {
+	`cd $PREFIX; cvs -d :ext:rangerrick\@cvs.sourceforge.net:/cvsroot/fink co dists >$PREFIX/cvs.log 2>&1`;
+}
+#`cd $PREFIX; cvs -d :pserver:anonymous\@cvs.sourceforge.net:/cvsroot/fink co dists >$PREFIX/cvs.log 2>&1`;
+#`cd $PREFIX; rsync -azvr rsync://master.us.finkmirrors.net/finkinfo/ dists >$PREFIX/rsync.log 2>&1`;
 print "done\n";
 
 print "- searching for new info files...\n";
+
+my %options =
+  (
+   "dontask" => 0,
+   "interactive" => 0,
+   "verbosity" => 0,
+   "keep_build" => 0,
+   "keep_root" => 0,
+  );
+
+require Fink::Config;
+
+my $configpath;
+$configpath = "$basepath/etc/fink.conf";
+if (-f $configpath) {
+	$Config = &Fink::Services::read_config($configpath,
+		{ Basepath => "$basepath" }
+	);
+}
+
 find(\&find_infofiles, $PREFIX);
+get_cvs_log();
 
 print "- generating RSS...\n";
 make_rss(\%STABLE_PACKAGES, 'Stable');
 make_rss(\%UNSTABLE_PACKAGES, 'Unstable');
 
-store($CACHE, '/tmp/rss.cache');
+store($CACHE, '/tmp/rss.cache') if ($CACHE and $DOCACHE);
 
 if ($SCP) {
 	print "- copying feeds to the Fink website... ";
@@ -59,13 +106,16 @@ if ($SCP) {
 	for my $file (@FILES) {
 		$newfiles .= ' ' . $file . '.new';
 	}
-	`rsync -av -e /Users/ranger/bin/ssh.sh $newfiles rangerrick\@fink.sourceforge.net:/home/groups/f/fi/fink/htdocs/news/ >/tmp/rss-rsync.log 2>&1`;
+	#print "rsync -av -e $ENV{CVS_RSH} $newfiles rangerrick\@fink.sourceforge.net:/home/groups/f/fi/fink/htdocs/news/ >/tmp/rss-rsync.log 2>&1\n";
+	`rsync -av -e $ENV{CVS_RSH} $newfiles rangerrick\@fink.sourceforge.net:/home/groups/f/fi/fink/htdocs/news/ >/tmp/rss-rsync.log 2>&1`;
 
 	my $movecommands;
 	for my $file (@FILES) {
+		$file =~ s/.*\///;
 		$movecommands .= "; mv news/${file}.new news/${file}; chgrp fink news/${file}";
 	}
-	`/Users/ranger/bin/ssh.sh rangerrick\@fink.sourceforge.net 'cd /home/groups/f/fi/fink/htdocs; ./fix_perm.sh $movecommands' >/dev/null 2>&1`;
+	#print "$ENV{CVS_RSH} rangerrick\@fink.sourceforge.net 'cd /home/groups/f/fi/fink/htdocs; ./fix_perm.sh $movecommands' >/tmp/rss-mv.log 2>&1\n";
+	`$ENV{CVS_RSH} rangerrick\@fink.sourceforge.net 'cd /home/groups/f/fi/fink/htdocs; ./fix_perm.sh $movecommands' >/tmp/rss-mv.log 2>&1`;
 	print "done\n";
 }
 
@@ -80,7 +130,7 @@ sub w3c_date {
 sub iso_date {
 	my @time = localtime(int(shift));
 	$time[5] += 1900;
-	#$time[4] += 1;
+	$time[4] += 1;
 
 	my @days   = ('Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat');
 	my @months = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec');
@@ -89,33 +139,61 @@ sub iso_date {
 }
 
 sub get_cvs_log {
-	my $path = shift;
-	my $file = shift;
+	return unless ($DOCVS);
 
-	$path =~ s/'/\\'/g;
-	$file =~ s/'/\\'/g;
+	my @keys = map { $_ =~ s,^$PREFIX/dists/,,; $_ } sort keys %CVS_FILES;
 
-	# get the revision from status
-	chomp(my $status = `cd '$path' && cvs status '$file' 2>/dev/null | grep 'Working revision'`);
-	(undef, $status) = split(/\s*:\s*/, $status);
-
-	my ($author, $logentry);
-	my $indesc = 0;
-
-	# now find the log for that revision
-	open(CVSLOG, "cd '$path' && cvs log -r $status '$file' 2>/dev/null |") or die "can't get a log for $file: $!\n";
-	while (my $line = <CVSLOG>) {
-		if ($line =~ /date:.* author:\s*(\S+)\;/) {
-			$author = $1;
-			$indesc = 1;
-		} elsif ($indesc) {
-			$logentry .= $line;
+	my $filename;
+	my $revdone = 0;
+	my $lookfordesc = 0;
+	my $author;
+	my $spacecount = 100;
+	my @lines;
+	my $pwd = `pwd`;
+	chdir($PREFIX . '/dists');
+	if (open(CVSLOG, "cvs log @keys |")) {
+		while (my $line = <CVSLOG>) {
+			if ($line =~ m#\s*RCS file: /cvsroot/fink/dists/(.*),v#) {
+				for my $index (0..$#lines) {
+					$lines[$index] =~ s/^\s{$spacecount}//;
+				}
+				$CVS_FILES{$filename} = [ $author, join('', @lines) ];
+				$filename = $PREFIX . '/dists/' . $1;
+				$revdone = 0;
+				$lookfordesc = 0;
+				$spacecount = 0;
+				@lines = ();
+			} elsif ($line =~ m#\s*revision [\d\.]+#) {
+				$lookfordesc = 1 unless ($revdone);
+			} elsif ($lookfordesc) {
+				if ($line =~ / author: (.*?);/) {
+					$author = $1;
+				} elsif ($line =~ /^----------------------------$/) {
+					$lookfordesc = 0;
+					$revdone = 1;
+				} elsif ($line =~ /^=============================================================================$/) {
+					$lookfordesc = 0;
+					$revdone = 1;
+				} else {
+					push(@lines, $line);
+					$line =~ s/\t/        /g;
+					if ($line =~ /^(\s+)/) {
+						my $count = length($1);
+						$spacecount = $count if ($count < $spacecount);
+					}
+				}
+			}
 		}
+		close(CVSLOG);
+		for my $index (0..$#lines) {
+			$lines[$index] =~ s/^\s{$spacecount}//;
+		}
+		$CVS_FILES{$filename} = [ $author, join('', @lines) ] unless (defined $CVS_FILES{$filename});
 	}
-	close(CVSLOG);
-	$logentry =~ s/[\r\n=]+//gsi;
 
-	return ($author, $logentry);
+	chdir($pwd);
+
+	return;
 }
 
 sub make_rss {
@@ -142,11 +220,8 @@ sub make_rss {
 	);
 
 	my $description;
-	for my $package (sort { $packagehash->{$b}->{'date'} <=> $packagehash->{$a}->{'date'} } keys %{$packagehash}) {
+	for my $package (sort { $packagehash->{$b}->{'date'} <=> $packagehash->{$a}->{'date'} || $a <=> $b } keys %{$packagehash}) {
 		$package = $packagehash->{$package};
-
-		#print "name = ", $package->{'package'}, ", version = ", $package->{'version'} . "-" . $package->{'revision'}, "\n";
-		#print "cache = ", $CACHE->{$tree}->{$package->{'package'}}, "\n";
 
 		next if ($CACHE->{$tree}->{$package->{'package'}} eq $package->{'version'} . '-' . $package->{'revision'});
 		$CACHE->{$tree}->{$package->{'package'}} = $package->{'version'} . '-' . $package->{'revision'};
@@ -158,29 +233,36 @@ sub make_rss {
 			$description = $package->{'descdetail'};
 		}
 
-		$description =~ s/!\p{IsASCII}//gs;
-		$description =~ s/^[\r\n]+//; $description =~ s/[\r\n\s]+$//;
-		($description) = encode_entities($description);
-		$package->{'cvslog'} =~ s/!\p{IsASCII}//gs;
+		$description =~ s/<(http:\/\/[^>]+)>/<a href="$1">$1<\/a>/gsi;
+		$description =~ s/<(.+\@[^\@]+)>/<a href="mailto:$1">$1<\/a>/gsi;
+		$description =~ s/[\r\n]+$//gsi;
+		$description = encode_entities($description);
 		if ($DOCVS) {
-			$description = '<![CDATA[<pre>' . $description . "\n\ncommit log from " .
-				$package->{'cvsauthor'} . ":\n" .
-				$package->{'cvslog'} . "</pre>]]>";
+			if (exists $CVS_FILES{$package->get_info_filename()}) {
+				$CVS_FILES{$package->get_info_filename()}->[1] =~ s/!\p{IsASCII}//gs;
+				$CVS_FILES{$package->get_info_filename()}->[1] = fill("", "", $CVS_FILES{$package->get_info_filename()}->[1]);
+				$description = $description . "\n\ncommit log from " .
+					$CVS_FILES{$package->get_info_filename()}->[0] . ":\n" .
+					$CVS_FILES{$package->get_info_filename()}->[1];
+			} else {
+				warn "no CVS information for " . $package->get_info_filename() . "\n";
+			}
 		}
 
 		$rss->add_item(
 			title       => encode_entities($package->{'package'} . ' ' . $package->{'version'} . '-' . $package->{'revision'} . ' (' . $package->{'description'} . ', ' . $package->{'tree'} . ' tree)'),
-			description => $description,
-			link        => encode_entities('http://fink.sourceforge.net/pdb/package.php/' . $package->{'package'}),
+			description => '<![CDATA[<pre>' . $description . '</pre>]]>',
+			#description => $description,
+			link        => encode_entities('http://fink.sourceforge.net/pdb/package.php/' . $package->{'package'} . '#' . $package->{'version'} . '-' . $package->{'revision'}),
 			dc          => {
 				date => w3c_date($package->{'date'}),
 			},
-		);
+		) or die "couldn't add item: $!\n";
 	}
 
 	my $lctree = lc($tree);
-	$rss->save("fink-$lctree.rdf.new") or die "can't save rss: $!\n";
-	push(@FILES, "fink-$lctree.rdf");
+	$rss->save("$TOPDIR/fink-$lctree.rdf.new") or die "can't save rss: $!\n";
+	push(@FILES, "$TOPDIR/fink-$lctree.rdf");
 }
 
 sub find_infofiles {
@@ -192,80 +274,57 @@ sub find_infofiles {
 
 	my @stat = stat($File::Find::name) or die "can't stat $_: $!\n";
 	return unless ($stat[9] >= $CUTOFF);
+	return unless ($stat[9] <= int (time - 60 * 60 * 2)); # skip the newest 2 hours, to account for mirroring
 
-	my $text;
-	open(FILEIN, $File::Find::name) or die "can't open $File::Find::name: $!\n";
-	{ local $/ = undef; $text = <FILEIN>; }
-	my $hash = parse_keys($text);
-	close(FILEIN);
+	my $properties = Fink::Package::read_properties($File::Find::name);
+	$properties = Fink::Package->handle_infon_block($properties, $File::Find::name);
+	my @versions = Fink::Package->setup_package_object($properties, $File::Find::name);
+	#print $File::Find::name, " - ", int(@versions), " version(s)\n";
 
-	$hash->{'tree'} = $tree;
-	next unless (exists $hash->{'package'});
-	$hash->{'date'} = $stat[9];
-	if ($DOCVS) {
-		($hash->{'cvsauthor'}, $hash->{'cvslog'}) = get_cvs_log($File::Find::dir, $File::Find::name);
-	}
-
-	if ($File::Find::name =~ m#/stable/#) {
-		$STABLE_PACKAGES{$tree . '/' . $hash->{'package'}} = $hash;
-	} else {
-		$UNSTABLE_PACKAGES{$tree . '/' . $hash->{'package'}} = $hash;
-	}
-}
-
-sub parse_keys {
-	my $text    = shift;
-	my $hash    = {};
-	my $lastkey = "";
-	my $heredoc = 0;
-
-	for (split(/\s*\r?\n/, $text)) {
-		chomp;
-		if ($heredoc > 0) {
-			if (/^\s*<<$/) {
-				$heredoc--;
-				$hash->{lc($lastkey)} .= $_."\n" if ($heredoc > 0);
-			} else {
-				$hash->{lc($lastkey)} .= $_."\n";
-				$heredoc++ if (/<<$/);
-			}
+	for my $version (@versions) {
+		if ($version->get_info_filename() =~ /dists\/([^\/]+)\//) {
+			$version->{'tree'} = $1;
+		}
+		$version->{'date'} = $stat[9];
+	
+		$CVS_FILES{$File::Find::name} = undef;
+	
+		if ($File::Find::name =~ m#/stable/#) {
+			$STABLE_PACKAGES{$tree . '/' . $version->get_name()} = $version;
 		} else {
-			$_ =~ s/!\p{IsASCII}//gs;
-			next if /^\s*\#/;	# skip comments
-			if (/^\s*([0-9A-Za-z_.\-]+)\:\s*(.+?)\s*$/) {
-				$lastkey = lc($1);
-				if ($2 eq "<<") {
-					$hash->{lc($lastkey)} = "";
-					$heredoc = 1;
-				} else {
-					$hash->{lc($lastkey)} = $2;
-				}
-			} elsif (/^\s+(.+?)\s*$/) {
-				$hash->{lc($lastkey)} .= "\n".$1;
-			}
+			$UNSTABLE_PACKAGES{$tree . '/' . $version->get_name()} = $version;
 		}
 	}
-
-	if ($heredoc > 0) {
-		print "WARNING: End of file reached during here-document.\n";
-	}
-
-	return $hash;
 }
 
 sub encode_entities {
-	for my $index (0..$#_) {
-		$_[$index] =~ s/!\p{IsASCII}//gs;
-		$_[$index] =~ s/>/&gt;/gs;
-		$_[$index] =~ s/</&lt;/gs;
-		$_[$index] =~ s/&/&amp;/gs;
+	my @lines = split(/\r?\n/, join("\n", @_));
+	my $linelength = 0;
+	my $spacecount = 999999;
+	for my $line (@lines) {
+		$linelength = length($line) if (length($line) > $linelength);
+		$line =~ s/!\p{IsASCII}//gs;
+#		$line =~ s/>/&gt;/gs;
+#		$line =~ s/</&lt;/gs;
+#		$line =~ s/&/&amp;/gs;
+		$line =~ s/^\s*\.\s*$//gs;
+		$line =~ s/\t/        /g;
+		if ($line =~ /^(\s+)/) {
+			my $count = length($1);
+			$spacecount = $count if ($count < $spacecount);
+		}
 #		$_[$index] =~ s/([\x{80}-\x{FFFF}])/'&#' . ord($1) . ';'/gse;
-		$_[$index] =~ s/([^\x20-\x7F])/'&#' . ord($1) . ';'/gse;
+#		$_[$index] =~ s/([^\x20-\x7F])/'&#' . ord($1) . ';'/gse;
 #		$_[$index] =~ s/\xca//gs;
-		$_[$index] =~ tr/\x91\x92\x93\x94\x96\x97/''""\-\-/;
-		$_[$index] =~ tr/[\x80-\x9F]//d;
-		$_[$index] = pack("C*", unpack('U*', $_[$index]));
+#		$_[$index] =~ tr/\x91\x92\x93\x94\x96\x97/''""\-\-/;
+#		$_[$index] =~ tr/[\x80-\x9F]//d;
+#		$_[$index] = pack("C*", unpack('U*', $_[$index]));
 #		$_[$index] =~ s/\xa8//gs;
 	}
-	return(@_);
+	$spacecount = 0 if ($spacecount == 999999);
+	my $lines = join("\n", map { $_ =~ s/^ {$spacecount}//; $_ } @lines);
+	if ($linelength > 90) {
+		$lines = fill("", "", $lines);
+	}
+	return($lines);
 }
