@@ -90,6 +90,9 @@ InstallScript: <<
 
   install -d -m 755 %i/bin
   install -c -m 755 pgsql.sh %i/bin/
+
+  install -d -m 755 %i/var/postgresql
+  echo "be sure to back up this database before any upgrades!" >> %i/var/postgresql/README
 <<
 SplitOff: <<
   Description: PostgreSQL development headers and libraries
@@ -153,7 +156,10 @@ if [ "$1" = "upgrade" ] && [ -d "%p/var/postgresql/data" ]; then
     sudo -u pgsql %p/bin/pg_ctl start -D %p/var/postgresql/data >/dev/null 2>&1 || true
     echo "ok"
 
+    echo -e "- creating postgres user in database (if needed): \c"
     %p/bin/createuser -U pgsql -a -d -e -i 2 postgres >/dev/null 2>&1 || true
+    echo "ok"
+
     chown -R postgres %p/var/postgresql %p/var/log/postgresql
   fi
 
