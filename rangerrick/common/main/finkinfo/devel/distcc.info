@@ -141,18 +141,29 @@ make_root() {
 	mkdir -p "%p/var/tmp"
 	chmod 1777 "%p/var/tmp"
 	mkdir -p "\$ROOT"
-	for FILE in gcc-\$VERSION g++-\$VERSION; do
-		ln -s /usr/bin/\$FILE "\$ROOT/"
+
+	for FILE in gcc\$VERSION g++\$VERSION gcc-\$VERSION g++-\$VERSION; do
+		if [ -f /usr/bin/\$FILE ]; then
+			ln -s /usr/bin/\$FILE "\$ROOT/"
+		fi
 	done
-	ln -sf \$ROOT/gcc-\$VERSION \$ROOT/cc
-	ln -sf \$ROOT/gcc-\$VERSION \$ROOT/gcc
-	ln -sf \$ROOT/g++\$VERSION \$ROOT/g++
-	ln -sf \$ROOT/g++\$VERSION \$ROOT/c++
+
+	if [ \$VERSION = "2" ] || [ \$VERSION = "3" ]; then
+		[ -f \$ROOT/gcc\$VERSION ] && ln -sf \$ROOT/gcc\$VERSION \$ROOT/cc
+		[ -f \$ROOT/gcc\$VERSION ] && ln -sf \$ROOT/gcc\$VERSION \$ROOT/gcc
+		[ -f \$ROOT/g++\$VERSION ] && ln -sf \$ROOT/g++\$VERSION \$ROOT/g++
+		[ -f \$ROOT/g++\$VERSION ] && ln -sf \$ROOT/g++\$VERSION \$ROOT/c++
+	else
+		[ -f \$ROOT/gcc-\$VERSION ] && ln -sf \$ROOT/gcc-\$VERSION \$ROOT/cc
+		[ -f \$ROOT/gcc-\$VERSION ] && ln -sf \$ROOT/gcc-\$VERSION \$ROOT/gcc
+		[ -f \$ROOT/g++-\$VERSION ] && ln -sf \$ROOT/g++-\$VERSION \$ROOT/g++
+		[ -f \$ROOT/g++-\$VERSION ] && ln -sf \$ROOT/g++-\$VERSION \$ROOT/c++
+	fi
 
 	export PATH="\$ROOT:\$PATH"
 }
 
-if [ "\$DISTCCD_ROOT" = "3.3" ] || [ "\$DISTCCD_ROOT" = "4.0" ]; then
+if [ -n "\$DISTCCD_ROOT" ]; then
 	make_root \$DISTCCD_ROOT
 fi
 
