@@ -1,6 +1,6 @@
 Package: kopete
 Version: 0.7.0
-Revision: 0.20030323.1
+Revision: 0.20030514.1
 Depends: 
 BuildDepends: 
 Maintainer: Benjamin Reed <ranger@befunk.com>
@@ -9,10 +9,10 @@ CustomMirror: <<
   nam-US: http://ranger.befunk.com/fink
   nam-CA: http://www.southofheaven.net/befunk
 <<
-Source: kopete-20030323.tar.bz2
+Source: kopete-20030514.tar.bz2
 #Source-MD5: 8e6d73b96890730ee3be56eb57930b73
-Source2: mirror:custom:kde-admindir-20030329.tar.bz2
-Source2-MD5: 189788e4e62a1f4c1a92a05d6c274f2c
+Source2: mirror:custom:kde-admindir-20030506.tar.bz2
+Source2-MD5: 7b9c78d99df465f0fb7db434205657aa
 
 SourceDirectory: %n
 Source2ExtractDir: %n
@@ -25,15 +25,24 @@ SetCFLAGS: -I%p/include
 ConfigureParams: --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --enable-debug=full
 CompileScript: <<
 #!/bin/sh
- export KDEDIR=%p
- export QTDIR=%p
- perl -pi -e 's,need_relink=yes,need_relink=no,g' admin/ltmain.sh
- make -f admin/Makefile.common cvs
- ./configure %c
- make -j2
+  export KDEDIR=%p
+  mkdir -p /tmp/kde-build
+
+  date > /tmp/kde-build/%N-%v-%r.cvs && \
+  (make -f admin/Makefile.common cvs 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.cvs) && \
+  date > /tmp/kde-build/%N-%v-%r.configure && \
+  (sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure) && \
+  date > /tmp/kde-build/%N-%v-%r.make && \
+  (make -j2 all 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.make)
 <<
 InstallScript: <<
- make install DESTDIR=%d
+#!/bin/sh
+  mkdir -p /tmp/kde-build
+  mkdir -p %i/share/doc/kde-installed-packages
+  touch %i/share/doc/kde-installed-packages/%N
+
+  date > /tmp/kde-build/%N-%v-%r.install && \
+  (make install DESTDIR=%d 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.install)
 <<
 Description: KDE - multi-protocol IM client
 DescDetail: <<
