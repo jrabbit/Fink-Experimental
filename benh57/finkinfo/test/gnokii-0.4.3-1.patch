@@ -1,0 +1,91 @@
+setenv CPPFLAGS "$CPPFLAGS -fno-common"
+setenv CFLAGS "$CFLAGS -fno-common"
+make install DESTDIR=/tmp LDFLAGS=-L/sw/lib
+
+--- gnokii-0.4.3-orig/configure	2002-08-05 09:21:21.000000000 -0700
++++ gnokii-0.4.3/configure	2002-09-04 02:13:31.000000000 -0700
+@@ -2840,7 +2840,7 @@
+      GLDFLAGS="" 
+ else
+    shared="yes"
+-     GLDFLAGS="-Wl,--rpath -Wl,\$(libdir)"
++     GLDFLAGS=""
+ 
+ fi
+ 
+--- gnokii-0.4.3-orig/smsd/Makefile	2002-08-05 09:21:20.000000000 -0700
++++ gnokii-0.4.3/smsd/Makefile	2002-09-04 02:04:57.000000000 -0700
+@@ -37,12 +37,12 @@
+ 
+ # PostgreSQL support
+ libpq.so: smsd.h pq.c
+-	gcc -shared -o libpq.so `glib-config --cflags` -I../include \
++	gcc -bundle -o libpq.so `glib-config --cflags` -I../include \
+         -I/usr/include/pgsql pq.c `glib-config --libs` -lpq
+ 
+ # MySQL support
+ libmysql.so: smsd.h mysql.c
+-	gcc -shared -o libmysql.so `glib-config --cflags` -I../include \
++	gcc -bundle -o libmysql.so `glib-config --cflags` -I../include \
+         -I/usr/include/mysql mysql.c `glib-config --libs` -L/usr/lib/mysql -lmysqlclient
+ 
+ ### End of DB Modules
+--- gnokii-0.4.3-orig/gnokii/Makefile	2002-08-05 09:21:20.000000000 -0700
++++ gnokii-0.4.3/gnokii/Makefile	2002-09-04 02:40:15.000000000 -0700
+@@ -22,7 +22,7 @@
+ ifdef NO_SHARED
+ 	GNOKII_LIB=libgnokii.a
+ else
+-	GNOKII_LIB=libgnokii.so
++	GNOKII_LIB=libgnokii.dylib
+ endif
+ 
+ LDLIBS += -L$(TOPDIR)/common -lgnokii
+ 
+
+--- gnokii-0.4.3-orig/xgnokii/Makefile	2002-08-05 09:21:20.000000000 -0700
++++ gnokii-0.4.3/xgnokii/Makefile	2002-09-04 02:52:43.000000000 -0700
+@@ -44,7 +44,7 @@
+ ifdef NO_SHARED
+         GNOKII_LIB=libgnokii.a
+ else
+-        GNOKII_LIB=libgnokii.so
++        GNOKII_LIB=libgnokii.dylib
+ endif
+ 
+ all: xgnokii
+--- gnokii-0.4.3-orig/gnokiid/Makefile	2002-08-05 09:21:20.000000000 -0700
++++ gnokii-0.4.3/gnokiid/Makefile	2002-09-04 02:49:20.000000000 -0700
+@@ -19,7 +19,7 @@
+ ifdef NO_SHARED
+         GNOKII_LIB=libgnokii.a
+ else
+-        GNOKII_LIB=libgnokii.so
++        GNOKII_LIB=libgnokii.dylib
+ endif
+ 
+ all: gnokiid
+--- gnokii-0.4.3-orig/common/Makefile	2002-08-05 09:21:20.000000000 -0700
++++ gnokii-0.4.3/common/Makefile	2002-09-04 03:21:22.000000000 -0700
+@@ -56,7 +56,9 @@
+ 	$(CC) -o gnokii-debug $(OBJS) phones/PHONES.o links/LINKS.o devices/DEVICES.o gsm-filetypes.o ../gnokii/gnokii.o
+ 
+ libgnokii.so: $(OBJS) phones/PHONES.o links/LINKS.o devices/DEVICES.o
+-	$(CC) -shared -o libgnokii.so $(OBJS) phones/PHONES.o links/LINKS.o devices/DEVICES.o
++	$(CC) -dynamiclib -install_name /sw/lib/libgnokii.1.dylib -compatibility_version 1 -current_version 1.0 -o libgnokii.1.0.0.dylib $(OBJS) phones/PHONES.o links/LINKS.o devices/DEVICES.o -L/sw/lib -lintl
++	ln -sf libgnokii.1.0.0.dylib libgnokii.1.dylib
++	ln -sf libgnokii.1.dylib libgnokii.dylib
+ 
+ libgnokii.a: $(OBJS) phones/PHONES.o links/LINKS.o devices/DEVICES.o
+ 	rm -f libgnokii.a
+@@ -77,7 +79,9 @@
+ 
+ install:
+ 	$(INSTALL) -d $(DESTDIR)/$(libdir)
+-	$(INSTALL) libgnokii.so $(DESTDIR)/$(libdir)
++	$(INSTALL) libgnokii.dylib $(DESTDIR)/$(libdir)
++	$(INSTALL) libgnokii.1.dylib $(DESTDIR)/$(libdir)
++	$(INSTALL) libgnokii.1.0.0.dylib $(DESTDIR)/$(libdir)
+ 	@echo
+ 
+ install-strip: install
