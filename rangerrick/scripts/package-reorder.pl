@@ -102,6 +102,7 @@ sub make_formatted {
 				$tempkey =~ s/<N>/${index}/g;
 				if (exists $hashref->{lc($tempkey)}) {
 					$return .= make_key($tempkey, $hashref->{lc($tempkey)});
+					delete $hashref->{lc($tempkey)};
 				} else {
 					last NUMERIC if ($index > 1);
 				}
@@ -113,11 +114,18 @@ sub make_formatted {
 			for my $skey (sort keys %{$hashref}) {
 				if ($skey =~ /^${prefix}/i) {
 					$return .= make_key($skey, $hashref->{lc($skey)});
+					delete $hashref->{lc($skey)};
 				}
 			}
 		} elsif (exists $hashref->{lc($key)}) {
 			$return .= make_key($key, $hashref->{lc($key)});
+			delete $hashref->{lc($key)};
 		}
+	}
+
+	for my $key (sort keys %{$hashref}) {
+		print "warning: $key was in info file, but I don't know where it goes!\n";
+		$return .= make_key($key, $hashref->{lc($key)});
 	}
 
 	$return =~ s/\n\n+/\n\n/gs;
