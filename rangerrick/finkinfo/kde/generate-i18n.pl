@@ -104,7 +104,7 @@ CompileScript: (export KDEDIR=%p; sh configure %c; make -j8)
 InstallScript: <<
   make -j8 install DESTDIR=%d
   mkdir -p %i/share/doc/kde-installed-packages
-  touch %i/share/doc/kde-installed-packages/kde-i18n-${normalized}
+  touch %i/share/doc/kde-installed-packages/koffice-i18n-${normalized}
 <<
 License: GPL/LGPL
 END
