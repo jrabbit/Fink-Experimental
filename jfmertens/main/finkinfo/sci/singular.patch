@@ -1,6 +1,6 @@
 ## PatchScript put here to escape the dreadfull fink indexing
 
-### '--no-same-permissions' doesn't seem to work correctly
+### to complete '--no-same-permissions' :
 chmod -R a+rX,u+w *
 # and fix immediately remaining perms :
 chmod a-x Singular/LIB/*.lib
@@ -62,12 +62,11 @@ sed -ri.bak \
 -e "s,/examples,/share/doc/${n}/examples," -e 's,/netscape,/mozilla,' -e 's,\%b/xterm,/usr/X11R6/bin/xterm,' \
 -e 's,\"\%b;\$PATH\",\"\$PATH\",' -e 's,\"\%r/emacs\",\"\%r/share/singular/emacs\",g' -e "s,\%b/\.\.,${p}," \
 -e 's|SINGULAR_DEFAULT_DIR,|\"\%r/share/singular\",|' Singular/feResource.cc
-# let us also try to install the .so files in /sw/lib/singular (FS policy...)
-#if ${dyn}; then sed -ri -e 's,^((\s|\t)+)\"\%d/LIB;\",\1\"\%r/lib/singular;\"\n&,' Singular/feResource.cc ; fi
-# The above didn't work, Singular really seems to look for them only in its own directory..
-# let us still try to set bindir to /sw/lib/singular
-#if ${dyn}; then sed -ri -e 's,r/bin,r/lib/singular,' -e 's,\%b/,\%r/bin/,g' Singular/feResource.cc ; fi
-## Didn't work either _ even, 'Singular -v' shows 'BinDir : /sw/bin' .... 
+# and to install the .so files in /sw/lib/singular (FS policy...) :
+# (was basically hard-coded that they were in the same dir as the executable)
+if ${dyn} ; then sed -ri -e 's,25,26,' -e "/BinDir/i\
+\ \ \{\"LibDir\",\t'L',\tfeResDir,\t\"SINGULAR_SO_DIR\",\t\"%r/lib/singular\",\t\"\"\}," Singular/feResource.cc
+sed -ri.bak -e "s,'b','L'," Singular/mod_raw.cc ; fi
 # Removing hard-coded /usr/local...
 perl -pi.bak -e "s,/usr/local/bin/,,g; s,\$HOME/bin/\$MP_ARCH,${p}/bin," MP/mpviewer/displaymp
 perl -pi.bak -e 's,/usr/local,\${prefix}/share/singular/localdir,' {,doc/}Makefile.in
@@ -91,16 +90,18 @@ perl -pi.bak -e 's/AC_TRY_CPP\( #include "values\.h" ,//g; s/CPPFLAGS="\-I\. \${
 ln -s ../values.h MP/MP
 # it is MP_Memory.c
 perl -pi.bak -e 's/ Memory\.c/ MP_Memory\.c/g' MP/MP/Makefile.in
-# missing space
+# more clear with a space
 perl -pi.bak -e 's/#include"MP.h"/#include "MP.h"/g' MP/MPT/MPT.h
-## stdlib.h shouldn't be a target _ no rule to make it... (correction no longer needed, but still...) :
-perl -pi.bak -e 's/ \${OM_MALLOC_HEADER}//g' omalloc/Makefile.in 
+## stdlib.h shouldn't be a target _ no rule to make it... (correction no longer needed for this specific build, but still...) :
+perl -pi.bak -e 's/ \${OM_MALLOC_HEADER}//g' omalloc/Makefile.in
 ## "--with-malloc=system" breaks down in MP, since there it is "--with-malloc=HEADER"
 ## Thus patch the configure script to ignore the '--with-malloc=system, since the header we need is the default stdlib.h :
 perl -pi -e 's/"\${with_malloc\+set}" = set/0 = 1/g' MP/configure.in
 ## cerr etc undefined in QuickTest.c etc...
 sed -i.bak -e '1i\
 #include <iostream\.h>' libfac/test*
+## doesn't build correctly with bison-1.875 and GCC-3.3 :
+perl -pi -e 's,= bison,= /usr/bin/bison,g' Singular/Makefile.in
 ## The var $ac_cv_with_readline appears nowhere else in the build tree _ only at 1 place in configure(.in)
 # Everywhere else it is 'with_readline' : seems fixed in 2.05
 #perl -pi.bak -e 's/ac_cv_with_readline/with_readline/g' Singular/configure.in
@@ -109,7 +110,7 @@ sed -i.bak -e '1i\
 # iplib.cc:1078: error: could not convert `&token' to `int&'
 # ipshell.h:37: error: in passing argument 2 of `int IsCmd(char*, int&)'
 # perl -pi.bak -e 's/\(IsCmd\(plib, \&token\)\)/\(IsCmd\(plib, token\)\)/g' Singular/iplib.cc
-### new problem in 2.05 : HAVE_NAMESPACES leads to error (cf info file)
+### new problem in 2.05 : HAVE_NAMESPACES leads to error
 perl -pi.bak -e 's,#   define HAVE_NAMESPACES 1,/\* #   define HAVE_NAMESPACES 1 \*/,g' Singular/mod2.h.in
 ### w/o the next one, system("sh",whatever) always returns -1 instead of 0
 ### (with perror inserted at the following place showing 'No child processes') :
@@ -119,7 +120,7 @@ s/\#endif/signal\(SIGCHLD, \(void \(\*\)\(int\)\)SIG_IGN\);\n \#endif/
 }' Singular/extra.cc
 ### The space in -I . seems to work, but I feel more comfortable w/o it ...
 perl -pi.bak -e 's,\-I \.,\-I\.,g' IntegerProgramming/Makefile.in
-### @ifclear needs a name _ guess is hopefully correct...
+### @ifclear needs a name _ the guess below is hopefully correct...
 perl -pi.bak -e 's,^\@ifclear$,\@ifclear singularmanual,' doc/INSTALL_win.texi
 ## There is no ../GPL
 sed -i -e /GPL/d doc/Makefile.in
@@ -155,7 +156,8 @@ perl -pi -e 's,#if defined\(ix86_Linux\),#if defined\(ppcMac_darwin\)\n#define H
 ## Have to try if there is a way to use continuation lines in commands like the following ... 
 perl -pi -e "s|ac_cv_singuname\" in|ac_cv_singuname\" in\n\tppcMac\-darwin\)\n\t  AC_CHECK_LIB\(dl, dlopen\)\n\t  if test \"TST\" = yes; then\n\t\tLD_DYN_FLAGS=\"\"\n\t\tSFLAGS=\"\-DPIC $sflags\"\n\t\tSLDFLAGS=\"\-bundle \-bundle_loader Singular\"\n\t\tLD=g\+\+\n\t\tac_lib_dl=yes\n\t  fi\n\t;;|g" Singular/configure.in
 perl -pi -e 's|TST|\$ac_cv_lib_dl_dlopen|g' Singular/configure.in
-# re-link the modules (*.so) with -bundle_loader in the presence of Singular (else execution-time error in doc/examples/watchdog:
+# The modules (*.so) must be linked with -bundle_loader in the presence of Singular
+# (else execution-time error in doc/examples/watchdog:
 ## > malloc[27548]: Deallocation of a pointer not malloced: 0x304154; This could be a double free(), or free() called
 ## > with the middle of an allocated block; Try setting environment variable MallocHelp to see tools to help debug
 # ). Just changing the build-order suffices (by laziness we put the dep on Singular in the .dl_o targets rather than the
@@ -163,8 +165,7 @@ perl -pi -e 's|TST|\$ac_cv_lib_dl_dlopen|g' Singular/configure.in
 ### # (note that $DL_LIBS is empty when doing a static build)
 perl -pi -e 's, \$\(DL_LIBS\)$,,' Singular/Makefile.in
 perl -pi -e 's,SING_EXEC\),$& \$\(DL_LIBS\),,' Singular/Makefile.in
-#sed -ri -e '/\.so:/s/$/ \$\(SING_EXEC\)/' Singular/Makefile.in
-# To fully link mpsr.so we need to add -lgmp at the end of the MP_LIBS :
+# To fully link mpsr.so at build-time we need to add -lgmp at the end of the MP_LIBS :
 sed -ri -e 's,^dnl MP_LIBS=\$\{LIBS\}$,MP_LIBS=\"\-lgmp\",' Singular/configure.in
 # and same problem with p_Procs_FieldQ.so (needs __gmpz_init_set )
 # (we could just add -lgmp for all, but then otool -L would show fake deps for the other p_Procs_Field*.so) :
@@ -174,27 +175,9 @@ sed -ri \
 Singular/Makefile.in
 
 
-# remove temporarily -w flags
-## Also add -fno-common flags, just to be safe
-###
-# Apparently we need to use -fPIC in MPT, else linking trouble in Singular :
-# > g++ -dynamiclib -undefined dynamic_lookup -o mpsr.dylib mpsr_Put.dl_o mpsr_PutPoly.dl_o mpsr_GetPoly.dl_o mpsr_sl.dl_o
-# > mpsr_Get.dl_o mpsr_GetMisc.dl_o mpsr_Error.dl_o -L/sw/src/root-singular-dyn-2.05-4/sw/lib -lMPT -lMP
-# > ld: /sw/src/root-singular-dyn-2.05-4/sw/lib/libMPT.a(MPT_Get.o) has local relocation entries in non-writable section (__TEXT,
-# > /usr/bin/libtool: internal link edit command failed
-# And -fno-common in MP/MP; else :
-# > g++ -dynamiclib -undefined dynamic_lookup -o mpsr.dylib mpsr_Put.dl_o mpsr_PutPoly.dl_o mpsr_GetPoly.dl_o mpsr_sl.dl_o
-# > mpsr_Get.dl_o mpsr_GetMisc.dl_o mpsr_Error.dl_o -L/sw/src/root-singular-dyn-2.05-4/sw/lib -lMPT -lMP
-# > ld: common symbols not allowed with MH_DYLIB output format with the -multi_module option
-# > /sw/src/root-singular-dyn-2.05-4/sw/lib/libMP.a(MP_Util.o) definition of common _fix_log_msg (size 128)
-# > /sw/src/root-singular-dyn-2.05-4/sw/lib/libMP.a(MP_Util.o) definition of common _AnnotFlagsStr (size 32)
-# > /usr/bin/libtool: internal link edit command failed
-### For the moment, rather than adding -fno-common in MP/MP, let us try to make bundles rather than dylibs.. _ WORKS !
-#
+# Replace (temporarily ?) -w flags by $warnflags
 # We take the opportunity at the same time to get here a separate handle on the CFLAGS in each dir
-# Also, we set optimization to 0 for the moment _ will try gradually to increase them to (at least) their defaults,
-# to see separately which errors each increase causes, and fix them before the next increase..
-# In omalloc, we get rid at the same time of the '-g' flags, in order to be able to grep for %p/src in binary files
+# We get rid at the same time of the '-g' flags, in order to be able to grep for %p/src in binary files
 # w/o false alarms.
 # The first line just gives a handle, with the default level of -O2 otherwise generated by autoconf
 sed -ri.bak -e '/CFLAGS\+set/,+3s/^dnl //' -e 's/"\-O"/"-O2"/' omalloc/configure.in
@@ -208,14 +191,16 @@ perl -pi.bak -e "s/\-O2/$flags $mflags/g" factory/configure.in
 perl -pi.bak -e "s/\-O3/$flags $mflags $warnflags/g" libfac/configure.in
 sed -ri -e 's/CFLAGS=\"\-O3 \-w/CFLAGS=\"\-fast/' -e "s/\-fast/$flags $mflags $warnflags/" Singular/configure.in
 perl -pi -e "s/\-O3 \-w /$flags $mflags $warnflags /g" Singular/configure.in
-#perl -pi -e "s/\"\-w\"/\"$warnflags\"/g" Singular/configure.in
-# Next plays no role
-#perl -pi -e "s/\-O2 \-w/-O2 $mflags $warnflags/g" Singular/Makefile.in
 sed -ri -e "s/\-O2 *([$])/$flags $mflags $warnflags \1/g" Singular/Makefile.in
 # -fast causes runtime errors, thus -O3:
 perl -pi -e "s/\@CXXFLAGS\@/$flags3 $mflags $warnflags/g" IntegerProgramming/Makefile.in
 ####
 
+### hdegree.cc _ apparently ~ line 651, corresponding to offset 0x74 in hZeroMult _
+### leads to execution time errors with gcc3.3 and the default -O3 (and even with -O2) .
+### We set thus a separate target up for hdegree.o, with ad hoc optimization flags _
+### corresponding as closely as possible to the $flags used elsewhere: we add to -Os
+### all flags we suspect might occur in -O2 or in -O3 and not in -Os, plus our previous $xtrflags ...
 ## Add flags that should be in -O2 and are probably not in -Os :
 xtrflags="$xtrflags -falign-functions -falign-jumps -falign-loops -falign-labels -fprefetch-loop-arrays"
 # now get to -O3 (and add -Os -mdynamic-no-pic etc):
@@ -244,3 +229,4 @@ cd factory ; autoconf ; cd ..
 cd libfac ; autoconf ; cd ..
 cd Singular ; autoconf ; cd ..
 autoconf
+

@@ -5,13 +5,14 @@ cp -p ${a}/${ni}.* ${i}/share/doc/${n}
 mkdir -p ${i}/lib
 # ${i}/bin has to be prefixed to PATH for the build (eg, in doc _ and tests),
 # since we remove it from the hard-coded path in the patch (first multiline sed command)
-# For the same reason, SINGULARPATH must be set
-# The last item is appended to enable the configure in omalloc to find addr2line;
+# For the same reason, SINGULARPATH must be set _ and our new SINGULAR_SO_DIR
+# The last item in PATH is appended to enable the configure in omalloc to find addr2line;
 # It finds however later that addr2line doesn't work... Leaving the thing till I get time to see why.
 export PATH=${i}/bin:${PATH}:/usr/libexec/binutils
 export CPATH=${p}/include/pari:${p}/include
 export LIBRARY_PATH=${p}/lib
 export SINGULARPATH=${i}/share/singular/LIB
+export SINGULAR_SO_DIR=${i}/bin
 if ${sntl} ; then tmp='--enable-NTL' ; else tmp='--disable-NTL --with-NTL' ; fi
 if ${dyn} ; then tmp1='' ; else tmp1='--without-dynamic-kernel' ; fi
 # Also --with-dynamic-modules ???
@@ -42,11 +43,6 @@ cd ${i}/lib/xemacs/site-lisp; ln -s ../../../share/emacs/site-lisp/* . ; cd ${b}
 mkdir -p ${i}/etc
 mv ${i}/share/${ni}/LIB/.singularrc ${i}/etc/singularrc
 ln -s ${p}/etc/singularrc ${i}/share/${ni}/LIB/.singularrc
-### And .so files in lib/singular (commented out: doesn't work for the moment)
-#if ${dyn} ; then
-#  mkdir -p ${i}/lib/${ni}
-#  mv ${i}/bin/*.so ${i}/lib/${ni}
-#fi
 ### Finally, "make test" :
 singtst () {
 # This one OK :
@@ -74,7 +70,6 @@ cd libfac; make tests ; cd ..
 ## The next 2 didn't help to detect problems ..
 #export DYLD_INSERT_LIBRARIES=/usr/lib/libgmalloc.dylib
 #export DYLD_FORCE_FLAT_NAMESPACE=1
-#cd Tst; ln -s ../ppcMac-darwin/Singular; perl ./regress.cmd `find . -name '*\.lst'`; cd ..
 # We first rm the NFlist from the distrib, which causes errors
 #  (despite being apparently identical _ at least in perms and size _ to the one generated) :
 #	>    ? DBM link I/O error. Is 'NFlist' readonly?
@@ -99,6 +94,12 @@ cd Tst; ln -fs %p/bin/Singular; cd ..
 ## Uncomment to run the tests ...
 singtst 2>&1 | tee ${i}/share/doc/${n}/${n}.tst
 ###
+### .so files go in %p/lib/singular ( only after the tests: a single location _ our above
+#  SINGULAR_SO_DIR _ is needed in the install in doc and emacs and in the tests to get them found).
+if ${dyn} ; then
+  mkdir -p ${i}/lib/${ni}
+  mv ${i}/bin/*.so ${i}/lib/${ni}
+fi
 ## Cleanup
 rm -fR ${i}/share/${ni}/LIB{,/gftables}/CVS ${i}/share/doc/${n}/Tst{,/*}/CVS
 ## Further check (don't know if there is any use to install it) :

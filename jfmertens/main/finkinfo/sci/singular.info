@@ -1,5 +1,5 @@
 Info2: <<
-Package: singular%type_pkg[-sntl]%type_pkg[-strio]%type_pkg[-dyn]%type_pkg[-noopt]
+Package: singular%type_pkg[-sntl]%type_pkg[-strio]%type_pkg[-sta]%type_pkg[-noopt]
 # disabled %type_pkg[-strio] for the moment, since it needs <strstream.h>,
 # and even when replacing this by <strstream> one gets :
 # < int_poly.cc: In member function `virtual void
@@ -7,17 +7,15 @@ Package: singular%type_pkg[-sntl]%type_pkg[-strio]%type_pkg[-dyn]%type_pkg[-noop
 # < int_poly.cc:174: error: `ostrstream' undeclared (first use this function)
 # and similar problems : doesn't seem gcc3.3 ready
 Version: 2.05
-Revision: 7
-Type: -sntl (boolean), -strio (boolean), -dyn (boolean), -noopt (boolean)
+Revision: 9
+Type: -sntl (boolean), -strio (boolean), -sta (boolean), -noopt (boolean)
 Conflicts: (%type_raw[-sntl] = -sntl) ntl, %{ni}-variants
 Provides: %{ni}-variants
-# Also singular-factory and singular-libfac (headers) _ for the moment :
+# Also singular-factory and singular-libfac (headers) _ should be a Conflicts, but for the moment :
 Replaces: singular-factory, singular-libfac, %{ni}-variants
 Depends: (%type_raw[-sntl] = .) ntl, gmp-shlibs (>= 4.1.2-11), readline-shlibs
 Recommends: mozilla, xemacs
 BuildDepends: gmp (>= 4.1.2-11), autoconf, readline, netpbm-bin (>= 10.18-3), latex2html, texinfo, tetex, sed | ssed
-## For documentation, as long as not fixed :
-BuildConflicts: bison (= 1.875)
 GCC: 3.3
 # And how to specify that some srcs are not needed for some variants ?
 Source: ftp://www.mathematik.uni-kl.de/pub/Math/Singular/src/Singular-main-2-0-5.tar.gz
@@ -57,7 +55,7 @@ PatchScript: <<
 # To disable :
 # strio='[ "%type_raw[-strio]" == "-strio" ]'
  strio='[ "." == "-strio" ]'
- dyn='[ "%type_raw[-dyn]" == "-dyn" ]'
+ dyn='[ "%type_raw[-sta]" == "." ]'
  noopt='[ "%type_raw[-noopt]" == "-noopt" ]'
  . %a/%{ni}.patch 2>&1 | tee /tmp/%{n}.log
 <<
@@ -79,7 +77,7 @@ InstallScript: <<
  n=%n
  ni=%{ni}
  sntl='[ "%type_raw[-sntl]" == "-sntl" ]'
- dyn='[ "%type_raw[-dyn]" == "-dyn" ]'
+ dyn='[ "%type_raw[-sta]" == "." ]'
  mkdir -p %{i}/share/doc/%{n}
  mv /tmp/%{n}.log %{i}/share/doc/%{n}
  . %a/%{ni}.inst 2>&1 | tee -a %{i}/share/doc/%{n}/%{n}.log
@@ -101,25 +99,23 @@ DescPort: <<
 - the -sntl variant is like the upstream 'default'-build,
    without it, the build relies on fink's NTL.
 - the attempted -strio variant tries to enable streamio in factory and libfac
-- the -dyn variant disables '--without-dynamic-kernel'
+- the -sta variant adds '--without-dynamic-kernel'
 _ the -noopt variant sets -O0 -ggdb
 TODO:
-- since the last xemacs vers in fink, ESingular no longer launches.
+- with the last 2 xemacs versions in fink, ESingular no longer launches.
   Seems like in lines ~ 212-215 of %p/share/singular/emacs/.emacs-singular
   something (toolbar-related) is not a list and should be.
 - an annoying series of warnings came up with fink's latest texinfo when building the doc.
 - lots of clean-up
-- the -noopt variant is a poor man's substitute (just sufficient to get up to here) for the
+- the -noopt variant is a poor man's substitute (just sufficient for me up to now) for the
   'debug' and 'profile' variants which are implicit in the Makefiles. Would be nice to get
   a handle on those in the infofile (additional switch ?) .
 - get -strio working: so libfac and factory can better be used standalone; their tests
   should then work _ and one would be able to re-generate the gftables.
-- find a way to put the .so files in %p/lib/%ni (s.t. they're still found by the executable).
-  (FS policy).
 - there might be a way to build with alternative memory-managers (say omalloc, old, new, and none).
   This might help for the next point (currently, macaulay2 builds with singular-* having the "old"
   memory-manager _ afraid of confusion with its own mem-manager (gc) if straying from this).
-  Additional switch - horror !
+  Additional switch ? ... horror !
 - Try to get a build s.t. macaulay2 can build on it ...
 <<
 Homepage: http://www.singular.uni-kl.de/
