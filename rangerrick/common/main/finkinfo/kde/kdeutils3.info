@@ -5,8 +5,8 @@ Description: KDE - miscellaneous utilities
 License: GPL/LGPL
 Maintainer: Benjamin Reed <ranger@befunk.com>
 
-Depends: ark (>= %v-%r), irkick (>= %v-%r), kcalc (>= %v-%r), kcharselect (>= %v-%r), kdepasswd (>= %v-%r), kdessh (>= %v-%r), kdf (>= %v-%r), kedit (>= %v-%r), kfloppy (>= %v-%r), khexedit (>= %v-%r), kjots (>= %v-%r), ktimer (>= %v-%r), kwalletmanager (>= %v-%r), kwikdisk (>= %v-%r), kregexpeditor (>= %v-%r), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), %N-base (>= %v-%r)
-BuildDepends: arts-dev (>= 1.2.0-1), autoconf2.5 (>= 2.58-1), automake1.8, cctools (>= 446-1) | cctools-single-module, dlcompat-dev (>= 20030629-5), fink (>= 0.14.0-1), gnupg, kdebase3-ssl-dev (>= %v-1) | kdebase3-dev (>= %v-1), kdelibs3-ssl-dev (>= %v-1) | kdelibs3-dev (>= %v-1), libart2, libjpeg, libpng3 (>= 1.2.5-4), libtool14, qt3 (>= 3.2.3-1), x11-dev
+Depends: ark (>= %v-%r), kcalc (>= %v-%r), kcharselect (>= %v-%r), kdepasswd (>= %v-%r), kdessh (>= %v-%r), kdf (>= %v-%r), kedit (>= %v-%r), kfloppy (>= %v-%r), khexedit (>= %v-%r), kjots (>= %v-%r), ksim (>= %v-%r), ktimer (>= %v-%r), kwalletmanager (>= %v-%r), kwikdisk (>= %v-%r), kregexpeditor (>= %v-%r), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), %N-base (>= %v-%r)
+BuildDepends: arts-dev (>= 1.2.0-1), autoconf2.5 (>= 2.58-1), automake1.8, cctools (>= 446-1) | cctools-single-module, dlcompat-dev (>= 20030629-5), fink (>= 0.14.0-1), gnupg, kdebase3-ssl-dev (>= %v-1) | kdebase3-dev (>= %v-1), kdelibs3-ssl-dev (>= %v-1) | kdelibs3-dev (>= %v-1), libart2, libjpeg, libpng3 (>= 1.2.5-4), libtool14, net-snmp-dev | net-snmp-ssl-dev, qt3 (>= 3.2.3-1), x11-dev
 Replaces: %N-dev (<< %v-%r)
 GCC: 3.3
 
@@ -17,10 +17,10 @@ Source2-MD5: e746e3ab59cc70a6368ac85c0a31a238
 Source2ExtractDir: kdeutils-%v
 
 PatchScript: <<
+  patch -p1 < %a/%n.patch
   perl -pi -e 's,-O2,-Os,' admin/acinclude.m4.in
   perl -pi -e 's,doc/HTML,doc/kde,g' admin/acinclude.m4.in
   echo 'DO_NOT_COMPILE="$DO_NOT_COMPILE klaptopdaemon"' >> klaptopdaemon/configure.in.in
-  perl -pi -e 's,SNMP_SUBDIR = snmp,SNMP_SUBDIR =,' ksim/monitors/Makefile.am
 <<
 
 SetCPPFLAGS: -fno-common -no-cpp-precomp -I/usr/X11R6/include/freetype2 -I/usr/X11R6/include -I%p/include
@@ -53,13 +53,14 @@ InstallScript: <<
 
   date > /tmp/kde-build/%N-%v-%r.install
   make -j1 install DESTDIR=%d 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.install
+  rm -rf %i/share/doc/kde/en/kcontrol
 <<
 
 DocFiles: AUTHORS COPYING INSTALL README
 SplitOff: <<
   Package: ark
   Description: KDE - archive utility
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.3-1), x11, %N-base (>= %v-%r)
+  Depends: %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-dev (<< %v-%r)
   Recommends: %N (>= %v-%r)
   Files: <<
@@ -80,50 +81,30 @@ SplitOff: <<
   <<
 <<
 SplitOff2: <<
-  Package: irkick
-  Description: KDE - LIRC server
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.3-1), x11, %N-base (>= %v-%r)
-  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r)
-  Recommends: %N (>= %v-%r)
-  Files: <<
-    bin/irkick
-    lib/kde3/irkick*
-    lib/kde3/kcm_kcmlirc*
-    lib/libkdeinit_irkick*
-    share/applications/kde/irkick.desktop
-    share/applications/kde/kcmlirc.desktop
-    share/apps/irkick
-    share/autostart/irkick.desktop
-    share/doc/kde/en/irkick
-    share/doc/kde/en/kcmlirc
-    share/icons/hicolor/16x16/apps/irkick.png
-    share/icons/hicolor/22x22/apps/irkick.png
-    share/icons/hicolor/32x32/apps/irkick.png
-    share/icons/locolor/16x16/apps/irkick.png
-    share/icons/locolor/32x32/apps/irkick.png
-  <<
-<<
-SplitOff3: <<
   Package: kcalc
   Description: KDE - scientific calculator
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.3-1), x11, %N-base (>= %v-%r)
+  Depends: %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-dev (<< %v-%r)
   Recommends: %N (>= %v-%r)
   Files: <<
     bin/kcalc
     lib/*kcalc*
+    lib/kde3/*kcalc*
     share/applications/kde/kcalc.desktop
     share/apps/kcalc
+    share/apps/kconf_update/kcalc*
+    share/config.kcfg/kcalc*
     share/doc/kde/en/kcalc
     share/icons/crystalsvg/16x16/apps/kcalc.png
     share/icons/crystalsvg/32x32/apps/kcalc.png
     share/icons/crystalsvg/48x48/apps/kcalc.png
+    share/icons/crystalsvg/64x64/apps/kcalc.png
   <<
 <<
-SplitOff4: <<
+SplitOff3: <<
   Package: kcharselect
   Description: KDE - character set selector
-  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.3-1), x11, %N-base (>= %v-%r)
+  Depends: %N-base (>= %v-%r)
   Replaces: %N (<< %v-%r), %N-dev (<< %v-%r)
   Recommends: %N (>= %v-%r)
   Files: <<
@@ -136,7 +117,7 @@ SplitOff4: <<
     share/icons/crystalsvg/48x48/apps/kcharselect.png
   <<
 <<
-SplitOff5: <<
+SplitOff4: <<
   Package: kdepasswd
   Description: KDE - password changer frontend
   Depends: dlcompat-shlibs (>= 20030629-5), kdebase3-ssl-shlibs (>= %v-1) | kdebase3-shlibs (>= %v-1), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.3-1), x11, %N-base (>= %v-%r)
@@ -144,10 +125,13 @@ SplitOff5: <<
   Recommends: %N (>= %v-%r)
   Files: <<
     bin/kdepasswd
+    lib/kde/kcm_user*
+    share/apps/kdm/pics/users
     share/applications/kde/kdepasswd.desktop
+    share/applications/kde/userinfo.desktop
   <<
 <<
-SplitOff6: <<
+SplitOff5: <<
   Package: kdessh
   Description: KDE - ssh frontend
   Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.3-1), x11, %N-base (>= %v-%r)
@@ -157,7 +141,7 @@ SplitOff6: <<
     bin/kdessh
   <<
 <<
-SplitOff7: <<
+SplitOff6: <<
   Package: kdf
   Description: KDE - disk space GUI
   Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.3-1), x11, %N-base (>= %v-%r)
@@ -180,7 +164,7 @@ SplitOff7: <<
     share/icons/crystalsvg/32x32/apps/kcmdf.png
   <<
 <<
-SplitOff8: <<
+SplitOff7: <<
   Package: kedit
   Description: KDE - simple text editor
   Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.3-1), x11, %N-base (>= %v-%r)
@@ -192,13 +176,15 @@ SplitOff8: <<
     lib/*kedit*
     share/applications/kde/KEdit.desktop
     share/apps/kedit
+    share/config.kcfg/kedit*
     share/doc/kde/en/kedit
     share/icons/crystalsvg/16x16/apps/kedit.png
     share/icons/crystalsvg/32x32/apps/kedit.png
     share/icons/crystalsvg/48x48/apps/kedit.png
+    share/icons/crystalsvg/64x64/apps/kedit.png
   <<
 <<
-SplitOff9: <<
+SplitOff8: <<
   Package: kfloppy
   Description: KDE - floppy disk formatter
   Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.3-1), x11, %N-base (>= %v-%r)
@@ -215,7 +201,7 @@ SplitOff9: <<
     share/icons/crystalsvg/128x128/apps/kfloppy.png
   <<
 <<
-SplitOff10: <<
+SplitOff9: <<
   Package: kgpg
   Description: KDE - GnuPG tool
   Depends: dlcompat-shlibs (>= 20030629-5), gnupg, kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.3-1), x11, %N-base (>= %v-%r)
@@ -225,6 +211,7 @@ SplitOff10: <<
     bin/kgpg
     share/applications/kde/kgpg.desktop
     share/apps/kgpg
+    share/apps/konqueror/servicemenus/encrypt*.desktop
     share/autostart/kgpg.desktop
     share/config.kcfg/kgpg.kcfg
     share/doc/kde/en/kgpg
@@ -234,7 +221,7 @@ SplitOff10: <<
     share/icons/crystalsvg/48x48/apps/kgpg.png
   <<
 <<
-SplitOff11: <<
+SplitOff10: <<
   Package: khexedit
   Description: KDE - hex editor
   Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.3-1), x11, %N-base (>= %v-%r)
@@ -242,15 +229,17 @@ SplitOff11: <<
   Recommends: %N (>= %v-%r)
   Files: <<
     bin/khexedit
+    lib/kde3/*kbytesedit*
     share/applications/kde/khexedit.desktop
     share/apps/khexedit
     share/doc/kde/en/khexedit
     share/icons/crystalsvg/16x16/apps/khexedit.png
     share/icons/crystalsvg/32x32/apps/khexedit.png
     share/icons/crystalsvg/48x48/apps/khexedit.png
+    share/services/kbyteseditwidget.desktop
   <<
 <<
-SplitOff12: <<
+SplitOff11: <<
   Package: kjots
   Description: KDE - small note taker
   Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.3-1), x11, %N-base (>= %v-%r)
@@ -260,10 +249,32 @@ SplitOff12: <<
     bin/kjots
     share/applications/kde/Kjots.desktop
     share/apps/kjots
+    share/config.kcfg/kjots*
     share/doc/kde/en/kjots
     share/icons/crystalsvg/16x16/apps/kjots.png
     share/icons/crystalsvg/32x32/apps/kjots.png
     share/icons/crystalsvg/48x48/apps/kjots.png
+    share/icons/crystalsvg/64x64/apps/kjots.png
+  <<
+<<
+SplitOff12: <<
+  Package: ksim
+  Description: KDE - system monitor
+  Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.3-1), x11, %N-base (>= %v-%r)
+  Replaces: %N (<< %v-%r), %N-dev (<< %v-%r)
+  Recommends: %N (>= %v-%r)
+  Files: <<
+    lib/kde3/ksim_*
+    lib/libksimcore.*.dylib
+    share/applications/kde/ksim.desktop
+    share/apps/kicker/extensions/ksim.desktop
+    share/apps/ksim
+    share/config/ksim_panelextensionrc
+    share/doc/kde/en/ksim
+    share/icons/crystalsvg/16x16/apps/ksim.png
+    share/icons/crystalsvg/16x16/devices/ksim_cpu.png
+    share/icons/crystalsvg/32x32/apps/ksim.png
+    share/icons/crystalsvg/48x48/apps/ksim.png
   <<
 <<
 SplitOff13: <<
@@ -276,6 +287,10 @@ SplitOff13: <<
     bin/ktimer
     share/applications/kde/ktimer.desktop
     share/doc/kde/en/ktimer
+    share/icons/crystalsvg/128x128/apps/ktimer.png
+    share/icons/crystalsvg/16x16/apps/ktimer.png
+    share/icons/crystalsvg/32x32/apps/ktimer.png
+    share/icons/crystalsvg/48x48/apps/ktimer.png
   <<
 <<
 SplitOff14: <<
@@ -289,9 +304,12 @@ SplitOff14: <<
     share/applications/kde/kwikdisk.desktop
     share/icons/crystalsvg/16x16/apps/kwikdisk.png
     share/icons/crystalsvg/32x32/apps/kwikdisk.png
+    share/icons/crystalsvg/128x128/apps/kwikdisk.png
+    share/icons/crystalsvg/48x48/apps/kwikdisk.png
+    share/icons/crystalsvg/64x64/apps/kwikdisk.png
   <<
 <<
-SplitOff15: <<
+SplitOff16: <<
   Package: kregexpeditor
   Description: KDE - regular expression editor kpart
   Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.3-1), x11, %N-base (>= %v-%r)
@@ -307,7 +325,7 @@ SplitOff15: <<
     share/services/kregexpeditorgui.desktop
   <<
 <<
-SplitOff16: <<
+SplitOff17: <<
   Package: kwalletmanager
   Description: KDE - KWallet configuration tool
   Depends: dlcompat-shlibs (>= 20030629-5), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.2.3-1), x11, %N-base (>= %v-%r)
@@ -328,7 +346,7 @@ SplitOff16: <<
     share/services/kwallet*
   <<
 <<
-SplitOff17: <<
+SplitOff18: <<
   Package: %N-dev
   Description: KDE - kdeutils development headers and libraries
   Depends: %N (>= %v-%r), %N-base (>= %v-%r)
@@ -337,9 +355,10 @@ SplitOff17: <<
   BuildDependsOnly: true
   Files: <<
     include
+    lib
   <<
 <<
-SplitOff18: <<
+SplitOff19: <<
   Package: %N-base
   Description: KDE - kdeutils base package
   Depends: arts (>= 1.2.0-1), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1)
@@ -371,6 +390,7 @@ kdeutils packages.  kdeutils3 contains:
   khexedit
   kjots
   kregexpeditor
+  ksim
   ktimer
   kwikdisk
 <<
