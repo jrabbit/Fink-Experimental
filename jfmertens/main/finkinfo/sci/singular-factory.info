@@ -1,0 +1,33 @@
+Package: singular-factory
+Version: 2.05
+Revision: 1
+GCC: 3.3
+Depends: gmp-shlibs (>= 4.1.2-11)
+BuildDepends: gmp (>= 4.1.2-11), ntl, autoconf
+Replaces: singular, singular-sta, singular-sntl
+Source: ftp://www.mathematik.uni-kl.de/pub/Math/Singular/src/Singular-factory-2-0-5.tar.gz
+Source-MD5: ccb98926a93b0fc90711730790c56ac5
+SourceDirectory: factory
+PatchScript: <<
+ perl -pi.bak -e "s/\t\-w/\t -Wall -Wcast-align -W -Wno-unused/g" GNUmakefile.in
+ perl -pi.bak -e "s/\-O2/-mdynamic-no-pic -O3 -fschedule-insns -fschedule-insns2 -fsched-interblock -fstrict-aliasing -fregmove -freorder-blocks -floop-transpose --param max-gcse-passes=3 -malign-natural -ffast-math -faltivec -mcpu=`machine|sed 's,ppc,,'` -mtune=`machine|sed 's,ppc,,'`/g" configure.in
+ autoconf
+<<
+NoSetLDFLAGS: true
+NoSetCPPFLAGS: true
+ConfigureParams: --disable-streamio --with-NTL --disable-NTL --with-gmp
+CompileScript: <<
+#!/bin/sh -v
+ export CPATH=%p/include/pari:%p/include
+ export LIBRARY_PATH=%p/lib
+./configure %c ; make
+<<
+DocFiles: COPYING ChangeLog INSTALL NEWS README
+License: GPL
+Description: Recursive representation of multivariate polynomials in C++
+DescPort: <<
+ Had trouble compiling ftmpl_inst.cc, so tried adding 
+  --disable-streamio, but then make gftables doesn't work at all.
+<<
+Homepage: http://www.singular.uni-kl.de/
+Maintainer: Dave Morrison <dmrrsn@users.sourceforge.net>
