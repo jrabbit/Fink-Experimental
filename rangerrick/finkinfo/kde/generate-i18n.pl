@@ -2,11 +2,11 @@
 
 my $I18NRELNUM   = 18;
 my $KDEVERSION   = '3.1';
-my $KDEDIRECTORY = 'stable/3.1/src/';
+my $KDEDIRECTORY = 'stable/%v/src/';
 my $KDERELNUM    = 18;
 my $KDEARTSVER   = '1.1.0-18';
 my $KOVERSION    = '1.2.1';
-my $KODIRECTORY  = 'stable/koffice-1.2.1/src/';
+my $KODIRECTORY  = 'stable/koffice-%v/src/';
 my $KORELNUM     = 4;
 my $KOARTSVER    = '1.1.0-18';
 my $VERBOSE      = 0;
@@ -51,7 +51,7 @@ for my $i18n (@KDEI18N) {
 Package: kde-i18n-${normalized}
 Source: mirror:kde:${KDEDIRECTORY}kde-i18n/${filename}
 SourceDirectory: kde-i18n-${shortname}
-Description: KDE language files for $MAPPINGS{$shortname}
+Description: KDE - language files for $MAPPINGS{$shortname}
 DescDetail: Language files for the K Desktop Environment: $MAPPINGS{$shortname}
 Source-MD5: $md5
 Version: ${KDEVERSION}
@@ -94,7 +94,7 @@ for my $i18n (@KOI18N) {
 Package: koffice-i18n-${normalized}
 Source: mirror:kde:${KODIRECTORY}${filename}
 SourceDirectory: koffice-i18n-${shortname}
-Description: KOffice language files for $MAPPINGS{$shortname}
+Description: KDE - KOffice language files for $MAPPINGS{$shortname}
 DescDetail: Language files for the KDE office suite: $MAPPINGS{$shortname}
 Source-MD5: $md5
 Version: ${KOVERSION}
