@@ -1,3 +1,9 @@
+Index: Makefile.am
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/koffice/Makefile.am,v
+retrieving revision 1.1.1.1
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.1 -r1.3
 Index: admin/Makefile.common
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/koffice/admin/Makefile.common,v
@@ -7,11 +13,11 @@ diff -u -b -u -r1.1.1.2 -r1.3
 Index: admin/acinclude.m4.in
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/koffice/admin/acinclude.m4.in,v
-retrieving revision 1.1.1.2
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.2 -r1.3
---- admin/acinclude.m4.in	20 Jun 2002 04:48:37 -0000	1.1.1.2
-+++ admin/acinclude.m4.in	10 Jul 2002 21:18:18 -0000	1.3
+retrieving revision 1.1.1.3
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.3 -r1.4
+--- admin/acinclude.m4.in	10 Aug 2002 13:45:46 -0000	1.1.1.3
++++ admin/acinclude.m4.in	10 Aug 2002 14:07:14 -0000	1.4
 @@ -699,13 +699,10 @@
       AC_CHECK_LIB(ipc, shmat, X_EXTRA_LIBS="$X_EXTRA_LIBS -lipc"))
     
@@ -72,16 +78,7 @@ diff -u -b -u -r1.1.1.2 -r1.3
  # these are for backward compatibility
     AC_SUBST(LIB_KSYCOCA, "-lkio")
     AC_SUBST(LIB_KFILE, "-lkio")
-@@ -2185,7 +2198,7 @@
- 
- dnl then search the headers (can't use simply AC_TRY_xxx, as jpeglib.h
- dnl requires system dependent includes loaded before it)
--jpeg_incdirs="/usr/include /usr/local/include $kde_extra_includes"
-+jpeg_incdirs="$includedir /usr/include /usr/local/include $kde_extra_includes"
- AC_FIND_FILE(jpeglib.h, $jpeg_incdirs, jpeg_incdir)
- test "x$jpeg_incdir" = xNO && jpeg_incdir=
- 
-@@ -4117,7 +4130,7 @@
+@@ -4106,7 +4119,7 @@
  AC_DEFUN(KDE_CREATE_SUBDIRSLIST,
  [
  
@@ -90,13 +87,10 @@ diff -u -b -u -r1.1.1.2 -r1.3
  
  if test ! -s $srcdir/subdirs; then
    dnl Note: Makefile.common creates subdirs, so this is just a fallback
-@@ -4347,6 +4360,15 @@
-     prefix=$ac_default_prefix
-     ac_configure_args="$ac_configure_args --prefix=$prefix"
-   fi
-+  # And delete superflous '/' to make compares easier
-+  prefix=`echo "$prefix" | sed 's,//*,/,g' | sed -e 's,/$,,'`
-+  exec_prefix=`echo "$exec_prefix" | sed 's,//*,/,g' | sed -e 's,/$,,'`
+@@ -4339,6 +4352,12 @@
+   # And delete superflous '/' to make compares easier
+   prefix=`echo "$prefix" | sed 's,//*,/,g' | sed -e 's,/$,,'`
+   exec_prefix=`echo "$exec_prefix" | sed 's,//*,/,g' | sed -e 's,/$,,'`
 +  # For unsermake we let top_builddir be absolute, instead of a
 +  # ../.. cascade to make dependencies for better from subdirectories
 +  # This doesn't change the behaviour of automake, as there the
@@ -106,16 +100,7 @@ diff -u -b -u -r1.1.1.2 -r1.3
    KDE_FAST_CONFIGURE
    KDE_CONF_FILES
  ])
-@@ -4510,7 +4532,7 @@
- [
- 	dir=`dirname "$1"`
- 	base=`basename "$1"`
--	list=`ls -1 $dir`
-+	list=`ls -1 $dir 2> /dev/null`
- 	for entry in $list; do 
- 		if test -d $dir/$entry/bin; then
- 			case $entry in
-@@ -4561,6 +4583,7 @@
+@@ -4553,6 +4572,7 @@
        KDE_JAVA_PREFIX(/usr/lib/IBMJava2*)
        KDE_JAVA_PREFIX(/usr/lib/IBMJava*)
        KDE_JAVA_PREFIX(/opt/java*)
@@ -123,7 +108,7 @@ diff -u -b -u -r1.1.1.2 -r1.3
      
        kde_cv_path="NONE"
        kde_save_IFS=$IFS
-@@ -4612,10 +4635,20 @@
+@@ -4604,10 +4624,20 @@
  dnl At this point kde_java_bindir and kde_java_includedir are either set or "no"
  if test "x$kde_java_bindir" != "xno"; then
  
@@ -144,7 +129,7 @@ diff -u -b -u -r1.1.1.2 -r1.3
  
    dnl Now check everything's fine under there
    dnl the include dir is our flag for having the JDK
-@@ -4643,17 +4676,29 @@
+@@ -4635,17 +4665,29 @@
      JAVAC=
      jni_includes=
    fi
@@ -182,133 +167,15 @@ diff -u -b -u -r1.1.1.2 -r1.3
 Index: admin/am_edit
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/koffice/admin/am_edit,v
-retrieving revision 1.1.1.2
-retrieving revision 1.4
-diff -u -b -u -r1.1.1.2 -r1.4
---- admin/am_edit	20 Jun 2002 04:48:37 -0000	1.1.1.2
-+++ admin/am_edit	10 Jul 2002 21:18:18 -0000	1.4
-@@ -673,9 +673,13 @@
-             next;
-         }
-         
--        my $mocsources = "";
-+        my $mocs = "";       # Moc files (in this program)
-+	my $moc_cpp_added = 0;  # If we added some .moc.cpp files, due to
-+				# no other .cpp file including the .moc one.
-         
-         my @progsources = split(/[\s\034]+/, $sources{$program});
-+        my %shash = ();
-+        @shash{@progsources} = 1;  # we are only interested in the existence
-         my %sourcelist = ();
-         
-         foreach $source (@progsources) {
-@@ -684,7 +688,16 @@
-             
-             $sourcelist{$suffix} .= $source . " ";
-         }
--        
-+        foreach my $mocFile (keys (%globalmocs))
-+        {
-+            my ($dir, $hFile, $cppFile) = split ("\035", $globalmocs{$mocFile}, 3);
-+            if (defined ($cppFile)) {
-+                $mocs .= " $mocFile.moc" if exists $shash{$cppFile};
-+            } else {
-+		$sourcelist{$cxxsuffix} .= $mocFile . ".moc." . $cxxsuffix;
-+		$moc_cpp_added = 1;
-+	    }
-+        }
-         foreach $suffix (keys %sourcelist) {
-             
-             # See if this file contains c++ code. (i.e., just check the file's suffix against c++ extensions)
-@@ -694,8 +707,7 @@
-               $suffix_is_cxx = 1;
-             }
-             
--            my $mocfiles_in = ($suffix eq $cxxsuffix) &&
--              defined($depedmocs{$program});
-+            my $mocfiles_in = ($suffix eq $cxxsuffix) && $moc_cpp_added;
-             
-             my @sourcelist = split(/[\s\034]+/, $sourcelist{$suffix});
-             
-@@ -730,21 +742,11 @@
-                 }
-             }
-             
--            if ($mocfiles_in) {
--                $handling .= $depedmocs{$program};
--                foreach $mocfile (split(' ', $depedmocs{$program})) {
--                   
--                    if ($mocfile =~ m/\.$suffix$/) {
--                        $mocsources .= " " . $mocfile;
--                    }
--                }
--            }
--
--            $handling = "$program.all_$suffix.$suffix: \$(srcdir)/Makefile.in" . $source_deps . " " . join(' ', $depedmocs{$program})  . "\n";
-+            $handling = "$program.all_$suffix.$suffix: \$(srcdir)/Makefile.in" . $source_deps . " " . join(' ', $mocs)  . "\n";
-             $handling .= "\t\@echo 'creating $program.all_$suffix.$suffix ...'; \\\n";
-             $handling .= "\trm -f $program.all_$suffix.files $program.all_$suffix.final; \\\n";
-             $handling .= "\techo \"#define KDE_USE_FINAL 1\" >> $program.all_$suffix.final; \\\n";
--            $handling .= "\tfor file in " . $sourcelist{$suffix} . "$mocsources; do \\\n";
-+            $handling .= "\tfor file in " . $sourcelist{$suffix} . "; do \\\n";
-             $handling .= "\t  echo \"#include \\\"\$\$file\\\"\" >> $program.all_$suffix.files; \\\n";
-             $handling .= "\t  test ! -f \$\(srcdir\)/\$\$file || egrep '^#pragma +implementation' \$\(srcdir\)/\$\$file >> $program.all_$suffix.final; \\\n";
-             $handling .= "\tdone; \\\n";
-@@ -828,7 +830,7 @@
- 
-     my $lookup;
-     my $found = "";
--
-+#print "$program: tag_METASOURCES\n";
-     if ($metasourceTags > 1) {
- 	$lookup = $program . '_METASOURCES\s*=\s*(.*)';
- 	return 1    if ($MakefileData !~ /\n($lookup)\n/);
-@@ -1871,9 +1873,7 @@
- 	print STDOUT "globalmocs=[".join(' ', keys(%globalmocs))."]\n" if ($verbose);
- 	foreach my $mocFile (keys (%globalmocs))
- 	{
--	    undef $cppFile;
--	    ($dir, $hFile, $cppFile) = split ("\035", $globalmocs{$mocFile}, 3);
--	    $dir =~ s#^\.#\$(srcdir)#;
-+	    my ($dir, $hFile, $cppFile) = split ("\035", $globalmocs{$mocFile}, 3);
- 	    if (defined ($cppFile))
- 	    {
- 		$mocs .= " $mocFile.moc" if exists $shash{$cppFile};
-@@ -1939,7 +1939,7 @@
-     $MakefileData =~ s/\034/\\\n\t/g;    # Restore continuation lines
-     # Append our $progId line, _below_ the "generated by automake" line
-     # because automake-1.6 relies on the first line to be his own.
--    my $progIdLine = "\# $progId - " . '$Revision$ '."\n";
-+    my $progIdLine = "\# $progId - " . '$Revision$ '."\n";
-     if ( !( $MakefileData =~ s/^(.*generated .*by automake.*\n)/$1$progIdLine/ ) ) {
-         warn "automake line not found in $makefile\n";
- 	# Fallback: first line
+retrieving revision 1.1.1.3
+retrieving revision 1.5
+diff -u -b -u -r1.1.1.3 -r1.5
 Index: admin/cvs.sh
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/koffice/admin/cvs.sh,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.1 -r1.2
---- admin/cvs.sh	20 Jun 2002 04:48:37 -0000	1.1.1.1
-+++ admin/cvs.sh	10 Jul 2002 21:18:18 -0000	1.2
-@@ -250,7 +250,7 @@
-    modulename=`pwd`; modulename=`basename $modulename`
- fi
- if test -z "$VERSION" || test "$VERSION" = "@VERSION@"; then
--     VERSION="\"3.0\""
-+     VERSION="\"3.0.6\""
- fi
- if test -n "$kde_use_qt_param"; then
-       sed -e "s#^dnl KDE_USE_QT#KDE_USE_QT($kde_use_qt_param)#" \
-@@ -398,7 +398,7 @@
- 	echo -e 'i18n("_: NAME OF TRANSLATORS\\n"\n"Your names")\ni18n("_: EMAIL OF TRANSLATORS\\n"\n"Your emails")' > _translatorinfo.cpp
-    else echo " " > _translatorinfo.cpp
-    fi
--   perl -e '$mes=0; while (<STDIN>) { if (/^messages:/) { $mes=1; print $_; next; } if ($mes) { if (/$\\(XGETTEXT\)/ && / -o/) { s/ -o \$\(podir\)/ _translatorinfo.cpp -o \$\(podir\)/ } print $_; } else { print $_; } }' < Makefile.am > _transMakefile
-+   perl -e '$mes=0; while (<STDIN>) { next if (/^(if|else|endif)\s/); if (/^messages:/) { $mes=1; print $_; next; } if ($mes) { if (/$\\(XGETTEXT\)/ && / -o/) { s/ -o \$\(podir\)/ _translatorinfo.cpp -o \$\(podir\)/ } print $_; } else { print $_; } }' < Makefile.am > _transMakefile
- 
-    $MAKE -s -f _transMakefile podir=$podir EXTRACTRC="$EXTRACTRC" PREPARETIPS="$PREPARETIPS" \
- 	XGETTEXT="${XGETTEXT:-xgettext} -C -ki18n -ktr2i18n -kI18N_NOOP -ktranslate -kaliasLocale -x ${includedir:-$KDEDIR/include}/kde.pot" \
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.2 -r1.3
 Index: admin/debianrules
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/koffice/admin/debianrules,v
@@ -324,11 +191,11 @@ diff -u -b -u -r1.1.1.2 -r1.2
 Index: admin/libtool.m4.in
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/koffice/admin/libtool.m4.in,v
-retrieving revision 1.1.1.2
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.2 -r1.3
---- admin/libtool.m4.in	20 Jun 2002 04:48:37 -0000	1.1.1.2
-+++ admin/libtool.m4.in	10 Jul 2002 21:18:18 -0000	1.3
+retrieving revision 1.1.1.3
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.3 -r1.4
+--- admin/libtool.m4.in	10 Aug 2002 13:45:40 -0000	1.1.1.3
++++ admin/libtool.m4.in	10 Aug 2002 14:07:14 -0000	1.4
 @@ -609,6 +609,12 @@
      lt_cv_sys_max_cmd_len=-1;
      ;;
@@ -463,9 +330,9 @@ diff -u -b -u -r1.1.1.2 -r1.3
 Index: doc/kformula/index.docbook
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/koffice/doc/kformula/index.docbook,v
-retrieving revision 1.1.1.2
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.2 -r1.3
+retrieving revision 1.1.1.3
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.3 -r1.4
 Index: doc/koffice/index.docbook
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/koffice/doc/koffice/index.docbook,v
@@ -493,93 +360,157 @@ diff -u -b -u -r1.1.1.2 -r1.2
 Index: doc/kspread/index.docbook
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/koffice/doc/kspread/index.docbook,v
-retrieving revision 1.1.1.2
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.2 -r1.3
+retrieving revision 1.1.1.3
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.3 -r1.4
 Index: doc/kugar/index.docbook
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/koffice/doc/kugar/index.docbook,v
-retrieving revision 1.1.1.2
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.2 -r1.2
+retrieving revision 1.1.1.3
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.3 -r1.3
+Index: doc/kword/bultxtbut.png
+===================================================================
+RCS file: doc/kword/bultxtbut.png
+diff -N doc/kword/bultxtbut.png
+Binary files /tmp/cvs020006 and /dev/null differ
 Index: doc/kword/columns.docbook
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/koffice/doc/kword/columns.docbook,v
-retrieving revision 1.1.1.2
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.2 -r1.2
-Index: doc/kword/do_not_translate.docbook
-===================================================================
-RCS file: /cvs/od/proj/KDE-Darwin/koffice/doc/kword/do_not_translate.docbook,v
-retrieving revision 1.1.1.2
+retrieving revision 1.1.1.3
 retrieving revision 1.3
-diff -u -b -u -r1.1.1.2 -r1.3
+diff -u -b -u -r1.1.1.3 -r1.3
+Index: doc/kword/delcoldlg.png
+===================================================================
+RCS file: doc/kword/delcoldlg.png
+diff -N doc/kword/delcoldlg.png
+Binary files /tmp/cvs020006 and /dev/null differ
+Index: doc/kword/delrowdlg.png
+===================================================================
+RCS file: doc/kword/delrowdlg.png
+diff -N doc/kword/delrowdlg.png
+Binary files /tmp/cvs020006 and /dev/null differ
 Index: doc/kword/editing.docbook
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/koffice/doc/kword/editing.docbook,v
-retrieving revision 1.1.1.2
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.2 -r1.3
+retrieving revision 1.1.1.3
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.3 -r1.4
 Index: doc/kword/formatchar.docbook
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/koffice/doc/kword/formatchar.docbook,v
-retrieving revision 1.1.1.2
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.2 -r1.3
+retrieving revision 1.1.1.3
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.3 -r1.4
 Index: doc/kword/formatpara.docbook
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/koffice/doc/kword/formatpara.docbook,v
-retrieving revision 1.1.1.2
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.2 -r1.2
+retrieving revision 1.1.1.3
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.3 -r1.3
 Index: doc/kword/headerfooter.docbook
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/koffice/doc/kword/headerfooter.docbook,v
-retrieving revision 1.1.1.2
-retrieving revision 1.2
-diff -u -b -u -r1.1.1.2 -r1.2
+retrieving revision 1.1.1.3
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.3 -r1.3
 Index: doc/kword/index.docbook
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/koffice/doc/kword/index.docbook,v
-retrieving revision 1.1.1.2
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.2 -r1.3
+retrieving revision 1.1.1.3
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.3 -r1.4
+Index: doc/kword/instab2.png
+===================================================================
+RCS file: doc/kword/instab2.png
+diff -N doc/kword/instab2.png
+Binary files /tmp/cvs020006 and /dev/null differ
 Index: doc/kword/lists.docbook
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/koffice/doc/kword/lists.docbook,v
-retrieving revision 1.1.1.1
-retrieving revision 1.1
-diff -u -b -u -r1.1.1.1 -r1.1
+retrieving revision 1.1.1.2
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.2 -r1.2
 Index: doc/kword/mbtb.docbook
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/koffice/doc/kword/mbtb.docbook,v
-retrieving revision 1.1.1.2
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.2 -r1.3
+retrieving revision 1.1.1.3
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.3 -r1.4
 Index: doc/kword/opt.docbook
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/koffice/doc/kword/opt.docbook,v
-retrieving revision 1.1.1.2
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.2 -r1.3
+retrieving revision 1.1.1.3
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.3 -r1.4
+Index: doc/kword/styldlg3.png
+===================================================================
+RCS file: doc/kword/styldlg3.png
+diff -N doc/kword/styldlg3.png
+Binary files /tmp/cvs020006 and /dev/null differ
+Index: doc/kword/styldlg4.png
+===================================================================
+RCS file: doc/kword/styldlg4.png
+diff -N doc/kword/styldlg4.png
+Binary files /tmp/cvs020006 and /dev/null differ
+Index: doc/kword/styldlg5.png
+===================================================================
+RCS file: doc/kword/styldlg5.png
+diff -N doc/kword/styldlg5.png
+Binary files /tmp/cvs020006 and /dev/null differ
+Index: doc/kword/styldlg6.png
+===================================================================
+RCS file: doc/kword/styldlg6.png
+diff -N doc/kword/styldlg6.png
+Binary files /tmp/cvs020006 and /dev/null differ
+Index: doc/kword/styldlg7.png
+===================================================================
+RCS file: doc/kword/styldlg7.png
+diff -N doc/kword/styldlg7.png
+Binary files /tmp/cvs020006 and /dev/null differ
+Index: doc/kword/styldlg8.png
+===================================================================
+RCS file: doc/kword/styldlg8.png
+diff -N doc/kword/styldlg8.png
+Binary files /tmp/cvs020006 and /dev/null differ
 Index: doc/kword/styles.docbook
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/koffice/doc/kword/styles.docbook,v
-retrieving revision 1.1.1.2
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.2 -r1.3
+retrieving revision 1.1.1.3
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.3 -r1.4
 Index: doc/kword/table.docbook
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/koffice/doc/kword/table.docbook,v
-retrieving revision 1.1.1.2
-retrieving revision 1.3
-diff -u -b -u -r1.1.1.2 -r1.3
+retrieving revision 1.1.1.3
+retrieving revision 1.4
+diff -u -b -u -r1.1.1.3 -r1.4
 Index: doc/thesaurus/index.docbook
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/koffice/doc/thesaurus/index.docbook,v
 retrieving revision 1.1.1.2
 retrieving revision 1.3
 diff -u -b -u -r1.1.1.2 -r1.3
+Index: filters/karbon/ai/ailexer.cc
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/koffice/filters/karbon/ai/ailexer.cc,v
+retrieving revision 1.1.1.3
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.3 -r1.2
+--- filters/karbon/ai/ailexer.cc	10 Aug 2002 13:48:20 -0000	1.1.1.3
++++ filters/karbon/ai/ailexer.cc	12 Aug 2002 01:08:39 -0000	1.2
+@@ -38,9 +38,11 @@
+   return (c==' ')||(c=='\n')||(c=='\t')||(c=='\r');
+ }
+ 
++#ifndef isspecial
+ int isspecial(char c){
+   return (c=='*')||(c=='_')||(c=='?')||(c=='~')||(c=='-')||(c=='^')||(c=='`')||(c=='!')||(c=='.')||(c=='@')||(c=='&')||(c=='$')||(c=='=');
+ }
++#endif
+ 
+ int isletterhex(char c){
+   return (c=='A')||(c=='B')||(c=='C')||(c=='D')||(c=='E')||(c=='F');
 Index: filters/kword/latex/import/parser/Makefile.am
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/koffice/filters/kword/latex/import/parser/Makefile.am,v
@@ -597,6 +528,11 @@ diff -u -b -u -r1.1.1.1 -r1.2
  
  ####### Files
  
+Index: filters/kword/mswrite/filtertest.wri
+===================================================================
+RCS file: filters/kword/mswrite/filtertest.wri
+diff -N filters/kword/mswrite/filtertest.wri
+Binary files /tmp/cvs020006 and /dev/null differ
 Index: filters/xsltfilter/export/Makefile.am
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/koffice/filters/xsltfilter/export/Makefile.am,v
@@ -637,6 +573,21 @@ diff -u -b -u -r1.1.1.2 -r1.2
  
  ####### Files
  
+Index: karbon/pics/hi16-action-scale.png
+===================================================================
+RCS file: karbon/pics/hi16-action-scale.png
+diff -N karbon/pics/hi16-action-scale.png
+Binary files /tmp/cvs020006 and /dev/null differ
+Index: karbon/pics/hi22-action-14_scale.png
+===================================================================
+RCS file: karbon/pics/hi22-action-14_scale.png
+diff -N karbon/pics/hi22-action-14_scale.png
+Binary files /tmp/cvs020006 and /dev/null differ
+Index: karbon/pics/hi22-action-select.png
+===================================================================
+RCS file: karbon/pics/hi22-action-select.png
+diff -N karbon/pics/hi22-action-select.png
+Binary files /tmp/cvs020006 and /dev/null differ
 Index: karbon/render/xrgbrender/gdk-pixbuf-xlib-private.h
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/koffice/karbon/render/xrgbrender/gdk-pixbuf-xlib-private.h,v
@@ -685,6 +636,12 @@ diff -u -b -u -r1.1.1.2 -r1.3
  libkdchart_la_SOURCES = KDChart.cpp 		\
  			KDChartAreaPainter.cpp	\
  			KDChartAxesPainter.cpp	\
+Index: kivio/kiviopart/ui/gridsetupdialogbase.ui
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/koffice/kivio/kiviopart/ui/gridsetupdialogbase.ui,v
+retrieving revision 1.1.1.4
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.4 -r1.2
 Index: kivio/plugins/kivioconnectortool/straight_connector/Makefile.am
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/koffice/kivio/plugins/kivioconnectortool/straight_connector/Makefile.am,v
@@ -724,6 +681,40 @@ diff -u -b -u -r1.1.1.2 -r1.2
  
  stencil_DATA = straight_connector.xpm
  stencildir = $(kde_datadir)/kivio/autoloadStencils
+Index: kpresenter/kpresenter_view.cc
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/koffice/kpresenter/kpresenter_view.cc,v
+retrieving revision 1.1.1.3
+retrieving revision 1.3
+diff -u -b -u -r1.1.1.3 -r1.3
+--- kpresenter/kpresenter_view.cc	10 Aug 2002 13:49:48 -0000	1.1.1.3
++++ kpresenter/kpresenter_view.cc	10 Aug 2002 14:07:16 -0000	1.3
+@@ -4458,7 +4458,7 @@
+     //(Laurent) deselect object when we change page.
+     //otherwise you can change object properties on other page
+     m_canvas->deSelectAllObj();
+-    m_pKPresenterDoc->repaint( FALSE );
++    m_pKPresenterDoc->repaint( (bool)FALSE );
+ 
+     m_pKPresenterDoc->displayActivePage(m_pKPresenterDoc->pageList().at(currPg));
+ 
+Index: kspread/plugins/calculator/kcalc_core.cpp
+===================================================================
+RCS file: /cvs/od/proj/KDE-Darwin/koffice/kspread/plugins/calculator/kcalc_core.cpp,v
+retrieving revision 1.1.1.1
+retrieving revision 1.2
+diff -u -b -u -r1.1.1.1 -r1.2
+--- kspread/plugins/calculator/kcalc_core.cpp	20 Jun 2002 04:43:37 -0000	1.1.1.1
++++ kspread/plugins/calculator/kcalc_core.cpp	11 Aug 2002 16:42:11 -0000	1.2
+@@ -51,7 +51,7 @@
+ #undef HAVE_LONG_DOUBLE
+ #endif
+ 
+-#ifndef HAVE_FUNC_ISINF
++#if !defined(HAVE_FUNC_ISINF) || defined(__APPLE__)
+ #ifdef HAVE_IEEEFP_H
+ #include <ieeefp.h>
+ #else
 Index: kugar/part/Makefile.am
 ===================================================================
 RCS file: /cvs/od/proj/KDE-Darwin/koffice/kugar/part/Makefile.am,v
