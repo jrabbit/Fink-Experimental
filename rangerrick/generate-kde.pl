@@ -75,6 +75,7 @@ for my $file (sort keys %files) {
 									$line =~ s/((imagemagick.*?)-dev)/$2/g;
 									$line =~ s/(freetype2\S*) \((\S+)\s+2.1.3-\d+\)/$1 ($2 2.1.3-2)/g;
 								} else {
+									$line =~ s/(kerberos[^,]*, )//g unless ($tree =~ /^10\.4/);
 									$line =~ s/^\#(\s*export\s+LD_TWOLEVEL_NAMESPACE.*)$/$1/;
 									$line =~ s/(dlcompat|libpoll)(\S*)(\s+\([^\)]+\))?[\,\s]*//g unless ($line =~ m#-I/usr/X11R6/include#);
 									$line =~ s/(dlcompat|libpoll|mdnsresponder)(\S*)(\s+\([^\)]+\))?[\,\s]*//g unless ($line =~ m#-I/usr/X11R6/include#);
