@@ -1,0 +1,46 @@
+Package: wxgtk
+Version: 2.3.3
+Revision: 1
+Maintainer: Sylvain Cuaz <zauc@noos.fr>
+
+BuildDepends: libpng, libjpeg, libtiff, glib, gtk+, freetype2, freetype | freetype-hinting
+Depends: freetype2-shlibs, libpng-shlibs, libjpeg-shlibs, libtiff-shlibs, freetype, glib-shlibs, gtk+-shlibs, libgl, %n-shlibs
+Conflicts: wxmac
+Replaces: wxmac
+Source: mirror:sourceforge:wxwindows/wxGTK-%v.tar.bz2
+SourceDirectory: wxGTK-%v
+
+SetCPPFLAGS: -no-cpp-precomp -I/usr/X11R6/include
+ConfigureParams: --with-gtk --with-freetype --with-opengl
+PatchScript: sed 's|@PREFIX@|%p|g' < %a/%f.patch | patch -p1
+CompileScript: mkdir build ; (cd build; ../configure %c ; make)
+InstallScript: (cd build; make install prefix=%i)
+DocFiles: CHANGES-GTK.txt CHANGES.txt COPYING.LIB INSTALL.txt LICENCE.txt README-GTK.txt README.txt SYMBOLS.txt TODO.txt
+
+BuildDependsOnly: True
+SplitOff: <<
+ Package: %N-shlibs
+ Replaces: %N
+ Files: lib/libwx_gtk-2.3.dylib.1.0.0 lib/libwx_gtk_gl-2.3.dylib.1.0.0 lib/libwx_gtk-2.3.dylib.1 lib/libwx_gtk_gl-2.3.dylib.1
+ DocFiles: COPYING.LIB LICENCE.txt
+<<
+
+Description: Cross-platform (unix,windows,mac) GUI API - unix version.
+DescDetail: <<
+ In addition to common and advanced GUI facilities such as
+ frames, scrolling windows, toolbars, tree controls, icons,
+ device contexts, printing, splitter windows and so on, there are
+ wrappers for common file operations, and facilities for writing
+ TCP/IP applications, thread handling, and more. Where certain
+ features are not available on a platform, such as MDI and tree
+ controls on Unix, they are emulated.
+<<
+DescPort: <<
+ the ConfigureParam (--with-gtk) prevents it from detecting MacOS X.
+ patch to configure to permit proper detection of
+ freetype headers, and linking of libiconv.
+ added -install_name to linker flags so 
+ DYLD_LIBRARY_PATH does not need to be set manually.
+<<
+Homepage: http://wxWindows.org/
+License: GPL

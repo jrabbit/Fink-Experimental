@@ -1,0 +1,46 @@
+--- wxGTK-2.3.2/configure.orig	Mon Dec 31 13:53:54 2001
++++ wxGTK-2.3.2/configure	Mon Dec 31 13:54:54 2001
+@@ -8690,15 +8690,6 @@
+ 
+ test -z "$INSTALL_DATA" && INSTALL_DATA='${INSTALL} -m 644'
+ 
+-case "${host}" in
+-
+-                powerpc-*-darwin* )
+-        INSTALL_PROGRAM="cp -fp"
+-        INSTALL_DATA="cp -fp"
+-        ;;
+-    *)
+-        ;;
+-esac
+ 
+ # Extract the first word of "strip", so it can be a program name with args.
+ set dummy strip; ac_word=$2
+@@ -14841,7 +14841,7 @@
+                         TOOLCHAIN_DEFS="${TOOLCHAIN_DEFS} -DWXMAKINGDLL"
+         CFLAGS="$CFLAGS -fno-common"
+         CXXFLAGS="$CXXFLAGS -fno-common"
+-                                        SHARED_LD="\${top_srcdir}/distrib/mac/shared-ld-sh -undefined suppress -flat_namespace -o"
++        SHARED_LD="${CXX} -dynamic -undefined suppress -flat_namespace -o"
+         PIC_FLAG="-dynamic -fPIC"
+         SONAME_FLAGS="-compatibility_version ${WX_RELEASE} -current_version ${WX_VERSION}"
+         SONAME_FLAGS_GL=${SONAME_FLAGS}
+
+--- wxGTK-2.3.3/Makefile.in~	2002-09-15 11:19:47.000000000 -0700
++++ wxGTK-2.3.3/Makefile.in	2002-10-24 21:19:34.000000000 -0700
+@@ -318,13 +318,13 @@
+ 
+ $(build_libdir)/@WX_LIBRARY_NAME_SHARED@: $(OBJECTS)
+ 	@$(INSTALL) -d $(build_libdir)
+-	$(SHARED_LD) $@ $(SONAME_FLAGS) $(OBJECTS) $(EXTRALIBS)
++	$(SHARED_LD) $@ $(SONAME_FLAGS) $(OBJECTS) $(EXTRALIBS) -install_name @PREFIX@/lib/@WX_LIBRARY_NAME_SHARED@
+ 
+ # NB: we used to have "-L$(build_libdir) @WXCONFIG_LIBS@" in the SHARED_LD line
+ #     but this seems to result in problems with libwx_gtk being linked in twice
+ $(build_libdir)/@WX_LIBRARY_NAME_SHARED_GL@: glcanvas.o $(build_libdir)/@WX_LIBRARY_NAME_SHARED@
+ 	@$(INSTALL) -d $(build_libdir)
+-	$(SHARED_LD) $@ $(SONAME_FLAGS_GL) glcanvas.o $(EXTRALIBS) $(OPENGLLIBS)
++	$(SHARED_LD) $@ $(SONAME_FLAGS_GL) glcanvas.o $(EXTRALIBS) $(OPENGLLIBS)  -install_name @PREFIX@/lib/@WX_LIBRARY_NAME_SHARED_GL@
+ 
+ $(build_libdir)/@WX_RESOURCES_MACOSX_DATA@: $(MACRESOURCES)
+ 	@$(INSTALL) -d $(build_libdir)
