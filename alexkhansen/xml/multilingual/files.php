@@ -1,7 +1,7 @@
 <?
 $title = "i18n - Files";
 $cvs_author = 'Author: alexkhansen';
-$cvs_date = 'Date: 2004/03/04 19:13:52';
+$cvs_date = 'Date: 2004/03/04 21:43:46';
 
 $metatags = '<link rel="contents" href="index.php" title="i18n Contents"><link rel="next" href="procedure.php" title="Procedure for Updating Documents"><link rel="prev" href="intro.php" title="Introduction">';
 
@@ -156,7 +156,7 @@ environment variable to something more friendly, e.g. for bash and zsh:</p>
               <p>if you created your <code>web</code> tree under <code>Documents/Fink-i18n/</code> in your home folder, and you want to commit a PHP file from the web/xml/web directory.</p>
             </li>
             <li>Login to cvs.sourceforge.net, using your SourceForge username:
-<pre>cvs -d:pserver:<b>username</b>@cvs.sourceforge.net:/cvsroot/fink login</pre>
+<pre>cvs -d:ext:<b>username</b>@cvs.sourceforge.net:/cvsroot/fink login</pre>
             </li>
             <li>Give your SourceForge password, then hit Enter.
 </li>
