@@ -1,0 +1,59 @@
+--- apache-2.0.47/Makefile.in.orig	2003-07-12 14:01:21.000000000 +0200
++++ apache-2.0.47/Makefile.in	2003-07-12 14:01:44.000000000 +0200
+@@ -58,7 +58,7 @@
+ 	    					echo "<IfDefine SSL>"; \
+ 	    				fi; \
+ 	    				if test $$j != "^EOL^"; then \
+-	    					echo "LoadModule $${j}_module $(rel_libexecdir)/mod_$${j}.so"; \
++	    					echo "LoadModule $${j}_module mod_$${j}.so"; \
+ 	    				fi; \
+ 	    				if test "x$$j" = "xssl"; then \
+ 	    					echo "</IfDefine>"; \
+--- apache-2.0.47/docs/conf/httpd-std.conf.in.orig	2003-07-12 14:07:57.000000000 +0200
++++ apache-2.0.47/docs/conf/httpd-std.conf.in	2003-07-12 14:13:21.000000000 +0200
+@@ -982,25 +982,32 @@
+ # with the URL of http://servername/server-status
+ # Change the ".example.com" to match your domain to enable.
+ #
+-#<Location /server-status>
+-#    SetHandler server-status
+-#    Order deny,allow
+-#    Deny from all
+-#    Allow from .example.com
+-#</Location>
++<IfDefine STATUS>
++   <IfModule mod_status.c>
++      <Location /server-status>
++         SetHandler server-status
++         Order deny,allow
++         Deny from all
++         Allow from localhost
++      </Location>
++   </IfModule>
++</IfDefine>
+ 
+ #
+ # Allow remote server configuration reports, with the URL of
+ #  http://servername/server-info (requires that mod_info.c be loaded).
+ # Change the ".example.com" to match your domain to enable.
+ #
+-#<Location /server-info>
+-#    SetHandler server-info
+-#    Order deny,allow
+-#    Deny from all
+-#    Allow from .example.com
+-#</Location>
+-
++<IfDefine INFO>
++   <IfModule mod_info.c>
++      <Location /server-info>
++         SetHandler server-info
++         Order deny,allow
++         Deny from all
++         Allow from localhost
++      </Location>
++   </IfModule>
++</IfDefine>
+ 
+ #
+ # Bring in additional module-specific configurations

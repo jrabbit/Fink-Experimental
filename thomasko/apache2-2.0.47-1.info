@@ -4,8 +4,8 @@ Revision: 1
 ###
 Conflicts: apache, apr
 Replaces: apache
-BuildDepends: db3, expat, gdbm, dlcompat-dev, libiconv-dev
-Depends: daemonic, db3-shlibs, expat-shlibs, gdbm-shlibs
+BuildDepends: db4, expat, gdbm3, dlcompat-dev, libiconv-dev
+Depends: daemonic, db4-shlibs, expat-shlibs, gdbm3-shlibs
 ###
 CustomMirror: <<
   Primary: http://www.apache.org/dist/httpd/
@@ -15,6 +15,7 @@ CustomMirror: <<
 Source: mirror:custom:httpd-%v.tar.gz
 Source-MD5: 63f16638c18b140b649fab32b54d7f9c
 ###
+Patch: %f.patch
 PatchScript: <<
   rm -rf srclib/apr-util/xml/expat
 <<
@@ -28,16 +29,15 @@ ConfFiles: <<
 <<
 ###
 CompileScript: <<
-  ./configure --prefix=%p/share/apache2 --exec-prefix=%p/share/apache2 --bindir=%p/bin --sbindir=%p/sbin --libexecdir=%p/share/apache2 --datadir=%p/share/apache2 --sysconfdir=%p/etc/apache2 --sharedstatedir=%p/share/apache2 --libdir=%p/lib/apache2 --includedir=%p/include/apache2 --oldincludedir=%p/include/apache2 --mandir=%p/share/man --infodir=%p/share/info --enable-modules=all --enable-mods-shared=all --enable-modules=extension --enable-so --with-expat=%p --with-mpm=prefork --with-ssl=%p --enable-rewrite --enable-dav-fs --enable-cgi --enable-suexec --enable-info --enable-dav --enable-http --enable-ssl --enable-usertrack --enable-headers --enable-expires --enable-mime-magic --enable-logio --enable-deflate --enable-mem-cache --enable-disk-cache --enable-cache --enable-isapi --enable-auth-digest --enable-auth-dbm EXTRA_CFLAGS="-O2"
+  ./configure --prefix=%p/share/apache2 --exec-prefix=%p/share/apache2 --bindir=%p/bin --sbindir=%p/sbin --libexecdir=%p/share/apache2 --datadir=%p/share/apache2 --sysconfdir=%p/etc/apache2 --sharedstatedir=%p/share/apache2 --libdir=%p/lib/apache2 --includedir=%p/include/apache2 --oldincludedir=%p/include/apache2 --mandir=%p/share/man --infodir=%p/share/info --enable-modules=all --enable-mods-shared=all --enable-modules=extension --enable-so --with-expat=%p --with-mpm=prefork --enable-rewrite --enable-dav-fs --enable-cgi --enable-suexec --enable-info --enable-dav --enable-usertrack --enable-headers --enable-expires --enable-mime-magic --enable-logio --enable-deflate
   make EXTRA_CFLAGS="-O2"
 <<
+#  --with-ssl=%p --enable-http --enable-ssl --enable-mem-cache --enable-disk-cache --enable-cache --enable-isapi --enable-auth-digest --enable-auth-dbm
 InstallScript: <<
   make install DESTDIR=%d
 
   install -d -m 755 %d%p/etc/apache2/include
-  echo "" >> %d%p/etc/apache2/httpd.conf
-  echo "Include %p/etc/apache2/include/" >> %d%p/etc/apache2/httpd.conf
-  echo "" >> %d%p/etc/apache2/httpd.conf
+  printf "\nInclude %p/etc/apache2/include/\n" >> %d%p/etc/apache2/httpd.conf
 <<
 ###
 DaemonicName: apache2
@@ -83,8 +83,36 @@ DescPackaging: <<
   daemonic script. Also added DSO building.  Addes a PatchScript to remove
   the internal expat in favor of fink's expat as there is no switch or way
   to disable it.  - Justin F. Hallett (Feb 7, 2003)
+
+  Many to the original package maintainer:
+  Sonic McTails <sonicmctails@projectnemesis.ibforums.com>
 <<
 DocFiles: ABOUT_APACHE CHANGES INSTALL LAYOUT LICENSE README* VERSIONING
 License: BSD
 Homepage: http://www.apache.org
-Maintainer: Sonic McTails <sonicmctails@projectnemesis.ibforums.com>
+Maintainer: Thomas Kotzian <thomas.kotzian@gmx.at>
+SplitOff: <<
+  Package: %N-shlibs
+  Depends: daemonic, db3-shlibs | db4-shlibs, expat-shlibs, gdbm-shlibs | gdbm3-shlibs
+  Files: lib
+  Shlibs: << 
+    %p/lib/apache2/libapr-0.0.9.4.dylib 0.9.4 %n (>= 2.0.47-1)
+    %p/lib/apache2/libaprutil-0.0.9.4.dylib 0.9.4 %n (>= 2.0.47-1)
+  <<
+  DocFiles: ABOUT_APACHE CHANGES INSTALL LAYOUT LICENSE README* VERSIONING
+  Description: Powerful HTTP Web Server - shared libraries
+<<
+SplitOff2: <<
+  Package: %N-dev
+  Depends: %N-shlibs (= %v-%r)
+  BuildDependsOnly: true
+  Files: include sbin/apxs
+  DocFiles: ABOUT_APACHE CHANGES INSTALL LAYOUT LICENSE README* VERSIONING
+  Description: Powerful HTTP Web Server - development libraries and headers
+<<
+SplitOff3: <<
+  Package: %N-doc
+  Files: share/apache2/manual
+  DocFiles: ABOUT_APACHE CHANGES INSTALL LAYOUT LICENSE README* VERSIONING
+  Description: Powerful HTTP Web Server - complete manual
+<<
