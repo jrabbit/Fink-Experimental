@@ -1,14 +1,14 @@
 Package: kdebase3-ssl
-Version: 3.1.1
-Revision: 7
+Version: 3.1.2
+Revision: 1
 Description: KDE - base system
 License: GPL/LGPL
 Maintainer: Benjamin Reed <ranger@befunk.com>
 
-Depends: %N-shlibs (>= %v-%r), arts (>= 1.1.1-1), kdelibs3-ssl (>= %v-1), xfontpath
-BuildDepends: arts-dev (>= 1.1.1-1), audiofile, dlcompat-dev (>= 20021117-1),  esound, freetype2 | freetype2-hinting, kdelibs3-ssl-dev (>= %v-1), lesstif (>= 0.93.18-6), libart2, libjpeg, libogg, libpng3 (>= 1.2.5-4), libpoll (>= 1.1-1), libvorbis0, mad, openssl097-dev, qt3 (>= 3.1.0-1), qt3-doc, x11, cups-dev, autoconf2.54, libtool14, automake1.6, cctools (>= 446-1), xfontpath
+Depends: dlcompat-shlibs (>= 20021117-1), %N-shlibs (>= %v-%r), kdelibs3 (>= %v-1), lesstif-shlibs (>= 0.93.18-6), libart2-shlibs, libjpeg-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.1.0-1), x11, xfontpath
+BuildDepends: arts-dev (>= 1.1.2-1), audiofile, autoconf2.54, automake1.6, cctools (>= 446-1), cups-dev, dlcompat-dev (>= 20021117-1),  esound, freetype2 | freetype2-hinting, kdelibs3-dev (>= %v-1), lesstif (>= 0.93.18-6), libart2, libjpeg, libogg, libpng3 (>= 1.2.5-4), libpoll (>= 1.1-1), libtool14, libvorbis0, mad, openssl097, qt3 (>= 3.1.0-1), qt3-doc, x11, xfontpath
 Conflicts: bundle-kde, kdelibs3, kdelibs3-shlibs, kdelibs3-dev, kdebase3, kdebase3-shlibs, kdebase3-dev, kio-fish
-Replaces: kdebase3-ssl, kdebase3-ssl-dev, kio-fish, lisa
+Replaces: kdebase3-ssl, kdebase3-ssl-dev, kio-fish, lisa, kdenetwork3 (<< 3.1.2-1)
 GCC: 3.1
 
 CustomMirror: <<
@@ -16,9 +16,9 @@ CustomMirror: <<
   nam-CA: http://www.southofheaven.net/befunk
 <<
 Source: mirror:kde:stable/%v/src/kdebase-%v.tar.bz2
-Source-MD5: f360add935d13be629b43a2a280b759f
-Source2: mirror:custom:kde-admindir-20030409.tar.bz2
-Source2-MD5: 8d34ba48889bfa8d983d7ab7e1fb7882
+Source-MD5: c0e62fa4065883578f8a676b748a9760
+Source2: mirror:custom:kde-admindir-20030506.tar.bz2
+Source2-MD5: 7b9c78d99df465f0fb7db434205657aa
 Source2ExtractDir: kdebase-%v
 
 PatchScript: sed 's|@PREFIX@|%p|g' <%a/%f.patch | patch -p0
@@ -33,32 +33,26 @@ CompileScript: <<
   export KDEDIR=%p
   mkdir -p /tmp/kde-build
 
-  date > /tmp/kde-build/%N-%v-%r.cvs
-  make -f admin/Makefile.common cvs 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.cvs
-  [ $? -gt 0 ] && exit 1
-
-  date > /tmp/kde-build/%N-%v-%r.configure
-  sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure
-  [ $? -gt 0 ] && exit 1
-
-  date > /tmp/kde-build/%N-%v-%r.make
-  make -j2 all 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.make
+  date > /tmp/kde-build/%N-%v-%r.cvs && \
+  (make -f admin/Makefile.common cvs 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.cvs) && \
+  date > /tmp/kde-build/%N-%v-%r.configure && \
+  (sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure) && \
+  date > /tmp/kde-build/%N-%v-%r.make && \
+  (make -j2 all 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.make)
 <<
 
 InstallScript: <<
 #!/bin/sh
   mkdir -p /tmp/kde-build
+  mkdir -p %i/share/doc/kde-installed-packages
+  touch %i/share/doc/kde-installed-packages/%N
 
-  date > /tmp/kde-build/%N-%v-%r.install
-  make install DESTDIR=%d 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.install
-  [ $? -gt 0 ] && exit 1
-
-  date > /tmp/kde-build/%N-%v-%r.apidox
-  make -j2 apidox 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.apidox
-  [ $? -gt 0 ] && exit 1
-
-  date > /tmp/kde-build/%N-%v-%r.install-apidox
-  make install-apidox DESTDIR=%d 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.install-apidox
+  date > /tmp/kde-build/%N-%v-%r.install && \
+  (make install DESTDIR=%d 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.install) && \
+  date > /tmp/kde-build/%N-%v-%r.apidox && \
+  (make -j2 apidox 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.apidox) && \
+  date > /tmp/kde-build/%N-%v-%r.install-apidox && \
+  (make install-apidox DESTDIR=%d 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.install-apidox)
 
   install -d -m 755 %i/etc/pam.d
   install -c -m 444 /etc/pam.d/login %i/etc/pam.d/kde
@@ -90,13 +84,11 @@ SplitOff: <<
   Depends: %N-shlibs (>= %v-%r), %N (>= %v-%r)
   Conflicts: bundle-kde, kdelibs3, kdelibs3-dev, kdebase3, kdebase3-dev
   Replaces: kdebase3, kdebase3-dev, %N (<< %v-1), %N-dev (<< %v-1)
-  Recommends: arts-dev (>= 1.1.1-1), kdelibs3-dev (>= %v-1), lesstif (>= 0.93.18-6), audiofile, esound, freetype2 | freetype2-hinting, libjpeg, libpng3 (>= 1.2.5-4), libpoll (>= 1.1-1), qt3 (>= 3.1.0-1), lame (>= 3.92-4)
+  Recommends: arts-dev (>= 1.1.2-1), audiofile, autoconf2.54, automake1.6, cctools (>= 446-1), cups-dev, dlcompat-dev (>= 20021117-1),  esound, freetype2 | freetype2-hinting, kdelibs3-dev (>= %v-1), lesstif (>= 0.93.18-6), libart2, libjpeg, libogg, libpng3 (>= 1.2.5-4), libpoll (>= 1.1-1), libtool14, libvorbis0, mad, openssl097, qt3 (>= 3.1.0-1), qt3-doc, x11, xfontpath
   BuildDependsOnly: true
   Files: <<
     include
-    lib/libkickermain.dylib
     lib/libkonq.dylib
-    lib/libnsplugin.so
     lib/libtaskbar.dylib
     lib/libtaskmanager.dylib
   <<
@@ -104,15 +96,16 @@ SplitOff: <<
 SplitOff2: <<
   Package: %N-shlibs
   Description: KDE - base shared libraries
-  Depends: arts-shlibs (>= 1.1.1-1), kdelibs3-ssl-shlibs (>= %v-1), audiofile-shlibs, dlcompat-shlibs (>= 20021117-1),  esound-shlibs, freetype2-shlibs | freetype2-hinting-shlibs, lesstif-shlibs (>= 0.93.18-6), libart2-shlibs, libjpeg-shlibs, libogg-shlibs, libpng3-shlibs (>= 1.2.5-4), libpoll-shlibs (>= 1.1-1), libvorbis0-shlibs, openssl097-shlibs, mad-shlibs, qt3-shlibs (>= 3.1.0-1), x11
+  Depends: arts-shlibs (>= 1.1.1-1), audiofile-shlibs, dlcompat-shlibs (>= 20021117-1), esound-shlibs, freetype2-shlibs | freetype2-hinting-shlibs, kdebase3-ssl (>= %v-1) | kdebase3 (>= %v-1), kdebase3-ssl (>= %v-1) | kdebase3 (>= %v-1), kdelibs3-ssl (>= %v-1)| kdelibs3 (>= %v-1), lesstif-shlibs (>= 0.93.18-6), libart2-shlibs, libjpeg-shlibs, libogg-shlibs, libpng3-shlibs (>= 1.2.5-4), libpoll-shlibs (>= 1.1-1), libvorbis0-shlibs, mad-shlibs, openssl097-shlibs, qt3-shlibs (>= 3.1.0-1), x11
   Conflicts: bundle-kde, kdelibs3, kdelibs-shlibs, kdelibs3-dev, kdebase3, kdebase3-shlibs, kdebase3-dev
   Replaces: kdebase3, kdebase3-ssl, kdebase3-ssl-dev
+  Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
   Files: <<
     lib/kde3/*.so
+    lib/libkicker_shared*.dylib
     lib/libkickermain.1*.dylib
     lib/libkonq.4*.dylib
-    lib/libnsplugin.1*.so
     lib/libtaskbar.1*.dylib
     lib/libtaskmanager.1*.dylib
   <<
