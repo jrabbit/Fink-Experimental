@@ -1,0 +1,55 @@
+Index: perlmod/Fink/Engine.pm
+===================================================================
+RCS file: /cvsroot/fink/fink/perlmod/Fink/Engine.pm,v
+retrieving revision 1.76
+diff -u -u -r1.76 Engine.pm
+--- perlmod/Fink/Engine.pm	31 Oct 2002 23:53:34 -0000	1.76
++++ perlmod/Fink/Engine.pm	7 Nov 2002 22:49:53 -0000
+@@ -911,6 +911,47 @@
+       }
+ 
+       if (not $found) {
++        # check if a sibling package has been marked for install
++        # if so, choose it instead of asking
++
++        my ($cand, $parent, $dp, $dparent);
++        SIBCHECK: foreach $cand (@candidates) {
++          my $package = Fink::Package->package_by_name($cand);
++          my $lversion = &latest_version($package->list_versions());
++          my $vo = $package->get_version($lversion);
++
++          if (exists $vo->{_splitoffs} and @{$vo->{_splitoffs}} > 0) {
++            $parent = $vo;  # package is itself splitoff parent
++          } elsif (exists $vo->{parent}) {
++            $parent = $vo->{parent};  # package is a splitoff
++          } else {
++            $parent = $vo;
++          }
++
++          foreach $dp (keys %deps) {
++            my $dpackage  = Fink::Package->package_by_name($dp);
++            my $dlversion = &latest_version($dpackage->list_versions());
++            my $dvo       = $dpackage->get_version($dlversion);
++
++            if (exists $dvo->{_splitoffs} and @{$dvo->{_splitoffs}} > 0) {
++              $dparent = $dvo;  # package is itself splitoff parent
++            } elsif (exists $dvo->{parent}) {
++              $dparent = $dvo->{parent};  # package is a splitoff
++            } else {
++              $dparent = $dvo;
++            }
++
++            if ($dparent->get_name() eq $parent->get_name()) {
++              print "found sibling ", $dname, "\n";
++              $dname = $cand;
++              $found = 1;
++              last SIBCHECK;
++            }
++          }
++        }
++      }
++
++      if (not $found) {
+ 	# let the user pick one
+ 
+ 	my $labels = {};
