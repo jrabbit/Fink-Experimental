@@ -1,0 +1,22 @@
+Fink popcon SERVER howto:
+
+
+0. Must have fink and popularity-contest pkg installed on server machine. The server scripts use dpkg to parse the Fink "Packages" files. One problem that still exists is that the script can't handle the gzipped Packages files that fink makes, they must be un-gzipped first.
+1. Extract popcon.tar.gz to /Library/Webserver/Documents/popcon (or wherever, an accessible dir)
+2. Edit /sw/share/popularity-contest/scripts/popcon-process.sh and specify POPDIR as that directory.
+3. Set up mail alias, or some other method (rsync, whatever) to redirect and append email from submission address to /Library/WebServer/Documents/new-popcon-entries
+
+sample .procmailrc for this, in my home directory:
+
+# Procmailrc for redirecting mail
+PATH=$HOME/bin:/usr/bin:/bin:/usr/local/bin:/sw/bin:/sw/sbin.
+MAILDIR=$HOME/Library/unixmail      # You'd better make sure it exists
+DEFAULT=$MAILDIR/mbox
+LOGFILE=$MAILDIR/from
+LOCKFILE=$HOME/.lockmail
+
+:0                    # Anything subject with popularity
+* ^Subject.*popularity
+/Library/WebServer/Documents/popcon/new-popcon-entries
+
+4. Run /sw/share/popularity-contest/scripts/popcon-process.sh in (weekly?) crontab
