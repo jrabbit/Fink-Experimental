@@ -1,6 +1,6 @@
-diff -ruN Fink/Config.pm Fink.new/Config.pm
---- Fink/Config.pm	Sun Sep  8 20:11:38 2002
-+++ Fink.new/Config.pm	Thu Nov  7 21:38:04 2002
+diff -ruN Fink.orig/Config.pm Fink/Config.pm
+--- Fink.orig/Config.pm	Sun Sep  8 20:11:38 2002
++++ Fink/Config.pm	Thu Nov  7 20:43:36 2002
 @@ -36,12 +36,12 @@
    @ISA         = qw(Exporter Fink::Base);
    @EXPORT      = qw();
@@ -29,148 +29,9 @@ diff -ruN Fink/Config.pm Fink.new/Config.pm
    $libpath = "$basepath/lib/fink";
    $distribution = $self->param("Distribution");
  
-diff -ruN Fink/Depends.pm Fink.new/Depends.pm
---- Fink/Depends.pm	Wed Dec 31 19:00:00 1969
-+++ Fink.new/Depends.pm	Thu Nov  7 21:38:04 2002
-@@ -0,0 +1,135 @@
-+#
-+# Fink::Depends class
-+#
-+# Fink - a package manager that downloads source and installs it
-+# Copyright (c) 2001 Christoph Pfisterer
-+# Copyright (c) 2001-2002 The Fink Package Manager Team
-+#
-+# This program is free software; you can redistribute it and/or
-+# modify it under the terms of the GNU General Public License
-+# as published by the Free Software Foundation; either version 2
-+# of the License, or (at your option) any later version.
-+#
-+# This program is distributed in the hope that it will be useful,
-+# but WITHOUT ANY WARRANTY; without even the implied warranty of
-+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+# GNU General Public License for more details.
-+#
-+# You should have received a copy of the GNU General Public License
-+# along with this program; if not, write to the Free Software
-+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-+#
-+
-+$|++;
-+
-+package Fink::Depends;
-+use Fink::Base;
-+use Fink::Config qw($basepath);
-+
-+use strict;
-+use warnings;
-+
-+BEGIN {
-+  use Exporter ();
-+  our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
-+  $VERSION = 1.00;
-+  @ISA         = qw(Exporter Fink::Base);
-+  @EXPORT      = qw();
-+  @EXPORT_OK   = qw(&depends_version &run_dependscheck);
-+  %EXPORT_TAGS = ( );
-+}
-+our @EXPORT_OK;
-+our %PACKAGES;
-+
-+# this is the one and only version number
-+our $depends_version = "0.1.0.cvs";
-+
-+END { }       # module clean-up code here (global destructor)
-+
-+### return depends version
-+
-+sub depends_version {
-+  return $depends_version;
-+}
-+
-+sub run_dependscheck {
-+  my $self = shift;
-+  my $pkgname = shift;
-+  my (@depends, $depend);
-+
-+  unless (defined $pkgname) {
-+    print "NOP\n";
-+    return;
-+  } 
-+
-+  print "Scanning ${pkgname} for a list of lib depends\n";
-+  @depends = &check_pkg($pkgname);
-+
-+  foreach $depend (@depends) {
-+    chomp($depend);
-+    $PACKAGES{$depend} = 1;  
-+  }
-+
-+  if (keys %PACKAGES) {    
-+    print "\nDepends: ", join(', ', sort keys %PACKAGES), "\n\n";
-+  } else {
-+    print "\nHas no lib depends!\n\n";
-+  }
-+
-+  return;
-+}
-+
-+sub check_pkg {
-+  my $pkgname = shift;
-+  my (@depends, $depend, @files, $file, @matches, $match);
-+
-+  # get files to test
-+  open(DPKG, "dpkg --listfiles $pkgname 2>/dev/null |") or die "can't run dpkg: $!\n";
-+  # iterate through the output of dpkg, looking for bins and libs
-+  while (<DPKG>) {
-+    chomp();
-+    next if (-d "$_");			# Drop  directories
-+    if ("$_" =~ /\.dylib/) {		# Check for (.dylib) libs
-+      push(@files, $_);
-+    } elsif ("$_" =~ /\.a/) {		# Check for (.a) libs
-+      push(@files, $_);
-+    } elsif ("$_" =~ /\.so/) {		# Check for (.so) libs
-+      push(@files, $_);
-+    } elsif ("$_" =~ /\/bin\//) {	# Check for anything in %p/bin
-+      push(@files, $_);
-+    } elsif ("$_" =~ /\/sbin\//) {	# Check for anything in %p/sbin
-+      push(@files, $_);
-+    } else {				# Drop everything else
-+      next;
-+    }
-+  }
-+  close (DPKG);
-+
-+  # get a list of linked files to the pkg files
-+  foreach $file (@files) {
-+    chomp($file);
-+    open(OTOOL, "otool -L $file 2>/dev/null |") or die "can't run otool: $!\n";
-+      # need to drop all links to system libs and the first two lines
-+      while (<OTOOL>) {
-+        chomp();
-+        next if ("$_" =~ /\:/);		# Nuke first line or errors
-+        next if ("$_" =~ /\/usr\/lib\/libSystem/);	# Nuke system links
-+        $_ =~ s/\ \(.*$//;		# Nuke the end
-+        push(@matches, $_);
-+      }
-+    close (OTOOL);
-+   }
-+
-+   # get list of depend pkgs
-+   foreach $match (@matches) {
-+    if (length($match) > 1) {
-+      $depend = `dpkg --search $match`;
-+      $depend =~ s/\:.*$//;		# strip out everything after the colon
-+      chomp($depend);
-+      next if ($depend eq $pkgname);	# Can't dpend on it's self
-+      push(@depends, $depend);
-+    }
-+  }
-+ 
-+  return @depends;
-+}
-diff -ruN Fink/Engine.pm Fink.new/Engine.pm
---- Fink/Engine.pm	Tue Oct 15 18:34:13 2002
-+++ Fink.new/Engine.pm	Thu Nov  7 21:38:04 2002
+diff -ruN Fink.orig/Engine.pm Fink/Engine.pm
+--- Fink.orig/Engine.pm	Tue Oct 15 18:34:13 2002
++++ Fink/Engine.pm	Thu Nov  7 19:48:43 2002
 @@ -28,7 +28,7 @@
                        &file_MD5_checksum);
  use Fink::Package;
@@ -198,99 +59,9 @@ diff -ruN Fink/Engine.pm Fink.new/Engine.pm
    
    # Remove broken symlinks in /sw/fink/debs (i.e. those that pointed to 
    # the .deb files we deleted above).
-diff -ruN Fink/FinkVersion.pm Fink.new/FinkVersion.pm
---- Fink/FinkVersion.pm	Thu Nov  7 19:23:41 2002
-+++ Fink.new/FinkVersion.pm	Wed Dec 31 19:00:00 1969
-@@ -1,86 +0,0 @@
--#
--# Fink::FinkVersion package
--#
--# Fink - a package manager that downloads source and installs it
--# Copyright (c) 2001 Christoph Pfisterer
--# Copyright (c) 2001-2002 The Fink Package Manager Team
--#
--# This program is free software; you can redistribute it and/or
--# modify it under the terms of the GNU General Public License
--# as published by the Free Software Foundation; either version 2
--# of the License, or (at your option) any later version.
--#
--# This program is distributed in the hope that it will be useful,
--# but WITHOUT ANY WARRANTY; without even the implied warranty of
--# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
--# GNU General Public License for more details.
--#
--# You should have received a copy of the GNU General Public License
--# along with this program; if not, write to the Free Software
--# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
--#
--
--package Fink::FinkVersion;
--
--use strict;
--use warnings;
--
--BEGIN {
--  use Exporter ();
--  our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
--  $VERSION = 1.00;
--  @ISA         = qw(Exporter);
--  @EXPORT      = qw();
--  @EXPORT_OK   = qw(&fink_version &distribution_version &pkginfo_version);
--  %EXPORT_TAGS = ( );   # eg: TAG => [ qw!name1 name2! ],
--}
--our @EXPORT_OK;
--
--
--# this is the one and only version number
--our $fink_version = "0.11.0";
--
--
--END { }       # module clean-up code here (global destructor)
--
--
--### return package manager version
--
--sub fink_version {
--  return $fink_version;
--}
--
--### retreive distribution version
--
--sub distribution_version {
--  my $dv;
--  if (-f "/sw/fink/VERSION") {
--    chomp($dv = `cat /sw/fink/VERSION`);
--  } elsif (-f "/sw/etc/fink-release") {
--    chomp($dv = `cat /sw/etc/fink-release`);
--  } else {
--    $dv = "unknown";
--  }
--  return $dv;
--}
--
--### retreive version stamp of package info
--
--sub pkginfo_version {
--  my $pv = "0";
--  my ($fn, $v);
--  foreach $fn (glob("/sw/fink/stamp-*")) {
--    if ($fn =~ /\/stamp-cvs/) {
--      return "cvs";
--    } elsif ($fn =~ /\/stamp-rel-(.+)$/) {
--      $v = $1;
--      $pv = $v if ($v gt $pv);
--    }
--  }
--  $pv = &distribution_version() if $pv eq "0";
--  return $pv;
--}
--
--
--### EOF
--1;
-diff -ruN Fink/NetAccess.pm Fink.new/NetAccess.pm
---- Fink/NetAccess.pm	Sat Sep 28 15:53:38 2002
-+++ Fink.new/NetAccess.pm	Thu Nov  7 21:38:04 2002
+diff -ruN Fink.orig/NetAccess.pm Fink/NetAccess.pm
+--- Fink.orig/NetAccess.pm	Sat Sep 28 15:53:38 2002
++++ Fink/NetAccess.pm	Thu Nov  7 21:30:22 2002
 @@ -52,11 +52,11 @@
  
  sub fetch_url {
@@ -330,9 +101,9 @@ diff -ruN Fink/NetAccess.pm Fink.new/NetAccess.pm
  
    # determine download command
    $cmd = &download_cmd($origurl, $file);
-diff -ruN Fink/Package.pm Fink.new/Package.pm
---- Fink/Package.pm	Thu Sep 19 16:03:02 2002
-+++ Fink.new/Package.pm	Thu Nov  7 21:38:04 2002
+diff -ruN Fink.orig/Package.pm Fink/Package.pm
+--- Fink.orig/Package.pm	Thu Sep 19 16:03:02 2002
++++ Fink/Package.pm	Thu Nov  7 19:50:01 2002
 @@ -24,7 +24,7 @@
  use Fink::Base;
  use Fink::Services qw(&read_properties &latest_version &version_cmp
@@ -360,9 +131,9 @@ diff -ruN Fink/Package.pm Fink.new/Package.pm
      Fink::Package->scan($dir);
    }
    
-diff -ruN Fink/PkgVersion.pm Fink.new/PkgVersion.pm
---- Fink/PkgVersion.pm	Sun Oct 13 19:37:23 2002
-+++ Fink.new/PkgVersion.pm	Thu Nov  7 21:38:04 2002
+diff -ruN Fink.orig/PkgVersion.pm Fink/PkgVersion.pm
+--- Fink.orig/PkgVersion.pm	Sun Oct 13 19:37:23 2002
++++ Fink/PkgVersion.pm	Thu Nov  7 20:35:43 2002
 @@ -28,7 +28,7 @@
  		      &prompt_boolean &prompt_selection
  		      &collapse_space &read_properties_var
@@ -510,9 +281,9 @@ diff -ruN Fink/PkgVersion.pm Fink.new/PkgVersion.pm
  
    if (not -d "$destdir/DEBIAN") {
      if (&execute("mkdir -p $destdir/DEBIAN")) {
-diff -ruN Fink/SelfUpdate.pm Fink.new/SelfUpdate.pm
---- Fink/SelfUpdate.pm	Sun Sep  8 20:11:38 2002
-+++ Fink.new/SelfUpdate.pm	Thu Nov  7 21:38:04 2002
+diff -ruN Fink.orig/SelfUpdate.pm Fink/SelfUpdate.pm
+--- Fink.orig/SelfUpdate.pm	Sun Sep  8 20:11:38 2002
++++ Fink/SelfUpdate.pm	Thu Nov  7 21:28:50 2002
 @@ -356,7 +356,7 @@
  
  sub do_tarball {
@@ -551,9 +322,9 @@ diff -ruN Fink/SelfUpdate.pm Fink.new/SelfUpdate.pm
    if (-e $dir) {
      &execute("rm -rf $dir");
    }
-diff -ruN Fink/Validation.pm Fink.new/Validation.pm
---- Fink/Validation.pm	Sun Oct 13 21:36:43 2002
-+++ Fink.new/Validation.pm	Thu Nov  7 21:38:04 2002
+diff -ruN Fink.orig/Validation.pm Fink/Validation.pm
+--- Fink.orig/Validation.pm	Sun Oct 13 21:36:43 2002
++++ Fink/Validation.pm	Thu Nov  7 19:35:51 2002
 @@ -23,7 +23,7 @@
  package Fink::Validation;
  
