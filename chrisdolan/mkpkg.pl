@@ -6,11 +6,11 @@ mkpkg.pl - Create a Fink info file from a CPAN module
 
 =head1 SYNOPSIS
 
-mkpkg.pl [options] Some::Module
+mkpkg.pl [options] Some::Module ...
 
   Options:
     -m --maintainer=s   specify the maintainer
-                        (e.g. -m "Joe Maintainer E<lt>joe@foo.comE<gt>")
+                        (e.g. -m "Joe Maintainer <joe@foo.com>")
     -p --prereqs        show prereq info (not yet finished)
     -f --force          force overwrite of .info file
     -t --typepkg        use %type_pkg[perl] variants
@@ -26,21 +26,21 @@ If you specify more than one module, they will be processed sequentially.
 =head1 REQUIREMENTS
 
 CPANPLUS 0.051 must be installed.  This is untested with other
-versions of CPANPLUS.
+versions of CPANPLUS.  CPANPLUS is not in Fink as of this writing.
 
-file-slurp-pm.info must be installed.
+yaml-pm must be installed.
+
+file-slurp-pm must be installed.
  
 =head1 CAVEATS
 
 Does not do Depends, Recommends, BuildDepends, etc
 
-Does not do variants or SplitOffs
-
 Just guesses at DocFiles
 
 License may not be right - confirm manually
 
-Does not indicate crypto or main dependencies
+Does not indicate crypto vs. main dependencies
 
 =head1 LICENSE
 
@@ -67,12 +67,13 @@ my %opts = (
             help       => 0,
             version    => 0,
             force      => 0,
-            dir        => "/sw/fink/dists/local/main/finkinfo/libs/perlmods",
+            dir        => "/sw/fink/dists/unstable/main/finkinfo/libs/perlmods",
             maintainer => "Chris Dolan <chrisdolan\@users.sourceforge.net>",
             prereqs    => 0, # not finished
             bin        => 0, # make a %N-bin splitoff
             typepkg    => 0,
-            perltypes  => "5.8.0 5.8.1 5.8.4",
+            perltypes  => "5.8.1",
+            cpanhost   => undef, # base url for CPAN mirror, or use fink.conf
             );
 
 Getopt::Long::Configure("bundling");
@@ -102,12 +103,46 @@ my %licenses = (
                 a   => "Artistic",
                 o   => "Restrictive/Distributable",
                 );
+my %yml_licenses = (
+                    # http://search.cpan.org/~kwilliams/Module-Build/lib/Module/Build.pm
+                    perl => "Artistic/GPL",
+                    gpl   => "GPL",
+                    lgpl   => "LGPL",
+                    bsd   => "BSD",
+                    artistic   => "Artistic",
+                    open_source  => "OSI-Approved",
+                    unrestricted  => "Restrictive/Distributable",
+                    restrictive => "Restrictive", 
+                    );
 
 my $cb = CPANPLUS::Backend->new();
+$cb->configure_object->set_conf(verbose => $opts{verbose});
 print "Started CPANPLUS\n";
+
+if (!$opts{cpanhost} && -f "/sw/etc/fink.conf")
+{
+   my $conf = read_file("/sw/etc/fink.conf");
+   if ($conf =~ /^Mirror-cpan: (.*)$/m)
+   {
+      $opts{cpanhost} = $1;
+   }
+}
+if ($opts{cpanhost} && $opts{cpanhost} =~ m,^(\w+)://([\w\.\-]+)(/.*),)
+{
+   $cb->configure_object->set_conf("hosts", [{
+      scheme => $1,
+      host => $2,
+      path => $3,
+   }]);
+}
+
+my %origopts = (%opts);
 
 foreach my $module (@ARGV)
 {
+   # reset in case they were changed on the prev loop
+   %opts = (%origopts);
+
    print "Search for $module\n";
    my $mod = $cb->module_tree($module);
    if ($mod)
@@ -144,25 +179,17 @@ foreach my $module (@ARGV)
       }
       print "Extracted to ".$mod->status->extract."\n";
 
-      if ($opts{prereqs})
-      {
-         my $dist = $mod->dist(format => $mod->get_installer_type(),
-                               target => TARGET_PREPARE);
-         my $prereqs = $dist->_find_prereqs();
-         for my $key (sort keys %$prereqs)
-         {
-            print "  Prereq: $key => $$prereqs{$key}\n";
-         }
-      }
+      my %libs = (
+                  depends => {},
+                  recommends => {},
+                  conflicts => {},
+                  builddepends => {},
+                  buildconflicts => {},
+                  );
 
       # Debugging: dump the module object to a file
       #use Data::Dumper;
       #write_file("/tmp/module", Dumper($mod));
-
-      # license code is 5th character in "DSLIP" code
-      my $dslip = $mod->dslip;
-      my $license_code = substr($dslip, 4, 1);
-      my $license = $licenses{$license_code} || "";
 
       # Get list of files in the root of the distro.  Some of them
       # will be the DocFiles
@@ -170,21 +197,112 @@ foreach my $module (@ARGV)
                       grep({-f $_->[0]}
                            map({[$mod->status->extract."/".$_,$_]} 
                                read_dir($mod->status->extract))));
-      @files = grep !/^(Makefile(\.PL|)|MANIFEST\.SKIP|.*\.bat|test\.pl)$/, @files;
+      @files = grep !/^(
+                        Build.PL |
+                        Makefile(\.PL|) |
+                        MANIFEST\.SKIP |
+                        test\.pl |
+                        .*\.(bat|xs|pm|pl)
+                        )$/x, @files;
+
+      ### Extract special info
+      ### Select data in reverse order of preference: most trusted
+      ### source comes last and overrides previous sources.
+
+      # license code is 5th character in "DSLIP" code
+      my $dslip = $mod->dslip;
+      my $license_code = substr($dslip, 4, 1);
+      my $license = $licenses{$license_code} || "";
 
       if (-f $mod->status->extract."/Makefile.PL")
       {
          my $makefile = read_file($mod->status->extract."/Makefile.PL");
          # Get ABSTRACT string from the MakeMaker command
-         if ($makefile =~ /ABSTRACT *(?:=>|,) *(?:\"([^\"]+)|\'([^\']+))/)
+         if ($makefile =~ /([\'\"]?)ABSTRACT\1 *(?:=>|,) *(?:\"([^\"]+)|\'([^\']+))/)
          {
             $mod->description($1);
          }
          # Check if there are any script outputs
-         if ($makefile =~ /EXE_FILES *(?:=>|,)/)
+         if ($makefile =~ /([\'\"]?)EXE_FILES\1 *(?:=>|,)/)
          {
             $opts{bin} = 1;
          }
+      }
+      if (-f $mod->status->extract."/META.yml")
+      {
+         require YAML;
+         my $yaml = read_file($mod->status->extract."/META.yml");
+         my $meta = YAML::Load($yaml);
+         if (!$meta)
+         {
+            print "Failed to read META.yml\n";
+         }
+         else
+         {
+            if ($meta->{license} && $yml_licenses{$meta->{license}})
+            {
+               $license = $yml_licenses{$meta->{license}};
+            }
+            if ($meta->{abstract})
+            {
+               $mod->description($meta->{abstract});
+            }
+            my %libtrans = (
+                            requires => "depends",
+                            build_requires => "builddepends",
+                            conflicts => "conflicts",
+                            recommends => "recommends",
+                            );
+            foreach my $type (keys %libtrans)
+            {
+               if ($meta->{$type})
+               {
+                  foreach my $key (keys %{$meta->{$type}})
+                  {
+                     if ($key eq "perl")
+                     {
+                        print "$type Perl: ".$meta->{$type}->{$key}."\n";
+                     }
+                     else
+                     {
+                        &set_dep_pkg($cb, $key, $meta->{$type}, $libs{$libtrans{$type}});
+                     }
+                  }
+               }
+            }
+         }
+      }
+
+      if ($opts{prereqs})
+      {
+         my $dist = $mod->dist(format => $mod->get_installer_type(),
+                               target => TARGET_PREPARE);
+         my $prereqs = $dist->_find_prereqs();
+         for my $key (sort keys %$prereqs)
+         {
+            if ($key eq "perl")
+            {
+               print "prereq Perl: ".$prereqs->{$key}."\n";
+            }
+            else
+            {
+               &set_dep_pkg($cb, $key, $prereqs, $libs{depends});
+               print "  Prereq: $key => $$prereqs{$key}\n";
+            }
+         }
+      }
+
+      if ($opts{typepkg})
+      {
+         $libs{depends}->{"perl\%type_pkg[perl]-core"} = 0;
+      }
+
+      # Trim trailing period, if any
+      if ($mod->description)
+      {
+         my $desc = $mod->description;
+         $desc =~ s/\.$//s;
+         $mod->description($desc);
       }
 
       # Prepare the .info fields.  Note that we use "_" instead of "-"
@@ -200,12 +318,17 @@ foreach my $module (@ARGV)
                   Type => ($opts{typepkg} ? 
                            "perl ($opts{perltypes})" : "perl"),
                   UpdatePOD => "true",
-                  Depends => "",
+                  Depends => join(", ", sort keys %{$libs{depends}}),
+                  BuildDepends => join(", ", sort keys %{$libs{builddepends}}),
+                  Conflicts => join(", ", sort keys %{$libs{conflicts}}),
+                  BuildConflicts => join(", ", sort keys %{$libs{buildconflicts}}),
+                  Recommends => join(", ", sort keys %{$libs{recommends}}),
                   DocFiles => "@files",
                   License => $license,
                   Description => $mod->description,
                   Maintainer => $opts{maintainer},
                   Homepage => "http://search.cpan.org/dist/".$mod->package_name,
+                  DescPackaging => "<<\n Found a bug?  Please check if it has already been reported:\n http://rt.cpan.org/NoAuth/Bugs.html?Dist=".$mod->package_name()."\n<<",
                   );
 
       # Write the .info file
@@ -277,4 +400,50 @@ EOF
    {
       print "Not found\n";
    }
+}
+
+sub set_dep_pkg
+{
+   my $cb = shift;
+   my $modname = shift;
+   my $src = shift;
+   my $dest = shift;
+
+   my $mod = $cb->module_tree($modname);
+   if ($mod)
+   {
+      $dest->{&fix_pkg($mod->package_name)} = $src->{$modname};
+   }
+   else
+   {
+      print "Can't find prereq module $modname\n";
+   }
+}
+
+sub fix_pkg
+{
+   my $pkg = shift;
+
+   $pkg = lc($pkg)."-pm";
+   $pkg =~ s/libwww-perl-pm/libwww-pm/;
+   if (-f "$opts{dir}/$pkg.info")
+   {
+      my $content = read_file("$opts{dir}/$pkg.info");
+      if ($content =~ /^Package:.*\%type_pkg[perl]/m)
+      {
+         $opts{typepkg} = 1;
+         $pkg .= "\%type_pkg[perl]";
+      }
+   }
+   elsif (-f "$opts{dir}/${pkg}581.info")
+   {
+      $opts{typepkg} = 1;
+      $pkg .= "\%type_pkg[perl]";
+      $opts{perltypes} = "581";
+   }
+   else
+   {
+      print "$pkg is not yet packaged for Fink\n";
+   }
+   return $pkg;
 }
