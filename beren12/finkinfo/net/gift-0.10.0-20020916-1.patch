@@ -1,6 +1,14 @@
 diff -ruN gift-0.10.0-20020916.orig/OpenFT/Makefile.am gift-0.10.0-20020916/OpenFT/Makefile.am
 --- gift-0.10.0-20020916.orig/OpenFT/Makefile.am	2002-09-16 21:41:52.000000000 -0600
-+++ gift-0.10.0-20020916/OpenFT/Makefile.am	2002-09-18 14:39:02.000000000 -0600
++++ gift-0.10.0-20020916/OpenFT/Makefile.am	2002-09-18 16:26:21.000000000 -0600
+@@ -1,6 +1,6 @@
+ AM_CFLAGS = $(GIFT_CFLAGS) $(LIBDB_CFLAGS)
+ 
+-INCLUDES = -I$(top_srcdir)/lib -I$(top_srcdir)/src
++INCLUDES = -I$(top_srcdir)/lib -I$(top_srcdir)/src $(LIBDB_CFLAGS)
+ 
+ plugin_LTLIBRARIES = libOpenFT.la
+ 
 @@ -26,5 +26,4 @@
  	$(top_builddir)/lib/libgiFT.la \
  	$(LIBDB_LIBS)
@@ -20,6 +28,18 @@ diff -ruN gift-0.10.0-20020916.orig/OpenFT/openft.c gift-0.10.0-20020916/OpenFT/
  
  	/* OpenFT, here we come :) */
  	node_maintain_links (NULL);
+diff -ruN gift-0.10.0-20020916.orig/OpenFT/share_host.c gift-0.10.0-20020916/OpenFT/share_host.c
+--- gift-0.10.0-20020916.orig/OpenFT/share_host.c	2002-09-15 23:09:27.000000000 -0600
++++ gift-0.10.0-20020916/OpenFT/share_host.c	2002-09-18 16:17:28.000000000 -0600
+@@ -207,7 +207,7 @@
+ 	if ((ret = dbp->set_cachesize (dbp, 0, ((nrec / 40) + 20) * 1024, 0)))
+ 		TRACE (("DB->set_cachesize failed: %s", db_strerror (ret)));
+ 
+-	if ((ret = dbp->open (dbp, path, NULL, type, DB_CREATE, 0664)))
++	if ((ret = dbp->open (dbp, path, NULL, NULL, type, DB_CREATE, 0664)))
+ 	{
+ 		TRACE (("DB->open failed: %s", db_strerror (ret)));
+ 
 diff -ruN gift-0.10.0-20020916.orig/autogen.macosx.sh gift-0.10.0-20020916/autogen.macosx.sh
 --- gift-0.10.0-20020916.orig/autogen.macosx.sh	2002-08-10 15:07:33.000000000 -0600
 +++ gift-0.10.0-20020916/autogen.macosx.sh	2002-09-18 13:34:49.000000000 -0600
@@ -60,16 +80,18 @@ diff -ruN gift-0.10.0-20020916.orig/autogen.macosx.sh gift-0.10.0-20020916/autog
  xlc )
 diff -ruN gift-0.10.0-20020916.orig/configure.ac gift-0.10.0-20020916/configure.ac
 --- gift-0.10.0-20020916.orig/configure.ac	2002-09-16 21:41:50.000000000 -0600
-+++ gift-0.10.0-20020916/configure.ac	2002-09-18 13:34:49.000000000 -0600
-@@ -291,7 +291,7 @@
++++ gift-0.10.0-20020916/configure.ac	2002-09-18 15:53:30.000000000 -0600
+@@ -291,8 +291,8 @@
  if test x$use_libdb = xyes
  then
    for dbname in db-4 db4 db-4.0 db; do
 -    AC_CHECK_LIB($dbname, db_create_4000,
+-                  [ LIBDB_CFLAGS=
 +    AC_CHECK_LIB($dbname, db_create,
-                   [ LIBDB_CFLAGS=
++                  [ LIBDB_CFLAGS="-I$prefix/include/db4"
    	                LIBDB_LIBS="-l$dbname"
    	                AC_SUBST(LIBDB_CFLAGS)
+   	                AC_SUBST(LIBDB_LIBS)
 @@ -309,7 +309,7 @@
  dnl Check for the presence of ZLIB libraries and headers
  dnl ###########################################################################
