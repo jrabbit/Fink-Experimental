@@ -1,0 +1,122 @@
+diff -uNbr up-imapproxy-1.1.4/Makefile.linux up-imapproxy-1.1.4-patched/Makefile.linux
+--- up-imapproxy-1.1.4/Makefile.linux	Tue Feb 25 12:06:53 2003
++++ up-imapproxy-1.1.4-patched/Makefile.linux	Tue Apr  8 12:37:06 2003
+@@ -5,20 +5,22 @@
+ 
+ # Paths
+ 
+-INSTALL = /usr/bin/install
+-EBIN = /usr/local/sbin
+-MAN = /usr/local/man/man
+-ETC = /etc
++PREFIX = @PREFIX@
++DESTDIR =
++INSTALL = install
++EBIN = $(PREFIX)/sbin
++MAN = $(PREFIX)/share/man
++ETC = $(PREFIX)/etc
+ 
+ # Compiler flags 
+ CC = gcc
+-RANLIB = :
+-CFLAGS = -I./include -DLINUX
+-LDLIBS = 
++RANLIB = ranlib
++CFLAGS = -I./include -I$(PREFIX)/include -DLINUX
++LDLIBS =  -L$(PREFIX)/lib -lpoll
+ 
+ # Man sections
+ MANLIB = 3
+-MANADM = 1m
++MANADM = 1
+ 
+ ## Nothing to change after this point
+ 
+@@ -27,9 +29,9 @@
+ # Solaris
+ #XYD_LIB = -lpthread -lmd5 -lsocket -lnsl
+ # Linux
+-XYD_LIB = -lpthread -lnsl -lcrypto
++XYD_LIB = -lcrypto
+ 
+-TAT_LIB = -lcurses
++TAT_LIB = -lncurses
+ 
+ # Object files
+ 
+@@ -51,25 +53,27 @@
+ 	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
+ 
+ $(XYD_BIN): $(XYD_OBJ)
+-	$(CC) -o $@ $(XYD_OBJ) $(XYD_LIB)
++	$(CC) $(LDLIBS) -o $@ $(XYD_OBJ) $(XYD_LIB)
+ 
+ $(TAT_BIN): $(TAT_OBJ)
+-	$(CC) -o $@ $(TAT_OBJ) $(TAT_LIB)
++	$(CC) $(LDLIBS) -o $@ $(TAT_OBJ) $(TAT_LIB)
+ 
+ clean:
+ 	rm -f ./src/core  ./src/$(XYD_OBJ) ./src/$(TAT_OBJ) $(XYD_BIN) $(TAT_BIN)
+ 
+ install: $(XYD_BIN) $(TAT_BIN)
+-	$(INSTALL) -c -o bin -g bin -m 0755 $(XYD_BIN) $(EBIN)
+-	$(INSTALL) -c -o bin -g bin -m 0755 $(TAT_BIN) $(EBIN)
++	$(INSTALL) -d -m 0755 $(DESTDIR)$(EBIN)
++	$(INSTALL) -c -m 0755 $(XYD_BIN) $(DESTDIR)$(EBIN)
++	$(INSTALL) -c -m 0755 $(TAT_BIN) $(DESTDIR)$(EBIN)
+ 
+ install-init:
+-	$(INSTALL) -c -o root -g sys -m 0755 ./scripts/imapproxy $(ETC)/init.d
++	$(INSTALL) -c -o root -g sys -m 0755 ./scripts/imapproxy $(DESTDIR)$(ETC)/init.d
+ 	ln -s ../init.d/imapproxy /etc/rc2.d/S99imapproxy
+ 	ln -s ../init.d/imapproxy /etc/rc0.d/K10imapproxy
+ 
+ install-conf:
+-	$(INSTALL) -c -o root -g bin -m 0755 ./scripts/imapproxy.conf $(ETC)
++	$(INSTALL) -d -m 0755 $(DESTDIR)$(ETC)
++	$(INSTALL) -c -m 0755 ./scripts/imapproxy.conf $(DESTDIR)$(ETC)
+ 
+ 
+ ####
+diff -uNbr up-imapproxy-1.1.4/include/imapproxy.h up-imapproxy-1.1.4-patched/include/imapproxy.h
+--- up-imapproxy-1.1.4/include/imapproxy.h	Tue Feb 25 12:06:53 2003
++++ up-imapproxy-1.1.4-patched/include/imapproxy.h	Tue Apr  8 12:37:29 2003
+@@ -73,6 +73,8 @@
+ #ifndef __IMAPPROXY_H
+ #define __IMAPPROXY_H
+ 
++#include <sys/types.h>
++#include <netinet/in.h>
+ #include <netdb.h>
+ 
+ 
+@@ -88,7 +90,7 @@
+ #define MAXPASSWDLEN            64                /* max passwd length       */
+ #define POLL_TIMEOUT_MINUTES    30                /* Poll timeout in minutes */
+ #define POLL_TIMEOUT            (POLL_TIMEOUT_MINUTES * 60000)
+-#define DEFAULT_CONFIG_FILE     "/etc/imapproxy.conf"
++#define DEFAULT_CONFIG_FILE     "@PREFIX@/etc/imapproxy.conf"
+ #define LITERAL_PASSWORD        1
+ #define NON_LITERAL_PASSWORD    0
+ #define UNSELECT_SUPPORTED      1
+diff -uNbr up-imapproxy-1.1.4/src/request.c up-imapproxy-1.1.4-patched/src/request.c
+--- up-imapproxy-1.1.4/src/request.c	Tue Feb 25 12:06:54 2003
++++ up-imapproxy-1.1.4-patched/src/request.c	Tue Apr  8 12:34:53 2003
+@@ -92,7 +92,7 @@
+ #include <sys/types.h>
+ #include <sys/socket.h>
+ #include <sys/uio.h>
+-#include <poll.h>
++#include <sys/poll.h>
+ #include <unistd.h>
+ #include <fcntl.h>
+ #include <sys/param.h>
+@@ -100,6 +100,8 @@
+ #include <netinet/in.h>
+ #include <arpa/inet.h>
+ #include <syslog.h>
++
++typedef u_int nfds_t;
+ 
+ /*
+  * There are a few global variables that we care about.  Make sure we know
