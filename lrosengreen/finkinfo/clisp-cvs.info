@@ -1,0 +1,86 @@
+Package: clisp-cvs
+Version: 2.33.cvs
+Revision: 1
+License: GPL/GFDL
+Description: ANSI Common Lisp implementation (CVS)
+Maintainer: Lars Rosengreen <lars@margay.org>
+
+Depends: readline-shlibs (>= 4.3-15), gettext
+BuildDepends: readline (>= 4.3-15), gettext-bin, gettext-dev
+
+Conflicts: clisp
+Replaces: clisp
+Provides: clisp
+
+Source: none
+
+PatchScript: <<
+  #! /bin/sh
+  
+  workdir=$PWD
+  cachedir="%p/var/cache/fink/%n.cache"
+  cvsroot=":pserver:anonymous@cvs.sourceforge.net:/cvsroot/clisp"
+
+  if [ -f $cachedir/CVS/Root ]; then
+    cd $cachedir
+    echo "updating source code cache from CVS ..."
+    cvs -z3 up -dAP
+  else
+    rm -rf $cachedir   # get rid of corrupted, unrecoverable caches
+    mkdir -p %p/var/cache/fink
+    cd %p/var/cache/fink
+    echo "fetching source code from CVS  ..."
+    echo "if you are prompted for a password, press return"
+    cvs -d$cvsroot login
+    cvs -z3 -d$cvsroot co -d %n.cache clisp
+  fi
+
+  echo "copying source from $cachedir to $workdir ..."
+  cp -Rp $cachedir/* $workdir
+<<
+
+GCC: 3.3
+SetCC: gcc-3.3
+SetCXX: g++-3.3
+
+ConfigureParams: --with-readline --with-gettext --with-module=regexp --with-module=i18n --with-module=syscalls 
+
+Compilescript: <<
+  ./configure %c
+  cd src ; ./makemake %c > Makefile ; make config.lisp ; make
+<<
+
+InstallScript: <<
+  cd src; make DESTDIR=%d install
+<<
+
+DescDetail: << 
+A feature loaded common lisp programming environment with
+unicode support, excellent ANSI compliance, full MOP support (more
+complete than in any other implementation), and the potential of being
+able to work with lisp images larger than 4 gigabytes on a 64bit machine
+(untested on G5).
+
+This package pulls and builds source from clisp's CVS source code
+repository.
+<<
+
+DescUsage: <<
+Type "clisp" at a shell prompt to start clisp.  If you wish to use
+one of clisp's add-on modules, you should use "clisp -K modulename"
+instead, or "clisp -K full" to load all available modules.
+
+The following add-on modules are currently built by this package:
+REGEXP   - POSIX regular expressions
+I18N     - interface to GNU gettext
+SYSCALLS - POSIX system calls
+
+To pull the latest changes from CVS and rebuild this package, type
+"fink rebuild clisp-cvs" at a shell promp.
+
+The source code cache created in %p/var/cache/fink/clisp-cvs.cache
+can be safely deleted whenever you wish.  The package will regenerate
+it as needed.
+<<
+
+Homepage: http://clisp.cons.org
