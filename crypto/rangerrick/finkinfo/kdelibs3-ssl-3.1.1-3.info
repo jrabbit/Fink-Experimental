@@ -31,15 +31,38 @@ ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-ssl-
 CompileScript: <<
 #!/bin/sh
   export KDEDIR=%p
-  make -f admin/Makefile.common cvs
-  [ $? = 0 ] && sh ./configure %c
+  mkdir -p /tmp/kde-build
+
+  date > /tmp/kde-build/%N-%v-%r.cvs
+  make -f admin/Makefile.common cvs 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.cvs
+  [ $? -gt 0 ] && exit 1
+
+  date > /tmp/kde-build/%N-%v-%r.configure
+  sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure
+  [ $? -gt 0 ] && exit 1
+
   touch kio/kio/lex.c
-  [ $? = 0 ] && make -j2 all
-  [ $? = 0 ] && make -j2 apidox
+
+  date > /tmp/kde-build/%N-%v-%r.make
+  make -j2 all 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.make
+  [ $? -gt 0 ] && exit 1
+
+  date > /tmp/kde-build/%N-%v-%r.apidox
+  make -j2 all 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.apidox
+  [ $? -gt 0 ] && exit 1
 <<
 
 InstallScript: <<
-  make install install-apidox DESTDIR=%d
+#!/bin/sh
+  mkdir -p /tmp/kde-build
+
+  date > /tmp/kde-build/%N-%v-%r.install
+  make install DESTDIR=%d 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.install
+  [ $? -gt 0 ] && exit 1
+
+  date > /tmp/kde-build/%N-%v-%r.install
+  make install-apidox DESTDIR=%d 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.install-apidox
+  [ $? -gt 0 ] && exit 1
 <<
 DocFiles: COPYING COPYING.LIB INSTALL
 RuntimeVars: <<

@@ -31,8 +31,16 @@ ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-d
 CompileScript: <<
 #!/bin/sh
   export KDEDIR=%p
-  make -f admin/Makefile.common cvs
-  [ $? = 0 ] && sh ./configure %c
+  mkdir -p /tmp/kde-build
+
+  date > /tmp/kde-build/%N-%v-%r.cvs
+  make -f admin/Makefile.common cvs 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.cvs
+  [ $? -gt 0 ] && exit 1
+
+  date > /tmp/kde-build/%N-%v-%r.configure
+  sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure
+  [ $? -gt 0 ] && exit 1
+
   pushd libical/src/libicalss
   # FIXME: put this crap in the makefiles!
   touch *.l *.y
@@ -40,16 +48,18 @@ CompileScript: <<
   sed -e 's#yy#ss#g' icalsslexer.c > icalsslexer.c.new
   mv icalsslexer.c.new icalsslexer.c
   popd
-  make -j2
+
+  date > /tmp/kde-build/%N-%v-%r.make
+  make -j2 all 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.make
+  [ $? -gt 0 ] && exit 1
 <<
 
 InstallScript: <<
 #!/bin/sh
-#  perl -pi -e 's,need_relink=yes,need_relink=no,g' libtool
-#  for file in kaddressbook/*.la; do
-#    perl -pi -e 's,^relink_command=.*$,relink_command="",' $file
-#  done
-  make install DESTDIR=%d
+  mkdir -p /tmp/kde-build/%N-%v-%r.install
+  make install DESTDIR=%d 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.install
+  [ $? -gt 0 ] && exit 1
+
   rm -rf %i/share/applnk/Applications/kalarm.desktop
   rm -rf %i/share/applnk/Utilities/kandy.desktop
   rm -rf %i/share/applnk/Utilities/karm.desktop

@@ -31,14 +31,29 @@ ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-d
 CompileScript: <<
 #!/bin/sh
   export KDEDIR=%p
-  make -f Makefile.cvs
-  [ $? = 0 ] && sh ./configure %c
-  [ $? = 0 ] && make -j2
+  mkdir -p /tmp/kde-build
+
+  date > /tmp/kde-build/%N-%v-%r.cvs
+  make -f admin/Makefile.common cvs 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.cvs
+  [ $? -gt 0 ] && exit 1
+
+  date > /tmp/kde-build/%N-%v-%r.configure
+  sh ./configure %c 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.configure
+  [ $? -gt 0 ] && exit 1
+
+  date > /tmp/kde-build/%N-%v-%r.make
+  make -j2 all 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.make
+  [ $? -gt 0 ] && exit 1
 <<
 
 InstallScript: <<
 #!/bin/sh
-  make install DESTDIR=%d
+  mkdir -p /tmp/kde-build
+
+  date > /tmp/kde-build/%N-%v-%r.install
+  make install DESTDIR=%d 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.install
+  [ $? -gt 0 ] && exit 1
+
   rm -rf %i/bin/extractrc
   rm -rf %i/share/icons/crystalsvg/16x16/actions/make_kdevelop.png
   rm -rf %i/share/icons/crystalsvg/16x16/actions/project_open.png
