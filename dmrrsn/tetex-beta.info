@@ -15,6 +15,7 @@ Source-MD5: 5b6d5d68b412bfe9f98051fae8c100bc
 PatchScript: <<
  sed 's|@PREFIX@|%p|g' < %a/tetex-beta.patch | sed 's|@PACKAGE@|%n-%v-%r|g' | patch -p1
  perl -pi -e "s|hardcode_direct=yes|hardcode_direct=no|" texk/configure texk/kpathsea/configure utils/texinfo/configure 
+ perl -pi -e 's,-flat_namespace -undefined suppress,-twolevel_namespace -undefined error,g' texk/configure texk/kpathsea/configure utils/texinfo/configure
 <<
 ConfigureParams: --without-texinfo --enable-shared --datadir='${prefix}/share' --infodir='${prefix}/share/info' --mandir='${prefix}/share/man' --disable-multiplatform --with-system-ncurses --with-system-pnglib --with-system-t1lib --with-system-wwwlib --with-system-zlib
 #CompileScript: <<
@@ -23,6 +24,9 @@ ConfigureParams: --without-texinfo --enable-shared --datadir='${prefix}/share' -
 #<<
 InstallScript: <<
  make install prefix=%i texmf=%i/share/texmf
+
+echo "Removing overlapping files ..."
+ rm %i/share/texmf/xdvi/XDvi
 
 echo "Setting up symlinks ..."
  export DYLD_LIBRARY_PATH="%b/texk/kpathsea/SHARED" PATH=%i/bin:$PATH TEXMFMAIN=%p/share/texmf ; texlinks --cnffile %i/share/texmf/web2c/fmtutil.cnf --verbose %i/bin
@@ -63,7 +67,8 @@ SplitOff: <<
  Conflicts: tetex-nox
 # it should not be necessary to "replace" tetex-texmf-beta, but for now, we'll
 # do it
- Replaces: context, dvipdfm, epstopdf, pdftex, tetex-macosx, xdvi (<=  22.70-1), tetex (<= 2.0-3), tetex-texmf-beta
+# Replaces: context, dvipdfm, epstopdf, pdftex, tetex-macosx, xdvi (<=  22.70-1), tetex (<= 2.0-3), tetex-texmf-beta
+ Replaces: context, dvipdfm, epstopdf, pdftex, tetex-macosx, xdvi (<=  22.70-1), tetex (<= 2.0-3)
  Provides: context, dvipdfm, epstopdf, pdftex, tetex-macosx
  Files: bin etc share/info share/man share/texmf share/texmf-local var
 # ConfFiles: %p/share/texmf/web2c/fmtutil.cnf %p/share/texmf/web2c/texmf.cnf
@@ -120,7 +125,7 @@ SplitOff3: <<
  BuildDependsOnly: True
  Depends: kpathsea4-shlibs (= %v-%r)
  Replaces: tetex-base (<= 1.0-13)
- Files: lib/libkpathsea.a lib/libkpathsea.dylib include
+ Files: lib/libkpathsea.a lib/libkpathsea.la lib/libkpathsea.dylib include
  DocFiles: LICENSE.src ChangeLog INSTALL PROBLEMS README README.fink QuickInstall
 <<
 License: OSI-Approved
