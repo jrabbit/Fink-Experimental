@@ -1,0 +1,133 @@
+Package: jabber1
+Version: 1.4.3
+Revision: 10
+###
+BuildDepends: pth
+Depends: pth-shlibs, daemonic (>= 20010902-1), logrotate
+Conflicts: jabber1-ssl
+Replaces: jabber1-ssl
+###
+Source: http://jabberd.jabberstudio.org/1.4/dist/jabberd-%v.tar.gz
+Source-MD5: a3e964d6fa07b5d850302ae0512f94c6
+###
+PatchScript: <<
+  ### Fix configure
+  perl -pi -e 's,JHOME=`pwd`,JHOME=%p/lib/jabber,g' configure
+  ### Fix server config
+  perl -pi -e 's,\./spool,%p/var/lib/jabber,g' jabber.xml
+  perl -pi -e 's,error.log,%p/var/log/jabber/error.log,g' jabber.xml
+  perl -pi -e 's,record.log,%p/var/log/jabber/record.log,g' jabber.xml
+  perl -pi -e 's,\./jabber.pid,%p/var/run/jabber/jabber.pid,g' jabber.xml
+  ### Fix Makefile
+  perl -pi -e 's,jabber.xml,%p/etc/jabber/jabber.xml,g' jabberd/Makefile
+  ### Fix wrong char def
+  perl -pi -e 's,"jabber.xml",CONFIGXML,g' jabberd/config.c
+  ### Make logrotate file
+  printf "%p/var/log/jabber/*.log {\n  rotate 5\n  size=100k\n  copytruncate\n delaycompress\n  compress\n}" > jabber.rotate
+  ### Fix missing header
+  perl -pi -e 's,#include "crypt.h",//#include "crypt.h",g' jsm/modules/mod_auth_crypt.c
+  perl -pi -e 's, -lcrypt,,g' jsm/Makefile
+  ### Missing stdint.h
+  perl -pi -e 's,#include "lib.h",#include "lib.h"\n#include \<stdint.h\>,g' jabberd/lib/socket.c
+<<
+###
+ConfFiles: <<
+  %p/etc/jabber/jabber.xml
+<<
+DocFiles: README UPGRADE
+###
+CompileScript: <<
+ ./configure --enable-ipv6
+ make
+<<
+###
+InstallScript: <<
+  mkdir -p %i/sbin
+  install -m 755 jabberd/jabberd %i/sbin
+  mkdir -p %i/etc/jabber
+  install -m 644 jabber.xml %i/etc/jabber
+  mkdir -p %i/etc/logrotate.d
+  install -m 644 jabber.rotate %i/etc/logrotate.d/jabber
+  mkdir -p %i/include/jabber/lib
+  install -m 644 jabberd/jabberd.h %i/include/jabber/
+  install -m 644 jabberd/lib/*.h %i/include/jabber/lib
+  mkdir -p %i/lib/jabber/pthsock
+  install -m 755 pthsock/pthsock_client.so %i/lib/jabber/pthsock
+  mkdir -p %i/lib/jabber/dialback
+  install -m 755 dialback/dialback.so %i/lib/jabber/dialback
+  mkdir -p %i/lib/jabber/dnsrv
+  install -m 755 dnsrv/dnsrv.so %i/lib/jabber/dnsrv
+  mkdir -p %i/lib/jabber/xdb_file
+  install -m 755 xdb_file/xdb_file.so %i/lib/jabber/xdb_file
+  mkdir -p %i/lib/jabber/jsm
+  install -m 755 jsm/jsm.so %i/lib/jabber/jsm
+  mkdir -p %i/var/spool/jabber
+  mkdir -p %i/var/lib/jabber
+  mkdir -p %i/var/log/jabber
+  mkdir -p %i/var/run/jabber
+<<
+###
+SplitOff: <<
+  Package: %n-dev
+  Files: <<
+    include
+  <<
+  DocFiles: README UPGRADE
+  Description: Daemon for the jabber.org Open Source Instant Messenger
+  DescDetail: <<
+    Jabber is a Free Instant Messaging System
+    .
+    In this Package you will find the jabber headers needed for building
+    jabber plugins e.g. transports.
+    .
+    All this high-tech is simply used to provide you with your own IM Server.
+    See http://www.jabber.org/ for more details.
+    .
+    Jabber supports connecting to AIM, ICQ, IRC, MSM and a lot of others, so
+    you can use all available IM systems from one client.
+  <<
+<<
+###
+DaemonicFile: <<
+<service>
+ <description>Jabber server</description>
+ <message>Jabber server</message>
+
+ <daemon name="jabber">
+  <executable checkexit="true">%p/sbin/jabberd</executable>
+  <configfile>%p/etc/jabber/jabber.xml</configfile>
+  <pidfile>%p/var/run/jabber/jabber.pid</pidfile>
+ </daemon>
+
+</service>
+<<
+###
+PreRmScript: <<
+  # clean up
+  if [ $1 != "upgrade" ]; then
+    [ -f %p/var/run/jabber.pid ] && kill `cat %p/var/run/jabber.pid`
+    daemonic remove jabber
+  fi
+<<
+###
+Description: Daemon for the jabber.org Open Source Instant Messenger
+DescDetail: <<
+  Jabber is a Free Instant Messaging System
+  .
+  In this Package you will find jabberd, a message transport server
+  based on a XML Message Routing Infrastructure.
+  .
+  All this high-tech is simply used to provide you with your own IM Server.
+  See http://www.jabber.org/ for more details.
+  .
+  Jabber supports connecting to AIM, ICQ, IRC, MSM and a lot of others, so
+  you can use all available IM systems from one client.
+  .
+  This package does not provide a jabber client.  Some jabber clients are
+  compared at http://www.jabber.org/user/clientlist.php?Platform=Linux
+<<
+###
+License: OSI-Approved
+Maintainer: Dustin Sias <dustin@coretechnologies.net>
+Homepage: http://www.jabber.org/
+

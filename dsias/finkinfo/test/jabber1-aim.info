@@ -1,0 +1,65 @@
+Package: jabber1-aim
+Version: 1.4.3-2003.03.14
+Revision: 01
+###
+BuildDepends: jabber1-dev, pth
+Depends: jabber1 | jabber1-ssl
+###
+Source: http://aim-transport.jabberstudio.org/aim-transport-stable-20030314.tar.gz
+Source-MD5: 950e2661ca99e5bcac5930373f0b0fd4
+###
+PatchScript:
+###
+SetCFLAGS: -I%p/include/
+SetLDFLAGS: -undefined dynamic_lookup
+###
+ConfFiles: <<
+  %p/etc/jabber/aim.xml
+<<
+DocFiles: README
+###
+CompileScript: <<
+ ./configure --with-jabberd=%p/include/jabber
+ make
+<<
+###
+InstallScript: <<
+	mkdir -p %i/etc/jabber
+	install -m 644 aim.xml %i/etc/jabber
+	mkdir -p %i/lib/jabber/transports
+	install -m 755 src/aimtrans.so %i/lib/jabber/transports
+<<
+###
+DaemonicFile: <<
+<service>
+ <description>Jabber-aim server</description>
+ <message>Jabber-aim server</message>
+
+ <daemon name="jabber-aim">
+  <executable checkexit="true">%p/sbin/jabberd</executable>
+  <configfile>%p/etc/jabber/aim.xml</configfile>
+  <pidfile>%p/var/run/jabber/jabber-aim.pid</pidfile>
+ </daemon>
+
+</service>
+<<
+###
+PreRmScript: <<
+  # clean up
+  if [ $1 != "upgrade" ]; then
+    [ -f %p/var/run/jabber-aim.pid ] && kill `cat %p/var/run/jabber-aim.pid`
+    daemonic remove jabber-aim
+  fi
+<<
+###
+Description: Daemon for the jabber.org AIM transport module
+DescDetail: <<
+  In this Package you will find AIM/ICQ-Transport for Jabber 1.4.x.
+  .
+  AIM-t provides basic interoperability between Jabber and AIM/ICQ network. 
+  It has to be installed on the Jabber server.
+<<
+###
+License: OSI-Approved
+Maintainer: Dustin Sias <dustin@coretechnologies.net>
+Homepage: http://aim-transport.jabberstudio.org/
