@@ -2,9 +2,12 @@
 
 my $KDEVERSION   = '3.1';
 my $KDEDIRECTORY = 'unstable/kde-3.1-rc5/src/';
+my $KDERELNUM    = 10;
+my $KDEARTSVER   = '1.1.0-10';
 my $KOVERSION    = '1.2.1';
 my $KODIRECTORY  = 'stable/koffice-1.2.1/src/';
-my $ARTSVER      = '1.1.0-8';
+my $KORELNUM     = 1;
+my $KOARTSVER    = '1.1.0-8';
 my $VERBOSE      = 0;
 my $DRYRUN       = 0;
 
@@ -51,16 +54,20 @@ Description: KDE language files for $MAPPINGS{$shortname}
 DescDetail: Language files for the K Desktop Environment: $MAPPINGS{$shortname}
 Source-MD5: $md5
 Version: ${KDEVERSION}
-Revision: 1
-Depends: kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), arts (>= ${ARTSVER}), xfonts-intl
-BuildDepends: kdebase3-ssl (>= %v-1) | kdebase3 (>= %v-1), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), arts-dev (>= ${ARTSVER}), libxml2, xfonts-intl
+Revision: ${KDERELNUM}
+Depends: kdelibs3-ssl (>= %v-${KDERELNUM}) | kdelibs3 (>= %v-${KDERELNUM}), arts (>= ${KDEARTSVER}), xfonts-intl
+BuildDepends: kdebase3-ssl (>= %v-${KDERELNUM}) | kdebase3 (>= %v-${KDERELNUM}), kdelibs3-ssl (>= %v-${KDERELNUM}) | kdelibs3 (>= %v-${KDERELNUM}), arts-dev (>= ${KDEARTSVER}), libxml2, xfonts-intl
 Maintainer: Benjamin Reed <ranger\@befunk.com>
 CompileScript: (export KDEDIR=%p; sh configure %c; make -j8)
-InstallScript: make -j8 install DESTDIR=%d
+InstallScript: <<
+  make -j8 install DESTDIR=%d
+  mkdir -p %i/share/doc/kde-installed-packages
+  touch %i/share/doc/kde-installed-packages/kde-i18n-${normalized}
+<<
 License: GPL/LGPL
 END
 		print $contents if ($VERBOSE);
-		my $infofile = "kde-i18n-${normalized}-${KDEVERSION}-1.info";
+		my $infofile = "kde-i18n-${normalized}-${KDEVERSION}-${KDERELNUM}.info";
 		unless ($DRYRUN) {
 			open(FILEOUT, ">$infofile") or die "can't write to $infofile: $!\n";
 			print FILEOUT $contents;
@@ -89,16 +96,20 @@ Description: KOffice language files for $MAPPINGS{$shortname}
 DescDetail: Language files for the KDE office suite: $MAPPINGS{$shortname}
 Source-MD5: $md5
 Version: ${KOVERSION}
-Revision: 1
-Depends: kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), arts (>= ${ARTSVER}), xfonts-intl, koffice-base (>= ${KOVERSION})
-BuildDepends: kdebase3-ssl (>= %v-1) | kdebase3 (>= %v-1), kdelibs3-ssl (>= %v-1) | kdelibs3 (>= %v-1), arts-dev (>= ${ARTSVER}), koffice-dev (>= ${KOVERSION}), libxml2, xfonts-intl
+Revision: ${KORELNUM}
+Depends: kdelibs3-ssl (>= %v-${KORELNUM}) | kdelibs3 (>= %v-${KORELNUM}), arts (>= ${KOARTSVER}), xfonts-intl, koffice-base (>= ${KOVERSION})
+BuildDepends: kdebase3-ssl (>= %v-${KORELNUM}) | kdebase3 (>= %v-${KORELNUM}), kdelibs3-ssl (>= %v-${KORELNUM}) | kdelibs3 (>= %v-${KORELNUM}), arts-dev (>= ${KOARTSVER}), koffice-dev (>= ${KOVERSION}), libxml2, xfonts-intl
 Maintainer: Benjamin Reed <ranger\@befunk.com>
 CompileScript: (export KDEDIR=%p; sh configure %c; make -j8)
-InstallScript: make -j8 install DESTDIR=%d
+InstallScript: <<
+  make -j8 install DESTDIR=%d
+  mkdir -p %i/share/doc/kde-installed-packages
+  touch %i/share/doc/kde-installed-packages/kde-i18n-${normalized}
+<<
 License: GPL/LGPL
 END
 		print $contents if ($VERBOSE);
-		my $infofile = "koffice-i18n-${normalized}-${KOVERSION}-1.info";
+		my $infofile = "koffice-i18n-${normalized}-${KOVERSION}-${KORELNUM}.info";
 		unless ($DRYRUN) {
 			open(FILEOUT, ">$infofile") or die "can't write to $infofile: $!\n";
 			print FILEOUT $contents;
@@ -110,8 +121,8 @@ END
 }
 
 unless ($DRYRUN) {
-	my $packagelist = join(', ', map { $_ . " (>= ${KDEVERSION}-1)" } @kdepackages);
-	open(FILEOUT, ">bundle-kde-i18n-${KDEVERSION}-1.info") or die "can't write to bundle-kde-i18n-${KDEVERSION}-1.info: $!\n";
+	my $packagelist = join(', ', map { $_ . " (>= ${KDEVERSION}-${KDERELNUM})" } @kdepackages);
+	open(FILEOUT, ">bundle-kde-i18n-${KDEVERSION}-${KDERELNUM}.info") or die "can't write to bundle-kde-i18n-${KDEVERSION}-${KDERELNUM}.info: $!\n";
 	print FILEOUT <<END;
 Package: bundle-kde-i18n
 Version: ${KDEVERSION}
@@ -127,8 +138,8 @@ Maintainer: Benjamin Reed <ranger\@befunk.com>
 END
 	close(FILEOUT);
 
-	$packagelist = join(', ', map { $_ . " (>= ${KOVERSION}-1)" } @kopackages);
-	open(FILEOUT, ">bundle-koffice-i18n-${KOVERSION}-1.info") or die "can't write to bundle-koffice-i18n-${KOVERSION}-1.info: $!\n";
+	$packagelist = join(', ', map { $_ . " (>= ${KOVERSION}-${KORELNUM})" } @kopackages);
+	open(FILEOUT, ">bundle-koffice-i18n-${KOVERSION}-${KORELNUM}.info") or die "can't write to bundle-koffice-i18n-${KOVERSION}-${KORELNUM}.info: $!\n";
 	print FILEOUT <<END;
 Package: bundle-koffice-i18n
 Version: ${KOVERSION}
