@@ -1,0 +1,2011 @@
+diff -uNbr qt-x11-free-3.0.5/Makefile qt-x11-free-3.0.5-new/Makefile
+--- qt-x11-free-3.0.5/Makefile	Sun Mar 17 23:58:44 2002
++++ qt-x11-free-3.0.5-new/Makefile	Sat Oct 12 00:44:47 2002
+@@ -11,11 +11,9 @@
+ install: FORCE
+ 	@$(MAKE) qt.install
+ 
+-all: symlinks src-qmake src-moc sub-src sub-tools sub-tutorial sub-examples
++all: symlinks src-qmake src-moc sub-src sub-tools
+ 	@echo
+ 	@echo "The Qt library is now built in ./lib"
+-	@echo "The Qt examples are built in the directories in ./examples"
+-	@echo "The Qt tutorials are built in the directories in ./tutorial"
+ 	@echo
+ 	@echo 'Note: be sure to set $$QTDIR to point to here or to wherever'
+ 	@echo '      you move these directories.'
+diff -uNbr qt-x11-free-3.0.5/config.tests/x11/xfreetype.test qt-x11-free-3.0.5-new/config.tests/x11/xfreetype.test
+--- qt-x11-free-3.0.5/config.tests/x11/xfreetype.test	Fri Mar  8 15:56:11 2002
++++ qt-x11-free-3.0.5-new/config.tests/x11/xfreetype.test	Sat Oct 12 00:53:02 2002
+@@ -74,35 +74,34 @@
+     fi
+ fi
+ 
++XFTCOMPAT_H=
+ if [ "$XFREETYPE" = "yes" ]
+ then
+-    INC="X11/Xft/XftFreetype.h"
++    INC="X11/Xft/XftCompat.h"
+     XDIRS=`sed -n -e '/^QMAKE_INCDIR_X11[	]*=/ { s/[^=]*=[	 ]*//; s/-I/ /g; p; }' $XCONFIG`
+     INCDIRS="$IN_INCDIRS $XDIRS /usr/include /include"
+-    F=
+     for INCDIR in $INCDIRS
+     do
+ 	if [ -f $INCDIR/$INC ]
+ 	then
+-	    F=yes
++          XFTCOMPAT_H=$INCDIR/$INC
+ 	    [ "$VERBOSE" = "yes" ] && echo "  Found $INC in $INCDIR"
+ 	    break
+ 	fi
+     done
+-    if [ -z "$F" ]
+-    then
+-	XFREETYPE=no
+-	[ "$VERBOSE" = "yes" ] && echo "  Could not find $INC anywhere in $INCDIRS"
+-    fi
+ fi
+ 
+-
+ # check for XftNameUnparse in X11/Xft/Xft.h
+ XFTNAMEUNPARSE=yes
+-if [ "$XFREETYPE" = "yes" ] && [ -f "$XFT_H" ]
++if [ "$XFREETYPE" = "yes" ] && [ -f "$XFTCOMPAT_H" ]
+ then
++    :
++else
++    if [ "$XFREETYPE" = "yes" ] && [ -f "$XFT_H" ]
++    then
+     grep XftNameUnparse $XFT_H >/dev/null || XFTNAMEUNPARSE=no
+     [ "$XFTNAMEUNPARSE" = "no" ] && echo "xftnameunparse" > $x11tests/xfreetype.cfg
++    fi
+ fi
+ 
+ 
+diff -uNbr qt-x11-free-3.0.5/configure qt-x11-free-3.0.5-new/configure
+--- qt-x11-free-3.0.5/configure	Thu Jul  4 02:37:30 2002
++++ qt-x11-free-3.0.5-new/configure	Sat Oct 12 00:49:35 2002
+@@ -961,7 +961,7 @@
+ 
+     case "$UNAME_SYSTEM:$UNAME_RELEASE" in
+      Darwin:*)
+-	PLATFORM=macx-g++
++	PLATFORM=darwin-g++
+ 	# PLATFORM=macx-pbuilder
+ 	PLATFORM_NOTES="
+ 	    - Also available for Mac OS X: macx-pbuilder
+@@ -2047,7 +2047,7 @@
+ 	# libXft uses libfreetype to do all the work, BUT libfreetype isn't picked
+ 	# up as a dependency if libXft isn't a shared library, so we have to add
+ 	# libfreetype as well as libXt to the program/lib link command
+-	QMAKE_VARS="$QMAKE_VARS \"QMAKE_LIBS_X11+=-lXft -lfreetype\""
++	QMAKE_VARS="$QMAKE_VARS \"QMAKE_LIBS_X11+=-lXft -lfontconfig\""
+     fi
+     if [ "$CFG_TABLET" = "yes" ]; then
+ 	QMAKE_CONFIG="$QMAKE_CONFIG tablet"
+@@ -2134,10 +2134,13 @@
+ # some compilers generate binary incompatible code between different versions,
+ # so we need to generate a build key that is different between these compilers
+ COMPILER=`echo $PLATFORM | cut -f 2- -d-`
++if [ "$COMPILER" = "g++" ] && [ -x /usr/bin/c++ ]; then
++	COMPILER=c++
++fi
+ case "$COMPILER" in
+-g++)
++g++|c++)
+     # GNU C++
+-    COMPILER_VERSION=`g++ --version`
++    COMPILER_VERSION=`$COMPILER --version`
+     case "$COMPILER_VERSION" in
+     *2.95.*)
+ 	COMPILER_VERSION="2.95.*"
+@@ -2297,8 +2300,8 @@
+ #define QT_BUILD_KEY "$QT_BUILD_KEY"
+ EOF
+ [ '!' -z "$LicenseKey" ] && echo "#define QT_PRODUCT_LICENSEKEY \"$LicenseKey\"" >>$outpath/include/qconfig.h.new
+-[ '!' -z "$QT_INSTALL_PLUGINS" ] && echo "#define QT_INSTALL_PLUGINS ${QT_INSTALL_PLUGINS}" >>$outpath/include/qconfig.h.new
+-[ '!' -z "$QT_INSTALL_DATA" ]    && echo "#define QT_INSTALL_DATA    ${QT_INSTALL_DATA}"    >>$outpath/include/qconfig.h.new
++[ '!' -z "$QT_INSTALL_PLUGINS" ] && echo "#define QT_INSTALL_PLUGINS \"${QT_INSTALL_PLUGINS}\"" >>$outpath/include/qconfig.h.new
++[ '!' -z "$QT_INSTALL_DATA" ]    && echo "#define QT_INSTALL_DATA    \"${QT_INSTALL_DATA}\""    >>$outpath/include/qconfig.h.new
+ 
+ # avoid unecessary rebuilds by copying only if qconfig.h has changed
+ if cmp -s $outpath/include/qconfig.h $outpath/include/qconfig.h.new; then
+diff -uNbr qt-x11-free-3.0.5/examples/demo/main.cpp qt-x11-free-3.0.5-new/examples/demo/main.cpp
+--- qt-x11-free-3.0.5/examples/demo/main.cpp	Mon Jul  8 06:28:09 2002
++++ qt-x11-free-3.0.5-new/examples/demo/main.cpp	Sat Oct 12 00:44:47 2002
+@@ -50,7 +50,7 @@
+ #include "sql/sqlex.h"
+ #endif
+ 
+-#ifdef Q_OS_MACX
++#if defined(Q_OS_MACX)
+ #include <stdlib.h>
+ #include <qdir.h>
+ #endif
+@@ -117,7 +117,7 @@
+ {
+     QString category;
+     QApplication a( argc, argv );
+-#ifdef Q_OS_MACX
++#if defined(Q_OS_MACX)
+     setenv("QTDIR", QDir::cleanDirPath(QDir::currentDirPath() + QDir::separator() + ".." + QDir::separator() + ".."), 0);
+ #endif
+     for(int i = 1; i < argc-1; i++) {
+diff -uNbr qt-x11-free-3.0.5/include/private/qfontdata_p.h qt-x11-free-3.0.5-new/include/private/qfontdata_p.h
+--- qt-x11-free-3.0.5/include/private/qfontdata_p.h	Mon Jul  8 06:26:56 2002
++++ qt-x11-free-3.0.5-new/include/private/qfontdata_p.h	Sat Oct 12 00:49:35 2002
+@@ -353,7 +353,7 @@
+ 
+ #ifndef QT_NO_XFTFREETYPE
+     XftPattern *findXftFont(const QChar &, bool *) const;
+-    XftPattern *bestXftPattern(const QString &, const QString &) const;
++    XftPattern *bestXftPattern(const QString &, const QString &, const QChar &) const;
+ #endif // QT_NO_XFTFREETYPE
+     QCString findFont(QFont::Script, bool *) const;
+     QCString findXftFont(QFont::Script, bool *) const;
+diff -uNbr qt-x11-free-3.0.5/include/qconfig.h qt-x11-free-3.0.5-new/include/qconfig.h
+--- qt-x11-free-3.0.5/include/qconfig.h	Wed Dec 31 19:00:00 1969
++++ qt-x11-free-3.0.5-new/include/qconfig.h	Sat Oct 12 00:44:47 2002
+@@ -0,0 +1 @@
++// All features enabled while configuring
+diff -uNbr qt-x11-free-3.0.5/include/qglobal.h qt-x11-free-3.0.5-new/include/qglobal.h
+--- qt-x11-free-3.0.5/include/qglobal.h	Mon Jul  8 06:26:43 2002
++++ qt-x11-free-3.0.5-new/include/qglobal.h	Sat Oct 12 00:44:47 2002
+@@ -79,7 +79,8 @@
+ */
+ 
+ #if defined(__APPLE__) && defined(__GNUC__)
+-#  define Q_OS_MACX
++#  define Q_OS_FREEBSD
++#  define Q_OS_DARWIN
+ #elif defined(__MACOSX__)
+ #  define Q_OS_MACX
+ #elif defined(macintosh)
+@@ -767,7 +768,7 @@
+ #  if !defined(QT_NO_COMPAT)
+ // source compatibility with Qt 2.x
+ #    if !defined(NO_DEBUG) && !defined(DEBUG)
+-#      if !defined(Q_OS_MACX)			// clash with MacOS X headers
++#      if !defined(Q_OS_MACX) && !defined(Q_OS_DARWIN)	// clash with MacOS X headers
+ #        define DEBUG
+ #      endif
+ #    endif
+diff -uNbr qt-x11-free-3.0.5/include/qmodules.h qt-x11-free-3.0.5-new/include/qmodules.h
+--- qt-x11-free-3.0.5/include/qmodules.h	Wed Dec 31 19:00:00 1969
++++ qt-x11-free-3.0.5-new/include/qmodules.h	Sat Oct 12 00:44:47 2002
+@@ -0,0 +1 @@
++// All modules enabled while configuring
+diff -uNbr qt-x11-free-3.0.5/include/qpainter.h qt-x11-free-3.0.5-new/include/qpainter.h
+--- qt-x11-free-3.0.5/include/qpainter.h	Mon Jul  8 06:27:00 2002
++++ qt-x11-free-3.0.5-new/include/qpainter.h	Sat Oct 12 00:49:35 2002
+@@ -382,7 +382,7 @@
+     Display    *dpy;				// current display
+     int		scrn;				// current screen
+     Qt::HANDLE	hd;				// handle to drawable
+-    Qt::HANDLE  rendhd;				// handle to Render Picture
++    Qt::HANDLE  rendhd;				// handle to Xft draw
+     GC		gc;				// graphics context (standard)
+     GC		gc_brush;			// graphics contect for brush
+     QPoint	curPt;				// current point
+diff -uNbr qt-x11-free-3.0.5/include/qt_x11.h qt-x11-free-3.0.5-new/include/qt_x11.h
+--- qt-x11-free-3.0.5/include/qt_x11.h	Mon Jul  8 06:27:01 2002
++++ qt-x11-free-3.0.5-new/include/qt_x11.h	Sat Oct 12 00:49:35 2002
+@@ -138,17 +138,14 @@
+ // #define QT_NO_XRENDER
+ #ifndef QT_NO_XRENDER
+ #  include <X11/extensions/Xrender.h>
+-// #define QT_NO_XFTFREETYPE
+-#  ifndef QT_NO_XFTFREETYPE
+-#    include <X11/Xft/XftFreetype.h>
+-#  endif // QT_NO_XFTFREETYPE
+-#else
+-// make sure QT_NO_XFTTREETYPE is defined if QT_NO_XRENDER is defined
+-#  ifndef QT_NO_XFTFREETYPE
+-#    define QT_NO_XFTFREETYPE
+-#  endif
+-#endif // QT_NO_XRENDER
++#endif
+ 
++#ifndef QT_NO_XFTFREETYPE
++#  include <X11/Xft/Xft.h>
++#if defined(XFT_VERSION) && XFT_VERSION >= 20000
++#define QT_XFT2
++#endif
++#endif // QT_NO_XFTFREETYPE
+ 
+ #ifndef QT_NO_XKB
+ #  include <X11/XKBlib.h>
+diff -uNbr qt-x11-free-3.0.5/mkspecs/darwin-g++/qmake.conf qt-x11-free-3.0.5-new/mkspecs/darwin-g++/qmake.conf
+--- qt-x11-free-3.0.5/mkspecs/darwin-g++/qmake.conf	Mon Jul  8 06:28:02 2002
++++ qt-x11-free-3.0.5-new/mkspecs/darwin-g++/qmake.conf	Sat Oct 12 00:44:47 2002
+@@ -13,14 +13,15 @@
+ QMAKE_LEXFLAGS		= 
+ QMAKE_YACC		= yacc
+ QMAKE_YACCFLAGS		= -d
+-QMAKE_CFLAGS		= -pipe
++QMAKE_CFLAGS		= -fPIC -fno-common -pipe -Ddlsym=dlsym_auto_underscore
+ QMAKE_CFLAGS_DEPS	= -M
+ QMAKE_CFLAGS_WARN_ON	= -Wall -W
+ QMAKE_CFLAGS_WARN_OFF	= -w
+-QMAKE_CFLAGS_RELEASE	= -O3
++QMAKE_CFLAGS_RELEASE	= -Os -frename-registers -mmultiple -mcpu=750 -mtune=750
+ QMAKE_CFLAGS_DEBUG	= -g
+ QMAKE_CFLAGS_SHLIB	= -fPIC
+ QMAKE_EXTENSION_SHLIB	= dylib
++QMAKE_DARWIN_SHLIB	= 1
+ QMAKE_CFLAGS_YACC	= -Wno-unused -Wno-parentheses
+ QMAKE_CFLAGS_THREAD	=
+ 
+@@ -35,8 +36,8 @@
+ QMAKE_CXXFLAGS_YACC	= $$QMAKE_CFLAGS_YACC
+ QMAKE_CXXFLAGS_THREAD	=
+ 
+-QMAKE_INCDIR		= /usr/local/include
+-QMAKE_LIBDIR		=
++QMAKE_INCDIR		= @PREFIX@/include
++QMAKE_LIBDIR		= @PREFIX@/lib
+ QMAKE_INCDIR_X11	= /usr/X11R6/include
+ QMAKE_LIBDIR_X11	= /usr/X11R6/lib
+ QMAKE_INCDIR_QT		= $(QTDIR)/include
+@@ -49,13 +50,14 @@
+ QMAKE_LFLAGS		=
+ QMAKE_LFLAGS_RELEASE	=
+ QMAKE_LFLAGS_DEBUG	=
+-QMAKE_LFLAGS_SHLIB	= -dynamiclib
++QMAKE_LFLAGS_SHLIB	= -dynamiclib -install_name $$QMAKE_LIBDIR/$(TARGET) -bind_at_load
+ QMAKE_LFLAGS_PLUGIN	= -bundle
++QMAKE_LFLAGS_PREBIND	= 
+ QMAKE_LFLAGS_THREAD	= 
+ QMAKE_RPATH		= 
+ 
+-QMAKE_LIBS_DYNLOAD	=
+-QMAKE_LIBS_X11		= -lXext -lX11 -lm
++QMAKE_LIBS_DYNLOAD	= -ldl
++QMAKE_LIBS_X11		= -lXext -lX11 -lm -lXt
+ QMAKE_LIBS_X11SM	= -lICE -lSM
+ QMAKE_LIBS_QT		= -lqt
+ QMAKE_LIBS_QT_THREAD	= -lqt-mt
+diff -uNbr qt-x11-free-3.0.5/mkspecs/darwin-g++/qplatformdefs.h qt-x11-free-3.0.5-new/mkspecs/darwin-g++/qplatformdefs.h
+--- qt-x11-free-3.0.5/mkspecs/darwin-g++/qplatformdefs.h	Sun Jun  9 02:37:53 2002
++++ qt-x11-free-3.0.5-new/mkspecs/darwin-g++/qplatformdefs.h	Sat Oct 12 00:44:47 2002
+@@ -41,7 +41,7 @@
+ #include <arpa/nameser.h>
+ #include <resolv.h>
+ 
+-
++#define QT_AOUT_UNDERSCORE
+ #define QT_STATBUF		struct stat
+ #define QT_STATBUF4TSTAT	struct stat
+ #define QT_STAT			::stat
+diff -uNbr qt-x11-free-3.0.5/qmake/generators/unix/unixmake.cpp qt-x11-free-3.0.5-new/qmake/generators/unix/unixmake.cpp
+--- qt-x11-free-3.0.5/qmake/generators/unix/unixmake.cpp	Mon Jul  8 06:27:37 2002
++++ qt-x11-free-3.0.5-new/qmake/generators/unix/unixmake.cpp	Sat Oct 12 00:44:47 2002
+@@ -65,7 +65,7 @@
+ 	if(project->isEmpty("MAKEFILE"))
+ 	    project->variables()["MAKEFILE"].append("Makefile");
+ 	if(project->isEmpty("QMAKE"))
+-	    project->variables()["QMAKE"].append("qmake");
++	    project->variables()["QMAKE"].append("$(QTDIR)/bin/qmake");
+ 	if(project->variables()["QMAKE_INTERNAL_QMAKE_DEPS"].findIndex("qmake_all") == -1)
+ 	    project->variables()["QMAKE_INTERNAL_QMAKE_DEPS"].append("qmake_all");
+ 	return; /* subdirs is done */
+@@ -114,10 +114,7 @@
+ 	    !project->variables()["QMAKE_LIB_FLAG"].isEmpty() &&
+ 	    project->isActiveConfig("dll"))
+ 	project->variables()["QMAKE_LFLAGS"] += project->variables()["QMAKE_LFLAGS_PREBIND"];
+-    if(!project->isEmpty("QMAKE_INCDIR"))
+-	project->variables()["INCLUDEPATH"] += project->variables()["QMAKE_INCDIR"];
+-    if(!project->isEmpty("QMAKE_LIBDIR"))
+-	project->variables()["QMAKE_LIBDIR_FLAGS"] += varGlue( "QMAKE_LIBDIR", " -L", " -L", "" );
++
+     if ( extern_libs && (project->isActiveConfig("qt") || project->isActiveConfig("opengl")) ) {
+ 	if(configs.findIndex("x11lib") == -1)
+ 	    configs.append("x11lib");
+@@ -152,6 +149,10 @@
+ 		project->variables()["QMAKE_LIBS"] += project->variables()["QMAKE_LIBS_QT"];
+ 	}
+     }
++    if(!project->isEmpty("QMAKE_INCDIR"))
++       project->variables()["INCLUDEPATH"] += project->variables()["QMAKE_INCDIR"];
++    if(!project->isEmpty("QMAKE_LIBDIR"))
++       project->variables()["QMAKE_LIBDIR_FLAGS"].append("-L" + project->first("QMAKE_LIBDIR"));
+     if ( project->isActiveConfig("thread") ) {
+ 	if(project->isActiveConfig("qt"))
+ 	    project->variables()[is_qt ? "PRL_EXPORT_DEFINES" : "DEFINES"].append("QT_THREAD_SUPPORT");
+diff -uNbr qt-x11-free-3.0.5/qmake/generators/unix/unixmake2.cpp qt-x11-free-3.0.5-new/qmake/generators/unix/unixmake2.cpp
+--- qt-x11-free-3.0.5/qmake/generators/unix/unixmake2.cpp	Mon Jul  8 06:27:37 2002
++++ qt-x11-free-3.0.5-new/qmake/generators/unix/unixmake2.cpp	Sat Oct 12 00:44:47 2002
+@@ -916,6 +916,30 @@
+ 							    project->first("VER_PAT"));
+ 	    }
+ 	    project->variables()["TARGET"] = project->variables()["TARGET_x.y.z"];
++
++	} else if ( !project->variables()["QMAKE_DARWIN_SHLIB"].isEmpty() ) {
++            project->variables()["TARGET_"].append("lib" + project->first("TARGET") + "." +
++                                                   project->first("QMAKE_EXTENSION_SHLIB"));
++            project->variables()["TARGET_x"].append("lib" + project->first("TARGET")
++                                                    + "." + project->first("VER_MAJ")
++                                                    + "." + project->first("QMAKE_EXTENSION_SHLIB"));
++            project->variables()["TARGET_x.y"].append("lib" + project->first("TARGET")
++                                                      + "." + project->first("VER_MAJ")
++                                                      + "." + project->first("VER_MIN")
++                                                      + "." + project->first("QMAKE_EXTENSION_SHLIB"));
++            project->variables()["TARGET_x.y.z"].append("lib" + project->first("TARGET")
++                                                        + "." + project->first("VER_MAJ")
++                                                        + "." + project->first("VER_MIN")
++                                                        + "." + project->first("VER_PAT")
++                                                        + "." + project->variables()["QMAKE_EXTENSION_SHLIB"].first());
++	    project->variables()["TARGET"] = project->variables()["TARGET_x.y.z"];
++	    project->variables()["QMAKE_LFLAGS_SHLIB"].prepend("-compatibility_version " +
++						project->first("VER_MAJ") + "." +
++						project->first("VER_MIN") +
++						" -current_version " +
++						project->first("VER_MAJ") + "." +
++						project->first("VER_MIN") + "." +
++						project->first("VER_PAT") + " ");
+ 	} else {
+ 	    project->variables()["TARGET_"].append("lib" + project->first("TARGET") + "." +
+ 						   project->first("QMAKE_EXTENSION_SHLIB"));
+diff -uNbr qt-x11-free-3.0.5/qt.csh qt-x11-free-3.0.5-new/qt.csh
+--- qt-x11-free-3.0.5/qt.csh	Wed Dec 31 19:00:00 1969
++++ qt-x11-free-3.0.5-new/qt.csh	Sat Oct 12 00:44:47 2002
+@@ -0,0 +1,4 @@
++# qt.csh
++
++setenv QTDIR @PREFIX@
++setenv QMAKESPEC $QTDIR/share/qt/mkspecs/darwin-g++
+diff -uNbr qt-x11-free-3.0.5/qt.sh qt-x11-free-3.0.5-new/qt.sh
+--- qt-x11-free-3.0.5/qt.sh	Wed Dec 31 19:00:00 1969
++++ qt-x11-free-3.0.5-new/qt.sh	Sat Oct 12 00:44:47 2002
+@@ -0,0 +1,5 @@
++# qt.sh
++
++QTDIR=@PREFIX@
++QMAKESPEC=$QTDIR/share/qt/mkspecs/darwin-g++
++export QTDIR QMAKESPEC
+diff -uNbr qt-x11-free-3.0.5/src/kernel/qapplication_x11.cpp qt-x11-free-3.0.5-new/src/kernel/qapplication_x11.cpp
+--- qt-x11-free-3.0.5/src/kernel/qapplication_x11.cpp	Mon Jul  8 06:26:53 2002
++++ qt-x11-free-3.0.5-new/src/kernel/qapplication_x11.cpp	Sat Oct 12 00:56:29 2002
+@@ -382,8 +382,8 @@
+ #if !defined(QT_NO_XIM)
+ XIM		qt_xim			= 0;
+ XIMStyle	qt_xim_style		= 0;
+-// static XIMStyle	xim_preferred_style	= XIMPreeditPosition | XIMStatusNothing;
+-static XIMStyle	xim_preferred_style	= XIMPreeditCallbacks | XIMStatusNothing;
++static XIMStyle	xim_preferred_style	= XIMPreeditPosition | XIMStatusNothing;
++// static XIMStyle	xim_preferred_style	= XIMPreeditCallbacks | XIMStatusNothing;
+ #endif
+ 
+ static int composingKeycode=0;
+diff -uNbr qt-x11-free-3.0.5/src/kernel/qfont_x11.cpp qt-x11-free-3.0.5-new/src/kernel/qfont_x11.cpp
+--- qt-x11-free-3.0.5/src/kernel/qfont_x11.cpp	Mon Jul  8 06:27:02 2002
++++ qt-x11-free-3.0.5-new/src/kernel/qfont_x11.cpp	Sat Oct 12 00:55:57 2002
+@@ -110,7 +110,7 @@
+ 
+ // we select on of these at initialization time for Han use
+ static const char * const hancn_encodings[] =
+-{ "gb18030-0", /*"gb18030.2000-1",*/ "gb18030.2000-0", "gbk-0", "gb2312.1980-0", "big5*-*", "jisx0208.1983-0", "ksc5601.1987-0", 0 };
++{ /*"gb18030-0",*/ "gb18030.2000-1", /*"gb18030.2000-0",*/ "gbk-0", "gb2312.1980-0", "big5*-*", "jisx0208.1983-0", "ksc5601.1987-0", 0 };
+ static const char * const hanjp_encodings[] =
+     { "jisx0208.1983-0", "gb2312.1980-0", "big5*-*", "ksc5601.1987-0", 0 };
+ static const char * const hankr_encodings[] =
+@@ -363,7 +363,7 @@
+ 
+ #ifndef QT_NO_XFTFREETYPE
+     if (xfthandle) {
+-	XftFreeTypeClose(QPaintDevice::x11AppDisplay(), (XftFontStruct *) xfthandle);
++	XftFontClose(QPaintDevice::x11AppDisplay(), (XftFont *) xfthandle);
+ 	xfthandle = 0;
+     }
+ 
+@@ -679,14 +679,13 @@
+ //    a valid XGlyphInfo
+ static inline XGlyphInfo *getGlyphInfo(QFontStruct *qfs, const QString &str, int pos)
+ {
+-    XftFontStruct *xftfs;
++    XftFont *xftfs;
+     XGlyphInfo *xgi;
+     QChar ch;
+-    unsigned int missing[1];
+-    int nmissing = 0;
++    XftChar16 c;
+ 
+     if (! qfs || qfs == (QFontStruct *) -1 ||
+-	! (xftfs = (XftFontStruct *) qfs->xfthandle)) {
++	! (xftfs = (XftFont *) qfs->xfthandle)) {
+ 	xgi = (XGlyphInfo *) -2;
+ 	goto end;
+     }
+@@ -694,23 +693,21 @@
+     // no need for codec, all Xft fonts are in unicode mapping
+     ch = QComplexText::shapedCharacter(str, pos);
+ 
+-    if (ch.unicode() == 0) {
++    c = ch.unicode ();
++    if (c == 0) {
+ 	xgi = 0;
+ 	goto end;
+     }
+ 
+     // load the glyph if it's not in the font
+-    XftGlyphCheck(QPaintDevice::x11AppDisplay(), xftfs, ch.unicode(),
+-		  missing, &nmissing);
+-    if (nmissing)
+-	XftGlyphLoad(QPaintDevice::x11AppDisplay(), xftfs, missing, nmissing);
+-
+-    if (ch.unicode() > xftfs->nrealized) {
+-	xgi = (XGlyphInfo *) -1;
+-	goto end;
++    if (XftGlyphExists (QPaintDevice::x11AppDisplay(), xftfs, c))
++    {
++	static XGlyphInfo   metrics;
++	XftTextExtents16 (QPaintDevice::x11AppDisplay(), xftfs, 
++			    &c, 1, &metrics);
++	xgi = &metrics;
+     }
+-    xgi = xftfs->realized[ch.unicode()];
+-    if (! xgi)
++    else
+ 	xgi = (XGlyphInfo *) -1;
+ 
+  end:
+@@ -721,30 +718,30 @@
+ // ditto
+ static inline XGlyphInfo *getGlyphInfo(QFontStruct *qfs, const QChar &ch)
+ {
+-    XftFontStruct *xftfs;
++    XftFont *xftfs;
+     XGlyphInfo *xgi;
+-    unsigned int missing[1];
+-    int nmissing = 0;
++    XftChar16 c;
+ 
+     if (! qfs || qfs == (QFontStruct *) -1 ||
+-	! (xftfs = (XftFontStruct *) qfs->xfthandle)) {
++	! (xftfs = (XftFont *) qfs->xfthandle)) {
+ 	xgi = (XGlyphInfo *) -2;
+ 	goto end;
+     }
+ 
+-    // load the glyph if it's not in the font
+-    XftGlyphCheck(QPaintDevice::x11AppDisplay(), xftfs, ch.unicode(),
+-		  missing, &nmissing);
+-    if (nmissing)
+-	XftGlyphLoad(QPaintDevice::x11AppDisplay(), xftfs, missing, nmissing);
++    c = ch.unicode();
+ 
+-    if (ch.unicode() > xftfs->nrealized) {
++    if (XftGlyphExists (QPaintDevice::x11AppDisplay(), xftfs, c))
++    {
++	static XGlyphInfo   metrics;
++	XftTextExtents16 (QPaintDevice::x11AppDisplay(), xftfs, 
++			    &c, 1, &metrics);
++	xgi = &metrics;
++    }
++    else
++    {
+ 	xgi = (XGlyphInfo *) -1;
+ 	goto end;
+     }
+-    xgi = xftfs->realized[ch.unicode()];
+-    if (! xgi)
+-	xgi = (XGlyphInfo *) -1;
+ 
+  end:
+     return xgi;
+@@ -1211,7 +1208,7 @@
+ 	XFontStruct *xfs = 0;
+ 
+ #ifndef QT_NO_XFTFREETYPE
+-	XftFontStruct *xftfs = 0;
++	XftFont *xftfs = 0;
+ #endif // QT_NO_XFTFREETYPE
+ 
+     	if ( cache->script < QFont::LastPrivateScript &&
+@@ -1220,7 +1217,7 @@
+ 	    xfs = (XFontStruct *) qfs->handle;
+ 
+ #ifndef QT_NO_XFTFREETYPE
+-	    xftfs = (XftFontStruct *) qfs->xfthandle;
++	    xftfs = (XftFont *) qfs->xfthandle;
+ #endif // QT_NO_XFTFREETYPE
+ 
+ 	}
+@@ -1229,35 +1226,31 @@
+ 
+ #ifndef QT_NO_XFTFREETYPE
+ 	if (xftfs) {
+-	    QPixmap *pm = qt_xft_render_sources->find(screen);
+-	    if (! pm) {
+-		pm = new QPixmap(1, 1);
+-		// fix the render Picture to tile the source
+-		XRenderPictureAttributes pattr;
+-		pattr.repeat = TRUE;
+-		XRenderChangePicture(dpy, pm->x11RenderHandle(), CPRepeat, &pattr);
+ 
+-		qt_xft_render_sources->insert(screen, pm);
+-	    }
+-
+-	    // fill pixmap with pen color
+-	    pm->fill(pen);
++	    XftDraw *draw = (XftDraw *) rendhd;
+ 
+ 	    if (bgmode != Qt::TransparentMode) {
+-		XRenderColor col;
+-		col.red = bgcolor.red() | bgcolor.red() << 8;
+-		col.green = bgcolor.green() | bgcolor.green() << 8;
+-		col.blue = bgcolor.blue() | bgcolor.blue() << 8;
+-		col.alpha = 0xffff;
+-		XRenderFillRectangle(dpy, PictOpSrc, rendhd, &col,
++		XftColor col;
++		col.color.red = bgcolor.red() | bgcolor.red() << 8;
++		col.color.green = bgcolor.green() | bgcolor.green() << 8;
++		col.color.blue = bgcolor.blue() | bgcolor.blue() << 8;
++		col.color.alpha = 0xffff;
++		col.pixel = bgcolor.pixel();
++		
++		XftDrawRect (draw, &col, 
+ 				     x + cache->xoff,  y - xftfs->ascent,
+ 				     cache->x2off - cache->xoff,
+ 				     xftfs->ascent + xftfs->descent);
+ 	    }
+ 
+-	    XRenderCompositeString16(dpy, PictOpOver, pm->x11RenderHandle(), rendhd,
+-				     xftfs->format, xftfs->glyphset,
+-				     0, 0, x + cache->xoff, y + cache->yoff,
++	    XftColor col;
++	    col.color.red = pen.red () | pen.red() << 8;
++	    col.color.green = pen.green () | pen.green() << 8;
++	    col.color.blue = pen.blue () | pen.blue() << 8;
++	    col.color.alpha = 0xffff;
++	    col.pixel = pen.pixel();
++	    XftDrawString16 (draw, &col, xftfs, 
++			     x + cache->xoff, y + cache->yoff,
+ 				     (unsigned short *)cache->string, cache->length);
+ 	} else
+ #endif // QT_NO_XFTFREETYPE
+@@ -1335,8 +1328,8 @@
+ 
+ #ifndef QT_NO_XFTFREETYPE
+     if (qfs && qfs != (QFontStruct *) -1 && qfs->xfthandle)
+-	return XftFreeTypeGlyphExists(QPaintDevice::x11AppDisplay(),
+-				      (XftFontStruct *) qfs->xfthandle, ch.unicode());
++	return XftGlyphExists (QPaintDevice::x11AppDisplay(),
++			       (XftFont *) qfs->xfthandle, (FcChar32) ch.unicode());
+ #endif // QT_NO_XFTFREETYPE
+ 
+     XCharStruct *xcs = getCharStruct(qfs, QString(ch), 0);
+@@ -1348,6 +1341,7 @@
+ 
+ static XftPattern *checkXftFont( XftPattern *match, const QString &familyName, const QChar &sample )
+ {
++#if 0
+     char * family_value;
+     XftPatternGetString (match, XFT_FAMILY, 0, &family_value);
+     QString fam = family_value;
+@@ -1358,10 +1352,25 @@
+ 	XftPatternDestroy(match);
+ 	match = 0;
+     }
++#else
++    (void) familyName;
++#endif
+     if (match && sample.unicode() != 0 ) {
+ 	// check if the character is actually in the font - this does result in
+ 	// a font being loaded, but since Xft is completely client side, we can
+ 	// do this efficiently
++#ifdef QT_XFT2
++	FcCharSet   *c;
++
++	if (FcPatternGetCharSet (match, FC_CHARSET, 0, &c) == FcResultMatch)
++	{
++	    if (!FcCharSetHasChar (c, sample.unicode()))
++	    {
++		XftPatternDestroy(match);
++		match = 0;
++	    }
++	}
++#else
+ 	XftFontStruct *xftfs = XftFreeTypeOpen(QPaintDevice::x11AppDisplay(),
+ 					       match);
+ 
+@@ -1374,6 +1383,7 @@
+ 
+ 	    XftFreeTypeClose(QPaintDevice::x11AppDisplay(), xftfs);
+ 	}
++#endif
+     }
+ 
+     return match;
+@@ -1388,7 +1398,7 @@
+     QString foundryName;
+ 
+     QFontDatabase::parseFontName(request.family, foundryName, familyName);
+-    XftPattern *match = bestXftPattern(familyName, foundryName);
++    XftPattern *match = bestXftPattern(familyName, foundryName, sample);
+ 
+     if ( match )
+ 	match = checkXftFont( match, familyName, sample );
+@@ -1409,7 +1419,7 @@
+ 
+ 	if (request.family != familyName) {
+ 	    QFontDatabase::parseFontName(familyName, foundryName, familyName);
+-	    match = bestXftPattern(familyName, foundryName);
++	    match = bestXftPattern(familyName, foundryName, sample);
+ 
+ 	    if ( match )
+ 		match = checkXftFont( match, familyName, sample );
+@@ -1422,7 +1432,8 @@
+ // finds an XftPattern best matching the familyname, foundryname and other
+ // requested pieces of the font
+ XftPattern *QFontPrivate::bestXftPattern(const QString &familyName,
+-					 const QString &foundryName) const
++					 const QString &foundryName,
++					 const QChar &sample) const
+ {
+     QCString generic_value;
+     int weight_value;
+@@ -1465,7 +1476,8 @@
+ 	sizeFormat = XFT_PIXEL_SIZE;
+     }
+ 
+-    mono_value = request.fixedPitch ? XFT_MONO : XFT_PROPORTIONAL;
++    mono_value = !request.fixedPitch || familyName == "monospace" 
++                 ? XFT_PROPORTIONAL : XFT_MONO;
+ 
+     switch (request.styleHint) {
+     case QFont::SansSerif:
+@@ -1477,73 +1489,37 @@
+ 	break;
+     case QFont::TypeWriter:
+ 	generic_value = "mono";
+-	mono_value = XFT_MONO;
++	mono_value = XFT_PROPORTIONAL;
+ 	break;
+     }
+ 
+     XftResult res;
+     XftPattern *pattern = 0, *result = 0;
+ 
+-    if (mono_value >= XFT_MONO) {
+-	if ( !foundryName.isNull() && foundryName != "xft" )
+-	    pattern = XftPatternBuild(0,
+-				      XFT_ENCODING, XftTypeString, "iso10646-1",
+-				      XFT_FOUNDRY, XftTypeString, foundryName.latin1(),
+-				      XFT_FAMILY, XftTypeString, familyName.latin1(),
+-				      XFT_FAMILY, XftTypeString, generic_value.data(),
+-				      XFT_WEIGHT, XftTypeInteger, weight_value,
+-				      XFT_SLANT, XftTypeInteger, slant_value,
+-				      sizeFormat, XftTypeDouble, size_value,
+-				      XFT_SPACING, XftTypeInteger, mono_value,
+-				      (char *) 0);
+-	else if (! familyName.isNull())
+-	    pattern = XftPatternBuild(0,
+-				      XFT_ENCODING, XftTypeString, "iso10646-1",
+-				      XFT_FAMILY, XftTypeString, familyName.latin1(),
+-				      XFT_FAMILY, XftTypeString, generic_value.data(),
+-				      XFT_WEIGHT, XftTypeInteger, weight_value,
+-				      XFT_SLANT, XftTypeInteger, slant_value,
+-				      sizeFormat, XftTypeDouble, size_value,
+-				      XFT_SPACING, XftTypeInteger, mono_value,
+-				      (char *) 0);
+-	else
+-	    pattern = XftPatternBuild(0,
+-				      XFT_ENCODING, XftTypeString, "iso10646-1",
+-				      XFT_FAMILY, XftTypeString, generic_value.data(),
+-				      XFT_WEIGHT, XftTypeInteger, weight_value,
+-				      XFT_SLANT, XftTypeInteger, slant_value,
+-				      sizeFormat, XftTypeDouble, size_value,
+-				      XFT_SPACING, XftTypeInteger, mono_value,
+-				      (char *) 0);
+-    } else {
++    pattern = XftPatternCreate ();
++#ifndef QT_XFT2
++    XftPatternAddString (XFT_ENCODING, "iso10646-1");
++#endif
+ 	if (! foundryName.isNull())
+-	    pattern = XftPatternBuild(0,
+-				      XFT_ENCODING, XftTypeString, "iso10646-1",
+-				      XFT_FOUNDRY, XftTypeString, foundryName.latin1(),
+-				      XFT_FAMILY, XftTypeString, familyName.latin1(),
+-				      XFT_FAMILY, XftTypeString, generic_value.data(),
+-				      XFT_WEIGHT, XftTypeInteger, weight_value,
+-				      XFT_SLANT, XftTypeInteger, slant_value,
+-				      sizeFormat, XftTypeDouble, size_value,
+-				      (char *) 0);
+-	else if (! familyName.isNull())
+-	    pattern = XftPatternBuild(0,
+-				      XFT_ENCODING, XftTypeString, "iso10646-1",
+-				      XFT_FAMILY, XftTypeString, familyName.latin1(),
+-				      XFT_FAMILY, XftTypeString, generic_value.data(),
+-				      XFT_WEIGHT, XftTypeInteger, weight_value,
+-				      XFT_SLANT, XftTypeInteger, slant_value,
+-				      sizeFormat, XftTypeDouble, size_value,
+-				      (char *) 0);
+-	else
+-	    pattern = XftPatternBuild(0,
+-				      XFT_ENCODING, XftTypeString, "iso10646-1",
+-				      XFT_FAMILY, XftTypeString, generic_value.data(),
+-				      XFT_WEIGHT, XftTypeInteger, weight_value,
+-				      XFT_SLANT, XftTypeInteger, slant_value,
+-				      sizeFormat, XftTypeDouble, size_value,
+-				      (char *) 0);
++      XftPatternAddString (pattern, XFT_FOUNDRY, foundryName.latin1());
++    if (! familyName.isNull())
++      XftPatternAddString (pattern, XFT_FAMILY, familyName.latin1());
++    XftPatternAddString (pattern, XFT_FAMILY, generic_value.data());
++
++    if (mono_value >= XFT_MONO)
++      XftPatternAddInteger (pattern, XFT_SPACING, mono_value);
++    
++    XftPatternAddInteger (pattern, XFT_WEIGHT, weight_value);
++    XftPatternAddInteger (pattern, XFT_SLANT, slant_value);
++    XftPatternAddDouble (pattern, sizeFormat, size_value);
++#ifdef QT_XFT2
++    if (sample.unicode() != 0 ) {
++	FcCharSet   *cs = FcCharSetCreate ();
++	FcCharSetAddChar (cs, sample.unicode());
++	FcPatternAddCharSet (pattern, FC_CHARSET, cs);
++	FcCharSetDestroy (cs);  /* let pattern hold last reference */
+     }
++#endif
+ 
+     if ( !qt_use_antialiasing || request.styleStrategy & ( QFont::PreferAntialias |
+ 					     QFont::NoAntialias) ) {
+@@ -2234,7 +2210,7 @@
+ 
+     switch (script) {
+     case QFont::Latin:                     row = 0x00; cell = 0x30; break;
+-    case QFont::Greek:                     row = 0x03; cell = 0x90; break;
++    case QFont::Greek:                     row = 0x03; cell = 0x91; break;
+     case QFont::Cyrillic:                  row = 0x04; cell = 0x10; break;
+     case QFont::Armenian:                  row = 0x05; cell = 0x40; break;
+     case QFont::Georgian:                  row = 0x10; cell = 0xa0; break;
+@@ -2243,7 +2219,7 @@
+     case QFont::CombiningMarks:            row = 0x03; cell = 0x00; break;
+ 
+     case QFont::Hebrew:                    row = 0x05; cell = 0xd0; break;
+-    case QFont::Arabic:                    row = 0x06; cell = 0x30; break;
++    case QFont::Arabic:                    row = 0x06; cell = 0x0c; break;
+     case QFont::Syriac:                    row = 0x07; cell = 0x10; break;
+     case QFont::Thaana:                    row = 0x07; cell = 0x80; break;
+ 
+@@ -2275,12 +2251,12 @@
+     case QFont::CanadianAboriginal:        row = 0x14; cell = 0x10; break;
+     case QFont::Mongolian:                 row = 0x18; cell = 0x00; break;
+ 
+-    case QFont::CurrencySymbols:           row = 0x20; cell = 0xaa; break;
+-    case QFont::LetterlikeSymbols:         row = 0x21; cell = 0x22; break;
+-    case QFont::NumberForms:               row = 0x21; cell = 0x5b; break;
++    case QFont::CurrencySymbols:           row = 0x20; cell = 0xa0; break;
++    case QFont::LetterlikeSymbols:         row = 0x21; cell = 0x00; break;
++    case QFont::NumberForms:               row = 0x21; cell = 0x60; break;
+     case QFont::MathematicalOperators:     row = 0x22; cell = 0x2b; break;
+     case QFont::TechnicalSymbols:          row = 0x24; cell = 0x40; break;
+-    case QFont::GeometricSymbols:          row = 0x25; cell = 0xa1; break;
++    case QFont::GeometricSymbols:          row = 0x25; cell = 0x00; break;
+     case QFont::MiscellaneousSymbols:      row = 0x26; cell = 0x00; break;
+     case QFont::EnclosedAndSquare:         row = 0x24; cell = 0x60; break;
+     case QFont::Braille:                   row = 0x28; cell = 0x00; break;
+@@ -2350,8 +2326,8 @@
+ 	}
+ #ifndef QT_NO_XFTFREETYPE
+ 	else {
+-	    hasChar = XftFreeTypeGlyphExists(QPaintDevice::x11AppDisplay(),
+-					     (XftFontStruct *) qfs->xfthandle,
++	  hasChar = XftGlyphExists(QPaintDevice::x11AppDisplay(),
++				   (XftFont *) qfs->xfthandle,
+ 					     sample.unicode());
+ 	}
+ #endif // QT_NO_XFTFREETYPE
+@@ -2432,7 +2408,7 @@
+     XFontStruct *xfs = 0;
+ 
+ #ifndef QT_NO_XFTFREETYPE
+-    XftFontStruct *xftfs = 0;
++    XftFont *xftfs = 0;
+     XftPattern *xftmatch = 0;
+ #endif // QT_NO_XFTFREETYPE
+ 
+@@ -2554,9 +2530,12 @@
+ 	qDebug("QFontLoader: loading xft font '%s'", fontname.data());
+ #endif
+ 
+-	xftfs = XftFreeTypeOpen(QPaintDevice::x11AppDisplay(),
++	xftfs = XftFontOpenPattern(QPaintDevice::x11AppDisplay(),
+ 				xftmatch);
++	xftmatch = 0;	/* xft font owns the pattern now */
+     }
++    if (xftmatch)
++	XftPatternDestroy (xftmatch);
+ #endif // QT_NO_XFTFREETYPE
+ 
+     if (qxfn->useCore) {
+@@ -2651,8 +2630,8 @@
+     }
+ #ifndef QT_NO_XFTFREETYPE
+     else if (xftfs) {
+-	cost = ((xftfs->ascent + xftfs->descent) *
+-		(xftfs->max_advance_width * 256 / 8));
++      /* Xft2 has very low cost per font, everything is cached */
++      cost = 256;
+     }
+ #endif // QT_NO_XFTFREETYPE
+     else {
+@@ -2663,9 +2642,17 @@
+ 	return;
+     }
+ 
++    // XXX - maybe someone can reimplemented
++    // gb18030.2000-1 is unicode -> unicode encoding
++    // hence it does not need any codec for it.
++    // ie. directly load from unicode mapping
++    if (!qstrncmp(script_table[script].list[script_table[script].index]
++                           ,"gb18030", 7))
++        codec = 0;
++	
+     qfs = new QFontStruct((Qt::HANDLE) xfs,
+ #ifndef QT_NO_XFTFREETYPE
+-			  (Qt::HANDLE) xftfs, (Qt::HANDLE) xftmatch,
++			  (Qt::HANDLE) xftfs, (Qt::HANDLE) 0,
+ #else
+ 			  0, 0,
+ #endif // QT_NO_XFTFREETYPE
+@@ -2776,6 +2763,10 @@
+ 	case 2025: // GBK
+ 	case -2025: // GB18030
+ 	    script_table[QFont::Han].list = hancn_encodings;
++      script_table[QFont::Mongolian].list = hancn_encodings;
++      script_table[QFont::Tibetan].list = hancn_encodings;
++      script_table[QFont::Yi].list = hancn_encodings;
++      script_table[QFont::Arabic].list = hancn_encodings;
+ 	    break;
+ 	case 2026: // Big5
+ 	    script_table[QFont::Han].list = hantw_encodings;
+@@ -2982,7 +2973,7 @@
+ 	return d->actual.pixelSize * 3 / 4;
+ 
+ #ifndef QT_NO_XFTFREETYPE
+-    XftFontStruct *xftfs = (XftFontStruct *) qfs->xfthandle;
++    XftFont *xftfs = (XftFont *) qfs->xfthandle;
+     if (xftfs)
+ 	return xftfs->ascent;
+ #endif // QT_NO_XFTFREETYPE
+@@ -3012,7 +3003,7 @@
+ 	return 0;
+ 
+ #ifndef QT_NO_XFTFREETYPE
+-    XftFontStruct *xftfs = (XftFontStruct *) qfs->xfthandle;
++    XftFont *xftfs = (XftFont *) qfs->xfthandle;
+     if (xftfs)
+ 	return xftfs->descent - 1;
+ #endif // QT_NO_XFTFREETYPE
+@@ -3195,7 +3186,7 @@
+ 	return (d->actual.pixelSize * 3 / 4) + 1;
+ 
+ #ifndef QT_NO_XFTFREETYPE
+-    XftFontStruct *xftfs = (XftFontStruct *) qfs->xfthandle;
++    XftFont *xftfs = (XftFont *) qfs->xfthandle;
+     if (xftfs)
+ 	return xftfs->ascent + xftfs->descent;
+ #endif // QT_NO_XFTFREETYPE
+@@ -3225,7 +3216,7 @@
+     int l;
+ 
+ #ifndef QT_NO_XFTFREETYPE
+-    XftFontStruct *xftfs = (XftFontStruct *) qfs->xfthandle;
++    XftFont *xftfs = (XftFont *) qfs->xfthandle;
+     if (xftfs)
+ 	l = (int) QMIN( xftfs->height - (xftfs->ascent + xftfs->descent),
+ 			((xftfs->ascent + xftfs->descent) >> 4) );
+@@ -3508,8 +3499,7 @@
+ 
+ #ifndef QT_NO_XFTFREETYPE
+ 	if (d->x11data.fontstruct[i]->xfthandle) {
+-	    XftFontStruct *xftfs =
+-		(XftFontStruct *) qfs->xfthandle;
++	    XftFont *xftfs = (XftFont *) qfs->xfthandle;
+ 	    ww = xftfs->max_advance_width;
+ 	} else
+ #endif // QT_NO_XFTFREETYPE
+diff -uNbr qt-x11-free-3.0.5/src/kernel/qfontdata_p.h qt-x11-free-3.0.5-new/src/kernel/qfontdata_p.h
+--- qt-x11-free-3.0.5/src/kernel/qfontdata_p.h	Mon Jul  8 06:26:56 2002
++++ qt-x11-free-3.0.5-new/src/kernel/qfontdata_p.h	Sat Oct 12 00:49:35 2002
+@@ -353,7 +353,7 @@
+ 
+ #ifndef QT_NO_XFTFREETYPE
+     XftPattern *findXftFont(const QChar &, bool *) const;
+-    XftPattern *bestXftPattern(const QString &, const QString &) const;
++    XftPattern *bestXftPattern(const QString &, const QString &, const QChar &) const;
+ #endif // QT_NO_XFTFREETYPE
+     QCString findFont(QFont::Script, bool *) const;
+     QCString findXftFont(QFont::Script, bool *) const;
+diff -uNbr qt-x11-free-3.0.5/src/kernel/qfontdatabase_x11.cpp qt-x11-free-3.0.5-new/src/kernel/qfontdatabase_x11.cpp
+--- qt-x11-free-3.0.5/src/kernel/qfontdatabase_x11.cpp	Mon Jul  8 06:26:57 2002
++++ qt-x11-free-3.0.5-new/src/kernel/qfontdatabase_x11.cpp	Sat Oct 12 00:55:57 2002
+@@ -1,5 +1,5 @@
+ /****************************************************************************
+-** $Id$
++** $Id$
+ **
+ ** Implementation of platform specific QFontDatabase
+ **
+@@ -39,8 +39,6 @@
+ 
+ static QString getStyleName( char ** tokens, bool *italic, bool *lesserItalic );
+ 
+-
+-
+ #ifndef QT_NO_XFTFREETYPE
+ static const char *getXftWeightString(int xftweight)
+ {
+@@ -72,6 +70,7 @@
+ 
+ void QFontDatabase::createDatabase()
+ {
++    bool use_xcore_font = true;
+     if ( db ) return;
+ 
+     db = new QFontDatabasePrivate;
+@@ -79,6 +78,8 @@
+ #ifndef QT_NO_XFTFREETYPE
+ 
+     if (qt_has_xft) {
++	use_xcore_font = false; //if qt_has_xft unset use_xcore_font
++	
+ 	XftFontSet  *foundries;
+ 	XftFontSet  *families;
+ 	XftFontSet  *styles;
+@@ -121,6 +122,7 @@
+ 				 (const char *)0,
+ 				 XFT_FAMILY, (const char *)0);
+ 
++	    
+ 	    for (int f = 0; f < families->nfont; f++) {
+ 		if (XftPatternGetString(families->fonts[f],
+ 					XFT_FAMILY, 0, &value) == XftResultMatch) {
+@@ -184,10 +186,60 @@
+ 	}
+ 
+ 	XftFontSetDestroy (foundries);
++
++// add default alias fonts
++#ifdef QT_XFT2
++        const char * const alias_font[] = { "sans", "serif", "monospace", 0 };
++        const char * const alias_style[] = { "Normal", "Bold", "Italic", "Bold Italic", 0 };
++	
++        QtFontFoundry *foundry = new QtFontFoundry("alias");
++	Q_CHECK_PTR(foundry);
++	db->addFoundry(foundry);
++
++        QtFontFamily *family;
++	QtFontStyle *style;
++	int f=0, s=0;
++
++	while (alias_font[f] != 0) {	
++            family = new QtFontFamily ( foundry, alias_font[f]);
++       	    Q_CHECK_PTR (family);
++            foundry->addFamily (family);
++	    while (alias_style[s] != 0) {
++	        style = new QtFontStyle (family, alias_style[s]);
++
++		switch(s) {
++		    case 0:
++		      break;
++		    case 1:
++		      style->weightString = getXftWeightString(XFT_WEIGHT_BOLD);
++		      break;
++		    case 2:
++		      style->ital = 1;
++		      break;
++		    case 3:
++		      style->ital = 1;
++		      style->weightString = getXftWeightString(XFT_WEIGHT_BOLD);
++		}
++	
++	        if (alias_font[f] == "monospace")
++		    style->setFixedPitch();
++	        style->lesserItal = FALSE;
++		style->setSmoothlyScalable();
++	        family->addStyle (style);
++		s++;
++	    }
++	    
++	    f++; s=0;
++	}
++#endif
++
+     }
+ #endif
+ 	{
++	    // If set use_xcore_font, include X core fonts
++	    if( use_xcore_font == true) {
+ 	    int fontCount;
++
+ 	    // force the X server to give us XLFDs
+ 	    char **fontList = XListFonts( qt_xdisplay(), "-*-*-*-*-*-*-*-*-*-*-*-*-*-*",
+ 					  32767, &fontCount );
+@@ -266,6 +318,7 @@
+ 	    }
+ 
+ 	    XFreeFontNames( fontList );
++	    }
+ 	}
+ 
+ #ifdef QFONTDATABASE_DEBUG
+diff -uNbr qt-x11-free-3.0.5/src/kernel/qpaintdevice_x11.cpp qt-x11-free-3.0.5-new/src/kernel/qpaintdevice_x11.cpp
+--- qt-x11-free-3.0.5/src/kernel/qpaintdevice_x11.cpp	Mon Jul  8 06:27:15 2002
++++ qt-x11-free-3.0.5-new/src/kernel/qpaintdevice_x11.cpp	Sat Oct 12 00:49:35 2002
+@@ -275,7 +275,7 @@
+ */
+ Qt::HANDLE QPaintDevice::x11RenderHandle() const
+ {
+-    return rendhd;
++    return XftDrawPicture ((XftDraw *) rendhd);
+ }
+ 
+ 
+diff -uNbr qt-x11-free-3.0.5/src/kernel/qpainter.h qt-x11-free-3.0.5-new/src/kernel/qpainter.h
+--- qt-x11-free-3.0.5/src/kernel/qpainter.h	Mon Jul  8 06:27:00 2002
++++ qt-x11-free-3.0.5-new/src/kernel/qpainter.h	Sat Oct 12 00:49:35 2002
+@@ -382,7 +382,7 @@
+     Display    *dpy;				// current display
+     int		scrn;				// current screen
+     Qt::HANDLE	hd;				// handle to drawable
+-    Qt::HANDLE  rendhd;				// handle to Render Picture
++    Qt::HANDLE  rendhd;				// handle to Xft draw
+     GC		gc;				// graphics context (standard)
+     GC		gc_brush;			// graphics contect for brush
+     QPoint	curPt;				// current point
+diff -uNbr qt-x11-free-3.0.5/src/kernel/qpainter_x11.cpp qt-x11-free-3.0.5-new/src/kernel/qpainter_x11.cpp
+--- qt-x11-free-3.0.5/src/kernel/qpainter_x11.cpp	Mon Jul  8 06:27:02 2002
++++ qt-x11-free-3.0.5-new/src/kernel/qpainter_x11.cpp	Sat Oct 12 00:54:37 2002
+@@ -696,29 +696,26 @@
+     if ( !internclipok ) {
+         if ( pdev == paintEventDevice && paintEventClipRegion ) {
+             if ( penRef &&((QGCC*)penRef)->clip_serial < gc_cache_clip_serial ) {
+-#ifndef QT_NO_XRENDER
++#ifndef QT_NO_XFTFREETYPE
+ 		if (rendhd)
+-		    XRenderSetPictureClipRegion(dpy, rendhd, paintEventClipRegion->handle());
+-#endif // QT_NO_XRENDER
++		    XftDrawSetClip ((XftDraw *) rendhd, paintEventClipRegion->handle());
++#endif // QT_NO_XFTFREETYPE
+                 XSetRegion( dpy, gc, paintEventClipRegion->handle() );
+                 ((QGCC*)penRef)->clip_serial = gc_cache_clip_serial;
+             } else if ( !penRef ) {
+-#ifndef QT_NO_XRENDER
++#ifndef QT_NO_XFTFREETYPE
+ 		if (rendhd)
+-		    XRenderSetPictureClipRegion(dpy, rendhd, paintEventClipRegion->handle());
+-#endif // QT_NO_XRENDER
++		    XftDrawSetClip ((XftDraw *) rendhd, paintEventClipRegion->handle());
++#endif // QT_NO_XFTFREETYPE
+                 XSetRegion( dpy, gc, paintEventClipRegion->handle() );
+             }
+-        } else if (penRef && ((QGCC*)penRef)->clip_serial ) {
+-#ifndef QT_NO_XRENDER
+-            if (rendhd) {
+-                XRenderPictureAttributes pattr;
+-                pattr.clip_mask = None;
+-                XRenderChangePicture(dpy, rendhd, CPClipMask, &pattr);
+-            }
+-#endif // QT_NO_XRENDER
++        } else {
++#ifndef QT_NO_XFTFREETYPE
++            if (rendhd)
++		XftDrawSetClip ((XftDraw *) rendhd, 0);
++#endif // QT_NO_XFTFREETYPE
+             XSetClipMask( dpy, gc, None );
+-            ((QGCC*)penRef)->clip_serial = 0;
++            if (penRef) ((QGCC*)penRef)->clip_serial = 0;
+         }
+     }
+ 
+@@ -908,29 +905,26 @@
+     if ( !internclipok ) {
+         if ( pdev == paintEventDevice && paintEventClipRegion ) {
+             if ( brushRef &&((QGCC*)brushRef)->clip_serial < gc_cache_clip_serial ) {
+-#ifndef QT_NO_XRENDER
++#ifndef QT_NO_XFTFREETYPE
+             if (rendhd)
+-                XRenderSetPictureClipRegion(dpy, rendhd, paintEventClipRegion->handle());
+-#endif // QT_NO_XRENDER
++		    XftDrawSetClip ((XftDraw *) rendhd, paintEventClipRegion->handle());
++#endif // QT_NO_XFTFREETYPE
+                 XSetRegion( dpy, gc_brush, paintEventClipRegion->handle() );
+                 ((QGCC*)brushRef)->clip_serial = gc_cache_clip_serial;
+             } else if ( !brushRef ){
+-#ifndef QT_NO_XRENDER
++#ifndef QT_NO_XFTFREETYPE
+             if (rendhd)
+-                XRenderSetPictureClipRegion(dpy, rendhd, paintEventClipRegion->handle());
+-#endif // QT_NO_XRENDER
++		    XftDrawSetClip ((XftDraw *) rendhd, paintEventClipRegion->handle());
++#endif // QT_NO_XFTFREETYPE
+                 XSetRegion( dpy, gc_brush, paintEventClipRegion->handle() );
+             }
+-        } else if (brushRef && ((QGCC*)brushRef)->clip_serial ) {
+-#ifndef QT_NO_XRENDER
+-            if (rendhd) {
+-                XRenderPictureAttributes pattr;
+-                pattr.clip_mask = None;
+-                XRenderChangePicture(dpy, rendhd, CPClipMask, &pattr);
+-            }
+-#endif // QT_NO_XRENDER
++        } else {
++#ifndef QT_NO_XFTFREETYPE
++	    if (rendhd)
++		XftDrawSetClip ((XftDraw *) rendhd, 0);
++#endif // QT_NO_XFTFREETYPE
+             XSetClipMask( dpy, gc_brush, None );
+-            ((QGCC*)brushRef)->clip_serial = 0;
++            if (brushRef) ((QGCC*)brushRef)->clip_serial = 0;
+         }
+     }
+ 
+@@ -1066,7 +1060,7 @@
+     dpy = pdev->x11Display();                   // get display variable
+     scrn = pdev->x11Screen();           // get screen variable
+     hd  = pdev->handle();                       // get handle to drawable
+-    rendhd = pdev->x11RenderHandle();
++    rendhd = pdev->rendhd;
+ 
+     if ( testf(ExtDev) ) {                      // external device
+         if ( !pdev->cmd( QPaintDevice::PdcBegin, this, 0 ) ) {
+@@ -1128,11 +1122,25 @@
+             updateBrush();
+             XSetSubwindowMode( dpy, gc, IncludeInferiors );
+             XSetSubwindowMode( dpy, gc_brush, IncludeInferiors );
+-#ifndef QT_NO_XRENDER
+-	    if (rendhd) {
++#ifndef QT_NO_XFTFREETYPE
++	    if (rendhd)
++	    {
++# ifdef QT_XFT2
++		XftDrawSetSubwindowMode ((XftDraw *) rendhd,
++					 IncludeInferiors);
++# else
++#  ifndef QT_NO_XRENDER
++		Picture	pict = XftDrawPicture ((XftDraw *) rendhd);
++		if (pict)
++		{
+ 		XRenderPictureAttributes pattr;
+ 		pattr.subwindow_mode = IncludeInferiors;
+-		XRenderChangePicture(dpy, rendhd, CPSubwindowMode, &pattr);
++		    XRenderChangePicture(dpy, pict, CPSubwindowMode, &pattr);
++		}
++#  else
++		;
++#  endif
++# endif
+ 	    }
+ #endif
+         }
+@@ -1242,15 +1250,28 @@
+     if ( testf(ExtDev) )
+         pdev->cmd( QPaintDevice::PdcEnd, this, 0 );
+ 
+-#ifndef QT_NO_XRENDER
+-    if (rendhd) {
+-        // reset clipping/subwindow mode on our render picture
++#ifndef QT_NO_XFTFREETYPE
++
++    if (rendhd)
++    {
++# ifdef QT_XFT2
++	XftDrawSetSubwindowMode ((XftDraw *) rendhd,
++				 ClipByChildren);
++# else
++#  ifndef QT_NO_XRENDER
++	Picture	pict = XftDrawPicture ((XftDraw *) rendhd);
++	if (pict)
++	{
+         XRenderPictureAttributes pattr;
+         pattr.subwindow_mode = ClipByChildren;
+-        pattr.clip_mask = None;
+-        XRenderChangePicture(dpy, rendhd, CPClipMask | CPSubwindowMode, &pattr);
++	    XRenderChangePicture(dpy, pict, CPSubwindowMode, &pattr);
+     }
+-#endif // QT_NO_XRENDER
++#  else
++	;
++#  endif
++# endif
++    }
++#endif // QT_NO_XFTFREETYPE
+ 
+     if ( pfont ) {
+ 	delete pfont;
+@@ -1493,9 +1514,9 @@
+             updateBrush();
+         XSetRegion( dpy, gc_brush, rgn.handle() );
+ 
+-#ifndef QT_NO_XRENDER
++#ifndef QT_NO_XFTFREETYPE
+         if (rendhd)
+-            XRenderSetPictureClipRegion(dpy, rendhd, rgn.handle());
++            XftDrawSetClip ((XftDraw *) rendhd, rgn.handle());
+ #endif // QT_NO_XRENDER
+ 
+     } else {
+@@ -1503,21 +1524,18 @@
+             XSetRegion( dpy, gc, paintEventClipRegion->handle() );
+             XSetRegion( dpy, gc_brush, paintEventClipRegion->handle() );
+ 
+-#ifndef QT_NO_XRENDER
++#ifndef QT_NO_XFTFREETYPE
+             if (rendhd)
+-                XRenderSetPictureClipRegion(dpy, rendhd, paintEventClipRegion->handle());
++		XftDrawSetClip ((XftDraw *) rendhd, paintEventClipRegion->handle());
+ #endif // QT_NO_XRENDER
+ 
+         } else {
+             XSetClipMask( dpy, gc, None );
+             XSetClipMask( dpy, gc_brush, None );
+ 
+-#ifndef QT_NO_XRENDER
+-            if (rendhd) {
+-                XRenderPictureAttributes pattr;
+-                pattr.clip_mask = None;
+-                XRenderChangePicture(dpy, rendhd, CPClipMask, &pattr);
+-            }
++#ifndef QT_NO_XFTFREETYPE
++            if (rendhd)
++		XftDrawSetClip ((XftDraw *) rendhd, 0);
+ #endif // QT_NO_XRENDER
+ 
+         }
+@@ -2722,10 +2740,13 @@
+ #ifndef QT_NO_XRENDER
+ 	QPixmap *alpha = pixmap.data->alphapm;
+ 
+-	if ( rendhd && pixmap.x11RenderHandle() &&
+-	     alpha && alpha->x11RenderHandle()) {
+-	    XRenderComposite(dpy, PictOpOver, pixmap.x11RenderHandle(),
+-			     alpha->x11RenderHandle(), rendhd,
++	Picture rend_pict;
++	if (rendhd && (rend_pict = XftDrawPicture ((XftDraw *) rendhd)) &&
++	    pixmap.x11RenderHandle() && 
++	    alpha && alpha->x11RenderHandle())
++	{
++	    XRenderComposite(dpy, PictOpOver, pixmap.x11RenderHandle (),
++			     alpha->x11RenderHandle(), rend_pict,
+ 			     sx, sy, sx, sy, x, y, sw, sh);
+ 	} else
+ #endif // QT_NO_XRENDER
+@@ -2835,7 +2856,11 @@
+ #ifndef QT_NO_XRENDER
+ 	QPixmap *alpha = pixmap.data->alphapm;
+ 
+-        if (rendhd && pixmap.x11RenderHandle() && alpha && alpha->x11RenderHandle()) {
++	Picture rend_pict;
++	if (rendhd && (rend_pict = XftDrawPicture ((XftDraw *) rendhd)) &&
++	    pixmap.x11RenderHandle() && 
++	    alpha && alpha->x11RenderHandle())
++	{
+ 	    // this is essentially drawTile() from above, inlined for
+ 	    // the XRenderComposite call
+ 	    int yPos, xPos, drawH, drawW, yOff, xOff;
+@@ -2851,8 +2876,9 @@
+ 		    drawW = pixmap.width() - xOff; // Cropping first column
+ 		    if ( xPos + drawW > x + w )    // Cropping last column
+ 			drawW = x + w - xPos;
+-		    XRenderComposite(dpy, PictOpOver, pixmap.x11RenderHandle(),
+-				     alpha->x11RenderHandle(), rendhd,
++		    XRenderComposite(dpy, PictOpOver, 
++				     pixmap.x11RenderHandle (),
++				     alpha->x11RenderHandle (), rend_pict,
+ 				     xOff, yOff, xOff, yOff, xPos, yPos, drawW, drawH);
+ 		    xPos += drawW;
+ 		    xOff = 0;
+diff -uNbr qt-x11-free-3.0.5/src/kernel/qpixmap_x11.cpp qt-x11-free-3.0.5-new/src/kernel/qpixmap_x11.cpp
+--- qt-x11-free-3.0.5/src/kernel/qpixmap_x11.cpp	Mon Jul  8 06:26:55 2002
++++ qt-x11-free-3.0.5-new/src/kernel/qpixmap_x11.cpp	Sat Oct 12 00:49:35 2002
+@@ -334,29 +334,15 @@
+     hd = (HANDLE)XCreatePixmap( x11Display(), RootWindow(x11Display(), x11Screen() ),
+ 				w, h, data->d );
+ 
+-#ifndef QT_NO_XRENDER
+-    if (qt_use_xrender) {
+-	XRenderPictFormat *format = 0;
+-	XRenderPictFormat req;
+-	ulong mask = PictFormatType | PictFormatDepth;
+-
+-	req.type = PictTypeDirect;
+-	req.depth = data->d;
+-
++#ifndef QT_NO_XFTFREETYPE
+ 	if (data->d == 1) {
+-	    req.direct.alpha = 0;
+-	    req.direct.alphaMask = 1;
+-	    mask |= PictFormatAlpha | PictFormatAlphaMask;
++	rendhd = (HANDLE) XftDrawCreateBitmap (x11Display(), hd);
+ 	} else {
+-	    format = XRenderFindVisualFormat(x11Display(), (Visual *) x11Visual());
+-	}
+-
+-	if (! format)
+-	    format = XRenderFindFormat(x11Display(), mask, &req, 0);
+-	if (format)
+-	    rendhd = XRenderCreatePicture(x11Display(), hd, format, 0, 0);
++	rendhd = (HANDLE) XftDrawCreate (x11Display(), hd, 
++					 (Visual *) x11Visual(),
++					 x11Colormap());
+     }
+-#endif // QT_NO_XRENDER
++#endif // QT_NO_XFTFREETYPE
+ 
+ }
+ 
+@@ -372,12 +358,12 @@
+ 	    XFreeGC( x11Display(), (GC)data->maskgc );
+ 	if ( qApp && hd) {
+ 
+-#ifndef QT_NO_XRENDER
++#ifndef QT_NO_XFTFREETYPE
+ 	    if (rendhd) {
+-		XRenderFreePicture(x11Display(), rendhd);
++		XftDrawDestroy((XftDraw *) rendhd);
+ 		rendhd = 0;
+ 	    }
+-#endif // QT_NO_XRENDER
++#endif // QT_NO_XFTFREETYPE
+ 
+ 	    XFreePixmap( x11Display(), hd );
+ 	    hd = 0;
+@@ -416,22 +402,8 @@
+ 					RootWindow(x11Display(), x11Screen() ),
+ 					(char *)bits, w, h );
+ 
+-#ifndef QT_NO_XRENDER
+-    if (qt_use_xrender) {
+-	XRenderPictFormat *format;
+-	XRenderPictFormat req;
+-
+-	req.type = PictTypeDirect;
+-	req.depth = 1;
+-	req.direct.alpha = 0;
+-	req.direct.alphaMask = 1;
+-	format = XRenderFindFormat(x11Display(),
+-				   (PictFormatType | PictFormatDepth |
+-				    PictFormatAlpha | PictFormatAlphaMask),
+-				   &req, 0);
+-	if (format)
+-	    rendhd = (HANDLE) XRenderCreatePicture(x11Display(), hd, format, 0, 0);
+-    }
++#ifndef QT_NO_XFTFREETYPE
++    rendhd = (HANDLE) XftDrawCreateBitmap (x11Display (), hd);
+ #endif // QT_NO_XRENDER
+ 
+     if ( flipped_bits )				// Avoid purify complaint
+@@ -1015,12 +987,12 @@
+     if ( d == 1 ) {				// 1 bit pixmap (bitmap)
+ 	if ( hd ) {				// delete old X pixmap
+ 
+-#ifndef QT_NO_XRENDER
++#ifndef QT_NO_XFTFREETYPE
+ 	    if (rendhd) {
+-		XRenderFreePicture(x11Display(), rendhd);
++		XftDrawDestroy ((XftDraw *) rendhd);
+ 		rendhd = 0;
+ 	    }
+-#endif // QT_NO_XRENDER
++#endif // QT_NO_XFTFREETYPE
+ 
+ 	    XFreePixmap( x11Display(), hd );
+ 	}
+@@ -1069,23 +1041,9 @@
+ 					    RootWindow(x11Display(), x11Screen() ),
+ 					    bits, w, h );
+ 
+-#ifndef QT_NO_XRENDER
+-	if (qt_use_xrender) {
+-	    XRenderPictFormat *format;
+-	    XRenderPictFormat req;
+-
+-	    req.type = PictTypeDirect;
+-	    req.depth = 1;
+-	    req.direct.alpha = 0;
+-	    req.direct.alphaMask = 1;
+-	    format = XRenderFindFormat(x11Display(),
+-				       (PictFormatType | PictFormatDepth |
+-					PictFormatAlpha | PictFormatAlphaMask),
+-				       &req, 0);
+-	    if (format)
+-		rendhd = (HANDLE) XRenderCreatePicture(x11Display(), hd, format, 0, 0);
+-	}
+-#endif // QT_NO_XRENDER
++#ifndef QT_NO_XFTFREETYPE
++	rendhd = (HANDLE) XftDrawCreateBitmap (x11Display (), hd);
++#endif // QT_NO_XFTFREETYPE
+ 
+ 	if ( tmp_bits )				// Avoid purify complaint
+ 	    delete [] tmp_bits;
+@@ -1486,12 +1444,12 @@
+ 
+     if ( hd && (width() != w || height() != h || this->depth() != dd) ) {
+ 
+-#ifndef QT_NO_XRENDER
++#ifndef QT_NO_XFTFREETYPE
+ 	if (rendhd) {
+-	    XRenderFreePicture(x11Display(), rendhd);
++	    XftDrawDestroy ((XftDraw *) rendhd);
+ 	    rendhd = 0;
+ 	}
+-#endif // QT_NO_XRENDER
++#endif // QT_NO_XFTFREETYPE
+ 
+ 	XFreePixmap( dpy, hd );			// don't reuse old pixmap
+ 	hd = 0;
+@@ -1501,29 +1459,13 @@
+ 				    RootWindow(x11Display(), x11Screen() ),
+ 				    w, h, dd );
+ 
+-#ifndef QT_NO_XRENDER
+-	if (qt_use_xrender) {
+-	    XRenderPictFormat *format = 0;
+-	    XRenderPictFormat req;
+-	    ulong mask = PictFormatType | PictFormatDepth;
+-
+-	    req.type = PictTypeDirect;
+-	    req.depth = data->d;
+-
+-	    if (data->d == 1) {
+-		req.direct.alpha = 0;
+-		req.direct.alphaMask = 1;
+-		mask |= PictFormatAlpha | PictFormatAlphaMask;
+-	    } else {
+-		format = XRenderFindVisualFormat(x11Display(), (Visual *) x11Visual());
+-	    }
+-
+-	    if (! format)
+-		format = XRenderFindFormat(x11Display(), mask, &req, 0);
+-	    if (format)
+-		rendhd = XRenderCreatePicture(x11Display(), hd, format, 0, 0);
+-	}
+-#endif // QT_NO_XRENDER
++#ifndef QT_NO_XFTFREETYPE
++	if (data->d == 1)
++	    rendhd = (HANDLE) XftDrawCreateBitmap (x11Display (), hd);
++	else
++	    rendhd = (HANDLE) XftDrawCreate (x11Display (), hd,
++					     (Visual *) x11Visual (), x11Colormap ());
++#endif // QT_NO_XFTFREETYPE
+ 
+     }
+ 
+@@ -1545,6 +1487,7 @@
+ 	m = img.createAlphaMask( conversion_flags );
+ 	setMask( m );
+ 
++#ifdef QT_XFT2
+ #ifndef QT_NO_XRENDER
+ 	// ### only support 32bit images at the moment
+ 	if (qt_use_xrender && img.depth() == 32) {
+@@ -1560,16 +1503,9 @@
+ 		XCreatePixmap(x11Display(), RootWindow(x11Display(), x11Screen()),
+ 			      w, h, 8);
+ 
+-	    XRenderPictFormat *format = 0;
+-	    XRenderPictFormat req;
+-	    ulong mask = PictFormatType | PictFormatDepth | PictFormatAlphaMask;
+-	    req.type = PictTypeDirect;
+-	    req.depth = 8;
+-	    req.direct.alphaMask = 0xff;
+-	    format = XRenderFindFormat(x11Display(), mask, &req, 0);
+-	    if (format)
+-		data->alphapm->rendhd =
+-		    XRenderCreatePicture(x11Display(), data->alphapm->hd, format, 0, 0);
++	    data->alphapm->rendhd = (HANDLE) XftDrawCreateAlpha (x11Display (),
++								 data->alphapm->hd,
++								 8);
+ 
+ 	    XImage *axi = XCreateImage(x11Display(), (Visual *) x11Visual(),
+ 				       8, ZPixmap, 0, 0, w, h, 8, 0);
+@@ -1592,6 +1528,7 @@
+ 	    }
+ 	}
+ #endif // QT_NO_XRENDER
++#endif
+     }
+ 
+     return TRUE;
+@@ -1841,6 +1778,7 @@
+ 	if ( data->mask ) // xform mask, too
+ 	    pm.setMask( data->mask->xForm(matrix) );
+ 
++#ifdef QT_XFT2
+ #ifndef QT_NO_XRENDER
+ 	if ( qt_use_xrender && data->alphapm ) { // xform the alpha channel
+ 	    XImage *axi = 0;
+@@ -1874,17 +1812,9 @@
+ 				      RootWindow(x11Display(), x11Screen()),
+ 				      w, h, 8);
+ 
+-		    XRenderPictFormat *format = 0;
+-		    XRenderPictFormat req;
+-		    ulong mask = PictFormatType | PictFormatDepth | PictFormatAlphaMask;
+-		    req.type = PictTypeDirect;
+-		    req.depth = 8;
+-		    req.direct.alphaMask = 0xff;
+-		    format = XRenderFindFormat(x11Display(), mask, &req, 0);
+-		    if (format)
+-			pm.data->alphapm->rendhd =
+-			    XRenderCreatePicture(x11Display(), pm.data->alphapm->hd,
+-						 format, 0, 0);
++		    pm.data->alphapm->rendhd = (HANDLE) XftDrawCreateAlpha(x11Display(),
++									   pm.data->alphapm->hd,
++									   8);
+ 
+ 		    XImage *axi2 = XCreateImage(x11Display(), (Visual *) x11Visual(),
+ 						8, ZPixmap, 0, (char *)dptr, w, h, 8, 0);
+@@ -1901,6 +1831,7 @@
+ 	    }
+ 	}
+ #endif
++#endif
+ 
+ 	return pm;
+     }
+@@ -2011,18 +1942,10 @@
+ 	    XCreatePixmap(dst->x11Display(),
+ 			  RootWindow(dst->x11Display(), dst->x11Screen()),
+ 			  dst->width(), dst->height(), 8);
+-
+-	XRenderPictFormat *format = 0;
+-	XRenderPictFormat req;
+-	ulong mask = PictFormatType | PictFormatDepth | PictFormatAlphaMask;
+-	req.type = PictTypeDirect;
+-	req.depth = 8;
+-	req.direct.alphaMask = 0xff;
+-	format = XRenderFindFormat(dst->x11Display(), mask, &req, 0);
+-	if (format)
+ 	    dst->data->alphapm->rendhd =
+-		XRenderCreatePicture(dst->x11Display(), dst->data->alphapm->hd,
+-				     format, 0, 0);
++	    (unsigned long) XftDrawCreateAlpha (dst->x11Display(),
++					 dst->data->alphapm->hd,
++					 8);
+     }
+ 
+     if (sw < 0)
+diff -uNbr qt-x11-free-3.0.5/src/kernel/qprocess_unix.cpp qt-x11-free-3.0.5-new/src/kernel/qprocess_unix.cpp
+--- qt-x11-free-3.0.5/src/kernel/qprocess_unix.cpp	Mon Jul  8 06:26:56 2002
++++ qt-x11-free-3.0.5-new/src/kernel/qprocess_unix.cpp	Sat Oct 12 00:44:47 2002
+@@ -767,7 +767,7 @@
+ 	} else { // start process with environment settins as specified in env
+ 	    // construct the environment for exec
+ 	    int numEntries = env->count();
+-#ifdef Q_OS_MACX
++#if defined(Q_OS_MACX) || defined(Q_OS_DARWIN)
+ 	    QString ld_library_path("DYLD_LIBRARY_PATH");
+ #else
+ 	    QString ld_library_path("LD_LIBRARY_PATH");
+diff -uNbr qt-x11-free-3.0.5/src/kernel/qpsprinter.cpp qt-x11-free-3.0.5-new/src/kernel/qpsprinter.cpp
+--- qt-x11-free-3.0.5/src/kernel/qpsprinter.cpp	Mon Jul  8 06:26:55 2002
++++ qt-x11-free-3.0.5-new/src/kernel/qpsprinter.cpp	Sat Oct 12 00:48:26 2002
+@@ -4969,10 +4969,16 @@
+     { "MunhwaHoonMin-Regular-KSC-EUC-H", 0.2, 100. }
+ };
+ 
++static const psfont BaekmukGulim [] = {
++    { "Baekmuk-Gulim-KSC-EUC-H", 0, 100. },
++    { "Baekmuk-Gulim-KSC-EUC-H", 0.2, 100. },
++    { "Baekmuk-Gulim-KSC-EUC-H", 0, 100. },
++    { "Baekmuk-Gulim-KSC-EUC-H", 0.2, 100. }
++};
+ 
+ 
+ static const psfont * const KoreanReplacements[] = {
+-    SMGothic, Munhwa, MunhwaGothic, MKai, MunhwaGungSeo, MunhwaGungSeoHeulim, 
++    BaekmukGulim, SMGothic, Munhwa, MunhwaGothic, MKai, MunhwaGungSeo, MunhwaGungSeoHeulim, 
+     MunhwaHoonMin, Helvetica, 0
+         };
+ 
+@@ -4985,7 +4991,7 @@
+ 
+ QPSPrinterFontKorean::QPSPrinterFontKorean(const QFont& f)
+ {
+-    codec = QTextCodec::codecForMib( 36 ); // ksc5601.1987-0
++    codec = QTextCodec::codecForMib( 38 ); // ksc5601.1987-0
+     int type = getPsFontType( f );
+     psname = makePSFontName( f, type );
+     QString best = "[ /" + psname + " 1.0 0.0 ]";
+@@ -5002,9 +5008,9 @@
+ // Arphic Public License Big5 TrueType fonts (on Debian and CLE and others)
+ static const psfont ShanHeiSun [] = {
+     { "ShanHeiSun-Light-ETen-B5-H", 0, 100. },
+-    { "ShanHeiSun-Light-Italic-ETen-B5-H", 0.2, 100. },
+-    { "ShanHeiSun-Light-Bold-ETen-B5-H", 0, 100. },
+-    { "ShanHeiSun-Light-BoldItalic-ETen-B5-H", 0.2, 100. },
++    { "ShanHeiSun-Light-ETen-B5-H", 0.2, 100. },
++    { "ShanHeiSun-Light-ETen-B5-H", 0, 100. },
++    { "ShanHeiSun-Light-ETen-B5-H", 0.2, 100. },
+ };
+ static const psfont ZenKai [] = {
+     { "ZenKai-Medium-ETen-B5-H", 0, 100. },
+@@ -5124,7 +5130,7 @@
+ 
+ QPSPrinterFontTraditionalChinese::QPSPrinterFontTraditionalChinese(const QFont& f)
+ {
+-    codec = QTextCodec::codecForMib( -2026 ); // Big5-0
++    codec = QTextCodec::codecForMib( 2026 ); // Big5-0
+     int type = getPsFontType( f );
+     psname = makePSFontName( f, type );
+     QString best = "[ /" + psname + " 1.0 0.0 ]";
+@@ -5149,12 +5155,11 @@
+ };
+ #endif
+ 
+-// GB18030 fonts on Turbolinux
+ static const psfont SongGBK2K [] = {
+-    { "MSung-Light-GBK2K-H", 0, 100. },
+-    { "MSung-Italic-GBK2K-H", 0, 100. },
+-    { "MSung-Bold-GBK2K-H", 0, 100. },
+-    { "MSung-BoldItalic-GBK2K-H", 0, 100. },
++    { "MSungGBK-Light-GBK2K-H", 0, 100. },
++    { "MSungGBK-Light-GBK2K-H", 0, 100. },
++    { "MSungGBK-Light-GBK2K-H", 0, 100. },
++    { "MSungGBK-Light-GBK2K-H", 0, 100. },
+ };
+ static const psfont KaiGBK2K [] = {
+     { "MKai-Medium-GBK2K-H", 0, 100. },
+@@ -5239,7 +5244,7 @@
+ 
+ QPSPrinterFontSimplifiedChinese::QPSPrinterFontSimplifiedChinese(const QFont& f)
+ {
+-    codec = QTextCodec::codecForMib( 2025 ); // gbk
++    codec = QTextCodec::codecForMib( -2025 ); // gbk
+     int type = getPsFontType( f );
+     psname = makePSFontName( f, type );
+     QString best = "[ /" + psname + " 1.0 0.0 ]";
+@@ -5345,7 +5350,7 @@
+ 
+ 	    case 57: // GB 2312-1980
+ 	    case 2025: // GBK
+-	    case -2500: // GB18030
++	    case -2025: // GB18030
+ 	    case 2026: // Big5
+ 		break;
+ 
+diff -uNbr qt-x11-free-3.0.5/src/kernel/qt_x11.h qt-x11-free-3.0.5-new/src/kernel/qt_x11.h
+--- qt-x11-free-3.0.5/src/kernel/qt_x11.h	Mon Jul  8 06:27:01 2002
++++ qt-x11-free-3.0.5-new/src/kernel/qt_x11.h	Sat Oct 12 00:49:35 2002
+@@ -138,17 +138,14 @@
+ // #define QT_NO_XRENDER
+ #ifndef QT_NO_XRENDER
+ #  include <X11/extensions/Xrender.h>
+-// #define QT_NO_XFTFREETYPE
+-#  ifndef QT_NO_XFTFREETYPE
+-#    include <X11/Xft/XftFreetype.h>
+-#  endif // QT_NO_XFTFREETYPE
+-#else
+-// make sure QT_NO_XFTTREETYPE is defined if QT_NO_XRENDER is defined
+-#  ifndef QT_NO_XFTFREETYPE
+-#    define QT_NO_XFTFREETYPE
+-#  endif
+-#endif // QT_NO_XRENDER
++#endif
+ 
++#ifndef QT_NO_XFTFREETYPE
++#  include <X11/Xft/Xft.h>
++#if defined(XFT_VERSION) && XFT_VERSION >= 20000
++#define QT_XFT2
++#endif
++#endif // QT_NO_XFTFREETYPE
+ 
+ #ifndef QT_NO_XKB
+ #  include <X11/XKBlib.h>
+diff -uNbr qt-x11-free-3.0.5/src/kernel/qwidget_x11.cpp qt-x11-free-3.0.5-new/src/kernel/qwidget_x11.cpp
+--- qt-x11-free-3.0.5/src/kernel/qwidget_x11.cpp	Mon Jul  8 06:27:01 2002
++++ qt-x11-free-3.0.5-new/src/kernel/qwidget_x11.cpp	Sat Oct 12 00:49:35 2002
+@@ -321,18 +321,14 @@
+ 	setWinId( id );				// set widget id/handle + hd
+     }
+ 
+-#ifndef QT_NO_XRENDER
++#ifndef QT_NO_XFTFREETYPE
+     if (rendhd) {
+-	XRenderFreePicture(dpy, rendhd);
++	XftDrawDestroy ((XftDraw *) rendhd);
+ 	rendhd = 0;
+     }
+ 
+-    if (qt_use_xrender) {
+-	XRenderPictFormat *format = XRenderFindVisualFormat(dpy, (Visual *) x11Visual());
+-	if (format)
+-	    rendhd = XRenderCreatePicture(dpy, id, format, 0, 0);
+-    }
+-#endif // QT_NO_XRENDER
++    rendhd = (HANDLE) XftDrawCreate (dpy, id, (Visual *) x11Visual (), x11Colormap ());
++#endif // QT_NO_XFTFREETYPE
+ 
+     // NET window types
+     long net_wintypes[4] = { 0, 0, 0, 0 };
+@@ -597,7 +593,7 @@
+ 
+ #ifndef QT_NO_XRENDER
+ 	if (rendhd) {
+-	    XRenderFreePicture(x11Display(), rendhd);
++	    XftDrawDestroy ((XftDraw *) rendhd);
+ 	    rendhd = 0;
+ 	}
+ #endif // QT_NO_XRENDER
+diff -uNbr qt-x11-free-3.0.5/src/tools/qdir_unix.cpp qt-x11-free-3.0.5-new/src/tools/qdir_unix.cpp
+--- qt-x11-free-3.0.5/src/tools/qdir_unix.cpp	Mon Jul  8 06:26:44 2002
++++ qt-x11-free-3.0.5-new/src/tools/qdir_unix.cpp	Sat Oct 12 00:44:47 2002
+@@ -82,7 +82,7 @@
+ 
+ bool QDir::mkdir( const QString &dirName, bool acceptAbsPath ) const
+ {
+-#ifdef Q_OS_MACX  // Mac X doesn't support trailing /'s
++#if defined(Q_OS_MACX) || defined(Q_OS_DARWIN)  // Mac X doesn't support trailing /'s
+     QString name = dirName;
+     if (dirName[dirName.length() - 1] == "/")
+ 	name = dirName.left( dirName.length() - 1 );
+diff -uNbr qt-x11-free-3.0.5/src/tools/qglobal.h qt-x11-free-3.0.5-new/src/tools/qglobal.h
+--- qt-x11-free-3.0.5/src/tools/qglobal.h	Mon Jul  8 06:26:43 2002
++++ qt-x11-free-3.0.5-new/src/tools/qglobal.h	Sat Oct 12 00:44:47 2002
+@@ -79,7 +79,7 @@
+ */
+ 
+ #if defined(__APPLE__) && defined(__GNUC__)
+-#  define Q_OS_MACX
++#  define Q_OS_FREEBSD
+ #elif defined(__MACOSX__)
+ #  define Q_OS_MACX
+ #elif defined(macintosh)
+diff -uNbr qt-x11-free-3.0.5/src/tools/qgpluginmanager.cpp qt-x11-free-3.0.5-new/src/tools/qgpluginmanager.cpp
+--- qt-x11-free-3.0.5/src/tools/qgpluginmanager.cpp	Mon Jul  8 06:26:43 2002
++++ qt-x11-free-3.0.5-new/src/tools/qgpluginmanager.cpp	Sat Oct 12 00:48:58 2002
+@@ -330,6 +330,21 @@
+ 	// use QFileInfo::filePath() to correct backslashes to slashes
+ 	libList.append( QFileInfo( lib ).filePath() );
+     }
++
++#if defined(Q_OS_DARWIN)
++    /* do it again for .so's on Darwin */
++    filter = "so";
++    QStringList plugins = QDir(path).entryList( "*." + filter );
++    for ( QStringList::Iterator p = plugins.begin(); p != plugins.end(); ++p ) {
++	QString lib = path + "/" + *p;
++	if ( libList.contains( lib ) )
++	    continue;
++
++	libList.append( lib );
++
++    }
++#endif
++
+ }
+ 
+ const QLibrary* QGPluginManager::library( const QString& feature ) const
+@@ -501,10 +516,10 @@
+ 			     (*f).latin1(),
+ 			     (const char*) QFile::encodeName( old->library() ) );
+ 		} else {
+-		    qWarning("%s: Feature %s already defined in %s!",
++/*		    qWarning("%s: Feature %s already defined in %s!",
+ 			     (const char*) QFile::encodeName( old->library() ),
+ 			     (*f).latin1(),
+-			     (const char*) QFile::encodeName( plugin->library() ) );
++			     (const char*) QFile::encodeName( plugin->library() ) ); */
+ 		}
+ 	    }
+ 	}
+diff -uNbr qt-x11-free-3.0.5/src/tools/qiodevice.cpp qt-x11-free-3.0.5-new/src/tools/qiodevice.cpp
+--- qt-x11-free-3.0.5/src/tools/qiodevice.cpp	Mon Jul  8 06:26:42 2002
++++ qt-x11-free-3.0.5-new/src/tools/qiodevice.cpp	Sat Oct 12 00:44:47 2002
+@@ -591,7 +591,7 @@
+ 	return ba;
+     } else {
+ 	// read until we reach the end
+-	const int blocksize = 512;
++	int blocksize = 512;
+ 	int nread = 0;
+ 	QByteArray ba;
+ 	while ( !atEnd() ) {
+@@ -600,6 +600,7 @@
+ 	    if ( r < 0 )
+ 		return QByteArray();
+ 	    nread += r;
++	    blocksize *= 2;
+ 	}
+ 	ba.resize( nread );
+ 	return ba;
+diff -uNbr qt-x11-free-3.0.5/src/tools/qlibrary.cpp qt-x11-free-3.0.5-new/src/tools/qlibrary.cpp
+--- qt-x11-free-3.0.5/src/tools/qlibrary.cpp	Mon Jul  8 06:26:42 2002
++++ qt-x11-free-3.0.5-new/src/tools/qlibrary.cpp	Sat Oct 12 00:44:47 2002
+@@ -328,10 +328,12 @@
+ #if defined(Q_WS_WIN)
+     if ( filename.find( ".dll", 0, FALSE ) == -1 )
+ 	filename += ".dll";
+-#elif defined(Q_OS_MACX)
++#endif
++#if defined(Q_OS_MACX)
+     if ( filename.find( ".dylib" ) == -1 )
+ 	filename += ".dylib";
+-#else
++#endif
++#if !defined(Q_WS_WIN) && !defined(Q_OS_MACX)
+     if ( filename.find( ".so" ) == -1 ) {
+ 	const int x = filename.findRev( "/" );
+ 	if ( x != -1 ) {
+diff -uNbr qt-x11-free-3.0.5/src/tools/qmutex_unix.cpp qt-x11-free-3.0.5-new/src/tools/qmutex_unix.cpp
+--- qt-x11-free-3.0.5/src/tools/qmutex_unix.cpp	Mon Jul  8 06:26:43 2002
++++ qt-x11-free-3.0.5-new/src/tools/qmutex_unix.cpp	Sat Oct 12 00:44:47 2002
+@@ -76,7 +76,7 @@
+ 
+ // mutex types
+ #  if ((defined(PTHREAD_MUTEX_RECURSIVE) && defined(PTHREAD_MUTEX_DEFAULT)) || \
+-        defined(Q_OS_FREEBSD)) && !defined(Q_OS_UNIXWARE7)
++        defined(Q_OS_FREEBSD)) && !defined(Q_OS_UNIXWARE7) && !defined(__APPLE__)
+     // POSIX 1003.1c-1995 - We love this OS
+ #    define Q_MUTEX_SET_TYPE(a, b) pthread_mutexattr_settype((a), (b))
+ #    if defined(QT_CHECK_RANGE)
+diff -uNbr qt-x11-free-3.0.5/src/tools/qregexp.cpp qt-x11-free-3.0.5-new/src/tools/qregexp.cpp
+--- qt-x11-free-3.0.5/src/tools/qregexp.cpp	Mon Jul  8 06:26:46 2002
++++ qt-x11-free-3.0.5-new/src/tools/qregexp.cpp	Sat Oct 12 00:44:48 2002
+@@ -2113,11 +2113,7 @@
+ 	    mmInNextStack[mmNextStack[j]] = -1;
+ 
+ 	// avoid needless iteration that confuses mmMatchedLen
+-	if ( nnext == 1 && mmNextStack[0] == FinalState
+-#ifndef QT_NO_REGEXP_BACKREF
+-	     && mmSleeping.isEmpty()
+-#endif
+-	     )
++	if ( nnext == 1 && mmNextStack[0] == FinalState )
+ 	    stop = TRUE;
+ 
+ 	qSwap( mmCurStack, mmNextStack );
+diff -uNbr qt-x11-free-3.0.5/src/tools/qsettings_unix.cpp qt-x11-free-3.0.5-new/src/tools/qsettings_unix.cpp
+--- qt-x11-free-3.0.5/src/tools/qsettings_unix.cpp	Mon Jul  8 06:26:43 2002
++++ qt-x11-free-3.0.5-new/src/tools/qsettings_unix.cpp	Sat Oct 12 00:47:48 2002
+@@ -212,6 +212,11 @@
+     int fd = open( QFile::encodeName( lockfile ),
+ 		   O_RDWR | O_CREAT, S_IRUSR | S_IWUSR );
+ 
++    // checked file descriptor
++    if ( fd < 0 ) {
++        return fd;
++    }
++	 
+     struct flock fl;
+     fl.l_type = type;
+     fl.l_whence = SEEK_SET;
+@@ -230,6 +235,11 @@
+ */
+ static void closelock( int fd )
+ {
++    // check file descriptor
++    if ( fd < 0 ) {
++        return;
++    }
++	 
+     struct flock fl;
+     fl.l_type = F_UNLCK;
+     fl.l_whence = SEEK_SET;
+diff -uNbr qt-x11-free-3.0.5/src/tools/qstring.cpp qt-x11-free-3.0.5-new/src/tools/qstring.cpp
+--- qt-x11-free-3.0.5/src/tools/qstring.cpp	Mon Jul  8 06:26:46 2002
++++ qt-x11-free-3.0.5-new/src/tools/qstring.cpp	Sat Oct 12 00:44:48 2002
+@@ -12528,7 +12528,7 @@
+ QStringData* QString::makeSharedNull()
+ {
+     QString::shared_null = new QStringData;
+-#if defined( Q_OS_MAC )
++#if 1 /* defined( Q_OS_MAC ) */
+     QString *that = const_cast<QString *>(&QString::null);
+     that->d = QString::shared_null;
+ #endif
+diff -uNbr qt-x11-free-3.0.5/src/widgets/qtoolbar.cpp qt-x11-free-3.0.5-new/src/widgets/qtoolbar.cpp
+--- qt-x11-free-3.0.5/src/widgets/qtoolbar.cpp	Mon Jul  8 06:27:25 2002
++++ qt-x11-free-3.0.5-new/src/widgets/qtoolbar.cpp	Sat Oct 12 00:44:48 2002
+@@ -617,10 +617,14 @@
+ 	    hide = FALSE;
+ 	    QPoint p = w->parentWidget()->mapTo( this, w->geometry().bottomRight() );
+ 	    if ( orientation() == Horizontal ) {
+-		if ( p.x() > e->size().width()-d->extension->width()/2 )
++		if ( p.x() > ( doHide ?
++		               e->size().width()-d->extension->width()/2 :
++		               e->size().width() ) )
+ 		    hide = TRUE;
+ 	    } else {
+-		if ( p.y() > e->size().height()-d->extension->height()/2 )
++		if ( p.y() > ( doHide ?
++		               e->size().height()-d->extension->height()/2 :
++		               e->size().height() ) )
+ 		    hide = TRUE;
+ 	    }
+ 	    if ( hide && !w->isHidden() ) {
+diff -uNbr qt-x11-free-3.0.5/tools/assistant/main.cpp qt-x11-free-3.0.5-new/tools/assistant/main.cpp
+--- qt-x11-free-3.0.5/tools/assistant/main.cpp	Wed Jun 26 06:51:21 2002
++++ qt-x11-free-3.0.5-new/tools/assistant/main.cpp	Sat Oct 12 00:44:48 2002
+@@ -203,7 +203,7 @@
+     mw->raise();
+ }
+ 
+-#ifdef Q_OS_MACX
++#if defined(Q_OS_MACX) || defined(Q_OS_DARWIN)
+ #include <stdlib.h>
+ #include <qdir.h>
+ #endif
+@@ -213,7 +213,7 @@
+     QApplication a( argc, argv );
+     StdInParser *commandInput = 0;
+ 
+-#ifdef Q_OS_MACX
++#if defined(Q_OS_MACX) || defined (Q_OS_DARWIN)
+     QString qdir = QDir::cleanDirPath(QDir::currentDirPath() + QDir::separator() +
+ 				      ".." + QDir::separator());
+     setenv("QTDIR", qdir.latin1(), 0);
+diff -uNbr qt-x11-free-3.0.5/tools/designer/designer/designerapp.h qt-x11-free-3.0.5-new/tools/designer/designer/designerapp.h
+--- qt-x11-free-3.0.5/tools/designer/designer/designerapp.h	Mon Feb  4 02:25:47 2002
++++ qt-x11-free-3.0.5-new/tools/designer/designer/designerapp.h	Sat Oct 12 00:44:48 2002
+@@ -26,10 +26,9 @@
+ class QLabel;
+ 
+ #if defined(HAVE_KDE)
+-#include <kapp.h>
++#include <kapplication.h>
+ class DesignerApplication : public KApplication
+ #else
+-#include <qapplication.h>
+ class DesignerApplication : public QApplication
+ #endif
+ {
+diff -uNbr qt-x11-free-3.0.5/tools/designer/designer/main.cpp qt-x11-free-3.0.5-new/tools/designer/designer/main.cpp
+--- qt-x11-free-3.0.5/tools/designer/designer/main.cpp	Fri Oct 12 06:18:27 2001
++++ qt-x11-free-3.0.5-new/tools/designer/designer/main.cpp	Sat Oct 12 00:44:48 2002
+@@ -128,7 +128,7 @@
+ }
+ #endif
+ 
+-#ifdef Q_OS_MACX
++#if defined(Q_OS_MACX) || defined(Q_OS_DARWIN)
+ #include <stdlib.h>
+ #include <qdir.h>
+ #endif
+@@ -149,7 +149,7 @@
+     DesignerApplication a( argc, argv );
+ #endif
+ 
+-#ifdef Q_OS_MACX
++#if defined(Q_OS_MACX) || defined(Q_OS_DARWIN)
+     QString qdir = QDir::cleanDirPath(QDir::currentDirPath() + QDir::separator() + "..");
+     setenv("QTDIR", qdir, 0);
+     setenv("PATH",  qdir + QDir::separator() + "bin" + ":" + getenv("PATH"), 0);
+diff -uNbr qt-x11-free-3.0.5/tools/designer/designer/mainwindow.cpp qt-x11-free-3.0.5-new/tools/designer/designer/mainwindow.cpp
+--- qt-x11-free-3.0.5/tools/designer/designer/mainwindow.cpp	Mon Jun 10 12:25:24 2002
++++ qt-x11-free-3.0.5-new/tools/designer/designer/mainwindow.cpp	Sat Oct 12 00:44:48 2002
+@@ -100,7 +100,7 @@
+ 
+ QString assistantPath()
+ {
+-#ifdef Q_OS_MACX
++#if defined(Q_OS_MACX)
+     return QDir::cleanDirPath(QString(getenv("QTDIR")) + QDir::separator() +
+ 			      "bin" + QDir::separator() +
+ 			      "assistant.app/Contents/MacOS/assistant");
+diff -uNbr qt-x11-free-3.0.5/tools/linguist/linguist/main.cpp qt-x11-free-3.0.5-new/tools/linguist/linguist/main.cpp
+--- qt-x11-free-3.0.5/tools/linguist/linguist/main.cpp	Fri Nov 16 08:43:38 2001
++++ qt-x11-free-3.0.5-new/tools/linguist/linguist/main.cpp	Sat Oct 12 00:44:48 2002
+@@ -28,7 +28,7 @@
+ extern void qt_wait_for_window_manager( QWidget * );
+ #endif
+ 
+-#ifdef Q_OS_MACX
++#if defined(Q_OS_MACX) || defined(Q_OS_DARWIN)
+ #include <stdlib.h>
+ #include <qdir.h>
+ #endif
+@@ -38,7 +38,7 @@
+     QApplication app( argc, argv );
+     QApplication::setOverrideCursor( Qt::waitCursor );
+ 
+-#ifdef Q_OS_MACX
++#if defined(Q_OS_MACX) || defined(Q_OS_DARWIN)
+     QString qdir = QDir::cleanDirPath(QDir::currentDirPath() + QDir::separator() +
+ 				      ".." + QDir::separator());
+     setenv("QTDIR", qdir.latin1(), 0);
