@@ -1,12 +1,32 @@
 Package: libmath++
-Version: 0.0.3
-Revision: 3
-GCC: 3.1
-Source: http://distfiles.opendarwin.org/%n-%v.tar.gz
+Version: 0.0.4
+Revision: 1
+GCC: 3.3
+Source: http://www.surakware.net/pub/projects/releases/%n/%n-v.tar.gz
 Source-MD5: f7d1bd1059b9620e5e9c8e2204430d3c
 PatchScript: sed 's|@PREFIX@|%p|g' < %a/%n.patch | patch -p1
+BuildDepends: autoconf2.5, automake1.9, doxygen, libtool14
+CompileScript: <<
+#!/bin/sh -ex
+
+export WANT_AUTOMAKE="1.7"
+export WANT_AUTOCONF_2_5=1
+
+aclocal &&
+autoheader -f &&
+autoconf -f &&
+glibtoolize --automake -c -f &&
+automake -a -c -f
+
+./configure %c
+make
+pushd doc
+make api-doc
+popd
+<<
 InstallScript: <<
- make install DESTDIR=%d
+#!/bin/sh -ex
+ make install DESTDIR="%d"
  ranlib %i/lib/*.a
 <<
 SplitOff: <<
@@ -21,9 +41,6 @@ Description: C++ math library
 DescUsage: <<
 libmath++ is a template based math library, written in C++, for
 symbolic and numeric calculus applications. 
-<<
-DescPort: <<
-gcc 2.95.2 does not have sstream (although gcc3 in the dev tools does...)
 <<
 License: GPL
 Maintainer: Benjamin Reed <ranger@befunk.com>
