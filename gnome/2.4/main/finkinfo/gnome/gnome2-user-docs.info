@@ -1,16 +1,20 @@
 Package: gnome2-user-docs
 Version: 2.4.1
-Revision: 1
+Revision: 2
 Source: mirror:gnome:sources/%n/2.4/%n-%v.tar.bz2
 Source-MD5: 560d4fbb21d5f8ab5e0c79c856d60f8c
 BuildDepends: gnome-desktop (>= 2.4.0-1)
 Conflicts: gnome-user-docs (<< 2.4.0-1)
 Replaces: gnome-user-docs
 Provides: gnome-user-docs
-Patch: %n.patch
+PatchScript: perl -pi.bak -e "s/-scrollkeeper-update/#-scrollkeeper-update/g" */*/Makefile.in
 Depends: scrollkeeper (>= 0.3.11-4)
 InstallScript: make install DESTDIR=%d
-PostInstScript: scrollkeeper-update
+PostInstScript: <<
+  if [ configure = "$1" ]; then
+    scrollkeeper-update
+  fi
+<<
 PostRmScript: <<
   if [ upgrade != "$1" ]; then
     scrollkeeper-update
