@@ -1,0 +1,320 @@
+diff -Nru ORIG/libxmlsec/makefile.mk FINK/libxmlsec/makefile.mk
+--- ORIG/libxmlsec/makefile.mk	Fri Mar 11 02:48:13 2005
++++ FINK/libxmlsec/makefile.mk	Tue Mar 29 21:00:52 2005
+@@ -115,7 +115,7 @@
+ OUTDIR2INC=include$/xmlsec 
+ 
+ .IF "$(OS)"=="MACOSX"
+-OUT2LIB+=src$/.libs$/libxmlsec1.*.dylib src$/nss$/.libs$/libxmlsec1-nss.*.dylib 
++OUT2LIB+=src$/.libs$/libxmlsec1.*dylib src$/nss$/.libs$/libxmlsec1-nss.*dylib 
+ .ELIF "$(OS)"=="WNT"
+ OUT2LIB+=win32$/binaries$/*.lib
+ OUT2BIN+=win32$/binaries$/*.dll
+diff -Nru ORIG/libxmlsec/xmlsec1-1.2.6.patch FINK/libxmlsec/xmlsec1-1.2.6.patch
+--- ORIG/libxmlsec/xmlsec1-1.2.6.patch	Fri Mar 11 02:49:02 2005
++++ FINK/libxmlsec/xmlsec1-1.2.6.patch	Tue Mar 29 21:03:54 2005
+@@ -37,22 +37,22 @@
+   LIBXML_LIBS=""
+   LIBXML_FOUND="no"
+ ***************
+-*** 25683,25689 ****
++*** 25682,25688 ****
++  NSPR_MIN_VERSION="4.0"
+   NSS_CFLAGS=""
+   NSS_LIBS=""
+-  NSS_LIBS_LIST="-lnss3 -lsmime3"
+-! NSPR_LIBS_LIST="-lnspr4 -lplds4 -lplc4"
++! NSS_LIBS_LIST="-lnss3 -lsmime3"
++  NSPR_LIBS_LIST="-lnspr4 -lplds4 -lplc4"
+   NSS_CRYPTO_LIB="$PACKAGE-nss"
+   NSS_FOUND="no"
+-  
+---- 25683,25689 ----
++--- 25682,25688 ----
++  NSPR_MIN_VERSION="4.0"
+   NSS_CFLAGS=""
+   NSS_LIBS=""
+-  NSS_LIBS_LIST="-lnss3 -lsmime3"
+-! NSPR_LIBS_LIST="-lnspr4"
++! NSS_LIBS_LIST="-lnss3 -lsoftokn3 -lsmime3"
++  NSPR_LIBS_LIST="-lnspr4 -lplds4 -lplc4"
+   NSS_CRYPTO_LIB="$PACKAGE-nss"
+   NSS_FOUND="no"
+-  
+ ***************
+ *** 25817,25824 ****
+           ac_mozilla_name=mozilla-$MOZILLA_MIN_VERSION
+@@ -72,6 +72,40 @@
+   
+       echo "$as_me:$LINENO: checking for nspr libraries >= $NSPR_MIN_VERSION" >&5
+   echo $ECHO_N "checking for nspr libraries >= $NSPR_MIN_VERSION... $ECHO_C" >&6
++***************
++*** 25853,25859 ****
++  	done
++  
++  	for dir in $ac_nss_lib_dir ; do
++!     	    if test -f $dir/libnspr4.so ; then
++  		        	if test "z$dir" = "z/usr/lib" ; then
++              	    NSPR_LIBS="$NSPR_LIBS_LIST"
++      		else
++--- 25853,25859 ----
++  	done
++  
++  	for dir in $ac_nss_lib_dir ; do
++!     	    if test -f $dir/libnspr4.so -o -f $dir/libnspr4.dylib ; then
++  		        	if test "z$dir" = "z/usr/lib" ; then
++              	    NSPR_LIBS="$NSPR_LIBS_LIST"
++      		else
++***************
++*** 25939,25945 ****
++          done
++  
++          for dir in $ac_nss_lib_dir ; do
++!     	    if test -f $dir/libnss3.so ; then
++          	    		if test "z$dir" = "z/usr/lib" ; then
++          	    NSS_LIBS="$NSS_LIBS_LIST"
++                  else
++--- 25939,25945 ----
++          done
++  
++          for dir in $ac_nss_lib_dir ; do
++!     	    if test -f $dir/libnss3.so -o -f $dir/libnss3.dylib ; then
++          	    		if test "z$dir" = "z/usr/lib" ; then
++          	    NSS_LIBS="$NSS_LIBS_LIST"
++                  else
+ *** misc/xmlsec1-1.2.6/configure.in	2004-08-26 10:49:24.000000000 +0800
+ --- misc/build/xmlsec1-1.2.6/configure.in	2005-02-23 11:06:37.000000000 +0800
+ ***************
+@@ -92,22 +126,22 @@
+   LIBXML_LIBS=""
+   LIBXML_FOUND="no"
+ ***************
+-*** 508,514 ****
++*** 507,513 ****
++  NSPR_MIN_VERSION="4.0"
+   NSS_CFLAGS=""
+   NSS_LIBS=""
+-  NSS_LIBS_LIST="-lnss3 -lsmime3"
+-! NSPR_LIBS_LIST="-lnspr4 -lplds4 -lplc4"
++! NSS_LIBS_LIST="-lnss3 -lsmime3"
++  NSPR_LIBS_LIST="-lnspr4 -lplds4 -lplc4"
+   NSS_CRYPTO_LIB="$PACKAGE-nss"
+   NSS_FOUND="no"
+-  
+---- 508,514 ----
++--- 507,513 ----
++  NSPR_MIN_VERSION="4.0"
+   NSS_CFLAGS=""
+   NSS_LIBS=""
+-  NSS_LIBS_LIST="-lnss3 -lsmime3"
+-! NSPR_LIBS_LIST="-lnspr4"
++! NSS_LIBS_LIST="-lnss3 -lsoftokn3 -lsmime3"
++  NSPR_LIBS_LIST="-lnspr4 -lplds4 -lplc4"
+   NSS_CRYPTO_LIB="$PACKAGE-nss"
+   NSS_FOUND="no"
+-  
+ ***************
+ *** 534,541 ****
+           ac_mozilla_name=mozilla-$MOZILLA_MIN_VERSION
+@@ -127,6 +161,40 @@
+   
+       AC_MSG_CHECKING(for nspr libraries >= $NSPR_MIN_VERSION)
+       NSPR_INCLUDES_FOUND="no"
++***************
++*** 570,576 ****
++  	done
++  	
++  	for dir in $ac_nss_lib_dir ; do
++!     	    if test -f $dir/libnspr4.so ; then
++  		dnl do not add -L/usr/lib because compiler does it anyway
++          	if test "z$dir" = "z/usr/lib" ; then
++              	    NSPR_LIBS="$NSPR_LIBS_LIST"
++--- 570,576 ----
++  	done
++  	
++  	for dir in $ac_nss_lib_dir ; do
++!     	    if test -f $dir/libnspr4.so -o -f $dir/libnspr4.dylib ; then
++  		dnl do not add -L/usr/lib because compiler does it anyway
++          	if test "z$dir" = "z/usr/lib" ; then
++              	    NSPR_LIBS="$NSPR_LIBS_LIST"
++***************
++*** 641,647 ****
++          done
++         
++          for dir in $ac_nss_lib_dir ; do
++!     	    if test -f $dir/libnss3.so ; then
++          	dnl do not add -L/usr/lib because compiler does it anyway
++      		if test "z$dir" = "z/usr/lib" ; then
++          	    NSS_LIBS="$NSS_LIBS_LIST"
++--- 641,647 ----
++          done
++         
++          for dir in $ac_nss_lib_dir ; do
++!     	    if test -f $dir/libnss3.so -o -f $dir/libnss3.dylib ; then
++          	dnl do not add -L/usr/lib because compiler does it anyway
++      		if test "z$dir" = "z/usr/lib" ; then
++          	    NSS_LIBS="$NSS_LIBS_LIST"
+ *** misc/xmlsec1-1.2.6/include/xmlsec/mscrypto/akmngr.h	2005-02-23 11:06:57.000000000 +0800
+ --- misc/build/xmlsec1-1.2.6/include/xmlsec/mscrypto/akmngr.h	2005-02-23 11:06:37.000000000 +0800
+ ***************
+diff -Nru ORIG/sc/source/filter/excel/xeview.cxx FINK/sc/source/filter/excel/xeview.cxx
+--- ORIG/sc/source/filter/excel/xeview.cxx	Mon Feb 21 22:31:18 2005
++++ FINK/sc/source/filter/excel/xeview.cxx	Tue Mar 29 21:03:54 2005
+@@ -397,7 +397,8 @@
+ 
+ void XclExpTabViewSettings::WriteWindow2( XclExpStream& rStrm ) const
+ {
+-    XclExpWindow2( GetRoot(), maData, mnGridColorId ).Save( rStrm );
++//    XclExpWindow2( GetRoot(), maData, mnGridColorId ).Save( rStrm );
++    XclExpWindow2( *this, maData, mnGridColorId ).Save( rStrm );
+ }
+ 
+ void XclExpTabViewSettings::WriteScl( XclExpStream& rStrm ) const
+@@ -409,7 +410,7 @@
+ void XclExpTabViewSettings::WritePane( XclExpStream& rStrm ) const
+ {
+     if( maData.IsSplit() )
+-        XclExpPane( GetRoot(), maData ).Save( rStrm );
++        XclExpPane( *this, maData ).Save( rStrm );
+ }
+ 
+ void XclExpTabViewSettings::WriteSelection( XclExpStream& rStrm, sal_uInt8 nPane ) const
+diff -Nru ORIG/scp2/source/ooo/file_library_ooo.scp FINK/scp2/source/ooo/file_library_ooo.scp
+--- ORIG/scp2/source/ooo/file_library_ooo.scp	Fri Mar 18 19:32:33 2005
++++ FINK/scp2/source/ooo/file_library_ooo.scp	Tue Mar 29 21:00:52 2005
+@@ -2107,8 +2107,12 @@
+ 
+ File gid_File_Lib_LibXMLSec_xmlseccore
+     TXT_FILE_BODY;
+-	#ifdef UNX
+-        Name = STRING(CONCAT3(libxmlsec1,UNXSUFFIX,.1.2.6));
++     #ifdef UNX
++         #ifdef MACOSX
++             Name = STRING(CONCAT2(libxmlsec1,UNXSUFFIX));
++         #else
++             Name = STRING(CONCAT3(libxmlsec1,UNXSUFFIX,.1.2.6));
++         #endif
+     #else
+         Name = "libxmlsec.dll";
+     #endif
+@@ -2128,7 +2132,11 @@
+ #ifdef UNX
+ File gid_File_Lib_LibXMLSec_xmlsecnss
+     TXT_FILE_BODY;
+-    Name = STRING(CONCAT3(libxmlsec1-nss,UNXSUFFIX,.1.2.6));
++    #ifdef MACOSX
++        Name = STRING(CONCAT2(libxmlsec1-nss,UNXSUFFIX));
++    #else
++        Name = STRING(CONCAT3(libxmlsec1-nss,UNXSUFFIX,.1.2.6));
++    #endif
+     Dir = gid_Dir_Program;
+     Styles = (PACKED);
+ End
+diff -Nru ORIG/scp2/source/ooo/file_ooo.scp FINK/scp2/source/ooo/file_ooo.scp
+--- ORIG/scp2/source/ooo/file_ooo.scp	Mon Mar 21 22:46:43 2005
++++ FINK/scp2/source/ooo/file_ooo.scp	Tue Mar 29 21:03:54 2005
+@@ -190,11 +190,7 @@
+         BIN_FILE_BODY;
+         Styles          = (PACKED);
+         Dir             = gid_Dir_Program;
+- #ifdef UNX
+-        Name            = "libnpsoplugin.so";
+- #else
+-        Name            = "npsoplugin.dll";
+- #endif
++        Name            = SPECIAL_NAME(npsoplugin);
+ End
+ #endif
+ 
+diff -Nru ORIG/sndfile/makefile.mk FINK/sndfile/makefile.mk
+--- ORIG/sndfile/makefile.mk	Mon Oct 25 22:54:52 2004
++++ FINK/sndfile/makefile.mk	Tue Mar 29 21:03:54 2005
+@@ -81,7 +81,7 @@
+ CONFIGURE_DIR=
+ 
+ CONFIGURE_ACTION=./configure --with-pic
+-.IF "$(COM)" == "GCC"
++.IF "$(COM)" == "GCC" && "$(OS)" != "MACOSX"
+ CONFIGURE_FLAGS=LDFLAGS=-Wl,-noinhibit-exec
+ .ENDIF
+ 
+diff -Nru ORIG/soltools/HIDCompiler/makefile.mk FINK/soltools/HIDCompiler/makefile.mk
+--- ORIG/soltools/HIDCompiler/makefile.mk	Fri Nov  5 22:48:26 2004
++++ FINK/soltools/HIDCompiler/makefile.mk	Tue Mar 29 21:03:54 2005
+@@ -65,7 +65,10 @@
+ TARGET=hidc
+ TARGETTYPE=CUI
+ LIBTARGET=no
++.IF "$(OS)" != "MACOSX"
+ NO_DEFAULT_STL=TRUE
++.ENDIF
++
+ # --- Settings -----------------------------------------------------
+ 
+ .INCLUDE : $(PRJ)$/util$/makefile.pmk
+diff -Nru ORIG/transex3/source/makefile.mk FINK/transex3/source/makefile.mk
+--- ORIG/transex3/source/makefile.mk	Wed Mar 16 19:28:22 2005
++++ FINK/transex3/source/makefile.mk	Tue Mar 29 21:03:54 2005
+@@ -126,7 +126,7 @@
+ 
+ .IF "$(OS)"=="MACOSX"
+ # static libs at end for OS X
+-APP1STDLIBS+= $(BTSTRPLIB)
++APP1STDLIBS+= $(BTSTRPLIB) $(BOOTSTRP2)
+ .ENDIF
+ 
+ APP1LIBS+=	$(LB)$/$(PRJNAME).lib
+@@ -235,7 +235,7 @@
+ 
+ .IF "$(OS)"=="MACOSX"
+ # static libs at end for OS X
+-APP9STDLIBS+= $(BTSTRPLIB)
++APP9STDLIBS+= $(BTSTRPLIB) $(BOOTSTRP2)
+ .ENDIF
+ 
+ DEPOBJFILES=$(APP1OBJS) $(APP2OBJS) $(APP3OBJS) $(APP4OBJS) $(APP5OBJS) $(APP6OBJS) $(APP7OBJS) $(APP8OBJS) $(APP9OBJS)
+diff -Nru ORIG/vcl/source/app/svdata.cxx FINK/vcl/source/app/svdata.cxx
+--- ORIG/vcl/source/app/svdata.cxx	Sat Mar 19 02:51:00 2005
++++ FINK/vcl/source/app/svdata.cxx	Tue Mar 29 21:03:54 2005
+@@ -190,6 +190,8 @@
+ 
+ void ImplInitSVData()
+ {
++  if (!pImplSVData)
++    pImplSVData = &private_aImplSVData::get();
+     ImplSVData* pSVData = pImplSVData;
+     ImplSVData** ppSVData = (ImplSVData**)GetAppData( SHL_SV );
+     *ppSVData = &private_aImplSVData::get();
+diff -Nru ORIG/vcl/source/control/button.cxx FINK/vcl/source/control/button.cxx
+--- ORIG/vcl/source/control/button.cxx	Sat Mar 19 02:51:14 2005
++++ FINK/vcl/source/control/button.cxx	Tue Mar 29 21:03:54 2005
+@@ -3089,7 +3089,7 @@
+     if( pThis->IsNativeControlSupported( CTRL_RADIOBUTTON, PART_ENTIRE_CONTROL ) )
+     {
+         ImplControlValue aControlValue;
+-        Region			 aCtrlRegion( Rectangle( Point( 0, 0 ), GetSizePixel() ) );
++        Region	 aCtrlRegion= Region( Rectangle( Point( 0, 0 ), GetSizePixel() ) );
+         ControlState	 nState = CTRL_STATE_DEFAULT|CTRL_STATE_ENABLED;
+         Region aBoundingRgn, aContentRgn;
+         
+@@ -3907,7 +3907,7 @@
+     if( pThis->IsNativeControlSupported( CTRL_CHECKBOX, PART_ENTIRE_CONTROL ) )
+     {
+         ImplControlValue aControlValue;
+-        Region			 aCtrlRegion( Rectangle( Point( 0, 0 ), GetSizePixel() ) );
++        Region	 aCtrlRegion= Region( Rectangle( Point( 0, 0 ), GetSizePixel() ) );
+         ControlState	 nState = CTRL_STATE_DEFAULT|CTRL_STATE_ENABLED;
+         Region aBoundingRgn, aContentRgn;
+         
+diff -Nru ORIG/vcl/unx/gtk/window/gtkframe.cxx FINK/vcl/unx/gtk/window/gtkframe.cxx
+--- ORIG/vcl/unx/gtk/window/gtkframe.cxx	Sat Mar 19 02:53:32 2005
++++ FINK/vcl/unx/gtk/window/gtkframe.cxx	Tue Mar 29 21:03:54 2005
+@@ -726,7 +726,7 @@
+     
+     for( nIndex = 0; nIndex < sizeof(nOffsets)/ sizeof(USHORT); nIndex++ )
+     {
+-        BitmapEx aIcon( ResId(nOffsets[nIndex] + nIcon, ImplGetResMgr()));
++        BitmapEx aIcon = BitmapEx( ResId(nOffsets[nIndex] + nIcon,ImplGetResMgr()));
+ 
+         ImpBitmap *pIconImpBitmap = aIcon.ImplGetBitmapImpBitmap();
+         ImpBitmap *pIconImpMask   = aIcon.ImplGetMaskImpBitmap();
