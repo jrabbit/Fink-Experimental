@@ -1,0 +1,30 @@
+--- qt-x11-free-3.1.1/config.tests/x11/xfreetype.test~	Wed Nov 13 10:52:27 2002
++++ qt-x11-free-3.1.1/config.tests/x11/xfreetype.test	Sat Jan  4 15:19:13 2003
+@@ -36,6 +36,7 @@
+ XDIRS=`sed -n -e '/^QMAKE_LIBDIR_X11[	]*=/ { s/[^=]*=[	 ]*//; s/-L/ /g; p; }' $XCONFIG`
+ LIBDIRS="$IN_LIBDIRS $XDIRS /usr/shlib /usr/lib /lib"
+ F=
++FC=""
+ for LIBDIR in $LIBDIRS; do
+     LIBS="Xft2 Xft"
+     for LIB in $LIBS; do
+@@ -43,6 +44,10 @@
+ 	if [ ! -z "$FOUND_LIB" ]; then
+ 	    F="$LIB"
+  	    [ "$VERBOSE" = "yes" ] && echo "  Found lib$LIB in $LIBDIR"
++	    FOUND_LIB=`ls ${LIBDIR}/libfontconfig.* 2>/dev/null`
++	    if [ ! -z "$FOUND_LIB" ]; then
++		FC="-lfontconfig"
++	    fi
+ 	    break
+ 	fi
+     done
+@@ -52,7 +57,7 @@
+     XFREETYPE=no
+     [ "$VERBOSE" = "yes" ] && echo "  Could not find Xft lib anywhere in $LIBDIRS"
+ fi
+-LIBXFT="-l$F -lfreetype"
++LIBXFT="-l$F $FC -lfreetype"
+     
+ # check for X11/Xft/Xft.h
+ XFT_H=
