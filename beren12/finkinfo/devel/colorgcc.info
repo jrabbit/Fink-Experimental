@@ -1,0 +1,64 @@
+Package: colorgcc
+Version: 1.3.2
+Revision: 1
+Source: http://www.mindspring.com/~jamoyers/software/%n/%n-%v.tar.gz
+Source-MD5: 7d62f92ab99c8271c79c40a0a470e8f7
+Patch: %n.patch
+CompileScript: mv debian/changelog debian/changelog.Debian
+
+InstallScript: <<
+  mkdir -p %i/etc/colorgcc
+  mkdir -p %i/bin
+
+  install -m 644 -o root colorgccrc %i/etc/colorgcc
+  install -m 755 -o root colorgcc %i/bin
+
+  mkdir -p %i/share/man/man1
+  mkdir -p %i/share/man/man5
+
+  install -m 644 -o root debian/colorgcc.1 %i/share/man/man1
+  install -m 644 -o root debian/colorgccrc.5 %i/share/man/man5
+<<
+
+DocFiles: COPYING ChangeLog CREDITS INSTALL debian/changelog.Debian 
+
+Description: Colorizer for GCC warning/error messages
+DescDetail: <<
+  A Perl wrapper to colorize the output of compilers with
+  warning / error messages matching the gcc output format.
+
+  More information can be found at the colorgcc web site
+  http://www.mindspring.com/~jamoyers/software/
+<<
+
+Splitoff: <<
+  Package: %N-default
+  Depends: %N
+  Conflicts: ccache-default
+  Replaces: ccache-default
+  InstallScript: <<
+    #!/bin/sh -e
+
+    mkdir -p %i/bin
+
+    for app in `echo g++ gcc c++ cc g77 gcj gnat gpc`; do
+      ln -s %p/bin/colorgcc %i/bin/$app;
+    done
+  <<
+  Description: Colorizer for GCC warning/error messages (default)
+  DescDetail: <<
+    A Perl wrapper to colorize the output of compilers with
+    warning / error messages matching the gcc output format.
+
+    This package conflicts with ccache-default. In order to
+    still use ccache with colorgcc, edit %i/etc/colorgcc/colorgccrc
+    and change the compilier links from /usr/bin/gcc to %i/bin/ccache
+
+    More information can be found at the colorgcc web site
+    http://www.mindspring.com/~jamoyers/software/
+  <<
+
+<<
+License: GPL
+Maintainer: Chris Zubrzycki <beren12@users.sourceforge.net>
+Homepage: http://www.mindspring.com/~jamoyers/software/
