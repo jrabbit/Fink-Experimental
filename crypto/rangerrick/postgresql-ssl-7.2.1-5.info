@@ -1,13 +1,14 @@
-Package: postgresql
+Package: postgresql-ssl
 Version: 7.2.1
-Revision: 4
+Revision: 5
 Source: http://www.postgresql.org/ftpsite/source/v%v/postgresql-%v.tar.gz
-BuildDepends: libxml2, gdbm, gmp, expat, tcltk-dev, ant
-Depends: readline, passwd, daemonic (>= 20010902-1), expat-shlibs, gdbm-shlibs, libxml2-shlibs, gmp-shlibs, %N-shlibs (= %v-%r)
-Conflicts: postgresql-ssl
-Replaces: postgresql-ssl
+BuildDepends: libxml2, gdbm, gmp, expat, tcltk, tcltk-dev, ant, openssl-dev
+Depends: readline, passwd, daemonic (>= 20010902-1), openssl-shlibs, expat-shlibs, gdbm-shlibs, libxml2-shlibs, gmp-shlibs, %N-shlibs (= %v-%r)
+Conflicts: postgresql
+Replaces: postgresql, postgresql-shlibs
+Provides: postgresql
 PatchScript: sed 's|@PREFIX@|%p|g' < %a/%f.patch | patch -p1
-ConfigureParams: --prefix=%p --docdir=%p/share/doc --mandir=%p/share/man --enable-multibyte --enable-recode --with-CXX --with-perl --with-python --without-openssl --with-maxbackends=128 --with-libraries=%p/lib --with-includes=%p/include --with-tcl --with-tclconfig=%p/lib --with-tkconfig=%p/lib --with-java --enable-odbc
+ConfigureParams: --prefix=%p --docdir=%p/share/doc --mandir=%p/share/man --enable-multibyte --enable-recode --with-CXX --with-perl --with-python --with-openssl=%p --with-libraries=%p/lib --with-includes=%p/include --with-tcl --with-tclconfig=%p/lib --with-tkconfig=%p/lib --with-java --enable-odbc
 CompileScript: <<
 (source %p/etc/profile.d/ant.sh; sh ./configure %c)
 (source %p/etc/profile.d/ant.sh; make)
@@ -21,45 +22,49 @@ ranlib %i/lib/*.a
 SplitOff: <<
   Description: Perl tools for PostgreSQL application and function development.
   Package: %N-perl
-  Conflicts: postgresql-ssl-perl
-  Replaces: postgresql (<< 7.2.1), postgresql-ssl-perl
-  Depends: postgresql (= %v-%r)    
+  Provides: postgresql-perl
+  Conflicts: postgresql-perl
+  Replaces: postgresql (<< 7.2.1), postgresql-perl
+  Depends: postgresql-ssl (= %v-%r)
   BuildDependsOnly: true
   Files: lib/perl5 lib/postgresql/plperl.bundle share/man/man3/Pg.3 share/doc/postgresql/html/plperl*
 <<
 SplitOff2: <<
   Description: Python tools for PostgreSQL application and function development.
   Package: %N-python
-  Conflicts: postgresql-ssl-python
-  Replaces: postgresql (<< 7.2.1), postgresql-ssl-python
-  Depends: postgresql (= %v-%r)
+  Provides: postgresql-python
+  Conflicts: postgresql-python
+  Replaces: postgresql (<< 7.2.1), postgresql-ptyhon
+  Depends: postgresql-ssl (= %v-%r)
   BuildDependsOnly: true
   Files: lib/python2.2 lib/postgresql/plpython.so share/doc/postgresql/html/plpython*
 <<
 SplitOff3: <<
   Description: TCL tools for PostgreSQL application and function development.
   Package: %N-tcl
-  Conflicts: postgresql-ssl-tcl
-  Replaces: postgresql (<< 7.2.1), postgresql-ssl-tcl
-  Depends: postgresql (= %v-%r)
-  BuildDependsOnly: true   
+  Provides: postgresql-tcl
+  Conflicts: postgresql-tcl
+  Replaces: postgresql (<< 7.2.1), postgresql-tcl
+  Depends: postgresql-ssl (= %v-%r)
+  BuildDependsOnly: true
   Files: bin/pgtclsh bin/pltcl* lib/libpgtcl* lib/postgresql/pltcl.so include/postgresql/libpgtcl.h
 <<
 SplitOff4: <<
   Description: Development headers and libraries for PostgreSQL.
   Package: %N-dev
   Depends: %N (= %v-%r)
-  Recommends: tcltk-dev, expat
-  Conflicts: postgresql-ssl-dev
-  Replaces: postgresql (<< 7.2.1), postgresql-ssl-dev
+  Recommends: openssl-dev, tcltk-dev, expat
+  Conflicts: postgresql-dev
+  Replaces: postgresql (<< 7.2.1), postgresql-dev
   BuildDependsOnly: true
   Files: bin/pg_config include lib/*.a lib/libecpg.so lib/libpgeasy.so lib/libpq++.so lib/libpq.so
 <<
 SplitOff5: <<
   Description: Shared libraries for PostgreSQL.
   Package: %N-shlibs
-  Conflicts: postgresql-ssl-shlibs
-  Replaces: postgresql (<< 7.2.1), postgresql-ssl-shlibs
+  Conflicts: postgresql-shlibs
+  Replaces: postgresql (<< 7.2.1), postgresql-shlibs
+  Provides: postgresql-shlibs
   BuildDependsOnly: true
   Files: lib/*.so lib/postgresql/plpgsql.so
 <<
