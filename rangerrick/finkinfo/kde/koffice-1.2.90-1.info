@@ -1,12 +1,12 @@
 Package: koffice
-Version: 1.2.1
-Revision: 8
+Version: 1.2.90
+Revision: 1
 Description: KDE - office suite
 License: GPL/LGPL
 Maintainer: Benjamin Reed <ranger@befunk.com>
 
-Depends: karbon (>= %v-%r), kchart (>= %v-%r), kformula (>= %v-%r), kivio (>= %v-%r), kontour (>= %v-%r), kpresenter (>= %v-%r), kspread (>= %v-%r), kugar (>= %v-%r), kword (>= %v-%r), kdebase3-ssl (>= 3.1.1-1) | kdebase3 (>= 3.1.1-1), kdelibs3-ssl (>= 3.1.1-1) | kdelibs3 (>= 3.1.1-1), %N-base (>= %v-%r)
-BuildDepends: qt3 (>= 3.1.0-1), arts-dev (>= 1.1.1-1), kdelibs3-ssl-dev (>= 3.1.1-1) | kdelibs3-dev (>= 3.1.1-1), kdebase3-ssl-dev (>= 3.1.1-1) | kdebase3-dev (>= 3.1.1-1), automake1.6, autoconf2.54, libtool14, fink (>= 0.12.0-1), python (>= 2.2.1-8) | python-nox (>= 2.2.1-8), libart2, libxml2 (>= 2.5.2-1), libxslt (>= 1.0.27-1), libvorbis0, libogg, mad, audiofile, dlcompat (>= 20021117-1),  freetype2 | freetype2-hinting, libjpeg, libpng3 (>= 1.2.5-4), libpoll (>= 1.1-1), cctools (>= 446-1)
+Depends: karbon (>= %v-%r), kchart (>= %v-%r), kformula (>= %v-%r), kivio (>= %v-%r), kpresenter (>= %v-%r), kspread (>= %v-%r), kugar (>= %v-%r), kword (>= %v-%r), kdebase3-ssl (>= 3.1.1-1) | kdebase3 (>= 3.1.1-1), kdelibs3-ssl (>= 3.1.1-1) | kdelibs3 (>= 3.1.1-1), %N-base (>= %v-%r)
+BuildDepends: arts-dev (>= 1.1.1-1), audiofile, autoconf2.54, automake1.6, cctools (>= 446-1), dlcompat-dev (>= 20021117-1), esound, fink (>= 0.12.0-1), freetype2 | freetype2-hinting, kdelibs3-ssl-dev (>= 3.1.1-1) | kdelibs3-dev (>= 3.1.1-1), kdebase3-ssl-dev (>= 3.1.1-1) | kdebase3-dev (>= 3.1.1-1), libart2, libjpeg, libogg, libpng3 (>= 1.2.5-4), libpoll (>= 1.1-1), libvorbis0, libxml2 (>= 2.5.2-1), libxslt (>= 1.0.27-1), mad, python (>= 2.2.1-8) | python-nox (>= 2.2.1-8), qt3 (>= 3.1.0-1)
 Replaces: %N-common (<< %v-%r), %N-dev (<< %v-%r)
 GCC: 3.1
 
@@ -15,10 +15,10 @@ CustomMirror: <<
   nam-CA: http://www.southofheaven.net/befunk
 <<
 # commented until release
-Source: mirror:kde:stable/%n-%v/src/%n-%v.tar.bz2
-Source-MD5: 6a73aa72b094ca7b7377f74a508e804e
-Source2: mirror:custom:kde-admindir-20030409.tar.bz2
-Source2-MD5: 8d34ba48889bfa8d983d7ab7e1fb7882
+Source: mirror:kde:unstable/%n-%v/src/%n-%v.tar.bz2
+Source-MD5: 5f08ec8a42aacd7dcaf7899d486c9885
+Source2: mirror:custom:koffice-admindir-20030425.tar.bz2
+Source2-MD5: eaaf277f4ee39dc5736464d8da78644f
 Source2ExtractDir: %n-%v
 
 PatchScript: sed 's|@PREFIX@|%p|g' <%a/%f.patch | patch -p0
@@ -28,11 +28,13 @@ SetCPPFLAGS: -no-cpp-precomp -isystem %p/include -I%p/include
 SetLIBS: -L%p/lib
 NoSetLDFLAGS: true
 SetMACOSX_DEPLOYMENT_TARGET: 10.2
-ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --enable-final
+ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --enable-final --enable-mysql --with-mysql-includes=%p/include/mysql --with-mysql-libraries=%p/lib
 CompileScript: <<
 #!/bin/sh
   export KDEDIR=%p
   mkdir -p /tmp/kde-build
+
+  perl -pi -e 's,need_relink=yes,need_relink=no,g' admin/ltmain.sh
 
   date > /tmp/kde-build/%N-%v-%r.cvs
   make -f admin/Makefile.common cvs 2>&1 | tee -a /tmp/kde-build/%N-%v-%r.cvs
@@ -57,13 +59,13 @@ InstallScript: <<
   touch %i/share/doc/kde-installed-packages/%N
   touch %i/share/doc/kde-installed-packages/%N-base
 <<
-DocFiles: AUTHORS COPYING* ChangeLog INSTALL NEWS PROFILING README
+DocFiles: AUTHORS COPYING* INSTALL README
 SplitOff: <<
   Package: koffice-dev
   Description: koffice development headers and libraries
   Depends: %N (>= %v-%r), %N-base (>= %v-%r)
   Replaces: %N-common (<< %v-%r), %N (<< 3.0.5)
-  Recommends: arts-dev (>= 1.1.1-1), kdelibs3-ssl-dev (>= 3.1.1-1) | kdelibs3-dev (>= 3.1.1-1), kdebase3-ssl-dev (>= 3.1.1-1) | kdebase3-dev (>= 3.1.1-1), qt3 (>= 3.1.0-1), libart2, libxml2 (>= 2.5.2-1), libxslt (>= 1.0.27-1), audiofile, dlcompat (>= 20021117-1),  esound (>= 0.2.28-1), freetype2 | freetype2-hinting, libjpeg, libpng3 (>= 1.2.5-4), libpoll (>= 1.1-1)
+  Recommends: arts-dev (>= 1.1.1-1), kdelibs3-ssl-dev (>= 3.1.1-1) | kdelibs3-dev (>= 3.1.1-1), kdebase3-ssl-dev (>= 3.1.1-1) | kdebase3-dev (>= 3.1.1-1), qt3 (>= 3.1.0-1), libart2, libxml2 (>= 2.5.2-1), libxslt (>= 1.0.27-1), audiofile, dlcompat-shlibs (>= 20021117-1),  esound (>= 0.2.28-1), freetype2 | freetype2-hinting, libjpeg, libpng3 (>= 1.2.5-4), libpoll (>= 1.1-1)
   BuildDependsOnly: true
   Files: <<
     include
@@ -77,7 +79,7 @@ SplitOff: <<
 SplitOff2: <<
   Package: karbon
   Description: KDE - vector-based drawing program
-  Depends: dlcompat (>= 20021117-1),  freetype2-shlibs | freetype2-hinting-shlibs, kdelibs3-ssl (>= 3.1.1-1) | kdelibs3 (>= 3.1.1-1), %N-common (= %v-%r), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.1.0-1), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20021117-1),  freetype2-shlibs | freetype2-hinting-shlibs, kdelibs3-ssl (>= 3.1.1-1) | kdelibs3 (>= 3.1.1-1), %N-common (= %v-%r), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.1.0-1), x11, %N-base (>= %v-%r)
   Replaces: %N-common (<< %v-%r), %N-dev (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
@@ -86,15 +88,15 @@ SplitOff2: <<
     lib/kde3/*karbon*
     share/applnk/Office/karbon.desktop
     share/apps/karbon
-    share/icons/hicolor/16x16/apps/karbon.png
-    share/icons/hicolor/32x32/apps/karbon.png
-    share/icons/hicolor/48x48/apps/karbon.png
+    share/icons/crystalsvg/16x16/apps/karbon.png
+    share/icons/crystalsvg/32x32/apps/karbon.png
+    share/icons/crystalsvg/48x48/apps/karbon.png
   <<
 <<
 SplitOff3: <<
   Package: kchart
   Description: KDE - charting and diagram drawing
-  Depends: dlcompat (>= 20021117-1),  kdelibs3-ssl (>= 3.1.1-1) | kdelibs3 (>= 3.1.1-1), %N-common (= %v-%r), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.1.0-1), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20021117-1),  kdelibs3-ssl (>= 3.1.1-1) | kdelibs3 (>= 3.1.1-1), %N-common (= %v-%r), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.1.0-1), x11, %N-base (>= %v-%r)
   Replaces: %N-common (<< %v-%r), %N (<< 3.0.5), %N-dev (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
@@ -105,15 +107,15 @@ SplitOff3: <<
     share/applnk/Office/kchart.desktop
     share/doc/kde/en/kchart
     share/apps/kchart
-    share/icons/hicolor/16x16/apps/kchart.png
-    share/icons/hicolor/32x32/apps/kchart.png
-    share/icons/hicolor/48x48/apps/kchart.png
+    share/icons/crystalsvg/16x16/apps/kchart.png
+    share/icons/crystalsvg/32x32/apps/kchart.png
+    share/icons/crystalsvg/48x48/apps/kchart.png
   <<
 <<
 SplitOff4: <<
   Package: kformula
   Description: KDE - formula editor
-  Depends: dlcompat (>= 20021117-1),  kdelibs3-ssl (>= 3.1.1-1) | kdelibs3 (>= 3.1.1-1), %N-common (= %v-%r), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.1.0-1), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20021117-1),  kdelibs3-ssl (>= 3.1.1-1) | kdelibs3 (>= 3.1.1-1), %N-common (= %v-%r), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.1.0-1), x11, %N-base (>= %v-%r)
   Replaces: %N-common (<< %v-%r), %N (<< 3.0.5), %N-dev (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
@@ -124,15 +126,15 @@ SplitOff4: <<
     share/applnk/Office/kformula.desktop
     share/apps/kformula
     share/doc/kde/en/kformula
-    share/icons/hicolor/16x16/apps/kformula.png
-    share/icons/hicolor/32x32/apps/kformula.png
-    share/icons/hicolor/48x48/apps/kformula.png
+    share/icons/crystalsvg/16x16/apps/kformula.png
+    share/icons/crystalsvg/32x32/apps/kformula.png
+    share/icons/crystalsvg/48x48/apps/kformula.png
   <<
 <<
 SplitOff5: <<
   Package: kivio
   Description: KDE - flowchart program
-  Depends: dlcompat (>= 20021117-1),  kdelibs3-ssl (>= 3.1.1-1) | kdelibs3 (>= 3.1.1-1), %N-common (= %v-%r), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), python (>= 2.2.1-8) | python-nox (>= 2.2.1-8), qt3-shlibs (>= 3.1.0-1), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20021117-1),  kdelibs3-ssl (>= 3.1.1-1) | kdelibs3 (>= 3.1.1-1), %N-common (= %v-%r), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), python (>= 2.2.1-8) | python-nox (>= 2.2.1-8), qt3-shlibs (>= 3.1.0-1), x11, %N-base (>= %v-%r)
   Replaces: %N-common (<< %v-%r), %N (<< 3.0.5), %N-dev (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
@@ -142,34 +144,16 @@ SplitOff5: <<
     lib/kivio*
     share/applnk/Office/kivio.desktop
     share/apps/kivio
-    share/icons/hicolor/16x16/apps/kivio.png
-    share/icons/hicolor/22x22/apps/kivio.png
-    share/icons/hicolor/32x32/apps/kivio.png
-    share/icons/hicolor/48x48/apps/kivio.png
+    share/icons/crystalsvg/16x16/apps/kivio.png
+    share/icons/crystalsvg/22x22/apps/kivio.png
+    share/icons/crystalsvg/32x32/apps/kivio.png
+    share/icons/crystalsvg/48x48/apps/kivio.png
   <<
 <<
 SplitOff6: <<
-  Package: kontour
-  Description: KDE - vector drawing program
-  Depends: dlcompat (>= 20021117-1),  kdelibs3-ssl (>= 3.1.1-1) | kdelibs3 (>= 3.1.1-1), %N-common (= %v-%r), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.1.0-1), x11, %N-base (>= %v-%r)
-  Replaces: %N-common (<< %v-%r), %N (<< 3.0.5), %N-dev (<< %v-%r)
-  Recommends: %N (>= %v-%r)
-  BuildDependsOnly: true
-  Files: <<
-    bin/kontour
-    lib/kde3/*kontour*
-    lib/kontour*
-    share/applnk/Office/kontour.desktop
-    share/apps/kontour
-    share/icons/hicolor/16x16/apps/kontour.png
-    share/icons/hicolor/32x32/apps/kontour.png
-    share/icons/hicolor/48x48/apps/kontour.png
-  <<
-<<
-SplitOff7: <<
   Package: kpresenter
   Description: KDE - PowerPoint-like presentation app
-  Depends: arts (>= 1.1.1-1), audiofile-shlibs, dlcompat (>= 20021117-1),  kdelibs3-ssl (>= 3.1.1-1) | kdelibs3 (>= 3.1.1-1), %N-common (= %v-%r), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), libpoll-shlibs (>= 1.1-1), qt3-shlibs (>= 3.1.0-1), x11, %N-base (>= %v-%r)
+  Depends: arts (>= 1.1.1-1), audiofile-shlibs, dlcompat-shlibs (>= 20021117-1),  kdelibs3-ssl (>= 3.1.1-1) | kdelibs3 (>= 3.1.1-1), %N-common (= %v-%r), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), libpoll-shlibs (>= 1.1-1), qt3-shlibs (>= 3.1.0-1), x11, %N-base (>= %v-%r)
   Replaces: %N-common (<< %v-%r), %N (<< %v-%r), %N-dev (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
@@ -180,15 +164,15 @@ SplitOff7: <<
     share/applnk/Office/kpresenter.desktop
     share/apps/kpresenter
     share/doc/kde/en/kpresenter
-    share/icons/hicolor/16x16/apps/kpresenter.png
-    share/icons/hicolor/32x32/apps/kpresenter.png
-    share/icons/hicolor/48x48/apps/kpresenter.png
+    share/icons/crystalsvg/16x16/apps/kpresenter.png
+    share/icons/crystalsvg/32x32/apps/kpresenter.png
+    share/icons/crystalsvg/48x48/apps/kpresenter.png
   <<
 <<
-SplitOff8: <<
+SplitOff7: <<
   Package: kspread
   Description: KDE - spreadsheet
-  Depends: dlcompat (>= 20021117-1),  kdelibs3-ssl (>= 3.1.1-1) | kdelibs3 (>= 3.1.1-1), %N-common (= %v-%r), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.1.0-1), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20021117-1),  kdelibs3-ssl (>= 3.1.1-1) | kdelibs3 (>= 3.1.1-1), %N-common (= %v-%r), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.1.0-1), x11, %N-base (>= %v-%r)
   Replaces: %N-common (<< %v-%r), %N (<< %v-%r), %N-dev (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
@@ -199,18 +183,18 @@ SplitOff8: <<
     share/applnk/Office/kspread.desktop
     share/apps/kspread
     share/doc/kde/en/kspread
-    share/icons/hicolor/16x16/apps/kspread.png
-    share/icons/hicolor/32x32/apps/kspread.png
-    share/icons/hicolor/48x48/apps/kspread.png
+    share/icons/crystalsvg/16x16/apps/kspread.png
+    share/icons/crystalsvg/32x32/apps/kspread.png
+    share/icons/crystalsvg/48x48/apps/kspread.png
     share/icons/locolor/16x16/apps/kspreadcalc.png
     share/icons/locolor/22x22/apps/kspreadcalc.png
     share/icons/locolor/32x32/apps/kspreadcalc.png
   <<
 <<
-SplitOff9: <<
+SplitOff8: <<
   Package: kugar
   Description: KDE - business report viewer and creator
-  Depends: dlcompat (>= 20021117-1),  kdelibs3-ssl (>= 3.1.1-1) | kdelibs3 (>= 3.1.1-1), %N-common (= %v-%r), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.1.0-1), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20021117-1),  kdelibs3-ssl (>= 3.1.1-1) | kdelibs3 (>= 3.1.1-1), %N-common (= %v-%r), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.1.0-1), x11, %N-base (>= %v-%r)
   Replaces: %N-common (<< %v-%r), %N (<< %v-%r), %N-dev (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
@@ -223,22 +207,22 @@ SplitOff9: <<
     share/apps/kudesigner
     share/apps/kugar
     share/doc/kde/en/kugar
-    share/icons/hicolor/16x16/apps/kugar.png
-    share/icons/hicolor/16x16/mimetypes/kugardata.png
-    share/icons/hicolor/22x22/apps/kugar.png
-    share/icons/hicolor/22x22/mimetypes/kugardata.png
-    share/icons/hicolor/32x32/apps/kugar.png
-    share/icons/hicolor/32x32/mimetypes/kugardata.png
-    share/icons/hicolor/48x48/apps/kugar.png
-    share/icons/hicolor/48x48/mimetypes/kugardata.png
+    share/icons/crystalsvg/16x16/apps/kugar.png
+    share/icons/crystalsvg/16x16/mimetypes/kugardata.png
+    share/icons/crystalsvg/22x22/apps/kugar.png
+    share/icons/crystalsvg/22x22/mimetypes/kugardata.png
+    share/icons/crystalsvg/32x32/apps/kugar.png
+    share/icons/crystalsvg/32x32/mimetypes/kugardata.png
+    share/icons/crystalsvg/48x48/apps/kugar.png
+    share/icons/crystalsvg/48x48/mimetypes/kugardata.png
     share/icons/locolor/16x16/apps/kudesigner.png
     share/icons/locolor/32x32/apps/kudesigner.png
   <<
 <<
-SplitOff10: <<
+SplitOff9: <<
   Package: kword
   Description: KDE - word processor
-  Depends: dlcompat (>= 20021117-1),  kformula (>= %v-%r), kdelibs3-ssl (>= 3.1.1-1) | kdelibs3 (>= 3.1.1-1), %N-common (= %v-%r), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.1.0-1), x11, %N-base (>= %v-%r)
+  Depends: dlcompat-shlibs (>= 20021117-1),  kformula (>= %v-%r), kdelibs3-ssl (>= 3.1.1-1) | kdelibs3 (>= 3.1.1-1), %N-common (= %v-%r), libart2-shlibs, libpng3-shlibs (>= 1.2.5-4), qt3-shlibs (>= 3.1.0-1), x11, %N-base (>= %v-%r)
   Replaces: %N-common (<< %v-%r), %N (<< %v-%r), %N-dev (<< %v-%r)
   Recommends: %N (>= %v-%r)
   BuildDependsOnly: true
@@ -252,16 +236,16 @@ SplitOff10: <<
     share/applnk/Office/kword.desktop
     share/apps/kword
     share/doc/kde/en/kword
-    share/icons/hicolor/16x16/apps/kword.png
-    share/icons/hicolor/32x32/apps/kword.png
-    share/icons/hicolor/48x48/apps/kword.png
+    share/icons/crystalsvg/16x16/apps/kword.png
+    share/icons/crystalsvg/32x32/apps/kword.png
+    share/icons/crystalsvg/48x48/apps/kword.png
   <<
 <<
-SplitOff11: <<
+SplitOff10: <<
   Package: %N-common
   Description: KDE - files used by all of KOffice
   Depends: kdelibs3-ssl (>= 3.1.1-1) | kdelibs3 (>= 3.1.1-1), kdebase3-ssl (>= 3.1.1-1) | kdebase3 (>= 3.1.1-1), %N-base (>= %v-%r)
-  Replaces: %N-common (<< %v-%r), %N (<< %v-%r), %N-dev (<< %v-%r), karbon (<< %v-%r), kformula (<< %v-%r), kivio (<< %v-%r), kontour (<< %v-%r), kspread (<< %v-%r), kword (<< %v-%r)
+  Replaces: %N-common (<< %v-%r), %N (<< %v-%r), %N-dev (<< %v-%r), karbon (<< %v-%r), kformula (<< %v-%r), kivio (<< %v-%r), kspread (<< %v-%r), kword (<< %v-%r)
   BuildDependsOnly: true
   Files: <<
     bin
@@ -274,7 +258,7 @@ SplitOff11: <<
     share/templates
   <<
 <<
-SplitOff12: <<
+SplitOff11: <<
   Package: %N-base
   Description: KDE - koffice base package
   Depends: kdelibs3-ssl (>= 3.1.1-1) | kdelibs3 (>= 3.1.1-1)
@@ -295,7 +279,6 @@ applications.  Included packages are:
   kchart
   kformula
   kivio
-  kontour
   kpresenter
   kspread
   kugar
