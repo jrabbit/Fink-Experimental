@@ -20,11 +20,13 @@ InstallScript: <<
 	install -d -m 755 "%d"
 
 	find /Volumes/X* /Volumes/Mac* /Users -type d -name X11User.pkg 2>/dev/null | while read PACKAGE; do
-		echo "found $PACKAGE"
-		pushd "%d"
-		gzip -dc "$PACKAGE/Contents/Archive.pax.gz" | pax -v -r '*quartz-wm*' '*X11.app*' '*open-x11*'
-		popd
-		break
+		if [ -f "$PACKAGE/Contents/Archive.pax.gz" ]; then
+			echo "found $PACKAGE"
+			pushd "%d"
+			gzip -dc "$PACKAGE/Contents/Archive.pax.gz" | pax -v -r '*quartz-wm*' '*X11.app*' '*open-x11*'
+			popd
+			break
+		fi
 	done
 
 	if ! test -f "%d/usr/bin/open-x11"; then
