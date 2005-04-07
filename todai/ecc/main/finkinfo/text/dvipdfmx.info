@@ -1,0 +1,53 @@
+Package: dvipdfmx
+Version: 20050201
+Revision: 5
+GCC: 3.3
+Depends: ptex-base, libkpathsea4-shlibs, libpng3-shlibs, ghostscript, appleotffonts
+BuildDepends: libkpathsea4, libpng3
+Source: http://project.ktug.or.kr/dvipdfmx/snapshot/release/%n-%v.tar.gz
+Source-MD5: d6b69f30f9ad1ee52853e9ed3cd984f8
+PatchScript: perl -pi -e "s|^f cid-x.map$|f kanjix.map|g" data/config/dvipdfmx.cfg
+Patch: %n.patch
+ConfigureParams: --prefix=%i --with-kpathsea=%p --with-png=%p --with-zlib=%p
+InstallScript: <<
+ make install prefix=%i
+
+ mkdir -p %i/share/texmf/fonts/cmap/dvipdfm
+ mkdir -p %i/share/texmf/fonts/map/dvipdfm
+
+ mv %i/share/texmf/dvipdfm/CMap/glyphlist.txt %i/share/texmf/dvipdfm/
+ mv %i/share/texmf/dvipdfm/CMap               %i/share/texmf/fonts/cmap/dvipdfm/
+ mv %i/share/texmf/dvipdfm/config/cid-x.map   %i/share/texmf/fonts/map/dvipdfm/
+<<
+DocFiles: BUGS COPYING ChangeLog INSTALL README TODO
+ConfFiles: %p/share/texmf/dvipdfm/config/dvipdfmx.cfg
+PreInstScript: <<
+ rm -f %p/share/texmf/dvipdfm/Resource
+ rm -f %p/share/texmf/dvipdfm/fonts
+ rm -f %p/share/texmf/fonts/cmap/dvipdfm/Resource
+ rm -f %p/share/texmf/fonts/cmap/dvipdfm/fonts
+<<
+PostInstScript:<<
+  cd %p/share/texmf/fonts/cmap/dvipdfm
+  res=`find %p/share/ghostscript -type d -name Resource | sort -r | head -1`
+  if test -d $res ; then
+    ln -s $res .
+  fi
+  ln -s %p/lib/X11/fonts .
+  mktexlsr
+  updmap-sys
+<<
+PreRmScript:<<
+ rm -f %p/share/texmf/dvipdfm/Resource
+ rm -f %p/share/texmf/dvipdfm/fonts
+ rm -f %p/share/texmf/fonts/cmap/dvipdfm/Resource
+ rm -f %p/share/texmf/fonts/cmap/dvipdfm/fonts
+<<
+PostRmScript:<<
+  mktexlsr
+  updmap-sys
+<<
+Description: DVI to PDF converter with Japanese patch
+License: GPL
+Maintainer: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>
+Homepage: http://project.ktug.or.kr/dvipdfmx/

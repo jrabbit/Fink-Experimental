@@ -1,0 +1,40 @@
+Package: ghostscript7
+Version: 7.07.1
+Revision: 13
+Description: Interpreter for PostScript and PDF
+Source: mirror:sourceforge:espgs/espgs-%v-source.tar.bz2
+Source2: mirror:ctan:support/ghostscript/3rdparty/jpegsrc.v6b.tar.gz
+Source3: ftp://ftp.t.ring.gr.jp/pub/text/TeX/ptex-win32/gs/adobe-cmaps-200204.zip
+Source4: ftp://ftp.t.ring.gr.jp/pub/text/TeX/ptex-win32/gs/acro5-cmaps-2001.zip
+Source-MD5:  d30bf5c09f2c7caa8291f6305cf03044
+Source2-MD5: dbd5f3b47ed13132f04c685d608a7547
+Source3-MD5: 0c463a96ff246b0c5e71e78fb41eface
+Source4-MD5: 5fd9d1a0c61692551b01b8f153c313a4
+SourceDirectory: espgs-%v
+Source3ExtractDir: Resource
+Source4ExtractDir: Resource
+Depends: x11, ghostscript-fonts, libpng3-shlibs (>= 1.2.5-3), sazanami, gettext
+BuildDepends: x11-dev, libpng3 (>= 1.2.5-3), gimp-print-dev, cups-dev, gettext-dev
+Conflicts: ghostscript, ghostscript-nox, ghostscript6, ghostscript6-nox
+Replaces: ghostscript, ghostscript-nox, ghostscript6, ghostscript6-nox
+Provides: ghostscript
+License: Restrictive/Distributable
+PatchScript: <<
+ (cd ..; mv jpeg-6b espgs-%v/jpeg)
+ sed 's|<PREFIX>|%p|g' < %a/%n.patch | patch -p1
+<<
+NoSetMAKEFLAGS: true
+SetMAKEFLAGS: -j1
+#SetCC: gcc -I%p/include
+ConfigureParams: --mandir='${prefix}/share/man' --with-x --with-gimp-print --with-cups
+CompileScript: ( CFLAGS=-I%p/include ./configure %c; make CFLAGS_STANDARD="-O2 -I%p/include" XLDFLAGS="-L%p/lib -lintl")
+InstallScript: <<
+ make install_prefix=%i prefix=%i datadir=%i/share infodir=%i/share/info mandir=%i/share/man sysconfdir=%i/etc install
+ install -m 755 -d %i/share/ghostscript
+ cp -R ../Resource %i/share/ghostscript/
+ install -m 755 -d %i/share/ghostscript/Resource/Font
+ install -m 755 -d %i/share/ghostscript/Resource/CIDFont
+ chmod 755 %i/share/ghostscript/Resource/CMap
+<<
+Maintainer: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>
+Homepage: http://www.cups.org/ghostscript.php

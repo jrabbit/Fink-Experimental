@@ -1,0 +1,87 @@
+#! /bin/sh
+# $Id$
+set -e
+fink_prefix="@PREFIX@"
+sysxinitdir="/usr/X11R6/lib/X11/xinit"
+target="$sysxinitdir/xinitrc"
+master="$fink_prefix/share/xinitrc/sys-xinitrc-fink"
+myname="update-sys-xinitrc"
+
+if test -t 0; then
+    isatty=true
+else
+    isatty=false
+fi
+
+if test "x`id -u`" != x0; then
+    echo "You must be root to run $myname."
+    exit 1
+fi
+
+if test ! -f "$master"; then
+  echo "The file $master is missing."
+  echo "$myname can not continue without this file."
+  exit 1
+fi
+
+if test ! -d "$sysxinitdir"; then
+  echo "The directory $sysxinitdir is missing."
+  echo "$myname can not continue without this file."
+  exit 1
+fi
+
+echo
+if cmp -s "$master" "$target"; then
+    echo "No need to update system xinitrc."
+    exit 0
+fi
+
+trap 'echo Aborting.' 0
+case "x$1" in
+    xpostinst)
+    cat << EOF
+Fink X11 startup framework needs to replace following file:
+$target
+to a copy of following file:
+$master
+
+If you customized it and don't want it to be replaced, say no here and
+modify it properly. Note that you can achieve many of what you want
+via some hooks in $fink_prefix/bin/xinitrc.sh. Alternatively, you can
+also bypass our standard mechanism by creating following file.
+$fink_prefix/etc/xinitrc-override
+
+If you don't know what all of this is about, just say yes.
+EOF
+    ;;
+    *)
+    cat << EOF
+Replacing following file:
+$target
+to a copy of following file:
+$master
+EOF
+    ;;
+esac
+
+echo "If the system-wide xinitrc alredy exists, a backup is made. Don't worry."
+echo
+echo -n "Do you want to continue? [Y/n] "
+read answer || :
+case "x$annswer" in
+    x[Yy]*|x)
+    if test -f "$target"; then
+	datestr=`date "+%Y%m%d%H%M"` 
+	echo "Making backup of xinitrc (saved as xinitrc.$datestr) ..."
+	/bin/cp "$target" "$target.$datestr"
+    else
+	echo "System-wide xinitrc does not exist. No need to backup."
+    fi
+    echo "Installing new xinitrc ..."
+    /usr/bin/install -m 444 "$master" "$target"
+    ;;
+    *)
+    echo "Okay, not installing new xinitrc."
+esac
+trap '' 0
+exit 0

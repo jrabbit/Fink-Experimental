@@ -1,0 +1,77 @@
+Package: auctex
+Version: 11.55
+Revision: 2
+Description: Integrated environment for TeX/LaTeX document writing
+License: GPL
+#Maintainer: Christian Swinehart <cswinehart@users.sourceforge.net>
+Maintainer: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>
+Depends: emacsen, debianutils (>= 1.7), debconf, cron-service, make
+Recommends: tetex-base
+Suggests: lacheck
+Source: mirror:gnu:%n/%n-%v.tar.gz
+Source-MD5: f22ae1ecc513d14b3b5ce3076f461395
+PatchScript: sed 's|@PREFIX@|%p|g' <%a/%n.patch | patch -p1
+ConfigureParams: --infodir='${prefix}/share/info'
+CompileScript: <<
+ ./configure %c
+ (cd doc; make %n.info; make html/%n_toc.html)
+<<
+InstallScript: <<
+ mv -f fink/tex-site.el .
+ install -m 755 -d                     %i/share/emacs/site-lisp/%n/{style,doc}
+ install -m 755 configure install-sh   %i/share/emacs/site-lisp/%n
+ install -m 644 Makefile.in *.el*      %i/share/emacs/site-lisp/%n
+ install -m 644 style/{*.el,.nosearch} %i/share/emacs/site-lisp/%n/style
+ install -m 644 doc/Makefile.in        %i/share/emacs/site-lisp/%n/doc
+
+ install -m 755 -d          %i/share/info
+ install -m 644 doc/%n.info %i/share/info
+
+ (cd doc/html && ln -sf %n.html index.html)
+ install -m 755 -d              %i/share/doc/%n/HTML
+ install -m 644 doc/html/*.html %i/share/doc/%n/HTML
+ 
+ install -m 755 -d         %i/share/doc/%n/src
+ install -m 644 doc/*.texi %i/share/doc/%n/src
+
+ install -m 755 -d %i/var/lib/%n
+
+ install -m 755 -d           %i/etc/cron.weekly
+ install -m 755 fink/%n-cron %i/etc/cron.weekly/%n
+
+ install -m 755 -d              %i/lib/emacsen-common/packages/{install,remove}
+ install -m 755 fink/%n-install %i/lib/emacsen-common/packages/install/%n
+ install -m 755 fink/%n-remove  %i/lib/emacsen-common/packages/remove/%n
+
+ install -m 755 -d                             %i/sbin
+ install -m 755 fink/update-%n-{elisp,install} %i/sbin
+
+ install -m 755 -d                               %i/share/man/man8
+ install -m 644 fink/update-%n-{elisp,install}.8 %i/share/man/man8
+
+ install -m 755 -d                       %d/DEBIAN
+ install -m 755 fink/{config,post*,pre*} %d/DEBIAN
+ install -m 644 fink/templates           %d/DEBIAN
+<<
+DocFiles: CHANGES COPYING ChangeLog FAQ INSTALL README RELEASE TODO fink/auctex
+DescDetail: <<
+AUC TeX is a comprehensive customizable integrated environment for
+writing input files for (La)TeX using GNU Emacs.
+
+It can indent your text as you write it, let you run TeX/LaTeX and
+other LaTeX-related tools (such as a output filter or post processor)
+from within Emacs, and includes a wide range of Emacs macros to allow
+both easy insertions of LaTeX commands, and easy compilation,
+previewing, and printing of your TeX documents.
+
+AUC TeX also lets you browse through compiling errors TeX reports,
+while it moves the cursor directly to the reported error and displays
+documentation for that particular error.  This will even work when the
+document is spread over several files.
+<<
+#DescUsage: <<
+#Users can enable AUC TeX by adding (require 'tex-site) to their .emacs
+#files.
+# --- Now, this configuration is done interactively by debconf.
+#<<
+Homepage: http://www.gnu.org/software/auctex/

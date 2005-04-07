@@ -1,0 +1,46 @@
+Package: w3m
+Version: 0.5+cvs-1.917
+Revision: 1
+BuildDepends: gc-static, ncurses-dev, gettext-dev, gettext-bin, libiconv-dev, imlib (>= 1.9.8-1), libjpeg, libtiff, giflib, libpng3
+# compface, pkg-config
+Depends: ncurses-shlibs, launch, gettext, libiconv, imlib-shlibs (>= 1.9.8-1), libjpeg-shlibs, libtiff-shlibs, giflib-shlibs, libpng3-shlibs
+Conflicts: w3m-nox, w3m-ssl, w3m-nox-ssl
+Replaces: w3m-nox, w3m-ssl, w3m-nox-ssl
+Source: mirror:sourceforge:w3m/w3m-0.5.tar.gz
+Source-MD5: 31e470bcb09bad3150d73af760febe0c
+Source2: http://www.j10n.org/files/w3m-0.5-to-%v.diff.gz
+Source2-MD5: a650858e5446a3c62b532803bf8a0749
+PatchScript: <<
+gzip -cd ../w3m-0.5-to-%v.diff.gz | patch -p1
+sed 's|doc-jp|ja|' README | sed 's|doc|en|' > README.install
+<<
+ConfigureParams: --disable-digest-auth --disable-ssl --without-ssl --with-termlib=ncurses --with-imagelib=imlib --mandir=%p/share/man --libexecdir=%p/lib --with-editor=%p/bin/editor --with-browser=%p/bin/launch --disable-w3mmailer --with-mailer='%p/bin/launch -l'
+InstallScript: <<
+make install DESTDIR=%d
+
+install -m 755 -d %i/share/w3m/Bonus
+install -m 644 Bonus/{README*,scanhist.rb,utf8.cgi} %i/share/w3m/Bonus
+rm -rf Bonus/{CVS,README*,scanhist.rb,utf8.cgi}
+install -m 755 Bonus/* %i/share/w3m/Bonus
+
+install -m 755 -d %i/share/doc/w3m/en
+rm -rf doc/CVS doc/w3m.1
+install -m 644 doc/* %i/share/doc/w3m/en
+
+install -m 755 -d %i/share/doc/w3m/ja
+rm -rf doc-jp/CVS doc-jp/w3m.1
+install -m 644 doc-jp/* %i/share/doc/w3m/ja
+
+install -m 644 README.install %i/share/doc/w3m/README
+install -m 644 NEWS TODO ChangeLog %i/share/doc/w3m
+<<
+Description: Pager/text-based WWW browser
+DescDetail: <<
+w3m is a text-based web browser as well as a pager like `more' or `less'. With
+w3m you can browse web pages through a terminal emulator window (xterm, rxvt or
+something like that). Moreover, w3m can be used as a text formatting tool which
+typesets HTML into plain text.
+<<
+License: BSD
+Homepage: http://w3m.sourceforge.net/
+Maintainer: Univ. of Tokyo Educational Computing System Tutors <fink@sodan.ecc.u-tokyo.ac.jp>

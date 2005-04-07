@@ -1,0 +1,106 @@
+Package: jde
+Version: 2.3.3
+Revision: 1
+Description: Emacs - Java Development Environment
+License: GPL
+Maintainer: Tomoaki Okayama <okayama@sodan.ecc.u-tokyo.ac.jp>
+Depends: emacsen, eieio (>= 0.17-1), speedbar (>= 0.14beta2-1), semantic (>= 1.4.4-1), elib (>= 1.0-1)
+Enhances: ecb
+Source: http://jdee.sunsite.dk/%n-latest.tar.gz
+Source-MD5: 070b2a4c0e106dbe23343f6f1a659b41
+SourceDirectory: %n-%v
+PatchScript: <<
+sed 's|@PREFIX@|%p|g' <%a/%n.patch | patch -p1
+head -24 lisp/%n.el >LICENSE
+echo 'export CLASSPATH=${CLASSPATH}:.' > fink/%n.sh
+echo 'setenv CLASSPATH ${CLASSPATH}:.' > fink/%n.csh
+<<
+CompileScript: echo "Nothing to do for compile"
+InstallScript:<<
+install -m 755 -d %i/share/emacs/site-lisp/%n
+install -m 644 lisp/*.el %i/share/emacs/site-lisp/%n
+
+install -m 755 -d %i/bin
+install -m 755 lisp/jtags %i/bin
+
+install -m 755 -d %i/share/doc/jde/examples
+install -m 644 lisp/makefile.sample %i/share/doc/jde/examples
+cp -pR doc/* %i/share/doc/jde
+
+install -m 755 -d %i/share/java/jde
+cp -pR java/bsh-commands %i/share/java/jde
+
+install -m 755 -d           %i/share/man/man1
+install -m 644 fink/jtags.1 %i/share/man/man1
+
+install -m 755 -d               %i/etc/profile.d
+install -m 755 fink/%n.{sh,csh} %i/etc/profile.d
+
+install -m 755 -d              %i/etc/emacs/site-start.d
+install -m 644 fink/%n-startup %i/etc/emacs/site-start.d/50%n.el
+
+install -m 755 -d              %i/lib/emacsen-common/packages/{install,remove}
+install -m 755 fink/%n-install %i/lib/emacsen-common/packages/install/%n
+install -m 755 fink/%n-remove  %i/lib/emacsen-common/packages/remove/%n
+<<
+JarFiles: java/lib/*.jar
+DocFiles: LICENSE lisp/ChangeLog lisp/ReleaseNotes.txt java/lib/LICENSE.checkstyle
+PreInstScript: <<
+case "$1" in
+    install|upgrade)
+
+  # emacs-remove from the old 2.3.2-2 or earlier was severely broken,
+  # so let's try to fix it at this point.
+  if dpkg --compare-versions "$2" lt "2.3.3-1" ; then
+    rm -rf %p/share/emacs21/site-lisp/jde/*.elc
+    rm -rf %p/share/emacs21/site-lisp/jde/compile.log
+  fi
+
+    ;;
+
+    abort-upgrade)
+    ;;
+
+    *)
+        echo "preinst called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+<<
+PostInstScript: <<
+if [ "$1" = configure ] && which install-docs >/dev/null 2>&1; then
+        install-docs -i %p/share/doc-base/jde
+fi
+
+if [ "$1" = "configure" ] && [ -x %p/lib/emacsen-common/emacs-package-install ]
+then
+        %p/lib/emacsen-common/emacs-package-install %n
+fi
+<<
+PreRmScript: <<
+if [ "$1" = remove ] || [ "$1" = upgrade ] && \
+   which install-docs >/dev/null 2>&1; then
+	install-docs -r jde
+fi
+
+if [ -x %p/lib/emacsen-common/emacs-package-remove ] ; then
+	%p/lib/emacsen-common/emacs-package-remove %n
+fi
+<<
+ConfFiles: %p/etc/emacs/site-start.d/50%n.el
+Homepage: http://jde.sunsite.dk/
+DescDetail:<<
+The Java Development Environment for Emacs is a software package that
+interfaces Emacs to command-line Java development tools (for example,
+JavaSoft's JDK). JDEE features include:
+  * JDEE menu with compile, run, debug, build, browse, project, and
+    help commands
+  * syntax coloring
+  * auto indentation
+  * compile error to source links
+  * source-level debugging
+  * source code browsing
+  * make file support
+  * automatic code generation
+  * Java source interpreter (Pat Neimeyer's BeanShell)
+<<

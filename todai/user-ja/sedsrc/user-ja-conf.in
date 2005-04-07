@@ -1,0 +1,80 @@
+#! /bin/sh
+# $Id$
+# vim: set sw=4 sts=4 ts=8:
+set -e
+
+yesno() {
+    while :; do
+	echo -n "$1" "[Yes/No]"
+	read input
+	case "$input" in
+	    [Yy]|[Yy][Ee][Ss]) return 0 ;;
+	    [Nn]|[Nn][Oo]) return 1;
+	esac
+    done
+}
+
+abortmsg() {
+    status=$?
+    echo "Aborting (error code=$status)" >&2
+    exit $status
+}
+
+# Following construct does not work:
+#   go some-command > somewhere
+# Instead do this manually:
+#   $show some-command \> somewhere
+#   $run some-command > somewhere
+show="echo"
+run=
+go() {
+    $show "$@"
+    $run "$@"
+}
+
+trap 'abortmsg' 0
+
+CONFDIR=@MYDATADIR@/skel
+fink_prefix=@FINK_PREFIX@
+FILES=`/bin/echo $CONFDIR/dot.* | /usr/bin/sed "s|$CONFDIR/dot.|.|g"`
+
+echo "Backup directory is $HOME/user-ja-conf-bak"
+test -d "$HOME/user-ja-conf-bak" || /bin/mkdir "$HOME/user-ja-conf-bak"
+for FILE in $FILES ; do 
+    if test -f $HOME/$FILE; then
+	if yesno "$HOME/$FILE already exists. Overwrite?"; then
+	    go /bin/mv $HOME/$FILE $HOME/user-ja-conf-bak/$FILE
+	    go /bin/cp $CONFDIR/dot$FILE $HOME/$FILE
+	fi
+    else
+	go /bin/cp $CONFDIR/dot$FILE $HOME/$FILE
+    fi
+done
+if test -d $HOME/.mlterm; then
+    if yesno "$HOME/.mlterm already exists. Overwrite?"; then
+	go /bin/rm -rf $HOME/user-ja-conf-bak/.mlterm
+	go /bin/mv $HOME/.mlterm $HOME/user-ja-conf-bak/.mlterm
+	go /bin/ln -s @MYDATADIR@/etcmlterm $HOME/.mlterm
+    fi
+else
+    go /bin/ln -s @MYDATADIR@/etcmlterm $HOME/.mlterm
+fi
+
+case "$1" in
+    --no-defaults)
+    trap '' 0
+    exit 0
+    ;;
+esac
+
+if defaults read com.apple.x11 apps_menu | grep -q '"Terminal(Japanese OK)"'; then :; else
+    go defaults write com.apple.x11 apps_menu -array-add "(\"Terminal(Japanese OK)\", \". $fink_prefix/bin/init.sh; mlterm -L\", \"\")"
+fi
+go defaults write com.apple.x11 sync_keymap -bool false
+go defaults write com.apple.x11 done_xinit_check -bool false
+go defaults write com.apple.Terminal DoubleColumnsForDoubleWide -string "YES"
+go defaults write com.apple.Terminal DoubleWideChars -string "YES"
+go defaults write com.apple.Terminal Meta -string "27"
+#defaults write com.apple.Terminal DeleteKeySendsBackspace -string "YES"
+
+trap '' 0

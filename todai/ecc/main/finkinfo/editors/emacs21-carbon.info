@@ -1,0 +1,169 @@
+Package: emacs21-carbon
+Version: 21.3.50-20041229
+Revision: 3
+Description: Flexible real-time text editor, v21.3, with Carbon support
+License: GPL
+Maintainer: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>
+Provides: emacsen
+Depends: emacsen-common, ncurses, libncurses5-shlibs, macosx
+BuildDepends: libncurses5, fink (>= 0.24.2)
+#Source: mirror:sourceforge:fink/emacs-%v.tar.gz
+Source: http://www.j10n.org/files/emacs-%v.tar.gz
+SourceDirectory: emacs
+Source-MD5: d7df4ad61f6b16f08aac72317a75828a
+Source2: http://downloads.sourceforge.jp/macemacsjp/12817/inline_patch-20041229.tar.gz
+Source2-MD5: ca71ae2407325987ea3eacb7665023fe
+Source3: http://www.j10n.org/files/emacs-%v-macclipboard-20050308.patch
+Source3-MD5: 5b01293744c06e0234affa150ce09f8a
+Source4: http://downloads.sourceforge.jp/macemacsjp/13533/carbon_font-1.1.1.tar.gz
+Source4-MD5: a37bf3b31813e851b570a6b24e0cd2af
+PatchScript: <<
+ patch -p1 < ../emacs-%v-macclipboard-20050308.patch
+ patch -p0 < ../inline_patch-20041229/emacs-inline.patch
+ mkdir finktmp
+ cp $PWD/../carbon_font/carbon-font.el finktmp
+ sed -e 's|@PREFIX@|%p|g' < %a/%n.patch | patch -p1
+<<
+NoSetMAKEFLAGS: true
+SetMAKEFLAGS: -j1
+ConfigureParams: --build=powerpc-apple-darwin`uname -r|sed 's/\..*//'` --infodir='${prefix}/share/info' --mandir='${prefix}/share/man' --libexecdir='${prefix}/lib' --with-carbon --without-x --without-gif --without-toolkit-scroll-bars
+GCC: 3.3
+CompileScript: <<
+ ./configure %c
+ (cd src && make bootstrap)
+ (cd lisp && make recompile EMACS=../src/bootstrap-emacs)
+ make
+ find mac/Emacs.app ! -path "*/CVS" ! -name CVS ! -name .cvsignore > app.list
+ cpio -pdL finktmp < app.list
+ EMACSLOADPATH=$PWD/lisp src/emacs -batch --no-init-file --no-site-file --multibyte -f batch-byte-compile 01carbon-emacs.el finktmp/*.el
+<<
+InstallScript: <<
+ make install prefix=%i
+ rm %i/bin/emacs %i/bin/emacs-21.3.50-carbon
+ install -m 755 Emacs.app %i/bin
+ mv %i/share/man/man1/emacs.1 %i/share/man/man1/Emacs.app.1
+ mv %i/bin/ctags %i/bin/ctags.%n
+ mv %i/share/man/man1/ctags.1 %i/share/man/man1/ctags.1.%n
+ mv %i/bin/emacsclient %i/bin/emacsclient.%n
+ mv %i/share/man/man1/emacsclient.1 %i/share/man/man1/emacsclient.1.%n
+ mv %i/bin/etags %i/bin/etags.%n
+ mv %i/share/man/man1/etags.1 %i/share/man/man1/etags.1.%n
+ mv %i/bin/b2m %i/bin/b2m.%n
+ mv %i/bin/rcs-checkin %i/bin/rcs-checkin.%n
+ mv %i/bin/ebrowse %i/bin/ebrowse.%n
+ mv %i/bin/grep-changelog %i/bin/grep-changelog.%n
+
+ mkdir -p %i/etc/emacs
+ mkdir -p %i/etc/%n/site-start.d
+ mkdir -p %i/share/%n
+ mv  %i/share/emacs/21.3.50-carbon/site-lisp %i/share/%n/
+ (cd %i/share/emacs/21.3.50-carbon && ln -s ../../%n/site-lisp site-lisp)
+ ln -s Emacs.app %i/bin/%n
+ ln -s Emacs.app.1 %i/share/man/man1/emacs.1.%n
+
+ mv %i/share/info %i/share/emacs-21-carbon.info
+ mkdir -p %i/share/info
+ mv %i/share/emacs-21-carbon.info %i/share/info/emacs-21-carbon
+ rm %i/share/info/emacs-21-carbon/dir %i/share/info/emacs-21-carbon/dir.old
+ chmod 755 mangle-info
+ chmod 755 fix-info
+ ./fix-info %i/share/info/emacs-21-carbon
+
+ chown -R root:admin %i/lib %i/share
+ #find %i -name CVS | xargs rm -rf
+ rm %i/var/games/emacs/*-scores
+
+ rm  -f %i/share/emacs/site-lisp/subdirs.el
+ install -m 644 finktmp/*.el finktmp/*.elc %i/share/%n/site-lisp
+ install -m 644 01carbon-emacs.el 01carbon-emacs.elc %i/etc/%n/site-start.d
+<<
+AppBundles: finktmp/mac/Emacs.app
+DocFiles: mac/{COPYING,ChangeLog,INSTALL,README}
+PostInstScript: <<
+  mkdir -p %p/etc/lisp/emacs/21.3.50-carbon/site-lisp
+  mkdir -p %p/etc/lisp/emacs/site-lisp
+  update-alternatives --install %p/bin/emacs emacs %p/bin/Emacs.app 20           --slave %p/share/man/man1/emacs.1 emacs.1 %p/share/man/man1/Emacs.app.1
+  update-alternatives --install %p/bin/ctags ctags %p/bin/ctags.%n 20     --slave %p/share/man/man1/ctags.1 ctags.1 %p/share/man/man1/ctags.1.%n
+  update-alternatives --install %p/bin/etags etags %p/bin/etags.%n 20     --slave %p/share/man/man1/etags.1 etags.1 %p/share/man/man1/etags.1.%n
+  update-alternatives --install %p/bin/emacsclient emacsclient %p/bin/emacsclient.%n 20
+  update-alternatives --install %p/bin/b2m b2m %p/bin/b2m.%n 20
+  update-alternatives --install %p/bin/rcs-checkin rcs-checkin %p/bin/rcs-checkin.%n 20
+  update-alternatives --install %p/bin/ebrowse ebrowse %p/bin/ebrowse.%n 20
+  update-alternatives --install %p/bin/grep-changelog grep-changelog %p/bin/grep-changelog.%n 20
+
+  # Regiser ourselves with emacsen-common
+  %p/lib/emacsen-common/emacs-install %n
+
+  # Since we're placing our info files in a subdirectory of %p/share/info
+  # we need to manually add each doc to the info dir-file
+  for file in ada-mode autotype calc ccmode cl dired-x ebrowse ediff efaq \
+              eintr elisp emacs emacs-mime emacs-xtra eshell eudc flymake forms \
+              gnus idlwave info message mh-e pcl-cvs pgg reftex sc ses sieve \
+              smtpmail speedbar tramp vip viper widget woman
+  do
+	install-info --infodir=%p/share/info --section Emacs Emacs %p/share/info/emacs-21-carbon/${file}
+  done
+<<
+PostRmScript: <<
+  # Manually remove all of our info docs from the dir-file
+  for file in ada-mode autotype calc ccmode cl dired-x ebrowse ediff efaq \
+              eintr elisp emacs emacs-mime emacs-xtra eshell eudc flymake forms \
+              gnus idlwave info message mh-e pcl-cvs pgg reftex sc ses sieve \
+              smtpmail speedbar tramp vip viper widget woman
+  do
+	install-info --infodir=%p/share/info --remove-exactly emacs-21-carbon/${file}
+  done
+
+  if [ $1 != "upgrade" ]; then
+    update-alternatives --remove emacs %p/bin/%n
+    update-alternatives --remove emacsclient %p/bin/emacsclient.%n
+    update-alternatives --remove ctags %p/bin/ctags.%n
+    update-alternatives --remove etags %p/bin/etags.%n
+    update-alternatives --remove b2m %p/bin/b2m.%n
+    update-alternatives --remove rcs-checkin %p/bin/rcs-checkin.%n
+    update-alternatives --remove ebrowse %p/bin/ebrowse.%n
+    update-alternatives --remove grep-changelog %p/bin/grep-changelog.%n
+    %p/lib/emacsen-common/emacs-remove %n
+  fi
+<<
+#
+DescDetail: <<
+ GNU Emacs is an extensible, customizable, self-documenting real-time
+ display editor. Through its extensibility, it is actually much more
+ than an editor. You can use it as a file manager, mail reader, web
+ browser, and for many other tasks. Some people even use it to control
+ their coffee machine.
+
+ This package installs GNU Emacs with support for the Mac OS X Carbon.
+ If you don't want Carbon support, install the emacs21 package instead.
+<<
+DescPackaging: <<
+ update-alternatives is used for emacs, emacsclient, ctags, etags, b2m
+ rcs-checkin, ebrowse, and grep-changelog to allow parallel installation 
+ of emacs21 & xemacs & emacs21-carbon.
+
+ Its info files are installed into the emacs-21-carbon subdirectory of
+ <fink-root>/share/info for the same reason.
+
+ Since this package comes from the CVS repository none of the elisp files
+ are byte-compiled by default. So before making the source tarball used by
+ fink the CVS version must first be `make bootstrap'ed then the .elc's
+ produced are injected into a fresh copy of the source tree and tarred
+ up again.
+
+ Original package by Christoph Pfister and Christian Swinehart 
+<<
+DescPort: << 
+ The patchfile modifies startup.el, and brings in the scripts fix-info and 
+ mangle-info, in order to implement our emacs packaging system.
+ In addition, it contains them:
+ http://downloads.sourceforge.jp/macemacsjp/13288/hide_menubar.tar.gz
+ http://downloads.sourceforge.jp/macemacsjp/13179/transparency.tar.gz
+<<
+DescUsage: <<
+ You can launch emacs21-carbon, not just by double-clicking, but also by typing
+ $ Emacs.app
+ in the terminal. In this way, you can pass runtime options to emacs, e.g.
+ $ Emacs.app --no-site-file
+<<
+Homepage: http://www.emacswiki.org/cgi-bin/wiki

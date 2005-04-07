@@ -1,0 +1,56 @@
+#! /bin/sh
+# $Id$
+# vim: set sw=4 sts=4 ts=8 noexpandtab:
+
+# Both direct execution and ". $fink_bindir/xinitrc.sh" are supported.
+
+# Global constants. Everybody may refer them.
+fink_prefix="@PREFIX@"
+fink_bindir="$fink_prefix/bin"
+fink_sysconfdir="$fink_prefix/etc"
+x_prefix="/usr/X11R6"
+x_bindir="$x_prefix/bin"
+# This works whichever X is in use
+x_xinitdir="$x_prefix/lib/X11/xinit"
+
+# Hook for system administrators.
+if test -f "$fink_sysconfdir/xinitrc-first-hook"; then
+    . "$fink_sysconfdir/xinitrc-first-hook"
+fi
+
+# Customization variables.
+: ${xinitrc_fink_init_sh_enable=YES}
+: ${xinitrc_fink_init_sh_path="$fink_bindir/init.sh"}
+: ${xinitrc_xinitrc_d_dir="$fink_sysconfdir/xinitrc.d"}
+: ${xinitrc_sessionmgr_runmethod="exec"}
+
+case "x$xinitrc_fink_init_sh_enable" in
+    x[Yy][Ee][Ss]) . "$xinitrc_fink_init_sh_path" ;;
+esac
+
+# Numbering policy is described in $fink_prefix/share/doc/xinitrc/numbering.txt.
+if test -d "$xinitrc_xinitrc_d_dir"; then
+    for xinitrc__f in $xinitrc_xinitrc_d_dir/*.sh; do
+	if test -r "$xinitrc__f" -a -x "$xinitrc__f"; then
+	    . "$xinitrc__f"
+	fi
+    done
+    unset xinitrc__f
+fi
+
+# Hook for system administrators.
+if test -f "$fink_sysconfdir/xinitrc-last-hook"; then
+    . "$fink_sysconfdir/xinitrc-last-hook"
+fi
+
+# Start the session or window manager
+if test x"$xinitrc_sessionmgr" != x; then
+    :
+elif test -x "$x_bindir/quartz-wm"; then
+    xinitrc_sessionmgr="$x_bindir/quartz-wm"
+elif test -x "$x_bindir/twm"; then
+    xinitrc_sessionmgr="$x_bindir/twm"
+else
+    xinitrc_sessionmgr="twm"
+fi
+$xinitrc_sessionmgr_runmethod $xinitrc_sessionmgr
