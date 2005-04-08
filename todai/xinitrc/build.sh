@@ -79,9 +79,20 @@ go_p() {
 
 dobuild() {
     go $mkinstalldirscmd "$builddir"
+    $show "creating build.sed"
+    case "x$run" in
+	x:) ;;
+	*)
+    $run cat > "$builddir/build.sed" << EOF
+s|@PREFIX@|$prefix|g
+s|@XINITDIR@|/usr/X11R6/lib/X11/xinit|g
+s|@X_BINDIR@|/usr/X11R6/bin|g
+EOF
+	;;
+    esac
     for src in "$srcdir"/sedsrc/*.in; do
 	base=`basename "$src" .in`
-	go_r "$builddir/$base" sed -e "s|@PREFIX@|$prefix|g" "$src"
+	go_r "$builddir/$base" sed -f "$builddir/build.sed" "$src"
     done
 }
 
