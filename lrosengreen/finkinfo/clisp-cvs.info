@@ -41,9 +41,16 @@ GCC: 3.3
 SetCC: gcc-3.3
 SetCXX: g++-3.3
 
-ConfigureParams: --with-readline --with-module=clx/mit-clx --with-dynamic-ffi --build
+ConfigureParams: --with-readline --with-module=clx/mit-clx build
 
-InstallScript:  cd src; make DESTDIR=%d install
+CompileScript: <<
+  ./configure %c
+  cd build ; ./makemake %c > Makefile ; make config.lisp ; make
+  cd build ; make check-recompile
+  cd build ; make check-tests
+<<
+
+InstallScript:  cd build; make DESTDIR=%d install
 
 PostRmScript: <<
   if [ $1 = "purge" ]; then
@@ -82,8 +89,14 @@ DescPackaging: <<
 
 10Mar2005: Dynamic FFI works now.
 
-04Apr2005: modules/syscalls/calls.c calls setprgp() with no arguments.
-           This function on OS X expects two arguments.
+09Apr2005: don't use the --build configure option; it does a full make
+           check which attempts to run the (missing) ANSI and SACLA
+           test suites.  There is not reason to do that here.  make
+           check-recompile and make check-tests is more than enough.
+
+
+To Do:
+Package libsigsegv and see why dynamic-ffi doesn't seem to get built.
 <<
 
 Homepage: http://clisp.cons.org
