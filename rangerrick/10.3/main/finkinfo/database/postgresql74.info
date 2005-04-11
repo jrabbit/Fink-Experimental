@@ -56,7 +56,7 @@ Description: PostgreSQL open-source database
 PatchScript: sed -e 's|@BUILDDIR@|%b|g' -e 's|@INSTPREFIX@|%p|g' < %a/%n.patch | patch -p1
 NoSetMAKEFLAGS: true
 SetMAKEFLAGS: -j1
-ConfigureParams: --prefix=%p --docdir=%p/share/doc --mandir=%p/share/man --enable-multibyte --enable-recode --with-CXX --without-perl --without-python --without-openssl --with-libraries=%p/lib --with-includes=%p/include --without-tcl --without-tk --without-java --enable-odbc --with-pam --with-rendezvous --enable-syslog --enable-thread-safety --with-krb5=/usr
+ConfigureParams: --prefix=%p --docdir=%p/share/doc --mandir=%p/share/man --enable-multibyte --enable-recode --with-CXX --without-perl --without-python --without-openssl --with-libraries=%p/lib --with-includes=%p/include --without-tcl --without-tk --without-java --enable-odbc --with-pam --with-rendezvous --enable-syslog --with-krb5=/usr
 CompileScript: <<
 #!/bin/sh -xe
 
@@ -116,10 +116,17 @@ InstallScript: <<
   for file in `ls -1 %i/bin/`; do
     mv "%i/bin/${file}" "%i/bin/${file}-7.4"
     echo "${file}" >> %i/var/postgresql-7.4/binary.list
-    install_name_tool -change %p/lib/libpq.3.dylib %p/lib/libpq.3.1.dylib "%i/bin/${file}-7.4" >/dev/null 2>&1 || :
-    install_name_tool -change %p/lib/libecpg.4.dylib %p/lib/libecpg.4.1.dylib "%i/bin/${file}-7.4" >/dev/null 2>&1 || :
+    install_name_tool -change %p/lib/libpq.3.dylib          %p/lib/libpq.3.1.dylib          "%i/bin/${file}-7.4" >/dev/null 2>&1 || :
+    install_name_tool -change %p/lib/libecpg.4.dylib        %p/lib/libecpg.4.1.dylib        "%i/bin/${file}-7.4" >/dev/null 2>&1 || :
     install_name_tool -change %p/lib/libecpg_compat.1.dylib %p/lib/libecpg_compat.1.2.dylib "%i/bin/${file}-7.4" >/dev/null 2>&1 || :
-    install_name_tool -change %p/lib/libpgtypes.1.dylib %p/lib/libpgtypes.1.2.dylib "%i/bin/${file}-7.4" >/dev/null 2>&1 || :
+    install_name_tool -change %p/lib/libpgtypes.1.dylib     %p/lib/libpgtypes.1.2.dylib     "%i/bin/${file}-7.4" >/dev/null 2>&1 || :
+  done
+
+  for file in `find %i/lib -type f`; do
+    install_name_tool -change %p/lib/libpq.3.dylib          %p/lib/libpq.3.1.dylib          "$file" >/dev/null 2>&1 || :
+    install_name_tool -change %p/lib/libecpg.4.dylib        %p/lib/libecpg.4.1.dylib        "$file" >/dev/null 2>&1 || :
+    install_name_tool -change %p/lib/libecpg_compat.1.dylib %p/lib/libecpg_compat.1.2.dylib "$file" >/dev/null 2>&1 || :
+    install_name_tool -change %p/lib/libpgtypes.1.dylib     %p/lib/libpgtypes.1.2.dylib     "$file" >/dev/null 2>&1 || :
   done
 
   for file in `ls -1 %i/share/man/man1/`; do
@@ -420,46 +427,6 @@ die () {
   echo "$*"
   exit 1
 }
-
-pg_createdb () {
-  # initdb quietly creates a bad database with the wrong locale otherwise :P
-  unset LC_ALL
-  export LANG=C
-
-  echo -e "- making postgresql directories: \c"
-  mkdir -p %p/var/postgresql-7.4/data
-  chown -R postgres %p/var/postgresql-7.4
-  chmod 755 %p/var/postgresql-7.4
-  echo "ok"
-
-  echo -e "- initializing database in %p/var/postgresql-7.4/data: \c"
-  sudo -u postgres %p/bin/initdb-7.4 -D %p/var/postgresql-7.4/data >/dev/null 2>&1 || die "couldn't initialize database"
-  echo "ok"
-}
-
-if [ -d %p/var/postgresql-7.4/data ]; then
-  chown -R postgres %p/var/postgresql-7.4
-  OLDMAJOR=`cat '%p/var/postgresql-7.4/data/PG_VERSION' 2>/dev/null | cut -d. -f1`
-  OLDMINOR=`cat '%p/var/postgresql-7.4/data/PG_VERSION' 2>/dev/null | cut -d. -f2`
-  OLDVERSION="${OLDMAJOR}.${OLDMINOR}"
-  CURMAJOR=`echo %v | cut -d. -f1`
-  CURMINOR=`echo %v | cut -d. -f2`
-  CURVERSION="${OLDMAJOR}.${OLDMINOR}"
-  if [ "$OLDVERSION" = "7.2" ]; then
-    cat <<END
-
-Warning: you have a database that was created with PostgreSQL ${OLDMAJOR}.${OLDMINOR}
-Database dumps from versions prior to ${CURMAJOR}.${CURMINOR} can be missing some 
-dependency information on certain types of constraints.
-
-It is recommended that when you have completed this postgresql
-install, you install the dbd-pg-pm or dbd-pg-pm-ssl package and then
-run the 'adddepend' script on each of your databases.
-END
-  fi
-else
-  pg_createdb
-fi
 
 # update daemonic init script if necessary
 daemonic install %N

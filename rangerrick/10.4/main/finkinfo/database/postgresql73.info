@@ -114,8 +114,13 @@ InstallScript: <<
   for file in `ls -1 %i/bin/`; do
     mv "%i/bin/${file}" "%i/bin/${file}-7.3"
     echo "${file}" >> %i/var/postgresql/binary.list
-    install_name_tool -change %p/lib/libpq.3.dylib %p/lib/libpq.3.0.dylib "%i/bin/${file}-7.3" >/dev/null 2>&1 || :
+    install_name_tool -change %p/lib/libpq.3.dylib   %p/lib/libpq.3.0.dylib   "%i/bin/${file}-7.3" >/dev/null 2>&1 || :
     install_name_tool -change %p/lib/libecpg.3.dylib %p/lib/libecpg.3.4.dylib "%i/bin/${file}-7.3" >/dev/null 2>&1 || :
+  done
+
+  for file in `find %i/lib -type f`; do
+    install_name_tool -change %p/lib/libpq.3.dylib   %p/lib/libpq.3.0.dylib   "$file" >/dev/null 2>&1 || :
+    install_name_tool -change %p/lib/libecpg.3.dylib %p/lib/libecpg.3.4.dylib "$file" >/dev/null 2>&1 || :
   done
 
   for file in `ls -1 %i/share/man/man1/`; do
@@ -395,46 +400,6 @@ die () {
   echo "$*"
   exit 1
 }
-
-pg_createdb () {
-  # initdb quietly creates a bad database with the wrong locale otherwise :P
-  unset LC_ALL
-  export LANG=C
-
-  echo -e "- making postgresql directories: \c"
-  mkdir -p %p/var/postgresql/data
-  chown -R postgres %p/var/postgresql
-  chmod 700 %p/var/postgresql
-  echo "ok"
-
-  echo -e "- initializing database in %p/var/postgresql/data: \c"
-  sudo -u postgres %p/bin/initdb-7.3 -D %p/var/postgresql/data >/dev/null 2>&1 || die "couldn't initialize database"
-  echo "ok"
-}
-
-if [ -d %p/var/postgresql/data ]; then
-  chown -R postgres %p/var/postgresql
-  OLDMAJOR=`cat '%p/var/postgresql/data/PG_VERSION' 2>/dev/null | cut -d. -f1`
-  OLDMINOR=`cat '%p/var/postgresql/data/PG_VERSION' 2>/dev/null | cut -d. -f2`
-  OLDVERSION="${OLDMAJOR}.${OLDMINOR}"
-  CURMAJOR=`echo %v | cut -d. -f1`
-  CURMINOR=`echo %v | cut -d. -f2`
-  CURVERSION="${OLDMAJOR}.${OLDMINOR}"
-  if [ "$OLDVERSION" = "7.2" ]; then
-    cat <<END
-
-Warning: you have a database that was created with PostgreSQL ${OLDMAJOR}.${OLDMINOR}
-Database dumps from versions prior to ${CURMAJOR}.${CURMINOR} can be missing some 
-dependency information on certain types of constraints.
-
-It is recommended that when you have completed this postgresql
-install, you install the dbd-pg-pm or dbd-pg-pm-ssl package and then
-run the 'adddepend' script on each of your databases.
-END
-  fi
-else
-  pg_createdb
-fi
 
 # update daemonic init script if necessary
 daemonic install %N
