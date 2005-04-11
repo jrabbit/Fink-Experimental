@@ -1,11 +1,11 @@
-Package: openoffice
+Package: openoffice-perl581
 Version: 1.9m88
 Revision: 1
 Description: Integrated office productivity suite
 License: OSI-Approved
 Maintainer: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>
 
-BuildDepends: x11-dev, ant, bison, fileutils, system-java14-dev, dlcompat-dev
+BuildDepends: x11-dev, ant, bison, fileutils, system-java14-dev, dlcompat-dev, archive-zip-pm581
 Depends: x11, system-java14, dlcompat-shlibs
 
 Source: ftp://ooopackages.good-day.net/pub/OpenOffice.org/sources/OOo_%v_source.tar.bz2
@@ -14,10 +14,10 @@ NoSourceDirectory: true
 Source2: ftp://ftp.cs.man.ac.uk/pub/toby/gpc/gpc231.tar.Z
 Source2-MD5: fdb06fdb5a4670b172f9fb738b717be9
 
-Patch: %n.patch
+Patch: openoffice.patch
 PatchScript: <<
 #!/bin/sh
-/bin/cp  ../gpc231/gpc.* external/gpc
+/bin/cp  gpc231/gpc.* external/gpc
 cat > Response <<EOF
 		[ENVIRONMENT]
 		INSTALLATIONMODE=INSTALL_NETWORK
@@ -32,15 +32,29 @@ cat > Response <<EOF
 EOF
 <<
 
-ConfigureParams: --with-lang=ALL --with-dict=ALL --with-epm=internal --enable-fontconfig=no --with-x --with-gnu-cp=%p/bin/cp --enable-cups=no --enable-gtk=no
+NoSetLDFLAGS: true
+NoSetCPPFLAGS: true
+
+ConfigureParams: <<
+  --with-gnu-cp=%p/bin/cp \
+  --with-lang=ALL --with-dict=ALL --with-epm=internal \
+#  --enable-mozilla --enable-build-mozilla --with-mozilla-toolkit=xlib \
+  --with-package-format=portable \
+  --with-x \
+  --with-jdk-home=/Library/Java/Home --with-ant-home=%p/lib/ant \
+  --disable-fontconfig \
+  --disable-cups --disable-gtk --disable-gnome-vfs \
+  --with-build-version="Built with Fink <http://fink.sourceforge.net>"
+<<
 CompileScript: <<
-#!/bin/tcsh
-unsetenv LD_SEG_ADDR_TABLE
-unsetenv LD_PREBIND
-unsetenv LD_PREBIND_ALLOW_OVERLAP
-(cd config_office; ./configure  %c)
-./bootstrap
-/bin/tcsh -c "source MacosxEnv.Set; dmake"
+  #!/bin/tcsh
+  unsetenv LD_SEG_ADDR_TABLE
+  unsetenv LD_PREBIND
+  unsetenv LD_PREBIND_ALLOW_OVERLAP
+  (cd config_office; ./configure  %c)
+  /bin/tcsh -c "./bootstrap"
+  /bin/tcsh -c "source MacosxEnv.Set && cd moz; ./build.pl; ./deliver.pl; ./dmake zip; /bin/cp unxmacxp.pro/zipped/*.zip zipped"
+  /bin/tcsh -c "source MacosxEnv.Set && setenv DEFAULT_TO_ENGLISH_FOR_PACKING yes && dmake"
 <<
 
 InstallScript: <<
