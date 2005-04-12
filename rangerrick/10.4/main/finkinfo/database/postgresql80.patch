@@ -1,6 +1,6 @@
 diff -uNr postgresql-8.0.2/contrib/Makefile postgresql-8.0.2-new/contrib/Makefile
 --- postgresql-8.0.2/contrib/Makefile	Tue Dec 14 17:50:23 2004
-+++ postgresql-8.0.2-new/contrib/Makefile	Mon Apr 11 19:37:59 2005
++++ postgresql-8.0.2-new/contrib/Makefile	Mon Apr 11 21:18:41 2005
 @@ -37,7 +37,6 @@
  		string		\
  		tablefunc	\
@@ -11,9 +11,18 @@ diff -uNr postgresql-8.0.2/contrib/Makefile postgresql-8.0.2-new/contrib/Makefil
  		vacuumlo
 diff -uNr postgresql-8.0.2/pgsql.sh postgresql-8.0.2-new/pgsql.sh
 --- postgresql-8.0.2/pgsql.sh	Wed Dec 31 19:00:00 1969
-+++ postgresql-8.0.2-new/pgsql.sh	Mon Apr 11 19:43:10 2005
-@@ -0,0 +1,57 @@
++++ postgresql-8.0.2-new/pgsql.sh	Mon Apr 11 21:18:52 2005
+@@ -0,0 +1,65 @@
 +#!/bin/sh
++
++die () {
++	echo "failed"
++	echo ""
++	echo "*** bailing because an error ocurred:"
++	echo ""
++	echo "$*"
++	exit 1
++}
 +
 +PREFIX="@INSTPREFIX@"
 +DATADIR="${PREFIX}/var/postgresql-8.0/data"
@@ -28,34 +37,33 @@ diff -uNr postgresql-8.0.2/pgsql.sh postgresql-8.0.2-new/pgsql.sh
 +
 +if [ "$SHMMAX" -lt "8388608" ] || [ "$SHMMNI" -lt "64" ] || [ "$SHMALL" -lt "32768" ]; then
 +	echo "ERROR: You must set your shared memory resources higher for PostgreSQL to function."
-+	if [ -f /etc/rc.local_tuning ]; then
-+		echo "       You already have an /etc/rc.local_tuning so I'm assuming you know what you're"
++	if [ -f /etc/sysctl.conf ]; then
++		echo "       You already have an /etc/sysctl.conf so I'm assuming you know what you're"
 +		echo "       doing.  Please update your shared memory settings to something higher and"
 +		echo "       give it another shot."
 +	else
-+		echo "       I am creating a default configuration in /etc/rc.local_tuning that should let"
++		echo "       I am creating a default configuration in /etc/sysctl.conf that should let"
 +		echo "       you start PostgreSQL, but it's probably best if you tune it yourself when"
 +		echo "       I'm done.  You will have to reboot before it will take effect."
-+		cat <<END >/etc/rc.local_tuning
-+sysctl -w kern.sysv.shmmax=8388608
-+sysctl -w kern.sysv.shmmin=1
-+sysctl -w kern.sysv.shmmni=64
-+sysctl -w kern.sysv.shmseg=8
-+sysctl -w kern.sysv.shmall=32768
++		cat <<END >/etc/sysctl.conf
++kern.sysv.shmmax=8388608
++kern.sysv.shmmin=1
++kern.sysv.shmmni=64
++kern.sysv.shmseg=8
++kern.sysv.shmall=32768
 +END
 +	fi
++#	exit 1
 +fi
 +
-+if [ -d "$DATADIR" ]; then
-+	chown -R postgres "$DATADIR"
-+else
++if [ ! -d "$DATADIR" ]; then
 +	echo -e "- making postgresql directories: \c"
-+	mkdir -p "$DATADIR"
-+	chown -R postgres "$DATADIR"
++	sudo mkdir -p "$DATADIR"
++	sudo chown -R postgres "$DATADIR/.."
 +	echo "ok"
 +
 +	echo -e "- initializing database in $DATADIR: \c"
-+	sudo -u postgres %p/bin/initdb-8.0 -D "$DATADIR" >/tmp/pgsql-init-8.0.log 2>&1 || die "couldn't initialize database"
++	sudo -u postgres ${PREFIX}/bin/initdb-8.0 -D "$DATADIR" >/tmp/pgsql-init-8.0.log 2>&1 || die "couldn't initialize database"
 +	echo "ok"
 +fi
 +
@@ -72,7 +80,7 @@ diff -uNr postgresql-8.0.2/pgsql.sh postgresql-8.0.2-new/pgsql.sh
 +esac
 diff -uNr postgresql-8.0.2/src/Makefile.global.in postgresql-8.0.2-new/src/Makefile.global.in
 --- postgresql-8.0.2/src/Makefile.global.in	Fri Mar 25 13:18:39 2005
-+++ postgresql-8.0.2-new/src/Makefile.global.in	Mon Apr 11 19:37:59 2005
++++ postgresql-8.0.2-new/src/Makefile.global.in	Mon Apr 11 21:18:41 2005
 @@ -65,21 +65,21 @@
  libexecdir := @libexecdir@
  ifeq "$(findstring pgsql, $(libexecdir))" ""
@@ -127,7 +135,7 @@ diff -uNr postgresql-8.0.2/src/Makefile.global.in postgresql-8.0.2-new/src/Makef
  endif
 diff -uNr postgresql-8.0.2/src/Makefile.shlib postgresql-8.0.2-new/src/Makefile.shlib
 --- postgresql-8.0.2/src/Makefile.shlib	Sat Nov 20 16:13:04 2004
-+++ postgresql-8.0.2-new/src/Makefile.shlib	Mon Apr 11 19:37:59 2005
++++ postgresql-8.0.2-new/src/Makefile.shlib	Mon Apr 11 21:18:41 2005
 @@ -101,11 +101,11 @@
    ifeq ($(DLTYPE), library)
      # linkable library
@@ -144,7 +152,7 @@ diff -uNr postgresql-8.0.2/src/Makefile.shlib postgresql-8.0.2-new/src/Makefile.
    shlib_major		= lib$(NAME).$(SO_MAJOR_VERSION)$(DLSUFFIX)
 diff -uNr postgresql-8.0.2/src/backend/main/main.c postgresql-8.0.2-new/src/backend/main/main.c
 --- postgresql-8.0.2/src/backend/main/main.c	Fri Dec 31 16:59:53 2004
-+++ postgresql-8.0.2-new/src/backend/main/main.c	Mon Apr 11 19:37:59 2005
++++ postgresql-8.0.2-new/src/backend/main/main.c	Mon Apr 11 21:18:41 2005
 @@ -56,6 +56,7 @@
  	struct passwd *pw;
  #endif
@@ -183,7 +191,7 @@ diff -uNr postgresql-8.0.2/src/backend/main/main.c postgresql-8.0.2-new/src/back
  #endif
 diff -uNr postgresql-8.0.2/src/backend/utils/fmgr/dfmgr.c postgresql-8.0.2-new/src/backend/utils/fmgr/dfmgr.c
 --- postgresql-8.0.2/src/backend/utils/fmgr/dfmgr.c	Fri Dec 31 17:01:31 2004
-+++ postgresql-8.0.2-new/src/backend/utils/fmgr/dfmgr.c	Mon Apr 11 19:37:59 2005
++++ postgresql-8.0.2-new/src/backend/utils/fmgr/dfmgr.c	Mon Apr 11 21:18:41 2005
 @@ -305,6 +305,26 @@
  		pfree(full);
  	}
@@ -213,7 +221,7 @@ diff -uNr postgresql-8.0.2/src/backend/utils/fmgr/dfmgr.c postgresql-8.0.2-new/s
  	strcat(new, DLSUFFIX);
 diff -uNr postgresql-8.0.2/src/backend/utils/misc/postgresql.conf.sample postgresql-8.0.2-new/src/backend/utils/misc/postgresql.conf.sample
 --- postgresql-8.0.2/src/backend/utils/misc/postgresql.conf.sample	Wed Mar 23 23:36:59 2005
-+++ postgresql-8.0.2-new/src/backend/utils/misc/postgresql.conf.sample	Mon Apr 11 19:37:59 2005
++++ postgresql-8.0.2-new/src/backend/utils/misc/postgresql.conf.sample	Mon Apr 11 21:18:41 2005
 @@ -61,7 +61,7 @@
  # - Security & Authentication -
  
@@ -225,7 +233,7 @@ diff -uNr postgresql-8.0.2/src/backend/utils/misc/postgresql.conf.sample postgre
  #db_user_namespace = false
 diff -uNr postgresql-8.0.2/src/bin/initdb/initdb.c postgresql-8.0.2-new/src/bin/initdb/initdb.c
 --- postgresql-8.0.2/src/bin/initdb/initdb.c	Thu Jan 27 19:36:17 2005
-+++ postgresql-8.0.2-new/src/bin/initdb/initdb.c	Mon Apr 11 19:37:59 2005
++++ postgresql-8.0.2-new/src/bin/initdb/initdb.c	Mon Apr 11 21:18:41 2005
 @@ -118,7 +118,7 @@
  
  /* defaults */
@@ -272,7 +280,7 @@ diff -uNr postgresql-8.0.2/src/bin/initdb/initdb.c postgresql-8.0.2-new/src/bin/
  	  QUOTE_PATH, bin_dir, QUOTE_PATH, (strlen(bin_dir) > 0) ? DIR_SEP : "",
 diff -uNr postgresql-8.0.2/src/bin/pg_ctl/pg_ctl.c postgresql-8.0.2-new/src/bin/pg_ctl/pg_ctl.c
 --- postgresql-8.0.2/src/bin/pg_ctl/pg_ctl.c	Fri Dec 31 17:03:05 2004
-+++ postgresql-8.0.2-new/src/bin/pg_ctl/pg_ctl.c	Mon Apr 11 19:37:59 2005
++++ postgresql-8.0.2-new/src/bin/pg_ctl/pg_ctl.c	Mon Apr 11 21:18:41 2005
 @@ -532,7 +532,7 @@
  
  		postmaster_path = xmalloc(MAXPGPATH);
@@ -309,7 +317,7 @@ diff -uNr postgresql-8.0.2/src/bin/pg_ctl/pg_ctl.c postgresql-8.0.2-new/src/bin/
  			write_stderr(_("%s: could not find postmaster program executable\n"), progname);
 diff -uNr postgresql-8.0.2/src/interfaces/ecpg/compatlib/Makefile postgresql-8.0.2-new/src/interfaces/ecpg/compatlib/Makefile
 --- postgresql-8.0.2/src/interfaces/ecpg/compatlib/Makefile	Sun Mar 13 17:04:45 2005
-+++ postgresql-8.0.2-new/src/interfaces/ecpg/compatlib/Makefile	Mon Apr 11 19:37:59 2005
++++ postgresql-8.0.2-new/src/interfaces/ecpg/compatlib/Makefile	Mon Apr 11 21:18:41 2005
 @@ -20,6 +20,7 @@
  override CPPFLAGS := -I$(top_srcdir)/src/interfaces/ecpg/include -I$(libpq_srcdir) \
  	-I$(top_srcdir)/src/include/utils $(CPPFLAGS)
@@ -320,7 +328,7 @@ diff -uNr postgresql-8.0.2/src/interfaces/ecpg/compatlib/Makefile postgresql-8.0
  
 diff -uNr postgresql-8.0.2/src/interfaces/ecpg/ecpglib/Makefile postgresql-8.0.2-new/src/interfaces/ecpg/ecpglib/Makefile
 --- postgresql-8.0.2/src/interfaces/ecpg/ecpglib/Makefile	Sun Mar 13 17:04:45 2005
-+++ postgresql-8.0.2-new/src/interfaces/ecpg/ecpglib/Makefile	Mon Apr 11 19:37:59 2005
++++ postgresql-8.0.2-new/src/interfaces/ecpg/ecpglib/Makefile	Mon Apr 11 21:18:41 2005
 @@ -19,6 +19,7 @@
  
  override CPPFLAGS := -DFRONTEND -I$(top_srcdir)/src/interfaces/ecpg/include \
@@ -331,7 +339,7 @@ diff -uNr postgresql-8.0.2/src/interfaces/ecpg/ecpglib/Makefile postgresql-8.0.2
  # Need to recomple any libpgport object files
 diff -uNr postgresql-8.0.2/src/makefiles/Makefile.darwin postgresql-8.0.2-new/src/makefiles/Makefile.darwin
 --- postgresql-8.0.2/src/makefiles/Makefile.darwin	Thu Dec 16 22:52:48 2004
-+++ postgresql-8.0.2-new/src/makefiles/Makefile.darwin	Mon Apr 11 19:37:59 2005
++++ postgresql-8.0.2-new/src/makefiles/Makefile.darwin	Mon Apr 11 21:18:41 2005
 @@ -13,6 +13,6 @@
  # Rule for building shared libs (currently used only for regression test
  # shlib ... should go away, since this is not really enough knowledge)
