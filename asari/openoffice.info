@@ -1,6 +1,6 @@
 Package: openoffice
-Version: 1.9m92
-Revision: 9
+Version: 1.9m93
+Revision: 1
 Description: Integrated office productivity suite
 License: OSI-Approved
 Maintainer: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>
@@ -18,12 +18,13 @@ BuildDepends: <<
 Depends: x11, system-java14, dlcompat-shlibs, libidl2-shlibs
 
 Source: ftp://ooopackages.good-day.net/pub/OpenOffice.org/sources/OOo_%v_source.tar.bz2
-Source-MD5: 1a30d3b2047a8e96d35b771f2bbec937
+Source-MD5: 30989783ca51e90a33d61bde5421d508
 NoSourceDirectory: true
-Source2: ftp://ftp.cs.man.ac.uk/pub/toby/gpc/gpc231.tar.Z
-Source2-MD5: fdb06fdb5a4670b172f9fb738b717be9
-Source3: ftp://ooopackages.good-day.net/pub/OpenOffice.org/MacOSX/%v/openoffice2-macosx-20050411.tar.bz2
-Source3-MD5: 8c94d96d8b9bd58dd6cbadae58e24b82
+Source2: ftp://ooopackages.good-day.net/pub/OpenOffice.org/MacOSX/%v/openoffice2-macosx-20050414.tar.bz2
+Source2-MD5: 18897c1e2c44a824e44965e5bbf230ce
+
+Source3: ftp://ftp.cs.man.ac.uk/pub/toby/gpc/gpc231.tar.Z
+Source3-MD5: fdb06fdb5a4670b172f9fb738b717be9
 Source4: mirror:custom:mozilla/releases/mozilla1.7.5/source/mozilla-source-1.7.5.tar.bz2
 Source4-MD5: e5994f3e801cd834966367c6a12f8aeb
 CustomMirror: <<
@@ -34,35 +35,23 @@ CustomMirror: <<
 <<
 
 PatchScript: <<
-#!/bin/sh -ev
-/bin/mv gpc231/gpc.{c,h} external/gpc
-/usr/bin/tar -zcf moz/download/mozilla-source-1.7.5.tar.gz mozilla
-for patch in openoffice2-macosx/patches/patch-*; do
-  patch -p0 < $patch
-done
-cat > Response <<EOF
-		[ENVIRONMENT]
-		INSTALLATIONMODE=INSTALL_NETWORK
-		INSTALLATIONTYPE=STANDARD
-		DESTINATIONPATH=%i/share/%n
-		OUTERPATH=
-		LOGFILE=
-		LANGUAGELIST=
-
-		[JAVA]
-		JavaSupport=preinstalled_or_none
-EOF
+  #!/bin/sh -ev
+  /bin/mv gpc231/gpc.{c,h} external/gpc
+  /usr/bin/tar -zcf moz/download/mozilla-source-1.7.5.tar.gz mozilla
+  for patch in openoffice2-macosx/patches/patch-*; do
+    patch -p0 < $patch
+  done
 <<
 
 
-# --with-lang=ALL
-# --with-dict=ALL \
+# --with-lang=ALL --with-dict=ALL \
 ConfigureParams: <<
   --with-gnu-cp=%p/bin/cp \
   --enable-mozilla --enable-build-mozilla \
   --with-package-format=portable \
   --with-x \
   --with-jdk-home=/Library/Java/Home --with-ant-home=%p/lib/ant \
+  --disable-gtk \
   --enable-gnome-vfs=no \
   --with-build-version="Built with Fink <http://fink.sourceforge.net>"
 <<
@@ -78,7 +67,7 @@ CompileScript: <<
 <<
 
 InstallScript: <<
-  #!/bin/sh
+  #!/bin/sh -ev
   /usr/bin/install -d -m 755 %i/lib/%n
   for i in instsetoo_native/unxmacxp.pro/OpenOffice/install/en-US/darwin-*/*.sw; do
     /usr/bin/tar zxf $i -C %i/lib/%n
