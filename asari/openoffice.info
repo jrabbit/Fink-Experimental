@@ -1,23 +1,36 @@
-Package: openoffice-perl581
-Version: 1.9m88
-Revision: 1
+Package: openoffice
+Version: 1.9m92
+Revision: 8
 Description: Integrated office productivity suite
 License: OSI-Approved
 Maintainer: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>
 
-BuildDepends: x11-dev, ant, bison, fileutils, system-java14-dev, dlcompat-dev, archive-zip-pm581
-Depends: x11, system-java14, dlcompat-shlibs
+BuildDepends: x11-dev, ant, bison, fileutils, system-java14-dev, dlcompat-dev, archive-zip-pm581, libidl2, atk1, audiofile, esound, gconf2-dev, gettext-dev, glib2-dev, gnome-keyring-dev, gnome-vfs2-ssl-dev | gnome-vfs2-dev, gtk+2-dev, libart2, libbonobo2-dev, libbonoboui2-dev, libglade2, libgnome2-dev, libgnomecanvas2-dev, libgnomeprint2.2-dev, libgnomeprintui2.2-dev, libgnomeui2-dev, libiconv-dev, libjpeg, libxml2, orbit2-dev, pango1-xft2-dev, pcre, pkgconfig, popt, vte-dev
+Depends: x11, system-java14, dlcompat-shlibs, libidl2-shlibs
 
 Source: ftp://ooopackages.good-day.net/pub/OpenOffice.org/sources/OOo_%v_source.tar.bz2
-Source-MD5: 7b704dfb29f220278e4f347d5ec6252e
+Source-MD5: 1a30d3b2047a8e96d35b771f2bbec937
 NoSourceDirectory: true
 Source2: ftp://ftp.cs.man.ac.uk/pub/toby/gpc/gpc231.tar.Z
 Source2-MD5: fdb06fdb5a4670b172f9fb738b717be9
+Source3: ftp://ooopackages.good-day.net/pub/OpenOffice.org/MacOSX/%v/openoffice2-macosx-20050411.tar.bz2
+Source3-MD5: 8c94d96d8b9bd58dd6cbadae58e24b82
+Source4: mirror:custom:mozilla/releases/mozilla1.7.5/source/mozilla-source-1.7.5.tar.bz2
+Source4-MD5: e5994f3e801cd834966367c6a12f8aeb
+CustomMirror: <<
+  Primary: http://ftp.mozilla.org/pub/mozilla.org/
+  nam-US: ftp://ftp.spnet.net/mozilla/
+  eur-BE: ftp://ftp.kulnet.kuleuven.ac.be/mirror/mozilla-releases/
+  asi-JP: http://core.ring.gr.jp/pub/net/www/mozilla/
+<<
 
-Patch: openoffice.patch
 PatchScript: <<
-#!/bin/sh
-/bin/cp  gpc231/gpc.* external/gpc
+#!/bin/sh -ev
+/bin/mv gpc231/gpc.{c,h} external/gpc
+/usr/bin/tar -zcf moz/download/mozilla-source-1.7.5.tar.gz mozilla
+for patch in openoffice2-macosx/patches/patch-*; do
+  patch -p0 < $patch
+done
 cat > Response <<EOF
 		[ENVIRONMENT]
 		INSTALLATIONMODE=INSTALL_NETWORK
@@ -32,33 +45,47 @@ cat > Response <<EOF
 EOF
 <<
 
-NoSetLDFLAGS: true
-NoSetCPPFLAGS: true
 
+# --with-lang=ALL
+# --with-dict=ALL \
 ConfigureParams: <<
   --with-gnu-cp=%p/bin/cp \
-  --with-lang=ALL --with-dict=ALL --with-epm=internal \
-#  --enable-mozilla --enable-build-mozilla --with-mozilla-toolkit=xlib \
+  --enable-mozilla --enable-build-mozilla \
   --with-package-format=portable \
   --with-x \
   --with-jdk-home=/Library/Java/Home --with-ant-home=%p/lib/ant \
-  --disable-fontconfig \
-  --disable-cups --disable-gtk --disable-gnome-vfs \
+  --enable-gnome-vfs=no \
   --with-build-version="Built with Fink <http://fink.sourceforge.net>"
 <<
 CompileScript: <<
-  #!/bin/tcsh
+#!/bin/tcsh
   unsetenv LD_SEG_ADDR_TABLE
   unsetenv LD_PREBIND
   unsetenv LD_PREBIND_ALLOW_OVERLAP
-  (cd config_office; ./configure  %c)
+  (cd config_office && ./configure %c)
   /bin/tcsh -c "./bootstrap"
   /bin/tcsh -c "source MacosxEnv.Set && cd moz; ./build.pl; ./deliver.pl; ./dmake zip; /bin/cp unxmacxp.pro/zipped/*.zip zipped"
   /bin/tcsh -c "source MacosxEnv.Set && setenv DEFAULT_TO_ENGLISH_FOR_PACKING yes && dmake"
 <<
 
 InstallScript: <<
-./setup -nogui -v -r:./Response
+echo "wow"
 <<
 
+DescDetail: <<
+OpenOffice.org is an Open Source, community-developed, multi-platform office
+productivity suite. It includes the key desktop applications, such as a
+word processor, spreadsheet, presentation manager, and drawing program,
+with a user interface and feature set similar to other office suites.
+
+Components include:
+  * A universal word processing application for creating business
+    letters, extensive text documents, professional layouts, and HTML
+    documents.
+  * A sophisticated application for performing advanced spreadsheet
+    functions, such as analyzing figures, creating lists, and viewing data.
+  * A tool for creating effective eye-catching presentations.
+  * A vector-oriented draw module that enables the creation of 3D
+    illustrations.
+<<
 Homepage: http://www.openoffice.org/
