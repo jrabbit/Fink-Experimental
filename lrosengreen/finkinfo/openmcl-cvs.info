@@ -1,0 +1,89 @@
+Package: openmcl-cvs
+Version: 0.14.3-050418
+Revision: 1
+Description: ANSI Common Lisp implementation (CVS)
+License: LGPL
+Maintainer: Lars Rosengreen <lars@margay.org>
+
+Source: ftp://clozure.com/pub/testing/dppccl-image-050418.tar.gz
+Source2: ftp://clozure.com/pub/testing/openmcl-darwin-interfaces-050418.tar.gz
+
+Source-MD5: e3cd9a5fd3e5b242f3449a4d8dc0188b
+Source2-MD5: 9f8d54696a1c172dbe6a9a3e5b5d428e
+
+SourceDirectory: ccl
+
+PatchScript: <<
+  #! /bin/sh
+  
+  workdir=$PWD
+  cachedir="%p/var/cache/fink/%n.cache"
+  cvsroot=":pserver:cvs@clozure.com:/usr/local/tmpcvs/ccl-0.14-dev"
+
+  if [ -f $cachedir/CVS/Root ]; then
+    cd $cachedir
+    echo "updating source code cache from CVS ..."
+    cvs -z3 up -dAP
+  else
+    rm -rf $cachedir   # get rid of corrupted, unrecoverable caches
+    mkdir -p %p/var/cache/fink
+    cd %p/var/cache/fink
+    echo "fetching source code from CVS  ..."
+    echo "if you are prompted for a password, press return"
+    cvs -d$cvsroot login
+    cvs -z3 -d$cvsroot co -d %n.cache ccl
+  fi
+
+  echo "copying source from $cachedir to $workdir ..."
+  cp -Rp $cachedir/* $workdir
+<<
+
+CompileScript: <<
+  cd lisp-kernel/darwin ; make
+  echo '(ccl::xload-level-0 :force)' | ./dppccl --batch
+  echo '(ccl::compile-ccl)' | ./dppccl --batch
+  echo '(ccl::save-application "dppccl.image")' | ./dppccl --batch --image-name ppc-boot.image
+  echo '(require :hemlock)' | ./dppccl --batch
+<<
+
+InstallScript: <<
+  /usr/bin/find . -type d -name CVS  -depth -exec rm -rfv \{\} \;
+  /usr/bin/find . -type f -name .cvsignore -depth -exec rm -rfv \{\} \;
+  /usr/bin/install -m 755 -d %i/bin
+  echo '#! /bin/sh' >> %i/bin/%n
+  echo 'CCL_DEFAULT_DIRECTORY=%p/lib/%n/ccl exec %p/lib/%n/ccl/dppccl "$@"' >> %i/bin/%n
+  chmod +x %i/bin/%n
+  /usr/bin/install -m 755 -d %i/lib/%n/ccl
+  cp -Rp * %i/lib/%n/ccl
+<<
+
+DocFiles: LGPL LICENSE
+
+Homepage: http://openmcl.clozure.com/
+
+DescDetail: <<
+  A free ANSI Common Lisp implementation for the Macintosh with
+  several advanced features including native (POSIX) threading,
+  support for most of AMOP, and an elegant interface to
+  Objective-C/Cocoa.
+
+  This package pulls and build "bleeding edge" source from OpenMCL's
+  CVS source code repository.  
+<< 
+
+DescUsage: << 
+  Type "%n" at a shell prompt to get started.  From within OpenMCL you
+  can "(require :cocoa)" to launch the experimental Cocoa IDE.
+
+  To pull the latest changes from CVS and rebuild this package, type
+  "fink rebuild clisp-cvs" at a shell promp.
+
+  The source code cache created in %p/var/cache/fink/%n.cache
+  can be safely deleted whenever you wish.  The package will
+  regenerate it as needed.
+<<
+
+DescPackaging: << 
+  This package is identical to the openmcl package in unstable except
+  that it builds from "bleeding edge" CVS and includes portable hemlock.  
+<<
