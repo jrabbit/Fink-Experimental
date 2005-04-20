@@ -49,7 +49,7 @@ ConfigureParams: <<
   --with-package-format=portable \
   --with-x \
   --with-jdk-home=/Library/Java/Home --with-ant-home=%p/lib/ant \
-  --disable-gtk \
+  --enable-gtk=no \
   --enable-gnome-vfs=no \
   --with-build-version="Built with Fink <http://fink.sourceforge.net>"
 <<
@@ -60,17 +60,15 @@ CompileScript: <<
   unsetenv LD_PREBIND_ALLOW_OVERLAP
   (cd config_office && ./configure %c)
   ./bootstrap
-  source MacosxEnv.Set
-  (cd moz && build.pl && deliver.pl && dmake zip && /bin/cp unxmacxp.pro/zipped/*.zip zipped)
-  setenv DEFAULT_TO_ENGLISH_FOR_PACKING yes
-  (cd instsetoo_native  && build.pl --all)
+  (source MacosxEnv.Set && cd moz && build.pl && deliver.pl && dmake zip && /bin/cp unxmacxp.pro/zipped/*.zip zipped)
+  (source MacosxEnv.Set && setenv DEFAULT_TO_ENGLISH_FOR_PACKING yes && cd instsetoo_native && build.pl --all)
 <<
 
 InstallScript: <<
-  #!/bin/sh -ex
+  #!/bin/sh -ev
   /usr/bin/install -m 755 -d %i/lib
   for i in instsetoo_native/unxmacxp.pro/OpenOffice/install/en-US/darwin-*/*.sw; do
-    /usr/bin/tar xf $i -C %i/lib
+    /usr/bin/tar xvf $i -C %i/lib
   done
   /bin/mv %i/{Applications,%n}
 <<
