@@ -101,7 +101,7 @@ sub doc_files
 {
    my $self = shift;
    my @docfiles = grep !/^(
-                           .*\.(pm|pl|PM|PL|bat|xs|c|h|a|bs|so|dylib|pod) |
+                           .*\.(pm|pl|plx|PM|PL|bat|xs|c|h|a|bs|so|dylib|pod) |
                            Makefile |
                            Build |
                            MANIFEST\.SKIP |

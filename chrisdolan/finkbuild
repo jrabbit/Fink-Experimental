@@ -17,6 +17,10 @@ endif
 set info = $1
 shift
 set perlvers = "$*"
+# Hack for packages that don't need to version with Perl
+if ( "q$perlvers" == "q" ) then
+  set perlvers = "0"
+endif
 
 if (! -f $info) then
   echo "info file not found"
@@ -28,7 +32,12 @@ if ($index == "true") then
   /sw/bin/fink index
 endif
 
-foreach perlver (`echo $perlvers`)
+foreach ver (`echo $perlvers`)
+  if ( "q$ver" == "q0" ) then
+    set perlver = ""
+  else
+    set perlver = $ver
+  endif
   set pkg = `echo $info | sed "s,.*/,," | sed "s,\.info,,"`$perlver
   nice +10 /sw/bin/fink -k -K rebuild $pkg
   if ($status == 0) then
