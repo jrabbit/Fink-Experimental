@@ -1,6 +1,6 @@
 Package: qt3
 Version: 3.3.4
-Revision: 13
+Revision: 14
 GCC: 3.3
 CustomMirror: <<
   Primary: ftp://ftp.trolltech.com/qt/source
@@ -32,6 +32,14 @@ PatchScript: <<
 NoSetLDFLAGS: true
 CompileScript: <<
 #!/bin/sh -ex
+
+  PRODUCT_VERSION=`sw_vers -productVersion`
+
+  case $PRODUCT_VERSION in
+    10.4*)
+      export DEFINES="$DEFINES -DTIGER_DLSYM_HACK=1"
+      ;;
+  esac
 
  CURRENTVERSION=`dpkg -p qt3 | grep '^Version:' | cut -d' ' -f2-`
  DOREMOVE=0
@@ -77,7 +85,7 @@ CompileScript: <<
  fi
  # we have to force header/lib ordering or things get really wiggy
  # looks ugly, but it's better than patching the source
- echo "yes" | ./configure \
+ echo "yes" | ./configure $DEFINES \
 	'-I$(QTDIR)/include' '-I%p/lib/freetype219/include/freetype2' \
 	'-L%p/lib/freetype219/lib' '-I/usr/X11R6/include' '-I%p/include' \
 	'-L$(QTDIR)/lib' '-L%p/lib' '-L/usr/X11R6/lib' $LIBRESOLV \
