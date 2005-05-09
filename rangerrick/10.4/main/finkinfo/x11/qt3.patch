@@ -2115,44 +2115,6 @@ diff -uNr qt-x11-free-3.3.4/src/tools/qlibrary.cpp qt-x11-free-3.3.4-new/src/too
      filters << ".so";
      filters << ".bundle";
      filters << ".dylib"; //the last one is also the default one..
-diff -uNr qt-x11-free-3.3.4/src/tools/qlibrary_unix.cpp qt-x11-free-3.3.4-new/src/tools/qlibrary_unix.cpp
---- qt-x11-free-3.3.4/src/tools/qlibrary_unix.cpp	2005-01-21 12:16:05.000000000 -0500
-+++ qt-x11-free-3.3.4-new/src/tools/qlibrary_unix.cpp	2005-05-09 15:45:48.000000000 -0400
-@@ -35,6 +35,9 @@
- **
- **********************************************************************/
- 
-+#define ENUM_DYLD_BOOL
-+#include <mach-o/dyld.h>
-+
- #include "qplatformdefs.h"
- #include "private/qlibrary_p.h"
- 
-@@ -145,10 +148,24 @@
-     char* undrscr_symbol = new char[strlen(symbol)+2];
-     undrscr_symbol[0] = '_';
-     strcpy(undrscr_symbol+1, symbol);
-+# if defined(TIGER_DLSYM_HACK)
-+    void* address = NSAddressOfSymbol(NSLookupSymbolInModule(pHnd,undrscr_symbol));
-+    if ((NULL == address) && NSIsSymbolNameDefined(undrscr_symbol)) {
-+      address = dlsym ( pHnd, undrscr_symbol );
-+    }
-+# else
-     void* address = dlsym( pHnd, undrscr_symbol );
-+# endif
-     delete [] undrscr_symbol;
- #else
-+# if defined(TIGER_DLSYM_HACK)
-+    void* address = NSAddressOfSymbol(NSLookupSymbolInModule(pHnd,symbol));
-+    if ((NULL == address) && NSIsSymbolNameDefined(symbol)) {
-+      address = dlsym ( pHnd, symbol );
-+    }
-+# else
-     void* address = dlsym( pHnd, symbol );
-+# endif
- #endif
- #if defined(QT_DEBUG_COMPONENT)
-     const char* error = dlerror();
 diff -uNr qt-x11-free-3.3.4/src/tools/qmutex_unix.cpp qt-x11-free-3.3.4-new/src/tools/qmutex_unix.cpp
 --- qt-x11-free-3.3.4/src/tools/qmutex_unix.cpp	2005-01-21 12:16:04.000000000 -0500
 +++ qt-x11-free-3.3.4-new/src/tools/qmutex_unix.cpp	2005-05-09 14:39:48.000000000 -0400
