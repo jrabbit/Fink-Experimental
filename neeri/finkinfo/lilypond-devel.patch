@@ -1,0 +1,475 @@
+diff -ruN lilypond-2.5.23-orig/Documentation/user/GNUmakefile lilypond-2.5.23/Documentation/user/GNUmakefile
+--- lilypond-2.5.23-orig/Documentation/user/GNUmakefile	2005-05-08 21:23:38.000000000 -0700
++++ lilypond-2.5.23/Documentation/user/GNUmakefile	2005-05-08 21:47:04.000000000 -0700
+@@ -277,7 +277,7 @@
+ local-clean: local-delete
+ 
+ local-delete:
+-	-for i in $$(seq 0 9); do \
++	-for i in $$(jot 9 0 9); do \
+ 		for j in dvi eps eps.bbox eps.trans eps.trans.ps ps log png tex; do \
+ 			rm -f $(outdir)/lily-$$i*$$j; \
+ 		done; \
+diff -ruN lilypond-2.5.23-orig/Documentation/user/GNUmakefile.orig lilypond-2.5.23/Documentation/user/GNUmakefile.orig
+--- lilypond-2.5.23-orig/Documentation/user/GNUmakefile.orig	1969-12-31 16:00:00.000000000 -0800
++++ lilypond-2.5.23/Documentation/user/GNUmakefile.orig	2005-04-25 09:39:30.000000000 -0700
+@@ -0,0 +1,285 @@
++depth=../..
++
++LATEX_FILES =$(wildcard *.latex)
++
++# todo: add latex.
++DVI_FILES = $(TELY_FILES:%.tely=$(outdir)/%.dvi)
++
++EXTRA_DIST_FILES= $(LATEX_FILES) $(IMAGES)
++IMAGES=$(wildcard *.png)
++
++OUT_EPS_IMAGES=$(IMAGES:%.png=$(outdir)/%.eps)
++OUT_PNG_IMAGES=$(IMAGES:%=$(outdir)/%)
++OUT_TEXI_FILES=$(ITEXI_FILES:%.itexi=$(outdir)/%.texi)\
++ $(ITELY_FILES:%.itely=$(outdir)/%.texi)
++HTML_FILES = $(TELY_FILES:%.tely=$(outdir)/%.html)\
++ $(outdir)/lilypond-internals.html
++
++PS_FILES = $(DVI_FILES:.dvi=.ps)
++PDF_FILES = $(DVI_FILES:.dvi=.pdf)
++
++PS_GZ_FILES= $(addsuffix .gz, $(PS_FILES))
++
++INFO_DOCS = lilypond lilypond-internals music-glossary
++INFO_FILES = $(INFO_DOCS:%=$(outdir)/%.info)
++
++STEPMAKE_TEMPLATES=tex texinfo omf documentation
++
++OMF_FILES += $(outdir)/lilypond-internals.html.omf
++
++LOCALSTEPMAKE_TEMPLATES=lilypond ly
++
++include $(depth)/make/stepmake.make 
++
++dvi: $(DVI_FILES)
++
++ps: $(PS_FILES)
++
++info: $(INFO_FILES)
++
++pathsettings:
++	@echo export PATH=$(PATH)
++	@echo export LILYPONDPREFIX=$(LILYPONDPREFIX)
++	@echo export PYTHONPATH=$(PYTHONPATH)
++
++xml: $(outdir)/lilypond/lilypond.xml $(outdir)/lilypond-internals/lilypond-internals.xml
++
++# There are two modes for info: with and without images.
++ifeq ($(out),www)
++
++# This builds all .info targets with images, in out-www.
++# Viewawble with a recent Emacs, doing: M-x info out-www/lilypond.info
++
++# Cancel the special, non-image info generation rule that skips images:
++$(outdir)/%.info: $(outdir)/%.nexi
++
++local-install-info: info
++	-$(INSTALL) -d $(DESTDIR)$(package_infodir)
++ifneq ($(patsubst %/local,%,$(DESTDIR)$(prefix)),/usr)
++## Can not have absolute symlinks because some binary packages build schemes
++## install files in nonstandard root.  Best we can do is to notify the
++## builder or packager.
++	@echo
++	@echo "***************************************************************"
++	@echo "Please add or update the LilyPond direntries, do"
++	@echo
++	@echo "    install-info --info-dir=$(infodir) $(outdir)/lilypond.info"
++	@echo
++	@echo "For images in the INFO docs to work, do: "
++	@echo
++	@echo "    (cd $(package_infodir) && ln -sf ../../doc/lilypond/Documentation/user/out-www/*png .)"
++	@echo "or add something like that to the postinstall script."
++	@echo
++else
++	-$(INSTALL) -d $(DESTDIR)$(package_infodir)
++	-install-info --remove --info-dir=$(infodir) $(outdir)/lilypond.info
++	install-info --info-dir=$(infodir) $(outdir)/lilypond.info
++	(cd $(lilypond_infodir) && ln -sf $(webdir)/Documentation/user/out-www/*png .)
++endif
++
++local-uninstall-WWW:
++	rm -f $(package_infodir)/*.png
++
++else
++
++# Cancel the default info generation rule that generates images:
++$(outdir)/%.info: # $(outdir)/%.texi
++
++local-install-info: info
++	-$(INSTALL) -d $(DESTDIR)$(package_infodir)
++ifneq ($(patsubst %/local,%,$(DESTDIR)$(prefix)),/usr)
++## Can not have absolute symlinks because some binary packages build schemes
++## install files in nonstandard root.  Best we can do is to notify the
++## builder or packager.
++	@echo
++	@echo "***************************************************************"
++	@echo "Please add or update the LilyPond direntries, do"
++	@echo
++	@echo "    install-info --info-dir=$(infodir) out/lilypond.info"
++	@echo
++	@echo "For images in the INFO docs to work, do"
++	@echo
++	@echo "    make out=www install-info "
++	@echo
++	@echo "and read the extra instructions."
++	@echo
++else
++	-$(INSTALL) -d $(DESTDIR)$(package_infodir)
++	-install-info --remove --info-dir=$(infodir) $(outdir)/lilypond.info
++	install-info --info-dir=$(infodir) $(outdir)/lilypond.info
++	@echo
++	@echo "***************************************************************"
++	@echo "For images in the INFO docs to work, do"
++	@echo
++	@echo "    make out=www install-info "
++	@echo
++endif
++
++
++endif
++
++# All web targets, except info image symlinks and info docs are
++# installed in non-recursing target from TOPDIR
++local-install-WWW: local-install-info
++local-uninstall-WWW: local-uninstall-info
++
++default: 
++
++
++local-help: extra-local-help
++
++extra-local-help:
++	@echo -e "\
++  dvi         update dvi documents\n\
++  info        update info pages\n\
++  ps          update PostScript documents\n\
++  xml	      update Docbook xml documentation\n\
++"
++
++# Generic rule using % twice not possible?
++# $(outdir)/%/%.html: $(outdir)/%.texi
++$(outdir)/lilypond.texi: $(outdir)/lilypond-internals.texi
++$(outdir)/lilypond.nexi: $(outdir)/lilypond-internals.texi
++
++#
++# The split user manual
++#
++$(outdir)/lilypond/index.html: $(outdir)/lilypond.texi $(OUT_PNG_IMAGES)
++	mkdir -p $(dir $@)
++	$(MAKEINFO) -I$(outdir) --output=$(outdir)/lilypond --css-include=$(abs-srcdir)/Documentation/texinfo.css --html $<
++	find $(outdir)/lilypond/ -name '*'.png -o -name '*'.ly | xargs rm -f
++# symbolic links to save space 
++	(cd $(outdir)/lilypond/ ; ln -sf ../*.png ../*.ly . )
++
++#
++# One big page manual
++#
++$(outdir)/lilypond.html: $(outdir)/lilypond.texi
++	$(MAKEINFO) -I$(outdir) --output=$@ --css-include=$(abs-srcdir)/Documentation/texinfo.css --html --no-split --no-headers $<
++
++#
++# The split internals reference
++#
++$(outdir)/lilypond-internals/index.html: $(outdir)/lilypond-internals.texi
++	mkdir -p $(dir $@)
++	$(MAKEINFO) --output=$(outdir)/lilypond-internals --css-include=$(abs-srcdir)/Documentation/texinfo.css --html $<
++
++#
++# One big page internals reference
++#
++$(outdir)/lilypond-internals.html: $(outdir)/lilypond-internals.texi
++	$(MAKEINFO) --output=$@ --css-include=$(abs-srcdir)/Documentation/texinfo.css --html --no-split --no-headers $<
++
++#
++# The split glossary
++#
++$(outdir)/music-glossary/index.html: $(outdir)/music-glossary.texi
++	mkdir -p $(dir $@)
++	$(MAKEINFO) --output=$(outdir)/music-glossary --css-include=$(abs-srcdir)/Documentation/texinfo.css --html $<
++	find $(outdir)/music-glossary/ -name '*'.png -o -name '*'.ly | xargs rm -f
++# symbolic links to save space 
++	(cd $(outdir)/music-glossary/ ; ln -sf ../*.png ../*.ly . )
++
++$(outdir)/lilypond.xml: $(outdir)/lilypond.texi 
++	mkdir -p $(dir $@)
++	$(MAKEINFO) -I$(outdir) --output=$@ --docbook $<
++
++$(outdir)/lilypond-internals/lilypond-internals.xml: $(outdir)/lilypond-internals.texi
++	mkdir -p $(dir $@)
++	$(MAKEINFO) --output=$(outdir)/lilypond-internals --docbook $<
++
++$(outdir)/lilypond.dvi: $(OUT_EPS_IMAGES) $(OUT_PNG_IMAGES)
++
++$(outdir)/%.png: %.png
++	convert -geometry 50x50% $< $@
++
++$(outdir)/%.eps: %.png
++	convert $< $@
++
++DEEP_HTML_FILES =\
++ $(outdir)/lilypond/index.html\
++ $(outdir)/lilypond-internals/index.html\
++ $(outdir)/music-glossary/index.html
++
++# Symlinks to refer to external source documents from split and non-split HTML
++source-links = $(outdir)/source $(outdir)/lilypond/source $(outdir)/music-glossary/source
++
++$(outdir)/source:
++	@rm -f $(@)
++	ln -sf ../../../ $(@)
++
++$(outdir)/lilypond/source:
++	@rm -f $(@)
++	ln -sf ../../../../ $(@)
++
++$(outdir)/music-glossary/source:
++	@rm -f $(@)
++	ln -sf ../../../../ $(@)
++
++local-WWW: $(HTML_FILES) $(DEEP_HTML_FILES)\
++ $(datafiles) $(PDF_FILES) $(source-links) info info-dir
++
++local-WWW-clean: deep-WWW-clean
++
++deep-WWW-clean:
++	rm -rf $(outdir)/lilypond $(outdir)/lilypond-internals
++
++info-dir:
++	$(SHELL) $(buildscript-dir)/install-info-html.sh --dir=$(outdir) lilypond lilypond-internals music-glossary
++
++
++$(outdir)/%.bib: %.bib
++	ln -f $< $@
++
++local-clean:
++	rm -f fonts.aux fonts.log feta*.tfm feta*.*pk 
++	rm -rf $(outdir)/lilypond $(outdir)/lilypond-internals $(outdir)/music-glossary
++
++# lilypond.texi deps
++$(builddir)/mf/$(outconfbase)/feta16list.ly:
++	$(MAKE) -C $(topdir)/mf
++
++$(outdir)/lilypond.texi: $(ITELY_FILES) $(ITEXI_FILES) 
++$(outdir)/lilypond.nexi: $(ITELY_FILES) $(ITEXI_FILES)
++
++# Prevent building music-glossary.texi from default target
++$(outdir)/music-glossary.nexi:
++
++# Rules for the automatically generated documentation
++# When cross-compiling, we don't have lilypond, so we fake
++ifneq ($(CROSS),yes)
++
++
++# There used to be a dependency on a dummy target, to force a rebuild
++# of lilypond-internals every time.  however, this triggers
++# compilation during install, which is a bad thing (tm).
++
++$(outdir)/lilypond-internals.nexi $(outdir)/lilypond-internals.texi: $(builddir)/lily/$(outconfbase)/lilypond
++	cd $(outdir) && $(builddir)/lily/$(outconfbase)/lilypond --verbose $(abs-srcdir)/ly/generate-documentation
++	rm -f $(outdir)/lilypond-internals.nexi
++	-ln $(outdir)/lilypond-internals.texi $(outdir)/lilypond-internals.nexi
++
++
++## unused
++$(outdir)/interfaces.itexi: dummy
++	cd $(outdir) && $(builddir)/lily/$(outconfbase)/lilypond $(abs-srcdir)/ly/generate-interface-doc
++
++else
++
++$(outdir)/lilypond-internals.nexi $(outdir)/lilypond-internals.texi:
++	touch $@
++	touch $(outdir)/$(*F).nexi
++
++$(outdir)/programming-interface.texi:
++	cp dummy-interfaces.itexi $@
++endif
++
++local-clean: local-delete
++
++local-delete:
++	-for i in $$(seq 0 9); do \
++		for j in dvi eps eps.bbox eps.trans eps.trans.ps ps log png tex; do \
++			rm -f $(outdir)/lily-$$i*$$j; \
++		done; \
++	done
++	-rm -f $(outdir)/*
+diff -ruN lilypond-2.5.23-orig/Documentation/user/lilypond.tely lilypond-2.5.23/Documentation/user/lilypond.tely
+--- lilypond-2.5.23-orig/Documentation/user/lilypond.tely	2005-05-08 21:23:38.000000000 -0700
++++ lilypond-2.5.23/Documentation/user/lilypond.tely	2005-05-08 21:47:04.000000000 -0700
+@@ -27,15 +27,14 @@
+ @c    LilyPond  program.
+   
+ @end ignore
+-
+-* LilyPond: (lilypond/lilypond).           The GNU music typesetter.
+-* abc2ly: (lilypond/lilypond)Invoking abc2ly.          Importing ABC.          
+-* convert-ly: (lilypond/lilypond)Invoking convert-ly.  Older LilyPond versions.
+-* etf2ly: (lilypond/lilypond)Invoking etf2ly.          Importing Finale.
+-* lilypond-book: (lilypond/lilypond)LilyPond-book.     Itegrating text and music.
+-* midi2ly: (lilypond/lilypond)Invoking midi2ly.        Importing MIDI.
+-* mup2ly: (lilypond/lilypond)Invoking mup2ly.          Importing Mup. 
+-* musedata2ly: (lilypond/lilypond)Invoking musedata2ly.        Importing MuseData.
++* LilyPond: (lilypond).           The GNU music typesetter.
++* abc2ly: (lilypond)Invoking abc2ly.          Importing ABC.          
++* convert-ly: (lilypond)Invoking convert-ly.  Older LilyPond versions.
++* etf2ly: (lilypond)Invoking etf2ly.          Importing Finale.
++* lilypond-book: (lilypond)LilyPond-book.     Itegrating text and music.
++* midi2ly: (lilypond)Invoking midi2ly.        Importing MIDI.
++* mup2ly: (lilypond)Invoking mup2ly.          Importing Mup. 
++* musedata2ly: (lilypond)Invoking musedata2ly.        Importing MuseData.
+ @end direntry
+ 
+ 
+diff -ruN lilypond-2.5.23-orig/Documentation/user/music-glossary.tely lilypond-2.5.23/Documentation/user/music-glossary.tely
+--- lilypond-2.5.23-orig/Documentation/user/music-glossary.tely	2005-05-08 21:23:38.000000000 -0700
++++ lilypond-2.5.23/Documentation/user/music-glossary.tely	2005-05-08 21:47:04.000000000 -0700
+@@ -16,6 +16,11 @@
+ and as @uref{source/Documentation/user/out-www/music-glossary.html,one big page}.
+ @end ifhtml
+ 
++@dircategory GNU music project
++@direntry
++* Glossary: (music-glossary).                  Glossary of music terms.
++@end direntry
++
+ @titlepage
+ @title Music Glossary
+ @author Christian Mondrup   @c Original author of LilyPond glossary
+diff -ruN lilypond-2.5.23-orig/config.make.in lilypond-2.5.23/config.make.in
+--- lilypond-2.5.23-orig/config.make.in	2005-05-08 21:23:48.000000000 -0700
++++ lilypond-2.5.23/config.make.in	2005-05-08 21:47:04.000000000 -0700
+@@ -41,7 +41,7 @@
+ elispdir = $(datadir)/emacs/site-lisp
+ 
+ package_datadir = $(datadir)/$(package)
+-package_infodir = $(infodir)/$(package)
++package_infodir = $(infodir)
+ package_libdir = $(libdir)/$(package)
+ package_docdir = $(docdir)/$(package)
+ package_omfdir = $(omfdir)/$(package)
+diff -ruN lilypond-2.5.23-orig/lexer-gcc-3.1.sh lilypond-2.5.23/lexer-gcc-3.1.sh
+--- lilypond-2.5.23-orig/lexer-gcc-3.1.sh	2005-05-08 21:23:48.000000000 -0700
++++ lilypond-2.5.23/lexer-gcc-3.1.sh	2005-05-08 21:47:04.000000000 -0700
+@@ -8,7 +8,7 @@
+ 
+ if [ -z "$FLEXLEXER" ]; then
+ 
+-includes="$HOME/usr/include /usr/local/include /usr/include"
++includes="$HOME/usr/include $PREFIX/include /usr/local/include /usr/include" 
+ 
+ for i in $includes; do
+     file=$i/FlexLexer.h
+@@ -43,9 +43,9 @@
+ echo -n "Copying and fixing $file... "
+ mkdir -p lily/$outdir
+ rm -f lily/$outdir/FlexLexer.h
+-sed -e 's/iostream.h/iostream/' \
+-    -e 's/\<istream\>/std::istream/' \
+-    -e 's/\<ostream\>/std::ostream/' \
++perl -p -e 's/iostream.h/iostream/g;' \
++    -e 's/\bistream\b/std::istream/g;' \
++    -e 's/\bostream\b/std::ostream/' \
+     $file > lily/$outdir/FlexLexer.h
+ echo "done"
+ 
+@@ -58,9 +58,9 @@
+     make conf=$CONF -C lily $outdir/lexer.cc > /dev/null 2>&1 || true
+ 
+     mv $file $file.orig
+-    sed -e 's/\<cin\>/std::cin/g' \
+-	-e 's/\<cout\>/std::cout/g' \
+-	-e 's/\<cerr\>/std::cerr/g' \
++    perl -p -e 's/\bcin\b/std::cin/g;' \
++	-e 's/\bcout\b/std::cout/g;' \
++	-e 's/\bcerr\b/std::cerr/g' \
+ 	$file.orig > $file
+     echo "done"
+ fi
+diff -ruN lilypond-2.5.23-orig/lily/general-scheme.cc lilypond-2.5.23/lily/general-scheme.cc
+--- lilypond-2.5.23-orig/lily/general-scheme.cc	2005-05-08 21:23:31.000000000 -0700
++++ lilypond-2.5.23/lily/general-scheme.cc	2005-05-08 21:36:27.000000000 -0700
+@@ -12,11 +12,6 @@
+ #include <math.h>  /* isinf */
+ #include <stdio.h>
+ #include <string.h>  /* memset */
+-#if HAVE_UTF8_WCHAR_H
+-#include <utf8/wchar.h>  /* wcrtomb */
+-#else
+-#include <wchar.h> /* wcrtomb */
+-#endif
+ 
+ #include "international.hh"
+ #include "libc-extension.hh"
+@@ -249,17 +244,29 @@
+ 	   1, 0, 0, (SCM wc),
+ 	   "Encode the Unicode codepoint @var{wc} as UTF-8")
+ {
+-  char buf[100];
++  char buf[5];
+ 
+   SCM_ASSERT_TYPE (scm_is_integer (wc), wc, SCM_ARG1, __FUNCTION__, "integer");
+-  wchar_t wide_char = (wchar_t) scm_to_int (wc);
++  unsigned wide_char = (unsigned) scm_to_int (wc);
++  char * p = buf;
+ 
+-  mbstate_t state;
+-  memset (&state, '\0', sizeof (state));
+-  memset (buf, '\0', sizeof (buf));
++  if (wide_char < 0x0080) {
++    *p++ = (char)wide_char;
++  } else if (wide_char < 0x0800) {
++    *p++ = (char)(((wide_char >>  6)       ) | 0xC0);
++    *p++ = (char)(((wide_char      ) & 0x3F) | 0x80);
++  } else if (wide_char < 0x10000) {
++    *p++ = (char)(((wide_char >> 12)       ) | 0xE0);
++    *p++ = (char)(((wide_char >>  6) & 0x3F) | 0x80);
++    *p++ = (char)(((wide_char      ) & 0x3F) | 0x80);
++  } else {
++    *p++ = (char)(((wide_char >> 18)       ) | 0xF0);
++    *p++ = (char)(((wide_char >> 12) & 0x3F) | 0x80);
++    *p++ = (char)(((wide_char >>  6) & 0x3F) | 0x80);
++    *p++ = (char)(((wide_char      ) & 0x3F) | 0x80);
++  }
++  *p = 0;
+ 
+-  wcrtomb (buf, wide_char, &state);
+-  
+   return scm_makfrom0str (buf);
+ }
+ 	  
+diff -ruN lilypond-2.5.23-orig/stepmake/stepmake/c++-rules.make lilypond-2.5.23/stepmake/stepmake/c++-rules.make
+--- lilypond-2.5.23-orig/stepmake/stepmake/c++-rules.make	2005-05-08 21:23:46.000000000 -0700
++++ lilypond-2.5.23/stepmake/stepmake/c++-rules.make	2005-05-08 21:47:04.000000000 -0700
+@@ -26,3 +26,4 @@
+ 
+ $(outdir)/%.cc: %.ll
+ 	$(FLEX) -Cfe -p -p -o$@ $< 
++	perl -i.bak -pe 's/^class istream;/#include <iostream>;\nusing namespace std;/' $@
+\ No newline at end of file
+diff -ruN lilypond-2.5.23-orig/stepmake/stepmake/c-vars.make lilypond-2.5.23/stepmake/stepmake/c-vars.make
+--- lilypond-2.5.23-orig/stepmake/stepmake/c-vars.make	2005-05-08 21:23:46.000000000 -0700
++++ lilypond-2.5.23/stepmake/stepmake/c-vars.make	2005-05-08 21:47:04.000000000 -0700
+@@ -14,4 +14,4 @@
+ 
+ ALL_C_SOURCES += $(H_FILES) $(C_FILES) $(Y_FILES) $(L_FILES)
+ 
+-ALL_CFLAGS = $(CFLAGS) $(ICFLAGS) $(DEFINES) $(addprefix -I,$(INCLUDES)) $(USER_CFLAGS) $(EXTRA_CFLAGS) $(MODULE_CFLAGS)
++ALL_CFLAGS = $(CFLAGS) $(CPPFLAGS) $(ICFLAGS) $(DEFINES) $(addprefix -I,$(INCLUDES)) $(USER_CFLAGS) $(EXTRA_CFLAGS) $(MODULE_CFLAGS)
+diff -ruN lilypond-2.5.23-orig/stepmake/stepmake/compile-vars.make lilypond-2.5.23/stepmake/stepmake/compile-vars.make
+--- lilypond-2.5.23-orig/stepmake/stepmake/compile-vars.make	2005-05-08 21:23:46.000000000 -0700
++++ lilypond-2.5.23/stepmake/stepmake/compile-vars.make	2005-05-08 21:47:04.000000000 -0700
+@@ -3,7 +3,7 @@
+ ALL_LDFLAGS = $(LDFLAGS) $(ILDFLAGS) $(EXTRA_LDFLAGS) $($(PACKAGE)_LDFLAGS) $(MODULE_LDFLAGS) $(USER_LDFLAGS)
+ 
+ PIC_FLAGS = -fpic -fPIC
+-SHARED_FLAGS = -shared
++SHARED_FLAGS = -bundle -flat_namespace -undefined suppress
+ 
+ o-dep-out = $(outdir)/$(subst .o,.dep,$(notdir $@))#
+ DO_O_DEP = rm -f $(o-dep-out); DEPENDENCIES_OUTPUT="$(o-dep-out) $(outdir)/$(notdir $@)"
