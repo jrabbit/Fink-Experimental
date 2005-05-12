@@ -1,0 +1,74 @@
+#!/usr/bin/perl -w
+use strict;
+
+use Getopt::Long;
+my $prefix;
+GetOptions("prefix|p=s" => \$prefix) or die "Usage: debsizes [-p prefix]\n";
+
+unless (defined $prefix) {
+	($prefix = `which dpkg`) =~ s/bin.*//s;
+}
+
+my $database = "$prefix/var/lib/dpkg/status";
+$database = "/var/lib/dpkg/status" unless -f $database;
+-f $database or die "Can't find database";
+
+my $num_packages = 0;
+my $total_size = 0;
+
+my ($size, $package, $installed, $description) = (0, "", 0, "");
+
+my %sizes = ();
+my %descriptions = ();
+
+open(IN, "<$database") or die "Can't open '$database': $!";
+while (defined(my $line = <IN>)) {
+    chomp($line);
+    if (my ($key, $value) = split(': ', $line)) {
+        if ($key =~ /^Package$/) {
+			($size, $installed, $description) = (0, 0, "");
+            $package = $value;
+        } elsif ($key =~ /^Installed-Size$/) {
+            $size = $value;
+        } elsif ($key =~ /^Status$/ && $value =~ /\binstalled\b/) {
+        	$installed = 1;
+        } elsif ($key =~ /^Description$/) {
+        	$description = $value;
+        }
+        if ($size && $package && $installed && $description) {
+			$num_packages++;
+			$sizes{$package} = $size;
+			$descriptions{$package} = $description;
+			$total_size += $size;
+			$package = "";
+		}
+    }
+}
+close IN;
+
+
+my $bytesize = eval { require ByteSize; };
+print "Size (bytes and %) Name and Description\n";
+print "-" x 80, "\n";
+
+for $package (sort { $sizes{$b} <=> $sizes{$a} } keys %sizes) {
+    my $pkgsize = $sizes{$package};
+    my $description = $descriptions{$package};
+    my $pc = 100*$pkgsize/$total_size;
+    my $printsize = $bytesize
+    	? ByteSize::bytes_to_aligned(
+    		ByteSize::string_to_bytes("${pkgsize}k"), 9)
+    	: sprintf("%9d", $pkgsize);
+    
+    my $data = sprintf("%s  %5.2f%%  %s: %s", $printsize, $pc, $package,
+        $description);
+    print(substr($data, 0, 79), "\n");
+}
+
+print "-" x 80, "\n";
+print("Installed $num_packages packages, for a total of ",
+	$bytesize
+		? ByteSize::bytes_to_human(
+			ByteSize::string_to_bytes("${total_size}k"), dec => 2)
+		: "$total_size KB",
+	"\n");
