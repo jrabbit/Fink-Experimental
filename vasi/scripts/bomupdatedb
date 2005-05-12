@@ -1,0 +1,12 @@
+#!/bin/sh
+
+if [ "$USER" != "root" ]; then
+	exec sudo "$0" "$@"
+fi
+
+(locate '*.bom' ; find /Library/Receipts -name '*.bom') | sort -u | \
+	while read bom; do
+		lsbom -s "$bom" 2> /dev/null | \
+		perl -e 'while (<STDIN>) { s,^.$,/,; s/^\.//; print "$ARGV[0]: $_" }' "$bom"
+	done | \
+	/sw/lib/locate/frcode > /var/db/bomdb
