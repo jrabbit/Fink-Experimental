@@ -1,0 +1,57 @@
+#!/usr/bin/perl
+use warnings;
+use strict;
+
+# We need root
+if ($> != 0) {
+	exec('/usr/bin/sudo', '-H', $0, @ARGV)
+	or die "$0: exec '/usr/bin/sudo -H $0 @ARGV' failed: $!";
+}
+
+# Only work for root disk for now
+my $excludes = "/.Spotlight-V100/_exclusions.plist";
+my $tmp = "$excludes.tmp";
+open EXCLUDES, $excludes or die "Can't open excludes file: $!";
+
+
+my $cmd = shift;
+
+if ($cmd eq 'list') {
+	open OUT, ">&STDOUT" or die "Can't re-open STDOUT: $!";
+} else {
+	open OUT, ">$tmp" or die "Can't open output file: $!";
+}
+
+my @paths;
+my $doing_paths = 0;
+while (my $line = <EXCLUDES>) {
+	chomp $line;
+	if ($line =~ m,^\s*<string>(.*)</string>\s*$,) {
+		my $path = $1;
+		$doing_paths = 1;
+		
+		if ($cmd eq 'list') {
+			push @paths, $path;
+		} else {
+			print OUT "$line\n" unless $cmd eq 'remove'
+				&& grep { $_ eq $path } @ARGV;
+		}
+	} else {
+		if ($doing_paths) {
+			if ($cmd eq 'add') {
+				print OUT "<string>$_</string>\n" foreach (@ARGV);
+			}
+			$doing_paths = 0;
+		}
+		
+		print OUT "$line\n" unless $cmd eq 'list';
+	}
+}
+close EXCLUDES or die "Can't close excludes file: $!";
+close OUT or die "Can't close output file: $!";
+
+unless ($cmd eq 'list') {
+	rename $tmp, $excludes or die "Can't replace excludes file: $!";
+} else {
+	print "$_\n" foreach (sort @paths);
+}
