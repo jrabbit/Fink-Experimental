@@ -1,6 +1,4 @@
-Info2: <<
-Package: qgis%type_pkg[-x11]%type_pkg[-postgresql80]%type_pkg[-grass60]
-Type: -x11 (boolean), -postgresql80 (boolean), -grass60 (boolean)
+Package: qgis-aqua
 Version: 0.6.0
 Revision: 1
 Description: Qt/X11-based GIS (no PostgreSQL, no GRASS)
@@ -13,36 +11,21 @@ Qt/X11-based Geographical Information System (no PostgreSQL, no GRASS)
 DescUsage: Just type 'qgis' at the command prompt inside an X environment.
 
 # Dependencies.
-Depends: <<
-	(%type_raw[-x11] = -x11) x11, (%type_raw[-x11] = -x11) qt3-shlibs (>=3.1.2),
-	libgeos2-shlibs (>=2.0), gdal-shlibs (>=1.2.3), proj (>=4),
-	(%type_raw[-postgresql80] = -postgresql80) postgresql80 (>=8.0.2-12), (%type_raw[-postgresql80] = -postgresql80) postgresql80-shlibs (>=8.0.2-12),
-	(%type_raw[-grass60] = -grass60) grass60, (%type_raw[-grass60] = -grass60) grass60-shlibs
-<<
-BuildDepends: << 
-	(%type_raw[-x11] = -x11) qt3 (>=3.1.2), 
-	libgeos2 (>=2.0), gdal-dev (>=1.2.3), 
-	(%type_raw[-postgresql80] = -postgresql80) postgresql80-dev (>=8.0.2-12),
-	(%type_raw[-grass60] = -grass60) grass60-dev
-<<
+Depends: qt3-shlibs (>=3.1.2), libgeos2-shlibs (>=2.0), gdal-ssl-shlibs (>=1.2.3), proj (>=4)
+BuildDepends: qt3 (>=3.1.2), libgeos2 (>=2.0), gdal-ssl-dev (>=1.2.3), libiconv-dev, cfitsio, giflib | libungif, libjpeg, libpng3, libtiff (>= 3.6.0), netcdf
+Conflicts: qgis-x11-postgresql
+Replaces: qgis-x11-postgresql
 
 # Unpack Phase.
 Source: mirror:sourceforge:/qgis/qgis-%v.tar.gz
 Source-MD5: ee3f94201837c5aef204e30250991295
 
-# Patch Phase.
-# Patch for PostGIS-1.0 (Source2)
-Patch: %n.patch
-PatchScript: patch -p0 < %a/%{ni}.patch
-
 # Compile Phase.
 GCC: 3.3
-ConfigureParams: (%type_pkg[-x11]) --with-x (%type_pkg[-x11]) --with-x-includes=/usr/X11/include (%type_pkg[-x11]) --with-x-libraries=/usr/X11/lib (%type_pkg[-x11]) --with-qtdir=%p --with-gdal=%p/bin/gdal-config --with-geos=%p/bin/geos-config (%type_raw[-postgresql80] = .) --without-postgresql (%type_raw[-postgresql80] = -postgresql80) --with-postgresql=%p/bin (%type_raw[-grass60] = .) --without-grass (%type_pkg[-grass60]) --with-grass
+ConfigureParams: --with-x --with-qtdir=%p --with-gdal=%p/bin/gdal-config --with-geos=%p/bin/geos-config --without-postgresql --without-grass
 CompileScript: ./configure %c; make
 
 # Install Phase.
 InstallScript: make install DESTDIR=%d
-DocFiles: AUTHORS ChangeLog COPYING README TODO doc/*.html doc/*.css doc/*.pdf doc/*/*.html doc/*/*.css doc/*/*.png doc/*/*/*.html doc/*/*/*.png doc/*/*/*.pdf
+DocFiles: AUTHORS ChangeLog COPYING README TODO
 
-# End of Info2
-<<

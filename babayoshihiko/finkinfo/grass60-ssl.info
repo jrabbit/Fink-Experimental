@@ -6,15 +6,33 @@ Revision: 12
 Description: Powerful GIS software
 License: GPL
 Homepage: http://grass.itc.it
-Maintainer: Baba Yoshihiko <babayoshihiko@mac.com>
+Maintainer: BABA Yoshihiko <babayoshihiko@mac.com>
 DescDetail: <<
 Very Powerful Geographical Information System with CLI and GUI.
 <<
 DescUsage: Just type 'grass60' at the command prompt inside an X environment.
 
 # Dependencies.
-Depends: %N-shlibs (>=%v-%r), fftw-shlibs, gdal, proj, gettext, libjpeg-shlibs, libpng3-shlibs, libtiff-shlibs, lesstif-shlibs, postgresql80-ssl-shlibs (>= 8.0.2-13), tcltk (>= 8.4.1-1), unixodbc2-nox-shlibs | unixodbc2-shlibs, x11-shlibs
-BuildDepends: fftw, gdal-dev, libjpeg, libpng3, libtiff, lesstif, postgresql80-ssl-dev (>= 8.0.2-13), readline (>= 4.3-5), tcltk-dev (>= 8.4.1-1), unixodbc2-nox | unixodbc2, x11, x11-dev
+Depends: <<
+	%N-shlibs (>=%v-%r), 
+	fftw-shlibs | fftw-mpi-shlibs | fftw-absoft-shlibs, 
+	gdal-shlibs | gdal-ssl-shlibs, 
+	proj, gettext, libjpeg-shlibs, libpng3-shlibs, libtiff-shlibs, lesstif-shlibs, 
+	postgresql80-shlibs (>= 8.0.2-13) | postgresql80-ssl-shlibs (>= 8.0.2-13), 
+	tcltk (>= 8.4.1-1), 
+	unixodbc2-nox-shlibs | unixodbc2-shlibs, 
+	x11-shlibs
+<<
+BuildDepends: <<
+	libiconv-dev, readline (>= 4.3-5) | readline5, 
+	fftw | fftw-mpi | fftw-absoft, 
+	gdal-dev | gdal-ssl-dev, 
+	libjpeg, libpng3, libtiff, lesstif, 
+	postgresql80-dev (>= 8.0.2-13) | postgresql80-ssl-dev (>= 8.0.2-13), 
+	tcltk-dev (>= 8.4.1-1), 
+	unixodbc2-nox | unixodbc2, 
+	x11, x11-dev
+<<
 Suggests: g77, r-base
 Conflicts: grass, grass5.7, grass60, grass60-nopgsql, grass60-ssl
 Replaces: grass, grass5.7, grass60, grass60-nopgsql, grass60-ssl
@@ -52,15 +70,14 @@ InstallScript: <<
   make install prefix=%i/share
   
   # Installing Shared Libraries
-  mkdir %i/lib
-  mv dist.powerpc-apple-darwin*/lib/*.dylib %i/lib
-  mv dist.powerpc-apple-darwin*/lib/*.a %i/lib
+  mkdir -p %i/lib/grass60
+  mv dist.powerpc-apple-darwin*/lib/*.dylib %i/lib/grass60
   
   # Installing Headers
   mkdir -p %i/include/grass60
-  mv dist.powerpc-apple-darwin*/include/*.h %i/include/grass60
+  mv dist.powerpc-apple-darwin*/include %i/include/grass60
 <<
-DocFiles: AUTHORS CHANGES COPYING GPL.TXT INSTALL README REQUIREMENTS.html SUBMITTING TODO dist.powerpc-apple-darwin*/docs/html/*.html dist.powerpc-apple-darwin*/docs/nviz/*.html dist.powerpc-apple-darwin*/docs/nviz/*.gif  dist.powerpc-apple-darwin*/docs/nviz/nvimg/*/*.gif
+DocFiles: AUTHORS CHANGES COPYING GPL.TXT INSTALL README REQUIREMENTS.html SUBMITTING TODO dist.powerpc-apple-darwin*/docs/html/*.html
 
 # Additional Phase.
 SplitOff: <<
@@ -71,7 +88,7 @@ SplitOff: <<
   Conflicts: grass, grass5.7, grass60-dev, grass60-nopgsql-dev
   Replaces: grass, grass5.7, grass60-dev, grass60-nopgsql-dev
   Files: <<
-    include/*.h
+    include/grass60/*.h
   <<
   DocFiles: COPYING GPL.TXT 
 <<
@@ -79,48 +96,45 @@ SplitOff2: <<
   Package: %N-shlibs
   Conflicts: grass60-shlibs, grass60-nopgsql-shlibs
   Replaces: grass60-shlibs, grass60-nopgsql-shlibs
-  Files: lib/*.6.0.0.dylib
+  Files: lib/grass60/libgrass_*.6.0.0.dylib
   Shlibs: <<
-	       %p/lib/libgrass_D.6.0.0.dylib            0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_I.6.0.0.dylib            0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_Iortho.6.0.0.dylib       0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_bitmap.6.0.0.dylib       0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_btree.6.0.0.dylib        0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_cdhc.6.0.0.dylib         0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_datetime.6.0.0.dylib     0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_dbmibase.6.0.0.dylib     0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_dbmiclient.6.0.0.dylib   0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_dbmidriver.6.0.0.dylib   0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_dbstubs.6.0.0.dylib      0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_dgl.6.0.0.dylib          0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_dig2.6.0.0.dylib         0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_display.6.0.0.dylib      0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_dspf.6.0.0.dylib         0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_edit.6.0.0.dylib         0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_form.6.0.0.dylib         0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_g3d.6.0.0.dylib          0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_gis.6.0.0.dylib          0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_gmath.6.0.0.dylib        0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_gproj.6.0.0.dylib        0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_image.6.0.0.dylib        0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_interpdata.6.0.0.dylib   0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_interpfl.6.0.0.dylib     0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_ismap.6.0.0.a            0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_linkm.6.0.0.dylib        0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_manage.6.0.0.a           0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_ogsf.6.0.0.dylib         0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_qtree.6.0.0.dylib        0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_raster.6.0.0.dylib       0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_rowio.6.0.0.dylib        0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_rtree.6.0.0.dylib        0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_segment.6.0.0.dylib      0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_shape.6.0.0.dylib        0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_sites.6.0.0.dylib        0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_sqlp.6.0.0.dylib         0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_symb.6.0.0.dylib         0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_trans.6.0.0.dylib        0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_vask.6.0.0.dylib         0.0.0 grass60 (>=6.0.0-1)
-           %p/lib/libgrass_vect.6.0.0.dylib         0.0.0 grass60 (>=6.0.0-1)
+	       %p/lib/grass60/libgrass_D.6.0.0.dylib            0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_I.6.0.0.dylib            0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_bitmap.6.0.0.dylib       0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_btree.6.0.0.dylib        0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_cdhc.6.0.0.dylib         0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_datetime.6.0.0.dylib     0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_dbmibase.6.0.0.dylib     0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_dbmiclient.6.0.0.dylib   0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_dbmidriver.6.0.0.dylib   0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_dbstubs.6.0.0.dylib      0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_dgl.6.0.0.dylib          0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_dig2.6.0.0.dylib         0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_display.6.0.0.dylib      0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_dspf.6.0.0.dylib         0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_edit.6.0.0.dylib         0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_form.6.0.0.dylib         0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_g3d.6.0.0.dylib          0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_gis.6.0.0.dylib          0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_gmath.6.0.0.dylib        0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_gproj.6.0.0.dylib        0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_image.6.0.0.dylib        0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_interpdata.6.0.0.dylib   0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_interpfl.6.0.0.dylib     0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_linkm.6.0.0.dylib        0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_ogsf.6.0.0.dylib         0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_qtree.6.0.0.dylib        0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_raster.6.0.0.dylib       0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_rowio.6.0.0.dylib        0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_rtree.6.0.0.dylib        0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_segment.6.0.0.dylib      0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_shape.6.0.0.dylib        0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_sites.6.0.0.dylib        0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_sqlp.6.0.0.dylib         0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_symb.6.0.0.dylib         0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_trans.6.0.0.dylib        0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_vask.6.0.0.dylib         0.0.0 grass60 (>=6.0.0-1)
+           %p/lib/grass60/libgrass_vect.6.0.0.dylib         0.0.0 grass60 (>=6.0.0-1)
   DocFiles: COPYING GPL.TXT 
 	<<
 <<
