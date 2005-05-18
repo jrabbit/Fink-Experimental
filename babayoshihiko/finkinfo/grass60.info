@@ -32,15 +32,16 @@ CustomMirror: <<
  nam-US: http://grass.ibiblio.org/grass60/source/
 <<
 Source-MD5: acfa05ada219cd15c9db1a5d5320e008
-#Source2: http://wwwamb.bologna.enea.it/forgrass/files/grass60-patch-OSX-10.4.zip
-#Source2-MD5: bb4b390695852195842993ea06874391
 
 # Patch Phase.
 
 # Compile Phase.
 GCC: 3.3
-ConfigureParams: --bindir=%p/grass/bin --bindir=%i/bin --with-includes='%p/include /usr/X11R6/include' --with-cxx --with-readline --with-dbm (%type_raw[-nopgsql] = -nopgsql) --without-postgres (%type_raw[-nopgsql] = .) --with-postgres (%type_raw[-nopgsql] = .) --with-postgres-includes=%p/include/postgresql --with-glw --with-freetype --with-freetype-includes=/usr/X11R6/include/freetype2 --with-freetype-libs=/usr/X11R6/lib --with-motif --with-glw-includes=/usr/X11R6/include --with-nls --with-proj --with-proj-includes=%p/include --with-proj-libs=%p/lib --with-gdal=%p/bin/gdal-config
-CompileScript: ./configure %c; make
+ConfigureParams: --bindir=%p/grass/bin --bindir=%i/bin --with-includes='%p/include /usr/X11R6/include' --with-cxx --with-readline --with-dbm --with-odbc (%type_raw[-nopgsql] = -nopgsql) --without-postgres (%type_raw[-nopgsql] = .) --with-postgres (%type_raw[-nopgsql] = .) --with-postgres-includes=%p/include/postgresql --with-glw --with-freetype --with-freetype-includes=/usr/X11R6/include/freetype2 --with-freetype-libs=/usr/X11R6/lib --with-motif --with-glw-includes=/usr/X11R6/include --with-nls --with-proj --with-proj-includes=%p/include --with-proj-libs=%p/lib --with-gdal=%p/bin/gdal-config
+CompileScript: <<
+	./configure %c
+	make ARCH_DISTDIR=dist.powerpc-apple-opendarwin
+<<
 
 # Install Phase.
 InstallScript: <<
@@ -49,35 +50,38 @@ InstallScript: <<
   export SHELL="/bin/sh -xe"
   
   # Installing grass60
-  make install prefix=%i/share
+  make install prefix=%i
   
-  # Installing Shared Libraries
+  ln -s dist.powerpc-apple-darwin* dist.powerpc-apple-darwin
+  
+  # Moving Shared Libraries under grass60 directory
   mkdir -p %i/lib/grass60
-  mv dist.powerpc-apple-darwin*/lib/*.dylib %i/lib/grass60
+  mv dist.powerpc-apple-darwin/lib %i/lib/grass60
   
-  # Installing Headers
+  # Moving Headers under grass60 directory
   mkdir -p %i/include/grass60
-  mv dist.powerpc-apple-darwin*/include %i/include/grass60
+  mv dist.powerpc-apple-darwin/include %i/include/grass60
 <<
-DocFiles: AUTHORS CHANGES COPYING GPL.TXT INSTALL README REQUIREMENTS.html SUBMITTING TODO dist.powerpc-apple-darwin*/docs/html/*.html
+DocFiles: AUTHORS CHANGES COPYING GPL.TXT INSTALL README REQUIREMENTS.html SUBMITTING TODO dist.powerpc-apple-darwin/docs/html
 
 # Additional Phase.
 SplitOff: <<
-  Description: PostgreSQL development headers and libraries
   Package: %N-dev
+  Description: GRASS Development Headers
   Depends: %N (>= %v-%r)
   BuildDependsOnly: true
   Conflicts: grass, grass5.7, grass60-dev, grass60-nopgsql-dev
   Replaces: grass, grass5.7, grass60-dev, grass60-nopgsql-dev
   Files: <<
-    include/grass60/*.h
+    include/grass60
   <<
   DocFiles: COPYING GPL.TXT 
 <<
 SplitOff2: <<
   Package: %N-shlibs
-  Conflicts: grass60-shlibs, grass60-nopgsql-shlibs, grass60-ssl-shlibs
-  Replaces: grass60-shlibs, grass60-nopgsql-shlibs, grass60-ssl-shlibs
+  Description: GRASS Shared Libraries
+  Conflicts: grass60-shlibs, grass60-nopgsql-shlibs
+  Replaces: grass60-shlibs, grass60-nopgsql-shlibs
   Files: lib/grass60/libgrass_*.6.0.0.dylib
   Shlibs: <<
 	       %p/lib/grass60/libgrass_D.6.0.0.dylib            0.0.0 grass60 (>=6.0.0-1)
@@ -117,8 +121,8 @@ SplitOff2: <<
            %p/lib/grass60/libgrass_trans.6.0.0.dylib        0.0.0 grass60 (>=6.0.0-1)
            %p/lib/grass60/libgrass_vask.6.0.0.dylib         0.0.0 grass60 (>=6.0.0-1)
            %p/lib/grass60/libgrass_vect.6.0.0.dylib         0.0.0 grass60 (>=6.0.0-1)
-  DocFiles: COPYING GPL.TXT 
-	<<
+  <<
+  DocFiles: COPYING GPL.TXT
 <<
 
 DescPort: <<
