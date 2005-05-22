@@ -1,8 +1,8 @@
 Info2: <<
-Package: grass60%type_pkg[-nopgsql]
-Type: -nopgsql (boolean)
+Package: grass60%type_pkg[-nopgsql]%type_pkg[-nogdal]
+Type: -nopgsql (boolean), -nogdal (boolean)
 Version: 6.0.0
-Revision: 12
+Revision: 2
 Description: Powerful GIS software
 License: GPL
 Homepage: http://grass.itc.it
@@ -13,8 +13,28 @@ Very Powerful Geographical Information System with CLI and GUI.
 DescUsage: Just type 'grass60' at the command prompt inside an X environment.
 
 # Dependencies.
-Depends: %N-shlibs (>=%v-%r), fftw-shlibs | fftw-mpi-shlibs, gdal-shlibs, proj, gettext, libjpeg-shlibs, libpng3-shlibs, libtiff-shlibs, lesstif-shlibs, (%type_raw[-nopgsql] = .) postgresql80-shlibs (>= 8.0.2-13), tcltk (>= 8.4.1-1), unixodbc2-nox-shlibs | unixodbc2-shlibs, x11-shlibs
-BuildDepends: libiconv-dev, readline (>= 4.3-5) | readline5, fftw | fftw-mpi, gdal-dev, libjpeg, libpng3, libtiff, lesstif, (%type_raw[-nopgsql] = .) postgresql80-dev (>= 8.0.2-13), tcltk-dev (>= 8.4.1-1), unixodbc2-nox | unixodbc2, x11, x11-dev
+# Dependencies.
+Depends: <<
+	%N-shlibs (>=%v-%r), 
+	fftw-shlibs | fftw-mpi-shlibs | fftw-absoft-shlibs, 
+	(%type_raw[-nogdal] = .) gdal-shlibs | (%type_raw[-nogdal] = .) gdal-ssl-shlibs | (%type_raw[-nogdal] = .) gdal-grass-shlibs | (%type_raw[-nogdal] = .) gdal-nopgsql-shlibs | (%type_raw[-nogdal] = .) gdal-nopgsql-grass-shlibs, 
+	proj, gettext, libjpeg-shlibs, libpng3-shlibs, libtiff-shlibs, lesstif-shlibs, 
+	(%type_raw[-nopgsql] = .) postgresql80-shlibs (>= 8.0.2-13) | (%type_raw[-nopgsql] = .) postgresql80-ssl-shlibs (>= 8.0.2-13), 
+	tcltk (>= 8.4.1-1), 
+	unixodbc2-nox-shlibs | unixodbc2-shlibs, 
+	x11-shlibs
+<<
+BuildDepends: <<
+	libiconv-dev, readline (>= 4.3-5) | readline5, 
+	fftw | fftw-mpi | fftw-absoft, 
+	(%type_raw[-nogdal] = .) gdal-dev | (%type_raw[-nogdal] = .) gdal-ssl-dev, 
+	libjpeg, libpng3, libtiff, lesstif, 
+	(%type_raw[-nopgsql] = .) postgresql80-dev (>= 8.0.2-13) | (%type_raw[-nopgsql] = .) postgresql80-ssl-dev (>= 8.0.2-13), 
+	tcltk-dev (>= 8.4.1-1), 
+	unixodbc2-nox | unixodbc2, 
+	x11, x11-dev
+<<
+
 Suggests: g77, r-base
 Conflicts: grass, grass5.7, grass60, grass60-nopgsql, grass60-ssl
 Replaces: grass, grass5.7, grass60, grass60-nopgsql, grass60-ssl
@@ -37,17 +57,17 @@ Source-MD5: acfa05ada219cd15c9db1a5d5320e008
 
 # Compile Phase.
 GCC: 3.3
-ConfigureParams: --bindir=%p/grass/bin --bindir=%i/bin --with-includes='%p/include /usr/X11R6/include' --with-cxx --with-readline --with-dbm --with-odbc (%type_raw[-nopgsql] = -nopgsql) --without-postgres (%type_raw[-nopgsql] = .) --with-postgres (%type_raw[-nopgsql] = .) --with-postgres-includes=%p/include/postgresql --with-glw --with-freetype --with-freetype-includes=/usr/X11R6/include/freetype2 --with-freetype-libs=/usr/X11R6/lib --with-motif --with-glw-includes=/usr/X11R6/include --with-nls --with-proj --with-proj-includes=%p/include --with-proj-libs=%p/lib --with-gdal=%p/bin/gdal-config
+SetCPPFLAGS: -I%p/include/grass60
+SetLDFLAGS: -L%p/lib/grass60
+ConfigureParams: --bindir=%p/grass/bin --bindir=%i/bin --with-includes='%p/include /usr/X11R6/include' --with-cxx --with-readline --with-dbm --with-odbc (%type_raw[-nopgsql] = -nopgsql) --without-postgres (%type_raw[-nopgsql] = .) --with-postgres (%type_raw[-nopgsql] = .) --with-postgres-includes=%p/include/postgresql --with-glw --with-freetype --with-freetype-includes=/usr/X11R6/include/freetype2 --with-freetype-libs=/usr/X11R6/lib --with-motif --with-glw-includes=/usr/X11R6/include --with-nls --with-proj --with-proj-includes=%p/include --with-proj-libs=%p/lib (%type_raw[-nogdal] = .) --with-gdal=%p/bin/gdal-config (%type_raw[-nogdal] = -nogdal) --without-gdal 
 CompileScript: <<
 	./configure %c
-	make ARCH_DISTDIR=dist.powerpc-apple-opendarwin
+	make
 <<
 
 # Install Phase.
 InstallScript: <<
 #!/bin/sh -xe
-
-  export SHELL="/bin/sh -xe"
   
   # Installing grass60
   make install prefix=%i
@@ -55,14 +75,14 @@ InstallScript: <<
   ln -s dist.powerpc-apple-darwin* dist.powerpc-apple-darwin
   
   # Moving Shared Libraries under grass60 directory
-  mkdir -p %i/lib/grass60
+  mkdir -p %i/lib
   mv dist.powerpc-apple-darwin/lib %i/lib/grass60
   
   # Moving Headers under grass60 directory
-  mkdir -p %i/include/grass60
+  mkdir -p %i/include
   mv dist.powerpc-apple-darwin/include %i/include/grass60
 <<
-DocFiles: AUTHORS CHANGES COPYING GPL.TXT INSTALL README REQUIREMENTS.html SUBMITTING TODO dist.powerpc-apple-darwin/docs/html
+DocFiles: AUTHORS CHANGES COPYING GPL.TXT INSTALL README REQUIREMENTS.html SUBMITTING TODO dist.powerpc-apple-darwin/docs/html/*.html
 
 # Additional Phase.
 SplitOff: <<
@@ -70,8 +90,8 @@ SplitOff: <<
   Description: GRASS Development Headers
   Depends: %N (>= %v-%r)
   BuildDependsOnly: true
-  Conflicts: grass, grass5.7, grass60-dev, grass60-nopgsql-dev
-  Replaces: grass, grass5.7, grass60-dev, grass60-nopgsql-dev
+  Conflicts: grass60-dev, grass60-nopgsql-dev, grass60-nogdal-dev, grass60-nopgsql-nogdal-dev
+  Replaces: grass60-dev, grass60-nopgsql-dev, grass60-nogdal-dev, grass60-nopgsql-nogdal-dev
   Files: <<
     include/grass60
   <<
@@ -80,8 +100,16 @@ SplitOff: <<
 SplitOff2: <<
   Package: %N-shlibs
   Description: GRASS Shared Libraries
-  Conflicts: grass60-shlibs, grass60-nopgsql-shlibs
-  Replaces: grass60-shlibs, grass60-nopgsql-shlibs
+  Depends: <<
+	fftw-shlibs | fftw-mpi-shlibs | fftw-absoft-shlibs, 
+	(%type_raw[-nogdal] = .) gdal-shlibs | (%type_raw[-nogdal] = .) gdal-ssl-shlibs | (%type_raw[-nogdal] = .) gdal-grass-shlibs | (%type_raw[-nogdal] = .) gdal-nopgsql-shlibs | (%type_raw[-nogdal] = .) gdal-nopgsql-grass-shlibs, 
+	proj, gettext, libjpeg-shlibs, libpng3-shlibs, libtiff-shlibs, lesstif-shlibs, 
+	(%type_raw[-nopgsql] = .) postgresql80-shlibs (>= 8.0.2-13) | (%type_raw[-nopgsql] = .) postgresql80-ssl-shlibs (>= 8.0.2-13), 
+	unixodbc2-nox-shlibs | unixodbc2-shlibs, 
+	x11-shlibs
+  <<
+  Conflicts: grass60-shlibs, grass60-nopgsql-shlibs, grass60-nogdal-shlibs, grass60-nopgsql-nogdal-shlibs
+  Replaces: grass60-shlibs, grass60-nopgsql-shlibs, grass60-nogdal-shlibs, grass60-nopgsql-nogdal-shlibs
   Files: lib/grass60/libgrass_*.6.0.0.dylib
   Shlibs: <<
 	       %p/lib/grass60/libgrass_D.6.0.0.dylib            0.0.0 grass60 (>=6.0.0-1)

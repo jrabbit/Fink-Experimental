@@ -2,7 +2,7 @@ Info2: <<
 Package: gdal%type_pkg[-nopgsql]
 Type: -nopgsql (boolean)
 Version: 1.2.6
-Revision: 3
+Revision: 2
 Description: Raster/Vector Geospatial Format Translator
 License: BSD
 Homepage: http://www.gdal.org
@@ -20,10 +20,22 @@ netCDF (limited read/write), and GIF (read/write).
 <<
 
 # Dependencies.
-Depends: %N-shlibs (= %v-%r), giflib | libungif, libjpeg, libpng3, libtiff (>= 3.6.0), netcdf, proj, libgeos2-shlibs, unixodbc2, (%type_raw[-nopgsql] = .) postgresql80-shlibs (>= 8.0.2-13)
-BuildDepends: libiconv-dev, cfitsio, libgeos2, (%type_raw[-nopgsql] = .) postgresql80-dev (>= 8.0.2-13)
-Conflicts: gdal, gdal-nopgsql, gdal-ssl
-Replaces: gdal, gdal-nopgsql, gdal-ssl
+Depends: <<
+	%N-shlibs (= %v-%r), 
+	giflib | libungif, libjpeg, libpng3, libtiff (>= 3.6.0), netcdf, 
+	proj, libgeos2-shlibs, 
+	unixodbc2 | unixodbc2-nox, 
+	(%type_raw[-nopgsql] = .) postgresql80-shlibs (>= 8.0.2-13) | (%type_raw[-nopgsql] = .) postgresql80-ssl-shlibs (>= 8.0.2-13)
+<<
+
+BuildDepends: <<
+	libiconv-dev, cfitsio, 
+	libgeos2,
+	(%type_raw[-nopgsql] = .) postgresql80-dev (>= 8.0.2-13) | (%type_raw[-nopgsql] = .) postgresql80-ssl-dev (>= 8.0.2-13)
+<<
+
+Conflicts: gdal, gdal-nopgsql, gdal-grass, gdal-nopgsql-grass, gdal-ssl
+Replaces: gdal, gdal-nopgsql, gdal-grass, gdal-nopgsql-grass, gdal-ssl
 
 # Unpack Phase.
 Source: mirror:custom:source/gdal-%v.tar.gz
@@ -39,9 +51,15 @@ Patch: gdal.patch
 
 # Compile Phase.
 GCC: 3.3
-SetCFLAGS: -Os -I%p/include
-SetCXXFLAGS: -Os -I%p/include
-ConfigureParams: --mandir='${prefix}/share/man' --with-local=%p --with-grass=no --without-python --with-geotiff=internal --with-hdf4=no --without-ogdi (%type_raw[-nopgsql] = -nopgsql) --without-pg (%type_raw[-nopgsql] = .) --with-pg=%p/bin/pg_config --with-geos --with-static-proj4=%p
+SetCPPFLAGS: -Os -I%p/include -I%p/include/grass60
+SetLDFLAGS: -L%p/lib/grass60
+ConfigureParams: --mandir='${prefix}/share/man' --with-local=%p --with-grass=no  --without-python --with-geotiff=internal --with-hdf4=no --without-ogdi (%type_raw[-nopgsql] = -nopgsql) --without-pg (%type_raw[-nopgsql] = .) --with-pg=%p/bin/pg_config --without-mysql --with-geos --with-static-proj4=%p
+CompileScript: <<
+#!/bin/sh -xe
+  
+  ./configure %c
+  make
+<<
 
 # Install Phase.
 InstallScript: make install prefix=%i
@@ -49,15 +67,22 @@ InstallScript: make install prefix=%i
 DocFiles: ChangeLog LICENSE NEWS
 SplitOff: <<
   Package: %N-shlibs
-  Replaces: %N (<< 1.2.1-11), gdal-shlibs, gdal-nopgsql-shlibs, gdal-ssl-shlibs
-  Depends: giflib-shlibs | libungif-shlibs, libjpeg-shlibs, libpng3-shlibs, libtiff-shlibs (>= 3.6.0), netcdf-shlibs, (%type_raw[-nopgsql] = .) postgresql80-shlibs (>=8.0.2-13), proj-shlibs, unixodbc2-shlibs
+  Replaces: %N (<< 1.2.1-11), gdal-shlibs, gdal-nopgsql-shlibs, gdal-grass-shlibs, gdal-nopgsql-grass-shlibs, gdal-ssl-shlibs
+  Conflicts: %N (<< 1.2.1-11), gdal-shlibs, gdal-nopgsql-shlibs, gdal-grass-shlibs, gdal-nopgsql-grass-shlibs, gdal-ssl-shlibs
+  Depends: << 
+    giflib-shlibs | libungif-shlibs, libjpeg-shlibs, libpng3-shlibs, libtiff-shlibs (>= 3.6.0), netcdf-shlibs, 
+    proj-shlibs, libgeos2-shlibs, 
+    unixodbc2-shlibs | unixodbc2-nox-shlibs, 
+    (%type_raw[-nopgsql] = .) postgresql80-shlibs (>=8.0.2-13) | (%type_raw[-nopgsql] = .) postgresql80-ssl-shlibs (>=8.0.2-13)
+  <<
   Files: lib/libgdal.*.dylib
-  Shlibs: %p/lib/libgdal.1.dylib 5.0.0 %n (>= 1.2.1-11)
+  Shlibs: %p/lib/libgdal.1.dylib 9.0.0 %n (>= 1.2.6-2)
   DocFiles: ChangeLog LICENSE NEWS
 <<
 SplitOff2: <<
   Package: %N-dev
-  Replaces: %N (<< 1.2.1-11), gdal-dev, gdal-nopgsql-dev, gdal-ssl-del
+  Replaces: %N (<< 1.2.1-11), gdal-dev, gdal-nopgsql-dev, gdal-grass-del, gdal-nopgsql-grass-dev, gdal-ssl-dev
+  Conflicts: %N (<< 1.2.1-11), gdal-dev, gdal-nopgsql-dev, gdal-grass-del, gdal-nopgsql-grass-dev, gdal-ssl-dev
   Depends: %N-shlibs (= %v-%r)
   BuildDependsOnly: true
   Files: bin/gdal-config include lib/*.a lib/*.la lib/libgdal.dylib share/man/man1/gdal-config.1
@@ -84,8 +109,7 @@ SetCFLAGS and SetCXXFLAGS.
 Uses --with-static-proj4=%p in ConfigureParams, but libproj still ends
 up linking dynamically.
 
-Uses --with-grass=no in ConfigureParams to avoid conflicts with the
-use of GDAL within GRASS.
+Uses --with-grass is conditional. gdal-grass has this option enabled.
 
 Uses --with-hdf4=no in ConfigureParams to avoid a compile error in
 EHapi.c.
