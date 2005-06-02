@@ -1,0 +1,94 @@
+Package: vflib3
+Version: 3.6.13
+Revision: 4
+Source: ftp://TypeHack.aial.hiroshima-u.ac.jp/pub/TypeHack/VFlib3-%v.tar.gz
+Source-MD5: 64aaa110c3e3d5474e0e7372269b5e8b
+BuildDepends: t1lib5, freetype, libkpathsea4, libgettext3-dev, gettext-bin, gettext-tools
+Depends: t1lib5-shlibs, tetex-base, libkpathsea4-shlibs, freetype-shlibs | freetype-hinting-shlibs, libgettext3-shlibs
+UpdateConfigGuess: true
+UpdateLibtool: true
+PatchScript: <<
+#!/bin/sh -e
+  sed 's|@FINKPREFIX@|%p|g' < %a/%n.patch | patch -p1
+  grep -lr /usr/local . | xargs perl -pi.bak -e 's|/usr/local|%p|g'
+  perl -pi.bak -e 's/Glocal/extern/g' src/texfonts.h 
+  mv INSTALL INSTALL.txt
+  perl -pi.bak -e 's|install-info\ |/usr/bin/install-info\ |g' doc/Makefile.in
+  perl -pi.bak -e 's|makedefault\:\ default|makedefault\:\ all|;' Makefile.in
+  perl -pi.bak -e 's|VFCFLAGS=|VFCFLAGS=\@LDFLAGS\@\ |;' make-sub.in
+# To enable building with gcc >= 3.3
+  perl -pi.bak -e 's,varargs.h,stdarg.h,' src/vfldisol.c
+# To enable building with t1lib5
+  perl -pi.bak -e 's,T1_Get_no_fonts,T1_GetNoFonts,' src/drv_t1.c
+<<
+
+DocFiles: ANNOUNCE* CHANGES COPYING* DISTRIB.txt INSTALL.txt
+NoSetCPPFLAGS: true
+NoSetLDFLAGS: true
+SetLIBRARY_PATH: %p/lib
+SetCFLAGS: -Wno-long-long -std=gnu99 -I%p/include -fno-common
+ConfigureParams: --mandir='${prefix}/share/man'  --infodir='${prefix}/share/info' --enable-static --enable-shared --with-freetype --with-freetype-includedir=%p/include/freetype --with-t1lib --with-kpathsea --with-texmf-root=%p --with-kpathsea-includedir=%p/include --with-t1lib-includedir=%p/include
+CompileScript: export CPATH=%p/include ; ./configure %c ; make
+Shlibs: <<
+%p/lib/libVFlib3.5.dylib	10.0.0	%n (>= 3.6.13-4)
+<<
+Description: Versatile Font Library, runtime libs
+DescDetail: <<
+VFlib is a font library written in C language with several functions
+to obtain bitmaps of fonts.  Unique feature of VFlib is that fonts
+in different formats are accessed by unified interface.
+
+VFlib supports the following font formats:
+   TeX fonts:       PK, GF, VF, TFM
+   Omega TeX fonts: OFM (level 0), OVF
+   X Window fonts:  PCF, BDF
+   Other fonts:     TrueType, Type 1, HBF, Syotai Club, JG, ekanji
+
+This package contains the shared library and configuration files 
+needed to run programs using VFlib3.
+<<
+Splitoff: <<
+  Package: %N-dev
+  Depends: vflib3 (=%v-%r)
+  BuildDependsOnly: true
+  Files: include bin/VFlib3-config lib/libVFlib3.a lib/libVFlib3.la lib/libVFlib3.dylib
+  Description: Versatile Font Library, development files
+  DescDetail: <<
+  VFlib is a font library written in C language with several functions
+  to obtain bitmaps of fonts.  Unique feature of VFlib is that fonts
+  in different formats are accessed by unified interface.
+
+  VFlib supports the following font formats:
+     TeX fonts:       PK, GF, VF, TFM
+     Omega TeX fonts: OFM (level 0), OVF
+     X Window fonts:  PCF, BDF
+     Other fonts:     TrueType, Type 1, HBF, Syotai Club, JG, ekanji
+
+  This package contains the development files needed to run programs
+  using VFlib3.
+  <<
+<<
+Splitoff2: <<
+  Package: %N-bin
+  Depends: %N
+  Files: bin
+  Description: Versatile Font Library, binary apps
+  DescDetail: <<
+  These are the binary applications included with vflib.
+  VFlib is a font library written in C language with several functions
+  to obtain bitmaps of fonts.  Unique feature of VFlib is that fonts
+  in different formats are accessed by unified interface.
+
+  VFlib supports the following font formats:
+     TeX fonts:       PK, GF, VF, TFM
+     Omega TeX fonts: OFM (level 0), OVF
+     X Window fonts:  PCF, BDF
+     Other fonts:     TrueType, Type 1, HBF, Syotai Club, JG, ekanji
+
+  This package contains the application files included with VFlib3.
+  <<
+  License: GPL
+<<
+License: LGPL
+Maintainer: Chris Zubrzycki <beren12@users.sourceforge.net>
+Homepage: http://TypeHack.aial.hiroshima-u.ac.jp/TeX-Guy/
