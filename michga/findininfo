@@ -1,32 +1,39 @@
 #!/bin/sh
 
-# Find some string in info files
+# Find some string in info or patch files
 
 help_findininfo()
 {
 echo "-----------------------------------------------------"
 echo -e "Purpose: Search some string in info files\n"
-echo -e "Usage: $0 -s -w -b -t -c\n"
+echo -e "Usage: $0 -s -w -b -t -g -c\n"
 echo -e "Options: -s is mandatory, the other ones are optional.\n"
 echo " -s the string to search"
 echo " -w the location of the root of fink tree" 
 echo "    default to /sw"
 echo " -b the branch to explore"
-echo "    default to 10.3, may be 10.2 or 10.2-gcc3.3"
+echo "    default to 10.4-transitional, may be 10.3, 10.2 or 10.2-gcc3.3"
 echo " -t the tree to explore"
 echo "    default to unstable, may be stable or local"
+echo " -g the type of file to explore"
+echo "    default to info, may be patch"
 echo " -c the subtree to explore"
 echo -e "    default to main, may be crypto\n"
+echo -e "Actually, you can use it to search any text anywhere.\n"
 echo "Author: Michele Garoche Date: April 16th, 2004"
+echo "Modified: on April 17th, 2005 to include patch files"
+echo "Modified: on May 6th, 2005 to include 10.4 tree"
 echo "-----------------------------------------------------"
+
 exit 1
 }
 
 # Default values 
 MYSW="/sw"
-MYBRANCH="10.3"
+MYBRANCH="10.4-transitional"
 MYTREE="unstable"
 MYSUBTREE="main"
+MYTYPE="info"
 
 # No argument
 if [[ $# -lt 1 ]]; then
@@ -34,13 +41,14 @@ help_findininfo
 fi
 
 OPTIND=1
-while getopts "s:w:b:t:c:" flag
+while getopts "s:w:b:t:g:c:" flag
 do
 case "$flag" in
 s) STRINGTOSEARCH="$OPTARG";;
 w) MYSW="$OPTARG";;
 b) MYBRANCH="$OPTARG";;
 t) MYTREE=$OPTARG;;
+g) MYTYPE=$OPTARG;;
 c) MYSUBTREE=$OPTARG;;
 \?) help_findininfo;;
 esac
@@ -58,12 +66,13 @@ echo "The path " $WHERETOSEARCH "does not exist."
 help_findininfo
 fi
 
-echo "Searching " ${STRINGTOSEARCH} "in " ${WHERETOSEARCH}
+echo "Searching " ${STRINGTOSEARCH} "in " ${WHERETOSEARCH} "within " ${MYTYPE} "files"
 
 cd $WHERETOSEARCH
 
 # Search for the $STRINGTOSEARCH string in all files located in $WHERETOSEARCH directory
-for FIL in `find . -name \*.info`
+#for FIL in `find . -name \*.info`
+for FIL in `find . -name \*.${MYTYPE}`
 do
 # Test if the result of grep is not an empty string
 # i.e. if the string $STRINGTOSEARCH exists in the file $FIL
