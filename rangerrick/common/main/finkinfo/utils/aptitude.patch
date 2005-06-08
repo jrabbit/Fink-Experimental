@@ -1,0 +1,721 @@
+diff -uNr aptitude-0.3.2/ChangeLog aptitude-0.3.2-patched/ChangeLog
+--- aptitude-0.3.2/ChangeLog	Sun May  1 14:15:58 2005
++++ aptitude-0.3.2-patched/ChangeLog	Tue Jun  7 17:03:09 2005
+@@ -1,5 +1,44 @@
+ 2005-05-01  Daniel Burrows  <dburrows@debian.org>
+ 
++	* doc/en/aptitude.xml:
++
++	Document the change to StepLimit.
++
++	* src/generic/aptcache.cc:
++
++	Live dangerously: bump the default StepLimit to 5000.  It seems
++	from empirical tests that the various changes to the problem
++	resolver -- especially the 'forbidden' version tests, forced
++	installations, and the reduction of the branching factor -- have
++	made longer searches feasible; also, some interesting test cases
++	(like 'aptitude -s -t experimental dist-upgrade') need more steps
++	to complete.
++
++	* src/cmdline/cmdline_resolver.cc:
++
++	Give up, don't loop forever, if the user asks to terminate a
++	search.
++
++	* src/generic/aptcache.cc:
++
++	Bump the default StepLimit to 500, to deal with the fact that some
++	interesting problems are a bit too hard for 100.
++
++	* src/generic/aptitude_resolver.h:
++
++	Fix reversed logic in checking whether a Conflicts is broken.
++
++	* src/generic/aptitude_resolver.h, src/generic/problemresolver/problemresolver.h, src/generic/problemresolver/test.cc:
++
++	Fix a mistake in how successors are generated -- of course we have
++	to test the dependencies of the new version being installed as
++	well!
++
++	* src/solution_fragment.cc:
++
++	Fix a silly thinko that caused segfaults when trying to display
++	problem solutions.
++
+ 	* src/generic/problemresolver/Makefile.am:
+ 
+ 	Uh, yeah, also distribute the problem resolver's header file.
+diff -uNr aptitude-0.3.2/configure aptitude-0.3.2-patched/configure
+--- aptitude-0.3.2/configure	Sun May  1 14:01:08 2005
++++ aptitude-0.3.2-patched/configure	Tue Jun  7 17:32:49 2005
+@@ -9755,12 +9755,11 @@
+ #ifdef __cplusplus
+ "C"
+ #endif
+-const char *_nl_expand_alias ();
+ int
+ main ()
+ {
+ bindtextdomain ("", "");
+-return (int) gettext ("") + _nl_msg_cat_cntr + *_nl_expand_alias (0)
++return (int) gettext ("") + _nl_msg_cat_cntr
+   ;
+   return 0;
+ }
+@@ -9809,12 +9808,11 @@
+ #ifdef __cplusplus
+ "C"
+ #endif
+-const char *_nl_expand_alias ();
+ int
+ main ()
+ {
+ bindtextdomain ("", "");
+-return (int) gettext ("") + _nl_msg_cat_cntr + *_nl_expand_alias (0)
++return (int) gettext ("") + _nl_msg_cat_cntr
+   ;
+   return 0;
+ }
+diff -uNr aptitude-0.3.2/doc/aptitude-html.xsl aptitude-0.3.2-patched/doc/aptitude-html.xsl
+--- aptitude-0.3.2/doc/aptitude-html.xsl	Fri Dec  3 19:57:22 2004
++++ aptitude-0.3.2-patched/doc/aptitude-html.xsl	Tue Jun  7 22:10:59 2005
+@@ -5,7 +5,7 @@
+ <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" 
+                 version="1.0">
+ 
+-<xsl:import href="/usr/share/xml/docbook/stylesheet/nwalsh/html/chunk.xsl"/>
++<xsl:import href="@FINKPREFIX@/share/xml/xsl/docbook-xsl/html/chunk.xsl"/>
+ 
+ <xsl:import href="aptitude-common.xsl"/>
+ 
+diff -uNr aptitude-0.3.2/doc/aptitude-man.xsl aptitude-0.3.2-patched/doc/aptitude-man.xsl
+--- aptitude-0.3.2/doc/aptitude-man.xsl	Fri Dec  3 19:57:25 2004
++++ aptitude-0.3.2-patched/doc/aptitude-man.xsl	Tue Jun  7 22:11:07 2005
+@@ -5,7 +5,7 @@
+ <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" 
+                 version="1.0">
+ 
+-<xsl:import href="/usr/share/xml/docbook/stylesheet/nwalsh/manpages/docbook.xsl"/>
++<xsl:import href="@FINKPREFIX@/share/xml/xsl/docbook-xsl/manpages/docbook.xsl"/>
+ 
+ <xsl:template match='replaceable'>
+   <xsl:text>\fI&lt;</xsl:text><xsl:apply-templates/><xsl:text>&gt;\fR</xsl:text>
+diff -uNr aptitude-0.3.2/doc/aptitude-txt.xsl aptitude-0.3.2-patched/doc/aptitude-txt.xsl
+--- aptitude-0.3.2/doc/aptitude-txt.xsl	Fri Dec  3 19:57:17 2004
++++ aptitude-0.3.2-patched/doc/aptitude-txt.xsl	Tue Jun  7 22:11:34 2005
+@@ -5,7 +5,7 @@
+ <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" 
+                 version="1.0">
+ 
+-<xsl:import href="/usr/share/xml/docbook/stylesheet/nwalsh/html/docbook.xsl"/>
++<xsl:import href="@FINKPREFIX@/share/xml/xsl/docbook-xsl/html/docbook.xsl"/>
+ 
+ <xsl:import href="aptitude-common.xsl"/>
+ 
+diff -uNr aptitude-0.3.2/doc/en/aptitude.xml aptitude-0.3.2-patched/doc/en/aptitude.xml
+--- aptitude-0.3.2/doc/en/aptitude.xml	Sun May  1 14:00:45 2005
++++ aptitude-0.3.2-patched/doc/en/aptitude.xml	Tue Jun  7 17:03:09 2005
+@@ -7200,7 +7200,7 @@
+ 
+ 	    <seglistitem id='configProblemResolver-StepLimit'>
+ 	      <seg><literal>Aptitude::ProblemResolver::StepLimit</literal></seg>
+-	      <seg><literal>100</literal></seg>
++	      <seg><literal>5000</literal></seg>
+ 	      <seg>
+ 		The maximum number of <quote>steps</quote> which
+ 		should be performed by the problem resolver on each
+diff -uNr aptitude-0.3.2/src/cmdline/cmdline_resolver.cc aptitude-0.3.2-patched/src/cmdline/cmdline_resolver.cc
+--- aptitude-0.3.2/src/cmdline/cmdline_resolver.cc	Sun May  1 10:48:24 2005
++++ aptitude-0.3.2-patched/src/cmdline/cmdline_resolver.cc	Tue Jun  7 17:03:09 2005
+@@ -282,8 +282,8 @@
+ 			// NoMoreExceptions flows to the outer catch.
+ 			break;
+ 		      case 'N':
+-			done=true;
+-			break;
++			cout << _("Abandoning all efforts to resolve these dependencies.") << endl;
++			return false;
+ 		      default:
+ 			cout << _("Invalid response; please enter 'y' or 'n'.") << endl;
+ 		      }
+diff -uNr aptitude-0.3.2/src/download_item.cc aptitude-0.3.2-patched/src/download_item.cc
+--- aptitude-0.3.2/src/download_item.cc	Sun May  1 12:24:33 2005
++++ aptitude-0.3.2-patched/src/download_item.cc	Tue Jun  7 21:49:55 2005
+@@ -41,8 +41,6 @@
+ 	return get_color("DownloadHit");
+     case pkgAcquire::Item::StatError:
+       return get_color("Error");
+-    case pkgAcquire::Item::StatAuthError:
+-      return get_color("Error");
+     default:
+       assert(0);
+     }
+@@ -104,9 +102,6 @@
+       output+=hit?_("[Hit]"):_("[Downloaded]");
+       break;
+     case pkgAcquire::Item::StatError:
+-      output+=item.Owner->ErrorText;
+-      break;
+-    case pkgAcquire::Item::StatAuthError:
+       output+=item.Owner->ErrorText;
+       break;
+     }
+diff -uNr aptitude-0.3.2/src/generic/apt.cc aptitude-0.3.2-patched/src/generic/apt.cc
+--- aptitude-0.3.2/src/generic/apt.cc	Sun May  1 12:22:02 2005
++++ aptitude-0.3.2-patched/src/generic/apt.cc	Tue Jun  7 17:17:19 2005
+@@ -479,7 +479,7 @@
+     {
+       pkgIndexFile *index;
+ 
+-      if(apt_source_list->FindIndex(i.File(), index) && !index->IsTrusted())
++      if(apt_source_list->FindIndex(i.File(), index))
+ 	return false;
+     }
+ 
+diff -uNr aptitude-0.3.2/src/generic/aptcache.cc aptitude-0.3.2-patched/src/generic/aptcache.cc
+--- aptitude-0.3.2/src/generic/aptcache.cc	Sun May  1 11:44:05 2005
++++ aptitude-0.3.2-patched/src/generic/aptcache.cc	Tue Jun  7 17:03:09 2005
+@@ -1467,7 +1467,7 @@
+     {
+       try
+ 	{
+-	  solutions.push_back(new aptitude_resolver::solution(resolver->find_next_solution(aptcfg->FindI(PACKAGE "::ProblemResolver::StepLimit", 100))));
++	  solutions.push_back(new aptitude_resolver::solution(resolver->find_next_solution(aptcfg->FindI(PACKAGE "::ProblemResolver::StepLimit", 5000))));
+ 	  selected_solution=0;
+ 	  out_of_time=false;
+ 	  selected_solution_changed();
+@@ -1488,7 +1488,7 @@
+     {
+       // otherwise weirdness is happening.
+       assert(!out_of_time);
+-      solutions.push_back(new aptitude_resolver::solution(resolver->find_next_solution(aptcfg->FindI(PACKAGE "::ProblemResolver::StepLimit", 100))));
++      solutions.push_back(new aptitude_resolver::solution(resolver->find_next_solution(aptcfg->FindI(PACKAGE "::ProblemResolver::StepLimit", 5000))));
+       ++selected_solution;
+       selected_solution_changed();
+       return *solutions.back();
+@@ -1533,7 +1533,7 @@
+ 
+   resolver->dump_scores(out);
+ 
+-  out << "EXPECT ( " << aptcfg->FindI(PACKAGE "::Resolver::StepLimit", 100) << " ANY )" << endl;
++  out << "EXPECT ( " << aptcfg->FindI(PACKAGE "::Resolver::StepLimit", 5000) << " ANY )" << endl;
+ }
+ 
+ //////////////////// END PROBLEM RESOLVER INTERFACE ////////////////////
+diff -uNr aptitude-0.3.2/src/generic/aptitude_resolver.h aptitude-0.3.2-patched/src/generic/aptitude_resolver.h
+--- aptitude-0.3.2/src/generic/aptitude_resolver.h	Sat Apr 30 14:42:56 2005
++++ aptitude-0.3.2-patched/src/generic/aptitude_resolver.h	Tue Jun  7 17:03:09 2005
+@@ -216,8 +216,10 @@
+   }
+ 
+   class revdep_iterator;
++  class dep_iterator;
+ 
+   revdep_iterator revdeps_begin() const;
++  dep_iterator deps_begin() const;
+ };
+ 
+ inline aptitude_resolver_version aptitude_resolver_package::current_version() const
+@@ -518,11 +520,145 @@
+   }
+ };
+ 
++/** Iterates over the distinct dependencies of a version.  These
++ *  include its direct/indirect dependencies (separated into OR
++ *  groups) and its direct/indirect conflicts (one apiece).
++ */
++class aptitude_resolver_version::dep_iterator
++{
++  pkgDepCache *cache;
++  pkgCache::DepIterator dep;
++  pkgCache::PrvIterator prv;
++  /** If \b true, then dep is a Conflicts and we are iterating over
++   *  the packages providing its target.
++   */
++  bool prv_open;
++
++  void normalize()
++  {
++    if(prv_open)
++      {
++	assert(!dep.end());
++	assert(dep->Type == pkgCache::Dep::Conflicts);
++
++	while(!prv.end() && prv.OwnerPkg()==dep.ParentPkg())
++	  ++prv;
++
++	if(prv.end())
++	  {
++	    prv_open=false;
++	    ++dep;
++	  }
++	else
++	  return;
++      }
++
++    assert(!prv_open);
++
++
++    // Skip non-critical and self dependencies.  Need to do this here
++    // as well as below in case dep already points to such a
++    // dependency.
++    while(!dep.end() &&
++	  (dep.ParentPkg() == dep.TargetPkg() ||
++	   !dep.IsCritical()))
++      ++dep;
++
++    // If we ran out of deps, we're done!
++  }
++
++public:
++  dep_iterator(pkgDepCache *_cache)
++    :cache(_cache),
++     prv(*_cache, 0, (pkgCache::Package *) 0),
++     prv_open(false)
++  {
++  }
++
++
++  dep_iterator(const pkgCache::DepIterator &start,
++	       pkgDepCache *_cache)
++    :cache(_cache),
++     dep(start),
++     prv(*_cache, 0, (pkgCache::Package *) 0),
++     prv_open(false)
++  {
++    normalize();
++  }
++
++  dep_iterator &operator=(const dep_iterator &other)
++  {
++    cache=other.cache;
++    dep=other.dep;
++    prv=other.prv;
++    prv_open=other.prv_open;
++
++    return *this;
++  }
++
++  aptitude_resolver_dep operator*() const
++  {
++    return aptitude_resolver_dep(dep, prv, cache);
++  }
++
++  bool end() const
++  {
++    return dep.end();
++  }
++
++  dep_iterator &operator++()
++  {
++    assert(!dep.end());
++
++    // If the Provides list is nonempty, advance it.
++    if(!prv.end())
++      ++prv;
++    // If we weren't trying to iterate over a Provides list *and* the
++    // current dep is a non-versioned Conflicts, start such an
++    // iteration.
++    else if(!prv_open && dep->Type == pkgCache::Dep::Conflicts &&
++	    !dep.TargetVer())
++      {
++	prv_open=true;
++	prv=dep.TargetPkg().ProvidesList();
++      }
++    // Otherwise push on to the next top-level dep.
++    else
++      {
++	if(!dep.end() && dep->Type == pkgCache::Dep::Conflicts)
++	  ++dep;
++	else
++	  {
++	    // If it's not a conflict, skip a whole OR group.
++	    while(!dep.end() && (dep->CompareOp & pkgCache::Dep::Or))
++	      ++dep;
++
++	    // Now we're on the last element of the OR group, push
++	    // forward.
++	    if(!dep.end())
++	      ++dep;
++	  }
++      }
++
++    normalize();
++
++    return *this;
++  }
++};
++
+ inline aptitude_resolver_version::revdep_iterator aptitude_resolver_version::revdeps_begin() const
+ {
+   return revdep_iterator(ver, cache);
+ }
+ 
++inline aptitude_resolver_version::dep_iterator aptitude_resolver_version::deps_begin() const
++{
++  if(ver.end())
++    return dep_iterator(cache);
++  else
++    return dep_iterator(ver.DependsList(), cache);
++}
++
+ /** This class uses a technique similar to rev_dep_lst.  It assumes
+  *  that the dependency is critical (noncritical deps are weeded out
+  *  by the universe's broken_dep_iterator and hidden from the
+@@ -834,10 +970,10 @@
+ 
+ 	  pkgCache::VerIterator direct_ver=S.version_of(aptitude_resolver_package(const_cast<pkgCache::DepIterator &>(start).TargetPkg(), cache)).get_ver();
+ 
+-	  if(!(!direct_ver.end() &&
+-	       _system->VS->CheckDep(direct_ver.VerStr(),
+-				     start->CompareOp,
+-				     start.TargetVer())))
++	  if(!direct_ver.end() &&
++	     _system->VS->CheckDep(direct_ver.VerStr(),
++				   start->CompareOp,
++				   start.TargetVer()))
+ 	    return true;
+ 	  else
+ 	    return false;
+@@ -926,57 +1062,21 @@
+   {
+     pkgDepCache *cache;
+ 
+-    class pkgCache::PkgIterator pkg;
+-    class pkgCache::VerIterator ver;
+-    class pkgCache::DepIterator dep;
+-    class pkgCache::PrvIterator prv;
+-    bool prv_open;
++    pkgCache::PkgIterator pkg;
++    pkgCache::VerIterator ver;
++    aptitude_resolver_version::dep_iterator dep;
+ 
+     // Advance to the next valid dep (inclusive of dep).
+     void normalize()
+     {
+-      // If prv_open, we are iterating over the Provides of something
+-      // upon which a package depends.  This is a good situation
+-      // *unless* we ran out of Provides or we have an indirect
+-      // self-conflict.
+-      if(prv_open)
+-	{
+-	  assert(!dep.end());
+-	  assert(dep->Type == pkgCache::Dep::Conflicts);
+-
+-	  while(!prv.end() && prv.OwnerPkg()==dep.ParentPkg())
+-	    ++prv;
+-
+-	  if(prv.end())
+-	    {
+-	      prv_open=false;
+-	      ++dep;
+-	    }
+-	  else
+-	    return;
+-	}
+-
+-      assert(!prv_open);
+-
+-      // Skip any dependencies that shouldn't show up in the output.
+-      // Need to do this here as well as below in case dep already
+-      // points to such a dependency.
+-      while(!dep.end() &&
+-	    (dep.ParentPkg() == dep.TargetPkg() ||
+-	     !dep.IsCritical()))
+-	++dep;
+-
+-      // Now, if we ran our of deps, try to find another one.
+       while(dep.end() && !pkg.end())
+ 	{
+ 	  while(dep.end() && !ver.end())
+ 	    {
+-	      // Since dep is an end iterator, advance at least
+-	      // to the next version.
+ 	      ++ver;
+-
+ 	      if(!ver.end())
+-		dep=ver.DependsList();
++		dep=aptitude_resolver_version::dep_iterator(ver.DependsList(),
++							    cache);
+ 	    }
+ 
+ 	  if(dep.end())
+@@ -986,80 +1086,41 @@
+ 		{
+ 		  ver=pkg.VersionList();
+ 		  if(!ver.end())
+-		    dep=ver.DependsList();
++		    dep=aptitude_resolver_version::dep_iterator(ver.DependsList(),
++								cache);
+ 		}
+ 	    }
+-
+-	  // Avoid direct self-deps and non-critical
+-	  // deps. (self-conflicts in particular, but a non-conflict
+-	  // self-dep is pointless)
+-	  while(!dep.end() &&
+-		(dep.ParentPkg() == dep.TargetPkg() ||
+-		 !dep.IsCritical()))
+-	    ++dep;
+ 	}
+     }
+   public:
+-#if 0
+-    dep_iterator()
+-      :cache(0)
+-    {
+-    }
+-#endif
+-
+     // Start from the given package (typically Head() or End()).
+     dep_iterator(const pkgCache::PkgIterator &_pkg,
+ 		 pkgDepCache *_cache)
+       :cache(_cache),
+-       pkg(_pkg), prv(*_cache, 0, (pkgCache::Package *) 0),
+-       prv_open(false)
++       pkg(_pkg),
++       ver(_pkg.VersionList()),
++       dep(_cache)
+     {
+       if(!pkg.end())
+ 	ver=pkg.VersionList();
+       if(!ver.end())
+-	dep=ver.DependsList();
++	dep=aptitude_resolver_version::dep_iterator(ver.DependsList(),
++						    _cache);
+ 
+       normalize();
+     }
+ 
+     aptitude_universe::dep operator*() const
+     {
+-      return aptitude_universe::dep(dep, prv, cache);
++      return *dep;
+     }
+ 
+     dep_iterator &operator++()
+     {
+       assert(!dep.end());
+ 
+-      // If the Provides list is open, advance it.
+-      if(!prv.end())
+-	++prv;
+-      // otherwise, if we aren't trying to iterate over a Provides
+-      // list and the current dep is a Conflicts, start such an
+-      // iteration.
+-      else if(!prv_open && dep->Type == pkgCache::Dep::Conflicts)
+-	{
+-	  prv_open=true;
+-	  prv=dep.TargetPkg().ProvidesList();
+-	}
+-      // Otherwise just advance blindly.
+-      else
+-	{
+-	  if(!dep.end() && dep->Type == pkgCache::Dep::Conflicts)
+-	    ++dep;
+-	  else
+-	    {
+-	      // Advance to the end of the OR...
+-	      while(!dep.end() && (dep->CompareOp & pkgCache::Dep::Or))
+-		++dep;
+-
+-	      // ...and beyond!
+-	      if(!dep.end())
+-		++dep;
+-	    }
+-	}
++      ++dep;
+ 
+-      // Look for a valid dep.
+       normalize();
+ 
+       return *this;
+diff -uNr aptitude-0.3.2/src/generic/config_signal.cc aptitude-0.3.2-patched/src/generic/config_signal.cc
+--- aptitude-0.3.2/src/generic/config_signal.cc	Sun Jan  9 03:45:31 2005
++++ aptitude-0.3.2-patched/src/generic/config_signal.cc	Tue Jun  7 17:19:16 2005
+@@ -122,5 +122,5 @@
+ 
+ void signalling_config::Dump(ostream &out)
+ {
+-  user_config->Dump(out);
++  user_config->Dump();
+ }
+diff -uNr aptitude-0.3.2/src/generic/problemresolver/problemresolver.h aptitude-0.3.2-patched/src/generic/problemresolver/problemresolver.h
+--- aptitude-0.3.2/src/generic/problemresolver/problemresolver.h	Sun May  1 10:54:11 2005
++++ aptitude-0.3.2-patched/src/generic/problemresolver/problemresolver.h	Tue Jun  7 17:03:09 2005
+@@ -754,6 +754,13 @@
+ 	    !rd.end(); ++rd)
+ 	  if((*rd).broken_under(tmpsol))
+ 	    new_broken.insert(*rd);
++
++	// Remember: the dependencies of the *new versions being
++	// installed* might also be broken!
++	for(typename version::dep_iterator di=v.deps_begin();
++	    !di.end(); ++di)
++	  if((*di).broken_under(tmpsol))
++	    new_broken.insert(*di);
+       }
+ 
+     const std::set<dep> &old_broken=s.get_broken();
+diff -uNr aptitude-0.3.2/src/generic/problemresolver/test.cc aptitude-0.3.2-patched/src/generic/problemresolver/test.cc
+--- aptitude-0.3.2/src/generic/problemresolver/test.cc	Sun May  1 11:53:14 2005
++++ aptitude-0.3.2-patched/src/generic/problemresolver/test.cc	Tue Jun  7 17:03:09 2005
+@@ -177,6 +177,7 @@
+   const dummy_package *package;
+ 
+   vector<dummy_dep *> revdeps;
++  vector<dummy_dep *> deps;
+ 
+   /** The numerical ID of this version. */
+   int ID;
+@@ -184,6 +185,7 @@
+   dummy_version(const dummy_version &other);
+ public:
+   typedef vector<dummy_dep *>::const_iterator revdep_iterator;
++  typedef vector<dummy_dep *>::const_iterator dep_iterator;
+ 
+   dummy_version(string _name, const dummy_package *_package,
+ 		unsigned int id)
+@@ -214,10 +216,18 @@
+     revdeps.push_back(dep);
+   }
+ 
++  void add_dep(dummy_dep *dep)
++  {
++    deps.push_back(dep);
++  }
++
+   const dummy_package &get_package() const {return *package;}
+ 
+   revdep_iterator revdeps_begin() const {return revdeps.begin();}
+   revdep_iterator revdeps_end() const {return revdeps.end();}
++
++  dep_iterator deps_begin() const {return deps.begin();}
++  dep_iterator deps_end() const {return deps.end();}
+ };
+ 
+ dummy_package::dummy_package(string _name, unsigned int id)
+@@ -245,7 +255,7 @@
+  */
+ class dummy_dep
+ {
+-  const dummy_version *source;
++  dummy_version *source;
+   vector<dummy_version *> target_set;
+ 
+   dummy_dep(const dummy_dep &other);
+@@ -254,7 +264,7 @@
+ public:
+   typedef vector<dummy_version *>::const_iterator solver_iterator;
+ 
+-  dummy_dep(const dummy_version *_source,
++  dummy_dep(dummy_version *_source,
+ 	    const vector<dummy_version *> &_target_set,
+ 	    unsigned int _ID)
+     :source(_source), target_set(_target_set), ID(_ID)
+@@ -276,7 +286,7 @@
+     return ID<other.ID;
+   }
+ 
+-  const dummy_version &get_source() const {return *source;}
++  dummy_version &get_source() const {return *source;}
+ 
+   solver_iterator solvers_begin() const
+   {
+@@ -371,6 +381,7 @@
+     const dummy_version *real_version;
+   public:
+     typedef wrap_ptr_iter<dummy_dep, dep> revdep_iterator;
++    typedef wrap_ptr_iter<dummy_dep, dep> dep_iterator;
+ 
+     version():real_version(0) {}
+     version(const dummy_version *_real_version)
+@@ -413,6 +424,12 @@
+       return wrap_ptr_iter<dummy_dep, dep>(real_version->revdeps_begin(),
+ 					   real_version->revdeps_end());
+     }
++
++    wrap_ptr_iter<dummy_dep, dep> deps_begin() const
++    {
++      return wrap_ptr_iter<dummy_dep, dep>(real_version->deps_begin(),
++					   real_version->deps_end());
++    }
+   };
+ 
+ 
+@@ -650,6 +667,8 @@
+       }
+ 
+     dummy_dep *newdep=deps.back();
++
++    newdep->get_source().add_dep(newdep);
+ 
+     for(dummy_dep::solver_iterator i=newdep->solvers_begin();
+ 	i!=newdep->solvers_end(); ++i)
+diff -uNr aptitude-0.3.2/src/solution_fragment.cc aptitude-0.3.2-patched/src/solution_fragment.cc
+--- aptitude-0.3.2/src/solution_fragment.cc	Tue Apr 26 20:18:52 2005
++++ aptitude-0.3.2-patched/src/solution_fragment.cc	Tue Jun  7 17:03:09 2005
+@@ -67,16 +67,15 @@
+ {
+   // Bin packages according to what will happen to them.
+   vector<pkgCache::PkgIterator> remove_packages;
+-  vector<pkgCache::VerIterator> keep_packages;
++  vector<pkgCache::PkgIterator> keep_packages;
+   vector<pkgCache::VerIterator> install_packages;
+   vector<pkgCache::VerIterator> downgrade_packages;
+   vector<pkgCache::VerIterator> upgrade_packages;
+ 
+   sort(remove_packages.begin(), remove_packages.end(),
+        pkg_name_lt());
+-
+   sort(keep_packages.begin(), keep_packages.end(),
+-       ver_name_lt());
++       pkg_name_lt());
+   sort(install_packages.begin(), install_packages.end(),
+        ver_name_lt());
+   sort(downgrade_packages.begin(), downgrade_packages.end(),
+@@ -93,11 +92,16 @@
+       pkgCache::VerIterator newver=i->second.ver.get_ver();
+ 
+       if(curver.end())
+-	install_packages.push_back(newver);
++	{
++	  if(newver.end())
++	    keep_packages.push_back(pkg);
++	  else
++	    install_packages.push_back(newver);
++	}
+       else if(newver.end())
+ 	remove_packages.push_back(pkg);
+       else if(newver == curver)
+-	keep_packages.push_back(curver);
++	keep_packages.push_back(pkg);
+       else
+ 	{
+ 	  int cmp=_system->VS->CmpVersion(curver.VerStr(),
+@@ -146,12 +150,19 @@
+   if(!keep_packages.empty())
+     {
+       fragments.push_back(fragf(_("%BKeep%b the following packages at their current version:%n")));
+-      for(vector<pkgCache::VerIterator>::const_iterator i=keep_packages.begin();
++      for(vector<pkgCache::PkgIterator>::const_iterator i=keep_packages.begin();
+ 	  i!=keep_packages.end(); ++i)
+-	fragments.push_back(fragf("  %s [%s (%F)]%n",
+-				  i->ParentPkg().Name(),
+-				  i->VerStr(),
+-				  archives_fragment(*i)));
++	{
++	  if(i->CurrentVer().end())
++	    fragments.push_back(fragf("  %s [%s]%n",
++				      i->Name(),
++				      _("Not Installed")));
++	  else
++	    fragments.push_back(fragf("  %s [%s (%F)]%n",
++				      i->Name(),
++				      i->CurrentVer().VerStr(),
++				      archives_fragment(i->CurrentVer())));
++	}
+ 
+       fragments.push_back(newline_fragment());
+     }
