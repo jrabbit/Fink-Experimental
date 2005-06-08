@@ -6,13 +6,13 @@ License: BSD
 Maintainer: Christian Schaffner <chris01@users.sourceforge.net>
 
 # Dependencies:
-Depends: apache2-ssl (>= 2.0.50-10), apr-ssl-common, svn-ssl-shlibs (>= %v-0)
-BuildDepends: fink (>= 0.21.1-1), svn-ssl-dev (>= %v-0), apr-ssl (>= 0.9.5-15), apr-ssl-common (>= 0.9.5-15), db42-ssl, gdbm3, expat (>= 1.95.6-2), libxml2 (>= 2.5.10-12), neon24-ssl (>= 0.24.7-11), openldap-ssl-dev (>= 2.1.22-24), cyrus-sasl2-dev (>= 2.1.15-23), openssl097-dev, libiconv-dev (>= 1.9.1-11), apache2-ssl-dev (>= 2.0.50-10), gettext-bin, gettext-tools, gettext-dev, io-string-pm, libtool14 (>= 1.5.10-1), autoconf2.5, automake1.9, gcc3.3
+Depends: apache2-ssl (>= 2.0.54-10), apr-ssl-common (>= 0.9.6-10), svn-ssl-shlibs (>= %v-0)
+BuildDepends: fink (>= 0.21.1-1), svn-ssl-dev (>= %v-0), apr-ssl (>= 0.9.5-15), apr-ssl-common (>= 0.9.5-15), db43-ssl, gdbm3, expat (>= 1.95.6-2), libxml2 (>= 2.5.10-12), neon24-ssl (>= 0.24.7-11), openldap-ssl-dev (>= 2.1.22-27), cyrus-sasl2-dev (>= 2.1.15-23), openssl097-dev, libiconv-dev (>= 1.9.1-11), apache2-ssl-dev (>= 2.0.54-10), gettext-bin, gettext-tools, gettext-dev, io-string-pm, libtool14 (>= 1.5.10-1), autoconf2.5, automake1.9, gcc3.3
 Conflicts: svn-client-ssl (<= 0.26.0-2), apache2 (<< 2.0.47-1)
 
 # Unpack Phase:
-Source: http://subversion.tigris.org/tarballs/subversion-%v-rc4.tar.bz2
-Source-MD5: 7913900ef3d92afcbdf63a3163574798
+Source: http://subversion.tigris.org/tarballs/subversion-%v.tar.bz2
+Source-MD5: f25c0c884201f411e99a6cb6c25529ff
 
 # Patch Phase:
 Patch: svn-ssl.patch
@@ -50,6 +50,37 @@ InstallScript: <<
  /usr/bin/install -d %i/var
  /usr/bin/install -m 770 -d %i/var/svn
  chown www:admin %i/var/svn
+<<
+PreInstScript: <<
+ echo "PreInstScript: 1 = $1"
+ if [ "$1" = upgrade ]; then
+   echo "Upgrading..."
+   echo "PreInstScript: 1 = $1, 2 = $2"
+   if dpkg --compare-versions "$2" lt "1.2.0"; then
+     echo ""
+     echo "WARNING: Subversion (svn) 1.2.0 now uses Berkeley DB 4.3 (db43)"
+     echo "If you upgrading from an earlier version and you are using"
+     echo "BDB repositories please read"
+     echo ""
+     echo "  http://subversion.tigris.org/faq.html#bdb43-upgrade"
+     echo ""
+     echo "To install an older svnadmin binary linked to db42 please install"
+     echo "the fink package 'svn-ssl-1.1.4-11', e.g. by typing"
+     echo ""
+     echo "  fink install svn-ssl-1.1.4-11"
+     echo ""
+     echo -n "Do you want to continue [Y/n] ? ";
+     if read -t 3600 CONTINUECHOICE; then
+       case $CONTINUECHOICE in
+         y|Y|'' ) ;;
+         * ) exit 1 ;;
+       esac
+     else
+       echo "Time-out."
+     fi
+   fi
+ fi
+ exit 0
 <<
 PostInstScript: <<
  APXS=%p/sbin/apxs
