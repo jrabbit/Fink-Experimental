@@ -1,14 +1,58 @@
---- conglomerate/src/plugin-sgml.c	Fri Jul 30 06:18:40 2004
-+++ conglomerate/src/plugin-patched-sgml.c	Fri Oct 29 07:31:15 2004
-@@ -111,7 +111,7 @@
+--- conglomerate/src/plugin-sgml.c	2004-07-30 06:18:40.000000000 +0200
++++ conglomerate/src/plugin-sgml-patched.c	2005-06-16 19:16:52.000000000 +0200
+@@ -79,6 +79,23 @@
+ }
+ #endif
+ 
++gchar *uri_to_system_filename(GnomeVFSURI *uri) {
++		if (gnome_vfs_uri_is_local(uri)) {
++				return gnome_vfs_uri_to_string(uri, GNOME_VFS_URI_HIDE_TOPLEVEL_METHOD);
++			} else {
++					return gnome_vfs_uri_to_string(uri, GNOME_VFS_URI_HIDE_PASSWORD);
++				}
++	}
++
++gchar *uri_to_system_filename2(gchar *uri) {
++		gchar *ret;
++		GnomeVFSURI *guri = gnome_vfs_uri_new(uri);
++		ret = uri_to_system_filename(guri);
++		gnome_vfs_uri_unref(guri);
++		return ret;
++	}
++
++
+ /**
+  * sgml_importer_action_callback:
+  * @importer:
+@@ -99,7 +116,7 @@
+ 	xmlDocPtr xml_doc;
+ 
+ #if 1
+-	gchar *argv[3];
++	gchar *argv[5];
+ 	gchar *standard_output;
+ 	gchar *standard_error;
+ 	gint exit_status;
+@@ -107,13 +124,15 @@
+ 	gboolean result;
+ 
+ /* 	gchar * posix_name = cong_util_get_local_path_from_uri(GnomeVFSURI *uri); */
+- 
++  gchar * posix_name = uri_to_system_filename2((gchar*)uri); 
  
  	g_message("sgml_importer_action_callback");
  
 -	argv[0] = "sgml2xml";
+-	argv[1] = (gchar*)uri; /* FIXME: this is GnomeVFS uri path string, not a POSIX path */
+-	argv[2] = NULL;
 +	argv[0] = "osx";
- 	argv[1] = (gchar*)uri; /* FIXME: this is GnomeVFS uri path string, not a POSIX path */
- 	argv[2] = NULL;
++	argv[1] = "-xno-nl-in-tag";
++		argv[2] = "-xlower";
++		argv[3] = (gchar*)posix_name; /* FIXME: this is GnomeVFS uri path string, not a POSIX path */
++		argv[4] = NULL;
  
+ 
+ 	/* Spawn a subprocess that runs sgml2xml on the uri and grabs the output: */
 --- conglomerate/omf.make	Thu Jan 22 11:45:14 2004
 +++ conglomerate/omf-patched.make	Mon Jul 19 15:41:07 2004
 @@ -42,7 +42,6 @@
