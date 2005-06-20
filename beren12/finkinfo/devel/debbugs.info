@@ -4,7 +4,7 @@ Revision: 1
 Source: %n-%v.tar.bz2
 SourceDirectory: %n
 PatchScript: sed -e s,@FINKPREFIX@,%p, %a/%n.patch | patch -p1
-Depends: perl584, mime-tools-pm, mailtools-pm, mldbm-pm, io-stringy-pm
+Depends: perl584, mime-tools-pm, mailtools-pm, mldbm-pm, io-stringy-pm, dbi-pm
 BuildDepends: fileutils
 CompileScript: <<
   echo foo
@@ -12,13 +12,13 @@ CompileScript: <<
 
 InstallScript: <<
 make install_mostfiles DESTDIR=%i
-cd %i/var/lib/debbugs/spool/db-h && perl -e 'map { mkdir $_ } (0..99)'
 <<
 
 ConfFiles: %p/etc/debbugs/html/Access.html.in %p/etc/debbugs/html/Developer.html.in %p/etc/debbugs/html/Reporting.html.in %p/etc/debbugs/html/index.html.in %p/etc/debbugs/html/server-control.html.in %p/etc/debbugs/html/server-refcard.html.in %p/etc/debbugs/html/server-request.html.in
 
 DocFiles: COPYING UPGRADE README debian/README.mail debian/README.Debian debian/TODO debian/changelog debian/copyright
 PostInstScript: <<
+#!/bin/sh -e
 
 if [ "$1" = "configure" ]; then
   %p/sbin/debbugsconfig
@@ -46,6 +46,7 @@ fi
 <<
 
 PostRmScript: <<
+#!/bin/sh
 
 if [ "$1" = "purge" ]; then
   rm -rf %p/etc/debbugs %p/var/lib/debbugs
