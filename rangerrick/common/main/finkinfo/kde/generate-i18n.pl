@@ -1,14 +1,14 @@
 #!/usr/bin/perl
 
-my $KOI18NRELNUM  = 1;
 my $KDEVERSION    = '3.4.1';
 my $KDEDIRECTORY  = 'stable/%v/src/';
 my $KDERELNUM     = 1;
-my $KDEARTSVER    = '1.4.1-1';
 my $KDEI18NRELNUM = 2;
-my $KOVERSION     = '1.3.5';
-my $KODIRECTORY   = 'stable/koffice-%v/src/';
+my $KDEARTSVER    = '1.4.1-1';
+my $KOVERSION     = '1.4.0';
+my $KODIRECTORY   = 'stable/koffice-1.4/src/';
 my $KORELNUM      = '1';
+my $KOI18NRELNUM  = 1;
 my $VERBOSE       = 0;
 my $DRYRUN        = 0;
 
@@ -27,7 +27,7 @@ my @KDEI18N = sort(grep(/kde-i18n-.*-${KDEVERSION}.*.tar.(gz|bz2)/, readdir(DIR)
 closedir(DIR);
 
 opendir(DIR, "/sw/src") or die "can't read from /sw/src: $!\n";
-my @KOI18N = sort(grep(/koffice-i18n-.*-${KOVERSION}.*.tar.(gz|bz2)/, readdir(DIR)));
+my @KOI18N = sort(grep(/koffice-l10n-.*-${KOVERSION}.*.tar.(gz|bz2)/, readdir(DIR)));
 closedir(DIR);
 
 open(MAPPING, "i18n-mappings.txt") or die "can't read i18n-mappings.txt: $!\n";
@@ -45,6 +45,8 @@ for my $i18n (@KDEI18N) {
 		my $normalized = lc($MAPPINGS{$shortname});
 		$normalized =~ s#[^a-zA-Z]+#-#g;
 		$normalized =~ s#-*$##;
+		my $replaces = "koffice-i18n-${normalized}, khangman, kturtle";
+		$replaces .= ", kde-i18n-norwegian-nyorsk" if ($normalized eq "norwegian-nynorsk");
 		my $filename = $i18n;
 		$filename =~ s#${KDEVERSION}#\%v#g;
 		push(@kdepackages, "kde-i18n-${normalized}");
@@ -57,7 +59,7 @@ DescDetail: Language files for the K Desktop Environment: $MAPPINGS{$shortname}
 Source-MD5: $md5
 Version: ${KDEVERSION}
 Revision: ${KDEI18NRELNUM}
-Replaces: koffice-i18n-${normalized}, khangman, kturtle
+Replaces: ${replaces}
 Depends: kdelibs3-ssl (>= %v-${KDERELNUM}) | kdelibs3 (>= %v-${KDERELNUM}), arts (>= ${KDEARTSVER}), xfonts-intl
 BuildDepends: fink (>= 0.17.1-1), kdebase3-ssl-dev (>= %v-${KDERELNUM}) | kdebase3-dev (>= %v-${KDERELNUM}), kdelibs3-ssl-dev (>= %v-${KDERELNUM}) | kdelibs3-dev (>= %v-${KDERELNUM}), arts-dev (>= ${KDEARTSVER}), libxml2, libxslt, xfonts-intl
 Maintainer: Benjamin Reed <kde-i18n-${normalized}\@fink.racoonfink.com>
@@ -83,26 +85,28 @@ END
 }
 
 for my $i18n (@KOI18N) {
-	my ($shortname) = $i18n =~ /koffice-i18n-([^\-]+)-${KOVERSION}.*.tar.(gz|bz2)/;
+	my ($shortname) = $i18n =~ /koffice-l10n-([^\-]+)-${KOVERSION}.*.tar.(gz|bz2)/;
 	if (exists $MAPPINGS{$shortname}) {
 		chomp(my $md5 = `md5 /sw/src/$i18n`);
 		$md5 =~ s/^.*\s*=\s*//;
 		my $normalized = lc($MAPPINGS{$shortname});
 		$normalized =~ s#[^a-zA-Z]+#-#g;
 		$normalized =~ s#-*$##;
+		my $replaces = "kde-i18n-${normalized}";
+		$replaces .= ", koffice-i18n-norwegian-nyorsk" if ($normalized eq "norwegian-nynorsk");
 		my $filename = $i18n;
 		$filename =~ s#${KOVERSION}#\%v#g;
 		push(@kopackages, "koffice-i18n-${normalized}");
 		my $contents = <<END;
 Package: koffice-i18n-${normalized}
 Source: mirror:kde:${KODIRECTORY}${filename}
-SourceDirectory: koffice-i18n-${shortname}-%v
+SourceDirectory: koffice-l10n-${shortname}-%v
 Description: KDE - KOffice language files for $MAPPINGS{$shortname}
 DescDetail: Language files for the KDE office suite: $MAPPINGS{$shortname}
 Source-MD5: $md5
 Version: ${KOVERSION}
 Revision: ${KOI18NRELNUM}
-Replaces: kde-i18n-${normalized}
+Replaces: $replaces
 Depends: kdelibs3-ssl (>= ${KDEVERSION}-${KDERELNUM}) | kdelibs3 (>= ${KDEVERSION}-${KDERELNUM}), arts (>= ${KDEARTSVER}), xfonts-intl, koffice-base (>= ${KOVERSION}-${KORELNUM})
 BuildDepends: fink (>= 0.17.1-1), kdebase3-ssl-dev (>= ${KDEVERSION}-${KDERELNUM}) | kdebase3-dev (>= ${KDEVERSION}-${KDERELNUM}), kdelibs3-ssl-dev (>= ${KDEVERSION}-${KDERELNUM}) | kdelibs3-dev (>= ${KDEVERSION}-${KDERELNUM}), arts-dev (>= ${KDEARTSVER}), koffice-dev (>= ${KOVERSION}-${KORELNUM}), libxml2, libxslt, xfonts-intl
 Maintainer: Benjamin Reed <koffice-i18n-${normalized}\@fink.racoonfink.com>
