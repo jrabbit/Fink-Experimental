@@ -1,0 +1,318 @@
+#!/usr/bin/perl
+use warnings;
+use strict;
+
+=head1 SYNOPSIS
+
+var [chl] ARCHIVE [FILES]
+
+=head1 DESCRIPTION
+
+var dynamically figures out what to do to expand, create or list various
+sorts of archives.
+
+Currently supported are:
+	bzip2
+	deb
+	dmg
+	gzip
+	jar
+	lzop
+	rar
+	rpm
+	tar
+	zip
+	Z
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<-h>, B<--help>
+
+Display a short usage reminder.
+
+=item B<-l>, -B<--list>
+
+List the files in the archive
+
+=item B<-c>, -B<--create>
+
+Create an archive
+
+=item B<-x>, -B<--extract>
+
+Extract an archive, this is the default
+
+=item B<-v>, -B<--verbose>
+
+Be verbose
+
+=over
+
+=cut
+
+my $DEBUG = 0;
+
+use Getopt::Long;
+use File::Basename;
+use File::Spec;
+use File::Temp		qw(tempdir tempfile);
+use Cwd;
+
+# Make a numbered temp name
+sub temp_num {
+	my $dest = shift;
+	if (-e $dest) {
+		my $count = 1;
+		while (1) {
+			my $testdest = sprintf "%s-%04d", $dest, $count++;
+			unless (-e $testdest) {
+				$dest = $testdest;
+				last;
+			}
+		}
+	}
+	
+	return $dest;
+}
+
+our $verbose = 0;
+our $action = "extract";
+Getopt::Long::Configure('bundling');
+GetOptions(
+    "c|create"	=> sub { $action = 'create'		},
+    "x|extract"	=> sub { $action = 'extract'	},
+    "l|list"	=> sub { $action = 'list'		},
+    "h|help"	=> sub { $action = 'help'		},
+    "v|verbose"	=> \$verbose,
+) or pod2usage(2);
+print "DEBUG: Using action $action\n" if $DEBUG;
+print "DEBUG: Running verbosely\n" if $DEBUG && $verbose;
+pod2usage({ -verbose => 3 }) if $action eq 'help';
+
+# Fields + defaults:
+#	exts,	default: name
+#	filter,	default: no
+#
+# Special terms:
+#	%a:			Insert the archive name
+#	%c:			Insert the items to put in the archive
+#	%q{foo}:	Insert 'foo' only if quiet
+#	%v{foo}:	Insert 'foo' only if verbose
+our %methods = (
+	bzip2	=> {
+		exts	=> [ 'bz2' ],
+		filter	=> 1,
+		extract	=> 'bzip2 -cd',
+		create	=> 'bzip2 -c',
+	},
+	deb		=> {
+		extract	=> 'dpkg %v{-X} %q{-x} %a .',
+		list	=> 'dpkg-deb --fsys-tarfile %a | tar -t',
+	},
+	dmg		=> {
+		extract	=> 'undmg %v{-v} %a',
+	},
+	gzip	=> {
+		exts	=> [ 'gz' ],
+		filter	=> 1,
+		extract	=> 'gzip -cd',
+		create	=> 'gzip -c',
+	},
+	lzop	=> {
+		exts	=> [ 'lzo' ],
+		tarexts	=> [ 'tzo' ],
+		filter	=> 1,
+		extract	=> 'lzop -cd',
+		create	=> 'lzop -c',
+	},
+	rar		=> {
+		extract	=> 'unrar e %a',
+		list	=> 'unrar l %a',
+	},
+	rpm		=> {
+		extract	=> 'rpmextract %a | gzip -cd | cpio -id %v{-v}',
+		list	=> 'rpmextract %a | gzip -cd | cpio -il %v{-v}',
+	},
+	tar		=> {
+		extract	=> 'tar -x %v{-v} -f %a',
+		create	=> 'tar -c %v{-v} -f %a %c',
+		list	=> 'tar -t %v{-v} -f %a',
+	},
+	zip		=> {
+		exts	=> [ qw(zip jar) ],
+		extract	=> 'unzip %q{-q} %a',
+		create	=> 'zip   %q{-q} %a %c',
+		list	=> 'unzip %v{-v} -l %a',
+	},
+	Z		=> {
+		filter	=> 1,
+		extract	=> 'uncompress -c',
+		create	=> 'compress -c',
+	},
+);
+
+# Make a list of extensions, ordered by decreasing length
+my @allexts;
+for my $m (keys %methods) {
+	my @exts = exists $methods{$m}{exts} ? @{$methods{$m}{exts}} : ($m);
+	for my $ext (@exts) {
+		push @allexts, { ext => $ext, method => $m };
+	}
+	
+	# Do the tar magic
+	if ($methods{$m}{filter}) {
+		my @tarexts = exists $methods{$m}{tarexts} ? @{$methods{$m}{tarexts}}
+												   : ();
+		push @tarexts, map { ("tar.$_", "t$_") } @exts;
+		for my $ext (@tarexts) {
+			push @allexts, { ext => $ext, method => $m, tar => 1 };
+		}
+	}
+}
+@allexts = sort { length($b->{ext}) <=> length($a->{ext}) } @allexts;
+
+# Find the matching extension, longest ones have preference
+our $archive = shift or die "No archive specified!\n";
+print "DEBUG: Archive is $archive\n" if $DEBUG;
+our ($found, $base);
+for my $ext (@allexts) {
+	if ($archive =~ /^(.*)\.\Q$ext->{ext}\E$/) {
+		$found = $ext;
+		$base = basename $1;
+		
+		print "DEBUG: Extension is $ext->{ext}\n" if $DEBUG;
+		print "DEBUG: Basename is $base\n" if $DEBUG;
+		last;
+	} elsif ($action eq 'create' && $archive eq $ext->{ext}) {
+		$found = $ext;
+		$base = 0;		# Will be special cased later
+		print "DEBUG: Extension is $ext->{ext}\n" if $DEBUG;
+		last;
+	}
+}
+unless (defined $found) {
+	die "Don't know what to do with archive $archive\n";
+}
+our $filter = $methods{$found->{method}}->{filter};
+if ($filter && !$found->{tar} && $action eq 'list') {
+	die "Cannot list using filter method $found->{method}\n";
+}
+print "DEBUG: Using method $found->{method}\n" if $DEBUG;
+print "DEBUG: Method is a filter\n" if $DEBUG && $filter;
+print "DEBUG: Tar will assist\n" if $DEBUG && $found->{tar};
+
+# Get the stuff to put in the archive
+if (@ARGV && $action ne 'create') {
+	die "Too many arguments for '$action'\n";
+} elsif (scalar(@ARGV) > 1 && $filter && (!$found->{tar} || !$base)) {
+	die "Cannot use a filter method ($found->{method}) on multiple items\n";
+} elsif (scalar(@ARGV) == 1 && -d $ARGV[0] && $filter && !$found->{tar}) {
+	die "Cannot use a filter method ($found->{method}) on a directory\n";
+}
+
+# Special case: if base is empty, just one item, auto-create archive name
+if (scalar(@ARGV) == 1 && !$base) {
+	$archive = temp_num(cwd() . '/' . basename($ARGV[0]) . '.' . $found->{ext});
+	$base = basename $archive;
+	print "DEBUG: Use archive $archive instead\n" if $DEBUG;
+}
+our $contents = join ' ', map { quotemeta $_ } @ARGV;
+print "DEBUG: Contents are $contents\n" if $DEBUG && $contents;
+$archive = File::Spec->rel2abs($archive);
+
+# If we're extracting, put things in a temp dir
+my ($olddir, $tempdir);
+if ($action eq 'extract') {
+	$olddir = cwd();
+	$tempdir = tempdir(CLEANUP => 1, DIR => $olddir);
+	
+	print "DEBUG: Using temp dir $tempdir\n" if $DEBUG;
+	chdir $tempdir;
+}
+
+# Get the command to run
+sub get_command {
+	my ($method, $archive, $tar) = @_;
+	my $m = $methods{$method};
+	
+	# Get the base command
+	my $cmd;
+	if (exists $m->{$action}) {
+		$cmd = $m->{$action};
+	} elsif ($action eq 'list' && $tar && exists $m->{extract}) {
+		$cmd = $m->{extract};	# Special case
+	} else {
+		die "Cannot $action $method archives\n";
+	}
+	
+	# Process the specials
+	$cmd =~ s/%a/\Q$archive\E/g;
+	$cmd =~ s/%c/$contents/g;
+	
+	my ($keep, $discard) = $verbose ? qw(v q) : qw(q v);
+	$cmd =~ s/%$keep\{([^}]+)\}/$1/g;
+	$cmd =~ s/%$discard\{([^}]+)\}//g;
+	
+	# Deal with filters
+	if ($m->{filter}) {
+		if ($action eq 'create') {
+			$cmd .= " > $archive";
+		} else {
+			$cmd .= " < $archive";
+		}
+		
+		if ($tar) {
+			my $tarcmd = get_command('tar', '-', 0);
+			if ($action eq 'create') {
+				$cmd = "$tarcmd | $cmd";
+			} else {
+				$cmd .= " | $tarcmd";
+			}
+		} else {
+			if ($action eq 'create') {
+				$cmd .= " < $contents";
+			} elsif ($action eq 'extract') {
+				$cmd .= " > \Q$base\E";
+			}
+		}
+	}
+	
+	return $cmd;
+}
+my $cmd = get_command($found->{method}, $archive, $found->{tar});
+print "DEBUG: Command is $cmd\n" if $DEBUG;
+
+# Run the command
+system($cmd) == 0 or die "$!\n";
+
+# If we're extracting, then move stuff back where it belongs
+if ($action eq 'extract') {
+	chdir $olddir;
+	
+	opendir TEMP, $tempdir or die "Can't read temp directory: $!";
+	my @files = grep { $_ ne '.' && $_ ne '..' } readdir TEMP;
+	closedir TEMP;
+	
+	# What to move?
+	my ($source, $dstname);
+	if (scalar(@files) > 1) {
+		print "DEBUG: Moving surrounding directory\n" if $DEBUG;
+		$source = $tempdir;
+		$dstname = $base;
+	} elsif (scalar(@files) == 1) {
+		print "DEBUG: Moving base\n" if $DEBUG;
+		$source = "$tempdir/$files[0]";
+		$dstname = basename $source;
+	} else {
+		die "No results from extraction!\n";
+	}
+	
+	# Where to put it?
+	my $dest = temp_num(cwd() . "/" . $dstname);
+	print "DEBUG: Using destination $dest\n" if $DEBUG;
+	
+	# Do the move
+	rename $source, $dest;
+}
