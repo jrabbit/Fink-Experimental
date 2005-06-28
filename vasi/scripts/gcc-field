@@ -1,0 +1,205 @@
+#!/usr/bin/perl
+use warnings;
+use strict;
+
+use POSIX qw(strftime getgid);
+use File::Temp qw(tempdir);
+use File::Find;
+use File::Basename;
+use Data::Dumper;
+use Getopt::Long;
+
+use Fink::Services qw(read_config latest_version);
+use Fink::Package;
+use Fink::Command qw(rm_rf);
+
+# 0 => quiet, 1 => normal message, 2 => debug msgs, 3 => don't cleanup
+my $DEBUG = 1;
+
+my $CURRENT = '3.3'; # Ignore bad packages
+
+my $tmpdir;
+
+sub init_fink {
+	(my $basepath = `which fink`) =~ s/bin.*//s;
+	read_config("$basepath/etc/fink.conf");
+	
+	if ($DEBUG != 2) {
+		open OLDERR, ">&STDERR";
+		close STDERR; # stop indexing output
+	}
+	Fink::Package->require_packages; 
+	if ($DEBUG != 2) {
+		open STDERR, ">&OLDERR";
+		close OLDERR;
+	}
+}
+
+sub scan_files {
+	my $files = shift;
+	my $tmpdir = shift || tempdir("gcc-field-XXXX", TMPDIR => 1, CLEANUP => 1);
+	
+	open FILES, ">", "$tmpdir/.files";
+	print FILES "$_\n" foreach @$files;
+	close FILES;
+	
+	open FILE, "xargs file < $tmpdir/.files |"
+		or die "Can't run run 'file': $!\n";
+	my @macho = grep { chomp; s/:.*(Mach-O|ar archive).*// } <FILE>;
+	close FILE or die "'file' failed: $!\n";
+	
+	my $need_gcc = 0;
+	for my $file (@macho) {
+		print "DEBUG:     File $file\n" if $DEBUG >= 2;
+		system("nm $file > $tmpdir/.nm.orig") == 0 or die "Can't run nm: $!\n";
+		system("c++filt < $tmpdir/.nm.orig > $tmpdir/.nm.filt") == 0
+			or die "Can't run c++filt: $!\n";
+		my $status =
+			system("diff $tmpdir/.nm.orig $tmpdir/.nm.filt >& /dev/null");
+		if ($status >> 8 == 1) {
+			$need_gcc = 1;
+			last;
+		}
+	}
+	
+	return $need_gcc;
+}
+
+
+# Does a package need GCC?
+sub need_gcc {
+	my $pv = shift;
+	
+	my $deb = $pv->get_debfile;
+	my $dir = "$tmpdir/" . $pv->get_name;
+	mkdir $dir;
+	system("dpkg-deb -x $deb $dir") == 0 or die "Can't extract deb: $!\n";
+	
+	my @files;
+	find(sub { push @files, $File::Find::name }, $dir);
+	my $need_gcc = scan_files(\@files, $dir);
+	
+	rm_rf($dir);
+	
+	if ($pv->has_parent()) {
+		return $need_gcc;
+	} else {
+		return $need_gcc ||
+			scalar(grep { need_gcc($_) } $pv->get_splitoffs);
+	}
+}
+
+my $program = basename($0);
+my $usage = <<USAGE;
+$program - shows packages that need changed GCC: fields
+
+Usage:
+  $program [ OPTS ] [ PACKAGE1 PACKAGE2 ... ]
+  
+Options:
+  -m,  --maintainer <regex>   Restrict to packages with matching maintainer
+  -h,  --help                 Get this help
+  -v,  --verbose              Be noisy
+  -q,  --quiet                Be quieter
+  
+If no packages are given, will look at every package.
+
+If - is given as the sole package, will look at filenames on standard input,
+eg: dpkg -L pkg | $program
+
+USAGE
+
+my $maint;
+my $help = 0;
+GetOptions(
+	'm|maintainer=s'	=> \$maint,
+	'h|help'			=> \$help,
+	'v|verbose'			=> sub { $DEBUG++ },
+	'q|quiet'			=> sub { $DEBUG-- },
+) or $help = 1;
+if ($help) {
+	print $usage;
+	exit(1);
+}
+
+# If the only arg is -, just read files from STDIN
+if (scalar(@ARGV) == 1 && $ARGV[0] eq '-') {
+	my @files = <>;
+	chomp @files;
+	my $need_gcc = scan_files(\@files);
+	print $need_gcc ? "GCC: $CURRENT\n" : "No GCC field\n";
+	exit $need_gcc;
+}
+
+init_fink();
+
+# Make the temp dir
+$tmpdir = tempdir("gcc-field-XXXX", TMPDIR => 1,
+	($DEBUG >= 3) ? () : (CLEANUP => 1));
+# Damn sgid bug
+chown -1, getgid(), $tmpdir or die "Can't set group on temp dir\n";
+print "DEBUG: Tmpdir $tmpdir\n" if $DEBUG >= 2;
+
+
+my @packages = @ARGV ? @ARGV : Fink::Package->list_packages;
+my $re = defined $maint ? qr/$maint/ : qr//;
+
+print "Scanning packages:\n" if $DEBUG == 1;
+my (@nodeb, @status);
+for my $pkg (sort @packages) {
+	my $po = Fink::Package->package_by_name($pkg);
+	my $version = latest_version($po->list_versions);
+	next unless defined $version;
+	
+	my $pv = $po->get_version($version);
+	next unless $pv->has_param('maintainer')
+		&& $pv->param('maintainer') =~ /$re/;
+	next if $pv->has_parent;
+	
+	if (!$pv->is_present) {
+		push @nodeb, $pkg;
+		next;
+	}
+	
+	printf "%s$pkg\n", $DEBUG >= 2 ? "DEBUG: Package " : "  " if $DEBUG;
+	
+	my $need_gcc = need_gcc($pv);
+	my $status = {
+		name	=> $pkg,
+		has		=> $pv->param('gcc') || '',
+		needs	=> $need_gcc ? $CURRENT : '',
+	};
+	print "DEBUG: $status->{has} => $status->{needs}\n" if $DEBUG >= 2;
+	push @status, $status;
+}
+
+@status = grep { $_->{has} ne $_->{needs} } @status;
+my @missing = grep { !$_->{has} } @status;
+my @extra = grep { !$_->{needs} } @status;
+my @bad = grep { $_->{needs} && $_->{has} } @status;
+
+sub pmsg {
+	my $msg = shift;
+	if (@_) {
+		print "$msg:\n";
+		map { print "  $_\n" } sort map { ref $_ ? $_->{name} : $_ } @_;
+	}
+}
+
+pmsg("The following packages have no debs", @nodeb);
+pmsg("The following packages are missing the GCC field", @missing);
+pmsg("The following packages have an extra GCC field", @extra);
+if (@bad) {
+	print "The following packages have a bad GCC field:\n";
+	foreach my $bad (sort { $a->{name} cmp $b->{name} } @bad) {
+		print "  t$bad->{name}  (old: $bad->{has}  new: $bad->{needs})\n";
+	}
+}
+
+if (!@nodeb && !@status) {
+	print "Everything looks OK!\n";
+	exit(0);
+} else {
+	exit(1);
+}
+
