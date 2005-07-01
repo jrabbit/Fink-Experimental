@@ -5,7 +5,7 @@ Description: KDE - office suite
 License: GPL/LGPL
 Maintainer: Benjamin Reed <koffice@fink.racoonfink.com>
 
-Depends: karbon (>= %v-%r), kchart (>= %v-%r), kformula (>= %v-%r), kivio (>= %v-%r), kpresenter (>= %v-%r), kspread (>= %v-%r), kugar (>= %v-%r), kword (>= %v-%r), kdelibs3-ssl (>= 3.4.0-11) | kdelibs3 (>= 3.4.0-11), %N-base (>= %v-%r)
+Depends: karbon (>= %v-%r), kchart (>= %v-%r), kexi (>= %v-%r), kformula (>= %v-%r), kivio (>= %v-%r), kpresenter (>= %v-%r), krita (>= %v-%r), kspread (>= %v-%r), kugar (>= %v-%r), kword (>= %v-%r), kdelibs3-ssl (>= 3.4.0-11) | kdelibs3 (>= 3.4.0-11), %N-base (>= %v-%r)
 BuildDepends: arts-dev (>= 1.4.0-11), aspell, aspell-dev, audiofile, autoconf2.5 (>= 2.59-1), automake1.9, cctools (>= 446-1) | cctools-single-module, esound, fink (>= 0.12.1-1), freetype2 | freetype2-hinting, gettext-dev, gettext-bin, gettext-tools, glib2 (>= 2.2.1-4), glib2-dev (>= 2.2.1-4), imagemagick-dev | imagemagick-nox-dev, kdelibs3-ssl-dev (>= 3.4.0-11) | kdelibs3-dev (>= 3.4.0-11), lcms, libart2, libgsf-dev, libiconv-dev, libidn, libjpeg, libogg, libpng3 (>= 1.2.5-4), libtiff, libtool14, libvorbis0, libxml2 (>= 2.5.2-1), libxslt (>= 1.0.27-1), libmad, pcre, python24, qt3 (>= 3.3.3-17), wv2 (>= 0.2.1-1), x11-dev
 BuildConflicts: unsermake
 Replaces: %N-common (<< %v-%r), %N-dev (<< %v-%r)
@@ -23,13 +23,15 @@ Source2: mirror:custom:kde-admindir-3.4.0-6.tar.bz2
 Source2-MD5: 5d0274369eba8c862178ba8e26639cc3
 Source2ExtractDir: %n-%va
 PatchScript: <<
-#  sed -e 's,@FINKPREFIX@,%p,g' %a/%n.patch | patch -p1 
+  sed -e 's,@FINKPREFIX@,%p,g' %a/%n.patch | patch -p1 
   perl -pi.bak -e 's,-O2,-Os,g; s,doc/HTML,doc/kde,g; s,/usr/share/doc/packages/qt3/html,%p/share/doc/qt3/html,g; s,HAVE_GCC_VISIBILITY=1,HAVE_GCC_VISIBILITY=0,g; s,-fvisibility=hidden -fvisibility-inlines-hidden,,g;' admin/*
 <<
 
 NoSetCPPFLAGS: true
 NoSetLDFLAGS: true
-ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --disable-final --enable-mysql --with-mysql-includes=%p/include/mysql --with-mysql-libraries=%p/lib --with-distribution='Fink/Mac OS X' --disable-dependency-tracking
+NoSetMAKEFLAGS: true
+SetMAKEFLAGS: -j1
+ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --disable-final --enable-mysql --with-mysql-includes=%p/include/mysql --with-mysql-libraries=%p/lib --enable-pgsql --with-pgsqlincdir=%p/include/postgresql --with-pgsqllibdir=%p/lib --with-pqxxincdir=%p/include/postgresql/pqxx-2 --with-pqxxlibdir=%p/lib --with-distribution='Fink/Mac OS X' --disable-dependency-tracking
 
 CompileScript: <<
 #!/bin/sh -e
@@ -76,8 +78,6 @@ SplitOff: <<
     lib/libkofficecore.dylib
     lib/libkofficeui.dylib
     lib/libkopainter.dylib
-    lib/libkoscriptcommon.dylib
-    lib/libkospell.dylib
     lib/libkotext.dylib
     lib/libkowmf.dylib
     lib/libkspreadcommon.dylib
@@ -99,9 +99,6 @@ SplitOff2: <<
     share/applnk/Office/karbon.desktop
     share/apps/konqueror/servicemenus/karbon_konqi.desktop
     share/apps/karbon
-    share/icons/crystalsvg/16x16/apps/karbon.png
-    share/icons/crystalsvg/32x32/apps/karbon.png
-    share/icons/crystalsvg/48x48/apps/karbon.png
     share/services/karbon*
     share/templates/.source/Illustration.karbon
   <<
@@ -119,13 +116,74 @@ SplitOff3: <<
     share/doc/kde/en/kchart
     share/applnk/Office/kchart.desktop
     share/apps/kchart
-    share/icons/crystalsvg/16x16/apps/kchart.png
-    share/icons/crystalsvg/32x32/apps/kchart.png
-    share/icons/crystalsvg/48x48/apps/kchart.png
     share/services/kchartpart.desktop
   <<
 <<
 SplitOff4: <<
+  Package: kexi
+  Description: KDE - database RAD tool
+  Depends: %N-common (>= %v-%r), %N-base (>= %v-%r)
+  Replaces: %N-common (<< %v-%r), %N, %N-dev (<< %v-%r)
+  Recommends: %N (>= %v-%r)
+  Files: <<
+    bin/kexi*
+    lib/kde3/kexi*
+    lib/libkdeinit_kexi*
+    share/applications/kde/kexi*
+    share/apps/kexi
+    share/apps/konqueror/servicemenus/kexi*
+    share/config/kexi*
+    share/config/magic/kexi*
+    share/mimelnk/application/x-kexiproject*
+    share/services/kexi*
+    share/servicetypes/kexi*
+  <<
+  DescDetail: <<
+Kexi is an integrated data management application.  It can be used
+for creating database schemas, inserting data, performing queries,
+and processing data.  Forms can be created to provide a custom
+interface to your data.  All database objects - tables, queries
+and forms - are stored in the database, making it easy to share
+data and design.
+
+As a real member of the KDE and KOffice projects, Kexi integrates
+fluently into both.  It is designed to be fully usable also
+without KDE on Linux/Unix and MS Windows platforms.
+
+Kexi is considered as a long awaited Open Source competitor for MS
+Access, Filemaker and Oracle Forms.  Its development is motivated
+by the lack of Rapid Application Development (RAD) tools for
+database systems that are sufficiently powerful, inexpensive, open
+standards driven and portable across many operating systems and
+hardware platforms. 
+  <<
+<<
+SplitOff5: <<
+  Package: krita
+  Description: KDE - image editor
+  Depends: %N-common (>= %v-%r), %N-base (>= %v-%r)
+  Replaces: %N-common (<< %v-%r), %N, %N-dev (<< %v-%r)
+  Recommends: %N (>= %v-%r)
+  Files: <<
+    bin/krita*
+    lib/kde3/*krita*
+    lib/libkdeinit_krita*
+    share/applnk/Office/krita*
+    share/apps/konqueror/servicemenus/krita*
+    share/apps/krita
+    share/services/krita*
+    share/servicetypes/krita*
+  <<
+  DescDetail: <<
+Krita, formerly known as KImageShop, is the painting program and
+image editor for the KOffice Suite.  It is intended to be suitable
+for all your image creation and editing needs, such as creating
+original art, making images for websites, touching up scanned
+photographs or anything else you might need to do with bitmapped
+images.
+  <<
+<<
+SplitOff6: <<
   Package: kformula
   Description: KDE - formula editor
   Depends: %N-common (>= %v-%r), %N-base (>= %v-%r)
@@ -140,13 +198,10 @@ SplitOff4: <<
     share/apps/kformula
     share/apps/konqueror/servicemenus/kformula_konqi.desktop
     share/doc/kde/en/kformula
-    share/icons/crystalsvg/16x16/apps/kformula.png
-    share/icons/crystalsvg/32x32/apps/kformula.png
-    share/icons/crystalsvg/48x48/apps/kformula.png
     share/services/kformula*
   <<
 <<
-SplitOff5: <<
+SplitOff7: <<
   Package: kivio
   Description: KDE - flowchart program
   Depends: %N-common (>= %v-%r), %N-base (>= %v-%r)
@@ -156,18 +211,15 @@ SplitOff5: <<
     bin/kivio
     lib/kde3/*kivio*
     lib/*kivio*
-    share/applnk/Office/kivio.desktop
+    share/applications/kde/kivio*
     share/apps/kivio
     share/apps/konqueror/servicemenus/kivio_konqi.desktop
+    share/config.kcfg/kivio.kcfg
     share/doc/kde/en/kivio
-    share/icons/crystalsvg/16x16/apps/kivio.png
-    share/icons/crystalsvg/22x22/apps/kivio.png
-    share/icons/crystalsvg/32x32/apps/kivio.png
-    share/icons/crystalsvg/48x48/apps/kivio.png
     share/services/kivio*
   <<
 <<
-SplitOff6: <<
+SplitOff8: <<
   Package: kpresenter
   Description: KDE - PowerPoint-like presentation app
   Depends: %N-common (>= %v-%r), %N-base (>= %v-%r)
@@ -178,17 +230,14 @@ SplitOff6: <<
     bin/kprconverter.pl
     lib/kde3/*kpresenter*
     lib/libkdeinit_kpresenter*
-    share/applnk/Office/kpresenter.desktop
+    share/applnk/Office/kpresenter*
     share/apps/konqueror/servicemenus/kpresenter_konqi.desktop
     share/apps/kpresenter
     share/doc/kde/en/kpresenter
-    share/icons/crystalsvg/16x16/apps/kpresenter.png
-    share/icons/crystalsvg/32x32/apps/kpresenter.png
-    share/icons/crystalsvg/48x48/apps/kpresenter.png
     share/services/kpresenter*
   <<
 <<
-SplitOff7: <<
+SplitOff9: <<
   Package: kspread
   Description: KDE - spreadsheet
   Depends: %N-common (>= %v-%r), %N-base (>= %v-%r)
@@ -198,20 +247,14 @@ SplitOff7: <<
     bin/kspread
     lib/kde3/*kspread*
     lib/libkdeinit_kspread*
-    share/applnk/Office/kspread.desktop
+    share/applnk/Office/kspread*
     share/apps/konqueror/servicemenus/kspread_konqi.desktop
     share/apps/kspread
     share/doc/kde/en/kspread
-    share/icons/crystalsvg/16x16/apps/kspread.png
-    share/icons/crystalsvg/32x32/apps/kspread.png
-    share/icons/crystalsvg/48x48/apps/kspread.png
-    share/icons/locolor/16x16/apps/kspreadcalc.png
-    share/icons/locolor/22x22/apps/kspreadcalc.png
-    share/icons/locolor/32x32/apps/kspreadcalc.png
     share/services/kspread*
   <<
 <<
-SplitOff8: <<
+SplitOff10: <<
   Package: kugar
   Description: KDE - business report viewer and creator
   Depends: %N-common (>= %v-%r), %N-base (>= %v-%r)
@@ -222,25 +265,17 @@ SplitOff8: <<
     bin/kudesigner
     lib/*kugar*
     lib/*kudesigner*
-    lib/kde3/*kugarpart*
-    lib/kde3/*kudesignerpart*
-    share/applnk/Office/kudesigner.desktop
-    share/applnk/Office/kugar.desktop
+    lib/kde3/*kugar*
+    lib/kde3/*kudesigner*
+    share/applnk/Office/kudesigner*
+    share/applnk/Office/kugar*
     share/apps/kudesigner
     share/apps/kugar
     share/doc/kde/en/kugar
-    share/icons/crystalsvg/16x16/apps/kugar.png
-    share/icons/crystalsvg/16x16/mimetypes/kugardata.png
-    share/icons/crystalsvg/22x22/apps/kugar.png
-    share/icons/crystalsvg/32x32/apps/kugar.png
-    share/icons/crystalsvg/32x32/mimetypes/kugardata.png
-    share/icons/crystalsvg/48x48/apps/kugar.png
-    share/icons/locolor/16x16/apps/kudesigner.png
-    share/icons/locolor/32x32/apps/kudesigner.png
     share/services/kugar*
   <<
 <<
-SplitOff9: <<
+SplitOff11: <<
   Package: kword
   Description: KDE - word processor
   Depends: %N-common (>= %v-%r), %N-base (>= %v-%r)
@@ -248,21 +283,19 @@ SplitOff9: <<
   Recommends: %N (>= %v-%r)
   Files: <<
     bin/kword
+    lib/kde3/kword*
     lib/kde3/kwmailmerge*
     lib/libkdeinit_kword*
     lib/libkwmailmerge*
-    share/applnk/Office/kword.desktop
+    share/applnk/Office/kword*
     share/apps/konqueror/servicemenus/kword_konqi.desktop
     share/apps/kword
     share/doc/kde/en/kword
-    share/icons/crystalsvg/16x16/apps/kword.png
-    share/icons/crystalsvg/32x32/apps/kword.png
-    share/icons/crystalsvg/48x48/apps/kword.png
     share/services/kw*
     share/servicetypes/kwmailmerge.desktop
   <<
 <<
-SplitOff10: <<
+SplitOff12: <<
   Package: %N-common
   Description: KDE - files used by all of KOffice
   Depends: kdelibs3-ssl (>= 3.4.0-11) | kdelibs3 (>= 3.4.0-11), lcms-shlibs, libgsf-shlibs, libtool14-shlibs, libxslt-shlibs (>= 1.0.27-1), python24-shlibs, wv2-shlibs (>= 0.2.1-1), %N-base (>= %v-%r)
@@ -271,6 +304,8 @@ SplitOff10: <<
     bin
     lib
     share/app*
+    share/config
+    share/config.kcfg
     share/doc/kde/en/*
     share/icons
     share/services
@@ -278,7 +313,7 @@ SplitOff10: <<
     share/templates
   <<
 <<
-SplitOff11: <<
+SplitOff13: <<
   Package: %N-base
   Description: KDE - koffice base package
   Depends: kdebase3-ssl (>= %v-11) | kdebase3 (>= %v-11)
@@ -297,9 +332,11 @@ applications.  Included packages are:
 
   karbon
   kchart
+  kexi
   kformula
   kivio
   kpresenter
+  krita
   kspread
   kugar
   kword
