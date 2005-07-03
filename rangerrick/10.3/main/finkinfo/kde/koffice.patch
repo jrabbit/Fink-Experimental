@@ -1,6 +1,6 @@
 diff -uNr koffice-1.4.0a/kexi/formeditor/Makefile.am koffice-1.4.0a-new/kexi/formeditor/Makefile.am
 --- koffice-1.4.0a/kexi/formeditor/Makefile.am	2005-05-09 10:10:14.000000000 -0400
-+++ koffice-1.4.0a-new/kexi/formeditor/Makefile.am	2005-06-29 15:23:28.000000000 -0400
++++ koffice-1.4.0a-new/kexi/formeditor/Makefile.am	2005-07-03 12:01:27.000000000 -0400
 @@ -1,4 +1,5 @@
  include $(top_srcdir)/kexi/Makefile.global
 +USE_EXCEPTIONS = -fexceptions -fno-coalesce
@@ -9,19 +9,23 @@ diff -uNr koffice-1.4.0a/kexi/formeditor/Makefile.am koffice-1.4.0a-new/kexi/for
    -I$(top_srcdir)/kexi/widget/propertyeditor \
 diff -uNr koffice-1.4.0a/kexi/kexidb/drivers/configure.in.in koffice-1.4.0a-new/kexi/kexidb/drivers/configure.in.in
 --- koffice-1.4.0a/kexi/kexidb/drivers/configure.in.in	2005-05-09 10:10:02.000000000 -0400
-+++ koffice-1.4.0a-new/kexi/kexidb/drivers/configure.in.in	2005-06-29 20:24:12.000000000 -0400
-@@ -142,8 +142,8 @@
++++ koffice-1.4.0a-new/kexi/kexidb/drivers/configure.in.in	2005-07-03 12:16:17.000000000 -0400
+@@ -142,8 +142,12 @@
  if test "$compile_pgsql_plugin" = "yes"; then
    AC_MSG_CHECKING([for PostgreSQL... Step 2 of 4])
    pgsql_libdirs="$ac_pgsql_libdir /usr/lib /usr/local/lib /usr/local/pgsql/lib /opt/postgres/lib"
 -  AC_FIND_FILE(libpq.so, $pgsql_libdirs, pgsql_libdir)
 -  if test ! -r $pgsql_libdir/libpq.so; then
-+  AC_FIND_FILE(libpq.dylib, $pgsql_libdirs, pgsql_libdir)
-+  if test ! -r $pgsql_libdir/libpq.dylib; then
++  pgsql_libdir=NO
++  for dir in $pgsql_libdirs; do
++    try="ls -1 $dir/libpq.*"
++    if test=`eval $try 2> /dev/null`; then pgsql_libdir=$dir; break; else echo "tried $dir" >&AC_FD_CC ; fi
++  done
++  if test "x$pgsql_libdir" = "xNO"; then
      compile_pgsql_plugin="no"
      AC_MSG_RESULT([not found])
    else
-@@ -160,8 +160,8 @@
+@@ -160,8 +164,8 @@
  if test "$compile_pgsql_plugin" = "yes"; then
    AC_MSG_CHECKING([for PostgreSQL... Step 3 of 4])
    pqxx_incdirs="$ac_pqxx_incdir /usr/include /usr/local/pqxx/include /usr/local/include"
@@ -32,18 +36,24 @@ diff -uNr koffice-1.4.0a/kexi/kexidb/drivers/configure.in.in koffice-1.4.0a-new/
      compile_pgsql_plugin="no"
      AC_MSG_RESULT([not found])
    else
-@@ -178,7 +178,7 @@
+@@ -177,8 +181,12 @@
+ if test "$compile_pgsql_plugin" = "yes"; then
    AC_MSG_CHECKING([for PostgreSQL... Step 4 of 4])
    pqxx_libdirs="$ac_pqxx_libdir /usr/lib /usr/local/lib /usr/local/pqxx/lib"
-   AC_FIND_FILE(libpqxx.so, $pqxx_libdirs, pqxx_libdir)
+-  AC_FIND_FILE(libpqxx.so, $pqxx_libdirs, pqxx_libdir)
 -  if test ! -r $pqxx_libdir/libpqxx.so; then
-+  if test ! -r $pqxx_libdir/libpqxx.2.dylib; then
++  pqxx_libdir=NO
++  for dir in $pqxx_libdirs; do
++    try="ls -1 $dir/libpqxx.*"
++    if test=`eval $try 2> /dev/null`; then pqxx_libdir=$dir; break; else echo "tried $dir" >&AC_FD_CC ; fi
++  done
++  if test "x$pqxx_libdir" = "xNO"; then
      compile_pgsql_plugin="no"
      AC_MSG_RESULT([not found])
    else
 diff -uNr koffice-1.4.0a/kexi/kexidb/drivers/mySQL/Makefile.am koffice-1.4.0a-new/kexi/kexidb/drivers/mySQL/Makefile.am
 --- koffice-1.4.0a/kexi/kexidb/drivers/mySQL/Makefile.am	2005-05-09 10:10:01.000000000 -0400
-+++ koffice-1.4.0a-new/kexi/kexidb/drivers/mySQL/Makefile.am	2005-06-29 15:23:28.000000000 -0400
++++ koffice-1.4.0a-new/kexi/kexidb/drivers/mySQL/Makefile.am	2005-07-03 12:01:27.000000000 -0400
 @@ -20,7 +20,8 @@
    $(LIB_QT) \
    $(MYSQL_LIBS) \
@@ -56,7 +66,7 @@ diff -uNr koffice-1.4.0a/kexi/kexidb/drivers/mySQL/Makefile.am koffice-1.4.0a-ne
  
 diff -uNr koffice-1.4.0a/kexi/kexidb/drivers/pqxx/Makefile.am koffice-1.4.0a-new/kexi/kexidb/drivers/pqxx/Makefile.am
 --- koffice-1.4.0a/kexi/kexidb/drivers/pqxx/Makefile.am	2005-05-09 10:10:00.000000000 -0400
-+++ koffice-1.4.0a-new/kexi/kexidb/drivers/pqxx/Makefile.am	2005-06-29 20:03:29.000000000 -0400
++++ koffice-1.4.0a-new/kexi/kexidb/drivers/pqxx/Makefile.am	2005-07-03 12:01:27.000000000 -0400
 @@ -8,7 +8,7 @@
  
  kexidb_pqxxsqldriver_la_SOURCES = pqxxdriver.cpp pqxxcursor.cpp pqxxconnection.cpp pqxxkeywords.cpp
@@ -68,7 +78,7 @@ diff -uNr koffice-1.4.0a/kexi/kexidb/drivers/pqxx/Makefile.am koffice-1.4.0a-new
  
 diff -uNr koffice-1.4.0a/kexi/main/Makefile.am koffice-1.4.0a-new/kexi/main/Makefile.am
 --- koffice-1.4.0a/kexi/main/Makefile.am	2005-05-09 10:09:50.000000000 -0400
-+++ koffice-1.4.0a-new/kexi/main/Makefile.am	2005-06-29 15:23:28.000000000 -0400
++++ koffice-1.4.0a-new/kexi/main/Makefile.am	2005-07-03 12:01:27.000000000 -0400
 @@ -1,4 +1,5 @@
  include $(top_srcdir)/kexi/Makefile.global
 +USE_EXCEPTIONS = -fexceptions -fno-coalesce
@@ -77,7 +87,7 @@ diff -uNr koffice-1.4.0a/kexi/main/Makefile.am koffice-1.4.0a-new/kexi/main/Make
  libkeximain_la_SOURCES = \
 diff -uNr koffice-1.4.0a/kexi/main/configure.in.in koffice-1.4.0a-new/kexi/main/configure.in.in
 --- koffice-1.4.0a/kexi/main/configure.in.in	2005-05-09 10:09:50.000000000 -0400
-+++ koffice-1.4.0a-new/kexi/main/configure.in.in	2005-06-29 20:04:23.000000000 -0400
++++ koffice-1.4.0a-new/kexi/main/configure.in.in	2005-07-03 12:01:27.000000000 -0400
 @@ -20,7 +20,7 @@
  AC_FIND_FILE(knewstuff/downloaddialog.h, $kde_incdirs, knewstuff_incdir)
  ac_knewstuff_includes="$knewstuff_incdir"
@@ -89,7 +99,7 @@ diff -uNr koffice-1.4.0a/kexi/main/configure.in.in koffice-1.4.0a-new/kexi/main/
  if test "$ac_knewstuff_includes" = NO || test "$ac_knewstuff_libraries" = NO; then
 diff -uNr koffice-1.4.0a/kexi/main/startup/Makefile.am koffice-1.4.0a-new/kexi/main/startup/Makefile.am
 --- koffice-1.4.0a/kexi/main/startup/Makefile.am	2005-05-09 10:09:49.000000000 -0400
-+++ koffice-1.4.0a-new/kexi/main/startup/Makefile.am	2005-06-29 15:23:28.000000000 -0400
++++ koffice-1.4.0a-new/kexi/main/startup/Makefile.am	2005-07-03 12:01:27.000000000 -0400
 @@ -1,4 +1,5 @@
  include $(top_srcdir)/kexi/Makefile.global
 +USE_EXCEPTIONS = -fexceptions -fno-coalesce
@@ -98,7 +108,7 @@ diff -uNr koffice-1.4.0a/kexi/main/startup/Makefile.am koffice-1.4.0a-new/kexi/m
  
 diff -uNr koffice-1.4.0a/kexi/widget/relations/Makefile.am koffice-1.4.0a-new/kexi/widget/relations/Makefile.am
 --- koffice-1.4.0a/kexi/widget/relations/Makefile.am	2005-05-09 10:09:48.000000000 -0400
-+++ koffice-1.4.0a-new/kexi/widget/relations/Makefile.am	2005-06-29 15:23:28.000000000 -0400
++++ koffice-1.4.0a-new/kexi/widget/relations/Makefile.am	2005-07-03 12:01:27.000000000 -0400
 @@ -1,4 +1,5 @@
  include $(top_srcdir)/kexi/Makefile.global
 +USE_EXCEPTIONS = -fexceptions -fno-coalesce
@@ -106,8 +116,8 @@ diff -uNr koffice-1.4.0a/kexi/widget/relations/Makefile.am koffice-1.4.0a-new/ke
  lib_LTLIBRARIES = libkexirelationsview.la
  
 diff -uNr koffice-1.4.0a/krita/core/kis_generic_registry.h koffice-1.4.0a-new/krita/core/kis_generic_registry.h
---- koffice-1.4.0a/krita/core/kis_generic_registry.h	Thu May 26 08:58:58 2005
-+++ koffice-1.4.0a-new/krita/core/kis_generic_registry.h	Sat Jul  2 17:17:07 2005
+--- koffice-1.4.0a/krita/core/kis_generic_registry.h	2005-05-26 08:58:58.000000000 -0400
++++ koffice-1.4.0a-new/krita/core/kis_generic_registry.h	2005-07-03 12:01:27.000000000 -0400
 @@ -28,27 +28,27 @@
  #include "kis_global.h"
  #include "kis_id.h"
