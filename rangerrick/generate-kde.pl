@@ -47,7 +47,7 @@ for my $file (sort keys %files) {
 							} else {
 								if ($line =~ /^\s*(Build)?Depends/g) {
 									my $newline = $line;
-									while ($line =~ /\G.*?((?:arts|kde\S+(?:i18n|3)|qt3)\S*)\s+\(([^\)]*?)\)/g) {
+									while ($line =~ /\G.*?((?:arts|kde\S+(?:i18n|3)|qt3|postgresql80)\S*)\s+\(([^\)]*?)\)/g) {
 										my $package = $1;
 										my $version = $2;
 										my ($comparator, $revision);
