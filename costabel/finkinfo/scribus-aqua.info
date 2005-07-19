@@ -1,55 +1,49 @@
 Package: scribus-aqua
-Version: 1.3cvs
-Revision: 20050311.1
-#CustomMirror: <<
-# eur-GB: http://www.scribus.org.uk/downloads/%v/
-# eur-DE: http://web2.altmuehlnet.de/fschmid
-# aus-AU: http://scribus.planetmirror.com
-#<<
-#Source: mirror:custom:/%n-%v.tar.bz2
-Source: http://perso.wanadoo.fr/costabel/scribus-%v-20050311.tar.bz2
-Source-MD5: c5ff903eb13fde4f90c3af4869b42f85
-SourceDirectory: scribus-%v
+Version: 1.3.0
+Revision: 1
+#Source: mirror:sourceforge:/%n/%n-%v.tar.bz2
+Source: http://www.scribus.org.uk/downloads/%v/scribus-%v.tar.bz2
+Source-MD5: eb7ea966af6c84c5cd0b99ca545fd54f
 #Source2: http://www.scribus.org.uk/downloads/%v/%n-temp-all-%v.tar.bz2
 #Source2-MD5: 19d102ff16c295e29bb7a051c66c2c58
 Source3: http://perso.wanadoo.fr/costabel/Scribusapp-skeleton.tar.gz
 Source3-MD5: 870e48836db2ffa133bdfb1ec168b9a7
 License: GPL
 Recommends: x-ghostscript-fonts, msttcorefonts, applesystemfonts
-Depends: ghostscript, qt3mac-shlibs, libjpeg-shlibs, libjpeg-bin, lcms-shlibs, libart2-shlibs, libpng3-shlibs, libtiff-shlibs, freetype219-shlibs, libxml2-shlibs, libiconv
-BuildDepends: lcms, libjpeg, qt3mac, libart2, cups-dev, libpng3, libtiff, freetype219, fontconfig2-dev, libxml2, libiconv-dev
+Depends: ghostscript, qt3mac-shlibs, libjpeg-shlibs, libjpeg-bin, lcms-shlibs, libart2-shlibs, libpng3-shlibs, libtiff-shlibs, freetype219-shlibs, libxml2-shlibs, libiconv, fontconfig2-shlibs
+BuildDepends: lcms, libjpeg, qt3mac, libart2, cups-dev, libpng3, libtiff, freetype219, libxml2, libiconv-dev, fontconfig2-dev
 #Patch: %n.patch
 PatchScript: <<
 #!/bin/sh
-patch -p0 < %a/%n.patch
+#patch -p0 < %a/%n.patch
 #
-perl -pi -e 's|(xml2-config.*)(\$\{prefix\})|$1 \$PATH $2|g' configure.in
-make -f Makefile.cvs
+#perl -pi -e 's|(xml2-config.*)(\$\{prefix\})|$1 \$PATH $2|g' configure.in
+#make -f Makefile.cvs
 #
 # Fix the building of plugins
- perl -pi.bak -e 's|(^AM_LDFLAGS =).*\$\(linkflag\)(.*)|$1 $2 \$(QT_LDFLAGS) \$(LIB_QT)|g ;
-                  s|\-Xlinker||g ; 
-                  s|(lib.*)\.la|$1.so|g ; 
-                  s|-version-info 0:0:0|-bundle -undefined dynamic_lookup -bind_at_load|g ;
-                 ' `find . -name Makefile.in`
+# perl -pi.bak -e 's|(^AM_LDFLAGS =).*\$\(linkflag\)(.*)|$1 $2 \$(QT_LDFLAGS) \$(LIB_QT)|g ;
+#                  s|\-Xlinker||g ; 
+#                  s|(lib.*)\.la|$1.so|g ; 
+#                  s|-version-info 0:0:0|-bundle -undefined dynamic_lookup -bind_at_load|g ;
+#                 ' `find . -name Makefile.in`
 # make configure find the right version of freetype2
- perl -pi.bak -e 's,FREETYPE_CONFIG=\"\",FREETYPE_CONFIG=\"%p/lib/freetype219/bin/freetype-config\",g ;
-                  s,LIBS=\"\-lfreetype,LIBS=\"\$LIBFREETYPE_LIBS,g ;
-                  s,(^LIBTOOL=.*)\-\-silent,$1,g ;
-                 ' configure
+# perl -pi.bak -e 's,FREETYPE_CONFIG=\"\",FREETYPE_CONFIG=\"%p/lib/freetype219/bin/freetype-config\",g ;
+#                  s,LIBS=\"\-lfreetype,LIBS=\"\$LIBFREETYPE_LIBS,g ;
+#                  s,(^LIBTOOL=.*)\-\-silent,$1,g ;
+#                 ' configure
 # point to Apple's Python framework
  perl -pi.bar -e "s,PYTHONLIB=.*,PYTHONLIB='-framework Python'\npython_libdir=yes\nLIBPYTHON=' ',g" configure
  perl -pi.bar -e "s,LIBPYTHON =.*,LIBPYTHON=,g" scribus/plugins/scriptplugin/Makefile.in 
 # avoid indirect linking errors
- perl -pi.bar -e 's|libpdf_la_LIBADD =|libpdf_la_LIBADD =\$(LIBTIFF)|g' scribus/libpdf/Makefile.in
- perl -pi.baz -e 's|libscriptplugin_la_LIBADD =|libscriptplugin_la_LIBADD = \$\(LIBCUPS\)|g' scribus/plugins/scriptplugin/Makefile.in
+# perl -pi.bar -e 's|libpdf_la_LIBADD =|libpdf_la_LIBADD =\$(LIBTIFF)|g' scribus/libpdf/Makefile.in
+# perl -pi.baz -e 's|libscriptplugin_la_LIBADD =|libscriptplugin_la_LIBADD = \$\(LIBCUPS\)|g' scribus/plugins/scriptplugin/Makefile.in
 # fix some declarations. 
- perl -pi.bak -e ' s|int makedir \(char \*newdir\)|int makedir \(const char \*newdir\)|g ;
-                  s|int mymkdir\(char\* dirname\)|int mymkdir \(const char \*dirname\)|g ;
-                 ' scribus/fileunzip.cpp
+# perl -pi.bak -e ' s|int makedir \(char \*newdir\)|int makedir \(const char \*newdir\)|g ;
+#                  s|int mymkdir\(char\* dirname\)|int mymkdir \(const char \*dirname\)|g ;
+#                 ' scribus/fileunzip.cpp
 # remove reference to strndup() which doesn't exist in Darwin 
 # replace it with strdup() which is all that is needed here anyway
- perl -pi.bak -e 's|strn(dup\(.*),.*|str$1\)\;|g' scribus/plugins/scriptplugin/scriptplugin.cpp
+# perl -pi.bak -e 's|strn(dup\(.*),.*|str$1\)\;|g' scribus/plugins/scriptplugin/scriptplugin.cpp
 <<
 CompileScript: <<
 #!/bin/sh -ex
@@ -66,10 +60,10 @@ CompileScript: <<
         --with-pythondir=/System/Library/Frameworks/Python.framework/Versions/2.3/ \
         --disable-dependency-tracking
 # remove linking to X11
- perl -pi.bar -e 's|(scribus_LDADD =.*)\-lXext \-lX11|$1|g;
-                  s|(LIBFONTCONFIG_LIBS =).*|$1 %p/lib/fontconfig2/lib/libfontconfig.a -L%p/lib -lexpat|g;
-                  s|(AM_LDFLAGS =).*|$1 \$\(LIBFREETYPE_LIBS\) -L%p/lib/qt3mac/lib \$\(LIB_QT\)|g;
-                 ' scribus/Makefile
+# perl -pi.bar -e 's|(scribus_LDADD =.*)\-lXext \-lX11|$1|g;
+#                  s|(LIBFONTCONFIG_LIBS =).*|$1 %p/lib/fontconfig2/lib/libfontconfig.a -L%p/lib -lexpat|g;
+#                  s|(AM_LDFLAGS =).*|$1 \$\(LIBFREETYPE_LIBS\) -L%p/lib/qt3mac/lib \$\(LIB_QT\)|g;
+#                 ' scribus/Makefile
  make
 << 
 InstallScript: <<
@@ -138,10 +132,15 @@ DescUsage: <<
    into this file.
 <<
 DescPort: <<
- This is a first stab at a native Aqua version of Scribus.
+ This is a first stab at a Fink package of a 
+ native Aqua version of Scribus. 
+ A standalone version prepared by Andreas Vox can be downloaded
+ from the web at http://aqua.scribus.net
  The app skeleton and the patch are (C) 2005 Andreas Vox 
  Uses fontconfig2-dev and freetype219 from Fink, not from X11,
  and qt3-mac-free as packaged in the qt3mac packaqge.
+ The fontconfig2 situation is still unclear, on MacOSX 10.3 we 
+ have to use X11's fontconfig (comment the line "export PKG_CONFIG_PATH...")
 <<
 Maintainer: Martin Costabel <costabel@wanadoo.fr>
 Homepage: http://www.scribus.net/
