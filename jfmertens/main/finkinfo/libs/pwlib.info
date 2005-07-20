@@ -1,0 +1,61 @@
+Package: pwlib
+Version: 1.8.4
+Revision: 12
+Maintainer: Shawn Hsiao <shawn@users.sourceforge.net>
+BuildDepends: cyrus-sasl2-dev, expat, openldap-ssl-dev, openssl097-dev, sdl, sed
+# sed : because I don't know how to write the patchscript in perl...
+Depends: %N-shlibs (= %v-%r)
+# Depends: just in order not to have to duplicate the docfiles...
+Source: http://www.gnomemeeting.org/admin/downloads/latest/sources/sources/%n-%v.tar.gz
+Source-MD5: fc638a64216b7751271c539ee4ccd0a8
+PatchScript: <<
+  sed -ri -e '/P_MACOSX/,+40{/socklen_t/d}' include/ptlib/unix/ptlib/pmachdep.h
+  sed -ri -e '/P_MACOSX/,/^\#endif/c\
+#include <dlfcn.h>' src/ptlib/unix/udll.cxx
+<<
+NoSetLDFLAGS: true
+SetLIBRARY_PATH: %p/lib
+NoSetCPPFLAGS: true
+CompileScript: <<
+#!/bin/sh -ev
+  export CPATH=%p/include
+  ./configure --prefix=%p/lib/%n --enable-plugins
+  make LDFLAGS="-L%p/lib -lresolv -L../../lib" PWLIBDIR=%b opt \
+	LDSOOPTS="-dynamiclib -compatibility_version 1.8 -current_version 1.8.4 -install_name %p/lib/%n/lib/libpt_Darwin_ppc_r.1.8.dylib" \
+	libso_target="lib/libpt_Darwin_ppc_r.1.8.4.dylib"
+<<
+InstallScript: <<
+  mkdir -p %i/lib/%n/src
+  mkdir -p %i/lib/%n/lib
+  find . -name CVS -exec rm -fR \{\} \; || true
+  cp -pPR version.h include make plugins samples %i/lib/%n
+  cp -pPR lib/lib* %i/lib/%n/lib
+  ranlib %i/lib/%n/lib/libpt_Darwin_ppc_r_s.a
+<<
+SplitOff: <<
+  Package: %N-shlibs
+  Depends: cyrus-sasl2-shlibs, expat-shlibs, openldap-ssl-shlibs, openssl097-shlibs, sdl-shlibs
+  Description: Shared libraries for pwlib
+  Files: lib/%N/lib/libpt_Darwin_ppc_r.*.dylib
+  Shlibs: <<
+	%p/lib/%N/lib/libpt_Darwin_ppc_r.1.8.dylib 1.8.0 %n (>= 1.8.4-1)
+  <<
+  DocFiles: mpl-1.0.htm ReadMe.txt History.txt
+<<
+SplitOff2: <<
+  Package: %N-dev
+  Depends: %N-shlibs (= %v-%r)
+  Description: dev files for pwlib
+  Files: lib/%N/lib/lib* lib/%N/include lib/%N/version.h lib/%N/src
+<<
+DocFiles: mpl-1.0.htm ReadMe.txt History.txt
+Description: Portable Windows library for OpenH323
+DescPort: <<
+It is a different compile method, so i've decided to copy the dir
+of the compiled into %p/lib/pwlib/. To compile a file that requires
+them add to make 'PWLIBDIR=%p/lib/pwlib/'. Builds with %i/lib/%n/src, 
+whose presence is necessary to build openh323.
+<<
+DescPackaging: Version 1.5.2-10 by James Gibbs <jimgibbs@mac.com>
+License: OSI-Approved
+Homepage: http://www.openh323.org/
