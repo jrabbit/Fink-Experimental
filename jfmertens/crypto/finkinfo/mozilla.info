@@ -44,13 +44,25 @@ BuildDepends: <<
 <<
 #SetCC: gcc-3.3
 NoSetLDFLAGS: true
+SetLIBRARY_PATH: %p/lib
+NoSetCPPFLAGS: true
 PatchScript: <<
  sed 's|@PREFIX@|%p|g' <%a/%n.patch | patch -p1
- perl -pi -e 's,cc$,gcc-3.3,' security/coreconf/Darwin.mk
+# perl -pi -e 's,cc$,gcc-3.3,' security/coreconf/Darwin.mk
+ perl -pi.bak -e 's,\#ifndef NSS,#include "pki1t.h"\n$&,' security/nss/lib/pki1/oiddata.h
+## The following are "for safety" : to avoid "implicit declaration" warnings
+ perl -pi.bak -e 's,\#include,\#include <unistd.h>\n$&,' directory/c-sdk/ldap/libraries/liblber/io.c
+ perl -pi.bak -e 's,\#if 0,\#include <unistd.h>\n$&,' directory/c-sdk/ldap/libraries/libldap/os-ip.c
 <<
-ConfigureParams: --enable-application=suite
+## --enable-freetype conflicts with --enable-xft
+## configure problems with  --enable-native-uconv ; check later.
+## --enable-svg : must also choose SVG render library; will try later.
+## "--enable-libxul is only compatible with toolkit XUL applications."
+## "--enable-cairo" leads to compile-errors in nsCanvasRenderingContext2D.cpp _ incompatible versions ?
+ConfigureParams: --enable-optimize=-O3 --enable-application=suite --enable-pango --enable-image-decoders=all --enable-ldap-experimental
 CompileScript: <<
-#! /bin/sh
+#! /bin/sh -ev
+export CPATH=%p/include/cairo:%p/include
 ./configure %c
 make -w
 
