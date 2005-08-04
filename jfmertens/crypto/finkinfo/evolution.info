@@ -6,6 +6,13 @@ Revision: 1
 Source-MD5: 1e01511c78b2dd0dcb8cf83521c167af
 #Source: mirror:gnome:sources/%n/2.3/%n-%v.tar.bz2
 Source: mirror:gnome:sources/%n/2.2/%n-%v.tar.bz2
+# # otool_deps evolution
+# atk1-shlibs, audiofile-shlibs, esound-shlibs, evolution-data-server-dev, evolution-data-server-shlibs, gail17-shlibs, \
+# gal199-shlibs, gconf2-shlibs, glib2-shlibs, gnome-keyring-shlibs, gnome-vfs2-ssl-shlibs, gnutls-shlibs, gstreamer-shlibs, \
+# gtk+2-shlibs, gtkhtml3-shlibs, libart2-shlibs, libbonobo2-shlibs, libbonoboui2-shlibs, libgcrypt-shlibs, libgettext3-shlibs, \
+# libglade2-shlibs, libgnome2-shlibs, libgnomecanvas2-shlibs, libgnomeprint2.2-shlibs, libgnomeprintui2.2-shlibs, \
+# libgnomeui2-shlibs, libgpg-error-shlibs, libhowl-shlibs, libiconv, libjpeg-shlibs, libsoup-ssl-shlibs, libtasn1-shlibs, \
+# libxml2-shlibs, mozilla-shlibs, orbit2-shlibs, pango1-xft2-shlibs, popt-shlibs, pth-shlibs, xorg-shlibs
 Depends: <<
 	audiofile-shlibs (>= 0.2.3-1), 
 	esound (>= 0.2.28-1), 
@@ -80,29 +87,18 @@ SetMAKEFLAGS: -j1
 Patch: %n.patch
 PatchScript: <<
   perl -pi -e 's/hardcode_direct=yes/hardcode_direct=no/g' configure && perl -pi.bak -e "s/-scrollkeeper-update/#-scrollkeeper-update/g" help/*/Makefile.in
-## The following are 'for safety' : to avoid "implicit declararation" warnings (some more remain to be checked..)
+## The following are 'for safety' : to avoid "implicit declararation" warnings (still check the ngettext thing in filter-datespec.c.)
 # Else implicit declararation of functions CAMEL_MULTIPART and CAMEL_IS_MULTIPART :
   perl -pi.bak -e 's,transport\.h>,$&\n\#include <camel/camel-multipart.h>,' mail/mail-ops.c
-#perl -pi.bak -e 's,e\-dialog\-utils.h\",$&\n\#include "e-util/e-error.h",' shell/e-shell-window-commands.c
-  perl -pi.bak -e 's,time.h>,$&\n\#include <string.h>,'  widgets/misc/e-send-options.h
-  perl -pi.bak -e 's,mail/em-vfolder-rule.h,mail/mail-vfolder.h,' plugins/shared-folder/share-folder-common.c
+  perl -pi.bak -e 's,time\.h>,$&\n\#include <string.h>,'  widgets/misc/e-send-options.h
+  perl -pi.bak -e 's,include <config\.h>,$&\n\#include "a11y/addressbook/ea-addressbook.h",' addressbook/gui/widgets/e-{minicard,addressbook}{,-view}.c
+  perl -pi.bak -e 's,mime-message\.h>,$&\n\#include <libedataserver/e-util.h>\n\#include <libecal/e-cal-time-util.h>,' plugins/itip-formatter/itip-view.c
+  perl -pi.bak -e 's,gtkdialog\.h>,$&\n\#include <gtk/gtksignal.h>,' composer/e-msg-composer-attachment.c
+  perl -pi.bak -e 's,e-cal-time-util\.h>,$&\n\#include <libedataserver/e-categories.h>,' calendar/gui/e-tasks.c
+  perl -pi.bak -e 's,\#define DAY_INDEX 3,\#include <libintl.h>\n$&,' filter/filter-datespec.c
+  perl -pi.bak -e 's,mail/em-vfolder-rule\.h,mail/mail-vfolder.h,' plugins/shared-folder/share-folder-common.c
 # and to find Evolution.h in mail-vfolder.h when compiling share-folder-common.c :
-  perl -pi.bak -e 's,Evolution.h,shell/Evolution.h,' mail/mail-vfolder.h
-  perl -pi.bak -e 's,e-destination.h>,$&\n\#include "a11y/addressbook/ea-addressbook.h",' addressbook/gui/widgets/e-minicard.c
-  perl -pi.bak -e 's,string.h>,$&\n\#include "a11y/addressbook/ea-addressbook.h",' addressbook/gui/widgets/e-minicard-view.c
-### collect2 refuses to link with a module..
-# The next change leaves 1 undefined symbol in liborg-gnome-calendar-weather.so, to be dynamically looked up,
-# "_calendar_component_peek_source_list", and which should be obtained from libevolution-calendar.so.
-# It is originally defined in ../../calendar/gui/.libs/calendar-component.o _ at worst we'll add a "-l" flag for that file.
-## Same problem in plugins/itip-formatter ( liborg-gnome-itip-formatter.so );
-# here there are a number of missing symbols, all coming from one of the following :
-#  ../../calendar/gui/.libs/calendar-config.o ../../calendar/gui/.libs/itip-utils.o ../../mail/.libs/em-format-html.o ../../mail/.libs/em-utils.o
-# ( libevolution-calendar.so libevolution-mail.so )
-## Same problem in plugins/startup-wizard (liborg-gnome-evolution-startup-wizard.so);
-#  here the missing symbols come from one of the following :
-#  ../../calendar/gui/.libs/calendar-config.o ../../mail/.libs/em-account-editor.o
-# ( libevolution-calendar.so libevolution-mail.so )
- sed -ri.bak -e '/LIBADD =/,+5{ /\/(calendar|mail)\//d }' plugins/{calendar-weather,itip-formatter,startup-wizard}/Makefile.in
+  perl -pi.bak -e 's,Evolution\.h,shell/Evolution.h,' mail/mail-vfolder.h
 <<
 ConfigureParams: ac_cv_func_gethostbyaddr_r=no ac_cv_func_gethostbyname_r=no --enable-static=yes --enable-pilot-conduits=no --enable-ipv6=no --with-db3-includes=%p/include/db31 --with-db3-libs=%p/lib/db31 --disable-gtk-doc --mandir=%p/share/man --with-nspr-includes=%p/include/mozilla/nspr --with-nss-includes=%p/include/mozilla/nss --with-nspr-libs=%p/lib/mozilla --with-nss-libs=%p/lib/mozilla
 #CompileScript: export have_addrinfo=yes ; ./configure %c ; make
