@@ -2,7 +2,7 @@ Info2: <<
 Package: openoffice.org
 Description: Integrated office productivity suite
 Version: 1.9m121
-Revision: 60
+Revision: 61
 License: OSI-Approved
 Maintainer: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>
 
@@ -14,7 +14,8 @@ BuildDepends: <<
   libsablot-dev, libsablot, unixodbc2 | unixodbc2-nox,
   sane-backends, libcurl3-ssl | libcurl3,
   boost1.32-py23 | boost1.32-py24, libsndfile1-dev,
-  portaudio, neon24-ssl | neon24, mozilla-dev
+  portaudio, neon24-ssl | neon24,
+  mozilla-dev
 <<
 Depends: <<
   x11, system-java14, system-perl,
@@ -23,7 +24,8 @@ Depends: <<
   libsablot-shlibs, unixodbc2-shlibs | unixodbc2-nox-shlibs,
   sane-backends-shlibs, libcurl3-ssl-shlibs | libcurl3-shlibs,
   boost1.32-py23-shlibs | boost1.32-py24-shlibs, libsndfile1-shlibs,
-  portaudio-shlibs, neon24-ssl-shlibs | neon24-shlibs, mozilla-shlibs
+  portaudio-shlibs, neon24-ssl-shlibs | neon24-shlibs,
+  mozilla-shlibs, mozilla-mailnews
 <<
 BuildConflicts: lammpi-dev, openldap-ssl-dev, libicu32-dev, fltk, fltk-x11
 
@@ -39,6 +41,8 @@ PatchScript: <<
   /bin/mv gpc231/gpc.{c,h} external/gpc
   /usr/bin/bzip2 -dc openoffice.org.113to121.patch.bz2 | /usr/bin/patch -p1 
   /usr/bin/sed "s|@FINK_PREFIX@|%p|g" < %a/%n.patch | /usr/bin/patch -p0
+  /bin/mkdir FINKLIBS
+  /bin/ln -s %p/lib/libdb_java-4.2.jnilib FINKLIBS
 <<
 
 SetCC: gcc-3.3
@@ -57,7 +61,6 @@ ConfigureParams: <<
   --with-system-expat \
   --with-system-freetype \
   --with-system-libxml \
-  --with-system-python \
   --with-system-db \
   --with-db-jar=%p/share/java/db42-ssl-java/db.jar \
   --with-system-sablot \
@@ -77,6 +80,7 @@ ConfigureParams: <<
 # --with-system-mythes       # not in Fink
 # --with-system-altlinuxhyph # not in Fink
 # --with-system-boost        # error ocurres?
+# --with-system-python       # fails building instsetooo_native?
 
 GCC: 3.3
 CompileScript: <<
@@ -84,7 +88,11 @@ CompileScript: <<
   (cd config_office && PKG_CONFIG_PATH=%p/lib/freetype219/lib/pkgconfig/ ./configure %c)
   ./bootstrap
   . MacosxEnv.Set.sh
-  export DEFAULT_TO_ENGLISH_FOR_PACKING=yes 
+  export SOLARINC=`echo $SOLARINC | /usr/bin/sed -e"s|-I/usr/X11R6/include -I/usr/X11R6/include/freetype2|-I%p/include/db4 -I%p/include -I%p/lib/freetype219/include/freetype2 -I/sw/lib/freetype219/include -I/usr/X1186/include|g"`
+  export SOLARLIB=`echo $SOLARLIB | /usr/bin/sed -e"s|-L/usr/lib|-L%p/lib -L/usr/lib|g"`
+  export SYSTEM_PORTAUDIO=YES
+  export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:%b/FINKLIBS"
+  export DEFAULT_TO_ENGLISH_FOR_PACKING=yes
   dmake
 <<
 
@@ -98,6 +106,8 @@ InstallScript: <<
 
   /usr/bin/install -m 755 -d %i/bin
   /bin/ln -s %p/lib/%n/program/{sbase,scalc,sdraw,simpress,smath,soffice,swriter} %i/bin
+
+  /bin/ln -s %p/lib/libdb_java-4.2.jnilib %i/lib/%n/program
 
   /usr/bin/install -m 755 -d %i/share/doc/%n
   /bin/cp %i/lib/%n/LICENSE %i/share/doc/%n/LICENSE
