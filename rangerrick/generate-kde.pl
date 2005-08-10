@@ -7,21 +7,30 @@ use Cwd 'abs_path';
 
 my $path = abs_path(dirname($0));
 
+my @files = @ARGV;
 my %files;
 
-find(sub {
-	return unless ($File::Find::name =~ /(kde|postgres|libpq|libpg|wv2|icecream|qt3|qca|kgpg|xfree86|xorg|\/mono\.|libgdiplus|monodevelop)/);
-	return if ($File::Find::name =~ /notready/);
-	$files{$File::Find::name}++ if ($File::Find::name =~ /\.(info|patch)$/);
-}, $path . '/common');
+if (not @files) {
+	print "foo\n";
+	find(sub {
+		push(@files, $File::Find::name);
+	}, $path . '/common');
+}
 
-for my $file (sort keys %files) {
+for my $file (@files) {
+	if ($file !~ /^\//) {
+		$file = $path . '/' . $file;
+	}
 	my ($dir, $filename) = (dirname($file), basename($file));
+
+	next unless ($file =~ /\.(info|patch)$/);
+	next unless ($file =~ /(kde|postgres|libpq|libpg|wv2|icecream|qt3|qca|kgpg|xfree86|xorg|\/mono\.|libgdiplus|monodevelop)/);
+	next if ($file =~ /notready/);
 
 	#for my $tree ('10.2-gcc3.3', '10.3', '10.4') {
 	for my $tree ('10.3', '10.4') {
 		my $todir = $dir;
-		$todir =~ s,/common/,/${tree}/,;
+		$todir =~ s,common/,${tree}/,;
 
 		print "- $todir/$filename... ";
 
