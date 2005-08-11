@@ -53,9 +53,13 @@ h3. Potential extensions
 ** (drm again) I would much rather see this be done by the validator.  To make sure we have determinacy in this process, our IBD processing should be limited to stuff which is actually in the .info database at the time of buliding.
 ** (dmacks clarifies) This is actually the opposite approach to the current IBD thought...instead of a package declaring IBD ("what does some other package need to link against me?") it would declare BD ("what I need to get built") and then fink would decide what is needed to link against me. Essentially upgrade some BD to IBD.Can't do it both ways in a single pkg obviously...no magic, gotta list *something*...that means this is still deterministic at the start of a large build set.
 
-h3. Alternate solution:
+h3. Alternate solution
 
-* Weaken the "nothing may Depends on a BDO package" to "only BDO packages may Depends on a BDO package", use normal Depends so that a -dev automatically drags along anything else needed to compile against it. Adjust phase_activate so that when installing a BDO package that conflicts/replaces some other package, do a recursive removal of that other package first.
-** advantage: useful for people using Fink to install -dev for their own (!fink) uses. BDO only works for things compiled within Fink.
-** advantage: don't gotta mess with a whole new type of dependency check in the engine.
-** disadvantage: creates a whole in the swappy code? Engine may not realize these other things that get removed.
+* Weaken the "nothing may Depends on a BDO package" policy to "only BDO packages may Depends on a BDO package". Then we can use normal Depends so that a -dev automatically drags along anything else needed to compile against it.
+* Arguments:
+** pro: useful for people using Fink to install -dev for their own (!fink) uses. BDO only works for things compiled within Fink.
+** pro: don't gotta mess with a whole new type of dependency check in the engine.
+** con: creates a hole in the swappy code? Engine may not realize these other things got removed, then tries to install things that depend on them.
+* Implementation (CVS tag "bdo-depends"):
+** -adjust phase_activate so that when installing a BDO package that conflicts/replaces some other package, do a recursive removal of that other package first.- *done*
+** -adjust BDO violation check.- *done*
