@@ -82,36 +82,343 @@ diff -ur package/source/zippackage/ZipPackageStream.cxx package_new/source/zippa
  
  else
    { { echo "$as_me:$LINENO: error: portaudio library not found or functional" >&5
-@@ -15324,7 +15325,7 @@
+
+
+
+Index: scp2/source/base/file_base.scp
+===================================================================
+RCS file: /cvs/installation/scp2/source/base/file_base.scp,v
+retrieving revision 1.3
+diff -u -r1.3 file_base.scp
+--- scp2/source/base/file_base.scp	30 Jun 2005 16:38:33 -0000	1.3
++++ scp2/source/base/file_base.scp	13 Aug 2005 14:40:02 -0000
+@@ -75,12 +75,16 @@
  
-             echo "$as_me:$LINENO: checking NEON_CFLAGS" >&5
- echo $ECHO_N "checking NEON_CFLAGS... $ECHO_C" >&6
--            NEON_CFLAGS=`$PKG_CONFIG --cflags "neon >= 0.24.0"`
-+            NEON_CFLAGS=`$PKG_CONFIG --cflags "neon >= 0.24.0" | /usr/bin/sed "s|/include/neon|/include|"`
-             echo "$as_me:$LINENO: result: $NEON_CFLAGS" >&5
- echo "${ECHO_T}$NEON_CFLAGS" >&6
+ #endif
  
---- solenv/inc/libs.mk	2005-06-21 00:27:27.000000000 +0900
-+++ solenv/inc/libs.mk.fink	2005-08-06 23:25:40.000000000 +0900
-@@ -206,7 +206,7 @@
++#ifdef SOLAR_JAVA
++
+ File gid_File_Help_Sdatabase_Zip
+     Dir = gid_Dir_Help_Isolanguage;
+     ARCHIVE_TXT_FILE_BODY_PATCH;
+     EXTRA_ALL_LANG(sdatabase);
+ End
+ 
++#endif
++
+ File gid_File_Registry_Spool_Oo_Setup_Base_Xcu
+     TXT_FILE_BODY;
+     Styles = (PACKED);
+Index: scp2/source/ure/makefile.mk
+===================================================================
+RCS file: /cvs/installation/scp2/source/ure/makefile.mk,v
+retrieving revision 1.3
+diff -u -r1.3 makefile.mk
+--- scp2/source/ure/makefile.mk	18 Jul 2005 08:45:25 -0000	1.3
++++ scp2/source/ure/makefile.mk	13 Aug 2005 14:40:02 -0000
+@@ -2,9 +2,9 @@
+ #
+ #   $RCSfile$
+ #
+-#   $Revision$
++#   $Revision$
+ #
+-#   last change: $Author$ $Date$
++#   last change: $Author$ $Date$
+ #
+ #   The Contents of this file are made available subject to the terms of
+ #   either of the following licenses
+@@ -72,4 +72,8 @@
+ SCPDEFS+=-DUSE_SYSTEM_STL
+ .ENDIF
+ 
++.IF "$(SYSTEM_LIBXML)" == "YES"
++SCPDEFS+=-DSYSTEM_LIBXML
++.ENDIF
++
+ .INCLUDE: target.mk
+Index: scp2/source/ure/ure.scp
+===================================================================
+RCS file: /cvs/installation/scp2/source/ure/ure.scp,v
+retrieving revision 1.5
+diff -u -r1.5 ure.scp
+--- scp2/source/ure/ure.scp	20 Jul 2005 12:31:24 -0000	1.5
++++ scp2/source/ure/ure.scp	13 Aug 2005 14:40:02 -0000
+@@ -2,9 +2,9 @@
+  *
+  *  $RCSfile$
+  *
+- *  $Revision$
++ *  $Revision$
+  *
+- *  last change: $Author$ $Date$
++ *  last change: $Author$ $Date$
+  *
+  *  The Contents of this file are made available subject to the terms of
+  *  either of the following licenses
+@@ -439,6 +439,7 @@
+     RegistryID = gid_Starregistry_Services;
+ End
+ 
++
+ #if defined SOLAR_JAVA
+ File gid_File_Dl_Javaloader
+     TXT_FILE_BODY;
+@@ -749,9 +750,12 @@
+ 
+ // Private Miscellaneous Files:
+ 
++#if defined SOLAR_JAVA
+ File gid_File_Misc_JavavendorsXml
+     TXT_FILE_BODY;
+     Dir = gid_Dir_Misc;
+     Name = "javavendors.xml";
+     Styles = (PACKED);
+ End
++#endif
++
+
+
+
+Index: ucb/source/ucp/webdav/LinkSequence.cxx
+===================================================================
+RCS file: /cvs/ucb/ucb/source/ucp/webdav/LinkSequence.cxx,v
+retrieving revision 1.5
+diff -u -r1.5 LinkSequence.cxx
+--- ucb/source/ucp/webdav/LinkSequence.cxx	27 Jan 2005 12:12:09 -0000	1.5
++++ ucb/source/ucp/webdav/LinkSequence.cxx	14 Aug 2005 02:51:49 -0000
+@@ -62,8 +62,12 @@
+ #include <string.h>
+ 
+ #ifndef NE_XML_H
++#ifdef SYSTEM_NEON
++#include <ne_xml.h>
++#else
+ #include <neon/ne_xml.h>
+ #endif
++#endif
+ 
+ #ifndef _LINKSEQUENCE_HXX_
+ #include "LinkSequence.hxx"
+Index: ucb/source/ucp/webdav/LockEntrySequence.cxx
+===================================================================
+RCS file: /cvs/ucb/ucb/source/ucp/webdav/LockEntrySequence.cxx,v
+retrieving revision 1.5
+diff -u -r1.5 LockEntrySequence.cxx
+--- ucb/source/ucp/webdav/LockEntrySequence.cxx	27 Jan 2005 12:12:40 -0000	1.5
++++ ucb/source/ucp/webdav/LockEntrySequence.cxx	14 Aug 2005 02:51:49 -0000
+@@ -62,8 +62,12 @@
+ #include <string.h>
+ 
+ #ifndef NE_XML_H
++#ifdef SYSTEM_NEON
++#include <ne_xml.h>
++#else
+ #include <neon/ne_xml.h>
+ #endif
++#endif
+ 
+ #ifndef _LOCKENTRYSEQUENCE_HXX_
+ #include "LockEntrySequence.hxx"
+Index: ucb/source/ucp/webdav/LockSequence.cxx
+===================================================================
+RCS file: /cvs/ucb/ucb/source/ucp/webdav/LockSequence.cxx,v
+retrieving revision 1.6
+diff -u -r1.6 LockSequence.cxx
+--- ucb/source/ucp/webdav/LockSequence.cxx	27 Jan 2005 12:13:09 -0000	1.6
++++ ucb/source/ucp/webdav/LockSequence.cxx	14 Aug 2005 02:51:49 -0000
+@@ -62,8 +62,12 @@
+ #include <string.h>
+ 
+ #ifndef NE_XML_H
++#ifdef SYSTEM_NEON
++#include <ne_xml.h>
++#else
+ #include <neon/ne_xml.h>
+ #endif
++#endif
+ 
+ #ifndef _LOCKSEQUENCE_HXX_
+ #include "LockSequence.hxx"
+Index: ucb/source/ucp/webdav/NeonSession.cxx
+===================================================================
+RCS file: /cvs/ucb/ucb/source/ucp/webdav/NeonSession.cxx,v
+retrieving revision 1.34
+diff -u -r1.34 NeonSession.cxx
+--- ucb/source/ucp/webdav/NeonSession.cxx	27 Jan 2005 12:13:44 -0000	1.34
++++ ucb/source/ucp/webdav/NeonSession.cxx	14 Aug 2005 02:51:50 -0000
+@@ -62,17 +62,33 @@
+ #include <string.h>
+ 
+ #ifndef NE_SOCKET_H
++#ifdef SYSTEM_NEON
++#include <ne_socket.h>
++#else
+ #include <neon/ne_socket.h>
+ #endif
++#endif
+ #ifndef NE_AUTH_H
++#ifdef SYSTEM_NEON
++#include <ne_auth.h>
++#else
+ #include <neon/ne_auth.h>
+ #endif
++#endif
+ #ifndef NE_REDIRECT_H
++#ifdef SYSTEM_NEON
++#include <ne_redirect.h>
++#else
+ #include <neon/ne_redirect.h>
+ #endif
++#endif
+ #ifndef NE_LOCKS_H
++#ifdef SYSTEM_NEON
++#include <ne_locks.h>
++#else
+ #include <neon/ne_locks.h>
+ #endif
++#endif
+ 
+ #ifndef _RTL_USTRBUF_HXX_
+ #include <rtl/ustrbuf.hxx>
+Index: ucb/source/ucp/webdav/NeonTypes.hxx
+===================================================================
+RCS file: /cvs/ucb/ucb/source/ucp/webdav/NeonTypes.hxx,v
+retrieving revision 1.9
+diff -u -r1.9 NeonTypes.hxx
+--- ucb/source/ucp/webdav/NeonTypes.hxx	27 Jan 2005 12:13:58 -0000	1.9
++++ ucb/source/ucp/webdav/NeonTypes.hxx	14 Aug 2005 02:51:50 -0000
+@@ -63,17 +63,33 @@
+ #define _NEONTYPES_HXX_
+ 
+ #ifndef NE_SESSION_H
++#ifdef SYSTEM_NEON
++#include <ne_session.h>
++#else
+ #include <neon/ne_session.h> // for ne_session
+ #endif
++#endif
+ #ifndef NE_UTILS_H
++#ifdef SYSTEM_NEON
++#include <ne_utils.h>
++#else
+ #include <neon/ne_utils.h> // for ne_status
+ #endif
++#endif
+ #ifndef NE_BASIC_H
++#ifdef SYSTEM_NEON
++#include <ne_basic.h>
++#else
+ #include <neon/ne_basic.h> // for ne_server_capabilities
+ #endif
++#endif
+ #ifndef NE_PROPS_H
++#ifdef SYSTEM_NEON
++#include <ne_props.h>
++#else
+ #include <neon/ne_props.h> // for ne_propname, ne_prop_result_set
+ #endif
++#endif
+ 
+ typedef ne_session                  HttpSession;
+ typedef ne_status                   HttpStatus;
+Index: ucb/source/ucp/webdav/NeonUri.hxx
+===================================================================
+RCS file: /cvs/ucb/ucb/source/ucp/webdav/NeonUri.hxx,v
+retrieving revision 1.8
+diff -u -r1.8 NeonUri.hxx
+--- ucb/source/ucp/webdav/NeonUri.hxx	21 Aug 2002 07:34:53 -0000	1.8
++++ ucb/source/ucp/webdav/NeonUri.hxx	14 Aug 2005 02:51:50 -0000
+@@ -62,8 +62,12 @@
+ #define _NEONURI_HXX_
+ 
+ #ifndef NE_URI_H
++#ifdef SYSTEM_NEON
++#include <ne_uri.h>
++#else
+ #include <neon/ne_uri.h>
+ #endif
++#endif
+ 
+ #ifndef _RTL_USTRING_HXX_
+ #include <rtl/ustring.hxx>
+Index: ucb/source/ucp/webdav/UCBDeadPropertyValue.cxx
+===================================================================
+RCS file: /cvs/ucb/ucb/source/ucp/webdav/UCBDeadPropertyValue.cxx,v
+retrieving revision 1.6
+diff -u -r1.6 UCBDeadPropertyValue.cxx
+--- ucb/source/ucp/webdav/UCBDeadPropertyValue.cxx	27 Jan 2005 12:14:13 -0000	1.6
++++ ucb/source/ucp/webdav/UCBDeadPropertyValue.cxx	14 Aug 2005 02:51:50 -0000
+@@ -62,8 +62,12 @@
+ #include <string.h>
+ 
+ #ifndef NE_XML_H
++#ifdef SYSTEM_NEON
++#include <ne_xml.h>
++#else
+ #include <neon/ne_xml.h>
+ #endif
++#endif
+ 
+ #ifndef _OSL_DIAGNOSE_H_
+ #include <osl/diagnose.h>
+Index: ucb/source/ucp/webdav/makefile.mk
+===================================================================
+RCS file: /cvs/ucb/ucb/source/ucp/webdav/makefile.mk,v
+retrieving revision 1.23
+diff -u -r1.23 makefile.mk
+--- ucb/source/ucp/webdav/makefile.mk	27 Jan 2005 12:14:44 -0000	1.23
++++ ucb/source/ucp/webdav/makefile.mk	14 Aug 2005 02:51:50 -0000
+@@ -85,6 +85,7 @@
+ .INCLUDE: sv.mk
+ 
+ .IF "$(SYSTEM_NEON)" == "YES"
++CFLAGS+= -DSYSTEM_NEON
+ CFLAGS+= $(NEON_CFLAGS)
+ .ELSE
+ NEONINCDIR=external$/neon
+
+
+
+Index: solenv/inc/libs.mk
+===================================================================
+RCS file: /cvs/tools/solenv/inc/libs.mk,v
+retrieving revision 1.91
+diff -u -r1.91 libs.mk
+--- solenv/inc/libs.mk	20 Jun 2005 15:27:27 -0000	1.91
++++ solenv/inc/libs.mk	14 Aug 2005 09:43:22 -0000
+@@ -2,9 +2,9 @@
+ #
+ #   $RCSfile$
+ #
+-#   $Revision$
++#   $Revision$
+ #
+-#   last change: $Author$ $Date$
++#   last change: $Author$ $Date$
+ #
+ #   The Contents of this file are made available subject to the terms of
+ #   either of the following licenses
+@@ -59,7 +59,7 @@
+ #
+ #
+ #*************************************************************************
+-LIBSMKREV!:="$$Revision$$"
++LIBSMKREV!:="$$Revision$$"
+ 
+ .IF "$(COM)"=="WTC"
+ LIBPRE=libr
+@@ -206,7 +206,13 @@
  .IF "$(SYSTEM_JPEG)"=="YES"
  .IF "$(SOLAR_JAVA)" != ""
  #i34482# Blackdown jdk is in the libsearch patch and has a libjpeg
--JPEG3RDLIB=/usr/lib/libjpeg.so
++.IF "$(OS)" == "FREEBSD"
++JPEG3RDLIB=/usr/local/lib/libjpeg.so
++.ELIF "$(OS)" == "MACOSX"
 +JPEG3RDLIB=-ljpeg
++.ELSE
+ JPEG3RDLIB=/usr/lib/libjpeg.so
++.ENDIF
  .ELSE
  JPEG3RDLIB=-ljpeg
  .ENDIF
---- libxmlsec/xmlsec1-1.2.6.patch	2005-05-31 18:34:29.000000000 +0200
-+++ libxmlsec/xmlsec1-1.2.6.patch.new	2005-07-07 13:32:26.000000000 +0200
-@@ -710,6 +710,10 @@
- ! dummy
- --- 1,44 ----
- ! #! /bin/sh
-+!
-+! if test "$SYSTEM_LIBXML" = "YES"
-+! then xml2-config "$@"; exit 0
-+! fi
- ! 
- ! prefix=${SOLARVERSION}/${INPATH}
- ! includedir=${SOLARVERSION}/${INPATH}/inc${UPDMINOREXT}/external
