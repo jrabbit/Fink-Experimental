@@ -1,4 +1,4 @@
-### scp2 patches to use correct libxml
+### scp2 patches to use correct system libxml
 Index: scp2/source/base/file_base.scp
 ===================================================================
 RCS file: /cvs/installation/scp2/source/base/file_base.scp,v
@@ -346,3 +346,407 @@ diff -u -r1.129 configure.in
  	   AC_MSG_CHECKING(portaudio version)
  	   AC_LANG(C)
  	   AC_TRY_LINK([#include <portaudio.h>], [
+
+
+### patches to detect locale correctly; IsuueZilla #25416
+### compile fails
+
+
+### patch to remove unwanted symlinks of python; IssueZilla #46314
+Index: shellscripts_pyuno.txt
+===================================================================
+RCS file: /cvs/installation/instsetoo_native/inc_openoffice/unix/shellscripts_pyuno.txt,v
+retrieving revision 1.5
+diff -c -r1.5 shellscripts_pyuno.txt
+*** instsetoo_native/inc_openoffice/unix/shellscripts_pyuno.txt	11 Feb 2005 16:51:58 -0000	1.5
+--- shellscripts_pyuno.txt	17 Jul 2005 11:37:03 -0000
+***************
+*** 59,63 ****
+--- 59,74 ----
+    ;;
+  esac
+  
++ if [ -h $$PRODUCTINSTALLLOCATION/PRODUCTDIRECTORYNAME/program/python-core ]
++ then
++   rm -f $$PRODUCTINSTALLLOCATION/PRODUCTDIRECTORYNAME/program/python-core >/dev/null 2>&1
++ fi
++ 
++ if [ -h $$PRODUCTINSTALLLOCATION/PRODUCTDIRECTORYNAME/program/python ]
++ then
++   rm -f $$PRODUCTINSTALLLOCATION/PRODUCTDIRECTORYNAME/program/python >/dev/null 2>&1
++ fi
++ 
++ 
+  exit 0
+  END
+
+
+### patches for enabling the use of a scanner on Mac OSX; IssueZilla #48285
+--- extensions/source/scanner/sane.cxx	2003-04-17 17:14:24.000000000 +0200
++++ sane_new.cxx	2005-07-15 17:36:55.000000000 +0200
+@@ -213,12 +213,22 @@
+ 
+ void Sane::Init()
+ {
++#ifdef MACOSX
++	pSaneLib = dlopen( "libsane.dylib", RTLD_LAZY );
++        if( ! pSaneLib )
++                pSaneLib = dlopen( "libsane.dylib.1", RTLD_LAZY );
++	// try reasonable places that might not be in the library search path
++	if( ! pSaneLib )
++		pSaneLib = dlopen( "/usr/local/lib/libsane.dylib", RTLD_LAZY );
++#else
+ 	pSaneLib = dlopen( "libsane.so", RTLD_LAZY );
+-    if( ! pSaneLib )
+-        pSaneLib = dlopen( "libsane.so.1", RTLD_LAZY );
++       if( ! pSaneLib )
++               pSaneLib = dlopen( "libsane.so.1", RTLD_LAZY );
+ 	// try reasonable places that might not be in the library search path
+ 	if( ! pSaneLib )
+ 		pSaneLib = dlopen( "/usr/local/lib/libsane.so", RTLD_LAZY );
++#endif
++
+ 	if( pSaneLib )
+ 	{
+ 		bSaneSymbolLoadFailed = FALSE;
+@@ -268,7 +278,11 @@
+ 	}
+ #if (OSL_DEBUG_LEVEL > 1) || defined DBG_UTIL
+ 	else
++#ifdef MACOSX
++		fprintf( stderr, "libsane.dylib could not be opened: %s\n",
++#else
+ 		fprintf( stderr, "libsane.so could not be opened: %s\n",
++#endif
+ 				 dlerror() );
+ #endif
+ }
+
+
+### patches to fix incorrect UI language detection on Mac OS X; IssueZilla #51246
+--- shell/source/backends/localebe/localebackend.cxx	Fri Oct 22 18:16:56 2004
++++ localebackend.cxx.new	Fri Jun 24 07:53:16 2005
+@@ -76,9 +76,9 @@
+ 
+ #include <stdio.h>
+ 
+-#ifdef UNX
+-#include <rtl/ustrbuf.hxx>
++#if defined(LINUX) || defined(SOLARIS) || defined(IRIX) || defined(NETBSD) || defined(FREEBSD)
+ 
++#include <rtl/ustrbuf.hxx>
+ #include <locale.h>
+ #include <string.h>
+ 
+@@ -126,8 +126,105 @@
+     return aLocaleBuffer.makeStringAndClear();
+ }
+ 
+-#endif // UNX
++#elif defined(MACOSX) 
+ 
++#include <rtl/ustrbuf.hxx>
++#include <locale.h>
++#include <string.h>
++
++#include <premac.h>
++#include <CoreServices/CoreServices.h>
++#include <CoreFoundation/CoreFoundation.h>
++#include <postmac.h>
++
++namespace /* private */
++{
++
++	void OUStringBufferAppendCFString(rtl::OUStringBuffer& buffer, const CFStringRef s)
++	{
++		CFIndex lstr = CFStringGetLength(s);	
++		for (CFIndex i = 0; i < lstr; i++)
++			buffer.append(CFStringGetCharacterAtIndex(s, i));
++	}
++
++	template <typename T>
++	class CFGuard
++	{
++	public:
++		explicit CFGuard(T* pT) : pT_(pT) {}
++		~CFGuard() { if (pT_) CFRelease(*pT_); }
++	private:
++		T* pT_;
++	};
++
++	typedef CFGuard<CFArrayRef> CFArrayGuard;
++	typedef CFGuard<CFStringRef> CFStringGuard;
++	typedef CFGuard<CFTypeRef> CFTypeRefGuard;
++
++	/* For more information on the Apple locale concept please refer to 
++	http://developer.apple.com/documentation/CoreFoundation/Conceptual/CFLocales/Articles/CFLocaleConcepts.html
++	According to this documentation a locale identifier has the format: language[_country][_variant]*
++	e.g. es_ES_PREEURO -> spain prior Euro support
++	Note: The calling code should be able to handle locales with only language information e.g. 'en' for certain
++	UI languages just the language code will be returned.
++	*/
++
++	CFStringRef ImplGetAppPreference(const char* pref)
++	{
++		CFStringRef csPref = CFStringCreateWithCString(NULL, pref, kCFStringEncodingASCII);
++		CFStringGuard csRefGuard(&csPref);
++		
++		CFTypeRef ref = CFPreferencesCopyAppValue(csPref, kCFPreferencesCurrentApplication);
++		CFTypeRefGuard refGuard(&ref);
++	
++		if (ref == NULL)
++			return NULL;
++	
++		CFStringRef sref = (CFGetTypeID(ref) == CFArrayGetTypeID()) ? (CFStringRef)CFArrayGetValueAtIndex((CFArrayRef)ref, 0) : (CFStringRef)ref;
++		
++		CFRetain(sref); // caller is responsible for releasing reference
++		return sref;
++	}
++
++	rtl::OUString ImplGetLocale(const char* pref)
++	{
++		CFStringRef sref = ImplGetAppPreference(pref);
++		CFStringGuard srefGuard(&sref);
++		
++		rtl::OUStringBuffer aLocaleBuffer;
++		aLocaleBuffer.appendAscii("en-US"); // initialize with fallback value
++		
++		if (sref != NULL)
++		{
++			// split the string into substrings; the first two (if there are two) substrings 
++			// are language and country
++			CFArrayRef subs = CFStringCreateArrayBySeparatingStrings(NULL, sref, CFSTR("_"));
++			CFArrayGuard subsGuard(&subs);
++				
++			if (subs != NULL)
++			{
++				aLocaleBuffer.setLength(0); // clear buffer which still contains fallback value
++				
++				CFStringRef lang = (CFStringRef)CFArrayGetValueAtIndex(subs, 0);
++				OUStringBufferAppendCFString(aLocaleBuffer, lang);
++				
++				// country also available? Assumption: if the array contains more than one
++				// value the second value is always the country!
++				if (CFArrayGetCount(subs) > 1) 
++				{	
++					aLocaleBuffer.appendAscii("-");
++					CFStringRef country = (CFStringRef)CFArrayGetValueAtIndex(subs, 1);
++					OUStringBufferAppendCFString(aLocaleBuffer, country);
++				}					
++			}
++		}
++		return aLocaleBuffer.makeStringAndClear();
++	}
++
++} // namespace /* private */
++
++#endif
++
+ // -------------------------------------------------------------------------------
+ 
+ #ifdef WNT
+@@ -187,8 +284,10 @@
+ 
+ rtl::OUString LocaleBackend::getLocale(void) 
+ {
+-#ifdef UNX
++#if defined(LINUX) || defined(SOLARIS) || defined(IRIX) || defined(NETBSD) || defined(FREEBSD)
+     return ImplGetLocale(LC_CTYPE);
++#elif defined (MACOSX)
++	return ImplGetLocale("AppleLocale");
+ #elif defined WNT
+     return ImplGetLocale( GetUserDefaultLCID() );
+ #endif
+@@ -198,8 +297,10 @@
+ 
+ rtl::OUString LocaleBackend::getUILocale(void) 
+ {
+-#ifdef UNX
++#if defined(LINUX) || defined(SOLARIS) || defined(IRIX) || defined(NETBSD) || defined(FREEBSD)
+     return ImplGetLocale(LC_MESSAGES);
++#elif defined(MACOSX)
++	return ImplGetLocale("AppleLanguages");
+ #elif defined WNT
+     return ImplGetLocale( MAKELCID(GetUserDefaultUILanguage(), SORT_DEFAULT) );
+ #endif
+--- shell/source/backends/localebe/makefile.mk	Mon Sep 20 18:28:36 2004
++++ makefile.mk.new	Fri Jun 24 07:46:44 2005
+@@ -92,10 +92,19 @@
+ SHL1DEF=$(MISC)$/$(SHL1TARGET).def
+ 
+ SHL1IMPLIB=i$(SHL1TARGET)
++
++.IF "$(OS)"=="MACOSX"
++SHL1STDLIBS= \
++        $(CPPUHELPERLIB) \
++        $(CPPULIB) \
++        $(SALLIB) \
++		-framework CoreServices	
++.ELSE
+ SHL1STDLIBS=    \
+         $(CPPUHELPERLIB) \
+         $(CPPULIB) \
+         $(SALLIB)
++.ENDIF
+ 
+ SHL1VERSIONMAP=exports.map
+ SHL1DEF=$(MISC)$/$(SHL1TARGET).def
+
+
+### fix bad name for libnpsoplugin on Mac OSX; IssueZilla #51851
+diff -ur extensions/source/nsplugin/source/so_env.cxx extensions_new/source/nsplugin/source/so_env.cxx
+--- extensions/source/nsplugin/source/so_env.cxx	2005-07-15 13:44:22.000000000 +0200
++++ extensions_new/source/nsplugin/source/so_env.cxx	2005-07-15 13:39:13.000000000 +0200
+@@ -88,6 +88,7 @@
+ #include <errno.h>
+ #include "so_env.hxx"
+ #include "ns_debug.hxx"
++#include <sal/config.h>
+ 
+ #define PLUGIN_NAME         "OpenOffice.org"
+ 
+@@ -159,9 +160,9 @@
+     // Filename of lnk file, eg. "soffice"
+     char lnkFileName[NPP_PATH_MAX] = {0};
+     char* pTempZero = NULL;
+-    sprintf(lnkFileName, "%s/.mozilla/plugins/%s", getenv("HOME"), "libnpsoplugin.so");
++    sprintf(lnkFileName, "%s/.mozilla/plugins/libnpsoplugin%s", getenv("HOME"), SAL_DLLEXTENSION);
+     if ((0 > readlink(lnkFileName, realFileName, NPP_PATH_MAX)) ||
+-       (NULL == (pTempZero = strstr(realFileName, "/program/libnpsoplugin.so"))))
++       (NULL == (pTempZero = strstr(realFileName, "/program/libnpsoplugin" SAL_DLLEXTENSION))))
+     {
+         *realFileName = 0;
+         return -1;
+diff -ur svx/source/dialog/optinet2.cxx svx_new/source/dialog/optinet2.cxx
+--- svx/source/dialog/optinet2.cxx	2005-07-15 13:48:58.000000000 +0200
++++ svx_new/source/dialog/optinet2.cxx	2005-07-15 09:22:24.000000000 +0200
+@@ -271,6 +271,8 @@
+ #define RET_ALL				((short)200)
+ #define CFG_READONLY_DEFAULT    FALSE
+ 
++#include <sal/config.h>
++
+ SV_IMPL_PTRARR( SfxFilterPtrArr, SfxFilterPtr )
+ 
+ const char* SEARCHENGINE_INI	= "srcheng.ini";
+@@ -1757,7 +1759,7 @@
+     char lnkReferFilePath[NPP_PATH_MAX] = {0};
+     char* pHome = getpwuid(getuid())->pw_dir;
+ 	strcat(lnkFilePath, pHome);
+-	strcat(lnkFilePath, "/.mozilla/plugins/libnpsoplugin.so");
++	strcat(lnkFilePath, "/.mozilla/plugins/libnpsoplugin" SAL_DLLEXTENSION);
+ 
+ 	struct stat sBuf;
+ 	if (0 > lstat(lnkFilePath, &sBuf))
+@@ -1775,7 +1777,7 @@
+     ::rtl::OString tempString;
+     tempString = getDllURL();
+     strncpy(realFilePath, tempString.getStr(), NPP_PATH_MAX);
+-	strcat(realFilePath, "/libnpsoplugin.so");
++	strcat(realFilePath, "/libnpsoplugin" SAL_DLLEXTENSION);
+ 
+     if (0 != strcmp(lnkReferFilePath, realFilePath))
+         return false;
+@@ -1803,7 +1805,7 @@
+     char lnkFilePath[NPP_PATH_MAX] = {0};
+     char* pHome = getpwuid(getuid())->pw_dir;
+ 	strcat(lnkFilePath, pHome);
+-    strcat(lnkFilePath, "/.mozilla/plugins/libnpsoplugin.so");
++    strcat(lnkFilePath, "/.mozilla/plugins/libnpsoplugin" SAL_DLLEXTENSION);
+     remove(lnkFilePath);
+ 
+     // create the dirs if necessary
+@@ -1822,7 +1824,7 @@
+     ::rtl::OString tempString;
+     tempString = getDllURL();
+     strncpy(realFilePath, tempString.getStr(), NPP_PATH_MAX);
+-	strcat(realFilePath, "/libnpsoplugin.so");
++	strcat(realFilePath, "/libnpsoplugin" SAL_DLLEXTENSION);
+ 
+     // create the link
+     if (0 != symlink(realFilePath, lnkFilePath))
+@@ -1848,7 +1850,7 @@
+     char lnkFilePath[NPP_PATH_MAX] = {0};
+     char* pHome = getpwuid(getuid())->pw_dir;
+ 	strcat(lnkFilePath, pHome);
+-	strcat(lnkFilePath, "/.mozilla/plugins/libnpsoplugin.so");
++	strcat(lnkFilePath, "/.mozilla/plugins/libnpsoplugin" SAL_DLLEXTENSION);
+ 
+ 	if(0 > remove(lnkFilePath))
+ 	    return false;
+
+
+### patch to enable gtkplugin on Mac OS X; IssueZilla #52381
+--- scp2/source/ooo/file_library_ooo.scp	2005-07-14 12:37:01.000000000 +0200
++++ file_library_ooo_new.scp	2005-07-20 17:27:27.000000000 +0200
+@@ -666,7 +666,6 @@
+ #ifdef UNX
+ #ifdef ENABLE_GTK
+ #ifdef GTK_TWO_FOUR
+-#ifndef MACOSX
+ File gid_File_Lib_Fps_Gnome
+     TXT_FILE_BODY;
+     Styles = (PACKED,PATCH);
+@@ -678,7 +677,6 @@
+ #endif
+ #endif
+ #endif
+-#endif
+ 
+ SPECIAL_UNO_COMPONENT_LIB_FILE_PATCH( gid_File_Lib_Fps_Office, fps_office.uno )
+ SPECIAL_UNO_COMPONENT_LIB_FILE( gid_File_Lib_Fpicker, fpicker.uno )
+@@ -1408,7 +1406,6 @@
+ 
+ #ifdef UNX
+ #ifdef ENABLE_GTK
+-#ifndef MACOSX
+ File gid_File_Lib_Vclplug_Gtk
+     Name = LIBNAME(vclplug_gtk);
+     TXT_FILE_BODY;
+@@ -1416,7 +1413,6 @@
+     Dir = gid_Dir_Program;
+ End
+ #endif
+-#endif
+ #ifdef ENABLE_KDE
+ #ifndef MACOSX
+ File gid_File_Lib_Vclplug_Kde
+
+
+### fix for the break in package with gcc-3.3 on Mac OSX ZipPackageFolder.hxx; IssueZilla #51940
+diff -ur package/inc/ZipPackageFolder.hxx package_new/inc/ZipPackageFolder.hxx
+--- package/inc/ZipPackageFolder.hxx	2005-07-12 14:28:10.000000000 +0200
++++ package_new/inc/ZipPackageFolder.hxx	2005-07-14 17:30:52.000000000 +0200
+@@ -121,7 +121,7 @@
+ 	}
+ 
+ 	void setPackageFormat_Impl( sal_Bool bPackageFormat ) { m_bPackageFormat = bPackageFormat; }
+-	void setRemoveOnInsertMode_Impl( sal_Bool bRemove ) { ZipPackageEntry::mbAllowRemoveOnInsert = bRemove; }
++	void setRemoveOnInsertMode_Impl( sal_Bool bRemove ) { this->mbAllowRemoveOnInsert = bRemove; }
+ 
+ 	// Recursive functions
+ 	void  saveContents(rtl::OUString &rPath, std::vector < com::sun::star::uno::Sequence < com::sun::star::beans::PropertyValue > > &rManList, ZipOutputStream & rZipOut, com::sun::star::uno::Sequence < sal_Int8 > &rEncryptionKey, rtlRandomPool & rRandomPool)
+diff -ur package/source/zippackage/ZipPackageFolder.cxx package_new/source/zippackage/ZipPackageFolder.cxx
+--- package/source/zippackage/ZipPackageFolder.cxx	2005-07-12 14:31:33.000000000 +0200
++++ package_new/source/zippackage/ZipPackageFolder.cxx	2005-07-14 17:31:14.000000000 +0200
+@@ -128,7 +128,7 @@
+ {
+ 	OSL_ENSURE( m_xFactory.is(), "No factory is provided to the package folder!" );
+ 
+-	ZipPackageEntry::mbAllowRemoveOnInsert = bAllowRemoveOnInsert;
++	this->mbAllowRemoveOnInsert = bAllowRemoveOnInsert;
+ 
+ 	SetFolder ( sal_True );
+ 	aEntry.nVersion		= -1;
+diff -ur package/source/zippackage/ZipPackageStream.cxx package_new/source/zippackage/ZipPackageStream.cxx
+--- package/source/zippackage/ZipPackageStream.cxx	2005-07-12 14:31:48.000000000 +0200
++++ package_new/source/zippackage/ZipPackageStream.cxx	2005-07-14 17:32:10.000000000 +0200
+@@ -137,7 +137,7 @@
+ { 
+ 	OSL_ENSURE( m_xFactory.is(), "No factory is provided to ZipPackageStream!\n" );
+ 
+-	ZipPackageEntry::mbAllowRemoveOnInsert = bAllowRemoveOnInsert;
++	this->mbAllowRemoveOnInsert = bAllowRemoveOnInsert;
+ 
+ 	SetFolder ( sal_False );
+ 	aEntry.nVersion		= -1;
