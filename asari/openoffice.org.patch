@@ -1,90 +1,4 @@
-diff -ur package/inc/ZipPackageFolder.hxx package_new/inc/ZipPackageFolder.hxx
---- package/inc/ZipPackageFolder.hxx	2005-07-12 14:28:10.000000000 +0200
-+++ package_new/inc/ZipPackageFolder.hxx	2005-07-14 17:30:52.000000000 +0200
-@@ -121,7 +121,7 @@
- 	}
- 
- 	void setPackageFormat_Impl( sal_Bool bPackageFormat ) { m_bPackageFormat = bPackageFormat; }
--	void setRemoveOnInsertMode_Impl( sal_Bool bRemove ) { ZipPackageEntry::mbAllowRemoveOnInsert = bRemove; }
-+	void setRemoveOnInsertMode_Impl( sal_Bool bRemove ) { this->mbAllowRemoveOnInsert = bRemove; }
- 
- 	// Recursive functions
- 	void  saveContents(rtl::OUString &rPath, std::vector < com::sun::star::uno::Sequence < com::sun::star::beans::PropertyValue > > &rManList, ZipOutputStream & rZipOut, com::sun::star::uno::Sequence < sal_Int8 > &rEncryptionKey, rtlRandomPool & rRandomPool)
-diff -ur package/source/zippackage/ZipPackageFolder.cxx package_new/source/zippackage/ZipPackageFolder.cxx
---- package/source/zippackage/ZipPackageFolder.cxx	2005-07-12 14:31:33.000000000 +0200
-+++ package_new/source/zippackage/ZipPackageFolder.cxx	2005-07-14 17:31:14.000000000 +0200
-@@ -128,7 +128,7 @@
- {
- 	OSL_ENSURE( m_xFactory.is(), "No factory is provided to the package folder!" );
- 
--	ZipPackageEntry::mbAllowRemoveOnInsert = bAllowRemoveOnInsert;
-+	this->mbAllowRemoveOnInsert = bAllowRemoveOnInsert;
- 
- 	SetFolder ( sal_True );
- 	aEntry.nVersion		= -1;
-diff -ur package/source/zippackage/ZipPackageStream.cxx package_new/source/zippackage/ZipPackageStream.cxx
---- package/source/zippackage/ZipPackageStream.cxx	2005-07-12 14:31:48.000000000 +0200
-+++ package_new/source/zippackage/ZipPackageStream.cxx	2005-07-14 17:32:10.000000000 +0200
-@@ -137,7 +137,7 @@
- { 
- 	OSL_ENSURE( m_xFactory.is(), "No factory is provided to ZipPackageStream!\n" );
- 
--	ZipPackageEntry::mbAllowRemoveOnInsert = bAllowRemoveOnInsert;
-+	this->mbAllowRemoveOnInsert = bAllowRemoveOnInsert;
- 
- 	SetFolder ( sal_False );
- 	aEntry.nVersion		= -1;
---- config_office/configure	2005-08-04 00:25:19.000000000 +0900
-+++ config_office/configure.fink	2005-08-04 09:22:19.000000000 +0900
-@@ -8099,7 +8099,7 @@
- ac_ext=cc
- ac_cpp='$CXXCPP $CPPFLAGS'
- ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
--ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS -L@FINK_PREFIX@/lib conftest.$ac_ext $LIBS >&5'
- ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
- 
- fi
-@@ -9954,7 +9954,8 @@
-    python_include=`$PYTHON -c "import distutils.sysconfig; print distutils.sysconfig.get_config_var('INCLUDEPY');"`
-    python_version=`$PYTHON -c "import distutils.sysconfig; print distutils.sysconfig.get_config_var('VERSION');"`
-    PYTHON_CFLAGS="-I$python_include"
--   PYTHON_LIBS="-lpython$python_version"
-+   PYTHON_LIBS=`$PYTHON -c "import distutils.sysconfig; print distutils.sysconfig.get_config_var('LIBPL');"`
-+   PYTHON_LIBS="-L$PYTHON_LIBS -lpython$python_version"
- 
-       save_CPPFLAGS="$CPPFLAGS"
-    CPPFLAGS="$CPPFLAGS $PYTHON_CFLAGS"
-@@ -13954,7 +13955,7 @@
-    { (exit 1); exit 1; }; } # Exit
-    fi
-    CFLAGS=$X_CFLAGS
--   LDFLAGS="$X_LDFLAGS $X_LIBS"
-+   LDFLAGS="-L@FINK_PREFIX@/lib $X_LDFLAGS $X_LIBS"
-    echo "$as_me:$LINENO: checking for XOpenDisplay in -lX11" >&5
- echo $ECHO_N "checking for XOpenDisplay in -lX11... $ECHO_C" >&6
- if test "${ac_cv_lib_X11_XOpenDisplay+set}" = set; then
-@@ -15106,7 +15107,7 @@
-   echo $ECHO_N "(cached) $ECHO_C" >&6
- else
-   ac_check_lib_save_LIBS=$LIBS
--LIBS="-lportaudio  $LIBS"
-+LIBS="-framework CoreAudio -framework AudioToolBox -lportaudio  $LIBS"
- cat >conftest.$ac_ext <<_ACEOF
- /* confdefs.h.  */
- _ACEOF
-@@ -15169,7 +15170,7 @@
- #define HAVE_LIBPORTAUDIO 1
- _ACEOF
- 
--  LIBS="-lportaudio $LIBS"
-+  LIBS="-framework CoreAudio -framework AudioToolBox -lportaudio $LIBS"
- 
- else
-   { { echo "$as_me:$LINENO: error: portaudio library not found or functional" >&5
-
-
-
+### scp2 patches to use correct libxml
 Index: scp2/source/base/file_base.scp
 ===================================================================
 RCS file: /cvs/installation/scp2/source/base/file_base.scp,v
@@ -179,7 +93,7 @@ diff -u -r1.5 ure.scp
 +
 
 
-
+### ucb patches to use system neon installed in non-standard directory
 Index: ucb/source/ucp/webdav/LinkSequence.cxx
 ===================================================================
 RCS file: /cvs/ucb/ucb/source/ucp/webdav/LinkSequence.cxx,v
@@ -379,46 +293,56 @@ diff -u -r1.23 makefile.mk
  NEONINCDIR=external$/neon
 
 
-
+### patch to use system jpeg
 Index: solenv/inc/libs.mk
 ===================================================================
 RCS file: /cvs/tools/solenv/inc/libs.mk,v
-retrieving revision 1.91
-diff -u -r1.91 libs.mk
---- solenv/inc/libs.mk	20 Jun 2005 15:27:27 -0000	1.91
-+++ solenv/inc/libs.mk	14 Aug 2005 09:43:22 -0000
-@@ -2,9 +2,9 @@
- #
- #   $RCSfile$
- #
--#   $Revision$
-+#   $Revision$
- #
--#   last change: $Author$ $Date$
-+#   last change: $Author$ $Date$
- #
- #   The Contents of this file are made available subject to the terms of
- #   either of the following licenses
-@@ -59,7 +59,7 @@
- #
- #
- #*************************************************************************
--LIBSMKREV!:="$$Revision$$"
-+LIBSMKREV!:="$$Revision$$"
- 
- .IF "$(COM)"=="WTC"
- LIBPRE=libr
-@@ -206,7 +206,13 @@
- .IF "$(SYSTEM_JPEG)"=="YES"
- .IF "$(SOLAR_JAVA)" != ""
+retrieving revision 1.92
+diff -u -u -r1.92 libs.mk
+--- solenv/inc/libs.mk	5 Aug 2005 15:04:49 -0000	1.92
++++ solenv/inc/libs.mk	15 Aug 2005 06:21:39 -0000
+@@ -208,6 +208,8 @@
  #i34482# Blackdown jdk is in the libsearch patch and has a libjpeg
-+.IF "$(OS)" == "FREEBSD"
-+JPEG3RDLIB=/usr/local/lib/libjpeg.so
+ .IF "$(OS)" == "FREEBSD"
+ JPEG3RDLIB=/usr/local/lib/libjpeg.so
 +.ELIF "$(OS)" == "MACOSX"
 +JPEG3RDLIB=-ljpeg
-+.ELSE
- JPEG3RDLIB=/usr/lib/libjpeg.so
-+.ENDIF
  .ELSE
- JPEG3RDLIB=-ljpeg
+ JPEG3RDLIB=/usr/lib/libjpeg.so
  .ENDIF
+
+
+# patch to use system python and system portaudio
+Index: config_office/configure.in
+===================================================================
+RCS file: /cvs/tools/config_office/configure.in,v
+retrieving revision 1.129
+diff -u -r1.129 configure.in
+--- config_office/configure.in	5 Aug 2005 15:05:56 -0000	1.129
++++ config_office/configure.in	15 Aug 2005 08:14:48 -0000
+@@ -2436,7 +2436,8 @@
+    python_include=`$PYTHON -c "import distutils.sysconfig; print distutils.sysconfig.get_config_var('INCLUDEPY');"`
+    python_version=`$PYTHON -c "import distutils.sysconfig; print distutils.sysconfig.get_config_var('VERSION');"`
+    PYTHON_CFLAGS="-I$python_include"
+-   PYTHON_LIBS="-lpython$python_version"
++   PYTHON_LIBS=`$PYTHON -c "import distutils.sysconfig; print distutils.sysconfig.get_config_var('LIBPL');"`
++   PYTHON_LIBS="-L$PYTHON_LIBS -lpython$python_version"
+    
+    dnl check if the headers really work:
+    save_CPPFLAGS="$CPPFLAGS"
+@@ -3047,8 +3048,13 @@
+ 	   AC_MSG_RESULT(external)
+ 	   AC_CHECK_HEADER(portaudio.h, [],
+ 		[AC_MSG_ERROR(portaudio header not found. install portaudio)], [])
+-	   AC_CHECK_LIB(portaudio, Pa_Initialize, [],
+-		[AC_MSG_ERROR(portaudio library not found or functional)], [])
++	   if test "$_os" = "Darwin"; then
++		AC_CHECK_LIB(portaudio, Pa_Initialize, [],
++		    [AC_MSG_ERROR(portaudio library not found or functional)], [-framework CoreAudio -framework AudioToolBox])
++	   else
++		AC_CHECK_LIB(portaudio, Pa_Initialize, [],
++		    [AC_MSG_ERROR(portaudio library not found or functional)], [])
++	   fi
+ 	   AC_MSG_CHECKING(portaudio version)
+ 	   AC_LANG(C)
+ 	   AC_TRY_LINK([#include <portaudio.h>], [

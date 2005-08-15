@@ -1,8 +1,8 @@
 Info2: <<
 Package: openoffice.org
 Description: Integrated office productivity suite
-Version: 1.9m121
-Revision: 63
+Version: 1.9m123
+Revision: 11
 License: OSI-Approved
 Maintainer: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>
 
@@ -15,7 +15,8 @@ BuildDepends: <<
   sane-backends, libcurl3-ssl | libcurl3,
   boost1.32-py23 | boost1.32-py24, libsndfile1-dev,
   portaudio, neon24-ssl | neon24,
-  mozilla-dev
+  mozilla-dev,
+  autoconf2.5
 <<
 Depends: <<
   x11, system-java14, system-perl,
@@ -34,12 +35,12 @@ Source-MD5: bff4e15647e2bc41e79166962dd586d4
 NoSourceDirectory: true
 Source2: ftp://ftp.cs.man.ac.uk/pub/toby/gpc/gpc231.tar.Z
 Source2-MD5: fdb06fdb5a4670b172f9fb738b717be9
-Source3: http://fink.sodan.ecc.u-tokyo.ac.jp/~asari/OpenOffice.org/patches/openoffice.org.113to121.patch.bz2
-Source3-MD5: e7711d8ed979eaab1cc62d1866b39115
+Source3: http://fink.sodan.ecc.u-tokyo.ac.jp/~asari/OpenOffice.org/patches/openoffice.org.113to123.patch.bz2
+Source3-MD5: 8c0edf9234b3b96b0a32df596c2122e4
 
 PatchScript: <<
   /bin/mv gpc231/gpc.{c,h} external/gpc
-  /usr/bin/bzip2 -dc openoffice.org.113to121.patch.bz2 | /usr/bin/patch -p1 
+  /usr/bin/bzip2 -dc openoffice.org.113to123.patch.bz2 | /usr/bin/patch -p1 
   /usr/bin/sed "s|@FINK_PREFIX@|%p|g" < %a/%n.patch | /usr/bin/patch -p0
   /bin/mkdir FINKLIBS
   /bin/ln -s %p/lib/libdb_java-4.2.jnilib FINKLIBS
@@ -54,6 +55,7 @@ ConfigureParams: <<
   --with-x --x-includes=/usr/X11R6/include --x-libraries=/usr/X11R6/lib \
   --with-jdk-home=/Library/Java/Home --with-ant-home=%p/lib/ant \
   --disable-gtk --disable-crashdump \
+  --enable-pasf \
   --with-build-version="%v-%r; Built with Fink <http://fink.sourceforge.net>" \
   --with-system-stdlibs \
   --with-system-zlib \
@@ -79,18 +81,21 @@ ConfigureParams: <<
 # --with-system-myspell      # not in Fink
 # --with-system-mythes       # not in Fink
 # --with-system-altlinuxhyph # not in Fink
-# --with-system-boost        # error ocurres?
-# --with-system-python       # fails building instsetooo_native?
+# --with-system-boost        # TO DO 2 : error ocurres?
+# --with-system-python       # TO DO 3 : fails building instsetooo_native?
+# link to system freetype    # TO DO 1
+# --enable-libart            # TO DO 0
 
 GCC: 3.3
 CompileScript: <<
   #!/bin/bash -ev
-  (cd config_office && PKG_CONFIG_PATH=%p/lib/freetype219/lib/pkgconfig/ ./configure %c)
+  export X_LDFLAGS=$LDFLAGS
+  export PKG_CONFIG_PATH=%p/lib/freetype219/lib/pkgconfig
+  (cd config_office && autoconf && ./configure %c)
   ./bootstrap
   . MacosxEnv.Set.sh
   export SOLARINC=`echo $SOLARINC | /usr/bin/sed -e"s|-I/usr/X11R6/include -I/usr/X11R6/include/freetype2|-I%p/include/db4 -I%p/include -I%p/lib/freetype219/include/freetype2 -I/sw/lib/freetype219/include -I/usr/X1186/include|g"`
   export SOLARLIB=`echo $SOLARLIB | /usr/bin/sed -e"s|-L/usr/lib|-L%p/lib -L/usr/lib|g"`
-  export SYSTEM_PORTAUDIO=YES
   export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:%b/FINKLIBS"
   export DEFAULT_TO_ENGLISH_FOR_PACKING=yes
   dmake
