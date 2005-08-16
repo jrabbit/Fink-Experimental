@@ -2,7 +2,7 @@ Info2: <<
 Package: openoffice.org
 Description: Integrated office productivity suite
 Version: 1.9m123
-Revision: 11
+Revision: 12
 License: OSI-Approved
 Maintainer: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>
 
@@ -15,7 +15,13 @@ BuildDepends: <<
   sane-backends, libcurl3-ssl | libcurl3,
   boost1.32-py23 | boost1.32-py24, libsndfile1-dev,
   portaudio, neon24-ssl | neon24,
-  mozilla-dev,
+  mozilla-dev, libart2,
+  atk1, audiofile, esound, gconf2-dev, libgettext3-dev, glib2-dev,
+  gnome-keyring-dev (>= 0.4.3-1), gnome-vfs2-ssl-dev | gnome-vfs2-dev,
+  gtk+2-dev, libbonobo2-dev, libbonoboui2-dev, libglade2,
+  libgnome2-dev, libgnomecanvas2-dev, libgnomeprint2.2-dev,
+  libgnomeprintui2.2-dev, libgnomeui2-dev, libiconv-dev, 
+  orbit2-dev, pango1-xft2-dev, pcre, pkgconfig, popt, vte-dev,
   autoconf2.5
 <<
 Depends: <<
@@ -26,21 +32,18 @@ Depends: <<
   sane-backends-shlibs, libcurl3-ssl-shlibs | libcurl3-shlibs,
   boost1.32-py23-shlibs | boost1.32-py24-shlibs, libsndfile1-shlibs,
   portaudio-shlibs, neon24-ssl-shlibs | neon24-shlibs,
-  mozilla-shlibs, mozilla-mailnews
+  mozilla-shlibs, mozilla-mailnews, libart2-shlibs
 <<
 
 Source: ftp://ooopackages.good-day.net/pub/OpenOffice.org/sources/OOo_1.9m113_source.tar.bz2
 Source-MD5: bff4e15647e2bc41e79166962dd586d4
 NoSourceDirectory: true
-Source2: ftp://ftp.cs.man.ac.uk/pub/toby/gpc/gpc231.tar.Z
-Source2-MD5: fdb06fdb5a4670b172f9fb738b717be9
-Source3: http://fink.sodan.ecc.u-tokyo.ac.jp/~asari/OpenOffice.org/patches/openoffice.org.113to123.patch.bz2
-Source3-MD5: 8c0edf9234b3b96b0a32df596c2122e4
+Source2: http://fink.sodan.ecc.u-tokyo.ac.jp/~asari/OpenOffice.org/patches/openoffice.org.113to123.patch.bz2
+Source2-MD5: 8c0edf9234b3b96b0a32df596c2122e4
 
 PatchScript: <<
-  /bin/mv gpc231/gpc.{c,h} external/gpc
   /usr/bin/bzip2 -dc openoffice.org.113to123.patch.bz2 | /usr/bin/patch -p1 
-  /usr/bin/sed "s|@FINK_PREFIX@|%p|g" < %a/%n.patch | /usr/bin/patch -p0
+  /usr/bin/patch -p0 < %a/%n.patch
   /bin/mkdir FINKLIBS
   /bin/ln -s %p/lib/libdb_java-4.2.jnilib FINKLIBS
 <<
@@ -53,9 +56,11 @@ ConfigureParams: <<
   --with-package-format=portable \
   --with-x --x-includes=/usr/X11R6/include --x-libraries=/usr/X11R6/lib \
   --with-jdk-home=/Library/Java/Home --with-ant-home=%p/lib/ant \
-  --disable-gtk --disable-crashdump \
-  --enable-pasf \
+  --disable-crashdump \
   --with-build-version="%v-%r; Built with Fink <http://fink.sourceforge.net>" \
+  --enable-libart \
+  --enable-gtk \
+  --enable-gnome-vfs \
   --with-system-stdlibs \
   --with-system-zlib \
   --with-system-jpeg \
@@ -74,16 +79,6 @@ ConfigureParams: <<
   --with-system-neon \
   --with-system-mozilla
 <<
-# --with-system-mspack       # not in Fink
-# --with-system-libwpd       # 0.8 not in Fink
-# --with-system-nas          # not in Fink
-# --with-system-myspell      # not in Fink
-# --with-system-mythes       # not in Fink
-# --with-system-altlinuxhyph # not in Fink
-# --with-system-boost        # TO DO 2 : error ocurres?
-# --with-system-python       # TO DO 3 : fails building instsetooo_native?
-# link to system freetype    # TO DO 1
-# --enable-libart            # TO DO 0
 
 GCC: 3.3
 CompileScript: <<
@@ -93,10 +88,9 @@ CompileScript: <<
   (cd config_office && autoconf && ./configure %c)
   ./bootstrap
   . MacosxEnv.Set.sh
-  export SOLARINC=`echo $SOLARINC | /usr/bin/sed -e"s|-I/usr/X11R6/include -I/usr/X11R6/include/freetype2|-I%p/include/db4 -I%p/include -I%p/lib/freetype219/include/freetype2 -I/sw/lib/freetype219/include -I/usr/X1186/include|g"`
+  export SOLARINC=`echo $SOLARINC | /usr/bin/sed -e"s|-I/usr/X11R6/include -I/usr/X11R6/include/freetype2|-I%p/include/db4 -I%p/include -I%p/lib/freetype219/include/freetype2 -I%p/lib/freetype219/include -I/usr/X1186/include|g"`
   export SOLARLIB=`echo $SOLARLIB | /usr/bin/sed -e"s|-L/usr/lib|-L%p/lib -L/usr/lib|g"`
   export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:%b/FINKLIBS"
-  export DEFAULT_TO_ENGLISH_FOR_PACKING=yes
   dmake
 <<
 
@@ -143,5 +137,34 @@ http://porting.openoffice.org/servlets/ReadMsg?list=dev&msgNo=16047
 It is reported that:
   * Mac OS X SDK (which comes with Xcode) is needed.
   * Sometimes checking getaddrinfo() fails on configuring python (on Panther?)
+
+Because DYLD_LIBRARY_PATH does not contain %p/lib by default,
+Java cannot find %p/lib/libdb_java-4.2.jnilib at compile time and runtime.
+This script tries to make a symlink of it in %p/lib/openoffice.org/programs.
+<<
+DescPackaging: <<
+To Do & Memo:
+# --with-system-mspack       # not in Fink
+# --with-system-libwpd       # 0.8 not in Fink
+# --with-system-nas          # not in Fink
+# --with-system-myspell      # not in Fink
+# --with-system-mythes       # not in Fink
+# --with-system-altlinuxhyph # not in Fink
+# --with-system-boost        # TO DO 2 : error ocurres?
+# --with-system-python       # TO DO 3 : fails building instsetooo_native?
+# link to system freetype    # TO DO 1
+# --enable-gtk               # cool! export SAL_USE_VCLPLUGIN="gtk"
+
+# --enable-openldap          # not needed?
+# --enable-libsn             # libstartup-notification is not in Fink
+# --enable-evolution2        # evolution2 not in Fink
+# --enable-pasf              # enabled by default?
+
+# checking whether to enable native CUPS support... no
+# checking whether to enable fontconfig support... no
+# checking for STLport4 headers... using internal stlport.
+# checking whether to build Mozilla addressbook connectivity... no, not possible with system-mozilla
+# checking whether to use Mozilla or Firefox... Mozilla
+# checking whether to enable GNOME VFS support... no
 <<
 <<
