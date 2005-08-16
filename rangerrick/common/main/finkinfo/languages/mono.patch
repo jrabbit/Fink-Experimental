@@ -1,6 +1,6 @@
-diff -uNr mono-1.1.8.2/data/config.in mono-1.1.8.2-new/data/config.in
---- mono-1.1.8.2/data/config.in	2005-06-13 10:00:53.000000000 -0400
-+++ mono-1.1.8.2-new/data/config.in	2005-07-17 19:06:34.000000000 -0400
+diff -uNr mono-1.1.8.3/data/config.in mono-1.1.8.3-new/data/config.in
+--- mono-1.1.8.3/data/config.in	Mon Jun 13 10:00:53 2005
++++ mono-1.1.8.3-new/data/config.in	Tue Aug 16 16:09:07 2005
 @@ -9,6 +9,10 @@
  	<dllmap dll="db2cli" target="libdb2_36@libsuffix@"/>
  	<dllmap dll="msvcrt" target="@LIBC@"/>
@@ -12,9 +12,9 @@ diff -uNr mono-1.1.8.2/data/config.in mono-1.1.8.2-new/data/config.in
  	<dllmap dll="sqlite" target="@SQLITE@"/>
  	<dllmap dll="sqlite3" target="@SQLITE3@"/>
  	<dllmap dll="libX11" target="@X11@"/>
-diff -uNr mono-1.1.8.2/mono/metadata/Makefile.in mono-1.1.8.2-new/mono/metadata/Makefile.in
---- mono-1.1.8.2/mono/metadata/Makefile.in	2005-06-30 19:35:03.000000000 -0400
-+++ mono-1.1.8.2-new/mono/metadata/Makefile.in	2005-07-17 19:06:34.000000000 -0400
+diff -uNr mono-1.1.8.3/mono/metadata/Makefile.in mono-1.1.8.3-new/mono/metadata/Makefile.in
+--- mono-1.1.8.3/mono/metadata/Makefile.in	Tue Jul 26 20:08:30 2005
++++ mono-1.1.8.3-new/mono/metadata/Makefile.in	Tue Aug 16 16:09:07 2005
 @@ -68,7 +68,7 @@
  am_libmonoruntime_static_la_OBJECTS = $(am__objects_1)
  libmonoruntime_static_la_OBJECTS =  \
@@ -24,20 +24,20 @@ diff -uNr mono-1.1.8.2/mono/metadata/Makefile.in mono-1.1.8.2-new/mono/metadata/
  am_libmonoruntime_la_OBJECTS = reflection.lo object.lo icall.lo \
  	decimal.lo boehm-gc.lo null-gc.lo gc.lo marshal.lo monitor.lo \
  	threads.lo threadpool.lo file-io.lo socket-io.lo exception.lo \
-diff -uNr mono-1.1.8.2/mono/metadata/loader.c mono-1.1.8.2-new/mono/metadata/loader.c
---- mono-1.1.8.2/mono/metadata/loader.c	2005-06-13 10:11:20.000000000 -0400
-+++ mono-1.1.8.2-new/mono/metadata/loader.c	2005-07-17 19:06:34.000000000 -0400
+diff -uNr mono-1.1.8.3/mono/metadata/loader.c mono-1.1.8.3-new/mono/metadata/loader.c
+--- mono-1.1.8.3/mono/metadata/loader.c	Mon Jun 13 10:11:20 2005
++++ mono-1.1.8.3-new/mono/metadata/loader.c	Tue Aug 16 16:10:16 2005
 @@ -736,6 +736,19 @@
  		}
  
  		if (!gmodule) {
 +			full_name = g_module_build_path ("@PREFIX@/lib", file_name);
 +			mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_DLLIMPORT,
-+					"DllImport loading library: '@PREFIX@/lib/%s'.", full_name);
++					"DllImport loading location: '%s'.", full_name);
 +			gmodule = g_module_open (full_name, G_MODULE_BIND_LAZY);
 +			if (!gmodule) {
 +				mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_DLLIMPORT,
-+						"DllImport error loading library '%s'.",
++						"DllImport error loading library: '%s'.",
 +						g_module_error ());
 +			}
 +			g_free (full_name);
@@ -47,176 +47,41 @@ diff -uNr mono-1.1.8.2/mono/metadata/loader.c mono-1.1.8.2-new/mono/metadata/loa
  			full_name = g_module_build_path (".", file_name);
  			mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_DLLIMPORT,
  					"DllImport loading library: '%s'.", full_name);
-Index: mono-1.1.8.3/mcs/tests/test-iter-11.cs
-===================================================================
---- mono-1.1.8.3/mcs/tests/test-iter-11.cs	(.../tags/mono-1-1-8-3)	(revision 0)
-+++ mono-1.1.8.3/mcs/tests/test-iter-11.cs	(.../branches/mono-1-1-8)	(revision 48406)
-@@ -0,0 +1,30 @@
-+using System;
-+using System.Collections;
-+
-+class X {
-+	public event EventHandler Hook;
-+
-+	public IEnumerator Pipeline ()
-+	{
-+		if (Hook == null)
-+			throw new Exception ("error");
-+
-+		Hook (this, EventArgs.Empty);
-+		
-+		yield return 0;
-+	}
-+
-+	static void M (object sender, EventArgs args)
-+	{
-+		Console.WriteLine ("Hook invoked");
-+	}
-+	
-+	static void Main ()
-+	{
-+		X x = new X ();
-+		x.Hook += M;
-+		IEnumerator y = x.Pipeline ();
-+		y.MoveNext ();
-+	}
-+}
-+
-
-Index: mono-1.1.8.3/mcs/mcs/anonymous.cs
-===================================================================
---- mono-1.1.8.3/mcs/mcs/anonymous.cs	(.../tags/mono-1-1-8-3)	(revision 48406)
-+++ mono-1.1.8.3/mcs/mcs/anonymous.cs	(.../branches/mono-1-1-8)	(revision 48406)
-@@ -924,16 +924,25 @@
- 		// Captured fields are only recorded on the topmost CaptureContext, because that
- 		// one is the one linked to the owner of instance fields
- 		//
--		public void AddField (FieldExpr fe)
-+		public void AddField (EmitContext ec, AnonymousContainer am, FieldExpr fe)
- 		{
- 			if (fe.FieldInfo.IsStatic)
- 				throw new Exception ("Attempt to register a static field as a captured field");
-+			CaptureContext parent = ParentCaptureContext;
-+			if (parent != null) {
-+				parent.AddField (ec, am, fe);
-+				return;
-+			}
-+
-+			if (topmost == null){
-+				//
-+				// Create one ScopeInfo, if there are none.
-+				//
-+				topmost = new ScopeInfo (this, toplevel_owner);
-+				scopes [toplevel_owner.ID] = topmost;
-+			}
- 			
--			CaptureContext parent = ParentCaptureContext;
--			if (parent != null)
--				parent.AddField (fe);
--			else
--				captured_fields [fe] = fe;
-+			AdjustMethodScope (am, topmost);
- 		}
+diff -uNr mono-1.1.8.3/mono/metadata/mono-debug-debugger.c mono-1.1.8.3-new/mono/metadata/mono-debug-debugger.c
+--- mono-1.1.8.3/mono/metadata/mono-debug-debugger.c	Thu May 12 11:36:50 2005
++++ mono-1.1.8.3-new/mono/metadata/mono-debug-debugger.c	Tue Aug 16 16:09:07 2005
+@@ -65,9 +65,12 @@
  
- 		public void CaptureThis ()
-Index: mono-1.1.8.3/mcs/mcs/codegen.cs
-===================================================================
---- mono-1.1.8.3/mcs/mcs/codegen.cs	(.../tags/mono-1-1-8-3)	(revision 48406)
-+++ mono-1.1.8.3/mcs/mcs/codegen.cs	(.../branches/mono-1-1-8)	(revision 48406)
-@@ -588,7 +588,7 @@
- 		//
- 		public void CaptureField (FieldExpr fe)
- 		{
--			capture_context.AddField (fe);
-+			capture_context.AddField (this, CurrentAnonymousMethod, fe);
- 		}
+ #endif
  
- 		//
-Index: mono-1.1.8.3/mcs/gmcs/anonymous.cs
-===================================================================
---- mono-1.1.8.3/mcs/gmcs/anonymous.cs	(.../tags/mono-1-1-8-3)	(revision 48406)
-+++ mono-1.1.8.3/mcs/gmcs/anonymous.cs	(.../branches/mono-1-1-8)	(revision 48406)
-@@ -1034,16 +1034,25 @@
- 		// Captured fields are only recorded on the topmost CaptureContext, because that
- 		// one is the one linked to the owner of instance fields
- 		//
--		public void AddField (FieldExpr fe)
-+		public void AddField (EmitContext ec, AnonymousContainer am, FieldExpr fe)
- 		{
- 			if (fe.FieldInfo.IsStatic)
- 				throw new Exception ("Attempt to register a static field as a captured field");
-+			CaptureContext parent = ParentCaptureContext;
-+			if (parent != null) {
-+				parent.AddField (ec, am, fe);
-+				return;
-+			}
++static int initialized = 0;
 +
-+			if (topmost == null){
-+				//
-+				// Create one ScopeInfo, if there are none.
-+				//
-+				topmost = new ScopeInfo (this, toplevel_owner);
-+				scopes [toplevel_owner.ID] = topmost;
-+			}
- 			
--			CaptureContext parent = ParentCaptureContext;
--			if (parent != null)
--				parent.AddField (fe);
--			else
--				captured_fields [fe] = fe;
-+			AdjustMethodScope (am, topmost);
- 		}
+ void
+ mono_debugger_lock (void)
+ {
++	g_assert (initialized);
+ 	EnterCriticalSection (&debugger_lock_mutex);
+ 	debugger_lock_level++;
+ }
+@@ -75,6 +78,7 @@
+ void
+ mono_debugger_unlock (void)
+ {
++	g_assert (initialized);
+ 	if (debugger_lock_level == 1) {
+ 		if (must_reload_symtabs && mono_debugger_use_debugger) {
+ 			mono_debugger_event (MONO_DEBUGGER_EVENT_RELOAD_SYMTABS, 0, 0);
+@@ -95,6 +99,7 @@
  
- 		public void CaptureThis ()
-Index: mono-1.1.8.3/mcs/gmcs/codegen.cs
-===================================================================
---- mono-1.1.8.3/mcs/gmcs/codegen.cs	(.../tags/mono-1-1-8-3)	(revision 48406)
-+++ mono-1.1.8.3/mcs/gmcs/codegen.cs	(.../branches/mono-1-1-8)	(revision 48406)
-@@ -519,7 +519,7 @@
- 		//
- 		public void CaptureField (FieldExpr fe)
- 		{
--			capture_context.AddField (fe);
-+			capture_context.AddField (this, CurrentAnonymousMethod, fe);
- 		}
+ 	InitializeCriticalSection (&debugger_lock_mutex);
+ 	mono_debugger_use_debugger = use_debugger;
++	initialized = 1;
+ }
  
- 		//
-Index: mono/mono/metadata/process.c
-===================================================================
---- mono/mono/metadata/process.c	(.../tags/mono-1-1-8-3)	(revision 48406)
-+++ mono/mono/metadata/process.c	(.../branches/mono-1-1-8)	(revision 48406)
-@@ -854,7 +854,8 @@
- 		process_info->process_handle=procinfo.hProcess;
- 		/*process_info->thread_handle=procinfo.hThread;*/
- 		process_info->thread_handle=NULL;
--		CloseHandle(procinfo.hThread);
-+		if (procinfo.hThread != NULL)
-+			CloseHandle(procinfo.hThread);
- 		process_info->pid=procinfo.dwProcessId;
- 		process_info->tid=procinfo.dwThreadId;
- 	} else {
-Index: mono/mono/metadata/ChangeLog
-===================================================================
---- mono/mono/metadata/ChangeLog	(.../tags/mono-1-1-8-3)	(revision 48406)
-+++ mono/mono/metadata/ChangeLog	(.../branches/mono-1-1-8)	(revision 48406)
-@@ -1,3 +1,13 @@
-+2005-09-12  Lluis Sanchez  <lluis@ximian.com>
-+
-+	* process.c: Don't close a thread handle when it's NULL. This is a
-+	workaround for bug #75733.
-+
-+2005-07-01  Lluis Sanchez  <lluis@ximian.com>
-+
-+	* icall.c: In ves_icall_InternalExecute() dont't assert if the value
-+	returned by a field getter is null, since null is a valid value.
-+
- 2005-06-20 Gonzalo Paniagua Javier <gonzalo@ximian.com>
- 
- 	* domain.c:
-Index: mono/mono/metadata/mono-debug.c
-===================================================================
---- mono/mono/metadata/mono-debug.c	(.../tags/mono-1-1-8-3)	(revision 48406)
-+++ mono/mono/metadata/mono-debug.c	(.../branches/mono-1-1-8)	(revision 48406)
+ void
+diff -uNr mono-1.1.8.3/mono/metadata/mono-debug.c mono-1.1.8.3-new/mono/metadata/mono-debug.c
+--- mono-1.1.8.3/mono/metadata/mono-debug.c	Tue Jul 26 14:26:52 2005
++++ mono-1.1.8.3-new/mono/metadata/mono-debug.c	Tue Aug 16 16:09:07 2005
 @@ -771,6 +771,9 @@
  	char *res = NULL;
  	gint32 offset;
@@ -255,48 +120,16 @@ Index: mono/mono/metadata/mono-debug.c
  		return -1;
  
  	mono_debugger_lock ();
-Index: mono/mono/metadata/mono-debug-debugger.c
-===================================================================
---- mono/mono/metadata/mono-debug-debugger.c	(.../tags/mono-1-1-8-3)	(revision 48406)
-+++ mono/mono/metadata/mono-debug-debugger.c	(.../branches/mono-1-1-8)	(revision 48406)
-@@ -65,9 +65,12 @@
- 
- #endif
- 
-+static int initialized = 0;
-+
- void
- mono_debugger_lock (void)
- {
-+	g_assert (initialized);
- 	EnterCriticalSection (&debugger_lock_mutex);
- 	debugger_lock_level++;
- }
-@@ -75,6 +78,7 @@
- void
- mono_debugger_unlock (void)
- {
-+	g_assert (initialized);
- 	if (debugger_lock_level == 1) {
- 		if (must_reload_symtabs && mono_debugger_use_debugger) {
- 			mono_debugger_event (MONO_DEBUGGER_EVENT_RELOAD_SYMTABS, 0, 0);
-@@ -95,6 +99,7 @@
- 
- 	InitializeCriticalSection (&debugger_lock_mutex);
- 	mono_debugger_use_debugger = use_debugger;
-+	initialized = 1;
- }
- 
- void
-Index: mono/mono/metadata/icall.c
-===================================================================
---- mono/mono/metadata/icall.c	(.../tags/mono-1-1-8-3)	(revision 48406)
-+++ mono/mono/metadata/icall.c	(.../branches/mono-1-1-8)	(revision 48406)
-@@ -2561,7 +2561,6 @@
- 					else 
- 						result = *((gpointer *)((char *)this + field->offset));
- 				
--					g_assert (result);
- 					out_args = mono_array_new (domain, mono_defaults.object_class, 1);
- 					*outArgs = out_args;
- 					mono_array_set (out_args, gpointer, 0, result);
+diff -uNr mono-1.1.8.3/mono/metadata/process.c mono-1.1.8.3-new/mono/metadata/process.c
+--- mono-1.1.8.3/mono/metadata/process.c	Sun Mar 13 21:18:24 2005
++++ mono-1.1.8.3-new/mono/metadata/process.c	Tue Aug 16 16:09:07 2005
+@@ -854,7 +854,8 @@
+ 		process_info->process_handle=procinfo.hProcess;
+ 		/*process_info->thread_handle=procinfo.hThread;*/
+ 		process_info->thread_handle=NULL;
+-		CloseHandle(procinfo.hThread);
++		if (procinfo.hThread != NULL)
++			CloseHandle(procinfo.hThread);
+ 		process_info->pid=procinfo.dwProcessId;
+ 		process_info->tid=procinfo.dwThreadId;
+ 	} else {
