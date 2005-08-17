@@ -1,0 +1,147 @@
+Package: apt
+Version: 0.5.28.6
+Revision: 1
+GCC: 3.3
+Depends: %N-pkg3.3-shlibs (>= %v-%r), %N-inst1.0-shlibs (>= %v-%r)
+BuildDepends: fink-prebinding
+Source: mirror:sourceforge:fink/%n_%v.tar.gz
+Source-MD5: 26b37525371cdaaec552237e0667305d
+SourceDirectory: %n-%v
+PatchScript: <<
+ sed -e 's|@PREFIX@|%p|g' -e 's|@DIST@|10.3|g' <%a/%n.patch | patch -p1
+ sh patch_flush
+ for i in `grep -rl '#ifdef __GNUG__' .` ; do perl -pi.bak -e 's/#ifdef __GNUG__/#if defined(__GNUG__) && !defined(__APPLE_CC__)/' $i; done
+<<
+NoSetCPPFLAGS: true
+SetLIBS: -L%p/lib -undefined dynamic_lookup
+NoSetLDFLAGS: true
+SetCXXFLAGS: -O2 -DEMULATE_MMAP -D__USE_MISC -fconstant-cfstrings -DHAVE_SOCKLEN_T=1
+CompileScript: <<
+#!/bin/sh -ex
+
+ ./configure %c
+ make -f makefile.wrap NOISY=1 GLIBC_VER= LIBSTDCPP_VER= INTLLIBS="-L%p/lib -lintl"
+<<
+InstallScript: <<
+#!/bin/sh -ex
+
+ install -d -m 755 %i/bin
+ install -d -m 755 %i/lib
+ install -d -m 755 %i/lib/apt/methods
+ install -d -m 755 %i/lib/dpkg/methods/apt
+ install -d -m 755 %i/include/apt-pkg
+ install -d -m 755 %i/share/man/man{1,5,8}
+ install -d -m 755 %i/etc/apt/apt.conf.d
+ install -d -m 755 %i/var/cache/apt/archives/partial
+ install -d -m 755 %i/var/lib/apt/lists/partial
+
+ for binfile in cache cdrom config extracttemplates get sortpkgs; do
+   install -c -m 755 bin/apt-$binfile %i/bin/
+ done
+
+ install -m 644 bin/libapt-pkg.3.3.0.dylib %i/lib/
+ pushd %i/lib/ && ln -s libapt-pkg.3.3.0.dylib libapt-pkg.3.3.dylib && ln -s libapt-pkg.3.3.0.dylib libapt-pkg.dylib && popd
+ install -m 644 bin/libapt-inst.1.0.0.dylib %i/lib/
+ pushd %i/lib/ && ln -s libapt-inst.1.0.0.dylib libapt-inst.1.0.dylib && ln -s libapt-inst.1.0.0.dylib libapt-inst.dylib && popd
+
+ for method in bin/methods/*; do
+  install -c -m 755 $method %i/lib/apt/methods/
+ done
+
+ for method in scripts/dselect/*; do
+  install -c $method %i/lib/dpkg/methods/apt/
+ done
+
+ install -c -m 644 include/apt-pkg/*.h %i/include/apt-pkg/
+
+ for ext in 1 5 8; do
+  install -m 644 doc/*.$ext docs/*.$ext %i/share/man/man$ext/
+ done
+
+<<
+SplitOff: <<
+  Package: %N-pkg3.3-shlibs
+  Depends: dpkg, fink (>= 0.20.6-1)
+  Replaces: %N-shlibs
+  Files: lib/libapt-pkg.3.3*.dylib
+  Shlibs: <<
+    %p/lib/libapt-pkg.3.3.dylib 3.3.0 apt-pkg3.3-shlibs (>= 0.5.28.6-1)
+  <<
+<<
+SplitOff2: <<
+  Package: %N-inst1.0-shlibs
+  Depends: dpkg, fink (>= 0.20.6-1)
+  Replaces: %N-shlibs
+  Files: lib/libapt-inst.1.0*.dylib
+  Shlibs: <<
+    %p/lib/libapt-inst.1.0.dylib 1.0.0 apkt-inst1.0-shlibs (>= 0.5.28.6-1) | apt-shlibs (>= 0.5.4-1)
+  <<
+<<
+SplitOff3: <<
+  Package: apt-pkg3.3-dev
+  Depends: apt-pkg3.3-shlibs (>= %v-%r), apt-inst1.0-shlibs (>= %v-%r)
+  Conflicts: apt-pkg3.2-dev
+  Replaces: apt-pkg3.2-dev, apt-dev
+  BuildDependsOnly: true
+  Files: lib/libapt-inst.dylib lib/libapt-pkg.dylib include
+  DocFiles: COPYING* AUTHORS
+<<
+DocFiles: COPYING* AUTHORS
+PostInstScript: <<
+if [ ! -f %p/var/lib/dpkg/cmethopt ]; then
+  echo "apt apt" >%p/var/lib/dpkg/cmethopt
+  chmod 644 %p/var/lib/dpkg/cmethopt
+else
+  read a b <%p/var/lib/dpkg/cmethopt
+  if [ "$a" != "apt" -o "$b" != "apt" ]; then
+    echo
+    echo "dselect is not set up to use apt as its access method. Downloading binary"
+    echo -n "package will likely not work. Do you want to use apt instead?"
+    read answer
+    answer=`echo $answer | sed 's/^[yY].*$/y/'`
+    if [ -z "$answer" -o "x$answer" = "xy" ]; then
+      echo "apt apt" >%p/var/lib/dpkg/cmethopt
+      chmod 644 %p/var/lib/dpkg/cmethopt
+    fi
+  fi
+fi
+
+rm -f %p/var/cache/apt/pkgcache.bin %p/var/cache/apt/srcpkgcache.bin
+<<
+#
+Description: Advanced front-end for dpkg
+DescPort: <<
+There are three troublemakers when porting apt:
+- It was written for Linux/ELF/glibc.
+- It was written to maintain a distribution that is in charge of the
+  system and hardcodes paths like /usr/bin, /usr/lib and /var/lib.
+- There is no install target in the Makefiles because the Debian
+  packaging files take care of what goes where.
+There's also the usual trouble like not recognizing Darwin and
+depending on a case-sensitive file system. All of this amounts to a
+big, bad patch.
+
+The patch also fixes some potential and some real crashing bugs.
+
+Oh, one more thing: mmap() is broken for non-trivial uses in OS X
+10.1. Luckily apt uses a wrapper class that can be equipped with a
+workaround (malloc() + read() + write()...).
+
+The -fno-rtti works around a bug in GCC 3.1 on Jaguar.
+
+Ben Hines - added patch to make apt recognize macosx and darwin pkgs
+
+The sources.list file is now supplied by the fink program rather than
+by apt-get.
+
+socklen_t exists starting in OS X 10.3
+
+dmacks - Implemented "--ignore-breakage" cmdline flag to 'apt-get install'
+(first appears in: 10.2-gcc3.3/0.5.4-41, 10.3/0.5.4-51)
+<<
+DescPackaging: <<
+Previous versions by Christoph Pfisterer.
+<<
+License: GPL
+Maintainer: Fink Core Group <fink-core@lists.sourceforge.net>
+Homepage: http://packages.qa.debian.org/a/apt.html

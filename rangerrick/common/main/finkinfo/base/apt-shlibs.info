@@ -1,0 +1,110 @@
+Package: apt-shlibs
+Version: 0.5.4
+Revision: 53
+GCC: 3.3
+BuildDepends: fink-prebinding
+Source: mirror:sourceforge:fink/apt_%v.tar.gz
+Source-MD5: 274fb64e2e67318b4c9c94599785c37d
+Depends: apt-pkg3.2-shlibs (>= %v-%r), apt-inst1.0-shlibs (>= %v-%r)
+SourceDirectory: apt-%v
+PatchScript: <<
+ sed -e 's|@PREFIX@|%p|g' -e 's|@DIST@|10.3|g' <%a/%n.patch | patch -p1
+ sh patch_flush
+ for i in `grep -rl '#ifdef __GNUG__' .` ; do perl -pi.bak -e 's/#ifdef __GNUG__/#if defined(__GNUG__) && !defined(__APPLE_CC__)/' $i; done
+<<
+NoSetCPPFLAGS: true
+NoSetLDFLAGS: true
+SetCXXFLAGS: -O2 -DEMULATE_MMAP -D__USE_MISC -fconstant-cfstrings -DHAVE_SOCKLEN_T=1
+CompileScript: <<
+ ./configure %c
+ make -f makefile.wrap NOISY=1
+<<
+InstallScript: <<
+ install -d -m 755 %i/lib
+ install -d -m 755 %i/include/apt-pkg
+
+ install -m 644 bin/libapt-pkg.3.2.0.dylib %i/lib/
+ cd %i/lib/ && ln -s libapt-pkg.3.2.0.dylib libapt-pkg.3.2.dylib && ln -s libapt-pkg.3.2.0.dylib libapt-pkg.dylib
+ install -m 644 bin/libapt-inst.1.0.0.dylib %i/lib/
+ cd %i/lib/ && ln -s libapt-inst.1.0.0.dylib libapt-inst.1.0.dylib && ln -s libapt-inst.1.0.0.dylib libapt-inst.dylib
+
+ install -c -m 644 include/apt-pkg/*.h %i/include/apt-pkg/
+<<
+SplitOff: <<
+  Package: apt-pkg3.2-shlibs
+  Depends: dpkg, fink (>= 0.20.6-1)
+  Replaces: apt (<= 0.5.4-1), apt-shlibs
+  Files: lib/libapt-pkg.3.2.0.dylib lib/libapt-pkg.3.2.dylib
+  Shlibs: <<
+    %p/lib/libapt-pkg.3.2.dylib 3.2.0 apt-shlibs (>= 0.5.4-24) | apt-pkg3.2-shlibs (>= 0.5.4-53)
+  <<
+  DocFiles: COPYING* AUTHORS
+<<
+SplitOff2: <<
+  Package: apt-inst1.0-shlibs
+  Depends: dpkg, fink (>= 0.20.6-1), apt-pkg3.2-shlibs (>= %v-%r)
+  Replaces: apt (<= 0.5.4-1), apt-shlibs
+  Files: lib/libapt-inst.1.0.0.dylib lib/libapt-inst.1.0.dylib
+  Shlibs: <<
+    %p/lib/libapt-inst.1.0.dylib 1.0.0 apt-shlibs (>= 0.5.4-24) | apt-inst1.0-shlibs (>= 0.5.4-53)
+  <<
+  DocFiles: COPYING* AUTHORS
+<<
+SplitOff3: <<
+  Package: apt-pkg3.2-dev
+  Depends: apt-pkg3.2-shlibs (>= %v-%r), apt-inst1.0-shlibs (>= %v-%r)
+  Conflicts: apt-pkg3.3-dev
+  Replaces: apt-pkg3.3-dev, apt-dev
+  Files: lib/libapt-inst.dylib lib/libapt-pkg.dylib include
+  DocFiles: COPYING* AUTHORS
+<<
+SplitOff4: <<
+  Package: apt-dev
+  Type: bundle
+  Depends: apt-pkg3.2-dev (>= %v-%r)
+  BuildDependsOnly: true
+  DocFiles: COPYING* AUTHORS
+<<
+DocFiles: COPYING* AUTHORS
+
+Description: Shared libraries for APT
+DescPort: <<
+This is just a repackaging of apt 0.5.4-52 for just the shared libs,
+for backwards-compatibility purposes.
+
+The original DescPort is as follows:
+
+There are three troublemakers when porting apt:
+- It was written for Linux/ELF/glibc.
+- It was written to maintain a distribution that is in charge of the
+  system and hardcodes paths like /usr/bin, /usr/lib and /var/lib.
+- There is no install target in the Makefiles because the Debian
+  packaging files take care of what goes where.
+There's also the usual trouble like not recognizing Darwin and
+depending on a case-sensitive file system. All of this amounts to a
+big, bad patch.
+
+The patch also fixes some potential and some real crashing bugs.
+
+Oh, one more thing: mmap() is broken for non-trivial uses in OS X
+10.1. Luckily apt uses a wrapper class that can be equipped with a
+workaround (malloc() + read() + write()...).
+
+The -fno-rtti works around a bug in GCC 3.1 on Jaguar.
+
+Ben Hines - added patch to make apt recognize macosx and darwin pkgs
+
+The sources.list file is now supplied by the fink program rather than
+by apt-get.
+
+socklen_t exists starting in OS X 10.3
+
+dmacks - Implemented "--ignore-breakage" cmdline flag to 'apt-get install'
+(first appears in: 10.2-gcc3.3/0.5.4-41, 10.3/0.5.4-51)
+<<
+DescPackaging: <<
+Previous versions by Christoph Pfisterer.
+<<
+License: GPL
+Maintainer: Fink Core Group <fink-core@lists.sourceforge.net>
+Homepage: http://packages.qa.debian.org/a/apt.html

@@ -1,0 +1,1461 @@
+diff -uNr apt-0.5.28.6/Makefile apt-0.5.28.6-new/Makefile
+--- apt-0.5.28.6/Makefile	Mon Jan 10 16:50:08 2005
++++ apt-0.5.28.6-new/Makefile	Wed Aug 17 16:09:44 2005
+@@ -15,7 +15,6 @@
+ 	$(MAKE) -C apt-inst $@
+ 	$(MAKE) -C methods $@
+ 	$(MAKE) -C cmdline $@
+-	$(MAKE) -C ftparchive $@
+ 	$(MAKE) -C dselect $@
+ 	$(MAKE) -C doc $@
+ 	$(MAKE) -C po $@
+diff -uNr apt-0.5.28.6/apt-inst/makefile apt-0.5.28.6-new/apt-inst/makefile
+--- apt-0.5.28.6/apt-inst/makefile	Mon Jan 10 16:50:08 2005
++++ apt-0.5.28.6-new/apt-inst/makefile	Wed Aug 17 16:50:33 2005
+@@ -10,11 +10,13 @@
+ include ../buildlib/defaults.mak
+ 
+ # The library name
++LDFLAGS += -L../apt-pkg -lapt-pkg
+ LIBRARY=apt-inst
+ LIBEXT=$(GLIBC_VER)$(LIBSTDCPP_VER)
++CURRENT_VERSION=1.0
+ MAJOR=1.0
+ MINOR=0
+-SLIBS=$(PTHREADLIB) -lapt-pkg
++SLIBS=$(PTHREADLIB) -lapt-pkg $(INTLLIBS)
+ APT_DOMAIN:=libapt-inst$(MAJOR)
+ 
+ # Source code for the contributed non-core things
+diff -uNr apt-0.5.28.6/apt-pkg/contrib/cdromutl.cc apt-0.5.28.6-new/apt-pkg/contrib/cdromutl.cc
+--- apt-0.5.28.6/apt-pkg/contrib/cdromutl.cc	Mon Jan 10 16:50:08 2005
++++ apt-0.5.28.6-new/apt-pkg/contrib/cdromutl.cc	Wed Aug 17 15:03:41 2005
+@@ -23,13 +23,13 @@
+     
+ #include <sys/wait.h>
+ #include <sys/errno.h>
+-#include <sys/statvfs.h>
++#include <sys/mount.h>
+ #include <dirent.h>
+ #include <fcntl.h>
+ #include <sys/stat.h>
+ #include <unistd.h>
+ #include <stdio.h>
+-									/*}}}*/
++
+ 
+ // IsMounted - Returns true if the mount point is mounted		/*{{{*/
+ // ---------------------------------------------------------------------
+@@ -185,8 +185,8 @@
+    // Some stats from the fsys
+    if (_config->FindB("Debug::identcdrom",false) == false)
+    {
+-      struct statvfs Buf;
+-      if (statvfs(CD.c_str(),&Buf) != 0)
++      struct statfs Buf;
++      if (statfs(CD.c_str(),&Buf) != 0)
+ 	 return _error->Errno("statfs",_("Failed to stat the cdrom"));
+       
+       // We use a kilobyte block size to advoid overflow
+diff -uNr apt-0.5.28.6/apt-pkg/contrib/mmap.cc apt-0.5.28.6-new/apt-pkg/contrib/mmap.cc
+--- apt-0.5.28.6/apt-pkg/contrib/mmap.cc	Mon Jan 10 16:50:08 2005
++++ apt-0.5.28.6-new/apt-pkg/contrib/mmap.cc	Wed Aug 17 13:53:18 2005
+@@ -41,7 +41,7 @@
+ // ---------------------------------------------------------------------
+ /* */
+ MMap::MMap(FileFd &F,unsigned long Flags) : Flags(Flags), iSize(0),
+-                     Base(0)
++                     Base(0), iFd(0)
+ {
+    if ((Flags & NoImmMap) != NoImmMap)
+       Map(F);
+@@ -51,7 +51,7 @@
+ // ---------------------------------------------------------------------
+ /* */
+ MMap::MMap(unsigned long Flags) : Flags(Flags), iSize(0),
+-                     Base(0)
++                     Base(0), iFd(0)
+ {
+ }
+ 									/*}}}*/
+@@ -68,6 +68,7 @@
+ /* */
+ bool MMap::Map(FileFd &Fd)
+ {
++   iFd = &Fd;
+    iSize = Fd.Size();
+    
+    // Set the permissions.
+@@ -81,10 +82,19 @@
+    if (iSize == 0)
+       return _error->Error(_("Can't mmap an empty file"));
+    
++#ifndef EMULATE_MMAP
+    // Map it.
+    Base = mmap(0,iSize,Prot,Map,Fd.Fd(),0);
+    if (Base == (void *)-1)
+       return _error->Errno("mmap",_("Couldn't make mmap of %lu bytes"),iSize);
++#else
++   Base = new unsigned char[iSize];
++   if (Base == NULL)
++      return _error->Errno("mmap",_("Couldn't allocate %lu bytes to emulate mmap"),iSize);
++
++   Fd.Seek(0);
++   Fd.Read(Base, iSize, true);
++#endif
+ 
+    return true;
+ }
+@@ -100,8 +110,16 @@
+    if (DoSync == true)
+       Sync();
+    
++#ifndef EMULATE_MMAP   
+    if (munmap((char *)Base,iSize) != 0)
+       _error->Warning("Unable to munmap");
++#else
++   if ((Flags & ReadOnly) != ReadOnly && iFd != 0) {
++      iFd->Seek(0);
++      iFd->Write(Base, iSize);
++   }
++   delete [] (unsigned char *)Base;
++#endif
+    
+    iSize = 0;
+    Base = 0;
+@@ -117,11 +135,13 @@
+    if ((Flags & UnMapped) == UnMapped)
+       return true;
+    
++#ifndef EMULATE_MMAP
+ #ifdef _POSIX_SYNCHRONIZED_IO   
+    if ((Flags & ReadOnly) != ReadOnly)
+       if (msync((char *)Base,iSize,MS_SYNC) != 0)
+ 	 return _error->Errno("msync","Unable to write mmap");
+ #endif   
++#endif
+    return true;
+ }
+ 									/*}}}*/
+@@ -133,11 +153,13 @@
+    if ((Flags & UnMapped) == UnMapped)
+       return true;
+    
++#ifndef EMULATE_MMAP
+ #ifdef _POSIX_SYNCHRONIZED_IO
+    unsigned long PSize = sysconf(_SC_PAGESIZE);
+    if ((Flags & ReadOnly) != ReadOnly)
+       if (msync((char *)Base+(int)(Start/PSize)*PSize,Stop - Start,MS_SYNC) != 0)
+ 	 return _error->Errno("msync","Unable to write mmap");
++#endif   
+ #endif   
+    return true;
+ }
+diff -uNr apt-0.5.28.6/apt-pkg/contrib/mmap.h apt-0.5.28.6-new/apt-pkg/contrib/mmap.h
+--- apt-0.5.28.6/apt-pkg/contrib/mmap.h	Mon Jan 10 16:50:08 2005
++++ apt-0.5.28.6-new/apt-pkg/contrib/mmap.h	Wed Aug 17 13:53:18 2005
+@@ -46,6 +46,7 @@
+    unsigned long Flags;
+    unsigned long iSize;
+    void *Base;
++   FileFd *iFd;
+ 
+    bool Map(FileFd &Fd);
+    bool Close(bool DoSync = true);
+diff -uNr apt-0.5.28.6/apt-pkg/deb/debindexfile.cc apt-0.5.28.6-new/apt-pkg/deb/debindexfile.cc
+--- apt-0.5.28.6/apt-pkg/deb/debindexfile.cc	Mon Jan 10 16:50:08 2005
++++ apt-0.5.28.6-new/apt-pkg/deb/debindexfile.cc	Wed Aug 17 13:53:18 2005
+@@ -505,3 +505,11 @@
+ }
+ 
+ 									/*}}}*/
++void init_deb2()
++{
++  (void)_apt_DebType;
++  (void)_apt_DebSrcType;
++  (void)_apt_Src;
++  (void)_apt_Pkg;
++  (void)_apt_Status;
++}
+diff -uNr apt-0.5.28.6/apt-pkg/deb/debsystem.cc apt-0.5.28.6-new/apt-pkg/deb/debsystem.cc
+--- apt-0.5.28.6/apt-pkg/deb/debsystem.cc	Mon Jan 10 16:50:08 2005
++++ apt-0.5.28.6-new/apt-pkg/deb/debsystem.cc	Wed Aug 17 14:32:44 2005
+@@ -27,6 +27,111 @@
+ #include <dirent.h>
+ #include <errno.h>
+ 									/*}}}*/
++/* FINK LOCAL begin */
++#include <sys/utsname.h>
++#include <CoreFoundation/CoreFoundation.h>
++#include <fstream>
++#include <sys/stat.h>
++
++extern void init_deb2();
++extern void init_deb3();
++
++#define FINKSTATUSFILE "/tmp/finkaptstatus"
++
++struct versionrevision {
++  unsigned long epoch;
++  const char *version;
++  const char *revision;
++};  
++
++struct versionrevision darwin_version = {0,NULL,NULL};
++struct versionrevision macosx_version = {0,NULL,NULL};
++
++using namespace std;
++
++static void finkinit()
++{
++  Boolean status;
++  SInt32 errorCode;
++  CFURLRef fileURL = NULL;
++  CFDataRef resourceData = NULL;
++  CFPropertyListRef propertyList = NULL;
++  CFStringRef string;
++  static char buffer[256];	// This is static, to ensure the buffer stays around
++
++  static struct utsname ver;	// This is static, to ensure the buffer stays around
++  
++  /* Determine system version */
++  /* TODO - should maybe check if this is really Darwin? */
++  if (!uname(&ver)) {
++    darwin_version.version = ver.release;
++  }
++
++  /* Check whether this is Mac OS X, and which version of it */
++
++  fileURL = CFURLCreateWithFileSystemPath( NULL, 	
++		CFSTR("/System/Library/CoreServices/SystemVersion.plist"),
++		kCFURLPOSIXPathStyle,				
++		false );
++  if (!fileURL)
++    goto BAIL;
++  
++  /* Read the XML */
++  status = CFURLCreateDataAndPropertiesFromResource(
++		NULL,
++		fileURL,
++		&resourceData,
++		NULL,		
++		NULL,
++		&errorCode);
++  if (!status || errorCode != 0)
++    goto BAIL;
++  
++  /* Reconstitute the dictionary using the XML data. */
++  propertyList = CFPropertyListCreateFromXMLData( NULL,
++		resourceData,
++		kCFPropertyListImmutable,
++		&string);
++  if (!propertyList)
++    goto BAIL;
++  
++  /* Try to read the system version from it. */
++  status = CFDictionaryGetValueIfPresent( 
++		(CFDictionaryRef) propertyList,
++		(const void *) CFSTR("ProductVersion"),
++		(const void**) &string);
++  if (!status)
++    goto BAIL;
++  
++  /* Convert into a C string */
++  status = CFStringGetCString( string,
++		buffer,
++		sizeof(buffer),
++		kCFStringEncodingISOLatin1);
++  if (!status)
++    goto BAIL;
++  
++  /* Finally link the buffer into the macosx_version struct. */
++  macosx_version.version = buffer;
++  
++BAIL:
++  // Release all of the CF objects we're responsible for.
++  if (fileURL)
++    CFRelease(fileURL);
++  if (resourceData)
++    CFRelease(resourceData);
++  if (propertyList)
++    CFRelease(propertyList);
++}
++
++void initDebSystem()
++{
++  finkinit();
++  (void)debSys;
++  init_deb2();
++  init_deb3();
++}
++/* FINK LOCAL end */
+ 
+ debSystem debSys;
+ 
+@@ -49,6 +154,8 @@
+ debSystem::~debSystem()
+ {
+    delete StatusFile;
++   delete FinkStatusFile;
++   unlink(FINKSTATUSFILE);
+ }
+ 									/*}}}*/
+ // System::Lock - Get the lock						/*{{{*/
+@@ -162,8 +269,8 @@
+       which is yet to be determined. The functions in pkgcachegen should
+       be the only users of these */
+    Cnf.CndSet("Dir::State::userstatus","status.user"); // Defunct
+-   Cnf.CndSet("Dir::State::status","/var/lib/dpkg/status");
+-   Cnf.CndSet("Dir::Bin::dpkg","/usr/bin/dpkg");
++   Cnf.CndSet("Dir::State::status","@PREFIX@/var/lib/dpkg/status");
++   Cnf.CndSet("Dir::Bin::dpkg","@PREFIX@/bin/dpkg");
+    
+    return true;
+ }
+@@ -186,9 +293,9 @@
+ signed debSystem::Score(Configuration const &Cnf)
+ {
+    signed Score = 0;
+-   if (FileExists(Cnf.FindFile("Dir::State::status","/var/lib/dpkg/status")) == true)
++   if (FileExists(Cnf.FindFile("Dir::State::status","@PREFIX@/var/lib/dpkg/status")) == true)
+        Score += 10;
+-   if (FileExists(Cnf.FindFile("Dir::Bin::dpkg","/usr/bin/dpkg")) == true)
++   if (FileExists(Cnf.FindFile("Dir::Bin::dpkg","@PREFIX@/bin/dpkg")) == true)
+       Score += 10;
+    if (FileExists("/etc/debian_version") == true)
+       Score += 10;
+@@ -203,6 +310,44 @@
+    if (StatusFile == 0)
+       StatusFile = new debStatusIndex(_config->FindFile("Dir::State::status"));
+    List.push_back(StatusFile);
++/* FINK LOCAL begin */
++
++   if (FinkStatusFile == 0) {
++      struct stat unused_sbuf;
++      int sys_ok=0;
++      unlink(FINKSTATUSFILE);
++      if ( 0 == stat("@PREFIX@/bin/fink-virtual-pkgs",&unused_sbuf)) {
++          if ( 0 == system("@PREFIX@/bin/fink-virtual-pkgs --apt")) sys_ok=1;
++      }    
++      if (stat(FINKSTATUSFILE, &unused_sbuf) || !sys_ok) {
++	  std::ofstream finkstatus(FINKSTATUSFILE);
++      if(macosx_version.version != 0)
++      {
++        finkstatus << "Package: macosx" << endl;
++        finkstatus << "Status: install ok installed" << endl;      
++        finkstatus << "Priority: optional" << endl;
++        finkstatus << "Section: base" << endl;
++        finkstatus << "Maintainer: None" << endl;
++        finkstatus << "Source: macosx" << endl;
++        finkstatus << "Version: " << macosx_version.version << endl;
++        finkstatus << "Description: Pseudo package representing Mac OS X" << endl;
++        finkstatus << " Pseudo package representing Mac OS X" << endl << endl;
++      }
++      finkstatus << "Package: darwin" << endl;
++      finkstatus << "Status: install ok installed" << endl;
++      finkstatus << "Priority: optional" << endl;
++      finkstatus << "Section: base" << endl;
++      finkstatus << "Maintainer: None" << endl;
++      finkstatus << "Source: darwin" << endl;
++      finkstatus << "Version: " << darwin_version.version  << endl;
++      finkstatus << "Description: Pseudo package representing Darwin" << endl;
++      finkstatus << " Pseudo package representing Darwin" << endl << endl;
++      finkstatus.close();
++      }		
++      FinkStatusFile = new debStatusIndex(FINKSTATUSFILE);
++   }
++   List.push_back(FinkStatusFile);
++/* FINK LOCAL end */
+    return true;
+ }
+ 									/*}}}*/
+@@ -217,6 +362,10 @@
+    if (StatusFile->FindInCache(*File.Cache()) == File)
+    {
+       Found = StatusFile;
++      return true;
++   }  else if ((FinkStatusFile != 0) && (FinkStatusFile->FindInCache(*File.Cache()) == File))
++   {
++      Found = FinkStatusFile;
+       return true;
+    }
+    
+diff -uNr apt-0.5.28.6/apt-pkg/deb/debsystem.h apt-0.5.28.6-new/apt-pkg/deb/debsystem.h
+--- apt-0.5.28.6/apt-pkg/deb/debsystem.h	Mon Jan 10 16:50:08 2005
++++ apt-0.5.28.6-new/apt-pkg/deb/debsystem.h	Wed Aug 17 13:53:18 2005
+@@ -25,6 +25,7 @@
+    bool CheckUpdates();
+    
+    debStatusIndex *StatusFile;
++   debStatusIndex *FinkStatusFile;
+    
+    public:
+ 
+diff -uNr apt-0.5.28.6/apt-pkg/deb/debversion.cc apt-0.5.28.6-new/apt-pkg/deb/debversion.cc
+--- apt-0.5.28.6/apt-pkg/deb/debversion.cc	Mon Jan 10 16:50:08 2005
++++ apt-0.5.28.6-new/apt-pkg/deb/debversion.cc	Wed Aug 17 13:53:18 2005
+@@ -24,6 +24,11 @@
+ 
+ debVersioningSystem debVS;
+ 
++void init_deb3()
++{
++  (void)debVS;
++}
++
+ // debVS::debVersioningSystem - Constructor				/*{{{*/
+ // ---------------------------------------------------------------------
+ /* */
+diff -uNr apt-0.5.28.6/apt-pkg/deb/dpkgpm.cc apt-0.5.28.6-new/apt-pkg/deb/dpkgpm.cc
+--- apt-0.5.28.6/apt-pkg/deb/dpkgpm.cc	Mon Jan 10 16:50:08 2005
++++ apt-0.5.28.6-new/apt-pkg/deb/dpkgpm.cc	Wed Aug 17 14:30:00 2005
+@@ -26,6 +26,10 @@
+ #include <errno.h>
+ #include <stdio.h>
+ #include <iostream>
++
++#ifdef __APPLE__
++typedef sig_t sighandler_t;
++#endif
+ 									/*}}}*/
+ 
+ using namespace std;
+diff -uNr apt-0.5.28.6/apt-pkg/init.cc apt-0.5.28.6-new/apt-pkg/init.cc
+--- apt-0.5.28.6/apt-pkg/init.cc	Mon Jan 10 16:50:08 2005
++++ apt-0.5.28.6-new/apt-pkg/init.cc	Wed Aug 17 14:48:26 2005
+@@ -15,6 +15,8 @@
+ #include <apti18n.h>
+ #include <config.h>
+ #include <sys/stat.h>
++
++extern void initDebSystem();
+ 									/*}}}*/
+ 
+ #define Stringfy_(x) # x
+@@ -40,7 +42,7 @@
+    else
+       Cnf.Set("APT::Architecture",COMMON_OS "-" COMMON_CPU);
+    Cnf.Set("APT::Build-Essential::", "build-essential");
+-   Cnf.Set("Dir","/");
++   Cnf.Set("Dir","@PREFIX@/");
+    
+    // State   
+    Cnf.Set("Dir::State","var/lib/apt/");
+@@ -69,7 +71,7 @@
+    Cnf.Set("Dir::Etc::main","apt.conf");
+    Cnf.Set("Dir::Etc::parts","apt.conf.d");
+    Cnf.Set("Dir::Etc::preferences","preferences");
+-   Cnf.Set("Dir::Bin::methods","/usr/lib/apt/methods");
++   Cnf.Set("Dir::Bin::methods","@PREFIX@/lib/apt/methods");
+ 	      
+    bool Res = true;
+    
+@@ -110,6 +112,8 @@
+ /* */
+ bool pkgInitSystem(Configuration &Cnf,pkgSystem *&Sys)
+ {
++   initDebSystem();
++
+    Sys = 0;
+    string Label = Cnf.Find("Apt::System","");
+    if (Label.empty() == false)
+diff -uNr apt-0.5.28.6/buildlib/environment.mak.in apt-0.5.28.6-new/buildlib/environment.mak.in
+--- apt-0.5.28.6/buildlib/environment.mak.in	Mon Jan 10 16:50:08 2005
++++ apt-0.5.28.6-new/buildlib/environment.mak.in	Wed Aug 17 15:29:59 2005
+@@ -7,14 +7,14 @@
+ CC = @CC@
+ CPPFLAGS+= @CPPFLAGS@ @DEFS@ -D_REENTRANT
+ CXX = @CXX@
+-CXXFLAGS+= @CXXFLAGS@
++CXXFLAGS+= @CXXFLAGS@ -I@PREFIX@/include
+ NUM_PROCS = @NUM_PROCS@
+ GLIBC_VER = @GLIBC_VER@
+ LIBSTDCPP_VER = @LIBSTDCPP_VER@
+ 
+ # Linker stuff
+-PICFLAGS+= -fPIC -DPIC
+-LFLAGS+= @LDFLAGS@
++PICFLAGS+= -fno-common -DPIC
++LFLAGS+= @LDFLAGS@ -framework CoreFoundation
+ LEFLAGS+= 
+ SOCKETLIBS:= @SOCKETLIBS@
+ AR:=@AR@
+@@ -59,11 +59,12 @@
+ 
+ # Shared library things
+ HOST_OS = @host_os@
+-ifneq ($(words $(filter linux-gnu gnu% %gnu,$(HOST_OS))),0)
+-   SONAME_MAGIC=-Wl,-soname -Wl,
+-   LFLAGS_SO=
+-else
+-   # Do not know how to create shared libraries here.
+-   ONLYSTATICLIBS = yes
+-endif
+-	
++#ifneq ($(words $(filter linux-gnu gnu% %gnu,$(HOST_OS))),0)
++#   SONAME_MAGIC=-Wl,-soname -Wl,
++#   LFLAGS_SO=
++#else
++#   # Do not know how to create shared libraries here.
++#   ONLYSTATICLIBS = yes
++#endif
++SONAME_MAGIC=-install_name @PREFIX@/lib/
++LFLAGS_SO=-dynamiclib
+diff -uNr apt-0.5.28.6/buildlib/library.mak apt-0.5.28.6-new/buildlib/library.mak
+--- apt-0.5.28.6/buildlib/library.mak	Mon Jan 10 16:50:08 2005
++++ apt-0.5.28.6-new/buildlib/library.mak	Wed Aug 17 17:21:13 2005
+@@ -16,11 +16,11 @@
+ # See defaults.mak for information about LOCAL
+ 
+ # Some local definitions
+-LOCAL := lib$(LIBRARY)$(LIBEXT).so.$(MAJOR).$(MINOR)
++LOCAL := lib$(LIBRARY)$(LIBEXT).$(MAJOR).$(MINOR).dylib
+ $(LOCAL)-OBJS := $(addprefix $(OBJ)/,$(addsuffix .opic,$(notdir $(basename $(SOURCE)))))
+ $(LOCAL)-DEP := $(addprefix $(DEP)/,$(addsuffix .opic.d,$(notdir $(basename $(SOURCE)))))
+ $(LOCAL)-HEADERS := $(addprefix $(INCLUDE)/,$(HEADERS))
+-$(LOCAL)-SONAME := lib$(LIBRARY)$(LIBEXT).so.$(MAJOR)
++$(LOCAL)-SONAME := lib$(LIBRARY)$(LIBEXT).$(MAJOR).dylib
+ $(LOCAL)-SLIBS := $(SLIBS)
+ $(LOCAL)-LIBRARY := $(LIBRARY)
+ 
+@@ -29,7 +29,7 @@
+ 
+ # Install the command hooks
+ headers: $($(LOCAL)-HEADERS)
+-library: $(LIB)/lib$(LIBRARY).so $(LIB)/lib$(LIBRARY)$(LIBEXT).so.$(MAJOR)
++library: $(LIB)/lib$(LIBRARY).dylib $(LIB)/lib$(LIBRARY)$(LIBEXT).$(MAJOR).dylib
+ clean: clean/$(LOCAL)
+ veryclean: veryclean/$(LOCAL)
+ 
+@@ -41,21 +41,23 @@
+ clean/$(LOCAL):
+ 	-rm -f $($(@F)-OBJS) $($(@F)-DEP)
+ veryclean/$(LOCAL): clean/$(LOCAL)
+-	-rm -f $($(@F)-HEADERS) $(LIB)/lib$($(@F)-LIBRARY)*.so*
++	-rm -f $($(@F)-HEADERS) $(LIB)/lib$($(@F)-LIBRARY)*.dylib
+ 
+ # Build rules for the two symlinks
+-.PHONY: $(LIB)/lib$(LIBRARY)$(LIBEXT).so.$(MAJOR) $(LIB)/lib$(LIBRARY).so
+-$(LIB)/lib$(LIBRARY)$(LIBEXT).so.$(MAJOR): $(LIB)/lib$(LIBRARY)$(LIBEXT).so.$(MAJOR).$(MINOR)
++.PHONY: $(LIB)/lib$(LIBRARY)$(LIBEXT).$(MAJOR).dylib $(LIB)/lib$(LIBRARY).dylib
++$(LIB)/lib$(LIBRARY)$(LIBEXT).$(MAJOR).dylib: $(LIB)/lib$(LIBRARY)$(LIBEXT).$(MAJOR).$(MINOR).dylib
+ 	ln -sf $(<F) $@
+-$(LIB)/lib$(LIBRARY).so: $(LIB)/lib$(LIBRARY)$(LIBEXT).so.$(MAJOR).$(MINOR)
++$(LIB)/lib$(LIBRARY).dylib: $(LIB)/lib$(LIBRARY)$(LIBEXT).$(MAJOR).$(MINOR).dylib
+ 	ln -sf $(<F) $@
+ 
+ # The binary build rule
+-$(LIB)/lib$(LIBRARY)$(LIBEXT).so.$(MAJOR).$(MINOR): $($(LOCAL)-HEADERS) $($(LOCAL)-OBJS)
+-	-rm -f $(LIB)/lib$($(@F)-LIBRARY)*.so* 2> /dev/null
++$(LIB)/lib$(LIBRARY)$(LIBEXT).$(MAJOR).$(MINOR).dylib: $($(LOCAL)-HEADERS) $($(LOCAL)-OBJS)
++	-rm -f $(LIB)/lib$($(@F)-LIBRARY)*.dylib 2> /dev/null
+ 	echo Building shared library $@
+ 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(PICFLAGS) $(LFLAGS) $(LFLAGS_SO)\
+-	   -o $@ $(SONAME_MAGIC)$($(@F)-SONAME) -shared \
++	   -o $@ $(SONAME_MAGIC)$($(@F)-SONAME) \
++	   -compatibility_version $(MAJOR).$(MINOR) \
++	   -current_version $(MAJOR).$(MINOR) \
+ 	   $(filter %.opic,$^) \
+ 	   $($(@F)-SLIBS) 
+ 
+diff -uNr apt-0.5.28.6/buildlib/ostable apt-0.5.28.6-new/buildlib/ostable
+--- apt-0.5.28.6/buildlib/ostable	Mon Jan 10 16:50:08 2005
++++ apt-0.5.28.6-new/buildlib/ostable	Wed Aug 17 13:53:21 2005
+@@ -16,6 +16,7 @@
+ hp-hpux[^-]*	    hp-ux
+ sun-solaris[^-]*    solaris
+ [^-]*-openbsd[^-]*  openbsd
++[^-]*-darwin[^-]*   darwin
+ 
+ # Catch all
+ .*	unknown
+diff -uNr apt-0.5.28.6/cmdline/apt-get.cc apt-0.5.28.6-new/cmdline/apt-get.cc
+--- apt-0.5.28.6/cmdline/apt-get.cc	Thu Feb 10 03:52:34 2005
++++ apt-0.5.28.6-new/cmdline/apt-get.cc	Wed Aug 17 15:53:10 2005
+@@ -51,7 +51,7 @@
+ #include <termios.h>
+ #include <sys/ioctl.h>
+ #include <sys/stat.h>
+-#include <sys/statvfs.h>
++#include <sys/mount.h>
+ #include <signal.h>
+ #include <unistd.h>
+ #include <stdio.h>
+@@ -113,6 +113,8 @@
+ /* Returns true on a Yes.*/
+ bool YnPrompt()
+ {
++   fflush(NULL);
++   
+    if (_config->FindB("APT::Get::Assume-Yes",false) == true)
+    {
+       c1out << _("Y") << endl;
+@@ -331,7 +333,14 @@
+ 		  if (Cache[Targ].CandidateVerIter(Cache).end() == true)
+ 		  {
+ 		     if (Targ->ProvidesList == 0)
+-			out << _("but it is not installable");
++		     {
++			out << _("but it is not installable. For Fink users, ");
++			out << _("this often means that you have attempted ");
++			out << _("to install a package from the binary distribution ");
++			out << _("which depends on a \"Restrictive\" package. ");
++			out << _("See <http://fink.sourceforge.net/faq/usage-fink.php#bindist>, ");
++			out << _("<http://fink.sourceforge.net/doc/users-guide/packages.php#bin-exceptions>");
++		     }
+ 		     else
+ 			out << _("but it is a virtual package");
+ 		  }		  
+@@ -637,13 +646,15 @@
+       return false;
+    
+    // Nothing is broken
+-   if (DCache->BrokenCount() == 0 || AllowBroken == true)
++   // FINK LOCAL added APT::Get::Ignore-Breakage test
++   if (DCache->BrokenCount() == 0 || AllowBroken == true
++       || _config->FindB("APT::Get::Ignore-Breakage") == true)
+       return true;
+ 
+    // Attempt to fix broken things
+    if (_config->FindB("APT::Get::Fix-Broken",false) == true)
+    {
+-      c1out << _("Correcting dependencies...") << flush;
++      c1out << _("Correcting dependencies...") << flush, fflush(NULL);
+       if (pkgFixBroken(*DCache) == false || DCache->BrokenCount() != 0)
+       {
+ 	 c1out << _(" failed.") << endl;
+@@ -703,7 +714,9 @@
+    Stats(c1out,Cache);
+    
+    // Sanity check
+-   if (Cache->BrokenCount() != 0)
++   // FINK LOCAL added APT::Get::Ignore-Breakage test
++   if (Cache->BrokenCount() != 0
++       && _config->FindB("APT::Get::Ignore-Breakage",false) == false)
+    {
+       ShowBroken(c1out,Cache,false);
+       return _error->Error("Internal Error, InstallPackages was called with broken packages!");
+@@ -793,10 +806,10 @@
+    if (_config->FindB("APT::Get::Print-URIs") == false &&
+        _config->FindB("APT::Get::Download",true) == true)
+    {
+-      struct statvfs Buf;
++      struct statfs Buf;
+       string OutputDir = _config->FindDir("Dir::Cache::Archives");
+-      if (statvfs(OutputDir.c_str(),&Buf) != 0)
+-	 return _error->Errno("statvfs","Couldn't determine free space in %s",
++      if (statfs(OutputDir.c_str(),&Buf) != 0)
++	 return _error->Errno("statfs","Couldn't determine free space in %s",
+ 			      OutputDir.c_str());
+       if (unsigned(Buf.f_bfree) < (FetchBytes - FetchPBytes)/Buf.f_bsize)
+ 	 return _error->Error(_("You don't have enough free space in %s."),
+@@ -821,7 +834,7 @@
+ 	       _("You are about to do something potentially harmful\n"
+ 		 "To continue type in the phrase '%s'\n"
+ 		 " ?] "),Prompt);
+-      c2out << flush;
++      c2out << flush, fflush(NULL);
+       if (AnalPrompt(Prompt) == false)
+       {
+ 	 c2out << _("Abort.") << endl;
+@@ -839,7 +852,7 @@
+ 	 if (_config->FindI("quiet",0) < 2 &&
+ 	     _config->FindB("APT::Get::Assume-Yes",false) == false)
+ 	 {
+-	    c2out << _("Do you want to continue? [Y/n] ") << flush;
++	    c2out << _("Do you want to continue? [Y/n] ") << flush, fflush(NULL);
+ 	 
+ 	    if (YnPrompt() == false)
+ 	    {
+@@ -1095,7 +1108,9 @@
+       ExpectedInst++;
+    
+    // Install it with autoinstalling enabled.
+-   if (State.InstBroken() == true && BrokenFix == false)
++   // FINK LOCAL added APT::Get::Ignore-Breakage test
++   if (State.InstBroken() == true && BrokenFix == false
++      && _config->FindB("APT::Get::Ignore-Breakage") == false)
+       Cache.MarkInstall(Pkg,true);
+    return true;
+ }
+@@ -1457,7 +1472,9 @@
+    /* If we are in the Broken fixing mode we do not attempt to fix the
+       problems. This is if the user invoked install without -f and gave
+       packages */
+-   if (BrokenFix == true && Cache->BrokenCount() != 0)
++   // FINK LOCAL added APT::Get::Ignore-Breakage test
++   if (BrokenFix == true && Cache->BrokenCount() != 0
++       && _config->FindB("APT::Get::Ignore-Breakage") == false)
+    {
+       c1out << _("You might want to run `apt-get -f install' to correct these:") << endl;
+       ShowBroken(c1out,Cache,false);
+@@ -1467,11 +1484,13 @@
+    
+    // Call the scored problem resolver
+    Fix.InstallProtect();
+-   if (Fix.Resolve(true) == false)
++   // FINK LOCAL added APT::Get::Ignore-Breakage test
++   if (_config->FindB("APT::Get::Ignore-Breakage") == false && Fix.Resolve(true) == false)
+       _error->Discard();
+ 
+    // Now we check the state of the packages,
+-   if (Cache->BrokenCount() != 0)
++   // FINK LOCAL added APT::Get::Ignore-Breakage test
++   if (Cache->BrokenCount() != 0 && _config->FindB("APT::Get::Ignore-Breakage") == false)
+    {
+       c1out << 
+        _("Some packages could not be installed. This may mean that you have\n" 
+@@ -1608,7 +1627,7 @@
+    if (Cache.OpenForInstall() == false || Cache.CheckDeps() == false)
+       return false;
+ 
+-   c0out << _("Calculating Upgrade... ") << flush;
++   c0out << _("Calculating Upgrade... ") << flush, fflush(NULL);
+    if (pkgDistUpgrade(*Cache) == false)
+    {
+       c0out << _("Failed") << endl;
+@@ -1857,10 +1876,10 @@
+    double DebBytes = Fetcher.TotalNeeded();
+ 
+    // Check for enough free space
+-   struct statvfs Buf;
++   struct statfs Buf;
+    string OutputDir = ".";
+-   if (statvfs(OutputDir.c_str(),&Buf) != 0)
+-      return _error->Errno("statvfs","Couldn't determine free space in %s",
++   if (statfs(OutputDir.c_str(),&Buf) != 0)
++      return _error->Errno("statfs","Couldn't determine free space in %s",
+ 			   OutputDir.c_str());
+    if (unsigned(Buf.f_bfree) < (FetchBytes - FetchPBytes)/Buf.f_bsize)
+       return _error->Error(_("You don't have enough free space in %s"),
+@@ -2355,6 +2374,8 @@
+    _config->Set("APT::Get::Simulate",false);
+    _config->Set("APT::Get::Assume-Yes",false);
+    _config->Set("APT::Get::Fix-Broken",false);
++   // FINK LOCAL added APT::Get::Ignore-Breakage
++   _config->Set("APT::Get::Ignore-Breakage",false);
+    _config->Set("APT::Get::Force-Yes",false);
+    _config->Set("APT::Get::List-Cleanup",true);
+ }
+@@ -2393,6 +2414,8 @@
+       {'y',"yes","APT::Get::Assume-Yes",0},
+       {'y',"assume-yes","APT::Get::Assume-Yes",0},      
+       {'f',"fix-broken","APT::Get::Fix-Broken",0},
++      // FINK LOCAL added APT::Get::Ignore-Breakage
++      {0,"ignore-breakage","APT::Get::Ignore-Breakage",0},
+       {'u',"show-upgraded","APT::Get::Show-Upgraded",0},
+       {'m',"ignore-missing","APT::Get::Fix-Missing",0},
+       {'t',"target-release","APT::Default-Release",CommandLine::HasArg},
+@@ -2455,6 +2478,22 @@
+       ShowHelp(CmdL);
+       return 0;
+    }
++
++   /* FINK LOCAL begin */
++   if (_config->FindB("APT::Get::Ignore-Breakage",false) == true) {
++     if (_config->FindB("APT::Get::Print-URIs",false) == false &&
++	 _config->FindB("APT::Get::Download-Only",false) == false) {
++       _error->Error("--ignore-breakage can only be used with --print-uris or --download-only");
++       _error->DumpErrors();
++       return 100;
++     }
++     if (strcmp(CmdL.FileList[0],"install") != 0) {
++       _error->Error("--ignore-breakage can only be used with apt-get install");
++       _error->DumpErrors();
++       return 100;
++     }
++   }
++   /* FINK LOCAL end */
+    
+    // Deal with stdout not being a tty
+    if (!isatty(STDOUT_FILENO) && _config->FindI("quiet",0) < 1)
+diff -uNr apt-0.5.28.6/cmdline/makefile apt-0.5.28.6-new/cmdline/makefile
+--- apt-0.5.28.6/cmdline/makefile	Mon Jan 10 16:50:08 2005
++++ apt-0.5.28.6-new/cmdline/makefile	Wed Aug 17 15:52:12 2005
+@@ -7,42 +7,42 @@
+ 
+ # The apt-cache program
+ PROGRAM=apt-cache
+-SLIBS = -lapt-pkg
++SLIBS = $(INTLLIBS) -lapt-pkg
+ LIB_MAKES = apt-pkg/makefile
+ SOURCE = apt-cache.cc
+ include $(PROGRAM_H)
+ 
+ # The apt-get program
+ PROGRAM=apt-get
+-SLIBS = -lapt-pkg
++SLIBS = $(INTLLIBS) -lapt-pkg
+ LIB_MAKES = apt-pkg/makefile
+ SOURCE = apt-get.cc acqprogress.cc
+ include $(PROGRAM_H)
+ 
+ # The apt-config program
+ PROGRAM=apt-config
+-SLIBS = -lapt-pkg
++SLIBS = $(INTLLIBS) -lapt-pkg
+ LIB_MAKES = apt-pkg/makefile
+ SOURCE = apt-config.cc
+ include $(PROGRAM_H)
+ 
+ # The apt-cdrom program
+ PROGRAM=apt-cdrom
+-SLIBS = -lapt-pkg
++SLIBS = $(INTLLIBS) -lapt-pkg
+ LIB_MAKES = apt-pkg/makefile
+ SOURCE = apt-cdrom.cc indexcopy.cc
+ include $(PROGRAM_H)
+ 
+ # The apt-sortpkgs program
+ PROGRAM=apt-sortpkgs
+-SLIBS = -lapt-pkg
++SLIBS = $(INTLLIBS) -lapt-pkg
+ LIB_MAKES = apt-pkg/makefile
+ SOURCE = apt-sortpkgs.cc
+ include $(PROGRAM_H)
+ 
+ # The apt-extracttemplates program
+ PROGRAM=apt-extracttemplates
+-SLIBS = -lapt-pkg -lapt-inst
++SLIBS = $(INTLLIBS) -lapt-pkg -lapt-inst
+ LIB_MAKES = apt-pkg/makefile
+ SOURCE = apt-extracttemplates.cc 
+ include $(PROGRAM_H)
+diff -uNr apt-0.5.28.6/configure apt-0.5.28.6-new/configure
+--- apt-0.5.28.6/configure	Tue Mar 22 02:06:44 2005
++++ apt-0.5.28.6-new/configure	Wed Aug 17 15:27:48 2005
+@@ -1296,8 +1296,8 @@
+ 
+ ac_ext=c
+ ac_cpp='$CPP $CPPFLAGS'
+-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
++ac_compile='$CC -c $CFLAGS $CPPFLAGS -I@PREFIX@/include conftest.$ac_ext >&5'
++ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS -I@PREFIX@/include $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ ac_compiler_gnu=$ac_cv_c_compiler_gnu
+ 
+ 
+@@ -1443,8 +1443,8 @@
+ 
+ ac_ext=c
+ ac_cpp='$CPP $CPPFLAGS'
+-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
++ac_compile='$CC -c $CFLAGS $CPPFLAGS -I@PREFIX@/include conftest.$ac_ext >&5'
++ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS -I@PREFIX@/include $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ ac_compiler_gnu=$ac_cv_c_compiler_gnu
+ if test -n "$ac_tool_prefix"; then
+   # Extract the first word of "${ac_tool_prefix}gcc", so it can be a program name with args.
+@@ -2361,8 +2361,8 @@
+ rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
+ ac_ext=c
+ ac_cpp='$CPP $CPPFLAGS'
+-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
++ac_compile='$CC -c $CFLAGS $CPPFLAGS -I@PREFIX@/include conftest.$ac_ext >&5'
++ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS -I@PREFIX@/include $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ ac_compiler_gnu=$ac_cv_c_compiler_gnu
+ 
+ 
+@@ -2439,8 +2439,8 @@
+ 
+ ac_ext=cc
+ ac_cpp='$CXXCPP $CPPFLAGS'
+-ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+-ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
++ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS -I@PREFIX@/include conftest.$ac_ext >&5'
++ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS -I@PREFIX@/include $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+ if test -n "$ac_tool_prefix"; then
+   for ac_prog in $CCC g++ c++ gpp aCC CC cxx cc++ cl FCC KCC RCC xlC_r xlC
+@@ -2784,14 +2784,14 @@
+ 
+ ac_ext=c
+ ac_cpp='$CPP $CPPFLAGS'
+-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
++ac_compile='$CC -c $CFLAGS $CPPFLAGS -I@PREFIX@/include conftest.$ac_ext >&5'
++ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS -I@PREFIX@/include $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ ac_compiler_gnu=$ac_cv_c_compiler_gnu
+ 
+ ac_ext=c
+ ac_cpp='$CPP $CPPFLAGS'
+-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
++ac_compile='$CC -c $CFLAGS $CPPFLAGS -I@PREFIX@/include conftest.$ac_ext >&5'
++ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS -I@PREFIX@/include $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ ac_compiler_gnu=$ac_cv_c_compiler_gnu
+ echo "$as_me:$LINENO: checking how to run the C preprocessor" >&5
+ echo $ECHO_N "checking how to run the C preprocessor... $ECHO_C" >&6
+@@ -3018,8 +3018,8 @@
+ 
+ ac_ext=c
+ ac_cpp='$CPP $CPPFLAGS'
+-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
++ac_compile='$CC -c $CFLAGS $CPPFLAGS -I@PREFIX@/include conftest.$ac_ext >&5'
++ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS -I@PREFIX@/include $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ ac_compiler_gnu=$ac_cv_c_compiler_gnu
+ 
+ if test -n "$ac_tool_prefix"; then
+@@ -8476,7 +8476,7 @@
+ fi
+ 
+ 
+-                    ac_config_files="$ac_config_files environment.mak:buildlib/environment.mak.in makefile:buildlib/makefile.in"
++                    ac_config_files="$ac_config_files environment.mak:buildlib/environment.mak.in makefile.wrap:buildlib/makefile.in"
+           ac_config_commands="$ac_config_commands default"
+ cat >confcache <<\_ACEOF
+ # This file is a shell script that caches the results of configure
+@@ -9020,7 +9020,7 @@
+   case "$ac_config_target" in
+   # Handling of arguments.
+   "environment.mak" ) CONFIG_FILES="$CONFIG_FILES environment.mak:buildlib/environment.mak.in" ;;
+-  "makefile" ) CONFIG_FILES="$CONFIG_FILES makefile:buildlib/makefile.in" ;;
++  "makefile.wrap" ) CONFIG_FILES="$CONFIG_FILES makefile.wrap:buildlib/makefile.in" ;;
+   "default-1" ) CONFIG_COMMANDS="$CONFIG_COMMANDS default-1" ;;
+   "default" ) CONFIG_COMMANDS="$CONFIG_COMMANDS default" ;;
+   "include/config.h" ) CONFIG_HEADERS="$CONFIG_HEADERS include/config.h:buildlib/config.h.in" ;;
+@@ -9861,7 +9861,7 @@
+         ;;
+       esac
+     done ;;
+-    default ) make -s dirs ;;
++    default ) make -f makefile.wrap -s dirs ;;
+   esac
+ done
+ _ACEOF
+diff -uNr apt-0.5.28.6/configure.in apt-0.5.28.6-new/configure.in
+--- apt-0.5.28.6/configure.in	Tue Mar 22 02:03:50 2005
++++ apt-0.5.28.6-new/configure.in	Wed Aug 17 13:53:21 2005
+@@ -200,4 +200,4 @@
+ AC_SUBST(USE_NLS)
+ AC_PATH_PROG(BASH, bash)
+ 
+-AC_OUTPUT(environment.mak:buildlib/environment.mak.in makefile:buildlib/makefile.in,make -s dirs)
++AC_OUTPUT(environment.mak:buildlib/environment.mak.in makefile.wrap:buildlib/makefile.in,make -f makefile.wrap -s dirs)
+diff -uNr apt-0.5.28.6/doc/apt-cache.8 apt-0.5.28.6-new/doc/apt-cache.8
+--- apt-0.5.28.6/doc/apt-cache.8	Tue Mar 22 02:06:56 2005
++++ apt-0.5.28.6-new/doc/apt-cache.8	Wed Aug 17 14:05:45 2005
+@@ -42,7 +42,7 @@
+ 
+ .TP
+ gencaches
+-gencaches performs the same operation as \fBapt\-get check\fR\&. It builds the source and package caches from the sources in \fB\fIsources\&.list\fR\fR(5) and from \fI/var/lib/dpkg/status\fR\&.
++gencaches performs the same operation as \fBapt\-get check\fR\&. It builds the source and package caches from the sources in \fB\fIsources\&.list\fR\fR(5) and from \fI@PREFIX@/var/lib/dpkg/status\fR\&.
+ 
+ .TP
+ showpkg \fIpkg(s)\fR
+@@ -54,7 +54,7 @@
+ .nf
+ 
+ Package: libreadline2
+-Versions: 2\&.1\-12(/var/state/apt/lists/foo_Packages),
++Versions: 2\&.1\-12(@PREFIX@/var/state/apt/lists/foo_Packages),
+ Reverse Depends: 
+   libreadlineg2,libreadline2
+   libreadline2\-altdev,libreadline2
+@@ -223,15 +223,15 @@
+ .SH "FILES"
+ 
+ .TP
+-\fI/etc/apt/sources\&.list\fR
++\fI@PREFIX@/etc/apt/sources\&.list\fR
+ Locations to fetch packages from\&. Configuration Item: Dir::Etc::SourceList\&.
+ 
+ .TP
+-\fI/var/lib/apt/lists/\fR
++\fI@PREFIX@/var/lib/apt/lists/\fR
+ Storage area for state information for each package resource specified in \fB\fIsources\&.list\fR\fR(5) Configuration Item: Dir::State::Lists\&.
+ 
+ .TP
+-\fI/var/lib/apt/lists/partial/\fR
++\fI@PREFIX@/var/lib/apt/lists/partial/\fR
+ Storage area for state information in transit\&. Configuration Item: Dir::State::Lists (implicit partial)\&.
+ 
+ .SH "SEE ALSO"
+@@ -247,7 +247,7 @@
+ .SH "BUGS"
+ 
+ .PP
+-APT bug page: \fIhttp://bugs.debian.org/src:apt\fR\&. If you wish to report a bug in APT, please see \fI/usr/share/doc/debian/bug\-reporting\&.txt\fR or the \fB\fBreportbug\fR\fR(1) command\&.
++APT bug page: \fIhttp://bugs.debian.org/src:apt\fR\&. If you wish to report a bug in APT, please see \fI@PREFIX@/share/doc/debian/bug\-reporting\&.txt\fR or the \fB\fBreportbug\fR\fR(1) command\&.
+ 
+ .SH AUTHORS
+ Jason Gunthorpe, APT team.
+diff -uNr apt-0.5.28.6/doc/apt-cdrom.8 apt-0.5.28.6-new/doc/apt-cdrom.8
+--- apt-0.5.28.6/doc/apt-cdrom.8	Tue Mar 22 02:07:02 2005
++++ apt-0.5.28.6-new/doc/apt-cdrom.8	Wed Aug 17 14:06:28 2005
+@@ -43,7 +43,7 @@
+ add
+ add is used to add a new disc to the source list\&. It will unmount the CDROM device, prompt for a disk to be inserted and then procceed to scan it and copy the index files\&. If the disc does not have a proper \fIdisk\fR directory you will be prompted for a descriptive title\&.
+ 
+-APT uses a CDROM ID to track which disc is currently in the drive and maintains a database of these IDs in \fI/var/lib/apt/cdroms\&.list\fR 
++APT uses a CDROM ID to track which disc is currently in the drive and maintains a database of these IDs in \fI@PREFIX@/var/lib/apt/cdroms\&.list\fR 
+ 
+ .TP
+ ident
+@@ -108,7 +108,7 @@
+ .SH "BUGS"
+ 
+ .PP
+-APT bug page: \fIhttp://bugs.debian.org/src:apt\fR\&. If you wish to report a bug in APT, please see \fI/usr/share/doc/debian/bug\-reporting\&.txt\fR or the \fB\fBreportbug\fR\fR(1) command\&.
++APT bug page: \fIhttp://bugs.debian.org/src:apt\fR\&. If you wish to report a bug in APT, please see \fI@PREFIX@/share/doc/debian/bug\-reporting\&.txt\fR or the \fB\fBreportbug\fR\fR(1) command\&.
+ 
+ .SH AUTHORS
+ Jason Gunthorpe, APT team.
+diff -uNr apt-0.5.28.6/doc/apt-config.8 apt-0.5.28.6-new/doc/apt-config.8
+--- apt-0.5.28.6/doc/apt-config.8	Tue Mar 22 02:07:10 2005
++++ apt-0.5.28.6-new/doc/apt-config.8	Wed Aug 17 14:07:10 2005
+@@ -31,7 +31,7 @@
+ .SH "DESCRIPTION"
+ 
+ .PP
+-\fBapt\-config\fR is an internal program used by various portions of the APT suite to provide consistent configurability\&. It accesses the main configuration file \fI/etc/apt/apt\&.conf\fR in a manner that is easy to use by scripted applications\&.
++\fBapt\-config\fR is an internal program used by various portions of the APT suite to provide consistent configurability\&. It accesses the main configuration file \fI@PREFIX@/etc/apt/apt\&.conf\fR in a manner that is easy to use by scripted applications\&.
+ 
+ .PP
+ Unless the \fB\-h\fR, or \fB\-\-help\fR option is given one of the commands below must be present\&.
+@@ -92,7 +92,7 @@
+ .SH "BUGS"
+ 
+ .PP
+-APT bug page: \fIhttp://bugs.debian.org/src:apt\fR\&. If you wish to report a bug in APT, please see \fI/usr/share/doc/debian/bug\-reporting\&.txt\fR or the \fB\fBreportbug\fR\fR(1) command\&.
++APT bug page: \fIhttp://bugs.debian.org/src:apt\fR\&. If you wish to report a bug in APT, please see \fI@PREFIX@/share/doc/debian/bug\-reporting\&.txt\fR or the \fB\fBreportbug\fR\fR(1) command\&.
+ 
+ .SH AUTHORS
+ Jason Gunthorpe, APT team.
+diff -uNr apt-0.5.28.6/doc/apt-get.8 apt-0.5.28.6-new/doc/apt-get.8
+--- apt-0.5.28.6/doc/apt-get.8	Tue Mar 22 02:06:59 2005
++++ apt-0.5.28.6-new/doc/apt-get.8	Wed Aug 17 14:08:30 2005
+@@ -38,11 +38,11 @@
+ 
+ .TP
+ update
+-update is used to resynchronize the package index files from their sources\&. The indexes of available packages are fetched from the location(s) specified in \fI/etc/apt/sources\&.list\fR\&. For example, when using a Debian archive, this command retrieves and scans the \fIPackages\&.gz\fR files, so that information about new and updated packages is available\&. An update should always be performed before an upgrade or dist\-upgrade\&. Please be aware that the overall progress meter will be incorrect as the size of the package files cannot be known in advance\&.
++update is used to resynchronize the package index files from their sources\&. The indexes of available packages are fetched from the location(s) specified in \fI@PREFIX@/etc/apt/sources\&.list\fR\&. For example, when using a Debian archive, this command retrieves and scans the \fIPackages\&.gz\fR files, so that information about new and updated packages is available\&. An update should always be performed before an upgrade or dist\-upgrade\&. Please be aware that the overall progress meter will be incorrect as the size of the package files cannot be known in advance\&.
+ 
+ .TP
+ upgrade
+-upgrade is used to install the newest versions of all packages currently installed on the system from the sources enumerated in \fI/etc/apt/sources\&.list\fR\&. Packages currently installed with new versions available are retrieved and upgraded; under no circumstances are currently installed packages removed, or packages not already installed retrieved and installed\&. New versions of currently installed packages that cannot be upgraded without changing the install status of another package will be left at their current version\&. An update must be performed first so that \fBapt\-get\fR knows that new versions of packages are available\&.
++upgrade is used to install the newest versions of all packages currently installed on the system from the sources enumerated in \fI@PREFIX@/etc/apt/sources\&.list\fR\&. Packages currently installed with new versions available are retrieved and upgraded; under no circumstances are currently installed packages removed, or packages not already installed retrieved and installed\&. New versions of currently installed packages that cannot be upgraded without changing the install status of another package will be left at their current version\&. An update must be performed first so that \fBapt\-get\fR knows that new versions of packages are available\&.
+ 
+ .TP
+ dselect\-upgrade
+@@ -50,11 +50,11 @@
+ 
+ .TP
+ dist\-upgrade
+-dist\-upgrade in addition to performing the function of upgrade, also intelligently handles changing dependencies with new versions of packages; \fBapt\-get\fR has a "smart" conflict resolution system, and it will attempt to upgrade the most important packages at the expense of less important ones if necessary\&. The \fI/etc/apt/sources\&.list\fR file contains a list of locations from which to retrieve desired package files\&. See also \fB\fBapt_preferences\fR\fR(5) for a mechanism for overriding the general settings for individual packages\&.
++dist\-upgrade in addition to performing the function of upgrade, also intelligently handles changing dependencies with new versions of packages; \fBapt\-get\fR has a "smart" conflict resolution system, and it will attempt to upgrade the most important packages at the expense of less important ones if necessary\&. The \fI@PREFIX@/etc/apt/sources\&.list\fR file contains a list of locations from which to retrieve desired package files\&. See also \fB\fBapt_preferences\fR\fR(5) for a mechanism for overriding the general settings for individual packages\&.
+ 
+ .TP
+ install
+-install is followed by one or more packages desired for installation\&. Each package is a package name, not a fully qualified filename (for instance, in a Debian GNU/Linux system, libc6 would be the argument provided, not libc6_1\&.9\&.6\-2\&.deb) All packages required by the package(s) specified for installation will also be retrieved and installed\&. The \fI/etc/apt/sources\&.list\fR file is used to locate the desired packages\&. If a hyphen is appended to the package name (with no intervening space), the identified package will be removed if it is installed\&. Similarly a plus sign can be used to designate a package to install\&. These latter features may be used to override decisions made by apt\-get's conflict resolution system\&.
++install is followed by one or more packages desired for installation\&. Each package is a package name, not a fully qualified filename (for instance, in a Debian GNU/Linux system, libc6 would be the argument provided, not libc6_1\&.9\&.6\-2\&.deb) All packages required by the package(s) specified for installation will also be retrieved and installed\&. The \fI@PREFIX@/etc/apt/sources\&.list\fR file is used to locate the desired packages\&. If a hyphen is appended to the package name (with no intervening space), the identified package will be removed if it is installed\&. Similarly a plus sign can be used to designate a package to install\&. These latter features may be used to override decisions made by apt\-get's conflict resolution system\&.
+ 
+ A specific version of a package can be selected for installation by following the package name with an equals and the version of the package to select\&. This will cause that version to be located and selected for install\&. Alternatively a specific distribution can be selected by following the package name with a slash and the version of the distribution or the Archive name (stable, testing, unstable)\&.
+ 
+@@ -86,7 +86,7 @@
+ 
+ .TP
+ clean
+-clean clears out the local repository of retrieved package files\&. It removes everything but the lock file from \fI/var/cache/apt/archives/\fR and \fI/var/cache/apt/archives/partial/\fR\&. When APT is used as a \fB\fBdselect\fR\fR(8) method, clean is run automatically\&. Those who do not use dselect will likely want to run apt\-get clean from time to time to free up disk space\&.
++clean clears out the local repository of retrieved package files\&. It removes everything but the lock file from \fI@PREFIX@/var/cache/apt/archives/\fR and \fI@PREFIX@/var/cache/apt/archives/partial/\fR\&. When APT is used as a \fB\fBdselect\fR\fR(8) method, clean is run automatically\&. Those who do not use dselect will likely want to run apt\-get clean from time to time to free up disk space\&.
+ 
+ .TP
+ autoclean
+@@ -165,10 +165,21 @@
+ 
+ .TP
+ \fB\-\-list\-cleanup\fR
+-This option defaults to on, use \-\-no\-list\-cleanup to turn it off\&. When on \fBapt\-get\fR will automatically manage the contents of \fI/var/lib/apt/lists\fR to ensure that obsolete files are erased\&. The only reason to turn it off is if you frequently change your source list\&. Configuration Item: APT::Get::List\-Cleanup\&.
++This option defaults to on, use \-\-no\-list\-cleanup to turn it off\&. When on \fBapt\-get\fR will automatically manage the contents of \fI@PREFIX@/var/lib/apt/lists\fR to ensure that obsolete files are erased\&. The only reason to turn it off is if you frequently change your source list\&. Configuration Item: APT::Get::List\-Cleanup\&.
+ 
+ .TP
+ \fB\-t\fR, \fB\-\-target\-release\fR, \fB\-\-default\-release\fR, 
++\fB--ignore-breakage\fR
++For mode \fBinstall\fR, ignore dependency problems. This option is
++useful if you want to perform actions on just a particular package,
++not its whole dependency tree. It must be used in conjunction with
++\fB--download-only\fR or \fB--print-uris\fR.  Configuration Item:
++APT::Get::Ignore-Breakage.
++
++Note: The \fB--ignore-breakage\fR option was added by The Fink Project
++and hence is only available in the \fBapt-get\fR provided by Fink's
++\fBapt\fR package.
++.TP
+ This option controls the default input to the policy engine, it creates a default pin at priority 990 using the specified release string\&. The preferences file may further override this setting\&. In short, this option lets you have simple control over which distribution packages will be retrieved from\&. Some common examples might be \fB\-t '2\&.1*'\fR or \fB\-t unstable\fR\&. Configuration Item: APT::Default\-Release; see also the \fB\fBapt_preferences\fR\fR(5) manual page\&.
+ 
+ .TP
+@@ -210,41 +221,41 @@
+ .SH "FILES"
+ 
+ .TP
+-\fI/etc/apt/sources\&.list\fR
++\fI@PREFIX@/etc/apt/sources\&.list\fR
+ Locations to fetch packages from\&. Configuration Item: Dir::Etc::SourceList\&.
+ 
+ .TP
+-\fI/etc/apt/apt\&.conf\fR
++\fI@PREFIX@/etc/apt/apt\&.conf\fR
+ APT configuration file\&. Configuration Item: Dir::Etc::Main\&.
+ 
+ .TP
+-\fI/etc/apt/apt\&.conf\&.d/\fR
++\fI@PREFIX@/etc/apt/apt\&.conf\&.d/\fR
+ APT configuration file fragments Configuration Item: Dir::Etc::Parts\&.
+ 
+ .TP
+-\fI/etc/apt/preferences\fR
++\fI@PREFIX@/etc/apt/preferences\fR
+ Version preferences file\&. This is where you would specify "pinning", i\&.e\&. a preference to get certain packages from a separate source or from a different version of a distribution\&. Configuration Item: Dir::Etc::Preferences\&.
+ 
+ .TP
+-\fI/var/cache/apt/archives/\fR
++\fI@PREFIX@/var/cache/apt/archives/\fR
+ Storage area for retrieved package files\&. Configuration Item: Dir::Cache::Archives\&.
+ 
+ .TP
+-\fI/var/cache/apt/archives/partial/\fR
++\fI@PREFIX@/var/cache/apt/archives/partial/\fR
+ Storage area for package files in transit\&. Configuration Item: Dir::Cache::Archives (implicit partial)\&.
+ 
+ .TP
+-\fI/var/lib/apt/lists/\fR
++\fI@PREFIX@/var/lib/apt/lists/\fR
+ Storage area for state information for each package resource specified in \fB\fIsources\&.list\fR\fR(5) Configuration Item: Dir::State::Lists\&.
+ 
+ .TP
+-\fI/var/lib/apt/lists/partial/\fR
++\fI@PREFIX@/var/lib/apt/lists/partial/\fR
+ Storage area for state information in transit\&. Configuration Item: Dir::State::Lists (implicit partial)\&.
+ 
+ .SH "SEE ALSO"
+ 
+ .PP
+-\fB\fBapt\-cache\fR\fR(8), \fB\fBapt\-cdrom\fR\fR(8), \fB\fBdpkg\fR\fR(8), \fB\fBdselect\fR\fR(8), \fB\fIsources\&.list\fR\fR(5), \fB\fIapt\&.conf\fR\fR(5), \fB\fBapt\-config\fR\fR(8), The APT User's guide in /usr/share/doc/apt/, \fB\fBapt_preferences\fR\fR(5), the APT Howto\&.
++\fB\fBapt\-cache\fR\fR(8), \fB\fBapt\-cdrom\fR\fR(8), \fB\fBdpkg\fR\fR(8), \fB\fBdselect\fR\fR(8), \fB\fIsources\&.list\fR\fR(5), \fB\fIapt\&.conf\fR\fR(5), \fB\fBapt\-config\fR\fR(8), The APT User's guide in @PREFIX@/share/doc/apt/, \fB\fBapt_preferences\fR\fR(5), the APT Howto\&.
+ 
+ .SH "DIAGNOSTICS"
+ 
+@@ -254,7 +265,7 @@
+ .SH "BUGS"
+ 
+ .PP
+-APT bug page: \fIhttp://bugs.debian.org/src:apt\fR\&. If you wish to report a bug in APT, please see \fI/usr/share/doc/debian/bug\-reporting\&.txt\fR or the \fB\fBreportbug\fR\fR(1) command\&.
++APT bug page: \fIhttp://bugs.debian.org/src:apt\fR\&. If you wish to report a bug in APT, please see \fI@PREFIX@/share/doc/debian/bug\-reporting\&.txt\fR or the \fB\fBreportbug\fR\fR(1) command\&.
+ 
+ .SH AUTHORS
+ Jason Gunthorpe, APT team.
+diff -uNr apt-0.5.28.6/doc/apt_preferences.5 apt-0.5.28.6-new/doc/apt_preferences.5
+--- apt-0.5.28.6/doc/apt_preferences.5	Tue Mar 22 02:07:13 2005
++++ apt-0.5.28.6-new/doc/apt_preferences.5	Wed Aug 17 14:09:03 2005
+@@ -23,7 +23,7 @@
+ .SH "DESCRIPTION"
+ 
+ .PP
+-The APT preferences file \fI/etc/apt/preferences\fR can be used to control which versions of packages will be selected for installation\&.
++The APT preferences file \fI@PREFIX@/etc/apt/preferences\fR can be used to control which versions of packages will be selected for installation\&.
+ 
+ .PP
+ Several versions of a package may be available for installation when the \fB\fIsources\&.list\fR\fR(5) file contains references to more than one distribution (for example, stable and testing)\&. APT assigns a priority to each version that is available\&. Subject to dependency constraints, \fBapt\-get\fR selects the version with the highest priority for installation\&. The APT preferences file overrides the priorities that APT assigns to package versions by default, thus giving the user control over which one is selected for installation\&.
+@@ -34,7 +34,7 @@
+ .SS "APT's Default Priority Assignments"
+ 
+ .PP
+-If there is no preferences file or if there is no entry in the file that applies to a particular version then the priority assigned to that version is the priority of the distribution to which that version belongs\&. It is possible to single out a distribution, "the target release", which receives a higher priority than other distributions do by default\&. The target release can be set on the \fBapt\-get\fR command line or in the APT configuration file \fI/etc/apt/apt\&.conf\fR\&. For example, 
++If there is no preferences file or if there is no entry in the file that applies to a particular version then the priority assigned to that version is the priority of the distribution to which that version belongs\&. It is possible to single out a distribution, "the target release", which receives a higher priority than other distributions do by default\&. The target release can be set on the \fBapt\-get\fR command line or in the APT configuration file \fI@PREFIX@/etc/apt/apt\&.conf\fR\&. For example, 
+ 
+ .nf
+ 
+@@ -291,7 +291,7 @@
+  
+ 
+ .PP
+-All of the \fIPackages\fR and \fIRelease\fR files retrieved from locations listed in the \fB\fIsources\&.list\fR\fR(5) file are stored in the directory \fI/var/lib/apt/lists\fR, or in the file named by the variable Dir::State::Lists in the \fIapt\&.conf\fR file\&. For example, the file \fIdebian\&.lcs\&.mit\&.edu_debian_dists_unstable_contrib_binary\-i386_Release\fR contains the \fIRelease\fR file retrieved from the site debian\&.lcs\&.mit\&.edu for binary\-i386 architecture files from the contrib component of the unstable distribution\&.
++All of the \fIPackages\fR and \fIRelease\fR files retrieved from locations listed in the \fB\fIsources\&.list\fR\fR(5) file are stored in the directory \fI@PREFIX@/var/lib/apt/lists\fR, or in the file named by the variable Dir::State::Lists in the \fIapt\&.conf\fR file\&. For example, the file \fIdebian\&.lcs\&.mit\&.edu_debian_dists_unstable_contrib_binary\-i386_Release\fR contains the \fIRelease\fR file retrieved from the site debian\&.lcs\&.mit\&.edu for binary\-i386 architecture files from the contrib component of the unstable distribution\&.
+ 
+ .SS "Optional Lines in an APT Preferences Record"
+ 
+@@ -397,7 +397,7 @@
+ .SH "BUGS"
+ 
+ .PP
+-APT bug page: \fIhttp://bugs.debian.org/src:apt\fR\&. If you wish to report a bug in APT, please see \fI/usr/share/doc/debian/bug\-reporting\&.txt\fR or the \fB\fBreportbug\fR\fR(1) command\&.
++APT bug page: \fIhttp://bugs.debian.org/src:apt\fR\&. If you wish to report a bug in APT, please see \fI@PREFIX@/share/doc/debian/bug\-reporting\&.txt\fR or the \fB\fBreportbug\fR\fR(1) command\&.
+ 
+ .SH AUTHOR
+ APT team.
+diff -uNr apt-0.5.28.6/doc/sources.list.5 apt-0.5.28.6-new/doc/sources.list.5
+--- apt-0.5.28.6/doc/sources.list.5	Tue Mar 22 02:07:08 2005
++++ apt-0.5.28.6-new/doc/sources.list.5	Wed Aug 17 14:09:29 2005
+@@ -23,7 +23,7 @@
+ .SH "DESCRIPTION"
+ 
+ .PP
+-The package resource list is used to locate archives of the package distribution system in use on the system\&. At this time, this manual page documents only the packaging system used by the Debian GNU/Linux system\&. This control file is located in \fI/etc/apt/sources\&.list\fR
++The package resource list is used to locate archives of the package distribution system in use on the system\&. At this time, this manual page documents only the packaging system used by the Debian GNU/Linux system\&. This control file is located in \fI@PREFIX@/etc/apt/sources\&.list\fR
+ 
+ .PP
+ The source list is designed to support any number of active sources and a variety of source media\&. The file lists one source per line, with the most preferred source listed first\&. The format of each line is: type uri args The first item, type determines the format for args  uri is a Universal Resource Identifier (URI), which is a superset of the more specific and well\-known Universal Resource Locator, or URL\&. The rest of the line can be marked as a comment by using a #\&.
+@@ -159,7 +159,7 @@
+ .SH "BUGS"
+ 
+ .PP
+-APT bug page: \fIhttp://bugs.debian.org/src:apt\fR\&. If you wish to report a bug in APT, please see \fI/usr/share/doc/debian/bug\-reporting\&.txt\fR or the \fB\fBreportbug\fR\fR(1) command\&.
++APT bug page: \fIhttp://bugs.debian.org/src:apt\fR\&. If you wish to report a bug in APT, please see \fI@PREFIX@/share/doc/debian/bug\-reporting\&.txt\fR or the \fB\fBreportbug\fR\fR(1) command\&.
+ 
+ .SH AUTHORS
+ Jason Gunthorpe, APT team.
+diff -uNr apt-0.5.28.6/dselect/install apt-0.5.28.6-new/dselect/install
+--- apt-0.5.28.6/dselect/install	Mon Jan 10 16:50:08 2005
++++ apt-0.5.28.6-new/dselect/install	Wed Aug 17 13:53:21 2005
+@@ -6,8 +6,8 @@
+ # Get the configuration from /etc/apt/apt.conf
+ CLEAN="prompt"
+ OPTS="-f"
+-APTGET="/usr/bin/apt-get"
+-DPKG="/usr/bin/dpkg"
++APTGET="@PREFIX@/bin/apt-get"
++DPKG="@PREFIX@/bin/dpkg"
+ DPKG_OPTS="--admindir=$1"
+ APT_OPT0="-oDir::State::status=$1/status"
+ APT_OPT1="-oDPkg::Options::=$DPKG_OPTS"
+diff -uNr apt-0.5.28.6/dselect/setup apt-0.5.28.6-new/dselect/setup
+--- apt-0.5.28.6/dselect/setup	Mon Jan 10 16:50:08 2005
++++ apt-0.5.28.6-new/dselect/setup	Wed Aug 17 14:11:05 2005
+@@ -23,15 +23,17 @@
+ my $vardir=$ARGV[0];
+ my $method=$ARGV[1];
+ my $option=$ARGV[2];
+-my $config_file = '/etc/apt/sources.list';
++my $config_file = '@PREFIX@/etc/apt/sources.list';
+ 
+-my $boldon=`setterm -bold on`;
+-my $boldoff=`setterm -bold off`;
++my $boldon=`setterm -bold on 2>/dev/null`;
++my $boldoff=`setterm -bold off 2>/dev/null`;
++$boldon = "" unless defined $boldon;
++$boldoff = "" unless defined $boldon;
+ 
+ my @known_types           = ('deb');
+ my @known_access         = ('http', 'ftp', 'file');
+-my @typical_distributions = ('stable', 'unstable', 'testing', 'non-US');
+-my @typical_components    = ('main', 'contrib', 'non-free');
++my @typical_distributions = ('@DIST@/release', '@DIST@/current');
++my @typical_components    = ('main', 'crypto');
+ 
+ my %known_access           = map {($_,$_)} @known_access;
+ my %typical_distributions  = map {($_,$_)} @typical_distributions;
+@@ -118,9 +120,9 @@
+   }
+ 
+   $type         = 'deb';
+-  $urn          = "http://http.us.debian.org/debian" unless $urn;
+-  $distribution = "stable" unless $distribution;
+-  $components   = "main contrib non-free" unless $components;
++  $urn          = "http://us.dl.sourceforge.net/fink/direct_download" unless $urn;
++  $distribution = "@DIST@/release" unless $distribution;
++  $components   = "main" unless $components;
+ 
+     
+   $rec->{'Type'} = 'deb';
+@@ -222,19 +224,13 @@
+   print "\t$boldon Set up a list of distribution source locations $boldoff \n";
+   print "\n";
+ 
+-  print " Please give the base URL of the debian distribution.\n";
++  print " Please give the base URL of the Fink distribution.\n";
+   print " The access schemes I know about are:$boldon ";
+   print join (' ', @known_access), "$boldoff\n";
+-#  print " The mirror scheme is special  that it does not specify the\n";
+-#  print " location of a debian archive but specifies the location\n";
+-#  print " of a list of mirrors to use to access the archive.\n";
+   print "\n";
+   print " For example:\n";
+-  print "              file:/mnt/debian,\n";
+-  print "              ftp://ftp.debian.org/debian,\n";
+-  print "              http://ftp.de.debian.org/debian,\n";
+-#  print " and the special mirror scheme,\n";
+-#  print "              mirror:http://www.debian.org/archivemirrors \n";
++  print "              file:@PREFIX@/fink,\n";
++  print "              http://us.dl.sourceforge.net/fink/direct_download\n";
+   print "\n";
+ 
+   my $index = 0;
+@@ -269,7 +265,11 @@
+     print "-" x 72, "\n";
+     &print_config('Config' => \@Oldconfig);
+     print "-" x 72, "\n";
+-    print "$boldon Do you wish to overwrite it? [y/N]$boldoff ";
++    print "$boldon In most cases, this file was installed by Fink or by apt,"
++        ." and$boldoff\n";
++    print "$boldon should NOT be changed.  " .
++        "Do you wish to change (overwrite) it?[y/N]$boldoff ";
++
+     my $answer = <STDIN>;
+     chomp ($answer);
+     $answer =~ s/\s+/ /og;
+diff -uNr apt-0.5.28.6/dselect/update apt-0.5.28.6-new/dselect/update
+--- apt-0.5.28.6/dselect/update	Mon Jan 10 16:50:08 2005
++++ apt-0.5.28.6-new/dselect/update	Wed Aug 17 13:53:21 2005
+@@ -7,13 +7,13 @@
+ # Get the configuration from /etc/apt/apt.conf
+ CLEAN="prompt"
+ OPTS="-f"
+-APTGET="/usr/bin/apt-get"
+-APTCACHE="/usr/bin/apt-cache"
+-DPKG="/usr/bin/dpkg"
++APTGET="@PREFIX@/bin/apt-get"
++APTCACHE="@PREFIX@/bin/apt-cache"
++DPKG="@PREFIX@/bin/dpkg"
+ DPKG_OPTS="--admindir=$1"
+ APT_OPT0="-oDir::State::status=$1/status"
+ APT_OPT1="-oDPkg::Options::=$DPKG_OPTS"
+-CACHEDIR="/var/cache/apt"
++CACHEDIR="@PREFIX@/var/cache/apt"
+ PROMPT="false"
+ RES=`apt-config shell CLEAN DSelect::Clean OPTS DSelect::UpdateOptions \
+ 		      DPKG Dir::Bin::dpkg/f APTGET Dir::Bin::apt-get/f \
+diff -uNr apt-0.5.28.6/methods/connect.cc apt-0.5.28.6-new/methods/connect.cc
+--- apt-0.5.28.6/methods/connect.cc	Mon Jan 10 16:50:08 2005
++++ apt-0.5.28.6-new/methods/connect.cc	Wed Aug 17 13:53:21 2005
+@@ -94,7 +94,11 @@
+ 
+    // Check the socket for an error condition
+    unsigned int Err;
+-   unsigned int Len = sizeof(Err);
++#ifndef HAVE_SOCKLEN_T
++   int Len = sizeof(Err);
++#else
++   socklen_t Len = sizeof(Err);
++#endif
+    if (getsockopt(Fd,SOL_SOCKET,SO_ERROR,&Err,&Len) != 0)
+       return _error->Errno("getsockopt",_("Failed"));
+    
+diff -uNr apt-0.5.28.6/methods/ftp.cc apt-0.5.28.6-new/methods/ftp.cc
+--- apt-0.5.28.6/methods/ftp.cc	Mon Jan 10 16:59:09 2005
++++ apt-0.5.28.6-new/methods/ftp.cc	Wed Aug 17 13:53:21 2005
+@@ -697,7 +697,11 @@
+       if (WaitFd(DataFd,true,TimeOut) == false)
+ 	 return _error->Error(_("Could not connect data socket, connection timed out"));
+       unsigned int Err;
+-      unsigned int Len = sizeof(Err);
++#ifndef HAVE_SOCKLEN_T
++      int Len = sizeof(Err);
++#else
++      socklen_t Len = sizeof(Err);
++#endif
+       if (getsockopt(DataFd,SOL_SOCKET,SO_ERROR,&Err,&Len) != 0)
+ 	 return _error->Errno("getsockopt",_("Failed"));
+       if (Err != 0)
+diff -uNr apt-0.5.28.6/methods/makefile apt-0.5.28.6-new/methods/makefile
+--- apt-0.5.28.6/methods/makefile	Mon Jan 10 16:50:08 2005
++++ apt-0.5.28.6-new/methods/makefile	Wed Aug 17 15:50:16 2005
+@@ -12,49 +12,49 @@
+ 
+ # The file method
+ PROGRAM=file
+-SLIBS = -lapt-pkg 
++SLIBS = $(INTLLIBS) -lapt-pkg 
+ LIB_MAKES = apt-pkg/makefile
+ SOURCE = file.cc
+ include $(PROGRAM_H)
+ 
+ # The copy method
+ PROGRAM=copy
+-SLIBS = -lapt-pkg 
++SLIBS = $(INTLLIBS) -lapt-pkg 
+ LIB_MAKES = apt-pkg/makefile
+ SOURCE = copy.cc
+ include $(PROGRAM_H)
+ 
+ # The gzip method
+ PROGRAM=gzip
+-SLIBS = -lapt-pkg 
++SLIBS = $(INTLLIBS) -lapt-pkg 
+ LIB_MAKES = apt-pkg/makefile
+ SOURCE = gzip.cc
+ include $(PROGRAM_H)
+ 
+ # The cdrom method
+ PROGRAM=cdrom
+-SLIBS = -lapt-pkg 
++SLIBS = $(INTLLIBS) -lapt-pkg 
+ LIB_MAKES = apt-pkg/makefile
+ SOURCE = cdrom.cc
+ include $(PROGRAM_H)
+ 
+ # The http method
+ PROGRAM=http
+-SLIBS = -lapt-pkg $(SOCKETLIBS)
++SLIBS = $(INTLLIBS) -lapt-pkg $(SOCKETLIBS)
+ LIB_MAKES = apt-pkg/makefile
+ SOURCE = http.cc rfc2553emu.cc connect.cc
+ include $(PROGRAM_H)
+ 
+ # The ftp method
+ PROGRAM=ftp
+-SLIBS = -lapt-pkg $(SOCKETLIBS)
++SLIBS = $(INTLLIBS) -lapt-pkg $(SOCKETLIBS)
+ LIB_MAKES = apt-pkg/makefile
+ SOURCE = ftp.cc rfc2553emu.cc connect.cc
+ include $(PROGRAM_H)
+ 
+ # The rsh method
+ PROGRAM=rsh
+-SLIBS = -lapt-pkg
++SLIBS = $(INTLLIBS) -lapt-pkg
+ LIB_MAKES = apt-pkg/makefile
+ SOURCE = rsh.cc
+ include $(PROGRAM_H)
+diff -uNr apt-0.5.28.6/methods/rfc2553emu.h apt-0.5.28.6-new/methods/rfc2553emu.h
+--- apt-0.5.28.6/methods/rfc2553emu.h	Mon Jan 10 16:50:08 2005
++++ apt-0.5.28.6-new/methods/rfc2553emu.h	Wed Aug 17 13:53:21 2005
+@@ -26,6 +26,11 @@
+ #include <sys/types.h>
+ #include <sys/socket.h>
+ 
++// Always use full emulation on Darwin:
++//  netdb.h has the structures and constants, but getnameinfo() is missing
++//  and getaddrinfo() seems to be broken
++#ifndef __APPLE__
++
+ // Autosense getaddrinfo
+ #if defined(AI_PASSIVE) && defined(EAI_NONAME)
+ #define HAVE_GETADDRINFO
+@@ -36,6 +41,8 @@
+ #define HAVE_GETNAMEINFO
+ #endif
+ 
++#endif /* __APPLE__ */
++
+ // getaddrinfo support?
+ #ifndef HAVE_GETADDRINFO
+   // Renamed to advoid type clashing.. (for debugging)
+@@ -100,6 +107,9 @@
+ //  #define NI_NOFQDN (1<<2)
+   #define NI_NAMEREQD (1<<3)
+   #define NI_DATAGRAM (1<<4)
++  #endif
++  #ifndef NI_DATAGRAM
++  #define NI_DATAGRAM NI_DGRAM
+   #endif
+ 
+   #define sockaddr_storage sockaddr_in
+diff -uNr apt-0.5.28.6/patch_flush apt-0.5.28.6-new/patch_flush
+--- apt-0.5.28.6/patch_flush	Wed Dec 31 19:00:00 1969
++++ apt-0.5.28.6-new/patch_flush	Wed Aug 17 13:53:21 2005
+@@ -0,0 +1,11 @@
++#!/bin/sh
++set -e
++
++files=`find . -name '*.cc' -print | xargs grep -l 'flush;'`
++
++for i in $files ; do
++  sed 's/<< flush;/<< flush, fflush(NULL);/g' <$i >$i.tmp
++  mv $i.tmp $i
++done
++
++exit 0
