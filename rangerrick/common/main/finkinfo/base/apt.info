@@ -39,9 +39,9 @@ InstallScript: <<
    install -c -m 755 bin/apt-$binfile %i/bin/
  done
 
- install -m 644 bin/libapt-pkg.3.3.0.dylib %i/lib/
+ install -c -m 644 bin/libapt-pkg.3.3.0.dylib %i/lib/
  pushd %i/lib/ && ln -s libapt-pkg.3.3.0.dylib libapt-pkg.3.3.dylib && ln -s libapt-pkg.3.3.0.dylib libapt-pkg.dylib && popd
- install -m 644 bin/libapt-inst.1.0.0.dylib %i/lib/
+ install -c -m 644 bin/libapt-inst.1.0.0.dylib %i/lib/
  pushd %i/lib/ && ln -s libapt-inst.1.0.0.dylib libapt-inst.1.0.dylib && ln -s libapt-inst.1.0.0.dylib libapt-inst.dylib && popd
 
  for method in bin/methods/*; do
@@ -55,7 +55,9 @@ InstallScript: <<
  install -c -m 644 include/apt-pkg/*.h %i/include/apt-pkg/
 
  for ext in 1 5 8; do
-  install -m 644 doc/*.$ext docs/*.$ext %i/share/man/man$ext/
+  for file in doc/*.$ext docs/*.$ext; do
+   cp -f $file %i/share/man/man$ext/
+  done
  done
 
 <<
@@ -70,7 +72,7 @@ SplitOff: <<
 <<
 SplitOff2: <<
   Package: %N-inst1.0-shlibs
-  Depends: dpkg, fink (>= 0.20.6-1)
+  Depends: dpkg, fink (>= 0.20.6-1), %N-pkg3.3-shlibs (>= %v-%r)
   Replaces: %N-shlibs
   Files: lib/libapt-inst.1.0*.dylib
   Shlibs: <<
@@ -78,12 +80,19 @@ SplitOff2: <<
   <<
 <<
 SplitOff3: <<
+  Package: apt-inst1.0-dev
+  Depends: apt-inst1.0-shlibs (>= %v-%r)
+  Replaces: apt-dev
+  Files: lib/libapt-inst.dylib include/apt-pkg/database.h include/apt-pkg/dirstream.h include/apt-pkg/extract.h include/apt-pkg/filelist.h
+  DocFiles: COPYING* AUTHORS
+<<
+SplitOff4: <<
   Package: apt-pkg3.3-dev
-  Depends: apt-pkg3.3-shlibs (>= %v-%r), apt-inst1.0-shlibs (>= %v-%r)
+  Depends: apt-pkg3.3-shlibs (>= %v-%r)
   Conflicts: apt-pkg3.2-dev
   Replaces: apt-pkg3.2-dev, apt-dev
   BuildDependsOnly: true
-  Files: lib/libapt-inst.dylib lib/libapt-pkg.dylib include
+  Files: lib/libapt-pkg.dylib include
   DocFiles: COPYING* AUTHORS
 <<
 DocFiles: COPYING* AUTHORS

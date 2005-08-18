@@ -1,4 +1,3 @@
-diff -uNr apt-0.5.28.6/Makefile apt-0.5.28.6-new/Makefile
 --- apt-0.5.28.6/Makefile	Mon Jan 10 16:50:08 2005
 +++ apt-0.5.28.6-new/Makefile	Wed Aug 17 16:09:44 2005
 @@ -15,7 +15,6 @@
@@ -9,7 +8,6 @@ diff -uNr apt-0.5.28.6/Makefile apt-0.5.28.6-new/Makefile
  	$(MAKE) -C dselect $@
  	$(MAKE) -C doc $@
  	$(MAKE) -C po $@
-diff -uNr apt-0.5.28.6/apt-inst/makefile apt-0.5.28.6-new/apt-inst/makefile
 --- apt-0.5.28.6/apt-inst/makefile	Mon Jan 10 16:50:08 2005
 +++ apt-0.5.28.6-new/apt-inst/makefile	Wed Aug 17 16:50:33 2005
 @@ -10,11 +10,13 @@
@@ -27,7 +25,6 @@ diff -uNr apt-0.5.28.6/apt-inst/makefile apt-0.5.28.6-new/apt-inst/makefile
  APT_DOMAIN:=libapt-inst$(MAJOR)
  
  # Source code for the contributed non-core things
-diff -uNr apt-0.5.28.6/apt-pkg/contrib/cdromutl.cc apt-0.5.28.6-new/apt-pkg/contrib/cdromutl.cc
 --- apt-0.5.28.6/apt-pkg/contrib/cdromutl.cc	Mon Jan 10 16:50:08 2005
 +++ apt-0.5.28.6-new/apt-pkg/contrib/cdromutl.cc	Wed Aug 17 15:03:41 2005
 @@ -23,13 +23,13 @@
@@ -57,112 +54,6 @@ diff -uNr apt-0.5.28.6/apt-pkg/contrib/cdromutl.cc apt-0.5.28.6-new/apt-pkg/cont
  	 return _error->Errno("statfs",_("Failed to stat the cdrom"));
        
        // We use a kilobyte block size to advoid overflow
-diff -uNr apt-0.5.28.6/apt-pkg/contrib/mmap.cc apt-0.5.28.6-new/apt-pkg/contrib/mmap.cc
---- apt-0.5.28.6/apt-pkg/contrib/mmap.cc	Mon Jan 10 16:50:08 2005
-+++ apt-0.5.28.6-new/apt-pkg/contrib/mmap.cc	Wed Aug 17 13:53:18 2005
-@@ -41,7 +41,7 @@
- // ---------------------------------------------------------------------
- /* */
- MMap::MMap(FileFd &F,unsigned long Flags) : Flags(Flags), iSize(0),
--                     Base(0)
-+                     Base(0), iFd(0)
- {
-    if ((Flags & NoImmMap) != NoImmMap)
-       Map(F);
-@@ -51,7 +51,7 @@
- // ---------------------------------------------------------------------
- /* */
- MMap::MMap(unsigned long Flags) : Flags(Flags), iSize(0),
--                     Base(0)
-+                     Base(0), iFd(0)
- {
- }
- 									/*}}}*/
-@@ -68,6 +68,7 @@
- /* */
- bool MMap::Map(FileFd &Fd)
- {
-+   iFd = &Fd;
-    iSize = Fd.Size();
-    
-    // Set the permissions.
-@@ -81,10 +82,19 @@
-    if (iSize == 0)
-       return _error->Error(_("Can't mmap an empty file"));
-    
-+#ifndef EMULATE_MMAP
-    // Map it.
-    Base = mmap(0,iSize,Prot,Map,Fd.Fd(),0);
-    if (Base == (void *)-1)
-       return _error->Errno("mmap",_("Couldn't make mmap of %lu bytes"),iSize);
-+#else
-+   Base = new unsigned char[iSize];
-+   if (Base == NULL)
-+      return _error->Errno("mmap",_("Couldn't allocate %lu bytes to emulate mmap"),iSize);
-+
-+   Fd.Seek(0);
-+   Fd.Read(Base, iSize, true);
-+#endif
- 
-    return true;
- }
-@@ -100,8 +110,16 @@
-    if (DoSync == true)
-       Sync();
-    
-+#ifndef EMULATE_MMAP   
-    if (munmap((char *)Base,iSize) != 0)
-       _error->Warning("Unable to munmap");
-+#else
-+   if ((Flags & ReadOnly) != ReadOnly && iFd != 0) {
-+      iFd->Seek(0);
-+      iFd->Write(Base, iSize);
-+   }
-+   delete [] (unsigned char *)Base;
-+#endif
-    
-    iSize = 0;
-    Base = 0;
-@@ -117,11 +135,13 @@
-    if ((Flags & UnMapped) == UnMapped)
-       return true;
-    
-+#ifndef EMULATE_MMAP
- #ifdef _POSIX_SYNCHRONIZED_IO   
-    if ((Flags & ReadOnly) != ReadOnly)
-       if (msync((char *)Base,iSize,MS_SYNC) != 0)
- 	 return _error->Errno("msync","Unable to write mmap");
- #endif   
-+#endif
-    return true;
- }
- 									/*}}}*/
-@@ -133,11 +153,13 @@
-    if ((Flags & UnMapped) == UnMapped)
-       return true;
-    
-+#ifndef EMULATE_MMAP
- #ifdef _POSIX_SYNCHRONIZED_IO
-    unsigned long PSize = sysconf(_SC_PAGESIZE);
-    if ((Flags & ReadOnly) != ReadOnly)
-       if (msync((char *)Base+(int)(Start/PSize)*PSize,Stop - Start,MS_SYNC) != 0)
- 	 return _error->Errno("msync","Unable to write mmap");
-+#endif   
- #endif   
-    return true;
- }
-diff -uNr apt-0.5.28.6/apt-pkg/contrib/mmap.h apt-0.5.28.6-new/apt-pkg/contrib/mmap.h
---- apt-0.5.28.6/apt-pkg/contrib/mmap.h	Mon Jan 10 16:50:08 2005
-+++ apt-0.5.28.6-new/apt-pkg/contrib/mmap.h	Wed Aug 17 13:53:18 2005
-@@ -46,6 +46,7 @@
-    unsigned long Flags;
-    unsigned long iSize;
-    void *Base;
-+   FileFd *iFd;
- 
-    bool Map(FileFd &Fd);
-    bool Close(bool DoSync = true);
-diff -uNr apt-0.5.28.6/apt-pkg/deb/debindexfile.cc apt-0.5.28.6-new/apt-pkg/deb/debindexfile.cc
 --- apt-0.5.28.6/apt-pkg/deb/debindexfile.cc	Mon Jan 10 16:50:08 2005
 +++ apt-0.5.28.6-new/apt-pkg/deb/debindexfile.cc	Wed Aug 17 13:53:18 2005
 @@ -505,3 +505,11 @@
@@ -177,7 +68,6 @@ diff -uNr apt-0.5.28.6/apt-pkg/deb/debindexfile.cc apt-0.5.28.6-new/apt-pkg/deb/
 +  (void)_apt_Pkg;
 +  (void)_apt_Status;
 +}
-diff -uNr apt-0.5.28.6/apt-pkg/deb/debsystem.cc apt-0.5.28.6-new/apt-pkg/deb/debsystem.cc
 --- apt-0.5.28.6/apt-pkg/deb/debsystem.cc	Mon Jan 10 16:50:08 2005
 +++ apt-0.5.28.6-new/apt-pkg/deb/debsystem.cc	Wed Aug 17 14:32:44 2005
 @@ -27,6 +27,111 @@
@@ -380,7 +270,6 @@ diff -uNr apt-0.5.28.6/apt-pkg/deb/debsystem.cc apt-0.5.28.6-new/apt-pkg/deb/deb
        return true;
     }
     
-diff -uNr apt-0.5.28.6/apt-pkg/deb/debsystem.h apt-0.5.28.6-new/apt-pkg/deb/debsystem.h
 --- apt-0.5.28.6/apt-pkg/deb/debsystem.h	Mon Jan 10 16:50:08 2005
 +++ apt-0.5.28.6-new/apt-pkg/deb/debsystem.h	Wed Aug 17 13:53:18 2005
 @@ -25,6 +25,7 @@
@@ -391,7 +280,6 @@ diff -uNr apt-0.5.28.6/apt-pkg/deb/debsystem.h apt-0.5.28.6-new/apt-pkg/deb/debs
     
     public:
  
-diff -uNr apt-0.5.28.6/apt-pkg/deb/debversion.cc apt-0.5.28.6-new/apt-pkg/deb/debversion.cc
 --- apt-0.5.28.6/apt-pkg/deb/debversion.cc	Mon Jan 10 16:50:08 2005
 +++ apt-0.5.28.6-new/apt-pkg/deb/debversion.cc	Wed Aug 17 13:53:18 2005
 @@ -24,6 +24,11 @@
@@ -406,7 +294,6 @@ diff -uNr apt-0.5.28.6/apt-pkg/deb/debversion.cc apt-0.5.28.6-new/apt-pkg/deb/de
  // debVS::debVersioningSystem - Constructor				/*{{{*/
  // ---------------------------------------------------------------------
  /* */
-diff -uNr apt-0.5.28.6/apt-pkg/deb/dpkgpm.cc apt-0.5.28.6-new/apt-pkg/deb/dpkgpm.cc
 --- apt-0.5.28.6/apt-pkg/deb/dpkgpm.cc	Mon Jan 10 16:50:08 2005
 +++ apt-0.5.28.6-new/apt-pkg/deb/dpkgpm.cc	Wed Aug 17 14:30:00 2005
 @@ -26,6 +26,10 @@
@@ -420,7 +307,6 @@ diff -uNr apt-0.5.28.6/apt-pkg/deb/dpkgpm.cc apt-0.5.28.6-new/apt-pkg/deb/dpkgpm
  									/*}}}*/
  
  using namespace std;
-diff -uNr apt-0.5.28.6/apt-pkg/init.cc apt-0.5.28.6-new/apt-pkg/init.cc
 --- apt-0.5.28.6/apt-pkg/init.cc	Mon Jan 10 16:50:08 2005
 +++ apt-0.5.28.6-new/apt-pkg/init.cc	Wed Aug 17 14:48:26 2005
 @@ -15,6 +15,8 @@
@@ -459,7 +345,6 @@ diff -uNr apt-0.5.28.6/apt-pkg/init.cc apt-0.5.28.6-new/apt-pkg/init.cc
     Sys = 0;
     string Label = Cnf.Find("Apt::System","");
     if (Label.empty() == false)
-diff -uNr apt-0.5.28.6/buildlib/environment.mak.in apt-0.5.28.6-new/buildlib/environment.mak.in
 --- apt-0.5.28.6/buildlib/environment.mak.in	Mon Jan 10 16:50:08 2005
 +++ apt-0.5.28.6-new/buildlib/environment.mak.in	Wed Aug 17 15:29:59 2005
 @@ -7,14 +7,14 @@
@@ -501,7 +386,6 @@ diff -uNr apt-0.5.28.6/buildlib/environment.mak.in apt-0.5.28.6-new/buildlib/env
 +#endif
 +SONAME_MAGIC=-install_name @PREFIX@/lib/
 +LFLAGS_SO=-dynamiclib
-diff -uNr apt-0.5.28.6/buildlib/library.mak apt-0.5.28.6-new/buildlib/library.mak
 --- apt-0.5.28.6/buildlib/library.mak	Mon Jan 10 16:50:08 2005
 +++ apt-0.5.28.6-new/buildlib/library.mak	Wed Aug 17 17:21:13 2005
 @@ -16,11 +16,11 @@
@@ -558,7 +442,6 @@ diff -uNr apt-0.5.28.6/buildlib/library.mak apt-0.5.28.6-new/buildlib/library.ma
  	   $(filter %.opic,$^) \
  	   $($(@F)-SLIBS) 
  
-diff -uNr apt-0.5.28.6/buildlib/ostable apt-0.5.28.6-new/buildlib/ostable
 --- apt-0.5.28.6/buildlib/ostable	Mon Jan 10 16:50:08 2005
 +++ apt-0.5.28.6-new/buildlib/ostable	Wed Aug 17 13:53:21 2005
 @@ -16,6 +16,7 @@
@@ -569,7 +452,6 @@ diff -uNr apt-0.5.28.6/buildlib/ostable apt-0.5.28.6-new/buildlib/ostable
  
  # Catch all
  .*	unknown
-diff -uNr apt-0.5.28.6/cmdline/apt-get.cc apt-0.5.28.6-new/cmdline/apt-get.cc
 --- apt-0.5.28.6/cmdline/apt-get.cc	Thu Feb 10 03:52:34 2005
 +++ apt-0.5.28.6-new/cmdline/apt-get.cc	Wed Aug 17 15:53:10 2005
 @@ -51,7 +51,7 @@
@@ -769,7 +651,6 @@ diff -uNr apt-0.5.28.6/cmdline/apt-get.cc apt-0.5.28.6-new/cmdline/apt-get.cc
     
     // Deal with stdout not being a tty
     if (!isatty(STDOUT_FILENO) && _config->FindI("quiet",0) < 1)
-diff -uNr apt-0.5.28.6/cmdline/makefile apt-0.5.28.6-new/cmdline/makefile
 --- apt-0.5.28.6/cmdline/makefile	Mon Jan 10 16:50:08 2005
 +++ apt-0.5.28.6-new/cmdline/makefile	Wed Aug 17 15:52:12 2005
 @@ -7,42 +7,42 @@
@@ -821,7 +702,6 @@ diff -uNr apt-0.5.28.6/cmdline/makefile apt-0.5.28.6-new/cmdline/makefile
  LIB_MAKES = apt-pkg/makefile
  SOURCE = apt-extracttemplates.cc 
  include $(PROGRAM_H)
-diff -uNr apt-0.5.28.6/configure apt-0.5.28.6-new/configure
 --- apt-0.5.28.6/configure	Tue Mar 22 02:06:44 2005
 +++ apt-0.5.28.6-new/configure	Wed Aug 17 15:27:48 2005
 @@ -1296,8 +1296,8 @@
@@ -925,7 +805,6 @@ diff -uNr apt-0.5.28.6/configure apt-0.5.28.6-new/configure
    esac
  done
  _ACEOF
-diff -uNr apt-0.5.28.6/configure.in apt-0.5.28.6-new/configure.in
 --- apt-0.5.28.6/configure.in	Tue Mar 22 02:03:50 2005
 +++ apt-0.5.28.6-new/configure.in	Wed Aug 17 13:53:21 2005
 @@ -200,4 +200,4 @@
@@ -934,7 +813,6 @@ diff -uNr apt-0.5.28.6/configure.in apt-0.5.28.6-new/configure.in
  
 -AC_OUTPUT(environment.mak:buildlib/environment.mak.in makefile:buildlib/makefile.in,make -s dirs)
 +AC_OUTPUT(environment.mak:buildlib/environment.mak.in makefile.wrap:buildlib/makefile.in,make -f makefile.wrap -s dirs)
-diff -uNr apt-0.5.28.6/doc/apt-cache.8 apt-0.5.28.6-new/doc/apt-cache.8
 --- apt-0.5.28.6/doc/apt-cache.8	Tue Mar 22 02:06:56 2005
 +++ apt-0.5.28.6-new/doc/apt-cache.8	Wed Aug 17 14:05:45 2005
 @@ -42,7 +42,7 @@
@@ -983,7 +861,6 @@ diff -uNr apt-0.5.28.6/doc/apt-cache.8 apt-0.5.28.6-new/doc/apt-cache.8
  
  .SH AUTHORS
  Jason Gunthorpe, APT team.
-diff -uNr apt-0.5.28.6/doc/apt-cdrom.8 apt-0.5.28.6-new/doc/apt-cdrom.8
 --- apt-0.5.28.6/doc/apt-cdrom.8	Tue Mar 22 02:07:02 2005
 +++ apt-0.5.28.6-new/doc/apt-cdrom.8	Wed Aug 17 14:06:28 2005
 @@ -43,7 +43,7 @@
@@ -1004,7 +881,6 @@ diff -uNr apt-0.5.28.6/doc/apt-cdrom.8 apt-0.5.28.6-new/doc/apt-cdrom.8
  
  .SH AUTHORS
  Jason Gunthorpe, APT team.
-diff -uNr apt-0.5.28.6/doc/apt-config.8 apt-0.5.28.6-new/doc/apt-config.8
 --- apt-0.5.28.6/doc/apt-config.8	Tue Mar 22 02:07:10 2005
 +++ apt-0.5.28.6-new/doc/apt-config.8	Wed Aug 17 14:07:10 2005
 @@ -31,7 +31,7 @@
@@ -1025,7 +901,6 @@ diff -uNr apt-0.5.28.6/doc/apt-config.8 apt-0.5.28.6-new/doc/apt-config.8
  
  .SH AUTHORS
  Jason Gunthorpe, APT team.
-diff -uNr apt-0.5.28.6/doc/apt-get.8 apt-0.5.28.6-new/doc/apt-get.8
 --- apt-0.5.28.6/doc/apt-get.8	Tue Mar 22 02:06:59 2005
 +++ apt-0.5.28.6-new/doc/apt-get.8	Wed Aug 17 14:08:30 2005
 @@ -38,11 +38,11 @@
@@ -1148,7 +1023,6 @@ diff -uNr apt-0.5.28.6/doc/apt-get.8 apt-0.5.28.6-new/doc/apt-get.8
  
  .SH AUTHORS
  Jason Gunthorpe, APT team.
-diff -uNr apt-0.5.28.6/doc/apt_preferences.5 apt-0.5.28.6-new/doc/apt_preferences.5
 --- apt-0.5.28.6/doc/apt_preferences.5	Tue Mar 22 02:07:13 2005
 +++ apt-0.5.28.6-new/doc/apt_preferences.5	Wed Aug 17 14:09:03 2005
 @@ -23,7 +23,7 @@
@@ -1187,7 +1061,6 @@ diff -uNr apt-0.5.28.6/doc/apt_preferences.5 apt-0.5.28.6-new/doc/apt_preference
  
  .SH AUTHOR
  APT team.
-diff -uNr apt-0.5.28.6/doc/sources.list.5 apt-0.5.28.6-new/doc/sources.list.5
 --- apt-0.5.28.6/doc/sources.list.5	Tue Mar 22 02:07:08 2005
 +++ apt-0.5.28.6-new/doc/sources.list.5	Wed Aug 17 14:09:29 2005
 @@ -23,7 +23,7 @@
@@ -1208,7 +1081,6 @@ diff -uNr apt-0.5.28.6/doc/sources.list.5 apt-0.5.28.6-new/doc/sources.list.5
  
  .SH AUTHORS
  Jason Gunthorpe, APT team.
-diff -uNr apt-0.5.28.6/dselect/install apt-0.5.28.6-new/dselect/install
 --- apt-0.5.28.6/dselect/install	Mon Jan 10 16:50:08 2005
 +++ apt-0.5.28.6-new/dselect/install	Wed Aug 17 13:53:21 2005
 @@ -6,8 +6,8 @@
@@ -1222,7 +1094,6 @@ diff -uNr apt-0.5.28.6/dselect/install apt-0.5.28.6-new/dselect/install
  DPKG_OPTS="--admindir=$1"
  APT_OPT0="-oDir::State::status=$1/status"
  APT_OPT1="-oDPkg::Options::=$DPKG_OPTS"
-diff -uNr apt-0.5.28.6/dselect/setup apt-0.5.28.6-new/dselect/setup
 --- apt-0.5.28.6/dselect/setup	Mon Jan 10 16:50:08 2005
 +++ apt-0.5.28.6-new/dselect/setup	Wed Aug 17 14:11:05 2005
 @@ -23,15 +23,17 @@
@@ -1297,7 +1168,6 @@ diff -uNr apt-0.5.28.6/dselect/setup apt-0.5.28.6-new/dselect/setup
      my $answer = <STDIN>;
      chomp ($answer);
      $answer =~ s/\s+/ /og;
-diff -uNr apt-0.5.28.6/dselect/update apt-0.5.28.6-new/dselect/update
 --- apt-0.5.28.6/dselect/update	Mon Jan 10 16:50:08 2005
 +++ apt-0.5.28.6-new/dselect/update	Wed Aug 17 13:53:21 2005
 @@ -7,13 +7,13 @@
@@ -1318,7 +1188,6 @@ diff -uNr apt-0.5.28.6/dselect/update apt-0.5.28.6-new/dselect/update
  PROMPT="false"
  RES=`apt-config shell CLEAN DSelect::Clean OPTS DSelect::UpdateOptions \
  		      DPKG Dir::Bin::dpkg/f APTGET Dir::Bin::apt-get/f \
-diff -uNr apt-0.5.28.6/methods/connect.cc apt-0.5.28.6-new/methods/connect.cc
 --- apt-0.5.28.6/methods/connect.cc	Mon Jan 10 16:50:08 2005
 +++ apt-0.5.28.6-new/methods/connect.cc	Wed Aug 17 13:53:21 2005
 @@ -94,7 +94,11 @@
@@ -1334,7 +1203,6 @@ diff -uNr apt-0.5.28.6/methods/connect.cc apt-0.5.28.6-new/methods/connect.cc
     if (getsockopt(Fd,SOL_SOCKET,SO_ERROR,&Err,&Len) != 0)
        return _error->Errno("getsockopt",_("Failed"));
     
-diff -uNr apt-0.5.28.6/methods/ftp.cc apt-0.5.28.6-new/methods/ftp.cc
 --- apt-0.5.28.6/methods/ftp.cc	Mon Jan 10 16:59:09 2005
 +++ apt-0.5.28.6-new/methods/ftp.cc	Wed Aug 17 13:53:21 2005
 @@ -697,7 +697,11 @@
@@ -1350,7 +1218,6 @@ diff -uNr apt-0.5.28.6/methods/ftp.cc apt-0.5.28.6-new/methods/ftp.cc
        if (getsockopt(DataFd,SOL_SOCKET,SO_ERROR,&Err,&Len) != 0)
  	 return _error->Errno("getsockopt",_("Failed"));
        if (Err != 0)
-diff -uNr apt-0.5.28.6/methods/makefile apt-0.5.28.6-new/methods/makefile
 --- apt-0.5.28.6/methods/makefile	Mon Jan 10 16:50:08 2005
 +++ apt-0.5.28.6-new/methods/makefile	Wed Aug 17 15:50:16 2005
 @@ -12,49 +12,49 @@
@@ -1410,7 +1277,6 @@ diff -uNr apt-0.5.28.6/methods/makefile apt-0.5.28.6-new/methods/makefile
  LIB_MAKES = apt-pkg/makefile
  SOURCE = rsh.cc
  include $(PROGRAM_H)
-diff -uNr apt-0.5.28.6/methods/rfc2553emu.h apt-0.5.28.6-new/methods/rfc2553emu.h
 --- apt-0.5.28.6/methods/rfc2553emu.h	Mon Jan 10 16:50:08 2005
 +++ apt-0.5.28.6-new/methods/rfc2553emu.h	Wed Aug 17 13:53:21 2005
 @@ -26,6 +26,11 @@
@@ -1444,7 +1310,6 @@ diff -uNr apt-0.5.28.6/methods/rfc2553emu.h apt-0.5.28.6-new/methods/rfc2553emu.
    #endif
  
    #define sockaddr_storage sockaddr_in
-diff -uNr apt-0.5.28.6/patch_flush apt-0.5.28.6-new/patch_flush
 --- apt-0.5.28.6/patch_flush	Wed Dec 31 19:00:00 1969
 +++ apt-0.5.28.6-new/patch_flush	Wed Aug 17 13:53:21 2005
 @@ -0,0 +1,11 @@
