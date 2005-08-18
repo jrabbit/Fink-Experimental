@@ -957,36 +957,6 @@
  PROMPT="false"
  RES=`apt-config shell CLEAN DSelect::Clean OPTS DSelect::UpdateOptions \
  		      DPKG Dir::Bin::dpkg/f APTGET Dir::Bin::apt-get/f \
---- apt-0.5.4/methods/connect.cc	Tue Feb 20 02:03:18 2001
-+++ apt-0.5.4-new/methods/connect.cc	Wed Aug 17 17:41:12 2005
-@@ -90,7 +90,11 @@
- 
-    // Check the socket for an error condition
-    unsigned int Err;
--   unsigned int Len = sizeof(Err);
-+#ifndef HAVE_SOCKLEN_T
-+   int Len = sizeof(Err);
-+#else
-+   socklen_t Len = sizeof(Err);
-+#endif
-    if (getsockopt(Fd,SOL_SOCKET,SO_ERROR,&Err,&Len) != 0)
-       return _error->Errno("getsockopt","Failed");
-    
---- apt-0.5.4/methods/ftp.cc	Tue May 22 00:02:00 2001
-+++ apt-0.5.4-new/methods/ftp.cc	Wed Aug 17 17:41:12 2005
-@@ -694,7 +694,11 @@
-       if (WaitFd(DataFd,true,TimeOut) == false)
- 	 return _error->Error("Could not connect data socket, connection timed out");
-       unsigned int Err;
--      unsigned int Len = sizeof(Err);
-+#ifndef HAVE_SOCKLEN_T
-+      int Len = sizeof(Err);
-+#else
-+      socklen_t Len = sizeof(Err);
-+#endif
-       if (getsockopt(DataFd,SOL_SOCKET,SO_ERROR,&Err,&Len) != 0)
- 	 return _error->Errno("getsockopt","Failed");
-       if (Err != 0)
 --- apt-0.5.4/methods/rfc2553emu.h	Sun Jun 18 02:04:45 2000
 +++ apt-0.5.4-new/methods/rfc2553emu.h	Wed Aug 17 17:41:12 2005
 @@ -26,6 +26,11 @@
