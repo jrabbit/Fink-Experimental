@@ -32,3 +32,12 @@
 * launchd support. We may *have* to get this done before 10.5, since the old \StartupItems mechanism is deprecated.
 ** Modify daemonic so that it turns \DaemonicFile/Name into launchd plists on 10.4 and above. (make sure 'daemonic install' checks for and removes an existing \StartupItems if it installs a \LaunchAgents) 
 ** Add a new field for explicitly specifying launchd plist files to be placed in /Library/\LaunchAgents (or \LaunchDaemons? what's the difference?). This should also automate calling launchctl load and unload in \PostInst and \PreRm. (What about backwards compatibility, what would happen on 10.3?)
+
+* dmacks: overhaul validator of of .deb: unpack whole archive first so don't gotta run dpkg every time we need to read a file's contents; -m mode will access this directly so don't gotta pack .deb then unpack it to validate. (CVS tag “val-unpack”)
+
+* make \AutoScanpackages default to true (requires that an apt-ftparchive binary be available as part of the default installation).
+
+* Obsoletes field, to make it easy to get rid of unneeded packages.
+** Eg: foo and foo-ssl exist. Now foo decides to link against the system's SSL, so there's no more need for foo-ssl. In foo.info, we add Obsoletes: foo-ssl 1.2.3-2 . Fink automagically creates a package foo-ssl 1.2.3-2 that is just a dummy depending on the current version of foo, so that foo-ssl users will get foo installed. Fink cleanup could later remove any dummy packages that are left installed but no longer a Depends of any installed package.
+** This requires some indexer support.
+** The token that marks a package as obsolete needs to be in the .deb somehow. Maybe have the Description be "[OBSOLETE: replaced by %N]" where %N is package that contains this Obsolete: field, not the obsoleted packge. Makes it easy for a semi-clueful user to see what's going on. We already use Description=~/^\[/ only for special packages with well-established text, so no off-target effects.
