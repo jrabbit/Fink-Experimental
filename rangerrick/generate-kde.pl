@@ -11,7 +11,6 @@ my @files = @ARGV;
 my %files;
 
 if (not @files) {
-	print "foo\n";
 	find(sub {
 		push(@files, $File::Find::name);
 	}, $path . '/common');
@@ -41,9 +40,11 @@ for my $file (@files) {
 				if (open(FILEIN, $dir .'/'. $filename)) {
 					if (open(FILEOUT , '>' . $todir . '/' . $filename)) {
 						print "converting... ";
+						my $version = 0;
+						my $revision = 0;
 						while (my $line = <FILEIN>) {
 							if ($line =~ /^\s*revision:\s*(.*?)\s*$/i) {
-								my $revision = $1;
+								$revision = $1;
 								if (my ($pre, $post) = $revision =~ /^(.*\.)(\d+)$/) {
 									$post += 10 if ($tree eq '10.3');
 									$post += 20 if ($tree eq '10.4');
@@ -54,13 +55,13 @@ for my $file (@files) {
 								}
 								print FILEOUT "Revision: $revision\n";
 							} else {
-								if ($line =~ /^\s*(Build)?Depends/g) {
+								if ($line =~ /^\s*(Build)?Depends/gi) {
 									my $newline = $line;
-									while ($line =~ /\G.*?((?:arts|kde\S+(?:i18n|3)|qt3|postgresql80)\S*)\s+\(([^\)]*?)\)/g) {
+									while ($line =~ /\G.*?((?:arts|kde\S+(?:i18n|3|3-unified)|qt3|postgresql80)\S*)\s+\(([^\)]*?)\)/g) {
 										my $package = $1;
 										my $version = $2;
 										my ($comparator, $revision);
-										if ($version =~ /^(.+?)\s+(.+)-(.+?)$/) {
+										if ($version =~ /^([^\%]+?)\s+([^-]+)-([^\%]+?)$/) {
 											($comparator, $version, $revision) = ($1, $2, $3);
 											#print "$package ($version-$revision) -> ";
 											if (my ($pre, $post) = $revision =~ /^(.*\.)(\d+)$/) {
@@ -76,6 +77,16 @@ for my $file (@files) {
 										}
 									}
 									$line = $newline;
+								} elsif ($line =~ /^(\s*)type:\s*perl\s*\((.*)\)\s*$/i) {
+									my @versions = split(/\s+/, $2);
+									if ($tree =~ /^10\.2/) {
+										@versions = qw(5.6.0 5.6.1 5.8.1);
+									} elsif ($tree =~ /^10\.3/) {
+										@versions = qw(5.6.0 5.6.1 5.8.0 5.8.4 5.8.6);
+									} elsif ($tree =~ /^10\.4/) {
+										@versions = qw(5.8.1 5.8.4 5.8.6);
+									}
+									$line = $1 . "Type: perl(@versions)\n";
 								}
 								if ($tree =~ /^10\.2/) {
 									$line =~ s/^\#10.2\s+(.*)$/$1/;
