@@ -247,6 +247,16 @@ sub _get_old_new
    {
       my $oldversion = $self->get_version_from_hash($old);
       my $newversion = $mod->package_version();
+      if (!defined $oldversion)
+      {
+         #warn "Missing old version number, skipping\n";
+         return ();
+      }
+      if (!defined $newversion)
+      {
+         print "Missing new version number, skipping\n";
+         return ();
+      }
       return () if ($oldversion eq $newversion);
    }
 

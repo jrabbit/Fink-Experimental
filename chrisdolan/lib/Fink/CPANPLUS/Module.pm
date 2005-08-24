@@ -234,7 +234,8 @@ sub makefile
          # Check if there are any script outputs
          if ($makefile =~ /([\'\"]?)EXE_FILES\1\s*(?:=>|,)\s*(\[\s*\]|)/s)
          {
-            $self->{makefile}->{bin} = ($2 ne "");
+            my $binfiles = $2;
+            $self->{makefile}->{bin} = ($binfiles =~ /[^\s\[\]]/);
          }
          # Check for prereqs
          if ($makefile =~ /([\'\"]?)PREREQ_PM\1\s*(?:=>|,)\s*(\{.*?\})/s)
