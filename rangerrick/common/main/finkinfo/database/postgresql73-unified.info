@@ -50,7 +50,7 @@ Source: mirror:custom:source/v%v/postgresql-%v.tar.bz2
 Source-MD5: b8b40e0922735fd01a2a887f970fd343
 BuildDepends: readline5, autoconf2.5, libgnugetopt, bison
 Conflicts: postgresql-ssl (<< %v-%r), postgresql (<< %v-%r)
-Replaces: postgresql (<< %v-%r), postgresql-shlibs, postgresql-ssl-shlibs, postgresql-ssl, postgresql-python, postgresql-ssl-python, postgresql-perl, postgresql-ssl-perl, postgresql73 (<< %v-%r), postgresql73-ssl (<< %v-%r)
+Replaces: postgresql (<< %v-%r), postgresql-shlibs, postgresql-ssl-shlibs, postgresql-ssl, postgresql-python, postgresql-ssl-python, postgresql-perl, postgresql-ssl-perl, postgresql73, postgresql73-ssl
 Depends: readline5-shlibs, passwd (>= 20030906-1), daemonic (>= 20010902-1), %N-shlibs (>= %v-%r)
 Description: PostgreSQL open-source database
 PatchScript: sed 's|@INSTPREFIX@|%p|g' < %a/%n.patch | patch -p1
@@ -256,10 +256,47 @@ SplitOff2: <<
   PostInstScript: [ -x %p/var/postgresql/update-alternatives.sh ] && %p/var/postgresql/update-alternatives.sh
   PreRmScript: [ -x %p/var/postgresql/remove-alternatives.sh ] && %p/var/postgresql/remove-alternatives.sh
   Shlibs: <<
-    %p/lib/libecpg.3.dylib 3.0.0 postgresql73-shlibs (>= 7.3.9-1) | postgresql73-ssl-shlibs (>= 7.3.9-1)
-    %p/lib/libpq.3.dylib   3.0.0 postgresql73-shlibs (>= 7.3.9-1) | postgresql73-ssl-shlibs (>= 7.3.9-1)
+    %p/lib/libecpg.3.dylib 3.0.0 postgresql73-unified-shlibs (>= 7.3.9-1)
+    %p/lib/libpq.3.dylib   3.0.0 postgresql73-unified-shlibs (>= 7.3.9-1)
   <<
 <<
+SplitOff3: <<
+  Package: postgresql73
+  Description: upgrade package for postgresql73
+  Depends: %N (= %v-%r)
+  DocFiles: COPYRIGHT HISTORY INSTALL README
+<<
+SplitOff4: <<
+  Package: postgresql73-shlibs
+  Description: upgrade package for postgresql73-shlibs
+  Depends: %N-shlibs (= %v-%r)
+  DocFiles: COPYRIGHT HISTORY INSTALL README
+<<
+SplitOff5: <<
+  Package: postgresql73-dev
+  Description: upgrade package for postgresql73-dev
+  Depends: %N-dev (= %v-%r)
+  DocFiles: COPYRIGHT HISTORY INSTALL README
+<<
+SplitOff6: <<
+  Package: postgresql73-ssl
+  Description: upgrade package for postgresql73-ssl
+  Depends: %N (= %v-%r)
+  DocFiles: COPYRIGHT HISTORY INSTALL README
+<<
+SplitOff7: <<
+  Package: postgresql73-ssl-shlibs
+  Description: upgrade package for postgresql73-ssl-shlibs
+  Depends: %N-shlibs (= %v-%r)
+  DocFiles: COPYRIGHT HISTORY INSTALL README
+<<
+SplitOff8: <<
+  Package: postgresql73-ssl-dev
+  Description: upgrade package for postgresql73-ssl-dev
+  Depends: %N-dev (= %v-%r)
+  DocFiles: COPYRIGHT HISTORY INSTALL README
+<<
+
 DaemonicFile: <<
   <service>
   <description>PostgreSQL database server</description>
@@ -301,8 +338,9 @@ PreRmScript: <<
 [ -x %p/var/postgresql/remove-alternatives.sh ] && %p/var/postgresql/remove-alternatives.sh
 
 # clean up
-daemonic remove postgresql >/dev/null 2>&1 || true
-daemonic remove %N-ssl     >/dev/null 2>&1 || true
+daemonic remove postgresql       >/dev/null 2>&1 || true
+daemonic remove postgresql73     >/dev/null 2>&1 || true
+daemonic remove postgresql73-ssl >/dev/null 2>&1 || true
 if [ $1 != "upgrade" ]; then
   daemonic remove %N
 fi

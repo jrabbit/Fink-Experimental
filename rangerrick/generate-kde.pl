@@ -116,7 +116,8 @@ for my $file (@files) {
 
 								if ($tree >= 10.4) {
 									$line =~ s/gcc3.1[,\s]*//;
-									$line =~ s/--disable-java //;
+									# java's broken everywhere right now
+									#$line =~ s/--disable-java //;
 								}
 								$line .= "\n" unless ($line =~ /\n+$/);
 								print FILEOUT $line;
