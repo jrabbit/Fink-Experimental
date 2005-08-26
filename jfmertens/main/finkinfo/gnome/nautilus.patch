@@ -1,0 +1,61 @@
+diff -Naur nautilus-2.8.0-old/configure nautilus-2.8.0/configure
+--- nautilus-2.8.0-old/configure	Mon Sep 13 04:47:09 2004
++++ nautilus-2.8.0/configure	Wed Oct  6 23:39:16 2004
+@@ -25088,7 +25088,7 @@
+ 
+ CORE_LIBS="`$PKG_CONFIG --libs $CORE_MODULES` $CDDA_LIBS $LIBJPEG $x_libs"
+ 
+-CORE_IDL_INCLUDES="`$PKG_CONFIG --variable=idldir $CORE_MODULES | $srcdir/add-include-prefix`"
++CORE_IDL_INCLUDES="`$PKG_CONFIG --variable=idldir $CORE_MODULES | xargs -n1 echo -n ' -I '`"
+ 
+ 
+ COMPONENT_MODULES="eel-2.0 libbonoboui-2.0 gnome-vfs-module-2.0 gnome-desktop-2.0"
+diff -Naur nautilus-2.8.0-old/libnautilus-private/nautilus-emblem-utils.c nautilus-2.8.0/libnautilus-private/nautilus-emblem-utils.c
+--- nautilus-2.8.0-old/libnautilus-private/nautilus-emblem-utils.c	Thu Dec 18 12:19:39 2003
++++ nautilus-2.8.0/libnautilus-private/nautilus-emblem-utils.c	Wed Oct  6 23:39:16 2004
+@@ -24,6 +24,8 @@
+ 
+ #include <config.h>
+ 
++#include <sys/types.h>
++
+ #include <utime.h>
+ #include <stdio.h>
+ #include <time.h>
+diff -Naur nautilus-2.8.0-old/libnautilus-private/nautilus-program-choosing.c nautilus-2.8.0/libnautilus-private/nautilus-program-choosing.c
+--- nautilus-2.8.0-old/libnautilus-private/nautilus-program-choosing.c	Sat Jul 24 10:47:37 2004
++++ nautilus-2.8.0/libnautilus-private/nautilus-program-choosing.c	Wed Oct  6 23:39:25 2004
+@@ -55,6 +55,9 @@
+ #define MAX_URI_IN_DIALOG_LENGTH 60
+ 
+ 
++#include <crt_externs.h>
++#define environ (*_NSGetEnviron())
++
+ #ifdef HAVE_STARTUP_NOTIFICATION
+ #define SN_API_NOT_YET_FROZEN
+ #include <libsn/sn.h>
+diff -Naur nautilus-2.8.0-old/ltmain.sh nautilus-2.8.0/ltmain.sh
+--- nautilus-2.8.0-old/ltmain.sh	Mon Aug  9 13:07:34 2004
++++ nautilus-2.8.0/ltmain.sh	Wed Oct  6 23:39:25 2004
+@@ -2276,7 +2276,7 @@
+ 	   { test "$prefer_static_libs" = no || test -z "$old_library"; }; then
+ 	  if test "$installed" = no; then
+ 	    notinst_deplibs="$notinst_deplibs $lib"
+-	    need_relink=yes
++	    # need_relink=yes
+ 	  fi
+ 	  # This is a shared library
+ 
+diff -Naur nautilus-2.8.0-old/po/Makefile.in.in nautilus-2.8.0/po/Makefile.in.in
+--- nautilus-2.8.0-old/po/Makefile.in.in	Mon Sep 13 04:47:03 2004
++++ nautilus-2.8.0/po/Makefile.in.in	Wed Oct  6 23:39:25 2004
+@@ -28,7 +28,7 @@
+ exec_prefix = @exec_prefix@
+ datadir = @datadir@
+ libdir = @libdir@
+-localedir = $(libdir)/locale
++localedir = $(datadir)/locale
+ gnulocaledir = $(datadir)/locale
+ gettextsrcdir = $(datadir)/glib-2.0/gettext/po
+ subdir = po
