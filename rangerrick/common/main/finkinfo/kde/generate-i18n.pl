@@ -60,8 +60,8 @@ Source-MD5: $md5
 Version: ${KDEVERSION}
 Revision: ${KDEI18NRELNUM}
 Replaces: ${replaces}
-Depends: kdelibs3-ssl (>= %v-${KDERELNUM}) | kdelibs3 (>= %v-${KDERELNUM}), arts (>= ${KDEARTSVER}), xfonts-intl
-BuildDepends: fink (>= 0.17.1-1), kdebase3-ssl-dev (>= %v-${KDERELNUM}) | kdebase3-dev (>= %v-${KDERELNUM}), kdelibs3-ssl-dev (>= %v-${KDERELNUM}) | kdelibs3-dev (>= %v-${KDERELNUM}), arts-dev (>= ${KDEARTSVER}), libxml2, libxslt, xfonts-intl
+Depends: kdelibs3-unified (>= %v-${KDERELNUM}), arts (>= ${KDEARTSVER}), xfonts-intl
+BuildDepends: fink (>= 0.17.1-1), kdebase3-unified-dev (>= %v-${KDERELNUM}), kdelibs3-unified-dev (>= %v-${KDERELNUM}), arts-dev (>= ${KDEARTSVER}), libxml2, libxslt, xfonts-intl
 Maintainer: Benjamin Reed <kde-i18n-${normalized}\@fink.racoonfink.com>
 PatchScript: perl -pi -e 's,doc/HTML,doc/kde,g' configure
 CompileScript: (export HOME=/tmp; export KDEDIR=%p; sh configure %c; find . -name \\*.bz2 -exec touch {} \\;; make -j2)
@@ -107,8 +107,8 @@ Source-MD5: $md5
 Version: ${KOVERSION}
 Revision: ${KOI18NRELNUM}
 Replaces: $replaces
-Depends: kdelibs3-ssl (>= ${KDEVERSION}-${KDERELNUM}) | kdelibs3 (>= ${KDEVERSION}-${KDERELNUM}), arts (>= ${KDEARTSVER}), xfonts-intl, koffice-base (>= ${KOVERSION}-${KORELNUM})
-BuildDepends: fink (>= 0.17.1-1), kdebase3-ssl-dev (>= ${KDEVERSION}-${KDERELNUM}) | kdebase3-dev (>= ${KDEVERSION}-${KDERELNUM}), kdelibs3-ssl-dev (>= ${KDEVERSION}-${KDERELNUM}) | kdelibs3-dev (>= ${KDEVERSION}-${KDERELNUM}), arts-dev (>= ${KDEARTSVER}), koffice-dev (>= ${KOVERSION}-${KORELNUM}), libxml2, libxslt, xfonts-intl
+Depends: kdelibs3-unified (>= ${KDEVERSION}-${KDERELNUM}), arts (>= ${KDEARTSVER}), xfonts-intl, koffice-base (>= ${KOVERSION}-${KORELNUM})
+BuildDepends: fink (>= 0.17.1-1), kdebase3-unified-dev (>= ${KDEVERSION}-${KDERELNUM}), kdelibs3-unified-dev (>= ${KDEVERSION}-${KDERELNUM}), arts-dev (>= ${KDEARTSVER}), koffice-dev (>= ${KOVERSION}-${KORELNUM}), libxml2, libxslt, xfonts-intl
 Maintainer: Benjamin Reed <koffice-i18n-${normalized}\@fink.racoonfink.com>
 PatchScript: perl -pi -e 's,doc/HTML,doc/kde,g' configure
 CompileScript: (export HOME=/tmp; export KDEDIR=%p; sh configure %c; find . -name \\*.bz2 -exec touch {} \\;; make -j2)
