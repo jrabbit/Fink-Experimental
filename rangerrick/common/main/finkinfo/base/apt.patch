@@ -1,6 +1,6 @@
 diff -uNr apt-0.6.40.1/Makefile apt-0.6.40.1-new/Makefile
 --- apt-0.6.40.1/Makefile	2005-08-05 05:58:35.000000000 -0400
-+++ apt-0.6.40.1-new/Makefile	2005-08-18 14:35:53.000000000 -0400
++++ apt-0.6.40.1-new/Makefile	2005-08-29 17:30:29.000000000 -0400
 @@ -15,7 +15,6 @@
  	$(MAKE) -C apt-inst $@
  	$(MAKE) -C methods $@
@@ -11,7 +11,7 @@ diff -uNr apt-0.6.40.1/Makefile apt-0.6.40.1-new/Makefile
  	$(MAKE) -C po $@
 diff -uNr apt-0.6.40.1/apt-inst/makefile apt-0.6.40.1-new/apt-inst/makefile
 --- apt-0.6.40.1/apt-inst/makefile	2005-08-05 05:58:35.000000000 -0400
-+++ apt-0.6.40.1-new/apt-inst/makefile	2005-08-18 14:36:57.000000000 -0400
++++ apt-0.6.40.1-new/apt-inst/makefile	2005-08-29 17:30:29.000000000 -0400
 @@ -12,9 +12,9 @@
  # The library name
  LIBRARY=apt-inst
@@ -24,9 +24,28 @@ diff -uNr apt-0.6.40.1/apt-inst/makefile apt-0.6.40.1-new/apt-inst/makefile
  APT_DOMAIN:=libapt-inst$(MAJOR)
  
  # Source code for the contributed non-core things
+diff -uNr apt-0.6.40.1/apt-pkg/acquire-item.cc apt-0.6.40.1-new/apt-pkg/acquire-item.cc
+--- apt-0.6.40.1/apt-pkg/acquire-item.cc	2005-08-05 05:58:35.000000000 -0400
++++ apt-0.6.40.1-new/apt-pkg/acquire-item.cc	2005-08-29 17:42:31.000000000 -0400
+@@ -700,12 +700,14 @@
+ // ---------------------------------------------------------------------
+ /* This just sets up the initial fetch environment and queues the first
+    possibilitiy */
++
++// FIXME: when fink has a way to trust stuff, set Trusted(true) back to false  ;)
+ pkgAcqArchive::pkgAcqArchive(pkgAcquire *Owner,pkgSourceList *Sources,
+ 			     pkgRecords *Recs,pkgCache::VerIterator const &Version,
+ 			     string &StoreFilename) :
+                Item(Owner), Version(Version), Sources(Sources), Recs(Recs), 
+                StoreFilename(StoreFilename), Vf(Version.FileList()), 
+-	       Trusted(false)
++	       Trusted(true)
+ {
+    Retries = _config->FindI("Acquire::Retries",0);
+ 
 diff -uNr apt-0.6.40.1/apt-pkg/contrib/cdromutl.cc apt-0.6.40.1-new/apt-pkg/contrib/cdromutl.cc
 --- apt-0.6.40.1/apt-pkg/contrib/cdromutl.cc	2005-08-05 05:58:35.000000000 -0400
-+++ apt-0.6.40.1-new/apt-pkg/contrib/cdromutl.cc	2005-08-18 14:35:53.000000000 -0400
++++ apt-0.6.40.1-new/apt-pkg/contrib/cdromutl.cc	2005-08-29 17:30:29.000000000 -0400
 @@ -23,13 +23,13 @@
      
  #include <sys/wait.h>
@@ -56,7 +75,7 @@ diff -uNr apt-0.6.40.1/apt-pkg/contrib/cdromutl.cc apt-0.6.40.1-new/apt-pkg/cont
        // We use a kilobyte block size to advoid overflow
 diff -uNr apt-0.6.40.1/apt-pkg/deb/debindexfile.cc apt-0.6.40.1-new/apt-pkg/deb/debindexfile.cc
 --- apt-0.6.40.1/apt-pkg/deb/debindexfile.cc	2005-08-05 05:58:37.000000000 -0400
-+++ apt-0.6.40.1-new/apt-pkg/deb/debindexfile.cc	2005-08-18 14:58:47.000000000 -0400
++++ apt-0.6.40.1-new/apt-pkg/deb/debindexfile.cc	2005-08-29 17:30:29.000000000 -0400
 @@ -444,3 +444,9 @@
  }
  
@@ -69,7 +88,7 @@ diff -uNr apt-0.6.40.1/apt-pkg/deb/debindexfile.cc apt-0.6.40.1-new/apt-pkg/deb/
 +}
 diff -uNr apt-0.6.40.1/apt-pkg/deb/debsystem.cc apt-0.6.40.1-new/apt-pkg/deb/debsystem.cc
 --- apt-0.6.40.1/apt-pkg/deb/debsystem.cc	2005-08-05 05:58:35.000000000 -0400
-+++ apt-0.6.40.1-new/apt-pkg/deb/debsystem.cc	2005-08-18 14:35:53.000000000 -0400
++++ apt-0.6.40.1-new/apt-pkg/deb/debsystem.cc	2005-08-29 17:30:29.000000000 -0400
 @@ -27,6 +27,111 @@
  #include <dirent.h>
  #include <errno.h>
@@ -272,7 +291,7 @@ diff -uNr apt-0.6.40.1/apt-pkg/deb/debsystem.cc apt-0.6.40.1-new/apt-pkg/deb/deb
     return false;
 diff -uNr apt-0.6.40.1/apt-pkg/deb/debsystem.h apt-0.6.40.1-new/apt-pkg/deb/debsystem.h
 --- apt-0.6.40.1/apt-pkg/deb/debsystem.h	2005-08-05 05:58:35.000000000 -0400
-+++ apt-0.6.40.1-new/apt-pkg/deb/debsystem.h	2005-08-18 14:35:53.000000000 -0400
++++ apt-0.6.40.1-new/apt-pkg/deb/debsystem.h	2005-08-29 17:30:29.000000000 -0400
 @@ -25,6 +25,7 @@
     bool CheckUpdates();
     
@@ -283,7 +302,7 @@ diff -uNr apt-0.6.40.1/apt-pkg/deb/debsystem.h apt-0.6.40.1-new/apt-pkg/deb/debs
  
 diff -uNr apt-0.6.40.1/apt-pkg/deb/debversion.cc apt-0.6.40.1-new/apt-pkg/deb/debversion.cc
 --- apt-0.6.40.1/apt-pkg/deb/debversion.cc	2005-08-05 05:58:35.000000000 -0400
-+++ apt-0.6.40.1-new/apt-pkg/deb/debversion.cc	2005-08-18 14:35:53.000000000 -0400
++++ apt-0.6.40.1-new/apt-pkg/deb/debversion.cc	2005-08-29 17:30:29.000000000 -0400
 @@ -24,6 +24,11 @@
  
  debVersioningSystem debVS;
@@ -298,7 +317,7 @@ diff -uNr apt-0.6.40.1/apt-pkg/deb/debversion.cc apt-0.6.40.1-new/apt-pkg/deb/de
  /* */
 diff -uNr apt-0.6.40.1/apt-pkg/deb/dpkgpm.cc apt-0.6.40.1-new/apt-pkg/deb/dpkgpm.cc
 --- apt-0.6.40.1/apt-pkg/deb/dpkgpm.cc	2005-08-05 07:20:13.000000000 -0400
-+++ apt-0.6.40.1-new/apt-pkg/deb/dpkgpm.cc	2005-08-18 14:35:53.000000000 -0400
++++ apt-0.6.40.1-new/apt-pkg/deb/dpkgpm.cc	2005-08-29 17:30:29.000000000 -0400
 @@ -26,6 +26,10 @@
  #include <errno.h>
  #include <stdio.h>
@@ -312,7 +331,7 @@ diff -uNr apt-0.6.40.1/apt-pkg/deb/dpkgpm.cc apt-0.6.40.1-new/apt-pkg/deb/dpkgpm
  #include <config.h>
 diff -uNr apt-0.6.40.1/apt-pkg/init.cc apt-0.6.40.1-new/apt-pkg/init.cc
 --- apt-0.6.40.1/apt-pkg/init.cc	2005-08-05 05:58:35.000000000 -0400
-+++ apt-0.6.40.1-new/apt-pkg/init.cc	2005-08-18 14:35:53.000000000 -0400
++++ apt-0.6.40.1-new/apt-pkg/init.cc	2005-08-29 17:30:29.000000000 -0400
 @@ -15,6 +15,8 @@
  #include <apti18n.h>
  #include <config.h>
@@ -351,7 +370,7 @@ diff -uNr apt-0.6.40.1/apt-pkg/init.cc apt-0.6.40.1-new/apt-pkg/init.cc
     if (Label.empty() == false)
 diff -uNr apt-0.6.40.1/apt-pkg/makefile apt-0.6.40.1-new/apt-pkg/makefile
 --- apt-0.6.40.1/apt-pkg/makefile	2005-08-05 06:28:00.000000000 -0400
-+++ apt-0.6.40.1-new/apt-pkg/makefile	2005-08-18 14:37:32.000000000 -0400
++++ apt-0.6.40.1-new/apt-pkg/makefile	2005-08-29 17:30:29.000000000 -0400
 @@ -13,7 +13,7 @@
  # methods/makefile - FIXME
  LIBRARY=apt-pkg
@@ -363,7 +382,7 @@ diff -uNr apt-0.6.40.1/apt-pkg/makefile apt-0.6.40.1-new/apt-pkg/makefile
  APT_DOMAIN:=libapt-pkg$(MAJOR)
 diff -uNr apt-0.6.40.1/buildlib/environment.mak.in apt-0.6.40.1-new/buildlib/environment.mak.in
 --- apt-0.6.40.1/buildlib/environment.mak.in	2005-08-05 05:58:35.000000000 -0400
-+++ apt-0.6.40.1-new/buildlib/environment.mak.in	2005-08-18 14:35:53.000000000 -0400
++++ apt-0.6.40.1-new/buildlib/environment.mak.in	2005-08-29 17:30:29.000000000 -0400
 @@ -7,14 +7,14 @@
  CC = @CC@
  CPPFLAGS+= @CPPFLAGS@ @DEFS@ -D_REENTRANT -Wall
@@ -405,7 +424,7 @@ diff -uNr apt-0.6.40.1/buildlib/environment.mak.in apt-0.6.40.1-new/buildlib/env
 +LFLAGS_SO=-dynamiclib
 diff -uNr apt-0.6.40.1/buildlib/library.mak apt-0.6.40.1-new/buildlib/library.mak
 --- apt-0.6.40.1/buildlib/library.mak	2005-08-05 05:58:35.000000000 -0400
-+++ apt-0.6.40.1-new/buildlib/library.mak	2005-08-18 14:35:53.000000000 -0400
++++ apt-0.6.40.1-new/buildlib/library.mak	2005-08-29 17:30:29.000000000 -0400
 @@ -16,11 +16,11 @@
  # See defaults.mak for information about LOCAL
  
@@ -462,7 +481,7 @@ diff -uNr apt-0.6.40.1/buildlib/library.mak apt-0.6.40.1-new/buildlib/library.ma
  
 diff -uNr apt-0.6.40.1/buildlib/ostable apt-0.6.40.1-new/buildlib/ostable
 --- apt-0.6.40.1/buildlib/ostable	2005-08-05 05:58:35.000000000 -0400
-+++ apt-0.6.40.1-new/buildlib/ostable	2005-08-18 14:35:53.000000000 -0400
++++ apt-0.6.40.1-new/buildlib/ostable	2005-08-29 17:30:29.000000000 -0400
 @@ -16,6 +16,7 @@
  hp-hpux[^-]*	    hp-ux
  sun-solaris[^-]*    solaris
@@ -473,7 +492,7 @@ diff -uNr apt-0.6.40.1/buildlib/ostable apt-0.6.40.1-new/buildlib/ostable
  .*	unknown
 diff -uNr apt-0.6.40.1/cmdline/apt-get.cc apt-0.6.40.1-new/cmdline/apt-get.cc
 --- apt-0.6.40.1/cmdline/apt-get.cc	2005-08-05 05:58:39.000000000 -0400
-+++ apt-0.6.40.1-new/cmdline/apt-get.cc	2005-08-18 14:39:11.000000000 -0400
++++ apt-0.6.40.1-new/cmdline/apt-get.cc	2005-08-29 17:30:29.000000000 -0400
 @@ -51,7 +51,7 @@
  #include <termios.h>
  #include <sys/ioctl.h>
@@ -655,7 +674,7 @@ diff -uNr apt-0.6.40.1/cmdline/apt-get.cc apt-0.6.40.1-new/cmdline/apt-get.cc
     if (!isatty(STDOUT_FILENO) && _config->FindI("quiet",0) < 1)
 diff -uNr apt-0.6.40.1/cmdline/makefile apt-0.6.40.1-new/cmdline/makefile
 --- apt-0.6.40.1/cmdline/makefile	2005-08-05 05:58:35.000000000 -0400
-+++ apt-0.6.40.1-new/cmdline/makefile	2005-08-18 14:40:07.000000000 -0400
++++ apt-0.6.40.1-new/cmdline/makefile	2005-08-29 17:30:29.000000000 -0400
 @@ -7,42 +7,42 @@
  
  # The apt-cache program
@@ -707,7 +726,7 @@ diff -uNr apt-0.6.40.1/cmdline/makefile apt-0.6.40.1-new/cmdline/makefile
  include $(PROGRAM_H)
 diff -uNr apt-0.6.40.1/configure apt-0.6.40.1-new/configure
 --- apt-0.6.40.1/configure	2005-08-05 07:35:03.000000000 -0400
-+++ apt-0.6.40.1-new/configure	2005-08-18 14:35:53.000000000 -0400
++++ apt-0.6.40.1-new/configure	2005-08-29 17:30:29.000000000 -0400
 @@ -1296,8 +1296,8 @@
  
  ac_ext=c
@@ -811,7 +830,7 @@ diff -uNr apt-0.6.40.1/configure apt-0.6.40.1-new/configure
  _ACEOF
 diff -uNr apt-0.6.40.1/configure.in apt-0.6.40.1-new/configure.in
 --- apt-0.6.40.1/configure.in	2005-08-05 07:34:35.000000000 -0400
-+++ apt-0.6.40.1-new/configure.in	2005-08-18 14:35:53.000000000 -0400
++++ apt-0.6.40.1-new/configure.in	2005-08-29 17:30:29.000000000 -0400
 @@ -203,4 +203,4 @@
  AC_SUBST(USE_NLS)
  AC_PATH_PROG(BASH, bash)
@@ -820,7 +839,7 @@ diff -uNr apt-0.6.40.1/configure.in apt-0.6.40.1-new/configure.in
 +AC_OUTPUT(environment.mak:buildlib/environment.mak.in makefile.wrap:buildlib/makefile.in,make -f makefile.wrap -s dirs)
 diff -uNr apt-0.6.40.1/doc/apt-cache.8 apt-0.6.40.1-new/doc/apt-cache.8
 --- apt-0.6.40.1/doc/apt-cache.8	2005-08-05 07:35:14.000000000 -0400
-+++ apt-0.6.40.1-new/doc/apt-cache.8	2005-08-18 14:35:53.000000000 -0400
++++ apt-0.6.40.1-new/doc/apt-cache.8	2005-08-29 17:30:29.000000000 -0400
 @@ -42,7 +42,7 @@
  
  .TP
@@ -869,7 +888,7 @@ diff -uNr apt-0.6.40.1/doc/apt-cache.8 apt-0.6.40.1-new/doc/apt-cache.8
  Jason Gunthorpe, APT team.
 diff -uNr apt-0.6.40.1/doc/apt-cdrom.8 apt-0.6.40.1-new/doc/apt-cdrom.8
 --- apt-0.6.40.1/doc/apt-cdrom.8	2005-08-05 07:35:17.000000000 -0400
-+++ apt-0.6.40.1-new/doc/apt-cdrom.8	2005-08-18 14:35:53.000000000 -0400
++++ apt-0.6.40.1-new/doc/apt-cdrom.8	2005-08-29 17:30:29.000000000 -0400
 @@ -43,7 +43,7 @@
  add
  add is used to add a new disc to the source list\&. It will unmount the CDROM device, prompt for a disk to be inserted and then procceed to scan it and copy the index files\&. If the disc does not have a proper \fIdisk\fR directory you will be prompted for a descriptive title\&.
@@ -890,7 +909,7 @@ diff -uNr apt-0.6.40.1/doc/apt-cdrom.8 apt-0.6.40.1-new/doc/apt-cdrom.8
  Jason Gunthorpe, APT team.
 diff -uNr apt-0.6.40.1/doc/apt-config.8 apt-0.6.40.1-new/doc/apt-config.8
 --- apt-0.6.40.1/doc/apt-config.8	2005-08-05 07:35:22.000000000 -0400
-+++ apt-0.6.40.1-new/doc/apt-config.8	2005-08-18 14:35:53.000000000 -0400
++++ apt-0.6.40.1-new/doc/apt-config.8	2005-08-29 17:30:29.000000000 -0400
 @@ -31,7 +31,7 @@
  .SH "DESCRIPTION"
  
@@ -911,7 +930,7 @@ diff -uNr apt-0.6.40.1/doc/apt-config.8 apt-0.6.40.1-new/doc/apt-config.8
  Jason Gunthorpe, APT team.
 diff -uNr apt-0.6.40.1/doc/apt-get.8 apt-0.6.40.1-new/doc/apt-get.8
 --- apt-0.6.40.1/doc/apt-get.8	2005-08-05 07:35:16.000000000 -0400
-+++ apt-0.6.40.1-new/doc/apt-get.8	2005-08-18 14:40:56.000000000 -0400
++++ apt-0.6.40.1-new/doc/apt-get.8	2005-08-29 17:30:29.000000000 -0400
 @@ -38,11 +38,11 @@
  
  .TP
@@ -1020,7 +1039,7 @@ diff -uNr apt-0.6.40.1/doc/apt-get.8 apt-0.6.40.1-new/doc/apt-get.8
  Jason Gunthorpe, APT team.
 diff -uNr apt-0.6.40.1/doc/apt_preferences.5 apt-0.6.40.1-new/doc/apt_preferences.5
 --- apt-0.6.40.1/doc/apt_preferences.5	2005-08-05 07:35:23.000000000 -0400
-+++ apt-0.6.40.1-new/doc/apt_preferences.5	2005-08-18 14:35:53.000000000 -0400
++++ apt-0.6.40.1-new/doc/apt_preferences.5	2005-08-29 17:30:29.000000000 -0400
 @@ -23,7 +23,7 @@
  .SH "DESCRIPTION"
  
@@ -1059,7 +1078,7 @@ diff -uNr apt-0.6.40.1/doc/apt_preferences.5 apt-0.6.40.1-new/doc/apt_preference
  APT team.
 diff -uNr apt-0.6.40.1/doc/sources.list.5 apt-0.6.40.1-new/doc/sources.list.5
 --- apt-0.6.40.1/doc/sources.list.5	2005-08-05 07:35:20.000000000 -0400
-+++ apt-0.6.40.1-new/doc/sources.list.5	2005-08-18 14:35:53.000000000 -0400
++++ apt-0.6.40.1-new/doc/sources.list.5	2005-08-29 17:30:29.000000000 -0400
 @@ -23,7 +23,7 @@
  .SH "DESCRIPTION"
  
@@ -1080,7 +1099,7 @@ diff -uNr apt-0.6.40.1/doc/sources.list.5 apt-0.6.40.1-new/doc/sources.list.5
  Jason Gunthorpe, APT team.
 diff -uNr apt-0.6.40.1/dselect/install apt-0.6.40.1-new/dselect/install
 --- apt-0.6.40.1/dselect/install	2005-08-05 05:58:35.000000000 -0400
-+++ apt-0.6.40.1-new/dselect/install	2005-08-18 14:35:53.000000000 -0400
++++ apt-0.6.40.1-new/dselect/install	2005-08-29 17:30:29.000000000 -0400
 @@ -6,8 +6,8 @@
  # Get the configuration from /etc/apt/apt.conf
  CLEAN="prompt"
@@ -1094,7 +1113,7 @@ diff -uNr apt-0.6.40.1/dselect/install apt-0.6.40.1-new/dselect/install
  APT_OPT1="-oDPkg::Options::=$DPKG_OPTS"
 diff -uNr apt-0.6.40.1/dselect/setup apt-0.6.40.1-new/dselect/setup
 --- apt-0.6.40.1/dselect/setup	2005-08-05 05:58:35.000000000 -0400
-+++ apt-0.6.40.1-new/dselect/setup	2005-08-18 14:35:53.000000000 -0400
++++ apt-0.6.40.1-new/dselect/setup	2005-08-29 17:30:29.000000000 -0400
 @@ -23,15 +23,17 @@
  my $vardir=$ARGV[0];
  my $method=$ARGV[1];
@@ -1169,7 +1188,7 @@ diff -uNr apt-0.6.40.1/dselect/setup apt-0.6.40.1-new/dselect/setup
      $answer =~ s/\s+/ /og;
 diff -uNr apt-0.6.40.1/dselect/update apt-0.6.40.1-new/dselect/update
 --- apt-0.6.40.1/dselect/update	2005-08-05 05:58:35.000000000 -0400
-+++ apt-0.6.40.1-new/dselect/update	2005-08-18 14:35:53.000000000 -0400
++++ apt-0.6.40.1-new/dselect/update	2005-08-29 17:30:29.000000000 -0400
 @@ -7,13 +7,13 @@
  # Get the configuration from /etc/apt/apt.conf
  CLEAN="prompt"
@@ -1190,7 +1209,7 @@ diff -uNr apt-0.6.40.1/dselect/update apt-0.6.40.1-new/dselect/update
  		      DPKG Dir::Bin::dpkg/f APTGET Dir::Bin::apt-get/f \
 diff -uNr apt-0.6.40.1/methods/makefile apt-0.6.40.1-new/methods/makefile
 --- apt-0.6.40.1/methods/makefile	2005-08-05 06:28:00.000000000 -0400
-+++ apt-0.6.40.1-new/methods/makefile	2005-08-18 15:00:14.000000000 -0400
++++ apt-0.6.40.1-new/methods/makefile	2005-08-29 17:30:29.000000000 -0400
 @@ -7,61 +7,61 @@
  BIN := $(BIN)/methods
  
@@ -1264,7 +1283,7 @@ diff -uNr apt-0.6.40.1/methods/makefile apt-0.6.40.1-new/methods/makefile
  include $(PROGRAM_H)
 diff -uNr apt-0.6.40.1/methods/rfc2553emu.h apt-0.6.40.1-new/methods/rfc2553emu.h
 --- apt-0.6.40.1/methods/rfc2553emu.h	2005-08-05 05:58:35.000000000 -0400
-+++ apt-0.6.40.1-new/methods/rfc2553emu.h	2005-08-18 14:35:53.000000000 -0400
++++ apt-0.6.40.1-new/methods/rfc2553emu.h	2005-08-29 17:30:29.000000000 -0400
 @@ -26,6 +26,11 @@
  #include <sys/types.h>
  #include <sys/socket.h>
@@ -1298,7 +1317,7 @@ diff -uNr apt-0.6.40.1/methods/rfc2553emu.h apt-0.6.40.1-new/methods/rfc2553emu.
  #endif
 diff -uNr apt-0.6.40.1/patch_flush apt-0.6.40.1-new/patch_flush
 --- apt-0.6.40.1/patch_flush	1969-12-31 19:00:00.000000000 -0500
-+++ apt-0.6.40.1-new/patch_flush	2005-08-18 14:35:53.000000000 -0400
++++ apt-0.6.40.1-new/patch_flush	2005-08-29 17:30:29.000000000 -0400
 @@ -0,0 +1,11 @@
 +#!/bin/sh
 +set -e

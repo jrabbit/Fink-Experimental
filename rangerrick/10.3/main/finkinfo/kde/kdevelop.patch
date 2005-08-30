@@ -34,3 +34,204 @@ diff -uNr kdevelop-3.2.2/buildtools/projectmanager/importers/custom/Makefile.am 
      libkdevcustomimporter.la
  
  noinst_HEADERS = \
+diff -uNr kdevelop-3.2.2/languages/cpp/Makefile.am kdevelop-3.2.2-new/languages/cpp/Makefile.am
+--- kdevelop-3.2.2/languages/cpp/Makefile.am	2005-05-23 08:10:23.000000000 -0400
++++ kdevelop-3.2.2-new/languages/cpp/Makefile.am	2005-08-26 09:03:06.000000000 -0400
+@@ -10,14 +10,15 @@
+ 	-I$(top_builddir)/languages/lib/designer_integration -I$(top_builddir)/bdb/build_unix -I$(top_srcdir)/bdb/include \
+ 	$(all_includes)
+ 
++lib_LTLIBRARIES = libkdevcppcommon.la
+ kde_module_LTLIBRARIES = libkdevcppsupport.la
+-libkdevcppsupport_la_LDFLAGS = $(all_libraries) $(KDE_PLUGIN) -L$(top_srcdir)/bdb/dist
+-libkdevcppsupport_la_LIBADD = $(top_builddir)/lib/libkdevelop.la \
++libkdevcppcommon_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -L$(top_srcdir)/bdb/dist
++libkdevcppcommon_la_LIBADD = $(top_builddir)/lib/libkdevelop.la \
+ 	$(top_builddir)/lib/catalog/libkdevcatalog.la $(top_builddir)/lib/cppparser/libkdevcppparser.la \
+ 	$(top_builddir)/languages/lib/interfaces/liblang_interfaces.la \
+ 	$(top_builddir)/languages/lib/designer_integration/libdesignerintegration.la $(top_builddir)/bdb/build_unix/libdb.a
+ 
+-libkdevcppsupport_la_SOURCES = cppsupportpart.cpp ccconfigwidget.cpp \
++libkdevcppcommon_la_SOURCES = cppsupportpart.cpp ccconfigwidget.cpp \
+ 			ccconfigwidgetbase.ui kdevdriver.cpp cppcodecompletion.cpp problemreporter.cpp \
+ 			configproblemreporter.ui backgroundparser.cpp ast_utils.cpp store_walker.cpp \
+ 			KDevCppSupportIface.cpp KDevCppSupportIface.skel cppsupportfactory.cpp tag_creator.cpp \
+@@ -29,6 +30,14 @@
+ 		creategettersetterconfiguration.h creategettersetterdialog.cpp creategettersetterdialog.h \
+ 		creategettersetter.ui storeconverter.cpp
+ 
++libkdevcppsupport_la_LIBADD = libkdevcppcommon.la
++libkdevcppsupport_la_SOURCES = dummy.cpp
++
++dummy.cpp: cppsupportfactory.cpp
++	cat cppsupportfactory.cpp > dummy.cpp
++
++DISTCLEANFILES = dummy.cpp
++
+ METASOURCES = AUTO
+ 
+ servicedir = $(kde_servicesdir)
+@@ -48,7 +57,7 @@
+ bin_PROGRAMS = r++
+ r___LDFLAGS = $(all_libraries)
+ r___SOURCES = main.cpp
+-r___DEPENDENCIES = libkdevcppsupport.la
+-r___LDADD = libkdevcppsupport.la $(top_builddir)/lib/catalog/libkdevcatalog.la $(top_builddir)/lib/cppparser/libkdevcppparser.la
++r___DEPENDENCIES = libkdevcppcommon.la
++r___LDADD = libkdevcppcommon.la $(top_builddir)/lib/catalog/libkdevcatalog.la $(top_builddir)/lib/cppparser/libkdevcppparser.la
+ noinst_HEADERS = cppimplementationwidget.h qtdesignercppintegration.h \
+ 	storeconverter.h
+diff -uNr kdevelop-3.2.2/languages/pascal/PascalLexer.cpp kdevelop-3.2.2-new/languages/pascal/PascalLexer.cpp
+--- kdevelop-3.2.2/languages/pascal/PascalLexer.cpp	2005-05-23 08:10:24.000000000 -0400
++++ kdevelop-3.2.2-new/languages/pascal/PascalLexer.cpp	2005-08-26 08:56:50.000000000 -0400
+@@ -1,4 +1,7 @@
+ /* $ANTLR 2.7.2: "pascal.g" -> "PascalLexer.cpp"$ */
++
++#include "PascalTokenTypes.hpp"
++
+ #include "PascalLexer.hpp"
+ #include <antlr/CharBuffer.hpp>
+ #include <antlr/TokenStreamException.hpp>
+diff -uNr kdevelop-3.2.2/languages/pascal/PascalParser.cpp kdevelop-3.2.2-new/languages/pascal/PascalParser.cpp
+--- kdevelop-3.2.2/languages/pascal/PascalParser.cpp	2005-05-23 08:10:24.000000000 -0400
++++ kdevelop-3.2.2-new/languages/pascal/PascalParser.cpp	2005-08-26 08:56:50.000000000 -0400
+@@ -1,4 +1,7 @@
+ /* $ANTLR 2.7.2: "pascal.g" -> "PascalParser.cpp"$ */
++
++#include "PascalTokenTypes.hpp"
++
+ #include "PascalParser.hpp"
+ #include <antlr/NoViableAltException.hpp>
+ #include <antlr/SemanticException.hpp>
+diff -uNr kdevelop-3.2.2/languages/pascal/PascalStoreWalker.cpp kdevelop-3.2.2-new/languages/pascal/PascalStoreWalker.cpp
+--- kdevelop-3.2.2/languages/pascal/PascalStoreWalker.cpp	2005-05-23 08:10:24.000000000 -0400
++++ kdevelop-3.2.2-new/languages/pascal/PascalStoreWalker.cpp	2005-08-26 08:56:50.000000000 -0400
+@@ -1,4 +1,5 @@
+ /* $ANTLR 2.7.2: "pascal.tree.g" -> "PascalStoreWalker.cpp"$ */
++#include "PascalStoreWalkerTokenTypes.hpp"
+ #include "PascalStoreWalker.hpp"
+ #include <antlr/Token.hpp>
+ #include <antlr/AST.hpp>
+diff -uNr kdevelop-3.2.2/languages/pascal/backgroundparser.cpp kdevelop-3.2.2-new/languages/pascal/backgroundparser.cpp
+--- kdevelop-3.2.2/languages/pascal/backgroundparser.cpp	2005-05-23 08:10:24.000000000 -0400
++++ kdevelop-3.2.2-new/languages/pascal/backgroundparser.cpp	2005-08-26 08:56:50.000000000 -0400
+@@ -9,6 +9,8 @@
+  *                                                                         *
+  ***************************************************************************/
+ 
++#include "PascalTokenTypes.hpp"
++
+ #include <strstream>
+ 
+ #include "backgroundparser.h"
+diff -uNr kdevelop-3.2.2/languages/pascal/pascalsupport_part.cpp kdevelop-3.2.2-new/languages/pascal/pascalsupport_part.cpp
+--- kdevelop-3.2.2/languages/pascal/pascalsupport_part.cpp	2005-05-23 08:10:24.000000000 -0400
++++ kdevelop-3.2.2-new/languages/pascal/pascalsupport_part.cpp	2005-08-26 08:56:50.000000000 -0400
+@@ -7,6 +7,10 @@
+  *   the Free Software Foundation; either version 2 of the License, or     *
+  *   (at your option) any later version.                                   *
+  ***************************************************************************/
++
++#include "PascalTokenTypes.hpp"
++#include "PascalStoreWalkerTokenTypes.hpp"
++
+ #include <fstream>
+ 
+ #include <qdir.h>
+diff -uNr kdevelop-3.2.2/lib/catalog/Makefile.am kdevelop-3.2.2-new/lib/catalog/Makefile.am
+--- kdevelop-3.2.2/lib/catalog/Makefile.am	2005-05-23 08:09:54.000000000 -0400
++++ kdevelop-3.2.2-new/lib/catalog/Makefile.am	2005-08-26 08:56:50.000000000 -0400
+@@ -2,7 +2,7 @@
+ lib_LTLIBRARIES = libkdevcatalog.la
+ libkdevcatalog_la_SOURCES = tag.cpp
+ libkdevcatalog_la_LDFLAGS = $(all_libraries) -no-undefined
+-libkdevcatalog_la_LIBADD = $(LIB_QT)
++libkdevcatalog_la_LIBADD  = $(LIB_QT)
+ 
+ kdevcatalogincludedir = $(includedir)/kdevelop/catalog
+ kdevcataloginclude_HEADERS = gcatalog.h gcatalog.tcc catalog.h tag.h
+diff -uNr kdevelop-3.2.2/lib/cppparser/Makefile.am kdevelop-3.2.2-new/lib/cppparser/Makefile.am
+--- kdevelop-3.2.2/lib/cppparser/Makefile.am	2005-05-23 08:09:52.000000000 -0400
++++ kdevelop-3.2.2-new/lib/cppparser/Makefile.am	2005-08-26 08:56:50.000000000 -0400
+@@ -1,7 +1,8 @@
+ INCLUDES = $(all_includes)
+ AM_CXXFLAGS = -DKDEVELOP_BGPARSER
+ lib_LTLIBRARIES = libkdevcppparser.la
+-libkdevcppparser_la_LDFLAGS = $(all_libraries)
++libkdevcppparser_la_LIBADD  = $(LIB_QT) $(LIB_KDECORE)
++libkdevcppparser_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -no-undefined
+ libkdevcppparser_la_SOURCES = ast.cpp driver.cpp errors.cpp lexer.cpp lookup.cpp parser.cpp tree_parser.cpp
+ 
+ kdevcppparserincludedir = $(includedir)/kdevelop/cppparser
+diff -uNr kdevelop-3.2.2/parts/documentation/protocols/chm/Makefile.am kdevelop-3.2.2-new/parts/documentation/protocols/chm/Makefile.am
+--- kdevelop-3.2.2/parts/documentation/protocols/chm/Makefile.am	2005-05-23 08:09:43.000000000 -0400
++++ kdevelop-3.2.2-new/parts/documentation/protocols/chm/Makefile.am	2005-08-26 11:17:03.000000000 -0400
+@@ -9,7 +9,7 @@
+ kio_chm_la_LDFLAGS = $(all_libraries) -module $(KDE_PLUGIN)
+ 
+ libkchmpart_la_SOURCES = kchmpart.cpp
+-libkchmpart_la_LIBADD = -lkhtml $(LIB_KPARTS) $(top_builddir)/lib/widgets/libkdevwidgets.la
++libkchmpart_la_LIBADD = -lkhtml $(LIB_KPARTS) $(top_builddir)/lib/widgets/libkdevwidgets.la $(top_builddir)/lib/util/libkdevutil.la -lktexteditor -lkscript $(top_builddir)/lib/libkdevelop.la
+ libkchmpart_la_LDFLAGS = $(all_libraries) $(KDE_PLUGIN)
+ 
+ noinst_HEADERS = chm.h chmfile.h decompress.h kchmpart.h
+diff -uNr kdevelop-3.2.2/src/Makefile.am kdevelop-3.2.2-new/src/Makefile.am
+--- kdevelop-3.2.2/src/Makefile.am	2005-05-23 08:09:36.000000000 -0400
++++ kdevelop-3.2.2-new/src/Makefile.am	2005-08-26 08:56:50.000000000 -0400
+@@ -17,13 +17,14 @@
+ 	projectmanager.cpp projectsession.cpp splashscreen.cpp statusbar.cpp toplevel.cpp \
+ 	generalinfowidgetbase.ui mimewarningdialog.ui shellextension.cpp
+ 
+-bin_PROGRAMS = kdevelop kdevassistant
++kdeinit_LTLIBRARIES = kdevelop.la kdevassistant.la
++bin_PROGRAMS = 
+ 
+-kdevelop_SOURCES = main.cpp kdevideextension.cpp settingswidget.ui
++kdevelop_la_SOURCES = main.cpp kdevideextension.cpp settingswidget.ui
+ 
+-kdevelop_METASOURCES = AUTO
+-kdevelop_LDFLAGS = $(all_libraries) $(KDE_RPATH)
+-kdevelop_LDADD = libkdevshell.la
++kdevelop_la_METASOURCES = AUTO
++kdevelop_la_LDFLAGS = $(all_libraries) $(KDE_PLUGIN) -module
++kdevelop_la_LIBADD = libkdevshell.la
+ 
+ rcdir = $(kde_datadir)/kdevelop
+ rc_DATA = kdevelopui.rc eventsrc
+@@ -33,9 +34,9 @@
+ kdevelopdata_DATA = kdeveloprc
+ 
+ SUBDIRS = profiles profileengine
+-kdevassistant_LDFLAGS = $(all_libraries) $(KDE_RPATH)
+-kdevassistant_SOURCES = main_assistant.cpp kdevassistantextension.cpp
+-kdevassistant_LDADD = libkdevshell.la
++kdevassistant_la_LDFLAGS = $(all_libraries) $(KDE_PLUGIN) -module
++kdevassistant_la_SOURCES = main_assistant.cpp kdevassistantextension.cpp
++kdevassistant_la_LIBADD = libkdevshell.la
+ 
+ rc_assistantdir = $(kde_datadir)/kdevassistant
+ rc_assistant_DATA =  kdevassistantui.rc
+diff -uNr kdevelop-3.2.2/src/main.cpp kdevelop-3.2.2-new/src/main.cpp
+--- kdevelop-3.2.2/src/main.cpp	2005-05-23 08:09:36.000000000 -0400
++++ kdevelop-3.2.2-new/src/main.cpp	2005-08-26 08:56:50.000000000 -0400
+@@ -28,7 +28,7 @@
+     { 0,0,0 }
+ };
+ 
+-int main(int argc, char *argv[])
++extern "C" int kdemain(int argc, char *argv[])
+ {
+   static const char description[] = I18N_NOOP("The KDevelop Integrated Development Environment");
+   KAboutData aboutData("kdevelop", I18N_NOOP("KDevelop"),
+diff -uNr kdevelop-3.2.2/src/main_assistant.cpp kdevelop-3.2.2-new/src/main_assistant.cpp
+--- kdevelop-3.2.2/src/main_assistant.cpp	2005-05-23 08:09:36.000000000 -0400
++++ kdevelop-3.2.2-new/src/main_assistant.cpp	2005-08-26 08:56:50.000000000 -0400
+@@ -28,7 +28,7 @@
+     { 0,0,0 }
+ };
+ 
+-int main(int argc, char *argv[])
++extern "C" int kdemain(int argc, char *argv[])
+ {
+   static const char description[] = I18N_NOOP("The KDevelop Integrated Development Environment:\nassistant and documentation viewer");
+   KAboutData aboutData("kdevassistant", I18N_NOOP("KDevelop Assistant"),
