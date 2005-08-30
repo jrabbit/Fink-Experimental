@@ -19,8 +19,14 @@ CompileScript: <<
 <<
 ConfigureParams: --without-start-stop-daemon --without-sgml-doc --with-admindir=%p/var/lib/dpkg --mandir=%p/share/man --infodir=%p/share/info --srcdir=%b --disable-linker-optimisations
 InstallScript: <<
+#!/bin/sh -ex
+
  mkdir -p %i/share/doc/dpkg
  make install DESTDIR=%d
+ for lang in de es ja sv; do
+   install -d -m 755 %i/share/man/$lang/man1
+   install -c -m 644 man/$lang/md5sum.1 %i/share/man/$lang/man1/
+ done
  install -c -p -m 644 origin.fink %i/etc/dpkg/origins/fink
  ls -la %i/lib/dpkg/methods/*
  rm -rf %i/lib/dpkg/methods/*
