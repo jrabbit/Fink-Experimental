@@ -1,0 +1,40 @@
+Package: sqlrelay
+Version: 0.36.4
+Revision: 1
+Description: DB connection pooling, proxying and load balancing
+License: OSI-Approved
+Maintainer: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>
+
+BuildDepends: rudiments
+Depends: rudiments-shlibs
+
+Source: mirror:sourceforge:%n/%n-%v.tar.gz
+Source-MD5: 498c63ed04ec752f4d34cc9b73ee47cc
+
+PatchScript: <<
+  /bin/cp src/api/php/Makefile src/api/php/Makefile.bak
+  /usr/bin/sed 57s/-no-undefined// < src/api/php/Makefile.bak > src/api/php/Makefile
+<<
+
+GCC: 3.3
+CofigureParams: --with-rudiments-prefix=%p
+CompileScript: <<
+  ./configure %c
+  /bin/cp config.mk config.mk.bak
+  /usr/bin/sed \
+    -e 's|^PYTHONINCLUDES =.*$|PYTHONINCLUDES = -I/sw/include/python2.4|' \
+    -e 's|^PYTHONLIB=.*$|PYTHONLIB = -L/sw/lib/python2.4/config -lpython2.4|' \
+    -e 's|^PERLPREFIX =.*$|PERLPREFIX = /usr|' \
+    -e 's|^PERLLIB =.*$|PERLLIB = -L/System/Library/Perl/lib/5.8 -lperl|' \
+    -e 's|^RUBYLIB =.*$|RUBYLIB = -lruby|' < config.mk.bak > config.mk
+  make
+<<
+
+InstallScript: make install DESTDIR=%i/..
+
+Homepage: http://rudiments.sourceforge.net/
+DescDetail: <<
+Rudiments is an Open Source C++ class library providing base classes for things
+such as daemons, clients and servers, and wrapper classes for the standard C
+functions for things like regular expressions, semaphores and signal handling.
+<<
