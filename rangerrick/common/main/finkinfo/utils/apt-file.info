@@ -1,0 +1,54 @@
+Info2: <<
+Package: apt-file-%type_pkg[perl]
+Version: 2.0.6
+Revision: 1
+BuildDepends: apt-pkg-pm%type_pkg[perl], configfile-pm, getopt-long-pm%type_pkg[perl], docbook-utils
+Depends: apt-pkg-pm%type_pkg[perl], configfile-pm, getopt-long-pm%type_pkg[perl]
+Source: http://ftp.debian.org/debian/pool/main/a/apt-file/apt-file_%v.tar.gz
+Source-MD5: 8f7d28379d30e602708864b4255b992b
+SourceDirectory: apt-file-%v
+#PatchScript: sed -e 's,@FINKPREFIX@,%p,g' %a/%n.patch | patch -p1
+Type: perl (5.6.1 5.8.0 5.8.1 5.8.6)
+CompileScript: <<
+#!/bin/sh -ex
+
+	perl -pi -e 's,/usr/bin/perl,%p/bin/perl-%type_pkg[perl],' apt-file
+<<
+InstallScript: <<
+#!/bin/sh -ex
+
+	install -d -m 755 %i/bin %i/share/man/man1 %i/share/man/fr/man1 %i/share/%n
+	install -c -m 755 apt-file %i/bin/apt-file-%type_pkg[perl]
+	install -c -m 644 apt-file.1 %i/share/man/man1/apt-file.1-%type_pkg[perl]
+	install -c -m 644 apt-file.fr.1 %i/share/man/fr/man1/apt-file.1-%type_pkg[perl]
+	install -c -m 644 apt-file.conf %i/share/%n
+	install -c -m 644 apt-file.bash_completion %i/share/%n
+<<
+PostInstScript: <<
+	update-alternatives --install %p/bin/apt-file                   apt-file                 %p/bin/apt-file-%type_pkg[perl]                 %type_pkg[perl]
+	update-alternatives --install %p/share/man/man1/apt-file.1      apt-file.1               %p/share/man/man1/apt-file.1-%type_pkg[perl]    %type_pkg[perl]
+	update-alternatives --install %p/share/man/fr/man1/apt-file.1   apt-file.fr.1            %p/share/man/fr/man1/apt-file.1-%type_pkg[perl] %type_pkg[perl]
+	update-alternatives --install %p/etc/bash_completion.d/apt-file apt-file.bash_completion %p/share/%n/apt-file.bash_completion            %type_pkg[perl]
+	if [ ! -f %p/etc/apt-file.conf ]; then
+		cp %p/share/%n/apt-file.conf %p/etc/
+	fi
+<<
+PostRmScript: <<
+	update-alternatives --remove apt-file                 %p/bin/apt-file-%type_pkg[perl]
+	update-alternatives --remove apt-file.1               %p/share/man/man1/apt-file.1-%type_pkg[perl]
+	update-alternatives --remove apt-file.fr.1            %p/share/man/fr/man1/apt-file.1-%type_pkg[perl]
+	update-alternatives --remove apt-file.bash_completion %p/share/%n/apt-file.bash_completion
+<<
+GCC: 3.3
+Description: APT package searching utility
+DescDetail: <<
+apt-file is a command line tool for searching packages for the APT
+packaging system.
+
+Unlike apt-cache, you can search in which package a file is included
+or list the contents of a package without installing or fetching it. 
+<<
+License: GPL
+Maintainer: Benjamin Reed <apt-file@fink.racoonfink.com>
+Homepage: http://packages.debian.org/unstable/base/apt-file
+<<
