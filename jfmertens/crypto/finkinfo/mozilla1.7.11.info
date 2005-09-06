@@ -1,8 +1,8 @@
 Package: mozilla
-Version: 1.8b1
-Revision: 1
-Source-MD5: 42a0b25d405ee60128adb0eef4bc0fa0
-Source: mirror:custom:mozilla/releases/%n%v/source/%n-source-%v.tar.bz2
+Version: 1.7.11
+Revision: 2
+Source-MD5: ed54ad54b4b5de85c7916e7d1efa0ae3
+Source: mirror:custom:mozilla.org/mozilla/releases/%n%v/source/%n-%v-source.tar.bz2
 #Version: 1.8nightly
 #Revision: 1
 #Source: mirror:custom:mozilla.org/mozilla/nightly/latest/mozilla-source.tar.bz2
@@ -14,29 +14,38 @@ CustomMirror: <<
   asi-JP: http://www.t.ring.gr.jp/pub/net/www/mozilla/
 <<
 SourceDirectory: mozilla
-Depends: %N-psm (>= %v-%r), %N-mailnews (>= %v-%r), %N-chatzilla (>= %v-%r), %N-js-debugger (>= %v-%r), %N-dom-inspector (>= %v-%r), %N-browser (>= %v-%r), %N-shlibs (>= %v-%r)
-BuildDepends: libpng3, libmng2, libjpeg, glib2-dev, atk1, pango1-xft2-dev, gtk+2-dev, orbit2-dev, libbonobo2-dev, gnome-vfs2-ssl-dev | gnome-vfs2-dev, libidl2-dev, x11-dev, xft2-dev, libgettext3-dev, gettext-tools, libiconv-dev, pkgconfig
+Depends: %N-psm (>= %v-%r), %N-mailnews (>= %v-%r), %N-chatzilla (>= %v-%r), %N-js-debugger (>= %v-%r), %N-dom-inspector (>= %v-%r)
+BuildDepends: atk1, freetype2-hinting-dev | freetype2-dev, gconf2-dev, glib2-dev, gnome-vfs2-ssl-dev | gnome-vfs2-dev, gtk+2-dev, libbonobo2-dev, libgettext3-dev, libiconv-dev, libidl2-dev, libjpeg, libpng3, orbit2-dev, pango1-xft2-dev, xft2-dev, x11-dev, pkgconfig
 NoSetLDFLAGS: true
+SetLDFLAGS: -L%p/lib/freetype2/lib
 SetLIBRARY_PATH: %p/lib
 NoSetCPPFLAGS: true
+SetCC: gcc -I%p/lib/freetype2/include -I%p/lib/freetype2/include/freetype2
+SetCXX: g++ -I%p/lib/freetype2/include -I%p/lib/freetype2/include/freetype2
 PatchScript: <<
- sed 's|@PREFIX@|%p|g' <%a/%n.patch | patch -p1
-# The next appears needed eg when building yelp... 
- perl -pi.bak -e 's,lxpcom,$& -lxpcom_core,' build/unix/mozilla-xpcom.pc.in
+ sed 's|@PREFIX@|%p|g' <%a/%n%v.patch | patch -p1
  perl -pi.bak -e 's,\#ifndef NSS,#include "pki1t.h"\n$&,' security/nss/lib/pki1/oiddata.h
+# The next appears needed eg when building yelp... (only version 1.8b1) 
+# perl -pi.bak -e 's,lxpcom,$& -lxpcom_core,' build/unix/mozilla-xpcom.pc.in
 ## The following are "for safety" : to avoid "implicit declaration" warnings
  perl -pi.bak -e 's,\#include,\#include <unistd.h>\n$&,' directory/c-sdk/ldap/libraries/liblber/io.c
  perl -pi.bak -e 's,\#if 0,\#include <unistd.h>\n$&,' directory/c-sdk/ldap/libraries/libldap/os-ip.c
+## For the componentlib :
+ perl -pi.bak -e 's,^\#EXTRA,EXTRA,; s,t exported_symbols$,$& -search_paths_first -m -x -dead_strip -single_module,; s,lstdc\+\+,$&.6,; s,lgcc,$&_s.1,' embedding/componentlib/Makefile.in
+## For calendar, to avoid a clash with uuid_t in /usr/include/unistd.h :
+ perl -pi.bak -e 's,([^_])uuid_t( |\)|;|$),\1uuid_t_moz\2,g' calendar/libxpical/{to*,oeICalEventImpl.cpp}
+## To enable "native-uconv" :
+ perl -pi.bak -e 's,\|darwin\*\)$,\),' configure
+ perl -pi.bak -e 's,\((char *\*\*\)\&(z|aSrc)),\(const \1,' intl/uconv/native/nsNativeUConvService.cpp
 <<
-## --enable-freetype conflicts with --enable-xft
-## configure problems with  --enable-native-uconv ; check later.
-## --enable-svg : must also choose SVG render library; will try later.
-## "--enable-libxul is only compatible with toolkit XUL applications."
-## "--enable-cairo" leads to compile-errors in nsCanvasRenderingContext2D.cpp _ incompatible versions ?
-ConfigureParams: --enable-optimize=-O3 --enable-application=suite --enable-pango --enable-image-decoders=all --enable-ldap-experimental
+## --enable-svg : must also choose SVG render library; will try later. (none seem to work)
+## (v. 1.8b1): "--enable-cairo" leads to compile-errors in nsCanvasRenderingContext2D.cpp _ incompatible versions ?
+ConfigureParams: --enable-optimize=-O3 --enable-image-decoders=all --enable-ldap-experimental --enable-xft --enable-xpctools --enable-necko-protocols=all --enable-ctl --enable-componentlib --enable-efence --enable-calendar --enable-native-uconv
 CompileScript: <<
 #! /bin/sh -ev
-export CPATH=%p/include/cairo:%p/include
+export PATH="%p/lib/freetype2/bin:${PATH}"
+#export CPATH=%p/include/cairo:%p/include
+export CPATH=%p/include
 ./configure %c
 make -w
 
@@ -119,9 +128,6 @@ SplitOff: <<
   Files: <<
     lib/mozilla/chrome/pipnss.jar
     lib/mozilla/chrome/pippki.jar
-    lib/mozilla/components/libpipboot.dylib
-    lib/mozilla/components/libpipnss.dylib
-    lib/mozilla/components/libpippki.dylib
     lib/mozilla/components/pipboot.xpt
     lib/mozilla/components/pipnss.xpt
     lib/mozilla/components/pippki.xpt
@@ -149,23 +155,6 @@ SplitOff2: <<
     lib/mozilla/components/addrbook.xpt
     lib/mozilla/components/impComm4xMail.xpt
     lib/mozilla/components/import.xpt
-    lib/mozilla/components/libaddrbook.dylib
-    lib/mozilla/components/libimpComm4xMail.dylib
-    lib/mozilla/components/libimpText.dylib
-    lib/mozilla/components/libimport.dylib
-    lib/mozilla/components/liblocalmail.dylib
-    lib/mozilla/components/libmailnews.dylib
-    lib/mozilla/components/libmailview.dylib
-    lib/mozilla/components/libmime.dylib
-    lib/mozilla/components/libmimeemitter.dylib
-    lib/mozilla/components/libmozldap.dylib
-    lib/mozilla/components/libmsgcompose.dylib
-    lib/mozilla/components/libmsgdb.dylib
-    lib/mozilla/components/libmsgimap.dylib
-    lib/mozilla/components/libmsgmdn.dylib
-    lib/mozilla/components/libmsgnews.dylib
-    lib/mozilla/components/libmsgsmime.dylib
-    lib/mozilla/components/libvcard.dylib
     lib/mozilla/components/mailnews.xpt
     lib/mozilla/components/mailview.xpt
     lib/mozilla/components/mdn-service.js
@@ -180,8 +169,6 @@ SplitOff2: <<
     lib/mozilla/components/msgsmime.xpt
     lib/mozilla/components/nsLDAPPrefsService.js
     lib/mozilla/components/smime-service.js
-    lib/mozilla/libldap50.dylib
-    lib/mozilla/libprldap50.dylib
     lib/mozilla/defaults/pref/mailnews.js
     lib/mozilla/defaults/pref/mdn.js
     lib/mozilla/defaults/pref/smime.js
@@ -191,10 +178,6 @@ SplitOff2: <<
     share/pixmaps/mozilla-mail-composer.xpm
     share/pixmaps/mozilla-mailnews.xpm
     var/lib/mozilla/chrome.d/00mailnews
-  <<
-  Shlibs: <<
-    %p/lib/mozilla/libldap50.dylib 1.0.0 %n (>= 1.1.0-4)
-    %p/lib/mozilla/libprldap50.dylib 1.0.0 %n (>= 1.1.0-4)
   <<
 <<
 SplitOff3: <<
@@ -272,49 +255,68 @@ SplitOff5: <<
 SplitOff6: <<
   Package: %N-shlibs
   Replaces: %N (<< 1.1.0-4), %N-mailnews (<< 1.3-1)
-  Depends: atk1-shlibs, glib2-shlibs, gtk+2-shlibs, libgettext3-shlibs, libiconv, pango1-xft2-shlibs, x11-shlibs
+  Depends: freetype2-hinting-shlibs | freetype2-shlibs, gtk+2-shlibs
   DocFiles: LEGAL LICENSE
   Description: Mozilla - shared libraries
-  Files: lib/mozilla/lib*.dylib
+  Files: lib/mozilla/lib*{0,3,4,b,m,s,t,x,z}.dylib lib/mozilla/ipc lib/mozilla/plugins/*.dylib
+# Better as follows, but must wait for the ordering of Files and InstallScript to conform to documentation.
+#  Files: lib/mozilla/lib*.dylib lib/mozilla/ipc lib/mozilla/plugins/*.dylib
+## libnssckbi.dylib is a bundle, belongs in %N-browser instead.
+## Possibly postpone this to next update, in order to facilitate upgrade
+#  InstallScript: mv %i/lib/mozilla/libnssckbi.dylib %I/lib/mozilla/libnssckbi.dylib 
   Shlibs: <<
-    %p/lib/mozilla/libgkgfx.dylib 1.0.0 %n (>= 1.1.0-4)
     %p/lib/mozilla/libgtkembedmoz.dylib 1.0.0 %n (>= 1.3-1)
-    %p/lib/mozilla/libgtkxtbin.dylib 1.0.0 %n (>= 1.1.0-4)
-    %p/lib/mozilla/libjsj.dylib 1.0.0 %n (>= 1.1.0-4)
+    %p/lib/mozilla/libldap50.dylib 1.0.0 %n (>= 1.7.11-1)
+    %p/lib/mozilla/libmozcomps.dylib 1.0.0 %n (>= 1.7.11-1)
     %p/lib/mozilla/libmozjs.dylib 1.0.0 %n (>= 1.1.0-4)
-    %p/lib/mozilla/libmsgbaseutil.dylib 1.0.0 %n (>= 1.1.0-4)
+    %p/lib/mozilla/libmozpango-dvngx.dylib 1.0.0 %n (>= 1.7.11-1)
+    %p/lib/mozilla/libmozpango-thaix.dylib 1.0.0 %n (>= 1.7.11-1)
     %p/lib/mozilla/libnspr4.dylib 1.0.0 %n (>= 1.1.0-4)
     %p/lib/mozilla/libnss3.dylib 1.0.0 %n (>= 1.1.0-4)
-    %p/lib/mozilla/libnssckbi.dylib 1.0.0 %n (>= 1.1.0-4)
     %p/lib/mozilla/libplc4.dylib 1.0.0 %n (>= 1.1.0-4)
     %p/lib/mozilla/libplds4.dylib 1.0.0 %n (>= 1.1.0-4)
+    %p/lib/mozilla/libprldap50.dylib 1.0.0 %n (>= 1.7.11-1)
     %p/lib/mozilla/libsmime3.dylib 1.0.0 %n (>= 1.1.0-4)
     %p/lib/mozilla/libsoftokn3.dylib 1.0.0 %n (>= 1.1.0-4)
     %p/lib/mozilla/libssl3.dylib 1.0.0 %n (>= 1.1.0-4)
-    %p/lib/mozilla/libxlibrgb.dylib 1.0.0 %n (>= 1.1.0-4)
     %p/lib/mozilla/libxpcom.dylib 1.0.0 %n (>= 1.1.0-4)
     %p/lib/mozilla/libxpcom_compat.dylib 1.0.0 %n (>= 1.5.1-4)
     %p/lib/mozilla/libxpistub.dylib 1.0.0 %n (>= 1.1.0-4)
+    %p/lib/mozilla/plugins/libnullplugin.dylib 1.0.0 %n (>= 1.7.11-1)  
+    %p/lib/mozilla/ipc/modules/liblockmodule.dylib 1.0.0 %n (>= 1.7.11-1)
+    %p/lib/mozilla/ipc/modules/libtransmgr.dylib 1.0.0 %n (>= 1.7.11-1)
   <<
 <<
 SplitOff7: <<
-  Package: %N-dev
-  Depends: libidl2-shlibs, %N-shlibs (>= %v-%r), pkgconfig
-  Replaces: %N (<< 1.1.0-4)
-  BuildDependsOnly: True
-  Description: Mozilla - development headers and libraries
+  Package: %N-bin
+  Depends: libidl2-shlibs, %N-shlibs (= %v-%r)
+  Replaces: %N-dev (<= 1.7.11.1)
+  Description: Mozilla - extra binaries
   DocFiles: LEGAL LICENSE
-  Files: bin/mozilla-config include lib/pkgconfig lib/mozilla/xp* share/aclocal share/idl
+  Files: lib/mozilla/xp*
 <<
 SplitOff8: <<
+  Package: %N-dev
+  Depends: %N-shlibs (= %v-%r), pkgconfig
+  Replaces: %N (<< 1.1.0-4)
+  BuildDependsOnly: true
+  Description: Mozilla - development headers and libraries
+  DocFiles: LEGAL LICENSE
+  Files: bin/mozilla-config include lib/pkgconfig  share/aclocal share/idl
+<<
+SplitOff9: <<
   Package: %N-browser
-  Depends: %N-shlibs (>= %v-%r), libjpeg-shlibs, libpng3-shlibs, libmng2-shlibs, gtk+2, gconf2-shlibs, gnome-vfs2-ssl-shlibs | gnome-vfs2-shlibs, libbonobo2-shlibs, orbit2-shlibs, x11
+  Depends: %N-shlibs (>= %v-%r), gnome-vfs2-ssl-shlibs | gnome-vfs2-shlibs, gtk+2
   Replaces: %N (<< 1.1.0-4)
   Conflicts: %N-browser-xft2
   ConfFiles: %p/etc/mozilla/prefs.js
   Description: Mozilla - web browser
   DocFiles: LEGAL LICENSE
   PostInstScript: <<
+# Those 2 empty files are not installed by dpkg
+    touch %p/lib/mozilla/chrome/user-skins.rdf
+    touch %p/lib/mozilla/chrome/user-locales.rdf
+
     if [ configure = "$1" ]; then
         update-mozilla-chrome
     fi
@@ -346,6 +348,19 @@ Patch does following things:
  - uses gtk+2 toolkit.
  - pass exact install directory to the linker
  - forces to see local ldap headers.
+
+Misc. small problems :
+- In configure :
+configure:9233: checking for res_ninit()
+configure:9250: gcc -I/sw/lib/freetype2/include -I/sw/lib/freetype2/include/freetype2 -o conftest  -no-cpp-precomp -fno-common   -I/usr/X11R6/include -L/sw/lib/freetype2/lib conftest.c -lm  1>&5
+In file included from configure:9243:
+/usr/include/resolv.h:189: error: array type has incomplete element type
+/usr/include/resolv.h:203: error: field 'addr' has incomplete type
+/usr/include/resolv.h:231: error: field 'sin' has incomplete type
+ -> answer = no
+<<
+DescPackaging: <<
+ There are 4 executables in -dev _ leaving there for the moment...
 <<
 License: OSI-Approved
 Maintainer: The Gnome Core Team <fink-gnome-core@lists.sourceforge.net>
