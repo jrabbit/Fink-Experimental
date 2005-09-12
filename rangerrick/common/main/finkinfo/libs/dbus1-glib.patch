@@ -1,21 +1,74 @@
---- dbus-0.31/glib/Makefile.in	Mon Mar  7 15:09:50 2005
-+++ dbus-0.31-new/glib/Makefile.in	Thu Mar 10 12:37:39 2005
-@@ -61,8 +61,7 @@
+--- dbus-0.50/glib/Makefile.in	2005-09-06 18:45:13.000000000 -0400
++++ dbus-0.50-new/glib/Makefile.in	2005-09-10 00:08:24.000000000 -0400
+@@ -63,7 +63,7 @@
  libLTLIBRARIES_INSTALL = $(INSTALL)
  LTLIBRARIES = $(lib_LTLIBRARIES) $(noinst_LTLIBRARIES)
  am__DEPENDENCIES_1 =
--libdbus_glib_1_la_DEPENDENCIES = $(am__DEPENDENCIES_1) \
--	$(top_builddir)/dbus/libdbus-1.la
-+libdbus_glib_1_la_DEPENDENCIES = $(am__DEPENDENCIES_1)
- am_libdbus_glib_1_la_OBJECTS = dbus-glib.lo dbus-gmain.lo \
- 	dbus-gmarshal.lo dbus-gobject.lo dbus-gproxy.lo dbus-gtest.lo \
- 	dbus-gthread.lo dbus-gutils.lo dbus-gvalue.lo
-@@ -341,7 +340,7 @@
- 	dbus-gvalue.c				\
- 	dbus-gvalue.h
+-libdbus_glib_1_la_DEPENDENCIES = $(top_builddir)/dbus/libdbus-1.la \
++libdbus_glib_1_la_DEPENDENCIES = \
+ 	$(am__DEPENDENCIES_1)
+ am__objects_1 = dbus-gtype-specialized.lo dbus-gutils.lo \
+ 	dbus-gsignature.lo dbus-gvalue-utils.lo
+@@ -360,7 +360,7 @@
+ target_cpu = @target_cpu@
+ target_os = @target_os@
+ target_vendor = @target_vendor@
+-SUBDIRS = . examples
++SUBDIRS = . 
+ INCLUDES = -I$(top_srcdir) $(DBUS_CLIENT_CFLAGS) $(DBUS_GLIB_CFLAGS) $(DBUS_GLIB_TOOL_CFLAGS) -DDBUS_COMPILATION=1 -DDBUS_LOCALEDIR=\"$(prefix)/@DATADIRNAME@/locale\"
+ lib_LTLIBRARIES = libdbus-glib-1.la
+ BUILT_SOURCES = dbus-glib-error-switch.h
+@@ -395,7 +395,7 @@
+ 	dbus-gtype-specialized.h
  
--libdbus_glib_1_la_LIBADD = $(DBUS_GLIB_LIBS) $(top_builddir)/dbus/libdbus-1.la
-+libdbus_glib_1_la_LIBADD = $(DBUS_GLIB_LIBS) -ldbus-1
- libdbus_glib_1_la_LDFLAGS = -export-symbols-regex "^[^_].*" -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)
+ libdbus_glibdir = $(includedir)/dbus-1.0/dbus
+-libdbus_glib_1_la_LIBADD = $(top_builddir)/dbus/libdbus-1.la $(DBUS_GLIB_LIBS)
++libdbus_glib_1_la_LIBADD = -ldbus-1 $(DBUS_GLIB_LIBS)
+ libdbus_glib_1_la_LDFLAGS = -export-symbols-regex "^[^_].*" -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) -no-undefined
  
  # convenience lib used here and by dbus-viewer
+--- dbus-0.50/tools/Makefile.in	2005-09-06 18:45:17.000000000 -0400
++++ dbus-0.50-new/tools/Makefile.in	2005-09-10 00:08:24.000000000 -0400
+@@ -74,7 +74,7 @@
+ am_dbus_viewer_OBJECTS = dbus-names-model.$(OBJEXT) \
+ 	dbus-tree-view.$(OBJEXT) dbus-viewer.$(OBJEXT)
+ dbus_viewer_OBJECTS = $(am_dbus_viewer_OBJECTS)
+-dbus_viewer_DEPENDENCIES = $(top_builddir)/glib/libdbus-gtool.la \
++dbus_viewer_DEPENDENCIES = \
+ 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
+ DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
+ depcomp = $(SHELL) $(top_srcdir)/depcomp
+@@ -384,7 +384,7 @@
+ dbus_send_LDADD = $(top_builddir)/dbus/libdbus-1.la
+ dbus_monitor_LDADD = $(top_builddir)/glib/libdbus-glib-1.la
+ dbus_launch_LDADD = $(DBUS_X_LIBS)
+-dbus_viewer_LDADD = $(top_builddir)/glib/libdbus-gtool.la $(DBUS_GTK_THREADS_LIBS) $(DBUS_GLIB_TOOL_LIBS)
++dbus_viewer_LDADD = $(top_builddir)/glib/libdbus-gtool.la $(DBUS_GTK_THREADS_LIBS) $(DBUS_GLIB_TOOL_LIBS)
+ man_MANS = dbus-send.1 dbus-monitor.1 dbus-launch.1 dbus-cleanup-sockets.1
+ EXTRA_DIST = $(man_MANS) run-with-tmp-session-bus.sh
+ CLEANFILES = \
+@@ -759,8 +759,8 @@
+ @HAVE_GLIB_TRUE@dbus-glib-bindings.h: dbus-bus-introspect.xml $(top_builddir)/glib/dbus-binding-tool$(EXEEXT)
+ @HAVE_GLIB_TRUE@	$(top_builddir)/glib/dbus-binding-tool --mode=glib-client --output=dbus-glib-bindings.h dbus-bus-introspect.xml
+ 
+-@HAVE_GLIB_TRUE@dbus-bus-introspect.xml: $(top_builddir)/bus/dbus-daemon$(EXEEXT) dbus-launch$(EXEEXT) dbus-send$(EXEEXT) $(top_builddir)/bus/dbus-daemon$(EXEEXT) Makefile
+-@HAVE_GLIB_TRUE@	DBUS_TOP_BUILDDIR=$(top_builddir) $(srcdir)/run-with-tmp-session-bus.sh ./dbus-send --print-reply=literal --dest=org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus.Introspectable.Introspect > dbus-bus-introspect.xml.tmp && mv dbus-bus-introspect.xml.tmp dbus-bus-introspect.xml
++@HAVE_GLIB_TRUE@dbus-bus-introspect.xml: Makefile
++@HAVE_GLIB_TRUE@	DBUS_TOP_BUILDDIR=$(top_builddir) $(srcdir)/run-with-tmp-session-bus.sh dbus-send --print-reply=literal --dest=org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus.Introspectable.Introspect > dbus-bus-introspect.xml.tmp && mv dbus-bus-introspect.xml.tmp dbus-bus-introspect.xml
+ # Tell versions [3.59,3.63) of GNU make to not export all variables.
+ # Otherwise a system limit (for SysV at least) may be exceeded.
+ .NOEXPORT:
+--- dbus-0.50/tools/run-with-tmp-session-bus.sh	2005-03-17 12:48:29.000000000 -0500
++++ dbus-0.50-new/tools/run-with-tmp-session-bus.sh	2005-09-10 00:08:24.000000000 -0400
+@@ -41,9 +41,9 @@
+ unset DBUS_SESSION_BUS_ADDRESS
+ unset DBUS_SESSION_BUS_PID
+ 
+-echo "Running $DBUS_TOP_BUILDDIR/tools/dbus-launch --sh-syntax --config-file=$CONFIG_FILE" >&2
++echo "Running dbus-launch --sh-syntax --config-file=$CONFIG_FILE" >&2
+ 
+-eval `$DBUS_TOP_BUILDDIR/tools/dbus-launch --sh-syntax --config-file=$CONFIG_FILE`
++eval `dbus-launch --sh-syntax --config-file=$CONFIG_FILE`
+ 
+ if test -z "$DBUS_SESSION_BUS_PID" ; then
+     die "Failed to launch message bus for introspection generation to run"

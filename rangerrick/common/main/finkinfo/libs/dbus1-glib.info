@@ -1,23 +1,29 @@
 Package: dbus1-glib
-Version: 0.35.2
+Version: 0.50
 Revision: 1
-BuildDepends: dbus1-dev, libgettext3-dev, gettext-tools, glib2, glib2-dev, expat, libiconv-dev, pkgconfig, x11-dev
+BuildDepends: dbus1-dev (>= %v-1), libgettext3-dev, gettext-tools, glib2, glib2-dev, gtk+2, gtk+2-dev, expat, libiconv-dev, pkgconfig, x11-dev
 Depends: %N-shlibs (>= %v-%r)
 Source: http://dbus.freedesktop.org/releases/dbus-%v.tar.gz
-Source-MD5: 414680dddd3dec84cc3b0c45cdfaafbc
+Source-MD5: 1addd5b600a8a4550766005d1f59401b
 Patch: %n.patch
-ConfigureParams: --mandir=%p/share/man --disable-qt --enable-glib --disable-gtk --disable-xml-docs --disable-doxygen-docs --disable-gcj --disable-mono --disable-mono-docs --disable-python --disable-selinux --with-session-socket-dir=%p/var/run/dbus --with-system-socket=%p/var/run/dbus/system_bus_socket --with-system-pid-file=%p/var/run/dbus/pid --with-xml=expat
+ConfigureParams: --mandir=%p/share/man --disable-qt --enable-glib --enable-gtk --disable-xml-docs --disable-doxygen-docs --disable-gcj --disable-mono --disable-mono-docs --disable-python --disable-selinux --with-session-socket-dir=%p/var/run/dbus --with-system-socket=%p/var/run/dbus/system_bus_socket --with-system-pid-file=%p/var/run/dbus/pid --with-xml=expat --disable-dependency-tracking --with-console-auth-dir=%p/var/run/console
 CompileScript: <<
 #!/bin/sh -ex
   ./configure %c
   pushd glib
   make
   popd
+  pushd tools
+  make dbus-glib-bindings.h dbus-viewer
+  popd
 <<
 InstallScript: <<
 #!/bin/sh -ex
   pushd glib
   make install DESTDIR=%d
+  popd
+  pushd tools
+  make install bin_PROGRAMS='dbus-viewer' man_MANS='' DESTDIR=%d
   popd
   make dbus-glib-1.pc
   install -d -m 755 %i/lib/pkgconfig
@@ -32,6 +38,23 @@ SplitOff: <<
   <<
   Shlibs: <<
     %p/lib/libdbus-glib-1.1.dylib 2.0.0 %n (>= 0.35.2-1)
+  <<
+<<
+SplitOff2: <<
+  Package: dbus1-viewer
+  Depends: %N-shlibs (>= %v-%r), gtk+2-shlibs
+  Description: Graphical D-BUS packet viewer
+  Files: <<
+    bin/dbus-viewer
+  <<
+<<
+SplitOff3: <<
+  Package: %N-dev
+  Depends: %N (>= %v-%r)
+  Description: Development headers and libraries for the D-BUS Glib bindings
+  Files: <<
+    include
+    lib
   <<
 <<
 DocFiles: AUTHORS COPYING ChangeLog HACKING INSTALL NEWS README

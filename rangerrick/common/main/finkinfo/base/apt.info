@@ -1,12 +1,14 @@
 Package: apt
-Version: 0.6.40.1
+Version: 0.6.41
 Revision: 1
 GCC: 3.3
 Depends: apt0.6.40-shlibs (>= %v-%r)
 BuildDepends: fink-prebinding, libiconv-dev, libgettext3-dev
 Source: mirror:sourceforge:fink/%n_%v.tar.gz
-Source-MD5: b07f9b50c56e8870f43fe44ed5290429
+Source-MD5: e2b3b7efa18819697b98bc331be5d753
 SourceDirectory: %n-%v
+Source2: http://downloads.sleepycat.com/db-4.3.28.tar.gz
+Source2-MD5: e27759537db6054b31d8cb3e99ba6fbb
 PatchScript: <<
 #!/bin/sh -ex
  DISTRIBUTION=`grep -i -E '^Distribution:' %p/etc/fink.conf | awk '{ print $2 }'`
@@ -21,6 +23,13 @@ SetCXXFLAGS: -O2 -DEMULATE_MMAP -D__USE_MISC -fconstant-cfstrings -DHAVE_SOCKLEN
 CompileScript: <<
 #!/bin/sh -ex
 
+ pushd ../db-4.3.28/build_unix
+ LIBS="" CXXFLAGS="" F77=no ../dist/configure --enable-static=yes --enable-shared=no
+ make libdb.a
+ popd
+
+  export CPPFLAGS="-I`pwd`/db-4.3.28/build_unix"
+  export LDFLAGS="-L`pwd`/db-4.3.28/build_unix"
  ./configure %c
  make -f makefile.wrap NOISY=1 GLIBC_VER= LIBSTDCPP_VER= INTLLIBS="-L%p/lib -lintl"
 <<
