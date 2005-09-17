@@ -1,9 +1,9 @@
 Package: distcc
 Version: 2.18.3
-Revision: 3
-Depends: daemonic, libgettext3-shlibs, libhowl-shlibs (>= 0.9.6-1), libiconv, popt-shlibs, passwd (>= 20031013-1)
+Revision: 2
+Depends: daemonic, libhowl-shlibs (>= 1.0.0-11), libiconv, popt-shlibs, passwd (>= 20031013-1)
 Suggests: ccache
-BuildDepends: gettext-tools, libgettext3-dev, libhowl (>= 0.9.6-1), libhowl-dev (>= 0.9.6-1), libiconv-dev, libxml2, passwd (>= 20031013-1), popt
+BuildDepends: gettext-dev, libhowl-dev (>= 1.0.0-11), libiconv-dev, libxml2, passwd (>= 20031013-1), popt
 BuildDependsOnly: true
 Maintainer: Benjamin Reed <distcc@fink.racoonfink.com>
 CustomMirror: <<
@@ -21,9 +21,7 @@ NoSetCPPFLAGS: true
 SetCPPFLAGS: -no-cpp-precomp -I./src -I./lzo -I%p/include -I%p/include/howl
 SetLIBS: -L%p/lib
 CompileScript: <<
-#!/bin/sh -ex
-
-  export lt_cv_sys_max_cmd_len=65536
+#!/bin/sh
   unset DISTCC_HOSTS
   unset CCACHE_PREFIX
   ./configure %c
@@ -31,7 +29,7 @@ CompileScript: <<
   make
 <<
 InstallScript: <<
-#!/bin/sh -ex
+#!/bin/sh
   install -d -m 755 %i/bin
   make install DESTDIR=%d
   install -d -m 755 %i/etc
@@ -88,7 +86,8 @@ DISTCCD_VERBOSE="true"
 DISTCCD_LOGFILE="%p/var/log/distccd.log"
 
 # whether to use zeroconf
-DISTCCD_ZEROCONF=true
+# 0 = false, 1 = true
+DISTCCD_ZEROCONF=1
 END
 
   cat <<END > %i/bin/distccd-fink.sh
@@ -97,77 +96,20 @@ END
 source %p/etc/distccd.conf
 export DISTCC_MMAP
 
-for arg in "\$@"; do
-	case \$arg in
-		--root) prev=root ;;
-		--port) prev=port ;;
-		--nice) prev=nice ;;
-		--listen) prev=listen ;;
-		--user) prev=user ;;
-		--verbose) DISTCCD_VERBOSE="true" ;;
-		--log-file) prev="log-file" ;;
-		--zeroconf) DISTCCD_ZEROCONF="1" ;;
-		*)
-			case \$prev in
-				root) DISTCCD_ROOT="\$arg" ;;
-				port) DISTCCD_PORT="\$arg" ;;
-				nice) DISTCCD_NICENESS="\$arg" ;;
-				listen) DISTCCD_LISTEN="\$arg" ;;
-				user) DISTCCD_USER="\$arg" ;;
-				log-file) DISTCCD_LOGFILE="\$arg" ;;
-				*) echo "unknown argument: \$arg" ;;
-			esac
-			;;
-	esac
-done
-
 DISTCCD_COMMAND="%p/bin/distccd --daemon --pid-file %p/var/run/distccd.pid"
 
 [ -n "\$DISTCCD_NICENESS" ] && DISTCCD_COMMAND="\$DISTCCD_COMMAND --nice \$DISTCCD_NICENESS"
 [ -n "\$DISTCCD_PORT"     ] && DISTCCD_COMMAND="\$DISTCCD_COMMAND --port \$DISTCCD_PORT"
 [ -n "\$DISTCCD_LISTEN"   ] && DISTCCD_COMMAND="\$DISTCCD_COMMAND --listen \$DISTCCD_LISTEN"
 [ -n "\$DISTCCD_USER"     ] && DISTCCD_COMMAND="\$DISTCCD_COMMAND --user \$DISTCCD_USER"
+[ -n "\$DISTCCD_VERBOSE"  ] && DISTCCD_COMMAND="\$DISTCCD_COMMAND --verbose"
 [ -n "\$DISTCCD_LOGFILE"  ] && DISTCCD_COMMAND="\$DISTCCD_COMMAND --log-file \$DISTCCD_LOGFILE"
 
-[ "\$DISTCCD_VERBOSE" = "true" ] && DISTCCD_COMMAND="\$DISTCCD_COMMAND --verbose"
-[ "\$DISTCCD_ZEROCONF" = "true" ] || [ "\$DISTCCD_ZEROCONF" = "1" ] && DISTCCD_COMMAND="\$DISTCCD_COMMAND --zeroconf"
+[ "\$DISTCCD_ZEROCONF" == 1 ] && DISTCCD_COMMAND="\$DISTCCD_COMMAND --zeroconf"
 
 for allow in \$DISTCCD_ALLOW; do
 	DISTCCD_COMMAND="\$DISTCCD_COMMAND --allow \$allow"
 done
-
-make_root() {
-	VERSION="\$1"
-	ROOT="%p/var/tmp/distccd/\$VERSION"
-
-	mkdir -p "%p/var/tmp"
-	chmod 1777 "%p/var/tmp"
-	mkdir -p "\$ROOT"
-
-	for FILE in gcc\$VERSION g++\$VERSION gcc-\$VERSION g++-\$VERSION; do
-		if [ -f /usr/bin/\$FILE ]; then
-			ln -s /usr/bin/\$FILE "\$ROOT/"
-		fi
-	done
-
-	if [ \$VERSION = "2" ] || [ \$VERSION = "3" ]; then
-		[ -f \$ROOT/gcc\$VERSION ] && ln -sf \$ROOT/gcc\$VERSION \$ROOT/cc
-		[ -f \$ROOT/gcc\$VERSION ] && ln -sf \$ROOT/gcc\$VERSION \$ROOT/gcc
-		[ -f \$ROOT/g++\$VERSION ] && ln -sf \$ROOT/g++\$VERSION \$ROOT/g++
-		[ -f \$ROOT/g++\$VERSION ] && ln -sf \$ROOT/g++\$VERSION \$ROOT/c++
-	else
-		[ -f \$ROOT/gcc-\$VERSION ] && ln -sf \$ROOT/gcc-\$VERSION \$ROOT/cc
-		[ -f \$ROOT/gcc-\$VERSION ] && ln -sf \$ROOT/gcc-\$VERSION \$ROOT/gcc
-		[ -f \$ROOT/g++-\$VERSION ] && ln -sf \$ROOT/g++-\$VERSION \$ROOT/g++
-		[ -f \$ROOT/g++-\$VERSION ] && ln -sf \$ROOT/g++-\$VERSION \$ROOT/c++
-	fi
-
-	export PATH="\$ROOT:\$PATH"
-}
-
-if [ -n "\$DISTCCD_ROOT" ]; then
-	make_root \$DISTCCD_ROOT
-fi
 
 rm -f "%p/var/log/distccd.log"
 touch "%p/var/log/distccd.log"
@@ -207,7 +149,9 @@ DaemonicFile: <<
 <message>distributed compiling daemon</message>
 
 <daemon name="distccd">
-<executable checkexit="true">%p/bin/distccd-fink.sh</executable>
+<executable checkexit="true">%p/bin/distccd</executable>
+<configfile>%p/etc/distccd.conf</configfile>
+<pidfile>%p/var/run/distccd.pid</pidfile>
 </daemon>
 
 </service>
