@@ -1,0 +1,173 @@
+#!/usr/bin/env python
+
+# finkdep - Find the Fink packages that provide the dependencies of an
+# object file
+#
+# Copyright (c) 2005 Sebastien Maret <bmaret@users.sourceforge.net>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+# 02111-1307, USA.
+
+import getopt, sys, os, string
+
+versionNum = "0.1"
+
+# Display usage
+
+def usage():
+    print """Usage: finkdep [OPTION] FILE
+Find the Fink packages that provide the dependencies of an object file
+   
+Options:
+    -h, --help          display this help
+    -v, --version       display version"""
+
+# Display version number
+
+def version():
+   print 'This is finkdep, version %s' % versionNum
+   print """Copyright (c) 2005 Sebastien Maret
+This program is a free software. You are welcome to redistribute
+it under the terms of the GNU General Public License."""
+
+# Find the shared librairies used by the object file
+
+def getShlibs(objFile):
+
+    shlibs = []
+    
+    p = os.popen('otool -L %s' % objFile)
+    lines = map(string.strip, p.readlines())
+    p.close()
+
+    for line in lines[1:]:
+        shlibs.append(line.split()[0])
+    
+    return shlibs
+
+# Find the symbolic link pointing on a shared library
+
+def getLinkShlib(shlib):
+
+    shlibDirName = os.path.dirname(shlib) + '/'
+    shlibBaseName = os.path.basename(shlib)  
+
+    splitBaseName = shlibBaseName.split('.') 
+    shlibExt = splitBaseName.pop() # Should be dylib
+    
+    if (os.path.islink(shlibDirName + splitBaseName[0] + '.' + shlibExt)):
+        return shlibDirName + splitBaseName[0] + '.' + shlibExt
+    elif ((len(splitBaseName) > 1) and
+          (os.path.islink(shlibDirName + splitBaseName[0] + '.' + \
+                          splitBaseName[1] + '.' + shlibExt))):
+        return shlibDirName + splitBaseName[0] + '.' + \
+               splitBaseName[1] + '.' + shlibExt
+    else:
+        sys.stderr.write("finkdep: Could not find the symbolic link " + \
+                         "pointing on %s\n" % shlib)
+        return None
+    
+# Find the Fink package that provides a library
+
+def getFinkPackage(shlib):
+    p = os.popen('dpkg -S %s' % shlib)
+    line = p.read()
+    FinkPackage = line.split(':')[0]
+    p.close()
+    
+    return FinkPackage
+
+# Get options, arguments and binary names from the command line
+
+try:
+   options, objFiles = getopt.getopt(sys.argv[1:], "hv",
+                                     ["help", "version"])
+except getopt.GetoptError:   
+   sys.stderr.write("""finkdep: Unknown option.
+Try 'finkdep --help' for more information.
+""")
+   sys.exit(2)
+
+for opt, arg in options:
+
+   # Print version if -v is set
+   
+   if opt in ("-v", "--version"):
+      version()
+      sys.exit()
+      
+   # Print help if the option -h is set or if no input 
+   # file is given
+         
+   if opt in ("-h", "--help"):
+      usage()
+      sys.exit()
+
+# Find the Fink packages that provides the dependencies of object files
+
+depends = []
+buildDepends = []
+
+if len(objFiles) == 1:
+    for objFile in objFiles:
+        shlibs = getShlibs(objFile)
+        for shlib in shlibs:
+            
+            # X11 libraries
+            
+            if shlib[:10] == '/usr/X11R6':
+                depend = 'x11-shlibs'
+                buildDepend = 'x11-dev'
+
+            # Other system librairies
+
+            elif shlib[:4] == '/usr':
+                continue
+                
+            else:
+                depend = getFinkPackage(shlib)
+                linkShlib = getLinkShlib(shlib)
+                buildDepend = getFinkPackage(linkShlib)
+                                
+            if depends.count(depend) == 0:
+                depends.append(depend)
+            if buildDepends.count(buildDepend) == 0:
+                buildDepends.append(buildDepend)
+
+    # Sort and print the dependencies
+
+    depends.sort()
+    buildDepends.sort()
+
+    print "Depends: <<"
+    for depend in depends[:-1]:
+        print "  %s," % depend
+    if len(depends) >= 1:
+        print "  %s" % depends[-1]
+    print "<<"
+    print "BuildDepends:"
+    for buildDepend in buildDepends[:-1]:
+        print "  %s," % buildDepend
+    if len(buildDepends) >= 1:
+        print "  %s" % buildDepends[-1]
+    print "<<"
+    
+else:
+    sys.stderr.write("""finkdep: No or more than one argument given.
+Try 'finkdep --help' for more information.
+""")
+    sys.exit(2)
+ 
+sys.exit()
