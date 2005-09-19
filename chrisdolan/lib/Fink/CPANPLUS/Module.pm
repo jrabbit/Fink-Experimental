@@ -232,10 +232,28 @@ sub makefile
             $self->{makefile}->{abstract} = substr($2,1);
          }
          # Check if there are any script outputs
-         if ($makefile =~ /([\'\"]?)EXE_FILES\1\s*(?:=>|,)\s*(\[\s*\]|)/s)
+         if ($makefile =~ /([\'\"]?)EXE_FILES\1\s*(?:=>|,)\s*(\[.*?\]|)/s)
          {
+            my $hasbin;
             my $binfiles = $2;
-            $self->{makefile}->{bin} = ($binfiles =~ /[^\s\[\]]/);
+            if ($binfiles)
+            {
+               my $list;
+               {
+                  no strict;
+                  no warnings;
+                  eval "\$list = $binfiles;";
+               }
+               if ($@)
+               {
+                  print "Eval error for EXE_FILES: $@\n$binfiles\n" if ($self->verbose);
+               }
+               else
+               {
+                  $hasbin = ref($list) && ref($list) eq "ARRAY" && @$list > 0;
+               }
+            }
+            $self->{makefile}->{bin} = $hasbin;
          }
          # Check for prereqs
          if ($makefile =~ /([\'\"]?)PREREQ_PM\1\s*(?:=>|,)\s*(\{.*?\})/s)
@@ -284,7 +302,7 @@ sub buildfile
       if (-f $filename)
       {
          my $buildfile = read_file($filename);
-         # ...
+         # TODO ...
       }
    }
    return $self->{buildfile};
