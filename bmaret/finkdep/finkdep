@@ -24,6 +24,10 @@ import getopt, sys, os, string
 
 versionNum = "0.1"
 
+# Default settings
+
+verbose = False
+
 # Display usage
 
 def usage():
@@ -32,7 +36,8 @@ Find the Fink packages that provide the dependencies of an object file
    
 Options:
     -h, --help          display this help
-    -v, --version       display version"""
+    -v, --version       display version
+    -V, --verbose       cause finkdep to say what it is doing"""
 
 # Display version number
 
@@ -75,8 +80,6 @@ def getLinkShlib(shlib):
         return shlibDirName + splitBaseName[0] + '.' + \
                splitBaseName[1] + '.' + shlibExt
     else:
-        sys.stderr.write("finkdep: Could not find the symbolic link " + \
-                         "pointing on %s\n" % shlib)
         return None
     
 # Find the Fink package that provides a library
@@ -92,10 +95,10 @@ def getFinkPackage(shlib):
 # Get options, arguments and binary names from the command line
 
 try:
-   options, objFiles = getopt.getopt(sys.argv[1:], "hv",
-                                     ["help", "version"])
+   options, objFiles = getopt.getopt(sys.argv[1:], "hvV",
+                                     ["help", "version", "verbose"])
 except getopt.GetoptError:   
-   sys.stderr.write("""finkdep: Unknown option.
+   sys.stdout.write("""finkdep: Unknown option.
 Try 'finkdep --help' for more information.
 """)
    sys.exit(2)
@@ -115,6 +118,11 @@ for opt, arg in options:
       usage()
       sys.exit()
 
+   # Set the verbose flag is option -V is set
+
+   if opt in ("-V", "--verbose"):
+       verbose = True
+
 # Find the Fink packages that provides the dependencies of object files
 
 depends = []
@@ -122,7 +130,9 @@ buildDepends = []
 
 if len(objFiles) == 1:
     for objFile in objFiles:
+        if verbose: sys.stdout.write("Searching linked librairies... ")
         shlibs = getShlibs(objFile)
+        if verbose: sys.stdout.write("done.\n")
         for shlib in shlibs:
             
             # X11 libraries
@@ -135,16 +145,34 @@ if len(objFiles) == 1:
 
             elif shlib[:4] == '/usr':
                 continue
+
+            # General case
                 
             else:
+
+                # Search for the Fink package providing the library
+                
+                if verbose: sys.stdout.write("Searching for the Fink package providing %s... " % shlib)
                 depend = getFinkPackage(shlib)
+                if verbose: sys.stdout.write("%s\n" % depend)
+                if depends.count(depend) == 0: depends.append(depend)
+
+                # Search for the symbolic name pointing on it
+                
+                if verbose: sys.stdout.write("Searching for the symbolic link pointing on %s... " \
+                                             % os.path.basename(shlib))
                 linkShlib = getLinkShlib(shlib)
-                buildDepend = getFinkPackage(linkShlib)
-                                
-            if depends.count(depend) == 0:
-                depends.append(depend)
-            if buildDepends.count(buildDepend) == 0:
-                buildDepends.append(buildDepend)
+                if linkShlib: 
+                    if verbose: sys.stdout.write("%s\n" % os.path.basename(linkShlib))
+                    if verbose: sys.stdout.write("Searching for the Fink package providing %s... " \
+                                                 % os.path.basename(linkShlib))
+                    buildDepend = getFinkPackage(linkShlib)
+                    if verbose: sys.stdout.write("%s\n" % buildDepend)
+                    if buildDepends.count(buildDepend) == 0: buildDepends.append(buildDepend)
+                else:
+                    if verbose: sys.stdout.write("not found.\n")
+                    sys.stderr.write("finkdep: Could not find the symbolic link " + \
+                                     "pointing on %s\n" % shlib)
 
     # Sort and print the dependencies
 
@@ -157,7 +185,7 @@ if len(objFiles) == 1:
     if len(depends) >= 1:
         print "  %s" % depends[-1]
     print "<<"
-    print "BuildDepends:"
+    print "BuildDepends: <<"
     for buildDepend in buildDepends[:-1]:
         print "  %s," % buildDepend
     if len(buildDepends) >= 1:
