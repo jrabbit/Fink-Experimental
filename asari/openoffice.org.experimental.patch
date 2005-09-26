@@ -1,0 +1,1152 @@
+Index: avmedia/source/viewer/makefile.mk
+===================================================================
+RCS file: /cvs/graphics/avmedia/source/viewer/makefile.mk,v
+retrieving revision 1.2
+retrieving revision 1.1.1.1.66.2
+diff -u -a -u -r1.2 -r1.1.1.1.66.2
+--- avmedia/source/viewer/makefile.mk	7 Sep 2005 19:42:22 -0000	1.2
++++ avmedia/source/viewer/makefile.mk	18 Sep 2005 09:37:10 -0000	1.1.1.1.66.2
+@@ -4,9 +4,9 @@
+ #
+ #   $RCSfile$
+ #
+-#   $Revision$
++#   $Revision$
+ #
+-#   last change: $Author$ $Date$
++#   last change: $Author$ $Date$
+ #
+ #   The Contents of this file are made available subject to
+ #   the terms of GNU Lesser General Public License Version 2.1.
+@@ -59,7 +59,8 @@
+ 
+ EXCEPTIONSFILES= \
+ 		$(SLO)$/mediawindow.obj         	\
+-		$(SLO)$/mediawindowbase_impl.obj 	
++		$(SLO)$/mediawindowbase_impl.obj 	\
++		$(SLO)$/mediawindow_impl.obj
+ 		
+ # --- Targets ----------------------------------
+ 
+Index: avmedia/source/viewer/mediawindow_impl.cxx
+===================================================================
+RCS file: /cvs/graphics/avmedia/source/viewer/mediawindow_impl.cxx,v
+retrieving revision 1.4
+retrieving revision 1.3.56.2
+diff -u -a -u -r1.4 -r1.3.56.2
+--- avmedia/source/viewer/mediawindow_impl.cxx	7 Sep 2005 19:43:42 -0000	1.4
++++ avmedia/source/viewer/mediawindow_impl.cxx	18 Sep 2005 09:38:07 -0000	1.3.56.2
+@@ -4,9 +4,9 @@
+  *
+  *  $RCSfile$
+  *
+- *  $Revision$
++ *  $Revision$
+  *
+- *  last change: $Author$ $Date$
++ *  last change: $Author$ $Date$
+  *
+  *  The Contents of this file are made available subject to
+  *  the terms of GNU Lesser General Public License Version 2.1.
+@@ -247,8 +247,15 @@
+ 		aArgs[ 0 ] = uno::makeAny( nWndHandle );
+ 		aArgs[ 1 ] = uno::makeAny( awt::Rectangle( aPoint.X(), aPoint.Y(), aSize.Width(), aSize.Height() ) );
+         
+-        if( nWndHandle != 0 )
+-            xPlayerWindow = getPlayer()->createPlayerWindow( aArgs );
++        try
++        {
++            if( nWndHandle != 0 )
++                xPlayerWindow = getPlayer()->createPlayerWindow( aArgs );
++        }
++        catch( uno::RuntimeException )
++        {
++            // happens eg, on MacOSX where Java frames cannot be created from X11 window handles
++        }
+         
+         setPlayerWindow( xPlayerWindow );
+ 
+Index: config_office/configure.in
+===================================================================
+RCS file: /cvs/tools/config_office/configure.in,v
+retrieving revision 1.135
+retrieving revision 1.135.2.6
+diff -u -a -u -r1.135 -r1.135.2.6
+--- config_office/configure.in	30 Aug 2005 09:34:09 -0000	1.135
++++ config_office/configure.in	22 Sep 2005 12:11:51 -0000	1.135.2.6
+@@ -3,7 +3,7 @@
+ dnl *
+ dnl * Name: configure.in
+ dnl * Auth: Willem van Dorp, Ross Nicholson, Oisin Boydell - Sun Microsystems Ireland
+-dnl * Date: $Date$
++dnl * Date: $Date$
+ dnl *
+ dnl * Desc: This file serves as input for the GNU autoconf package
+ dnl *       in order to create a configure script.
+@@ -12,7 +12,7 @@
+ dnl *
+ dnl *
+ dnl ******************************************************************/
+-AC_REVISION( $Revision$ )
++AC_REVISION( $Revision$ )
+ AC_PREREQ(2.50)
+ AC_INIT()
+ echo "$@" >config.parms
+@@ -2225,7 +2225,7 @@
+    # defaults
+    case "$_os" in
+ 	Darwin)
+-		PKGFORMAT=osx
++		PKGFORMAT=portable
+ 		;;
+ 	SunOS)
+ 		PKGFORMAT=pkg
+@@ -3074,6 +3074,8 @@
+ AC_MSG_CHECKING([which nas to use])
+ if test -n "$with_nas"; then
+     AC_MSG_RESULT([none])
++elif test -n "$without_nas"; then
++    ENABLE_NAS=""
+ elif test -n "$with_system_nas" -o -n "$with_system_libs" && \
+ 	test "$with_system_nas" != "no"; then
+     AC_MSG_RESULT([external])
+Index: desktop/prj/build.lst
+===================================================================
+RCS file: /cvs/framework/desktop/prj/build.lst,v
+retrieving revision 1.29
+retrieving revision 1.29.140.1
+diff -u -a -u -r1.29 -r1.29.140.1
+--- desktop/prj/build.lst	15 Mar 2005 12:24:10 -0000	1.29
++++ desktop/prj/build.lst	17 Sep 2005 20:58:18 -0000	1.29.140.1
+@@ -29,4 +29,5 @@
+ dt	desktop\source\deployment\registry\component		nmake	-	all	dt_dp_registry_component dt_dp_misc NULL
+ dt	desktop\source\deployment\registry\configuration	nmake	-	all	dt_dp_registry_configuration dt_dp_misc NULL
+ dt	desktop\scripts 						nmake	-	u	dt_scripts NULL
+-dt	desktop\util							nmake	-	all	dt_util dt_app dt_so_comp dt_spl dt_wrapper.w dt_officeloader.w dt_migr NULL
++dt	desktop\macosx\source					nmake	-	u	dt_macosx_bundle	NULL
++dt	desktop\util							nmake	-	all	dt_util dt_app dt_so_comp dt_spl dt_wrapper.w dt_officeloader.w dt_migr dt_macosx_bundle.u NULL
+Index: desktop/prj/d.lst
+===================================================================
+RCS file: /cvs/framework/desktop/prj/d.lst,v
+retrieving revision 1.42
+retrieving revision 1.42.46.1
+diff -u -a -u -r1.42 -r1.42.46.1
+--- desktop/prj/d.lst	20 Jul 2005 10:03:47 -0000	1.42
++++ desktop/prj/d.lst	17 Sep 2005 21:00:02 -0000	1.42.46.1
+@@ -69,6 +69,8 @@
+ ..\%__SRC%\misc\nswrapper.sh %_DEST%\bin%_EXT%\nswrapper
+ ..\%__SRC%\misc\mozwrapper.sh %_DEST%\bin%_EXT%\mozwrapper
+ 
++..\%__SRC%\misc\*.tar %_DEST%\bin%_EXT%\*.tar
++
+ mkdir: %COMMON_DEST%\pck%_EXT%\starsuite_bitmap
+ mkdir: %COMMON_DEST%\pck%_EXT%\staroffice_bitmap
+ ..\res\so_login_image.bmp %COMMON_DEST%\pck%_EXT%\staroffice_bitmap\ssologin.bmp
+Index: instsetoo_native/util/makefile.mk
+===================================================================
+RCS file: /cvs/installation/instsetoo_native/util/makefile.mk,v
+retrieving revision 1.41
+retrieving revision 1.40.12.4
+diff -u -a -u -r1.41 -r1.40.12.4
+--- instsetoo_native/util/makefile.mk	7 Sep 2005 18:25:05 -0000	1.41
++++ instsetoo_native/util/makefile.mk	22 Sep 2005 12:15:51 -0000	1.40.12.4
+@@ -4,9 +4,9 @@
+ #
+ #   $RCSfile$
+ #
+-#   $Revision$
++#   $Revision$
+ #
+-#   last change: $Author$ $Date$
++#   last change: $Author$ $Date$
+ #
+ #   The Contents of this file are made available subject to
+ #   the terms of GNU Lesser General Public License Version 2.1.
+@@ -32,6 +32,7 @@
+ #     MA  02111-1307  USA
+ #
+ #*************************************************************************
++
+ PRJ=..
+ PRJNAME=instsetoo_native
+ TARGET=util
+@@ -154,6 +155,9 @@
+ openoffice_% :
+ .ENDIF			# "$(PKGFORMAT)"!=""
+ 	+$(PERL) -w $(SOLARENV)$/bin$/make_installer.pl -f $(PRJ)$/util$/openoffice.lst -l $(subst,$(@:s/_/ /:1)_, $(@:b)) -p OpenOffice -packagelist $(PRJ)$/inc_openoffice$/unix$/packagelist.txt -u $(OUT) -buildid $(BUILD) -msitemplate $(MSIOFFICETEMPLATEDIR) -msilanguage $(COMMONMISC)$/win_ulffiles -addsystemintegration $(subst,xxx,$(@:e:s/.//) $(PKGFORMATSWITCH))
++.IF "$(OS)" == "MACOSX"
++	+/bin/sh $(SOLARENV)$/unxmacxp$/bin$/create-package.sh $(subst,$(@:s/_/ /:1)_, $(@:b)) "`pwd`$/$(OUT)$/OpenOffice$/install" $(SOLARBINDIR) 
++.ENDIF
+ 
+ .IF "$(PKGFORMAT)"!=""
+ $(foreach,i,$(alllangiso) openofficewithjre_$i) : $$@{$(PKGFORMAT:^".")}
+Index: nas/makefile.mk
+===================================================================
+RCS file: /cvs/external/nas/makefile.mk,v
+retrieving revision 1.12
+retrieving revision 1.11.12.3
+diff -u -a -u -r1.12 -r1.11.12.3
+--- nas/makefile.mk	7 Sep 2005 20:00:45 -0000	1.12
++++ nas/makefile.mk	18 Sep 2005 09:44:11 -0000	1.11.12.3
+@@ -4,9 +4,9 @@
+ #
+ #   $RCSfile$
+ #
+-#   $Revision$
++#   $Revision$
+ #
+-#   last change: $Author$ $Date$
++#   last change: $Author$ $Date$
+ #
+ #   The Contents of this file are made available subject to
+ #   the terms of GNU Lesser General Public License Version 2.1.
+@@ -44,7 +44,7 @@
+ 
+ # --- Files --------------------------------------------------------
+ 
+-.IF "$(GUI)"!="UNX" || "$(OS)"=="MACOSX" || "$(OS)"=="IRIX" || "$(SYSTEM_NAS)"=="YES"
++.IF "$(GUI)"!="UNX" || "$(OS)"=="IRIX" || "$(SYSTEM_NAS)"=="YES"
+ 
+ dummy:
+ .IF "$(SYSTEM_NAS)"=="YES"
+@@ -53,7 +53,7 @@
+ 	@echo "Nothing to build for OS $(OS)"
+ .ENDIF
+ 
+-.ELSE           # "$(GUI)"!="UNX" || "$(OS)"=="MACOSX" || "$(OS)"=="IRIX" || "$(SYSTEM_NAS)"=="YES"
++.ELSE           # "$(GUI)"!="UNX" || "$(OS)"=="IRIX" || "$(SYSTEM_NAS)"=="YES"
+ 
+ TARFILE_NAME=nas-1.6
+ 
+@@ -83,7 +83,7 @@
+ OUT2INC= \
+ 	include/audio/*.h
+ 
+-.ENDIF          # "$(GUI)"!="UNX" || "$(OS)" == "MACOSX" || "$(OS)" == "IRIX" || "$(SYSTEM_NAS)" == "YES"
++.ENDIF          # "$(GUI)"!="UNX" || "$(OS)" == "IRIX" || "$(SYSTEM_NAS)" == "YES"
+ 
+ # --- Targets ------------------------------------------------------
+ 
+Index: readlicense/docs/readme/readme.xrm
+===================================================================
+RCS file: /cvs/installation/readlicense/docs/readme/readme.xrm,v
+retrieving revision 1.20
+retrieving revision 1.20.4.1
+diff -u -a -u -r1.20 -r1.20.4.1
+--- readlicense/docs/readme/readme.xrm	8 Sep 2005 07:33:13 -0000	1.20
++++ readlicense/docs/readme/readme.xrm	18 Sep 2005 19:25:12 -0000	1.20.4.1
+@@ -7,8 +7,8 @@
+ 			<Text id="a" xml:lang="de">Willkommen</Text>
+ 		</Paragraph>
+ 		<Paragraph id="A2">
+-			<Text id="a" xml:lang="en-US">Last updated $Date$</Text>
+-			<Text id="a" xml:lang="de">Letztes Update $Date$</Text>
++			<Text id="a" xml:lang="en-US">Last updated $Date$</Text>
++			<Text id="a" xml:lang="de">Letztes Update $Date$</Text>
+ 		</Paragraph>
+ 		<Paragraph id="A3" style="H1">
+ 			<Text id="a" xml:lang="en-US">OpenOffice.org 2.0 ReadMe</Text>
+@@ -196,6 +196,46 @@
+ 				<Text id="fhrtz5" xml:lang="en-US">Window Manager</Text>
+ 		</List>
+ 		</Paragraph>
++				<Paragraph id="Linuxp2" os="LINUX" cpuname="POWERPC">
++			<List>
++				<Text id="ppcs2we35" xml:lang="de">Linux Kernel Version 2.2.13 oder höher</Text>
++				<Text id="ppcs2we35" xml:lang="en-US">Linux Kernel version 2.2.13 or higher</Text>
++		<Text id="ppcs253we" xml:lang="de">glibc2 Version 2.2.4 oder höher</Text>
++				<Text id="ppcs253we" xml:lang="en-US">glibc2 version 2.2.4 or higher</Text>
++		<Text id="ppcs2etfseg" xml:lang="de">PowerPC-kompatibler G3</Text>
++		                <Text id="ppcs2etfseg" xml:lang="de">PowerPC kompatibler G3</Text>
++				<Text id="ppcs2etfseg" xml:lang="en-US">PowerPC compatible G3</Text>
++				<Text id="ppcs2ssdfe" xml:lang="de">128 MB RAM</Text>
++				<Text id="ppcs2ssdfe" xml:lang="en-US">128 MB RAM</Text>
++		<Text id="ppcn42dfgf" xml:lang="de">300 MB (CJK-Version: 350 MB) verfügbarer Festplattenplatz</Text>
++				<Text id="ppcn42dfgf" xml:lang="en-US">300 MB (CJK version: 350 MB) available hard disk space</Text>
++		<Text id="ppcghjhhr" xml:lang="de">X-Server mit einer Bildschirmauflösung von 800x600 Punkten oder höher, mindestens 256 Farben</Text>
++				<Text id="ppcghjhhr" xml:lang="en-US">X Server with 800x600 or higher resolution, with at least 256 colors</Text>
++		<Text id="ppcwd2dff" xml:lang="de">Gnome 2.0 oder höher für die Unterstützung von AT-Technologien (Assistive Technology Tools) über Java Accessibility</Text>
++				<Text id="ppcwd2dff" xml:lang="en-US">Gnome 2.0 or higher required for Assistive Technology Tools</Text>
++		<Text id="ppcfhrtz5" xml:lang="de">Window Manager</Text>
++				<Text id="ppcfhrtz5" xml:lang="en-US">Window Manager</Text>
++		</List>
++		</Paragraph>
++						<Paragraph id="Macxp" os="MACOSX" cpuname="POWERPC">
++			<List>
++				<Text id="macxp2we35" xml:lang="de">Mac OS X 10.3.4 oder höher</Text>
++				<Text id="macxpwe35" xml:lang="en-US">Mac OS X 10.3.4 or higher</Text>
++		<Text id="macxps2etfseg" xml:lang="de">PowerPC-kompatibler G3</Text>
++		                <Text id="ppcs2etfseg" xml:lang="de">PowerPC kompatibler G3</Text>
++				<Text id="macxps2etfseg" xml:lang="en-US">PowerPC compatible G3</Text>
++				<Text id="macxps2ssdfe" xml:lang="de">128 MB RAM</Text>
++				<Text id="macxps2ssdfe" xml:lang="en-US">128 MB RAM</Text>
++		<Text id="macxpn42dfgf" xml:lang="de">300 MB (CJK-Version: 350 MB) verfügbarer Festplattenplatz</Text>
++				<Text id="macxpn42dfgf" xml:lang="en-US">300 MB (CJK version: 350 MB) available hard disk space</Text>
++		<Text id="macxpghjhhr" xml:lang="de">X-Server (Apple X11 oder XDarwin 1.0) mit einer Bildschirmauflösung von 800x600 Punkten oder höher, mindestens 256 Farben</Text>
++				<Text id="macxpghjhhr" xml:lang="en-US">X-Server (Apple's X11 or XDarwin1.0) with 800x600 or higher resolution, with at least 256 colors</Text>
++		<Text id="macxpwd2dff" xml:lang="de">Gnome 2.0 oder höher für die Unterstützung von AT-Technologien (Assistive Technology Tools) über Java Accessibility</Text>
++				<Text id="macxpwd2dff" xml:lang="en-US">Gnome 2.0 or higher required for Assistive Technology Tools</Text>
++		<Text id="macxpfhrtz5" xml:lang="de">Aquawm oder anderen X11 Window manager</Text>
++				<Text id="macxpfhrtz5" xml:lang="en-US">Aquawm or third part Window Manager</Text>
++		</List>
++		</Paragraph>
+ 		<Paragraph id="B763ef" os="WNT">
+ 			<Text id="edssc3d" xml:lang="de">Hinweis: Bitte beachten Sie, dass für den Installationsvorgang Administratorrechte benötigt werden.</Text>
+ 			<Text id="edssc3d" xml:lang="en-US">Note: Please be aware that administrator rights are needed for the installation process.</Text>
+Index: readlicense_oo/docs/readme/readme.xrm
+===================================================================
+RCS file: /cvs/installation/readlicense/docs/readme/readme.xrm,v
+retrieving revision 1.20
+retrieving revision 1.20.4.1
+diff -u -a -u -r1.20 -r1.20.4.1
+--- readlicense_oo/docs/readme/readme.xrm	8 Sep 2005 07:33:13 -0000	1.20
++++ readlicense_oo/docs/readme/readme.xrm	18 Sep 2005 19:25:12 -0000	1.20.4.1
+@@ -7,8 +7,8 @@
+ 			<Text id="a" xml:lang="de">Willkommen</Text>
+ 		</Paragraph>
+ 		<Paragraph id="A2">
+-			<Text id="a" xml:lang="en-US">Last updated $Date$</Text>
+-			<Text id="a" xml:lang="de">Letztes Update $Date$</Text>
++			<Text id="a" xml:lang="en-US">Last updated $Date$</Text>
++			<Text id="a" xml:lang="de">Letztes Update $Date$</Text>
+ 		</Paragraph>
+ 		<Paragraph id="A3" style="H1">
+ 			<Text id="a" xml:lang="en-US">OpenOffice.org 2.0 ReadMe</Text>
+@@ -196,6 +196,46 @@
+ 				<Text id="fhrtz5" xml:lang="en-US">Window Manager</Text>
+ 		</List>
+ 		</Paragraph>
++				<Paragraph id="Linuxp2" os="LINUX" cpuname="POWERPC">
++			<List>
++				<Text id="ppcs2we35" xml:lang="de">Linux Kernel Version 2.2.13 oder höher</Text>
++				<Text id="ppcs2we35" xml:lang="en-US">Linux Kernel version 2.2.13 or higher</Text>
++		<Text id="ppcs253we" xml:lang="de">glibc2 Version 2.2.4 oder höher</Text>
++				<Text id="ppcs253we" xml:lang="en-US">glibc2 version 2.2.4 or higher</Text>
++		<Text id="ppcs2etfseg" xml:lang="de">PowerPC-kompatibler G3</Text>
++		                <Text id="ppcs2etfseg" xml:lang="de">PowerPC kompatibler G3</Text>
++				<Text id="ppcs2etfseg" xml:lang="en-US">PowerPC compatible G3</Text>
++				<Text id="ppcs2ssdfe" xml:lang="de">128 MB RAM</Text>
++				<Text id="ppcs2ssdfe" xml:lang="en-US">128 MB RAM</Text>
++		<Text id="ppcn42dfgf" xml:lang="de">300 MB (CJK-Version: 350 MB) verfügbarer Festplattenplatz</Text>
++				<Text id="ppcn42dfgf" xml:lang="en-US">300 MB (CJK version: 350 MB) available hard disk space</Text>
++		<Text id="ppcghjhhr" xml:lang="de">X-Server mit einer Bildschirmauflösung von 800x600 Punkten oder höher, mindestens 256 Farben</Text>
++				<Text id="ppcghjhhr" xml:lang="en-US">X Server with 800x600 or higher resolution, with at least 256 colors</Text>
++		<Text id="ppcwd2dff" xml:lang="de">Gnome 2.0 oder höher für die Unterstützung von AT-Technologien (Assistive Technology Tools) über Java Accessibility</Text>
++				<Text id="ppcwd2dff" xml:lang="en-US">Gnome 2.0 or higher required for Assistive Technology Tools</Text>
++		<Text id="ppcfhrtz5" xml:lang="de">Window Manager</Text>
++				<Text id="ppcfhrtz5" xml:lang="en-US">Window Manager</Text>
++		</List>
++		</Paragraph>
++						<Paragraph id="Macxp" os="MACOSX" cpuname="POWERPC">
++			<List>
++				<Text id="macxp2we35" xml:lang="de">Mac OS X 10.3.4 oder höher</Text>
++				<Text id="macxpwe35" xml:lang="en-US">Mac OS X 10.3.4 or higher</Text>
++		<Text id="macxps2etfseg" xml:lang="de">PowerPC-kompatibler G3</Text>
++		                <Text id="ppcs2etfseg" xml:lang="de">PowerPC kompatibler G3</Text>
++				<Text id="macxps2etfseg" xml:lang="en-US">PowerPC compatible G3</Text>
++				<Text id="macxps2ssdfe" xml:lang="de">128 MB RAM</Text>
++				<Text id="macxps2ssdfe" xml:lang="en-US">128 MB RAM</Text>
++		<Text id="macxpn42dfgf" xml:lang="de">300 MB (CJK-Version: 350 MB) verfügbarer Festplattenplatz</Text>
++				<Text id="macxpn42dfgf" xml:lang="en-US">300 MB (CJK version: 350 MB) available hard disk space</Text>
++		<Text id="macxpghjhhr" xml:lang="de">X-Server (Apple X11 oder XDarwin 1.0) mit einer Bildschirmauflösung von 800x600 Punkten oder höher, mindestens 256 Farben</Text>
++				<Text id="macxpghjhhr" xml:lang="en-US">X-Server (Apple's X11 or XDarwin1.0) with 800x600 or higher resolution, with at least 256 colors</Text>
++		<Text id="macxpwd2dff" xml:lang="de">Gnome 2.0 oder höher für die Unterstützung von AT-Technologien (Assistive Technology Tools) über Java Accessibility</Text>
++				<Text id="macxpwd2dff" xml:lang="en-US">Gnome 2.0 or higher required for Assistive Technology Tools</Text>
++		<Text id="macxpfhrtz5" xml:lang="de">Aquawm oder anderen X11 Window manager</Text>
++				<Text id="macxpfhrtz5" xml:lang="en-US">Aquawm or third part Window Manager</Text>
++		</List>
++		</Paragraph>
+ 		<Paragraph id="B763ef" os="WNT">
+ 			<Text id="edssc3d" xml:lang="de">Hinweis: Bitte beachten Sie, dass für den Installationsvorgang Administratorrechte benötigt werden.</Text>
+ 			<Text id="edssc3d" xml:lang="en-US">Note: Please be aware that administrator rights are needed for the installation process.</Text>
+Index: sal/systools/macxp_extras/x11osx/osxlocale.c
+===================================================================
+RCS file: sal/systools/macxp_extras/x11osx/osxlocale.c
+diff -N sal/systools/macxp_extras/x11osx/osxlocale.c
+--- sal/systools/macxp_extras/x11osx/osxlocale.c	8 Sep 2005 16:08:32 -0000	1.5
++++ /dev/null	1 Jan 1970 00:00:00 -0000
+@@ -1,101 +0,0 @@
+-/*************************************************************************
+- *
+- *  OpenOffice.org - a multi-platform office productivity suite
+- *
+- *  $RCSfile$
+- *
+- *  $Revision$
+- *
+- *  last change: $Author$ $Date$
+- *
+- *  The Contents of this file are made available subject to
+- *  the terms of GNU Lesser General Public License Version 2.1.
+- *
+- *
+- *    GNU Lesser General Public License Version 2.1
+- *    =============================================
+- *    Copyright 2005 by Sun Microsystems, Inc.
+- *    901 San Antonio Road, Palo Alto, CA 94303, USA
+- *
+- *    This library is free software; you can redistribute it and/or
+- *    modify it under the terms of the GNU Lesser General Public
+- *    License version 2.1, as published by the Free Software Foundation.
+- *
+- *    This library is distributed in the hope that it will be useful,
+- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
+- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+- *    Lesser General Public License for more details.
+- *
+- *    You should have received a copy of the GNU Lesser General Public
+- *    License along with this library; if not, write to the Free Software
+- *    Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+- *    MA  02111-1307  USA
+- *
+- ************************************************************************/
+-
+-#include <sal/types.h>
+-
+-#include <premac.h>
+-#include <CoreServices/CoreServices.h>
+-#include <CoreFoundation/CoreFoundation.h>
+-#include <postmac.h>
+-
+-/*
+- * macxp_getOSXLocale
+- *
+- * Grab current locale from system.
+- */
+-int macxp_getOSXLocale( char *locale, sal_uInt32 bufferLen )
+-{	
+-	CFStringRef sref = (CFStringRef)CFPreferencesCopyAppValue(CFSTR("AppleLocale"), kCFPreferencesCurrentApplication);
+-		
+-	if ((sref != NULL) && (CFGetTypeID(sref) == CFStringGetTypeID()))
+-	{
+-		// split the string into substrings; the first two (if there are two) substrings 
+-		// are language and country
+-		CFArrayRef subs = CFStringCreateArrayBySeparatingStrings(NULL, sref, CFSTR("_"));
+-		
+-		CFStringRef lang = (CFStringRef)CFArrayGetValueAtIndex(subs, 0);
+-		CFStringGetCString(lang, locale, bufferLen, kCFStringEncodingASCII);
+-		
+-		// country also available? Assumption: if the array contains more than one
+-		// value the second value is always the country!
+-		if (CFArrayGetCount(subs) > 1)
+-		{
+-			strlcat(locale, "_", bufferLen - strlen(locale));
+-			
+-			CFStringRef country = (CFStringRef)CFArrayGetValueAtIndex(subs, 1);
+-			CFStringGetCString(country, locale + strlen(locale), bufferLen - strlen(locale), kCFStringEncodingASCII);			
+-		}
+-	    
+-        // Append 'UTF-8' to the locale because the Mac OS X file
+-        // system interface is UTF-8 based and sal tries to determine
+-        // the file system locale from the locale information 
+-		strlcat(locale, ".UTF-8", bufferLen - strlen(locale));							
+-		
+-		CFRelease(subs);
+-	}
+-	else
+-		fprintf( stderr, "Could not get Canonical Locale Identifier from AppleLanguages value!\n" );
+-
+-    CFRelease(sref);
+-	
+-	return noErr;
+-}
+-
+-
+-/*
+- * macxp_OSXConvertCFEncodingToIANACharSetName
+- *
+- * Convert a CoreFoundation text encoding to an IANA charset name.
+- */
+-int macxp_OSXConvertCFEncodingToIANACharSetName( char *buffer, unsigned int bufferLen, CFStringEncoding cfEncoding )
+-{
+-	CFStringRef	sCFEncodingName;
+-
+-	sCFEncodingName = CFStringConvertEncodingToIANACharSetName( cfEncoding );
+-	CFStringGetCString( sCFEncodingName, buffer, bufferLen, cfEncoding );
+-
+-	return( noErr );
+-}
+-
+Index: sal/systools/macxp_extras/x11osx/osxlocale.cxx
+===================================================================
+RCS file: sal/systools/macxp_extras/x11osx/osxlocale.cxx
+diff -N sal/systools/macxp_extras/x11osx/osxlocale.cxx
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ sal/systools/macxp_extras/x11osx/osxlocale.cxx	22 Sep 2005 06:31:33 -0000	1.1.2.2
+@@ -0,0 +1,129 @@
++/*************************************************************************
++ *
++ *  OpenOffice.org - a multi-platform office productivity suite
++ *
++ *  $RCSfile$
++ *
++ *  $Revision$
++ *
++ *  last change: $Author$ $Date$
++ *
++ *  The Contents of this file are made available subject to
++ *  the terms of GNU Lesser General Public License Version 2.1.
++ *
++ *
++ *    GNU Lesser General Public License Version 2.1
++ *    =============================================
++ *    Copyright 2005 by Sun Microsystems, Inc.
++ *    901 San Antonio Road, Palo Alto, CA 94303, USA
++ *
++ *    This library is free software; you can redistribute it and/or
++ *    modify it under the terms of the GNU Lesser General Public
++ *    License version 2.1, as published by the Free Software Foundation.
++ *
++ *    This library is distributed in the hope that it will be useful,
++ *    but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ *    Lesser General Public License for more details.
++ *
++ *    You should have received a copy of the GNU Lesser General Public
++ *    License along with this library; if not, write to the Free Software
++ *    Foundation, Inc., 59 Temple Place, Suite 330, Boston,
++ *    MA  02111-1307  USA
++ *
++ ************************************************************************/
++
++#include <sal/types.h>
++#include <assert.h>
++
++#include <premac.h>
++#include <CoreServices/CoreServices.h>
++#include <CoreFoundation/CoreFoundation.h>
++#include <postmac.h>
++
++namespace /* private */
++{
++	template <typename T>
++	class CFGuard
++	{
++	public:
++		explicit CFGuard(T& rT) : rT_(rT) {}
++		~CFGuard() { if (rT_) CFRelease(rT_); }
++	private:
++		T& rT_;
++	};
++		
++	typedef CFGuard<CFArrayRef> CFArrayGuard;
++	typedef CFGuard<CFStringRef> CFStringGuard;
++	typedef CFGuard<CFPropertyListRef> CFPropertyListGuard;
++	
++	/** Get the current process locale from system 
++	*/
++	CFStringRef getProcessLocale()
++	{
++		CFPropertyListRef pref = CFPreferencesCopyAppValue(CFSTR("AppleLocale"), kCFPreferencesCurrentApplication);
++		CFPropertyListGuard proplGuard(pref);
++		
++		if (pref == NULL) // return fallback value 'en_US'
++			 return CFStringCreateWithCString(kCFAllocatorDefault, "en_US", kCFStringEncodingASCII);
++		
++		CFStringRef sref = (CFGetTypeID(pref) == CFArrayGetTypeID()) ? (CFStringRef)CFArrayGetValueAtIndex((CFArrayRef)pref, 0) : (CFStringRef)pref;
++		
++		// NOTE: this API is only available with Mac OS X >=10.3. We need to use it because
++		// Apple used non-ISO values on systems <10.2 like "German" for instance but didn't
++		// upgrade those values during upgrade to newer Mac OS X versions. See also #i54337#
++		return CFLocaleCreateCanonicalLocaleIdentifierFromString(kCFAllocatorDefault, sref);	
++	}	
++} // namespace private
++	
++/** Grab current locale from system.
++*/
++extern "C" int macxp_getOSXLocale(char *locale, sal_uInt32 bufferLen)
++{	
++	CFStringRef sref = getProcessLocale();
++	CFStringGuard sGuard(sref);
++	
++	assert(sref != NULL && "osxlocale.cxx: getProcessLocale must return a non-NULL value");
++	
++	// split the string into substrings; the first two (if there are two) substrings 
++	// are language and country
++	CFArrayRef subs = CFStringCreateArrayBySeparatingStrings(NULL, sref, CFSTR("_"));	
++	CFArrayGuard arrGuard(subs);
++		
++	CFStringRef lang = (CFStringRef)CFArrayGetValueAtIndex(subs, 0);
++	CFStringGetCString(lang, locale, bufferLen, kCFStringEncodingASCII);
++		
++	// country also available? Assumption: if the array contains more than one
++	// value the second value is always the country!
++	if (CFArrayGetCount(subs) > 1)
++	{
++		strlcat(locale, "_", bufferLen - strlen(locale));
++			
++		CFStringRef country = (CFStringRef)CFArrayGetValueAtIndex(subs, 1);
++		CFStringGetCString(country, locale + strlen(locale), bufferLen - strlen(locale), kCFStringEncodingASCII);			
++	}	    
++    // Append 'UTF-8' to the locale because the Mac OS X file
++    // system interface is UTF-8 based and sal tries to determine
++    // the file system locale from the locale information 
++	strlcat(locale, ".UTF-8", bufferLen - strlen(locale));							
++		
++	return noErr;
++}
++
++
++
++/*
++ * macxp_OSXConvertCFEncodingToIANACharSetName
++ *
++ * Convert a CoreFoundation text encoding to an IANA charset name.
++ */
++extern "C" int macxp_OSXConvertCFEncodingToIANACharSetName( char *buffer, unsigned int bufferLen, CFStringEncoding cfEncoding )
++{
++	CFStringRef	sCFEncodingName;
++
++	sCFEncodingName = CFStringConvertEncodingToIANACharSetName( cfEncoding );
++	CFStringGetCString( sCFEncodingName, buffer, bufferLen, cfEncoding );
++
++	return( noErr );
++}
++
+Index: shell/source/backends/localebe/localebackend.cxx
+===================================================================
+RCS file: /cvs/gsl/shell/source/backends/localebe/localebackend.cxx,v
+retrieving revision 1.5
+retrieving revision 1.5.2.1
+diff -u -a -u -r1.5 -r1.5.2.1
+--- shell/source/backends/localebe/localebackend.cxx	7 Sep 2005 19:48:13 -0000	1.5
++++ shell/source/backends/localebe/localebackend.cxx	20 Sep 2005 11:29:21 -0000	1.5.2.1
+@@ -4,9 +4,9 @@
+  *
+  *  $RCSfile$
+  *
+- *  $Revision$
++ *  $Revision$
+  *
+- *  last change: $Author$ $Date$
++ *  last change: $Author$ $Date$
+  *
+  *  The Contents of this file are made available subject to
+  *  the terms of GNU Lesser General Public License Version 2.1.
+@@ -125,10 +125,10 @@
+ 	class CFGuard
+ 	{
+ 	public:
+-		explicit CFGuard(T* pT) : pT_(pT) {}
+-		~CFGuard() { if (pT_) CFRelease(*pT_); }
++		explicit CFGuard(T& rT) : rT_(rT) {}
++		~CFGuard() { if (rT_) CFRelease(rT_); }
+ 	private:
+-		T* pT_;
++		T& rT_;
+ 	};
+ 
+ 	typedef CFGuard<CFArrayRef> CFArrayGuard;
+@@ -146,24 +146,26 @@
+ 	CFStringRef ImplGetAppPreference(const char* pref)
+ 	{
+ 		CFStringRef csPref = CFStringCreateWithCString(NULL, pref, kCFStringEncodingASCII);
+-		CFStringGuard csRefGuard(&csPref);
++		CFStringGuard csRefGuard(csPref);
+ 		
+ 		CFTypeRef ref = CFPreferencesCopyAppValue(csPref, kCFPreferencesCurrentApplication);
+-		CFTypeRefGuard refGuard(&ref);
++		CFTypeRefGuard refGuard(ref);
+ 	
+ 		if (ref == NULL)
+ 			return NULL;
+-	
++		
+ 		CFStringRef sref = (CFGetTypeID(ref) == CFArrayGetTypeID()) ? (CFStringRef)CFArrayGetValueAtIndex((CFArrayRef)ref, 0) : (CFStringRef)ref;
+ 		
+-		CFRetain(sref); // caller is responsible for releasing reference
+-		return sref;
++		// NOTE: this API is only available with Mac OS X >=10.3. We need to use it because
++		// Apple used non-ISO values on systems <10.2 like "German" for instance but didn't
++		// upgrade those values during upgrade to newer Mac OS X versions. See also #i54337#
++		return CFLocaleCreateCanonicalLocaleIdentifierFromString(kCFAllocatorDefault, sref);			
+ 	}
+ 
+ 	rtl::OUString ImplGetLocale(const char* pref)
+ 	{
+ 		CFStringRef sref = ImplGetAppPreference(pref);
+-		CFStringGuard srefGuard(&sref);
++		CFStringGuard srefGuard(sref);
+ 		
+ 		rtl::OUStringBuffer aLocaleBuffer;
+ 		aLocaleBuffer.appendAscii("en-US"); // initialize with fallback value
+@@ -173,7 +175,7 @@
+ 			// split the string into substrings; the first two (if there are two) substrings 
+ 			// are language and country
+ 			CFArrayRef subs = CFStringCreateArrayBySeparatingStrings(NULL, sref, CFSTR("_"));
+-			CFArrayGuard subsGuard(&subs);
++			CFArrayGuard subsGuard(subs);
+ 				
+ 			if (subs != NULL)
+ 			{
+Index: solenv/unxmacxp/bin/create-package.sh
+===================================================================
+RCS file: solenv/unxmacxp/bin/create-package.sh
+diff -N solenv/unxmacxp/bin/create-package.sh
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ solenv/unxmacxp/bin/create-package.sh	22 Sep 2005 12:06:22 -0000	1.1.2.1
+@@ -0,0 +1,116 @@
++#!/bin/sh
++#*************************************************************************
++#
++#   $RCSfile$
++#
++#   $Revision$
++#
++#   last change: $Author$ $Date$
++#
++#   The Contents of this file are made available subject to the terms of
++#   either of the following licenses
++#
++#          - GNU Lesser General Public License Version 2.1
++#
++#   Sun Microsystems Inc., October, 2000
++#
++#   GNU Lesser General Public License Version 2.1
++#   =============================================
++#   Copyright 2000 by Sun Microsystems, Inc.
++#   901 San Antonio Road, Palo Alto, CA 94303, USA
++#
++#   This library is free software; you can redistribute it and/or
++#   modify it under the terms of the GNU Lesser General Public
++#   License version 2.1, as published by the Free Software Foundation.
++#
++#   This library is distributed in the hope that it will be useful,
++#   but WITHOUT ANY WARRANTY; without even the implied warranty of
++#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++#   Lesser General Public License for more details.
++#
++#   You should have received a copy of the GNU Lesser General Public
++#   License along with this library; if not, write to the Free Software
++#   Foundation, Inc., 59 Temple Place, Suite 330, Boston,
++#   MA  02111-1307  USA
++#
++#   The Initial Developer of the Original Code is: Sun Microsystems, Inc.
++#
++#   Copyright: 2000 by Sun Microsystems, Inc.
++#
++#   All Rights Reserved.
++#
++#   Contributor(s): _______________________________________
++#
++#
++#
++#*************************************************************************
++# 
++# Notes: It may be necessary to do a little more generalization/work with variables in the future
++
++if [ "x${SRC_ROOT}x" == "xx" ]; then
++	echo "Please make sure to source the environment variable script!"
++	exit 1
++fi
++
++OS_LOW=`uname -s | tr A-Z a-z`
++OOOVERSION=1.9
++MILESTONE=`cat ${SRC_ROOT}/solenv/inc/minor.mk | grep LAST_MINOR | sed 's/LAST_MINOR=m\(.*\)/\1/'`
++CPU_LOW=`echo $CPUNAME | tr A-Z a-z`
++KERNELVER=`uname -r | sed 's/\([0-9]\.[0-9]\).*/\1/'`
++PACKDIR="${OS_LOW}-${KERNELVER}-${CPU_LOW}"
++BUNDLENAME="OpenOffice.org 2.0.app"
++
++
++if [ "x${1}x" == "xx" ]; then
++	echo "No language argument present. Exiting."
++	exit 3
++fi
++
++LANG=$1
++
++PKGNAME="OpenOffice.org-${OOOVERSION}m${MILESTONE}_${LANG}"
++
++if [ "x${2}x" == "xx" ]; then
++	echo "No destination directory argument present. Exiting."
++	exit 4
++fi
++
++DESTDIR=$2/${LANG}
++INSTALLTEMPDIR="${DESTDIR}_temp"
++
++if [ ! -d ${DESTDIR} ]; then
++	echo "Destination directory: ${DESTDIR} does not exist! Exiting."
++	exit 2
++fi
++
++if [ "x${3}x" == "xx" ]; then
++	echo "No solverbindir argument present. Exiting."
++	exit 5
++fi
++
++SOLARBINDIR=$3
++
++#install the packages to the temporary folder
++cd ${DESTDIR}
++rm -rf ${INSTALLTEMPDIR}
++mkdir -p ${INSTALLTEMPDIR}
++for Package in `ls $DESTDIR/$PACKDIR/*sw`; do
++	echo "Installing ${Package}"
++	tar -C "${INSTALLTEMPDIR}" -xf ${Package}
++done
++
++#copy the launcher app to the disk image, rename it and move things around
++echo "Installing launcher from ${SOLARBINDIR}"
++tar -C "${INSTALLTEMPDIR}" -xf ${SOLARBINDIR}/OpenOffice.org.app.tar
++mv "${INSTALLTEMPDIR}/OpenOffice.org.app" "${INSTALLTEMPDIR}/${BUNDLENAME}"
++mv "${INSTALLTEMPDIR}/Applications/openoffice.org${OOOVERSION}.${MILESTONE}" "${INSTALLTEMPDIR}/${BUNDLENAME}/Contents"
++pushd "${INSTALLTEMPDIR}/${BUNDLENAME}/Contents" > /dev/null
++ln -s openoffice.org${OOOVERSION}.${MILESTONE} openoffice.org
++popd > /dev/null
++
++## Creating dmg
++echo "Creating image ${PKGNAME} from ${INSTALLTEMPDIR}/${BUNDLENAME}"
++hdiutil create -srcfolder "${INSTALLTEMPDIR}/${BUNDLENAME}" -ov -o ${PKGNAME}
++
++echo "Packaging finished for language ${LANG}"
++
+Index: vcl/source/app/makefile.mk
+===================================================================
+RCS file: /cvs/gsl/vcl/source/app/makefile.mk,v
+retrieving revision 1.17
+retrieving revision 1.16.272.2
+diff -u -a -u -r1.17 -r1.16.272.2
+--- vcl/source/app/makefile.mk	9 Sep 2005 11:41:04 -0000	1.17
++++ vcl/source/app/makefile.mk	18 Sep 2005 10:42:06 -0000	1.16.272.2
+@@ -4,9 +4,9 @@
+ #
+ #   $RCSfile$
+ #
+-#   $Revision$
++#   $Revision$
+ #
+-#   last change: $Author$ $Date$
++#   last change: $Author$ $Date$
+ #
+ #   The Contents of this file are made available subject to
+ #   the terms of GNU Lesser General Public License Version 2.1.
+@@ -64,6 +64,7 @@
+ 			$(SLO)$/svapp.obj		\
+ 			$(SLO)$/svdata.obj		\
+ 			$(SLO)$/svmain.obj		\
++			$(SLO)$/svmainhook.obj	\
+ 			$(SLO)$/timer.obj		\
+ 			$(SLO)$/dndhelp.obj     \
+ 			$(SLO)$/unohelp.obj     \
+Index: vcl/source/app/svmain.cxx
+===================================================================
+RCS file: /cvs/gsl/vcl/source/app/svmain.cxx,v
+retrieving revision 1.56
+retrieving revision 1.55.102.2
+diff -u -a -u -r1.56 -r1.55.102.2
+--- vcl/source/app/svmain.cxx	9 Sep 2005 11:43:24 -0000	1.56
++++ vcl/source/app/svmain.cxx	18 Sep 2005 10:43:27 -0000	1.55.102.2
+@@ -4,9 +4,9 @@
+  *
+  *  $RCSfile$
+  *
+- *  $Revision$
++ *  $Revision$
+  *
+- *  last change: $Author$ $Date$
++ *  last change: $Author$ $Date$
+  *
+  *  The Contents of this file are made available subject to
+  *  the terms of GNU Lesser General Public License Version 2.1.
+@@ -221,8 +221,9 @@
+ }
+ 
+ // =======================================================================
+-BOOL SVMain()
++BOOL ImplSVMain()
+ {
++    // The 'real' SVMain()
+     RTL_LOGFILE_CONTEXT( aLog, "vcl (ss112471) ::SVMain" );
+ 
+     ImplSVData* pSVData = ImplGetSVData();
+@@ -260,6 +261,17 @@
+     return bInit;
+ }
+ 
++BOOL SVMain()
++{
++    // #i47888# allow for alternative initialization as required for e.g. MacOSX
++    extern BOOL ImplSVMainHook( BOOL* );
++
++    BOOL bInit;
++    if( ImplSVMainHook( &bInit ) )
++        return bInit;
++    else
++        return ImplSVMain();
++}
+ // This variable is set, when no Application object is instantiated
+ // before SVInit is called
+ static Application *        pOwnSvApp = NULL;
+Index: vcl/source/app/svmainhook.cxx
+===================================================================
+RCS file: vcl/source/app/svmainhook.cxx
+diff -N vcl/source/app/svmainhook.cxx
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ vcl/source/app/svmainhook.cxx	13 Sep 2005 16:14:24 -0000	1.1.2.1
+@@ -0,0 +1,121 @@
++/*************************************************************************
++ *
++ *  OpenOffice.org - a multi-platform office productivity suite
++ *
++ *  $RCSfile$
++ *
++ *  $Revision$
++ *
++ *  last change: $Author$ $Date$
++ *
++ *  The Contents of this file are made available subject to
++ *  the terms of GNU Lesser General Public License Version 2.1.
++ *
++ *
++ *    GNU Lesser General Public License Version 2.1
++ *    =============================================
++ *    Copyright 2005 by Sun Microsystems, Inc.
++ *    901 San Antonio Road, Palo Alto, CA 94303, USA
++ *
++ *    This library is free software; you can redistribute it and/or
++ *    modify it under the terms of the GNU Lesser General Public
++ *    License version 2.1, as published by the Free Software Foundation.
++ *
++ *    This library is distributed in the hope that it will be useful,
++ *    but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ *    Lesser General Public License for more details.
++ *
++ *    You should have received a copy of the GNU Lesser General Public
++ *    License along with this library; if not, write to the Free Software
++ *    Foundation, Inc., 59 Temple Place, Suite 330, Boston,
++ *    MA  02111-1307  USA
++ *
++ ************************************************************************/
++
++#ifndef _TOOLS_H
++#include <tools/tools.h>
++#endif
++
++#ifndef MACOSX
++
++BOOL ImplSVMainHook( BOOL *pbInit )
++{
++    return FALSE;   // indicate that ImplSVMainHook is not implemented
++}
++
++#else
++#include <osl/thread.h>
++#include <premac.h>
++#include <CoreFoundation/CoreFoundation.h>
++#include <postmac.h>
++#include <unistd.h>
++
++extern BOOL ImplSVMain();
++
++// ============================================================================
++
++
++static void SourceContextCallBack( void *pInfo )
++{
++}
++
++struct ThreadContext
++{
++    BOOL* pRet;
++    CFRunLoopRef* pRunLoopRef;
++};
++
++static void RunSVMain(void *pData)
++{
++    ThreadContext* tcx = reinterpret_cast<ThreadContext*>(pData);
++
++    // busy waiting (ok in this case) until the run loop is
++    // running
++    while (!CFRunLoopIsWaiting(*tcx->pRunLoopRef))
++        usleep(100);
++    	
++    *tcx->pRet = ImplSVMain();
++
++    // Force exit since some JVMs won't shutdown when only exit() is invoked
++    _exit( 0 );
++}
++
++BOOL ImplSVMainHook( BOOL *pbInit )
++{
++    // Mac OS X requires that any Cocoa code have a CFRunLoop started in the
++    // primordial thread. Since all of the AWT classes in Java 1.4 and higher
++    // are written in Cocoa, we need to start the CFRunLoop here and run
++    // ImplSVMain() in a secondary thread.
++    // See http://developer.apple.com/samplecode/simpleJavaLauncher/listing3.html
++    // for further details and an example
++
++    CFRunLoopRef runLoopRef = CFRunLoopGetCurrent();
++    ThreadContext tcx;
++    tcx.pRet = pbInit;  // the return value
++    tcx.pRunLoopRef = &runLoopRef;
++    oslThread hThreadID = osl_createThread(RunSVMain, &tcx);
++
++    // Start the CFRunLoop
++    CFRunLoopSourceContext aSourceContext;
++    aSourceContext.version = 0;
++    aSourceContext.info = NULL;
++    aSourceContext.retain = NULL;
++    aSourceContext.release = NULL;
++    aSourceContext.copyDescription = NULL;
++    aSourceContext.equal = NULL;
++    aSourceContext.hash = NULL;
++    aSourceContext.schedule = NULL;
++    aSourceContext.cancel = NULL;
++    aSourceContext.perform = &SourceContextCallBack;
++    CFRunLoopSourceRef aSourceRef = CFRunLoopSourceCreate(NULL, 0, &aSourceContext);
++    CFRunLoopAddSource(runLoopRef, aSourceRef, kCFRunLoopCommonModes);
++    CFRunLoopRun();
++
++    osl_joinWithThread( hThreadID );
++    osl_destroyThread( hThreadID );
++
++    return TRUE;    // indicate that ImplSVMainHook is implemented
++}
++
++#endif // MACOSX
+Index: vcl/unx/gtk/window/gtkframe.cxx
+===================================================================
+RCS file: /cvs/gsl/vcl/unx/gtk/window/gtkframe.cxx,v
+retrieving revision 1.34
+retrieving revision 1.33.38.2
+diff -u -a -u -r1.34 -r1.33.38.2
+--- vcl/unx/gtk/window/gtkframe.cxx	9 Sep 2005 12:37:50 -0000	1.34
++++ vcl/unx/gtk/window/gtkframe.cxx	18 Sep 2005 11:14:19 -0000	1.33.38.2
+@@ -4,9 +4,9 @@
+  *
+  *  $RCSfile$
+  *
+- *  $Revision$
++ *  $Revision$
+  *
+- *  last change: $Author$ $Date$
++ *  last change: $Author$ $Date$
+  *
+  *  The Contents of this file are made available subject to
+  *  the terms of GNU Lesser General Public License Version 2.1.
+@@ -67,7 +67,11 @@
+     USHORT nCode = 0;
+     if( (state & GDK_SHIFT_MASK) )
+         nCode |= KEY_SHIFT;
+-    if( (state & GDK_CONTROL_MASK) )
++    if( (state & GDK_CONTROL_MASK)
++#ifdef MACOSX
++     || (state & GDK_MOD2_MASK) // map Meta (aka Command key) to Ctrl
++#endif
++    )
+         nCode |= KEY_MOD1;
+     if( (state & GDK_MOD1_MASK) )
+ 	{
+@@ -198,7 +202,7 @@
+                                  )
+ {
+     SalKeyEvent aEvent;
+-    
++
+     aEvent.mnTime			= time;    
+     aEvent.mnCode			= GetKeyCode( keyval ) | GetKeyModCode( state );
+     aEvent.mnCharCode		= aOrigCode;
+@@ -1960,10 +1964,16 @@
+ 		// The modifier mode therefore has to be adapted manually.
+         switch( pEvent->keyval )
+         {
++#ifdef MACOSX
++            case GDK_Meta_L:   // map Meta (aka Command key) to Ctrl
++#endif
+             case GDK_Control_L:
+                 nExtModMask = MODKEY_LMOD1;
+                 nModMask = KEY_MOD1;
+                 break;
++#ifdef MACOSX
++            case GDK_Meta_R:   // map Meta (aka Command key) to Ctrl
++#endif
+             case GDK_Control_R:
+                 nExtModMask = MODKEY_RMOD1;
+                 nModMask = KEY_MOD1;
+Index: vcl/unx/source/window/salframe.cxx
+===================================================================
+RCS file: /cvs/gsl/vcl/unx/source/window/salframe.cxx,v
+retrieving revision 1.192
+retrieving revision 1.191.80.2
+diff -u -a -u -r1.192 -r1.191.80.2
+--- vcl/unx/source/window/salframe.cxx	9 Sep 2005 13:51:27 -0000	1.192
++++ vcl/unx/source/window/salframe.cxx	18 Sep 2005 11:53:40 -0000	1.191.80.2
+@@ -4,9 +4,9 @@
+  *
+  *  $RCSfile$
+  *
+- *  $Revision$
++ *  $Revision$
+  *
+- *  last change: $Author$ $Date$
++ *  last change: $Author$ $Date$
+  *
+  *  The Contents of this file are made available subject to
+  *  the terms of GNU Lesser General Public License Version 2.1.
+@@ -2331,7 +2331,11 @@
+ 
+ 	if( state & ShiftMask )
+ 		nCode |= KEY_SHIFT;
+-	if( state & ControlMask )
++	if( (state & ControlMask )
++#ifdef MACOSX
++     || (state & Mod2Mask) // map Meta (aka Command key) to Ctrl
++#endif
++      )
+ 		nCode |= KEY_MOD1;
+ 	if( state & Mod1Mask )
+ 		nCode |= KEY_MOD2;
+@@ -2675,6 +2679,16 @@
+ 	USHORT nModCode = 0;
+ 	char		aDummy;
+ 
++#ifdef MACOSX
++    // map Meta (aka Command key) to Ctrl 
++	if( pEvent->state & Mod2Mask )
++		nModCode |= KEY_MOD1;
++    if( nKeySym == XK_Meta_L )
++        nKeySym = XK_Control_L;
++    else if( nKeySym == XK_Meta_R )
++        nKeySym = XK_Control_R;
++#endif
++
+ 	if( pEvent->state & ShiftMask )
+ 		nModCode |= KEY_SHIFT;
+ 	if( pEvent->state & ControlMask )
+Index: vcl/util/makefile.mk
+===================================================================
+RCS file: /cvs/gsl/vcl/util/makefile.mk,v
+retrieving revision 1.74
+retrieving revision 1.74.4.3
+diff -u -a -u -r1.74 -r1.74.4.3
+--- vcl/util/makefile.mk	9 Sep 2005 13:53:03 -0000	1.74
++++ vcl/util/makefile.mk	19 Sep 2005 20:12:18 -0000	1.74.4.3
+@@ -4,9 +4,9 @@
+ #
+ #   $RCSfile$
+ #
+-#   $Revision$
++#   $Revision$
+ #
+-#   last change: $Author$ $Date$
++#   last change: $Author$ $Date$
+ #
+ #   The Contents of this file are made available subject to
+ #   the terms of GNU Lesser General Public License Version 2.1.
+@@ -237,9 +237,12 @@
+ SHL1STDLIBS += -framework Cocoa
+ .ENDIF
+ 
+-
+ SHL1STDLIBS += -lX11
+ 
++.IF "$(OS)"=="MACOSX"
++SHL1STDLIBS += -framework Foundation -framework CoreFoundation
++.ENDIF # "$(OS)"=="MACOSX"
++
+ .ENDIF          # "$(GUI)"=="UNX"
+ 
+ # UNX sal plugins
