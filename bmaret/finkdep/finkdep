@@ -27,6 +27,8 @@ versionNum = "0.1"
 # Default settings
 
 verbose = False
+nIndent = 2         # Number of white space for indentation in the output
+maxLineLength = 60  # Maximum line length for the info output
 
 # Display usage
 
@@ -92,6 +94,31 @@ def getFinkPackage(shlib):
     
     return FinkPackage
 
+# Format the output
+
+def formatOutput(depends):
+
+    output = ""
+    line = ""
+    indent = ""
+    for i in range(nIndent): indent += " "
+    if len(depends) > 0:
+        line += indent
+        for i in range(len(depends)):
+            depend = depends[i]
+            if len(line) + len(depend) + 1 <= maxLineLength:
+                line += depend
+                if i != len(depends) - 1: line += ", "
+            else:
+                line += "\n"
+                output += line
+                line = ""
+                line += indent
+                line += depend
+                if i != len(depends) - 1 : line += ", "
+        output += line + "\n"
+    return output
+
 # Get options, arguments and binary names from the command line
 
 try:
@@ -139,7 +166,9 @@ if len(objFiles) == 1:
             
             if shlib[:10] == '/usr/X11R6':
                 depend = 'x11-shlibs'
+                if depends.count(depend) == 0: depends.append(depend)
                 buildDepend = 'x11-dev'
+                if buildDepends.count(buildDepend) == 0: buildDepends.append(buildDepend)
 
             # Other system librairies
 
@@ -179,18 +208,13 @@ if len(objFiles) == 1:
     depends.sort()
     buildDepends.sort()
 
-    print "Depends: <<"
-    for depend in depends[:-1]:
-        print "  %s," % depend
-    if len(depends) >= 1:
-        print "  %s" % depends[-1]
-    print "<<"
-    print "BuildDepends: <<"
-    for buildDepend in buildDepends[:-1]:
-        print "  %s," % buildDepend
-    if len(buildDepends) >= 1:
-        print "  %s" % buildDepends[-1]
-    print "<<"
+    sys.stdout.write("Depends: <<\n")
+    if len(depends) > 0: sys.stdout.write(formatOutput(depends))
+    sys.stdout.write("<<\n")
+
+    sys.stdout.write("BuildDepends: <<\n")
+    if len(depends) > 0: sys.stdout.write(formatOutput(buildDepends))
+    sys.stdout.write("<<\n")
     
 else:
     sys.stderr.write("""finkdep: No or more than one argument given.
