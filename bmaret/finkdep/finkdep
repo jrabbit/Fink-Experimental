@@ -27,8 +27,10 @@ versionNum = "0.1"
 # Default settings
 
 verbose = False
-nIndent = 2         # Number of white space for indentation in the output
-maxLineLength = 60  # Maximum line length for the info output
+nIndent = 2           # Number of white space for indentation in the output
+maxLineLength = 60    # Maximum line length for the info output
+findMethod = "grep"   # Fink package finding method. Can be either dpkg or grep
+finkPrefix = "/sw"    # Fink prefix (needed when searching with grep)
 
 # Display usage
 
@@ -45,7 +47,7 @@ Options:
 
 def version():
    print 'This is finkdep, version %s' % versionNum
-   print """Copyright (c) 2005 Sebastien Maret
+   print """Copyright (c) 2005 Sebastien Maret.
 This program is a free software. You are welcome to redistribute
 it under the terms of the GNU General Public License."""
 
@@ -87,11 +89,26 @@ def getLinkShlib(shlib):
 # Find the Fink package that provides a library
 
 def getFinkPackage(shlib):
-    p = os.popen('dpkg -S %s' % shlib)
-    line = p.read()
-    FinkPackage = line.split(':')[0]
-    p.close()
-    
+
+    # Find package with dpkg -S
+    if findMethod == "dpkg":
+        p = os.popen('dpkg -S %s' % shlib)
+        line = p.read()
+        FinkPackage = line.split(':')[0]
+        p.close()
+
+    # Find package with grep on .list files (much faster)
+    elif findMethod == "grep":
+        grepCmd = "grep %s %s/var/lib/dpkg/info/*.list" % (shlib, finkPrefix)
+        p = os.popen(grepCmd)
+        line = p.read()
+        FinkPackage = os.path.basename(line.split(':')[0]).split('.')[0]
+        p.close()
+
+    else:
+        print "finkdep: Unknown find method."
+        sys.exit(2)
+        
     return FinkPackage
 
 # Format the output
