@@ -466,187 +466,6 @@
  
  # Catch all
  .*	unknown
---- apt-0.6.41/cmdline/apt-get.cc	2005-08-23 04:13:13.000000000 -0400
-+++ apt-0.6.41-new/cmdline/apt-get.cc	2005-09-09 12:30:35.000000000 -0400
-@@ -51,7 +51,7 @@
- #include <termios.h>
- #include <sys/ioctl.h>
- #include <sys/stat.h>
--#include <sys/statvfs.h>
-+#include <sys/mount.h>
- #include <signal.h>
- #include <unistd.h>
- #include <stdio.h>
-@@ -113,6 +113,8 @@
- /* Returns true on a Yes.*/
- bool YnPrompt(bool Default=true)
- {
-+   fflush(NULL);
-+   
-    if (_config->FindB("APT::Get::Assume-Yes",false) == true)
-    {
-       c1out << _("Y") << endl;
-@@ -331,7 +333,14 @@
- 		  if (Cache[Targ].CandidateVerIter(Cache).end() == true)
- 		  {
- 		     if (Targ->ProvidesList == 0)
--			out << _("but it is not installable");
-+		     {
-+			out << _("but it is not installable. For Fink users, ");
-+			out << _("this often means that you have attempted ");
-+			out << _("to install a package from the binary distribution ");
-+			out << _("which depends on a \"Restrictive\" package. ");
-+			out << _("See <http://fink.sourceforge.net/faq/usage-fink.php#bindist>, ");
-+			out << _("<http://fink.sourceforge.net/doc/users-guide/packages.php#bin-exceptions>");
-+		     }
- 		     else
- 			out << _("but it is a virtual package");
- 		  }		  
-@@ -638,13 +647,15 @@
-       return false;
-    
-    // Nothing is broken
--   if (DCache->BrokenCount() == 0 || AllowBroken == true)
-+   // FINK LOCAL added APT::Get::Ignore-Breakage test
-+   if (DCache->BrokenCount() == 0 || AllowBroken == true
-+       || _config->FindB("APT::Get::Ignore-Breakage") == true)
-       return true;
- 
-    // Attempt to fix broken things
-    if (_config->FindB("APT::Get::Fix-Broken",false) == true)
-    {
--      c1out << _("Correcting dependencies...") << flush;
-+      c1out << _("Correcting dependencies...") << flush, fflush(NULL);
-       if (pkgFixBroken(*DCache) == false || DCache->BrokenCount() != 0)
-       {
- 	 c1out << _(" failed.") << endl;
-@@ -747,7 +758,9 @@
-    Stats(c1out,Cache);
- 
-    // Sanity check
--   if (Cache->BrokenCount() != 0)
-+   // FINK LOCAL added APT::Get::Ignore-Breakage test
-+   if (Cache->BrokenCount() != 0
-+       && _config->FindB("APT::Get::Ignore-Breakage",false) == false)
-    {
-       ShowBroken(c1out,Cache,false);
-       return _error->Error(_("Internal error, InstallPackages was called with broken packages!"));
-@@ -838,10 +851,10 @@
-    if (_config->FindB("APT::Get::Print-URIs") == false &&
-        _config->FindB("APT::Get::Download",true) == true)
-    {
--      struct statvfs Buf;
-+      struct statfs Buf;
-       string OutputDir = _config->FindDir("Dir::Cache::Archives");
--      if (statvfs(OutputDir.c_str(),&Buf) != 0)
--	 return _error->Errno("statvfs",_("Couldn't determine free space in %s"),
-+      if (statfs(OutputDir.c_str(),&Buf) != 0)
-+	 return _error->Errno("statfs",_("Couldn't determine free space in %s"),
- 			      OutputDir.c_str());
-       if (unsigned(Buf.f_bfree) < (FetchBytes - FetchPBytes)/Buf.f_bsize)
- 	 return _error->Error(_("You don't have enough free space in %s."),
-@@ -866,7 +879,7 @@
- 	       _("You are about to do something potentially harmful.\n"
- 		 "To continue type in the phrase '%s'\n"
- 		 " ?] "),Prompt);
--      c2out << flush;
-+      c2out << flush, fflush(NULL);
-       if (AnalPrompt(Prompt) == false)
-       {
- 	 c2out << _("Abort.") << endl;
-@@ -1144,7 +1157,9 @@
-       ExpectedInst++;
-    
-    // Install it with autoinstalling enabled.
--   if (State.InstBroken() == true && BrokenFix == false)
-+   // FINK LOCAL added APT::Get::Ignore-Breakage test
-+   if (State.InstBroken() == true && BrokenFix == false
-+      && _config->FindB("APT::Get::Ignore-Breakage") == false)
-       Cache.MarkInstall(Pkg,true);
-    return true;
- }
-@@ -1521,7 +1536,9 @@
-    /* If we are in the Broken fixing mode we do not attempt to fix the
-       problems. This is if the user invoked install without -f and gave
-       packages */
--   if (BrokenFix == true && Cache->BrokenCount() != 0)
-+   // FINK LOCAL added APT::Get::Ignore-Breakage test
-+   if (BrokenFix == true && Cache->BrokenCount() != 0
-+       && _config->FindB("APT::Get::Ignore-Breakage") == false)
-    {
-       c1out << _("You might want to run `apt-get -f install' to correct these:") << endl;
-       ShowBroken(c1out,Cache,false);
-@@ -1531,11 +1548,13 @@
-    
-    // Call the scored problem resolver
-    Fix.InstallProtect();
--   if (Fix.Resolve(true) == false)
-+   // FINK LOCAL added APT::Get::Ignore-Breakage test
-+   if (_config->FindB("APT::Get::Ignore-Breakage") == false && Fix.Resolve(true) == false)
-       _error->Discard();
- 
-    // Now we check the state of the packages,
--   if (Cache->BrokenCount() != 0)
-+   // FINK LOCAL added APT::Get::Ignore-Breakage test
-+   if (Cache->BrokenCount() != 0 && _config->FindB("APT::Get::Ignore-Breakage") == false)
-    {
-       c1out << 
-        _("Some packages could not be installed. This may mean that you have\n" 
-@@ -1921,10 +1940,10 @@
-    double DebBytes = Fetcher.TotalNeeded();
- 
-    // Check for enough free space
--   struct statvfs Buf;
-+   struct statfs Buf;
-    string OutputDir = ".";
--   if (statvfs(OutputDir.c_str(),&Buf) != 0)
--      return _error->Errno("statvfs",_("Couldn't determine free space in %s"),
-+   if (statfs(OutputDir.c_str(),&Buf) != 0)
-+      return _error->Errno("statfs",_("Couldn't determine free space in %s"),
- 			   OutputDir.c_str());
-    if (unsigned(Buf.f_bfree) < (FetchBytes - FetchPBytes)/Buf.f_bsize)
-       return _error->Error(_("You don't have enough free space in %s"),
-@@ -2419,6 +2438,8 @@
-    _config->Set("APT::Get::Simulate",false);
-    _config->Set("APT::Get::Assume-Yes",false);
-    _config->Set("APT::Get::Fix-Broken",false);
-+   // FINK LOCAL added APT::Get::Ignore-Breakage
-+   _config->Set("APT::Get::Ignore-Breakage",false);
-    _config->Set("APT::Get::Force-Yes",false);
-    _config->Set("APT::Get::List-Cleanup",true);
- }
-@@ -2457,6 +2478,8 @@
-       {'y',"yes","APT::Get::Assume-Yes",0},
-       {'y',"assume-yes","APT::Get::Assume-Yes",0},      
-       {'f',"fix-broken","APT::Get::Fix-Broken",0},
-+      // FINK LOCAL added APT::Get::Ignore-Breakage
-+      {0,"ignore-breakage","APT::Get::Ignore-Breakage",0},
-       {'u',"show-upgraded","APT::Get::Show-Upgraded",0},
-       {'m',"ignore-missing","APT::Get::Fix-Missing",0},
-       {'t',"target-release","APT::Default-Release",CommandLine::HasArg},
-@@ -2520,6 +2543,22 @@
-       ShowHelp(CmdL);
-       return 0;
-    }
-+
-+   /* FINK LOCAL begin */
-+   if (_config->FindB("APT::Get::Ignore-Breakage",false) == true) {
-+     if (_config->FindB("APT::Get::Print-URIs",false) == false &&
-+	 _config->FindB("APT::Get::Download-Only",false) == false) {
-+       _error->Error("--ignore-breakage can only be used with --print-uris or --download-only");
-+       _error->DumpErrors();
-+       return 100;
-+     }
-+     if (strcmp(CmdL.FileList[0],"install") != 0) {
-+       _error->Error("--ignore-breakage can only be used with apt-get install");
-+       _error->DumpErrors();
-+       return 100;
-+     }
-+   }
-+   /* FINK LOCAL end */
-    
-    // Deal with stdout not being a tty
-    if (!isatty(STDOUT_FILENO) && _config->FindI("quiet",0) < 1)
 --- apt-0.6.41/cmdline/makefile	2005-08-01 12:05:41.000000000 -0400
 +++ apt-0.6.41-new/cmdline/makefile	2005-09-09 12:30:35.000000000 -0400
 @@ -7,42 +7,42 @@
@@ -1290,3 +1109,213 @@
 +done
 +
 +exit 0
+--- apt-0.6.41/cmdline/apt-get.cc	2005-08-23 04:13:13.000000000 -0400
++++ apt-0.6.41-new/cmdline/apt-get.cc	2005-10-03 11:13:16.000000000 -0400
+@@ -51,7 +51,7 @@
+ #include <termios.h>
+ #include <sys/ioctl.h>
+ #include <sys/stat.h>
+-#include <sys/statvfs.h>
++#include <sys/mount.h>
+ #include <signal.h>
+ #include <unistd.h>
+ #include <stdio.h>
+@@ -113,6 +113,8 @@
+ /* Returns true on a Yes.*/
+ bool YnPrompt(bool Default=true)
+ {
++   fflush(NULL);
++   
+    if (_config->FindB("APT::Get::Assume-Yes",false) == true)
+    {
+       c1out << _("Y") << endl;
+@@ -331,7 +333,20 @@
+ 		  if (Cache[Targ].CandidateVerIter(Cache).end() == true)
+ 		  {
+ 		     if (Targ->ProvidesList == 0)
+-			out << _("but it is not installable");
++		     {
++			out << _("but it is not installable. For Fink users, ");
++			out << _("this often means that you have attempted ");
++			out << _("to install a package from the binary distribution ");
++			out << _("that depends on a package (or has a subdependency) ");
++			out << _("that is not part of the binary distribution.  The ");
++			out << _("omitted package may be a virtual package, which ");
++			out << _("must be installed manually instead of with fink, ");
++			out << _("or one that has a \"Restrictive\" license that ");
++			out << _("prohibits binary distribution.  See:\n");
++			out << _("  <http://fink.sourceforge.net/faq/usage-fink.php#bindist>\n");
++			out << _("  <http://fink.sourceforge.net/doc/users-guide/packages.php#bin-exceptions>\n");
++			out << _("  <http://fink.sourceforge.net/doc/usage-general.php#virtpackage>\n");
++		     }
+ 		     else
+ 			out << _("but it is a virtual package");
+ 		  }		  
+@@ -638,13 +653,15 @@
+       return false;
+    
+    // Nothing is broken
+-   if (DCache->BrokenCount() == 0 || AllowBroken == true)
++   // FINK LOCAL added APT::Get::Ignore-Breakage test
++   if (DCache->BrokenCount() == 0 || AllowBroken == true
++       || _config->FindB("APT::Get::Ignore-Breakage") == true)
+       return true;
+ 
+    // Attempt to fix broken things
+    if (_config->FindB("APT::Get::Fix-Broken",false) == true)
+    {
+-      c1out << _("Correcting dependencies...") << flush;
++      c1out << _("Correcting dependencies...") << flush, fflush(NULL);
+       if (pkgFixBroken(*DCache) == false || DCache->BrokenCount() != 0)
+       {
+ 	 c1out << _(" failed.") << endl;
+@@ -747,7 +764,9 @@
+    Stats(c1out,Cache);
+ 
+    // Sanity check
+-   if (Cache->BrokenCount() != 0)
++   // FINK LOCAL added APT::Get::Ignore-Breakage test
++   if (Cache->BrokenCount() != 0
++       && _config->FindB("APT::Get::Ignore-Breakage",false) == false)
+    {
+       ShowBroken(c1out,Cache,false);
+       return _error->Error(_("Internal error, InstallPackages was called with broken packages!"));
+@@ -838,10 +857,10 @@
+    if (_config->FindB("APT::Get::Print-URIs") == false &&
+        _config->FindB("APT::Get::Download",true) == true)
+    {
+-      struct statvfs Buf;
++      struct statfs Buf;
+       string OutputDir = _config->FindDir("Dir::Cache::Archives");
+-      if (statvfs(OutputDir.c_str(),&Buf) != 0)
+-	 return _error->Errno("statvfs",_("Couldn't determine free space in %s"),
++      if (statfs(OutputDir.c_str(),&Buf) != 0)
++	 return _error->Errno("statfs",_("Couldn't determine free space in %s"),
+ 			      OutputDir.c_str());
+       if (unsigned(Buf.f_bfree) < (FetchBytes - FetchPBytes)/Buf.f_bsize)
+ 	 return _error->Error(_("You don't have enough free space in %s."),
+@@ -866,7 +885,7 @@
+ 	       _("You are about to do something potentially harmful.\n"
+ 		 "To continue type in the phrase '%s'\n"
+ 		 " ?] "),Prompt);
+-      c2out << flush;
++      c2out << flush, fflush(NULL);
+       if (AnalPrompt(Prompt) == false)
+       {
+ 	 c2out << _("Abort.") << endl;
+@@ -1144,7 +1163,9 @@
+       ExpectedInst++;
+    
+    // Install it with autoinstalling enabled.
+-   if (State.InstBroken() == true && BrokenFix == false)
++   // FINK LOCAL added APT::Get::Ignore-Breakage test
++   if (State.InstBroken() == true && BrokenFix == false
++      && _config->FindB("APT::Get::Ignore-Breakage") == false)
+       Cache.MarkInstall(Pkg,true);
+    return true;
+ }
+@@ -1521,7 +1542,9 @@
+    /* If we are in the Broken fixing mode we do not attempt to fix the
+       problems. This is if the user invoked install without -f and gave
+       packages */
+-   if (BrokenFix == true && Cache->BrokenCount() != 0)
++   // FINK LOCAL added APT::Get::Ignore-Breakage test
++   if (BrokenFix == true && Cache->BrokenCount() != 0
++       && _config->FindB("APT::Get::Ignore-Breakage") == false)
+    {
+       c1out << _("You might want to run `apt-get -f install' to correct these:") << endl;
+       ShowBroken(c1out,Cache,false);
+@@ -1531,11 +1554,13 @@
+    
+    // Call the scored problem resolver
+    Fix.InstallProtect();
+-   if (Fix.Resolve(true) == false)
++   // FINK LOCAL added APT::Get::Ignore-Breakage test
++   if (_config->FindB("APT::Get::Ignore-Breakage") == false && Fix.Resolve(true) == false)
+       _error->Discard();
+ 
+    // Now we check the state of the packages,
+-   if (Cache->BrokenCount() != 0)
++   // FINK LOCAL added APT::Get::Ignore-Breakage test
++   if (Cache->BrokenCount() != 0 && _config->FindB("APT::Get::Ignore-Breakage") == false)
+    {
+       c1out << 
+        _("Some packages could not be installed. This may mean that you have\n" 
+@@ -1921,10 +1946,10 @@
+    double DebBytes = Fetcher.TotalNeeded();
+ 
+    // Check for enough free space
+-   struct statvfs Buf;
++   struct statfs Buf;
+    string OutputDir = ".";
+-   if (statvfs(OutputDir.c_str(),&Buf) != 0)
+-      return _error->Errno("statvfs",_("Couldn't determine free space in %s"),
++   if (statfs(OutputDir.c_str(),&Buf) != 0)
++      return _error->Errno("statfs",_("Couldn't determine free space in %s"),
+ 			   OutputDir.c_str());
+    if (unsigned(Buf.f_bfree) < (FetchBytes - FetchPBytes)/Buf.f_bsize)
+       return _error->Error(_("You don't have enough free space in %s"),
+@@ -2419,6 +2444,8 @@
+    _config->Set("APT::Get::Simulate",false);
+    _config->Set("APT::Get::Assume-Yes",false);
+    _config->Set("APT::Get::Fix-Broken",false);
++   // FINK LOCAL added APT::Get::Ignore-Breakage
++   _config->Set("APT::Get::Ignore-Breakage",false);
+    _config->Set("APT::Get::Force-Yes",false);
+    _config->Set("APT::Get::List-Cleanup",true);
+ }
+@@ -2457,6 +2484,8 @@
+       {'y',"yes","APT::Get::Assume-Yes",0},
+       {'y',"assume-yes","APT::Get::Assume-Yes",0},      
+       {'f',"fix-broken","APT::Get::Fix-Broken",0},
++      // FINK LOCAL added APT::Get::Ignore-Breakage
++      {0,"ignore-breakage","APT::Get::Ignore-Breakage",0},
+       {'u',"show-upgraded","APT::Get::Show-Upgraded",0},
+       {'m',"ignore-missing","APT::Get::Fix-Missing",0},
+       {'t',"target-release","APT::Default-Release",CommandLine::HasArg},
+@@ -2520,6 +2549,22 @@
+       ShowHelp(CmdL);
+       return 0;
+    }
++
++   /* FINK LOCAL begin */
++   if (_config->FindB("APT::Get::Ignore-Breakage",false) == true) {
++     if (_config->FindB("APT::Get::Print-URIs",false) == false &&
++	 _config->FindB("APT::Get::Download-Only",false) == false) {
++       _error->Error("--ignore-breakage can only be used with --print-uris or --download-only");
++       _error->DumpErrors();
++       return 100;
++     }
++     if (strcmp(CmdL.FileList[0],"install") != 0) {
++       _error->Error("--ignore-breakage can only be used with apt-get install");
++       _error->DumpErrors();
++       return 100;
++     }
++   }
++   /* FINK LOCAL end */
+    
+    // Deal with stdout not being a tty
+    if (!isatty(STDOUT_FILENO) && _config->FindI("quiet",0) < 1)
+diff -uNr apt-0.6.41/ftparchive/contents.cc apt-0.6.41-new/ftparchive/contents.cc
+--- apt-0.6.41/ftparchive/contents.cc	2005-08-01 12:05:43.000000000 -0400
++++ apt-0.6.41-new/ftparchive/contents.cc	2005-10-03 12:01:11.000000000 -0400
+@@ -41,7 +41,6 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+-#include <malloc.h>    
+ 									/*}}}*/
+ 
+ // GenContents::~GenContents - Free allocated memory			/*{{{*/
+diff -uNr apt-0.6.41/ftparchive/makefile apt-0.6.41-new/ftparchive/makefile
+--- apt-0.6.41/ftparchive/makefile	2005-08-01 12:05:41.000000000 -0400
++++ apt-0.6.41-new/ftparchive/makefile	2005-10-03 12:03:24.000000000 -0400
+@@ -8,7 +8,7 @@
+ # The apt-ftparchive program
+ ifdef BDBLIB
+ PROGRAM=apt-ftparchive
+-SLIBS = -lapt-pkg -lapt-inst $(BDBLIB)
++SLIBS = -lapt-pkg -lapt-inst $(BDBLIB) $(INTLLIBS)
+ LIB_MAKES = apt-pkg/makefile apt-inst/makefile
+ SOURCE = apt-ftparchive.cc cachedb.cc writer.cc contents.cc override.cc \
+          multicompress.cc

@@ -1,6 +1,6 @@
 Package: apt
 Version: 0.6.41
-Revision: 1
+Revision: 2
 GCC: 3.3
 Depends: apt0.6.40-shlibs (>= %v-%r)
 BuildDepends: fink-prebinding, libiconv-dev, libgettext3-dev
@@ -9,6 +9,8 @@ Source-MD5: e2b3b7efa18819697b98bc331be5d753
 SourceDirectory: %n-%v
 Source2: http://downloads.sleepycat.com/db-4.3.28.tar.gz
 Source2-MD5: e27759537db6054b31d8cb3e99ba6fbb
+Conflicts: apt-ftparchive
+Replaces: apt-ftparchive
 PatchScript: <<
 #!/bin/sh -ex
  DISTRIBUTION=`grep -i -E '^Distribution:' %p/etc/fink.conf | awk '{ print $2 }'`
@@ -24,12 +26,12 @@ CompileScript: <<
 #!/bin/sh -ex
 
  pushd ../db-4.3.28/build_unix
- LIBS="" CXXFLAGS="" F77=no ../dist/configure --enable-static=yes --enable-shared=no
+ LIBS="" LDFLAGS="" CFLAGS="" CXXFLAGS="" F77=no ../dist/configure --enable-static=yes --enable-shared=no
  make libdb.a
  popd
 
-  export CPPFLAGS="-I`pwd`/db-4.3.28/build_unix"
-  export LDFLAGS="-L`pwd`/db-4.3.28/build_unix"
+  export CPPFLAGS="-I`pwd`/../db-4.3.28/build_unix"
+  export LDFLAGS="-L`pwd`/../db-4.3.28/build_unix"
  ./configure %c
  make -f makefile.wrap NOISY=1 GLIBC_VER= LIBSTDCPP_VER= INTLLIBS="-L%p/lib -lintl"
 <<
@@ -46,7 +48,7 @@ InstallScript: <<
  install -d -m 755 %i/var/cache/apt/archives/partial
  install -d -m 755 %i/var/lib/apt/lists/partial
 
- for binfile in cache cdrom config extracttemplates get sortpkgs; do
+ for binfile in cache cdrom config extracttemplates ftparchive get sortpkgs; do
    install -c -m 755 bin/apt-$binfile %i/bin/
  done
 
