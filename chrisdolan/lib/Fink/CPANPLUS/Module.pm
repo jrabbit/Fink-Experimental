@@ -57,18 +57,18 @@ sub license_filename
    my $self = shift;
 
    # Check files that are for-sure
-   my @licenses = grep /^(copyright|copying|license|gpl|lgpl|artistic)/i, $self->root_files();
+   my @licenses = grep /^(copyright|copying|license|gpl|lgpl|artistic)\b/i, $self->root_files();
    return $licenses[0] if (@licenses > 0);
 
    # Check doc files that might have copyright inline
    foreach my $file (grep(/^readme/i, $self->root_files()),
-                     grep({defined $_} $self->makefile->{version_from}))
+                     grep({defined $_} $self->version_from(), $self->version_from_pod()))
    {
       my $filename = $self->extract_dir()."/".$file;
       if (-f $filename)
       {
          my $content = read_file($filename);
-         if ($content =~ /licen[sc]e|licensing|copyright/i) # [sc] is to catch a common typo
+         if ($content =~ /\b(?:licen[sc]e|licensing|copyright)\b/i) # [sc] is to catch a common typo
          {
             return $file;
          }
@@ -131,24 +131,82 @@ sub license
 {
    my $self = shift;
 
-   return $self->yml->{license} || $self->dslip->{license};
+   my $license = $self->yml->{license} || $self->dslip->{license};
+   return $license if ($license);
+
+   foreach my $licensefile (
+      $self->version_from(),
+      $self->version_from_pod(),
+      $self->license_filename(),
+   )
+   {
+      if ($licensefile)
+      {
+         my $filename = $self->extract_dir()."/".$licensefile;
+         if (-f $filename)
+         {
+            my $content = read_file($filename);
+            if ($content =~ /=head\d\s+(?:licen[cs]e|licensing|copyright|legal)\b(.*?)(=head\\d.*|=cut.*|)$/si)
+            {
+               my $licensetext = $1;
+               my @phrases = (
+                  "under the same (?:terms|license) as Perl itself",
+               );
+               my $regex = join "|", map {join("\\s+", split /\s+/, $_)} @phrases;
+               if ($licensetext =~ /$regex/is)
+               {
+                  return "perl";
+               }
+            }
+         }
+      }
+   }
+
+   return undef;
 }
 
 sub version_from
 {
    my $self = shift;
-   return
-       $self->buildfile->{version_from} ||
-       $self->makefile->{version_from};
+   my @candidates = (
+      $self->yml->{version_from},
+      $self->buildfile->{version_from},
+      $self->makefile->{version_from},
+   );
+
+   for my $filename (@candidates)
+   {
+      if ($filename && -f $self->extract_dir."/".$filename)
+      {
+         return $filename;
+      }
+   }
+   return undef;
+}
+sub version_from_pod
+{
+   my $self = shift;
+
+   my $version_from = $self->version_from();
+   my $version_pod;
+   if ($version_from && $version_from =~ /\.pm$/)
+   {
+      ($version_pod = $version_from) =~ s/\.pm$/.pod/;
+   }
+   return $version_pod;
 }
 
 sub description
 {
    my $self = shift;
 
-   my $desc = $self->yml->{abstract} || $self->makefile->{abstract} || $self->{mod}->description();
+   my $desc =
+       $self->yml->{abstract} ||
+       $self->makefile->{abstract} ||
+       $self->{mod}->description();
+
    if (!$desc && 
-       $self->mainfile() =~ /=head1\s+NAME\s+[\w\-\'\:]+\s+\-\s+([^\r\n]+)/s)
+       $self->mainpod() =~ /=head1\s+NAME\s+[\w\-\'\:]+\s+\-\s+([^\r\n]+)/s)
    {
       $desc = $1;
    }
@@ -314,8 +372,7 @@ sub mainfile
    if (!defined $self->{mainfile})
    {
       $self->{mainfile} = "";
-      my $version_from = ($self->buildfile->{version_from} ||
-                          $self->makefile->{version_from});
+      my $version_from = $self->version_from();
       if ($version_from)
       {
          my $filename = $self->extract_dir."/".$version_from;
@@ -326,6 +383,29 @@ sub mainfile
       }
    }
    return $self->{mainfile};
+}
+
+sub mainpod
+{
+   my $self = shift;
+   if (!defined $self->{mainpod})
+   {
+      $self->{mainpod} = "";
+      my $version_pod = $self->version_from_pod();
+      if ($version_pod)
+      {
+         my $filename = $self->extract_dir."/".$version_pod;
+         if (-f $filename)
+         {
+            $self->{mainpod} = read_file($filename);
+         }
+      }
+      if (!$self->{mainpod})
+      {
+         $self->{mainpod} = $self->mainfile();
+      }
+   }
+   return $self->{mainpod};
 }
 
 sub yml
@@ -352,14 +432,14 @@ sub yml
          }
          else
          {
-            if ($meta->{license})
+            for my $key (qw(license abstract version_from))
             {
-               $self->{yml}->{license} = $meta->{license};
+               if ($meta->{$key})
+               {
+                  $self->{yml}->{$key} = $meta->{$key};
+               }
             }
-            if ($meta->{abstract})
-            {
-               $self->{yml}->{abstract} = $meta->{abstract};
-            }
+
             my %libtrans = (
                             requires => "depends",
                             build_requires => "builddepends",
