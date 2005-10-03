@@ -1,8 +1,10 @@
 Info2: <<
-Package: openoffice.org
-Description: Integrated office productivity suite
+Package: openoffice.org-%type_pkg[lang]
+Description: Language Pack(%type_pkg[lang]) for OpenOffice.org
 Version: 2.0.0
 Revision: 11rc1
+Type: lang (af ar bg ca cs cy da de el en-gb eo es et eu fi fr gl he hi-in hu it ja km kn-in ko lt ms nb nl nn ns pl pt pt-br ru sk
+ sl sv th tn tr xh zh-cn zh-tw zu)
 License: LGPL
 Maintainer: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>
 
@@ -38,7 +40,7 @@ Depends: <<
   python24-shlibs, 
   boost1.32-py23-shlibs | boost1.32-py24-shlibs, 
   mozilla-shlibs, mozilla-mailnews, libart2-shlibs,
-  fondu
+  fondu, openoffice.org (=%v-%r)
 <<
 
 # FIXME -- workaround
@@ -149,8 +151,8 @@ SourceDirectory: OOo_%v_src
 Source-MD5: 994f41c050885cef0521d2a75fd32477
 
 PatchScript: <<
-  /usr/bin/patch -p0 < %a/%n.patch
-  /usr/bin/patch -p0 < %a/%n.macosx.patch || true
+  /usr/bin/patch -p0 < %a/openoffice.org.patch
+  /usr/bin/patch -p0 < %a/openoffice.org.macosx.patch || true
 <<
 
 SetCC: gcc-3.3
@@ -229,7 +231,23 @@ CompileScript: <<
   # $PKG_CONFIG_PATH is needed to configure freetype219; not working?
   export PKG_CONFIG_PATH=%p/lib/freetype219/lib/pkgconfig
 
-  (cd config_office && autoconf && ./configure %c) 2>&1 | /usr/bin/tee -a %n-%v-%r.buildlog
+  if [ "%type_raw[lang]" == "en-gb" ]; then
+    OOO_LANG=en-GB
+  elif [ "%type_raw[lang]" == "hi-in" ]; then
+    OOO_LANG=hi-IN
+  elif [ "%type_raw[lang]" == "kn-in" ]; then
+    OOO_LANG=kn-IN
+  elif [ "%type_raw[lang]" == "pt-br" ]; then
+    OOO_LANG=pt-BR
+  elif [ "%type_raw[lang]" == "zh-cn" ]; then
+    OOO_LANG=zh-CN
+  elif [ "%type_raw[lang]" == "zh-tw" ]; then
+    OOO_LANG=zh-TW
+  else
+    OOO_LANG=%type_pkg[lang]
+  fi
+
+  (cd config_office && autoconf && ./configure --with-lang=$OOO_LANG %c) 2>&1 | /usr/bin/tee -a %n-%v-%r.buildlog
   ./bootstrap                                      2>&1 | /usr/bin/tee -a %n-%v-%r.buildlog
   . MacosxEnv.Set.sh
 
@@ -264,6 +282,9 @@ CompileScript: <<
     [ -n "$input" ] || false
   done
 
+  # Build the language pack
+  (cd instsetoo_native/util && dmake ooolanguagepack)
+
   set +v
   # Record the time and disk usage
   ENDTIME=`/bin/date +"%%F %%T %%Z(%%z)"`
@@ -277,79 +298,36 @@ CompileScript: <<
 
 InstallScript: <<
   #!/bin/bash -ev
-  for i in instsetoo_native/unxmacxp.pro/OpenOffice/install/en-US/darwin-*/*.sw; do
-    /usr/bin/tar xf $i -C %i
-  done
+  if [ "%type_raw[lang]" == "en-gb" ]; then
+    OOO_LANG=en-GB
+  elif [ "%type_raw[lang]" == "hi-in" ]; then
+    OOO_LANG=hi-IN
+  elif [ "%type_raw[lang]" == "kn-in" ]; then
+    OOO_LANG=kn-IN
+  elif [ "%type_raw[lang]" == "pt-br" ]; then
+    OOO_LANG=pt-BR
+  elif [ "%type_raw[lang]" == "zh-cn" ]; then
+    OOO_LANG=zh-CN
+  elif [ "%type_raw[lang]" == "zh-tw" ]; then
+    OOO_LANG=zh-TW
+  else
+    OOO_LANG=%type_pkg[lang]
+  fi
+
+  /usr/bin/tar xf instsetoo_native/unxmacxp.pro/OpenOffice_languagepack/install/$OOO_LANG/darwin-*/openofficeorg-$OOO_LANG.sw -C %i
+
   /bin/mv %i/{Applications,lib}
   /bin/mv %i/lib/{openoffice.org*,%n}
 
-  /bin/rm instsetoo_native/unxmacxp.pro/OpenOffice/install/en-US_temp/OpenOffice.org\ 2.0.app/Contents/openoffice.org
-  /bin/ln -s %p/lib/%n instsetoo_native/unxmacxp.pro/OpenOffice/install/en-US_temp/OpenOffice.org\ 2.0.app/Contents/
-
-  /usr/bin/install -m 755 -d %i/bin
-  /bin/ln -s %p/lib/%n/program/{sbase,scalc,sdraw,simpress,smath,soffice,swriter} %i/bin
-
-  /bin/ln -s %p/lib/libdb_java-4.2.jnilib %i/lib/%n/program
-
   /usr/bin/install -m 755 -d %i/share/doc/%n
-  /bin/cp %i/lib/%n/LICENSE %i/share/doc/%n/LICENSE
+  /bin/cp instsetoo_native/unxmacxp.pro/OpenOffice_languagepack/install/$OOO_LANG/darwin-*/openofficeorg-$OOO_LANG.license %i/share/doc/%n/LICENSE
 <<
-AppBundles: instsetoo_native/unxmacxp.pro/OpenOffice/install/en-US_temp/OpenOffice.org\ 2.0.app
 
 Homepage: http://www.openoffice.org/
 
-DescDetail: <<
-OpenOffice.org is an Open Source, community-developed, multi-platform office
-productivity suite. It includes the key desktop applications, such as a
-word processor, spreadsheet, presentation manager, and drawing program,
-with a user interface and feature set similar to other office suites.
-
-Components include:
-  * A universal word processing application for creating business
-    letters, extensive text documents, professional layouts, and HTML
-    documents.
-  * A sophisticated application for performing advanced spreadsheet
-    functions, such as analyzing figures, creating lists, and viewing data.
-  * A tool for creating effective eye-catching presentations.
-  * A vector-oriented draw module that enables the creation of 3D
-    illustrations.
-<<
-DescPort: <<
-This package is advised by NAKATA Maho <maho@FreeBSD.org>.
-And furthermore, many many advice from ssa, _rene_, ericb2, and paveljanik
-of #OpenOffice.org at irc.freenode.net. Thanks to all OOo persons!
-
-You can join discussions on porting here:
-http://porting.openoffice.org/servlets/SummarizeList?listName=dev
-
-It is reported that:
-  * Mac OS X SDK (which comes with Xcode) is needed.
-  * Sometimes checking getaddrinfo() fails on configuring python (on Panther?).
-  * %p/lib/openoffice.org/presets/config/standard.sog conflicts some of
-    language packs.
-
-Because DYLD_LIBRARY_PATH does not contain %p/lib by default,
-Java cannot find %p/lib/libdb_java-4.2.jnilib at compile time and runtime.
-This script tries to make a symlink of it in %p/lib/openoffice.org/programs.
-<<
 DescPackaging: <<
-To Do & Memo:
-# --with-system-mspack       # not in Fink
-# --with-system-nas          # not in Fink
-# --with-system-myspell      # not in Fink
-# --with-system-mythes       # not in Fink
-# --with-system-altlinuxhyph # not in Fink
-# --with-system-python       # TO DO 3 : fails building instsetooo_native?
-
-# --enable-openldap          # not needed?
-# --enable-libsn             # libstartup-notification is not in Fink
-# --enable-evolution2        # evolution2 not in Fink
-
-# checking whether to enable fontconfig support... no
-# checking whether to build Mozilla addressbook connectivity... no, not possible with system-mozilla
-# checking whether to use Mozilla or Firefox... Mozilla
-<<
-DescUsage: <<
-export SAL_USE_VCLPLUGIN="gtk" enables the use of GTK+ UI plugin?
+This package has a bug that some language packs have the same file (i.e. Conflicts).
+If you uninstall language pack, and if you find something strange,
+please reinstall ooo and language packs. (e.g. `fink reinstall openoffice.org`)
 <<
 <<
