@@ -2,7 +2,7 @@ Info2: <<
 Package: openoffice.org-%type_pkg[lang]
 Description: Language Pack(%type_pkg[lang]) for OpenOffice.org
 Version: 2.0.0
-Revision: 11rc1
+Revision: 13rc1
 Type: lang (af ar bg ca cs cy da de el en-gb eo es et eu fi fr gl he hi-in hu it ja km kn-in ko lt ms nb nl nn ns pl pt pt-br ru sk sl sv th tn tr xh zh-cn zh-tw zu)
 License: LGPL
 Maintainer: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>
@@ -25,7 +25,7 @@ BuildDepends: <<
   orbit2-dev, pango1-xft2-dev, pcre, pkgconfig, popt, vte-dev, 
   python24, 
   boost1.32-py23 | boost1.32-py24,
-  autoconf2.5
+  autoconf2.5, gcc3.3
 <<
 
 Depends: <<
@@ -51,7 +51,7 @@ Replaces: <<
   openoffice.org-gl, openoffice.org-he, openoffice.org-hi-in, openoffice.org-hu,
   openoffice.org-it, openoffice.org-ja, openoffice.org-km, openoffice.org-kn-in,
   openoffice.org-ko, openoffice.org-lt, openoffice.org-ms, openoffice.org-nb,
-  openoffice.org-nl openoffice.org-nn, openoffice.org-ns, openoffice.org-pl,
+  openoffice.org-nl, openoffice.org-nn, openoffice.org-ns, openoffice.org-pl,
   openoffice.org-pt, openoffice.org-pt-br, openoffice.org-ru, openoffice.org-sk,
   openoffice.org-sl, openoffice.org-sv, openoffice.org-th, openoffice.org-tn,
   openoffice.org-tr, openoffice.org-xh, openoffice.org-zh-cn, openoffice.org-zh-tw,
@@ -151,7 +151,7 @@ Source-MD5: 994f41c050885cef0521d2a75fd32477
 
 PatchScript: <<
   /usr/bin/patch -p0 < %a/openoffice.org.patch
-  /usr/bin/patch -p0 < %a/openoffice.org.macosx.patch || true
+  /usr/bin/patch -f -p0 < %a/openoffice.org.macosx.patch || true
 <<
 
 SetCC: gcc-3.3
@@ -165,6 +165,7 @@ ConfigureParams: <<
   --disable-crashdump \
   --with-build-version="%v-%r; Built with Fink <http://fink.sourceforge.net>" \
   --enable-libart \
+  --enable-pasf \
   --with-system-db \
   --with-db-jar=%p/share/java/db42-ssl-java/db.jar \
   --with-system-libwpd \
@@ -181,11 +182,11 @@ ConfigureParams: <<
   --with-system-jpeg \
   --with-system-expat \
   --with-system-mozilla \
-  \
   --enable-gtk \
-  --with-system-freetype
+  --with-system-freetype \
+  \
+  --without-nas
 <<
-#  --with-system-boost \
 #  --with-system-python
 #  --with-system-libxml \
 
@@ -195,39 +196,48 @@ CompileScript: <<
 
   set -e
 
+  echo "[ Message from OpenOffice.org package maintainer ] ================="
+  echo
   echo "Welcome to OpenOffice.org build script!"
-  echo ""
-  echo "1. This building process may take a week or more,"
-  echo "   and often fails with an error."
+  echo
+  echo "Notice for builders:"
+  echo
+  echo "1. This building process may take a couple of day or more,"
+  echo "   and often fails with errors."
   echo "2. This building process may consume much of your disk space,"
   echo "   possibly up to 10GB."
   echo "3. This building process needs your own WindowServer process."
   echo "   i.e, it is not possible to build through simple SSH connection."
   echo "   This is because the building process uses /usr/bin/osacompile ."
-  echo ""
+  echo "   (This limitation would be removed in the future release.)"
+  echo
   echo "If you faced a building problem, feel free to mail the maintainer,"
-  echo "with your build log. You can obtain the log by executing this line:"
-  echo "   /usr/bin/tail -1000 %b/%n-%v-%r.buildlog |"
-  echo "      bzip2 > ~/Desktop/%n-%v-%r.buildlog.tail.bz2"
-  echo "(Note: execute the command in one line.)"
-  echo ""
+  echo "preferably with your environment (gcc-3.3's version, etc.) and"
+  echo "the build log."
+  echo "You can find the logs here:"
+  echo "   %b/%n-%v-%r.buildlog"
+  echo
   echo "The mail address is: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>"
-  echo ""
-  echo "Please understand this Fink package is still experimental."
-  echo ""
+  echo
+  echo "Please understand this Fink package is still unstable."
+  echo
+  echo "===================================================================="
+  echo
   echo "If you are ready, press RETURN/ENTER to proceed..."
 
   read -t 60 || true
+
+  echo
 
   # Record the time
   STARTTIME=`/bin/date +"%%F %%T %%Z(%%z)"`
 
   set -v
 
-  # $X_LDFLAGS is needed to configure X correctly.  
+  # $X_LDFLAGS is needed to configure with X correctly.  
   export X_LDFLAGS=$LDFLAGS
 
-  # $PKG_CONFIG_PATH is needed to configure freetype219; not working?
+  # $PKG_CONFIG_PATH is needed to configure with freetype219
   export PKG_CONFIG_PATH=%p/lib/freetype219/lib/pkgconfig
 
   if [ "%type_raw[lang]" == "en-gb" ]; then
@@ -246,53 +256,75 @@ CompileScript: <<
     OOO_LANG=%type_pkg[lang]
   fi
 
-  (cd config_office && autoconf && ./configure --with-lang=$OOO_LANG %c) 2>&1 | /usr/bin/tee -a %n-%v-%r.buildlog
-  ./bootstrap                                      2>&1 | /usr/bin/tee -a %n-%v-%r.buildlog
-  . MacosxEnv.Set.sh
+  /usr/bin/printf "[ Phase 1: Configure ]\n\n" >> %n-%v-%r.buildlog
+  (cd config_office && autoconf && ./configure --with-lang=$OOO_LANG %c) 2>&1 |
+    /usr/bin/tee -a %n-%v-%r.buildlog
+
+  /usr/bin/printf "\n\n[ Phase 2: Bootstrap ]\n\n" >> %n-%v-%r.buildlog
+  ./bootstrap 2>&1 |
+    /usr/bin/tee -a %n-%v-%r.buildlog
 
   # Because we are using %p, $SOLARINC and $SOLARLIB need modified  
-  export SOLARINC=`echo $SOLARINC | /usr/bin/sed -e"s|-I/usr/X11R6/include -I/usr/X11R6/include/freetype2|-I%p/include/db4 -I%p/lib/freetype219/include/freetype2 -I%p/lib/freetype219/include -I%p/include -I/usr/X1186/include|g"`
-  export SOLARLIB=`echo $SOLARLIB | /usr/bin/sed -e"s|-L/usr/lib|-L%p/lib/freetype219/lib -L%p/lib -L/usr/lib|g"`
-
   # Include libdb_java-4.2.jnilib to DYLD_LIBRARY_PATH so that Java can find it
+  /usr/bin/sed -i.bak \
+    -e"/^SOLARLIB/s|-L/usr/lib|-L%p/lib/freetype219/lib -L%p/lib -L/usr/lib|" \
+    -e"/^SOLARINC/s|-I/usr/X11R6/include -I/usr/X11R6/include/freetype2|-I%p/include/db4 -I%p/lib/freetype219/include/freetype2 -I%p/lib/freetype219/include -I%p/include -I/usr/X1186/include|" \
+    -e"/^DYLD_LIBRARY_PATH/s|/lib|/lib:%b/FINKLIBS|" \
+    MacosxEnv.Set.sh
+
   /bin/mkdir FINKLIBS
   /bin/ln -s %p/lib/libdb_java-4.2.jnilib FINKLIBS
-  export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:%b/FINKLIBS"
 
   # Retry forever to build OOo until success!
   until [ -n "$succeeded" ]; do
+    /usr/bin/printf "\n\n[ Phase 3: Make ]\n\n" >> %n-%v-%r.buildlog
+    . MacosxEnv.Set.sh
     dmake 2>&1 | /usr/bin/tee -a %n-%v-%r.buildlog
     if [ ${PIPESTATUS[0]} == 0 ]; then
       succeeded=TRUE
       continue
     fi
-    set > %n-%v-%r.env.sh
-    echo "Build faild with an error."
+    echo
+    echo "[ Message from OpenOffice.org package maintainer ] ================="
+    echo
+    echo "Building OpenOffice.org faild with an error."
     echo "Now you can get rid of the cause by hand, or call for help."
     echo "The build directory is:"
     echo "  %b"
-    echo "Environmental variable is available here:"
-    echo "  %b/%n-%v-%r.env.sh"
     echo "and the full log file is available here:"
     echo "  %b/%n-%v-%r.buildlog"
-    echo ""
+    echo
+    echo "===================================================================="
+    echo
     echo "Press RETURN/ENTER to exit or input any key to restart dmake..."
     read input
     [ -n "$input" ] || false
   done
 
   # Build the language pack
-  (cd instsetoo_native/util && dmake ooolanguagepack)
+  /usr/bin/printf "\n\n[ Phase 4: Make Language Pack ]\n\n" >> %n-%v-%r.buildlog 
+  (cd instsetoo_native/util && dmake ooolanguagepack) 2>&1 |
+    /usr/bin/tee -a %n-%v-%r.buildlog
 
   set +v
-  # Record the time and disk usage
+
+  echo
+  echo "[ Message from OpenOffice.org package maintainer ] ================="
+  echo
+  echo "Congratulations!"
+  echo "The building process of OpenOffice.org has completed!"
+  echo "   Started:   $STARTTIME"
+
   ENDTIME=`/bin/date +"%%F %%T %%Z(%%z)"`
+
+  echo "   Completed: $ENDTIME"
+
   DISKUSAGE=`/usr/bin/du -sh %b | /usr/bin/cut -f1`
 
-  echo "Congratulations! The building process of OpenOffice.org has completed!"
-  echo "   Started:   $STARTTIME"
-  echo "   Completed: $ENDTIME"
   echo "   $DISKUSAGE is used for this building process (not including tarball)."
+  echo
+  echo "===================================================================="
+  echo
 <<
 
 InstallScript: <<
