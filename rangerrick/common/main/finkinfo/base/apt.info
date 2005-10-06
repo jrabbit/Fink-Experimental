@@ -1,6 +1,6 @@
 Package: apt
 Version: 0.6.41
-Revision: 3
+Revision: 4
 GCC: 3.3
 Depends: apt0.6.40-shlibs (>= %v-%r), gzip, libftw0-shlibs
 BuildDepends: fink-prebinding, libftw0, libiconv-dev, libgettext3-dev, gettext-tools
@@ -21,19 +21,20 @@ PatchScript: <<
 NoSetCPPFLAGS: true
 SetLIBS: -L%p/lib -undefined dynamic_lookup
 NoSetLDFLAGS: true
-SetCXXFLAGS: -O2 -DEMULATE_MMAP -D__USE_MISC -fconstant-cfstrings
+SetCXXFLAGS: -O2 -DEMULATE_MMAP -D__USE_MISC -fconstant-cfstrings -g
 CompileScript: <<
 #!/bin/sh -ex
 
- pushd ../db-4.3.28/build_unix
+ export DBDIR=`pwd`/../db-4.3.28
+ pushd $DBDIR/build_unix
  LIBS="" LDFLAGS="" CFLAGS="" CXXFLAGS="" F77=no ../dist/configure --enable-static=yes --enable-shared=no
  make libdb.a
  popd
 
-  export CPPFLAGS="-I`pwd`/../db-4.3.28/build_unix -I%p/include/ftw"
-  export LDFLAGS="-L`pwd`/../db-4.3.28/build_unix"
+ export CPPFLAGS="-I$DBDIR/build_unix -I%p/include/ftw"
+ export LDFLAGS="-L$DBDIR/build_unix"
  ./configure %c
- make -f makefile.wrap NOISY=1 GLIBC_VER= LIBSTDCPP_VER= INTLLIBS="-L%p/lib -lintl"
+ make -f makefile.wrap NOISY=1 GLIBC_VER= LIBSTDCPP_VER= INTLLIBS="-L%p/lib -lintl" BDBLIB="$DBDIR/build_unix/libdb.a"
 <<
 InstallScript: <<
 #!/bin/sh -ex
@@ -78,17 +79,19 @@ InstallScript: <<
 <<
 SplitOff: <<
   Package: apt0.6.40-shlibs
-  Depends: dpkg, fink (>= 0.20.6-1), libiconv, libgettext3-shlibs
+  Depends: dpkg, fink (>= 0.20.6-1), libgettext3-shlibs
   Replaces: apt-shlibs
   Files: lib/lib*0.6.40*.dylib
   Shlibs: <<
     %p/lib/libapt-pkg.0.6.40.dylib 0.6.40 %n (>= 0.6.40.1-1)
-    %p/lib/libapt-inst.0.6.40.dylib 0.6.40.0 %n (>= 0.6.40.1-1)
+    %p/lib/libapt-inst.0.6.40.dylib 0.6.40 %n (>= 0.6.40.1-1)
   <<
+  DocFiles: COPYING* AUTHORS
 <<
 SplitOff2: <<
   Package: apt0.6.40-dev
   Depends: apt0.6.40-shlibs (>= %v-%r)
+  BuildDependsOnly: true
   Recommends: libiconv-dev, libgettext3-dev
   Conflicts: apt-dev
   Replaces: apt-dev
