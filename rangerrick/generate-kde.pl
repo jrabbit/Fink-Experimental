@@ -115,6 +115,7 @@ for my $file (@files) {
 								}
 
 								if ($tree >= 10.4) {
+									$line =~ s/(^|,\s*)libftw0(-shlibs)?\s*//;
 									$line =~ s/gcc3.1[,\s]*//;
 									# java's broken everywhere right now
 									#$line =~ s/--disable-java //;
