@@ -2,7 +2,7 @@ Info2: <<
 Package: openoffice.org
 Description: Integrated office productivity suite
 Version: 2.0.0
-Revision: 13rc1
+Revision: 16rc1
 License: LGPL
 Maintainer: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>
 
@@ -43,18 +43,22 @@ Depends: <<
 
 # FIXME -- workaround
 Replaces: <<
-  openoffice.org-af, openoffice.org-ar, openoffice.org-bg, openoffice.org-ca,
-  openoffice.org-cs, openoffice.org-cy, openoffice.org-da, openoffice.org-de,
-  openoffice.org-el, openoffice.org-en-gb, openoffice.org-eo, openoffice.org-es,
-  openoffice.org-et, openoffice.org-eu, openoffice.org-fi, openoffice.org-fr,
-  openoffice.org-gl, openoffice.org-he, openoffice.org-hi-in, openoffice.org-hu,
-  openoffice.org-it, openoffice.org-ja, openoffice.org-km, openoffice.org-kn-in,
-  openoffice.org-ko, openoffice.org-lt, openoffice.org-ms, openoffice.org-nb,
-  openoffice.org-nl, openoffice.org-nn, openoffice.org-ns, openoffice.org-pl,
-  openoffice.org-pt, openoffice.org-pt-br, openoffice.org-ru, openoffice.org-sk,
-  openoffice.org-sl, openoffice.org-sv, openoffice.org-th, openoffice.org-tn,
-  openoffice.org-tr, openoffice.org-xh, openoffice.org-zh-cn, openoffice.org-zh-tw,
-  openoffice.org-zu, openoffice.org
+  openoffice.org-af, openoffice.org-ar, openoffice.org-bg,
+  openoffice.org-ca, openoffice.org-cs, openoffice.org-cy,
+  openoffice.org-da, openoffice.org-de, openoffice.org-el,
+  openoffice.org-en-gb, openoffice.org-eo, openoffice.org-es,
+  openoffice.org-et, openoffice.org-eu, openoffice.org-fi,
+  openoffice.org-fr, openoffice.org-gl, openoffice.org-he,
+  openoffice.org-hi-in, openoffice.org-hu, openoffice.org-it,
+  openoffice.org-ja, openoffice.org-km, openoffice.org-kn-in,
+  openoffice.org-ko, openoffice.org-lt, openoffice.org-ms,
+  openoffice.org-nb, openoffice.org-nl, openoffice.org-nn,
+  openoffice.org-ns, openoffice.org-pl, openoffice.org-pt,
+  openoffice.org-pt-br, openoffice.org-ru, openoffice.org-sk,
+  openoffice.org-sl, openoffice.org-sv, openoffice.org-th,
+  openoffice.org-tn, openoffice.org-tr, openoffice.org-xh,
+  openoffice.org-zh-cn, openoffice.org-zh-tw, openoffice.org-zu,
+  openoffice.org
 <<
 
 CustomMirror: <<
@@ -183,9 +187,10 @@ ConfigureParams: <<
   --with-system-mozilla \
   --enable-gtk \
   --with-system-freetype \
-  \
   --with-system-boost \
-  --without-nas
+  --without-nas \
+  \
+  --with-system-python
 <<
 #  --with-system-python
 #  --with-system-libxml \
@@ -314,6 +319,11 @@ InstallScript: <<
   /bin/mv %i/{Applications,lib}
   /bin/mv %i/lib/{openoffice.org*,%n}
 
+  # Taken from the post-install script of openoffice.org-pyuno.install
+  /bin/ln -s python-core-2.3.4 %i/lib/%n/program/python-core
+  /bin/ln -s python.sh %i/lib/%n/program/python
+  /bin/chmod +x %i/lib/%n/program/python-core-2.3.4/bin/python
+
   /bin/rm instsetoo_native/unxmacxp.pro/OpenOffice/install/en-US_temp/OpenOffice.org\ 2.0.app/Contents/openoffice.org
   /bin/ln -s %p/lib/%n instsetoo_native/unxmacxp.pro/OpenOffice/install/en-US_temp/OpenOffice.org\ 2.0.app/Contents/
 
@@ -333,6 +343,17 @@ InstallScript: <<
 <<
 #AppBundles: instsetoo_native/unxmacxp.pro/OpenOffice/install/en-US_temp/OpenOffice.org*.app
 PostInstScript: <<
+  cd %p/lib/openoffice.org/share/fonts/truetype
+  if [ -e .fondudone ]; then
+    echo "Fonts seems to be already converted. skipping..."
+  else
+    echo "Converting Mac OS X fonts..."
+    /usr/bin/touch .fondudone
+    for font in /System/Library/Fonts/* /Library/Fonts/*; do
+      %p/bin/fondu --force "$font" || true
+    done
+  fi    
+  
   [ ! -e /Applications/Fink ] && /usr/bin/install -d -m 755 /Applications/Fink
   /bin/ln -s '%p/Applications/OpenOffice.org 2.0.app' /Applications/Fink/
 <<
@@ -375,34 +396,56 @@ Java cannot find %p/lib/libdb_java-4.2.jnilib at compile time and runtime.
 This script tries to make a symlink of it in %p/lib/openoffice.org/programs.
 <<
 DescPackaging: <<
-To Do & Memo:
-# --with-system-mspack       # not in Fink
-# --with-system-myspell      # not in Fink
-# --with-system-mythes       # not in Fink
-# --with-system-altlinuxhyph # not in Fink
+To Do 0: Enable system Python and libxml2
+  ( --with-system-python and --with-system-libxml2 )
+Fails on building instsetooo_native... 
 
-# --enable-openldap          # not needed?
-# --enable-libsn             # libstartup-notification is not in Fink
-# --enable-evolution2        # evolution2 not in Fink
+To Do 1: Use Startup Notification
+  ( --enable-libsn )
+Available in Fink as "startup-notification-shlibs"
 
-# To Do 0: Enable system Python!
-# --with-system-python
-# fails on building instsetooo_native?
+To Do 2: Report build failures on building nas (Network Audio System)
+  ( --without-nas or --with-system-nas )
+with internal nas, build fails on Panther. 
+See: OpenOffice.org-2.0.0-1rc1.nazuna.0.buildlog
 
-# To Do 1: Enable Network Audio System?
-# --without-nas              
-# --with-system-nas          # not in Fink
-# with internal nas, build fails on Panther. 
-# See: OpenOffice.org-2.0.0-1rc1.nazuna.0.buildlog
+To Do 3: Font setting in PostInstScript
+See: DescUsage
 
+"boost" is required on compile time, but not needed on runtime.
+
+These --with-system flags are not used because they are not in Fink:
+   --with-system-mspack
+   --with-system-myspell
+   --with-system-mythes
+   --with-system-altlinuxhyph
+   --enable-evolution2
+
+I have no idea about openldap. Maybe mozilla is enough?
+   --enable-openldap
+
+Some comments about configure logs:
 # checking whether to enable fontconfig support... no
-# Currently fontconfig can't be enabled.
+Using fontconfig is not supported on Mac OS X.
 
 # checking whether to build Mozilla addressbook connectivity... no, not possible with system-mozilla
 # checking whether to use Mozilla or Firefox... Mozilla
-# Shall I use Firefox instead of Mozilla?
+Shall I use Firefox instead of Mozilla?
 <<
 DescUsage: <<
-export SAL_USE_VCLPLUGIN="gtk" enables the use of GTK+ UI plugin?
+To start OpenOffice.org, type "soffice" on your terminal,
+or double-click "OpenOffice.org 2.0.app" icon located at /Applications/Fink .
+
+To use GTK+ look and feel,
+set SAL_USE_VCLPLUGIN environmental variable to "gtk".
+
+To use system fonts which come with Mac OS X, execute these lines:
+  cd %p/lib/openoffice.org/share/fonts/truetype
+  for font in /Library/Fonts/*; do
+    /sw/bin/fondu --force "$font"
+  done
+  for font in /System/Library/Fonts/*; do
+    /sw/bin/fondu --force "$font"
+  done
 <<
 <<
