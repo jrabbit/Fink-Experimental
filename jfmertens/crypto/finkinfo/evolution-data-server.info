@@ -1,29 +1,24 @@
 Package: evolution-data-server
-Version: 1.4.0
+Version: 1.4.1.1
 Revision: 1
-Source-MD5: a15991d5f0112b43c18fa99dfccfec1b
+Source-MD5: 1590ec25527b1bcc5046e84ec2d1227f
 Source: mirror:gnome:sources/%n/1.4/%n-%v.tar.bz2
-Depends: %N-shlibs (>= %v-%r), audiofile-shlibs, esound-shlibs, gconf2-shlibs, glib2-shlibs, gnome-vfs2-ssl-shlibs | gnome-vfs2-shlibs, gnutls-shlibs, libbonobo2-shlibs, libgcrypt-shlibs, libgettext3-shlibs, libgnome2-shlibs, libgpg-error-shlibs, libhowl-shlibs, libiconv, libsoup2.2.8-ssl-shlibs, libtasn1-shlibs, libxml2-shlibs, mozilla-shlibs, orbit2-shlibs, popt-shlibs, pth2-shlibs
-BuildDepends: db31, audiofile, esound, gconf2-dev, glib2-dev, gnome-vfs2-ssl-dev | gnome-vfs2-dev, gnutls, libbonobo2-dev, libgcrypt, libgettext3-dev, libgnome2-dev, libgpg-error, libhowl-dev, libiconv-dev, libsoup2.2.8-ssl, libtasn1, libxml2, mozilla-dev, orbit2-dev, popt, pth2-dev, gettext-tools, scrollkeeper, pkgconfig, intltool
-## otool_deps  evolution-data-server
-# audiofile-shlibs, cyrus-sasl2-shlibs, db43-ssl-shlibs, esound-shlibs, evolution-data-server-shlibs, gconf2-shlibs, glib2-shlibs, gnome-vfs2-ssl-shlibs, gnutls-shlibs, libbonobo2-shlibs, libgcrypt-shlibs, libgettext3-shlibs, libgnome2-shlibs, libgpg-error-shlibs, libhowl-shlibs, libiconv, libsoup2.2.8-ssl-shlibs, libtasn1-shlibs, libxml2-shlibs, mozilla-shlibs, openldap-ssl-shlibs, openssl097-shlibs, orbit2-shlibs, popt-shlibs, pth2-shlibs
-## otool_deps  evolution-data-server-shlibs
-# atk1-shlibs, audiofile-shlibs, cyrus-sasl2-shlibs, db43-ssl-shlibs, esound-shlibs, gconf2-shlibs, glib2-shlibs, gnome-keyring-shlibs, gnome-vfs2-ssl-shlibs, gnutls-shlibs, gtk+2-shlibs, libart2-shlibs, libbonobo2-shlibs, libbonoboui2-shlibs, libgcrypt-shlibs, libgettext3-shlibs, libglade2-shlibs, libgnome2-shlibs, libgnomecanvas2-shlibs, libgnomeui2-shlibs, libgpg-error-shlibs, libhowl-shlibs, libiconv, libjpeg-shlibs, libsoup2.2.8-ssl-shlibs, libtasn1-shlibs, libxml2-shlibs, mozilla-shlibs, openldap-ssl-shlibs, openssl097-shlibs, orbit2-shlibs, pango1-xft2-shlibs, popt-shlibs, pth2-shlibs, xorg-shlibs
+BuildDepends: atk1, audiofile, cyrus-sasl2-dev, db43-ssl, esound, gconf2-dev, glib2-dev, gnome-keyring-dev, gnome-vfs2-ssl-dev, gnutls, gtk+2-dev, libart2, libbonobo2-dev, libbonoboui2-dev, libgcrypt, libgettext3-dev, libglade2, libgnome2-dev, libgnomecanvas2-dev, libgnomeui2-dev, libgpg-error, libhowl-dev, libiconv-dev, libjpeg, libsoup2.2.8-ssl, libtasn1, libxml2, mozilla-dev, openldap-ssl-dev, openssl097-dev, orbit2-dev, pango1-xft2-dev, popt, pth2-dev, x11-dev, gettext-tools, scrollkeeper, pkgconfig, intltool, gtk-doc
+Depends: %N-shlibs, openldap-ssl-shlibs
 NoSetCPPFLAGS: true
 SetCPPFLAGS: -no-cpp-precomp
-# following 2 not yet tested :
-#NoSetLDFLAGS: true
-#SetLIBRARY_PATH: %p/lib
+NoSetLDFLAGS: true
+SetLIBRARY_PATH: %p/lib
 SetCFLAGS: -O3 -fstrict-aliasing
 NoSetMAKEFLAGS: true
 SetMAKEFLAGS: -j1
-Patch: %n.patch
 PatchScript: <<
+  perl -pi.bak -e 's,libdir\)/locale,datadir)/locale,' po/Makefile.in.in
   sed -i.bak -e '/^\#ifdef NEED_ADDRINFO/,/^\#endif/d' camel/camel-net-utils.h
   perl -pi.bak -e 's,option\-menu\.h\",$&\n#include <sys/types.h>,; s,uint,u_int,' libedataserverui/e-source-option-menu.c
 ## To avoid "implicit declararation" warnings :
   perl -pi.bak -e 's,errno.h>,$&\n\#include <stdlib.h>\n\#include <string.h>,' camel/camel-net-utils.c
-  perl -pi.bak -e 's,e-weather-source-ccf.h",$&\n\#include <string.h>,' calendar/backends/weather/e-weather-source.c
+  perl -pi.bak -e 's,/e-cal-util.h>,$&\n\#include <libecal/e-cal-time-util.h>,' calendar/backends/http/e-cal-backend-http.c
 # adding the prefix libbonobo-2.0 because -I/sw/include comes before -I/sw/include/libbonobo-2.0 on the command line
   perl -pi.bak -e 's,gtk/gtk.h>,$&\n\#include <libbonobo-2.0/bonobo/bonobo-main.h>,' libedataserverui/test-contact-store.c
 # 
@@ -33,7 +28,7 @@ ConfigureParams: --enable-static --enable-ipv6=yes --enable-nntp=yes --enable-gt
 CompileScript: export CPATH=%p/include; ./configure %c; make
 SplitOff: <<
   Package: %N-shlibs
-  Depends: audiofile-shlibs, esound-shlibs, gconf2-shlibs, glib2-shlibs, gnome-vfs2-ssl-shlibs | gnome-vfs2-shlibs, gnutls-shlibs, libbonobo2-shlibs, libgcrypt-shlibs, libgettext3-shlibs, libgnome2-shlibs, libgpg-error-shlibs, libhowl-shlibs, libiconv, libsoup2.2.8-ssl-shlibs, libtasn1-shlibs, libxml2-shlibs, mozilla-shlibs, orbit2-shlibs, popt-shlibs, pth2-shlibs
+  Depends: gnome-vfs2-ssl-shlibs, libgnomeui2-shlibs, libsoup2.2.8-ssl-shlibs, mozilla-shlibs
   Files: lib/libe*-1.2.*.dylib lib/libca*-1.2.*.dylib
   Shlibs: <<
     %p/lib/libcamel-1.2.0.dylib 1.0.0 %n (>= 1.3.6-1)
@@ -53,7 +48,7 @@ SplitOff2: <<
   Package: %N-dev
   Depends: %N-shlibs
   BuildDependsOnly: true
-  Files: include lib/*.{dylib,la} lib/pkgconfig lib/evolution-data-server-1.2/camel-providers/*.{,l}a lib/evolution-data-server-1.2/extensions/*.{,l}a
+  Files: include lib/lib*-1.2.{dylib,la,a} lib/pkgconfig lib/evolution-data-server-1.2/camel-providers/*.{,l}a lib/evolution-data-server-1.2/extensions/*.{,l}a
   DocFiles: AUTHORS COPYING* ChangeLog NEWS README TODO
 <<
 DocFiles: AUTHORS COPYING NEWS README

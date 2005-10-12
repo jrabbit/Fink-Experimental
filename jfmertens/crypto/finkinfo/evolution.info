@@ -1,23 +1,22 @@
 Package: evolution
-Version: 2.4.0
+Version: 2.4.1
 Revision: 1
-Source-MD5: c6b38b9a6ba920be5a859e9ed368508d
+Source-MD5: 13235405e08d14a54129e3a65548f58e
 Source: mirror:gnome:sources/%n/2.4/%n-%v.tar.bz2
-## otool_deps evolution
-#atk1-shlibs, audiofile-shlibs, cyrus-sasl2-shlibs, db43-ssl-shlibs, esound-shlibs, evolution-data-server-shlibs, gail17-shlibs, gconf2-shlibs, glib2-shlibs, gnome-keyring-shlibs, gnome-vfs2-ssl-shlibs, gnutls-shlibs, gstreamer-shlibs, gtk+2-shlibs, gtkhtml3.8.15-shlibs, libart2-shlibs, libbonobo2-shlibs, libbonoboui2-shlibs, libgcrypt-shlibs, libgettext3-shlibs, libglade2-shlibs, libgnome2-shlibs, libgnomecanvas2-shlibs, libgnomeprint2.2-shlibs, libgnomeprintui2.2-shlibs, libgnomeui2-shlibs, libgpg-error-shlibs, libhowl-shlibs, libiconv, libjpeg-shlibs, libsoup2.2.8-ssl-shlibs, libtasn1-shlibs, libxml2-shlibs, mozilla-shlibs, openldap-ssl-shlibs, openssl097-shlibs, orbit2-shlibs, pango1-xft2-shlibs, popt-shlibs, pth2-shlibs, xorg-shlibs
-Depends: atk1-shlibs, audiofile-shlibs, esound-shlibs, evolution-data-server-shlibs, gail17-shlibs, gal2.4.0-shlibs, gconf2-shlibs, glib2-shlibs, gnome-keyring-shlibs, gnome-vfs2-ssl-shlibs | gnome-vfs2-shlibs, gnutls-shlibs, gstreamer-shlibs, gtk+2-shlibs, gtkhtml3.8.15-shlibs, libart2-shlibs, libbonobo2-shlibs, libbonoboui2-shlibs, libgcrypt-shlibs, libgettext3-shlibs, libglade2-shlibs, libgnome2-shlibs, libgnomecanvas2-shlibs, libgnomeprint2.2-shlibs, libgnomeprintui2.2-shlibs, libgnomeui2-shlibs, libgpg-error-shlibs, libhowl-shlibs, libiconv, libjpeg-shlibs, libsoup2.2.8-ssl-shlibs, libtasn1-shlibs, libxml2-shlibs, mozilla-shlibs, orbit2-shlibs, pango1-xft2-shlibs, popt-shlibs, pth2-shlibs, x11-shlibs
-BuildDepends: atk1, audiofile, esound, evolution-data-server-dev, gail17-dev, gal2.4.0-dev, gconf2-dev, glib2-dev, gnome-keyring-dev, gnome-vfs2-ssl-dev | gnome-vfs2-dev, gnutls, gstreamer-dev, gtk+2-dev, gtkhtml3.8.15-dev, libart2, libbonobo2-dev, libbonoboui2-dev, libgcrypt, libgettext3-dev, libglade2, libgnome2-dev, libgnomecanvas2-dev, libgnomeprint2.2-dev, libgnomeprintui2.2-dev, libgnomeui2-dev, libgpg-error, libhowl-dev, libiconv-dev, libjpeg, libsoup2.2.8-ssl, libtasn1, libxml2, mozilla-dev, orbit2-dev, pango1-xft2-dev, popt, pth2-dev, x11-dev, pkgconfig, intltool, gettext-tools, scrollkeeper
+BuildDepends: atk1, audiofile, cyrus-sasl2-dev, db43-ssl, esound, evolution-data-server-dev, gail17-dev, gconf2-dev, glib2-dev, gnome-keyring-dev, gnome-vfs2-ssl-dev, gnutls, gstreamer-dev, gtk+2-dev, gtkhtml3.8.15-dev, libart2, libbonobo2-dev, libbonoboui2-dev, libgcrypt, libgettext3-dev, libglade2, libgnome2-dev, libgnomecanvas2-dev, libgnomeprint2.2-dev, libgnomeprintui2.2-dev, libgnomeui2-dev, libgpg-error, libhowl-dev, libiconv-dev, libjpeg, libsoup2.2.8-ssl, libtasn1, libxml2, mozilla-dev, openldap-ssl-dev, openssl097-dev, orbit2-dev, pango1-xft2-dev, popt, pth2-dev, x11-dev, gettext-tools, scrollkeeper, pkgconfig, intltool, gtk-doc
+Depends: %N-shlibs, evolution-data-server, gstreamer-shlibs
 SetCPPFLAGS: -no-cpp-precomp
 SetCFLAGS: -O3 -funroll-loops -fstrict-aliasing
 NoSetMAKEFLAGS: true
 SetMAKEFLAGS: -j1
-Patch: %n.patch
 PatchScript: <<
-  perl -pi -e 's/hardcode_direct=yes/hardcode_direct=no/g' configure && perl -pi.bak -e "s/-scrollkeeper-update/#-scrollkeeper-update/g" help/C/Makefile.in
+  perl -pi.bak -e 's/hardcode_direct=yes/hardcode_direct=no/g' configure && perl -pi.bak -e "s/-scrollkeeper-update/#-scrollkeeper-update/g" help/C/Makefile.in
+  perl -pi.bak -e 's,libdir\)/locale,datadir)/locale,' po/Makefile.in.in
 ## The following are 'for safety' : to avoid "implicit declararation" warnings (still check the ngettext thing in filter-datespec.c.)
   perl -pi.bak -e 's,time\.h>,$&\n\#include <string.h>,'  widgets/misc/e-send-options.h
   perl -pi.bak -e 's,\#define DAY_INDEX 3,\#include <libintl.h>\n$&,' filter/filter-datespec.c
-## a quick fix for a very bad linking _ just to see what comes next
+  perl -pi.bak -e 's;e-cal-model-tasks.h";$&\nvoid e_calendar_table_process_completed_tasks (ECalendarTable *table, GList *clients_list, gboolean config_changed);' calendar/gui/{e-tasks,gnome-cal}.c
+## a quick fix for a bad linking _ just to see what comes next
   perl -pi.bak -e 's;\$\(LINK\);$& -Wl,-m;' plugins/groupwise-features/Makefile.in
 <<
 ### didn't yet check whether the 2 ac_cv_func... below are still necessary in this version (ie, does the configure test come out right now ?) 
@@ -31,6 +30,15 @@ CompileScript: <<
   ./configure %c
   perl -pi -e 's,\-I%p/include\s,,' config.status
   make
+<<
+InstallScript: <<
+  make install prefix=%i
+  mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
+<<
+PreInstScript: <<
+  if [ upgrade = "$1" ]; then
+    rm -fR %p/share/doc/%n
+  fi
 <<
 PostInstScript: <<
  if [ configure = "$1" ]; then
@@ -48,7 +56,41 @@ PostRmScript: <<
   scrollkeeper-update
  fi
 <<
-DocFiles: AUTHORS COPYING COPYING-DOCS HACKING MAINTAINERS NEWS README
+SplitOff: <<
+  Package: %N-shlibs
+  Depends: evolution-data-server-shlibs, gtkhtml3.8.15-shlibs
+  Files: lib/%N/2.4/*.0.dylib
+  DocFiles: AUTHORS COPYING COPYING-DOCS HACKING MAINTAINERS NEWS README
+  Shlibs: <<
+    %p/lib/evolution/2.4/libeabutil.0.dylib 1.0.0 %n (>= 2.4.0-1)
+    %p/lib/evolution/2.4/libeconduit.0.dylib 1.0.0 %n (>= 2.4.0-1)
+    %p/lib/evolution/2.4/libecontacteditor.0.dylib 1.0.0 %n (>= 2.4.0-1)
+    %p/lib/evolution/2.4/libecontactlisteditor.0.dylib 1.0.0 %n (>= 2.4.0-1)
+    %p/lib/evolution/2.4/libefilterbar.0.dylib 1.0.0 %n (>= 2.4.0-1)
+    %p/lib/evolution/2.4/libemiscwidgets.0.dylib 1.0.0 %n (>= 2.4.0-1)
+    %p/lib/evolution/2.4/libeshell.0.dylib 1.0.0 %n (>= 2.4.0-1)
+    %p/lib/evolution/2.4/libessmime.0.dylib 1.0.0 %n (>= 2.4.0-1)
+    %p/lib/evolution/2.4/libetable.0.dylib 1.0.0 %n (>= 2.4.0-1)
+    %p/lib/evolution/2.4/libetext.0.dylib 1.0.0 %n (>= 2.4.0-1)
+    %p/lib/evolution/2.4/libetimezonedialog.0.dylib 1.0.0 %n (>= 2.4.0-1)
+    %p/lib/evolution/2.4/libeutil.0.dylib 1.0.0 %n (>= 2.4.0-1)
+    %p/lib/evolution/2.4/libevolution-a11y.0.dylib 1.0.0 %n (>= 2.4.0-1)
+    %p/lib/evolution/2.4/libevolution-addressbook-a11y.0.dylib 1.0.0 %n (>= 2.4.0-1)
+    %p/lib/evolution/2.4/libevolution-addressbook-importers.0.dylib 1.0.0 %n (>= 2.4.0-1)
+    %p/lib/evolution/2.4/libevolution-calendar-a11y.0.dylib 1.0.0 %n (>= 2.4.0-1)
+    %p/lib/evolution/2.4/libevolution-calendar-importers.0.dylib 1.0.0 %n (>= 2.4.0-1)
+    %p/lib/evolution/2.4/libevolution-mail-importers.0.dylib 1.0.0 %n (>= 2.4.0-1)
+    %p/lib/evolution/2.4/libevolution-smime.0.dylib 1.0.0 %n (>= 2.4.0-1)
+    %p/lib/evolution/2.4/libevolution-widgets-a11y.0.dylib 1.0.0 %n (>= 2.4.0-1)
+    %p/lib/evolution/2.4/libmenus.0.dylib 1.0.0 %n (>= 2.4.0-1)
+  <<
+<<
+SplitOff2: <<
+  Package: %N-dev
+  Depends: %N-shlibs, pkgconfig
+  Files: lib/%N/2.4/*.{{,l}a,dylib} lib/%N/2.4/plugins/*.{,l}a lib/%N/2.4/components/*.{,l}a lib/pkgconfig include/%N-2.4 share/idl/%N-2.4
+  InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
+<<
 Description: Advanced email client
 DescPort: <<
  Original package and port for evolution < 1.4 by Max Horn

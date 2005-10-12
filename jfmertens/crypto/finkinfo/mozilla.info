@@ -1,12 +1,8 @@
 Package: mozilla
-Version: 1.8b1
+Version: 1.7.12
 Revision: 1
-Source-MD5: 42a0b25d405ee60128adb0eef4bc0fa0
-Source: mirror:custom:mozilla/releases/%n%v/source/%n-source-%v.tar.bz2
-#Version: 1.8nightly
-#Revision: 1
-#Source: mirror:custom:mozilla.org/mozilla/nightly/latest/mozilla-source.tar.bz2
-#Source-MD5: 4edecf46394ec2e5de80eb42415568b3
+Source-MD5: f1ad6adbbc0510eb76d352c94c801fac
+Source: mirror:custom:mozilla.org/mozilla/releases/%n%v/source/%n-%v-source.tar.bz2
 CustomMirror: <<
   Primary: http://ftp.mozilla.org/pub/
   nam-US: ftp://ftp.tux.org/pub/net/mozilla/
@@ -14,46 +10,111 @@ CustomMirror: <<
   asi-JP: http://www.t.ring.gr.jp/pub/net/www/mozilla/
 <<
 SourceDirectory: mozilla
-Depends: %N-psm (>= %v-%r), %N-mailnews (>= %v-%r), %N-chatzilla (>= %v-%r), %N-js-debugger (>= %v-%r), %N-dom-inspector (>= %v-%r), %N-browser (>= %v-%r), %N-shlibs (>= %v-%r)
-BuildDepends: libpng3, libmng2, libjpeg, glib2-dev, atk1, pango1-xft2-dev, gtk+2-dev, orbit2-dev, libbonobo2-dev, gnome-vfs2-ssl-dev | gnome-vfs2-dev, libidl2-dev, x11-dev, xft2-dev, libgettext3-dev, gettext-tools, libiconv-dev, pkgconfig
+Depends: %N-psm (>= %v-%r), %N-mailnews (>= %v-%r), %N-chatzilla (>= %v-%r), %N-js-debugger (>= %v-%r), %N-dom-inspector (>= %v-%r)
+BuildDepends: atk1, freetype2-hinting-dev | freetype2-dev, gconf2-dev, glib2-dev, gnome-vfs2-ssl-dev | gnome-vfs2-dev, gtk+2-dev, libbonobo2-dev, libgettext3-dev, libiconv-dev, libidl2, libjpeg, libpng3, orbit2-dev, pango1-xft2-dev, xft2-dev, x11-dev, pkgconfig
 NoSetLDFLAGS: true
+#SetLDFLAGS: -L%p/lib/freetype2/lib
 SetLIBRARY_PATH: %p/lib
 NoSetCPPFLAGS: true
 PatchScript: <<
+ #!/bin/sh -ev
  sed 's|@PREFIX@|%p|g' <%a/%n.patch | patch -p1
-# The next appears needed eg when building yelp... 
- perl -pi.bak -e 's,lxpcom,$& -lxpcom_core,' build/unix/mozilla-xpcom.pc.in
+#### MISSING INCLUDES
  perl -pi.bak -e 's,\#ifndef NSS,#include "pki1t.h"\n$&,' security/nss/lib/pki1/oiddata.h
-## The following are "for safety" : to avoid "implicit declaration" warnings
+## All the following are "for safety" : to avoid "implicit declaration" warnings :
  perl -pi.bak -e 's,\#include,\#include <unistd.h>\n$&,' directory/c-sdk/ldap/libraries/liblber/io.c
  perl -pi.bak -e 's,\#if 0,\#include <unistd.h>\n$&,' directory/c-sdk/ldap/libraries/libldap/os-ip.c
+# for strcpy :
+ perl -pi.bak -e 's,gtk/gtk.h>,$&\n\#include <string.h>,' gfx/src/gtk/nsPrintdGTK.c
+# for NSSRWLock_LockWrite, NSSRWLock_UnlockWrite, NSSRWLock_LockRead, and NSSRWLock_UnlockRead :
+ perl -pi.bak -e 's,secmod.h"$,$&\n\#include "nssrwlk.h",' security/nss/lib/pki/pki3hack.c
+# for memset, memcpy, strcpy, and strcmp (don't know why XP_MAC isn't set, nor what it means.
+# Apparently the only place in the build-dir where it can be set is in xpinstall/wizard/mac/src ...)
+ perl -pi.bak -e 's,\#ifdef XP_MAC,\#include <string.h>\n$&,' other-licenses/libical/src/libicalss/icals{e,panlis}t.c
+# No hdr declares icaltime_is_date, used in icalcomponent.c. Adding one to icaltime.h
+ perl -pi.bak -e 's,\#endif /,int icaltime_is_date(struct icaltimetype t);\n$&,' other-licenses/libical/src/libical/icaltime.h
+#### MISC
+## The next appears needed eg when building yelp... (only version 1.8b1)
+# perl -pi.bak -e 's,lxpcom,$& -lxpcom_core,' build/unix/mozilla-xpcom.pc.in
+## For calendar, to avoid a clash with uuid_t in /usr/include/unistd.h :
+ perl -pi.bak -e 's,([^_])uuid_t( |\)|;|$),\1uuid_t_moz\2,g' calendar/libxpical/{to*,oeICalEventImpl.cpp}
+## To enable "native-uconv" :
+ perl -pi.bak -e 's,\|darwin\*\)$,\),' configure
+ perl -pi.bak -e 's,\((char *\*\*\)\&(z|aSrc)),\(const \1,' intl/uconv/native/nsNativeUConvService.cpp
+## configure fails to detect libresolv (hence the 'env' before ./configure),
+## and even if it would detect it, it forgets to add -lresolv to LIBS
+## We put it as far as possible in the link line _ and just for the link that needs it, in order not to get
+## libresolv in the LOAD_COMMANDS everywhere :
+ perl -pi.bak -e 's,^MODULE\s,OS_LIBS += -lresolv\n$&,' netwerk/build/Makefile.in
+## For the componentlib (avoiding hard-coded version numbers) (cf above for -lresolv):
+ lstdc="`ls -1 /usr/lib/libstdc++.*dylib|tail -n1|sed -e 's,/usr/lib/lib,l,' -e 's,\.dylib$,,'`"
+ lgcc="`ls -1 /usr/lib/libgcc_s.*dylib|tail -n1|sed -e 's,/usr/lib/lib,l,' -e 's,\.dylib$,,'`"
+ perl -pi.bak -e "s,^\#EXTRA,EXTRA,; s,t exported_symbols$,$& -x -dead_strip -single_module -search_paths_first -m -lresolv,; s,lstdc\+\+,${lstdc},; s,lgcc,${lgcc},; s,\\\$\(EXTRA_DSO_LIBS\),\\\$\(FT2_LIBS\) \\\\\n\t\$&," embedding/componentlib/Makefile.in
+# not better with the following (also, the problem does not seem to lie with the several --enables) :
+# perl -pi.bak -e "s,^\#EXTRA,EXTRA,; s,\-exported_symbols_list exported_symbols$,-search_paths_first -m -lresolv,; s,lstdc\+\+,${lstdc},; s,lgcc,${lgcc},; s,\\\$\(EXTRA_DSO_LIBS\),\\\$\(FT2_LIBS\) \\\\\n\t\$&," embedding/componentlib/Makefile.in
+## Else link failure ("undefined symbol: _main" _ coming in fact from crt1.o)
+ perl -pi.bak -e 's,^EXTRA_DSO_LDOPTS \=,EXTRA_DSO_LDOPTS +=,' intl/ctl/src/Makefile.in
+## Experiment _ why is it not enabled for Darwin while it is for all unix platforms ?
+ perl -pi -e 's,Darwin"; then$,$&\n  MOZ_MOVEMAIL=1,' configure
+########## FREETYPE STUFF #############
+#### As is, the ft2 hdrs in %p are used, and linking is with x11's libfreetype.
+# To get linking also done with fink's libfreetype, suffices to uncomment the SetLDFLAGS.
+# But libgfx_gtk.dylib _ the only one linking with libfreetype _ also links indirectly with x11's libfreetype
+# _ a.o., through libXft _, so there is some argument to be made for the present setup (despite the fact that my freetype
+# in %p is better enabled than x11's ...). 
+#### Besides the  --with-ft-prefix= confparam, 
+## gfx/src/xlib/nsFontMetricsXlib.cpp includes ft2 hdrs, directly and indirectly, but is linked in libgfxxprint.dylib,
+# with no -lfreetype, and even recursive use of otool -L reveals no freetype dep. So the FT2_CFLAGS could be added here,
+# but it makes no difference:
+# perl -pi.bak -e "s,OBJ_SUFFIX\)\)\$,\$&\nXCFLAGS := \\\$\(FT2_CFLAGS\) \\\$\(XCFLAGS\)," gfx/src/xlib/Makefile.in
+## On the other hand the files in gfx/src/ps are in the same situation, but there removing the FT2_CFLAGS leads
+# to miscompilation (in nsIFreeType2.h). Too bad. Thus comment out :
+# perl -pi.bak -e "s,^INCLUDES.*,," gfx/src/ps/Makefile.in
+## For gfx/src/gtk (all other files that directly or indirectly include ft2 hdrs are here, but with both direct includes
+# and indirect ones through Xft/Xft.h), force the -I flag for freetype2 in %p before that in /usr/X11R6 :
+ perl -pi -e "s,MOZ_XFT_CFLAGS=\`,MOZ_XFT_CFLAGS=\"\\\$FT2_CFLAGS \`,; s,flags \"xft\"\`,flags 'xft'\`\"," configure
+####
+### Finally, ad-hoc correction of some install_names :
+ perl -pi -e "s;rules.mk;$&\nEXTRA_DSO_LDOPTS := \\\$\(subst install_name \\\$\(mozappdir\)/,install_name \\\$\(mozappdir\)/ipc/modules/,\\\$\(EXTRA_DSO_LDOPTS\)\);" ipc/ipcd/{extensions/{lock/src,transmngr},test}/module/Makefile.in
+ perl -pi -e "s;rules.mk;$&\nEXTRA_DSO_LDOPTS := \\\$\(subst install_name \\\$\(mozappdir\)/,install_name \\\$\(mozappdir\)/plugins/,\\\$\(EXTRA_DSO_LDOPTS\)\);" modules/plugin/samples/default/unix/Makefile.in
 <<
-## --enable-freetype conflicts with --enable-xft
-## configure problems with  --enable-native-uconv ; check later.
-## --enable-svg : must also choose SVG render library; will try later.
-## "--enable-libxul is only compatible with toolkit XUL applications."
-## "--enable-cairo" leads to compile-errors in nsCanvasRenderingContext2D.cpp _ incompatible versions ?
-ConfigureParams: --enable-optimize=-O3 --enable-application=suite --enable-pango --enable-image-decoders=all --enable-ldap-experimental
+##########
+## --enable-svg : must also choose SVG render library; will try later. (none seem to work)
+## (v. 1.8b1): "--enable-cairo" leads to compile-errors in nsCanvasRenderingContext2D.cpp _ incompatible versions.
+## builds also with --enable-componentlib (but had to add the "-m" flag to the ld command there), but leads to launch problems
+# (appparently not dyld related...).
+# Some more work ahead for those.
+ConfigureParams: --enable-optimize="-O3 -fstrict-aliasing" --enable-image-decoders=all --enable-ldap-experimental --enable-xpctools --enable-necko-protocols=all --enable-efence --enable-native-uconv --enable-ctl --enable-calendar --with-system-jpeg --with-system-png --with-system-zlib --with-ft-prefix=%p/lib/freetype2 --enable-xft --enable-postscript --enable-ipv6 --enable-tests
 CompileScript: <<
-#! /bin/sh -ev
-export CPATH=%p/include/cairo:%p/include
-./configure %c
+#!/bin/sh -ev
+export PATH="%p/lib/freetype2/bin:${PATH}"
+#export CPATH=%p/include/cairo:%p/include
+export CPATH=%p/include
+env ac_cv_func_res_ninit=yes ./configure %c
 make -w
 
-# Devide installed-chrome.txt for each split-off.
+# Divide installed-chrome.txt for each split-off.
 sed -e '/pipnss/d' -e '/pippki/d' -e '/messenger/d' -e '/chatzilla/d' \
-  -e '/venkman/d' -e '/inspector/d' \
+  -e '/venkman/d' -e '/inspector/d' -e '/calendar/d' \
   dist/bin/chrome/installed-chrome.txt >fink/chrome.d/00browser
-grep 'pip[nss|pki]' dist/bin/chrome/installed-chrome.txt >fink/chrome.d/00psm
+egrep 'pip(nss|pki)' dist/bin/chrome/installed-chrome.txt >fink/chrome.d/00psm
 grep 'messenger' dist/bin/chrome/installed-chrome.txt >fink/chrome.d/00mailnews
 grep 'chatzilla' dist/bin/chrome/installed-chrome.txt >fink/chrome.d/00chatzilla
 grep 'venkman' dist/bin/chrome/installed-chrome.txt >fink/chrome.d/00js-debugger
 grep 'inspector' dist/bin/chrome/installed-chrome.txt >fink/chrome.d/00dom-inspector
+grep 'calendar' dist/bin/chrome/installed-chrome.txt >fink/chrome.d/00calendar
 <<
 InstallScript: <<
 #!/bin/sh
 
 make install DESTDIR=%d
+
+# The following gets installed twice. To hedge our bets, put a symlink in one of the 2 places :
+if test -f %i/lib/%N/ipc/modules/libtestmodule.dylib
+   then if test -f %i/lib/%N/libtestmodule.dylib
+           then rm -f %i/lib/%N/libtestmodule.dylib ; ln -s ipc/modules/libtestmodule.dylib %i/lib/%N
+        fi
+fi
 
 # Install NSS headers.
 /bin/cp -R -L dist/public/nss %i/include/mozilla/nss
@@ -91,6 +152,8 @@ ln -sf %p/etc/mozilla/prefs.js %i/lib/mozilla/defaults/pref/fink.js
 # Install gnome .desktop files.
 install -d -m 755 %i/share/applications
 install -c -m 644 fink/applications/* %i/share/applications/
+### I see there is none for calendar _ maybe others ? (share/applications/Mozilla-*)
+# hopefully fixed now ..
 
 install -d -m 755 %i/share/pixmaps
 install -c -m 644 dist/bin/chrome/icons/default/main-window.xpm %i/share/pixmaps/mozilla.xpm
@@ -99,13 +162,31 @@ install -c -m 644 dist/bin/chrome/icons/default/chatzilla-window.xpm %i/share/pi
 install -c -m 644 dist/bin/chrome/icons/default/editorWindow.xpm %i/share/pixmaps/mozilla-editor.xpm
 install -c -m 644 dist/bin/chrome/icons/default/msgcomposeWindow.xpm %i/share/pixmaps/mozilla-mail-composer.xpm
 install -c -m 644 dist/bin/chrome/icons/default/messengerWindow.xpm %i/share/pixmaps/mozilla-mailnews.xpm
+install -c -m 644 dist/bin/chrome/icons/default/calendar-window.xpm %i/share/pixmaps/mozilla-calendar.xpm
+### And %p/lib/mozilla/chrome/icons/default/calendar-window{,16}.xpm ? _ hopefully fixed above
+### And all others remain in ???
+# ls -l %p/bld/mozilla-1.7.11-5/mozilla/dist/bin/chrome/icons/default
+# total 140
+
+# Install a symlink to the docfiles
+mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
+<<
+PreInstScript: <<
+  if [ upgrade = "$1" ]; then
+    rm -fR %p/share/doc/%n
+  fi
 <<
 SplitOff: <<
   Package: %N-psm
   Depends: %N-browser (>= %v-%r)
   Replaces: %N (<< 1.1.0-4)
   Description: Mozilla - personal security manager
-  DocFiles: LEGAL LICENSE
+  InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
+  PreInstScript: <<
+    if [ upgrade = "$1" ]; then
+      rm -fR %p/share/doc/%n
+    fi
+  <<
   PostInstScript: <<
     if [ configure = "$1" ]; then
         update-mozilla-chrome
@@ -119,9 +200,6 @@ SplitOff: <<
   Files: <<
     lib/mozilla/chrome/pipnss.jar
     lib/mozilla/chrome/pippki.jar
-    lib/mozilla/components/libpipboot.dylib
-    lib/mozilla/components/libpipnss.dylib
-    lib/mozilla/components/libpippki.dylib
     lib/mozilla/components/pipboot.xpt
     lib/mozilla/components/pipnss.xpt
     lib/mozilla/components/pippki.xpt
@@ -133,7 +211,12 @@ SplitOff2: <<
   Depends: %N-browser (>= %v-%r)
   Replaces: %N (<< 1.1.0-4), %N-chatzilla (<< 1.7.2-1)
   Description: Mozilla - mail and news support
-  DocFiles: LEGAL LICENSE
+  InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
+  PreInstScript: <<
+    if [ upgrade = "$1" ]; then
+      rm -fR %p/share/doc/%n
+    fi
+  <<
   PostInstScript: <<
     if [ configure = "$1" ]; then
         update-mozilla-chrome
@@ -149,23 +232,6 @@ SplitOff2: <<
     lib/mozilla/components/addrbook.xpt
     lib/mozilla/components/impComm4xMail.xpt
     lib/mozilla/components/import.xpt
-    lib/mozilla/components/libaddrbook.dylib
-    lib/mozilla/components/libimpComm4xMail.dylib
-    lib/mozilla/components/libimpText.dylib
-    lib/mozilla/components/libimport.dylib
-    lib/mozilla/components/liblocalmail.dylib
-    lib/mozilla/components/libmailnews.dylib
-    lib/mozilla/components/libmailview.dylib
-    lib/mozilla/components/libmime.dylib
-    lib/mozilla/components/libmimeemitter.dylib
-    lib/mozilla/components/libmozldap.dylib
-    lib/mozilla/components/libmsgcompose.dylib
-    lib/mozilla/components/libmsgdb.dylib
-    lib/mozilla/components/libmsgimap.dylib
-    lib/mozilla/components/libmsgmdn.dylib
-    lib/mozilla/components/libmsgnews.dylib
-    lib/mozilla/components/libmsgsmime.dylib
-    lib/mozilla/components/libvcard.dylib
     lib/mozilla/components/mailnews.xpt
     lib/mozilla/components/mailview.xpt
     lib/mozilla/components/mdn-service.js
@@ -180,8 +246,6 @@ SplitOff2: <<
     lib/mozilla/components/msgsmime.xpt
     lib/mozilla/components/nsLDAPPrefsService.js
     lib/mozilla/components/smime-service.js
-    lib/mozilla/libldap50.dylib
-    lib/mozilla/libprldap50.dylib
     lib/mozilla/defaults/pref/mailnews.js
     lib/mozilla/defaults/pref/mdn.js
     lib/mozilla/defaults/pref/smime.js
@@ -192,17 +256,18 @@ SplitOff2: <<
     share/pixmaps/mozilla-mailnews.xpm
     var/lib/mozilla/chrome.d/00mailnews
   <<
-  Shlibs: <<
-    %p/lib/mozilla/libldap50.dylib 1.0.0 %n (>= 1.1.0-4)
-    %p/lib/mozilla/libprldap50.dylib 1.0.0 %n (>= 1.1.0-4)
-  <<
 <<
 SplitOff3: <<
   Package: %N-chatzilla
   Depends: %N-browser (>= %v-%r)
   Replaces: %N (<< 1.1.0-4)
   Description: Mozilla - irc client
-  DocFiles: LEGAL LICENSE
+  InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
+  PreInstScript: <<
+    if [ upgrade = "$1" ]; then
+      rm -fR %p/share/doc/%n
+    fi
+  <<
   PostInstScript: <<
     if [ configure = "$1" ]; then
         update-mozilla-chrome
@@ -226,7 +291,12 @@ SplitOff4: <<
   Depends: %N-browser (>= %v-%r)
   Replaces: %N (<< 1.1.0-4)
   Description: Mozilla - java script debugger
-  DocFiles: LEGAL LICENSE
+  InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
+  PreInstScript: <<
+    if [ upgrade = "$1" ]; then
+      rm -fR %p/share/doc/%n
+    fi
+  <<
   PostInstScript: <<
     if [ configure = "$1" ]; then
         update-mozilla-chrome
@@ -249,7 +319,12 @@ SplitOff5: <<
   Depends: %N-browser (>= %v-%r)
   Replaces: %N (<< 1.1.0-4)
   Description: Mozilla - DOM inspector
-  DocFiles: LEGAL LICENSE
+  InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
+  PreInstScript: <<
+    if [ upgrade = "$1" ]; then
+      rm -fR %p/share/doc/%n
+    fi
+  <<
   PostInstScript: <<
     if [ configure = "$1" ]; then
         update-mozilla-chrome
@@ -270,51 +345,139 @@ SplitOff5: <<
   <<
 <<
 SplitOff6: <<
-  Package: %N-shlibs
-  Replaces: %N (<< 1.1.0-4), %N-mailnews (<< 1.3-1)
-  Depends: atk1-shlibs, glib2-shlibs, gtk+2-shlibs, libgettext3-shlibs, libiconv, pango1-xft2-shlibs, x11-shlibs
-  DocFiles: LEGAL LICENSE
-  Description: Mozilla - shared libraries
-  Files: lib/mozilla/lib*.dylib
-  Shlibs: <<
-    %p/lib/mozilla/libgkgfx.dylib 1.0.0 %n (>= 1.1.0-4)
-    %p/lib/mozilla/libgtkembedmoz.dylib 1.0.0 %n (>= 1.3-1)
-    %p/lib/mozilla/libgtkxtbin.dylib 1.0.0 %n (>= 1.1.0-4)
-    %p/lib/mozilla/libjsj.dylib 1.0.0 %n (>= 1.1.0-4)
-    %p/lib/mozilla/libmozjs.dylib 1.0.0 %n (>= 1.1.0-4)
-    %p/lib/mozilla/libmsgbaseutil.dylib 1.0.0 %n (>= 1.1.0-4)
-    %p/lib/mozilla/libnspr4.dylib 1.0.0 %n (>= 1.1.0-4)
-    %p/lib/mozilla/libnss3.dylib 1.0.0 %n (>= 1.1.0-4)
-    %p/lib/mozilla/libnssckbi.dylib 1.0.0 %n (>= 1.1.0-4)
-    %p/lib/mozilla/libplc4.dylib 1.0.0 %n (>= 1.1.0-4)
-    %p/lib/mozilla/libplds4.dylib 1.0.0 %n (>= 1.1.0-4)
-    %p/lib/mozilla/libsmime3.dylib 1.0.0 %n (>= 1.1.0-4)
-    %p/lib/mozilla/libsoftokn3.dylib 1.0.0 %n (>= 1.1.0-4)
-    %p/lib/mozilla/libssl3.dylib 1.0.0 %n (>= 1.1.0-4)
-    %p/lib/mozilla/libxlibrgb.dylib 1.0.0 %n (>= 1.1.0-4)
-    %p/lib/mozilla/libxpcom.dylib 1.0.0 %n (>= 1.1.0-4)
-    %p/lib/mozilla/libxpcom_compat.dylib 1.0.0 %n (>= 1.5.1-4)
-    %p/lib/mozilla/libxpistub.dylib 1.0.0 %n (>= 1.1.0-4)
+  Package: %N-calendar
+  Depends: %N-browser (>= %v-%r)
+  Description: Mozilla - Calendar
+  InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
+  PreInstScript: <<
+    if [ upgrade = "$1" ]; then
+      rm -fR %p/share/doc/%n
+    fi
+  <<
+  PostInstScript: <<
+    if [ configure = "$1" ]; then
+        update-mozilla-chrome
+    fi
+  <<
+  PostRmScript: <<
+    if [ upgrade != "$1" ]; then
+        update-mozilla-chrome
+    fi
+  <<
+  Files: <<
+    lib/mozilla/chrome/calendar.jar
+    lib/mozilla/components/calendar.xpt
+    lib/mozilla/components/calendarService.js
+    lib/mozilla/init.d/S80calendar_fix_permissions_bug_230617
+    lib/mozilla/chrome/icons/default/calendar-window.xpm
+    lib/mozilla/chrome/icons/default/calendar-window16.xpm
+    share/applications/Mozilla-calendar.desktop
+    share/pixmaps/mozilla-calendar.xpm
+    var/lib/mozilla/chrome.d/00calendar
   <<
 <<
 SplitOff7: <<
-  Package: %N-dev
-  Depends: libidl2-shlibs, %N-shlibs (>= %v-%r), pkgconfig
-  Replaces: %N (<< 1.1.0-4)
-  BuildDependsOnly: True
-  Description: Mozilla - development headers and libraries
+  Package: %N-shlibs
+  Replaces: %N (<< 1.1.0-4), %N-mailnews (<< 1.3-1), %N-browser (<< 1.7.11-1)
+  Depends: freetype2-hinting-shlibs | freetype2-shlibs, gtk+2-shlibs
   DocFiles: LEGAL LICENSE
-  Files: bin/mozilla-config include lib/pkgconfig lib/mozilla/xp* share/aclocal share/idl
+  Description: Mozilla - shared libraries
+# Many "dylib"'s under lib/mozilla are in fact bundles, hence don't belong here.
+# Further the exact sets, both dylibs and of bundles, vary with %c _ and from %v to %v,
+# so we don't want to hardcode them.
+  InstallScript: <<
+    #!/bin/sh -ev
+    mkdir -p %i/lib/mozilla/plugins
+    cd %I/lib/mozilla
+    for f in `ls -1 *.dylib|xargs file|grep dynamically|cut -f1 -d:`
+      do mv $f %i/lib/mozilla
+    done
+    mv plugins/libnullplugin.dylib %i/lib/mozilla/plugins
+    mv ipc %i/lib/mozilla
+    cd -
+  <<
+# The following depends strongly on %c. Adjust at the last minute.
+  Shlibs: <<
+    %p/lib/mozilla/libDebugRobot.dylib 1.0.0 %n (>= 1.7.11-1)
+    %p/lib/mozilla/libgkgfx.dylib 1.0.0 %n (>= 1.7.11-1)
+    %p/lib/mozilla/libgtkembedmoz.dylib 1.0.0 %n (>= 1.3-1)
+    %p/lib/mozilla/libgtkxtbin.dylib 1.0.0 %n (>= 1.7.11-1)
+    %p/lib/mozilla/libjsj.dylib 1.0.0 %n (>= 1.7.11-1)
+    %p/lib/mozilla/libldap50.dylib 1.0.0 %n (>= 1.7.11-1)
+    %p/lib/mozilla/libmozjs.dylib 1.0.0 %n (>= 1.1.0-4)
+    %p/lib/mozilla/libmozpango-dvngx.dylib 1.0.0 %n (>= 1.7.11-1)
+    %p/lib/mozilla/libmozpango-thaix.dylib 1.0.0 %n (>= 1.7.11-1)
+    %p/lib/mozilla/libmozpango.dylib 1.0.0 %n (>= 1.7.11-1)
+    %p/lib/mozilla/libmsgbaseutil.dylib 1.0.0 %n (>= 1.7.11-1)
+    %p/lib/mozilla/libnpsimple.dylib 1.0.0 %n (>= 1.7.11-1)
+    %p/lib/mozilla/libnspr4.dylib 1.0.0 %n (>= 1.1.0-4)
+    %p/lib/mozilla/libnss3.dylib 1.0.0 %n (>= 1.1.0-4)
+    %p/lib/mozilla/libplc4.dylib 1.0.0 %n (>= 1.1.0-4)
+    %p/lib/mozilla/libplds4.dylib 1.0.0 %n (>= 1.1.0-4)
+    %p/lib/mozilla/libprldap50.dylib 1.0.0 %n (>= 1.7.11-1)
+    %p/lib/mozilla/libsmime3.dylib 1.0.0 %n (>= 1.1.0-4)
+    %p/lib/mozilla/libsoftokn3.dylib 1.0.0 %n (>= 1.1.0-4)
+    %p/lib/mozilla/libssl3.dylib 1.0.0 %n (>= 1.1.0-4)
+    %p/lib/mozilla/libxlibrgb.dylib 1.0.0 %n (>= 1.7.11-1)
+    %p/lib/mozilla/libxpcom.dylib 1.0.0 %n (>= 1.1.0-4)
+    %p/lib/mozilla/libxpcom_compat.dylib 1.0.0 %n (>= 1.5.1-4)
+    %p/lib/mozilla/libxpistub.dylib 1.0.0 %n (>= 1.1.0-4)
+    %p/lib/mozilla/plugins/libnullplugin.dylib 1.0.0 %n (>= 1.7.11-1)
+    %p/lib/mozilla/ipc/modules/liblockmodule.dylib 1.0.0 %n (>= 1.7.11-1)
+    %p/lib/mozilla/ipc/modules/libtransmgr.dylib 1.0.0 %n (>= 1.7.11-1)
+    %p/lib/mozilla/ipc/modules/libtestmodule.dylib 1.0.0 %n (>= 1.7.11-1)
+  <<
 <<
 SplitOff8: <<
-  Package: %N-browser
-  Depends: %N-shlibs (>= %v-%r), libjpeg-shlibs, libpng3-shlibs, libmng2-shlibs, gtk+2, gconf2-shlibs, gnome-vfs2-ssl-shlibs | gnome-vfs2-shlibs, libbonobo2-shlibs, orbit2-shlibs, x11
+  Package: %N-bin
+  Depends: libidl2-shlibs, %N-shlibs (= %v-%r)
+  Replaces: %N-dev (<= 1.7.11.1)
+  Description: Mozilla - extra binaries
+  InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
+  PreInstScript: <<
+    if [ upgrade = "$1" ]; then
+      rm -fR %p/share/doc/%n
+    fi
+  <<
+  Files: lib/mozilla/xp*
+<<
+SplitOff9: <<
+  Package: %N-dev
+  Depends: %N-shlibs (= %v-%r), pkgconfig
   Replaces: %N (<< 1.1.0-4)
+  BuildDependsOnly: true
+  Description: Mozilla - development headers and libraries
+  InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
+  PreInstScript: <<
+    if [ upgrade = "$1" ]; then
+      rm -fR %p/share/doc/%n
+    fi
+  <<
+  Files: bin/mozilla-config include lib/pkgconfig  share/aclocal share/idl
+<<
+SplitOff10: <<
+  Package: %N-browser
+## The following might no longer be true (some errors at least have been corrected...) :
+# At least when launched under KDE, I see (under ps) gnome-terminal coming up; clearly also when launched under gnome.
+# Don't know yet what happens when launched from an xterm; if confirmed, gnome-terminal should be added
+# to Depends instead of gtk+2 and gnome-vfs2-ssl-shlibs | gnome-vfs2-shlibs.
+  Recommends: gnome-terminal
+  Depends: %N-shlibs (>= %v-%r), gnome-vfs2-ssl-shlibs | gnome-vfs2-shlibs, gtk+2
+  Replaces: %N (<< 1.1.0-4), %N-shlibs (<< 1.7.11-1)
   Conflicts: %N-browser-xft2
   ConfFiles: %p/etc/mozilla/prefs.js
   Description: Mozilla - web browser
-  DocFiles: LEGAL LICENSE
+  InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
+  PreInstScript: <<
+    if [ upgrade = "$1" ]; then
+      rm -fR %p/share/doc/%n
+    fi
+  <<
   PostInstScript: <<
+# Those 2 empty files are not installed by dpkg
+    touch %p/lib/mozilla/chrome/user-skins.rdf
+    touch %p/lib/mozilla/chrome/user-locales.rdf
+
     if [ configure = "$1" ]; then
         update-mozilla-chrome
     fi
@@ -331,8 +494,7 @@ SplitOff8: <<
   <<
   Files: bin etc lib sbin share/applications share/man share/pixmaps var
 <<
-DocFiles: LEGAL LICENSE
-Description: Mozilla - full install
+Description: WWW, chat, mail, news, calendar, a-book, etc
 DescDetail: <<
 Mozilla is an open-source web browser, designed for standards
 compliance, performance and portability.
@@ -346,6 +508,11 @@ Patch does following things:
  - uses gtk+2 toolkit.
  - pass exact install directory to the linker
  - forces to see local ldap headers.
+
+(I don't see anything of the above _ would love to be able to use fink's openldap-ssl)
+<<
+DescPackaging: <<
+ Wouldn't it be better to have just %N, %N-dev and %N-shlibs ?
 <<
 License: OSI-Approved
 Maintainer: The Gnome Core Team <fink-gnome-core@lists.sourceforge.net>
