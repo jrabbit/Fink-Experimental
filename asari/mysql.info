@@ -1,13 +1,13 @@
 Package: mysql
 Version: 5.0.13
-Revision: 1
+Revision: 2
 Description: Open Source SQL database
 License: GPL/LGPL
 Maintainer: ASARI Takashi <asari@users.sourceforge.net>
 
 # Dependencies:
 Depends: %N15-shlibs (= %v-%r), %N-client (= %v-%r), daemonic (>= 20010902-1)
-BuildDepends: readline5
+BuildDepends: readline5, system-openssl-dev
 
 # Unpack Phase:
 Source: mirror:custom:Downloads/MySQL-5.0/%n-%v-rc.tar.gz
@@ -78,15 +78,24 @@ NoSetCXX: true
 SetLIBS: -L%p/lib
 NoSetMAKEFLAGS: true
 SetMAKEFLAGS: -j1 
-ConfigureParams: --disable-dependency-tracking --with-innodb --without-readline --with-mysqld-user=mysql --with-extra-charsets=complex --mandir=%p/share/man --infodir=%p/share/info --localstatedir=%p/var/mysql --libexecdir=%p/sbin --sysconfdir=%p/etc  --with-embedded-server --enable-thread-safe-client --enable-local-infile
-GCC: 3.3
-
-CompileScript: <<
-mysql_cv_btype_last_arg_accept=socklen_t F77=no ./configure %c
-perl -pi.bak -e 's/CCLD =.*/CCLD = g++/g' isam/Makefile
-perl -pi.bak -e 's/CCLD =.*/CCLD = g++/g' myisam/Makefile
-make
+ConfigureParams: <<
+  --disable-dependency-tracking \
+  --with-innodb \
+  --without-readline \
+  --with-mysqld-user=mysql \
+  --with-extra-charsets=complex \
+  --mandir=%p/share/man \
+  --infodir=%p/share/info \
+  --localstatedir=%p/var/mysql \
+  --libexecdir=%p/sbin \
+  --sysconfdir=%p/etc \
+  --with-embedded-server \
+  --enable-thread-safe-client \
+  --enable-local-infile \
+  \
+  --with-openssl
 <<
+GCC: 3.3
 
 # Install Phase:
 InstallScript: <<
