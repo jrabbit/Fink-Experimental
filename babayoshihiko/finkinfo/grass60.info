@@ -1,6 +1,6 @@
 Info2: <<
-Package: grass60%type_pkg[-nopgsql]%type_pkg[-nogdal]
-Type: -nopgsql (boolean), -nogdal (boolean)
+Package: grass60%type_pkg[-nopgsql]
+Type: -nopgsql (boolean)
 Version: 6.0.1
 Revision: 1
 Description: Powerful GIS software
@@ -18,19 +18,14 @@ inside an X environment.
 # Dependencies.
 # Dependencies.
 Depends: <<
-	%N-shlibs (>=%v-%r), 
-	fftw-shlibs | fftw-mpi-shlibs | fftw-absoft-shlibs, 
-	(%type_raw[-nogdal] = .) gdal-shlibs | (%type_raw[-nogdal] = .) gdal-ssl-shlibs | (%type_raw[-nogdal] = .) gdal-grass-shlibs | (%type_raw[-nogdal] = .) gdal-nopgsql-shlibs | (%type_raw[-nogdal] = .) gdal-nopgsql-grass-shlibs, 
-	proj, gettext, libjpeg-shlibs, libpng3-shlibs, libtiff-shlibs, lesstif-shlibs, 
-	unixodbc2-nox-shlibs | unixodbc2-shlibs, 
-	(%type_raw[-nopgsql] = .) postgresql80 (>=8.0.2-12) | (%type_raw[-nopgsql] = .) postgresql80-ssl (>=8.0.2-12), 
+	%n-shlibs (=%v-%r), 
 	tcltk (>= 8.4.1-1), 
 	x11-shlibs
 <<
 BuildDepends: <<
 	libiconv-dev, readline (>= 4.3-5) | readline5, 
 	fftw | fftw-mpi | fftw-absoft, 
-	(%type_raw[-nogdal] = .) gdal-dev | (%type_raw[-nogdal] = .) gdal-ssl-dev, 
+	gdal-dev, 
 	libjpeg, libpng3, libtiff, lesstif, 
 	(%type_raw[-nopgsql] = .) postgresql80-dev (>=8.0.2-12) | (%type_raw[-nopgsql] = .) postgresql80-ssl-dev (>=8.0.2-12), 
 	tcltk-dev (>= 8.4.1-1), 
@@ -62,10 +57,10 @@ PatchScript: sed 's|@PREFIX@|%p|g' <%a/grass60.patch | patch -p1
 # Compile Phase.
 SetCPPFLAGS: -I%p/include/grass60
 SetLDFLAGS: -L%p/lib/grass60
-ConfigureParams: --with-includes='%p/include /usr/X11R6/include' --with-cxx --with-readline --with-dbm --with-odbc (%type_raw[-nopgsql] = -nopgsql) --without-postgres (%type_raw[-nopgsql] = .) --with-postgres (%type_raw[-nopgsql] = .) --with-postgres-includes=%p/include/postgresql --with-glw --with-freetype --with-freetype-includes=/usr/X11R6/include/freetype2 --with-freetype-libs=/usr/X11R6/lib --with-motif --with-glw-includes=/usr/X11R6/include --with-nls --with-proj --with-proj-includes=%p/include --with-proj-libs=%p/lib (%type_raw[-nogdal] = .) --with-gdal=%p/bin/gdal-config (%type_raw[-nogdal] = -nogdal) --without-gdal 
+ConfigureParams: --with-includes='%p/include /usr/X11R6/include' --with-cxx --with-readline --with-dbm --with-odbc (%type_raw[-nopgsql] = -nopgsql) --without-postgres (%type_raw[-nopgsql] = .) --with-postgres (%type_raw[-nopgsql] = .) --with-postgres-includes=%p/include/postgresql --with-glw --with-freetype --with-freetype-includes=/usr/X11R6/include/freetype2 --with-freetype-libs=/usr/X11R6/lib --with-motif --with-glw-includes=/usr/X11R6/include --with-nls --with-proj --with-proj-includes=%p/include --with-proj-libs=%p/lib --with-gdal=%p/bin/gdal-config
 CompileScript: <<
 	./configure %c	
-	make INST_DIR=%i/lib/grass-6.0
+	make INST_DIR=%p/lib/grass-6.0
 <<
 
 # Install Phase.
@@ -75,9 +70,14 @@ InstallScript: <<
   # Installing grass60
   make install INST_DIR=%i/lib/grass-6.0 BINDIR=%i/bin
   
+  # make symlink
+  pushd %i/lib
+  ln -s grass-6.0 grass
+  popd
+  
   # Fixing GISBASE path
   pushd %i/bin
-  perl -pi.bak -e 's,%i,%p,g' grass60
+  perl -pi.bak -e 's,GISBASE=,GISBASE=%p/lib/grass-6.0 #,g' grass60
   popd
   
   # man
@@ -96,7 +96,7 @@ DocFiles: AUTHORS CHANGES COPYING GPL.TXT INSTALL README REQUIREMENTS.html SUBMI
 SplitOff: <<
   Package: %N-dev
   Description: GRASS Development Headers
-  Depends: %N (>= %v-%r)
+  Depends: %N-shlibs (= %v-%r)
   BuildDependsOnly: true
   Conflicts: grass60-dev, grass60-nopgsql-dev, grass60-nogdal-dev, grass60-nopgsql-nogdal-dev
   Replaces: grass60-dev, grass60-nopgsql-dev, grass60-nogdal-dev, grass60-nopgsql-nogdal-dev
@@ -108,7 +108,7 @@ SplitOff2: <<
   Description: GRASS Shared Libraries
   Depends: <<
 	fftw-shlibs | fftw-mpi-shlibs | fftw-absoft-shlibs, 
-	(%type_raw[-nogdal] = .) gdal-shlibs | (%type_raw[-nogdal] = .) gdal-ssl-shlibs | (%type_raw[-nogdal] = .) gdal-grass-shlibs | (%type_raw[-nogdal] = .) gdal-nopgsql-shlibs | (%type_raw[-nogdal] = .) gdal-nopgsql-grass-shlibs, 
+	gdal-shlibs | gdal-ssl-shlibs | gdal-grass-shlibs | gdal-nopgsql-shlibs | gdal-nopgsql-grass-shlibs, 
 	proj, gettext, libjpeg-shlibs, libpng3-shlibs, libtiff-shlibs, lesstif-shlibs, 
 	(%type_raw[-nopgsql] = .) postgresql80-shlibs (>=8.0.2-12) | (%type_raw[-nopgsql] = .) postgresql80-ssl-shlibs (>=8.0.2-12), 
 	unixodbc2-nox-shlibs | unixodbc2-shlibs, 

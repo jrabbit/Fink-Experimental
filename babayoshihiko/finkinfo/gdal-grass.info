@@ -1,0 +1,97 @@
+Info2: <<
+Package: gdal-grass
+Version: 1.3.1
+Revision: 1
+Description: GRASS plug-in for GDAL_OGR
+License: BSD
+Homepage: http://www.gdal.org
+Maintainer: BABA Yoshihiko <babayoshihiko@mac.com>
+DescDetail: <<
+GDAL is a translator library for raster geospatial data formats. As a library,
+it presents a single abstract data model to the calling application for all
+supported formats.
+
+Current translators include GeoTIFF (read/write), Erdas Imagine (read),
+ESRI .BIL (read/write), .aux labelled raw (read/write), DTED (read),
+SDTS DEM (read), CEOS (read), JPEG (read/write), PNG (read/write),
+Geosoft GXF (read), Arc/Info Binary Grid (read), FITS (read/write),
+netCDF (limited read/write), and GIF (read/write).
+
+The current version of GDAL come with the related OGR library (which lives 
+within the GDAL source tree) provides a similar capability for simple features 
+vector data.
+
+The OGR Simple Features Library is a C++ open source library (and commandline 
+tools) providing read (and sometimes write) access to a variety of vector file 
+formats including ESRI Shapefiles, S-57, SDTS, PostGIS, Oracle Spatial, and 
+Mapinfo mid/mif and TAB formats.
+<<
+
+# Dependencies.
+Depends: gdal-shlibs (= %v-%r), grass60-shlibs (>= 6.0)
+
+BuildDepends: <<
+	gdal-dev (= %v-%r), 
+	grass60-dev (>= 6.0),
+	libiconv-dev, cfitsio, 
+	libogdi3, 
+	xerces-c-dev, 
+	sqlite3-dev, 
+	libgeos2,
+	postgresql80-dev (>= 8.0.2-13) | postgresql80-ssl-dev (>= 8.0.2-13)
+<<
+
+Conflicts: 
+Replaces: 
+
+# Unpack Phase.
+Source: mirror:custom:gdal-grass-%v.tar.gz
+Source-MD5: 717c7ef6406ed911daab136d2a63720e
+CustomMirror: <<
+  nam-US: http://www.gdal.org/dl
+  nam-US: ftp://ftp.remotesensing.org/gdal
+  nam-US: http://gdal.maptools.org/dl
+<<
+
+# Patch Phase.
+#Patch: %n.patch
+
+# Compile Phase.
+GCC: 3.3
+
+SetCPPFLAGS: -Os -I%p/lib/grass-6.0/include -I%p
+SetLDFLAGS: -L%p/lib/grass-6.0
+#-lgrass_vect -lgrass_dbmiclient
+SetLIBRARY_PATH: %p/lib/grass-6.0
+SetDYLD_LIBRARY_PATH: %p/lib/grass-6.0
+
+ConfigureParams: --with-gdal=%p/bin/gdal-config --with-grass=%p/lib/grass-6.0
+
+CompileScript: <<
+#!/bin/sh -xe
+  ./configure %c
+  make LIBS='-L%p/lib/grass-6.0/lib -lgrass_I -lgrass_vask -lgrass_gmath -lgrass_gis -lgrass_datetime -lgrass_gproj -L%p/lib -lgdal -lgrass_vect -lgrass_dbmiclient -lgrass_dbmidriver -lgrass_dbmibase -compatibility_version 11.0.0 -current_version 11.0.0'
+<<
+
+# Install Phase.
+InstallScript: <<
+  mkdir -p %i/share/gdal/grass
+  make install prefix=%i AUTOLOAD_DIR=%i/lib/gdal GRASSTABLES_DIR=%i/share/gdal/grass
+<<
+Shlibs: <<
+	%p/lib/gdal_GRASS.so 11.0.0 %n (>= 1.3.1-1)
+	%p/lib/ogr_GRASS.so 11.0.0 %n (>= 1.3.1-1)
+<<
+DocFiles: README
+
+DescPackaging: <<
+  
+<<
+
+DescPort: <<
+  The upstream development separated gdal-grass as a plug-in to solve the
+ cyclic dependency issue since 1.2.3.
+<<
+
+# End of Info2
+<<
