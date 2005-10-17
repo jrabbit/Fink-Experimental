@@ -2,7 +2,7 @@ Info2: <<
 Package: openoffice.org
 Description: Integrated office productivity suite
 Version: 2.0.0
-Revision: 19rc2
+Revision: 20rc3
 License: LGPL
 Maintainer: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>
 
@@ -148,15 +148,14 @@ nam-US: http://openofficeorg.secsup.org/contrib/rc/2.0.0rc2/
 nam-US: http://openoffice.mirror.wrpn.net/contrib/rc/2.0.0rc2/
 asi-TW: ftp://ftp.nctu.edu.tw/UNIX/OpenOffice/contrib/rc/2.0.0rc2/
 <<
-Source: mirror:custom:OOo_%vrc2_051005_src.tar.gz
-SourceDirectory: OOo_%vrc2_src
-Source-MD5: 49d05312a4dae5f3dd54edf3c3975957
-Source2: http://fink.sodan.ecc.u-tokyo.ac.jp/~asari/OpenOffice.org/patches/openoffice.org.macosx11.patch.bz2
-Source2-MD5: 1de4d11842c50d89421c842dc5c6ca47
+#Source: mirror:custom:OOo_%vrc2_051005_src.tar.gz
+Source: ftp://ooopackages.good-day.net/pub/OpenOffice.org/sources/OOo_2.0RC3_source.tar.bz2
+#SourceDirectory: OOo_%vrc3_src
+NoSourceDirectory: true
+Source-MD5: c0271f4130ddabd7f61411d6a5601b8b
 
 PatchScript: <<
   /usr/bin/patch -p0 < %a/%n.patch
-  /usr/bin/bzip2 -dc ../openoffice.org.macosx11.patch.bz2 | /usr/bin/patch -f -p0 || true
 <<
 
 SetCC: gcc-3.3
@@ -191,7 +190,6 @@ ConfigureParams: <<
   --with-system-freetype \
   --with-system-boost \
   --without-nas \
-  \
   --enable-libsn
 <<
 #  --with-system-python
@@ -315,6 +313,9 @@ CompileScript: <<
 
 InstallScript: <<
   #!/bin/bash -ev
+
+  # Mainly, this InstallScript is taken from solenv/unxmacxp/bin/create-package.sh
+
   for i in instsetoo_native/unxmacxp.pro/OpenOffice/install/en-US/darwin-*/*.sw; do
     /usr/bin/tar xf $i -C %i
   done
@@ -326,20 +327,25 @@ InstallScript: <<
   /bin/ln -s python.sh %i/lib/%n/program/python
   /bin/chmod +x %i/lib/%n/program/python-core-2.3.4/bin/python
 
-  /bin/rm instsetoo_native/unxmacxp.pro/OpenOffice/install/en-US_temp/OpenOffice.org\ 2.0.app/Contents/openoffice.org
-  /bin/ln -s %p/lib/%n instsetoo_native/unxmacxp.pro/OpenOffice/install/en-US_temp/OpenOffice.org\ 2.0.app/Contents/
-
+  # Convenience symlinks
   /usr/bin/install -m 755 -d %i/bin
-  /bin/ln -s %p/lib/%n/program/{sbase,scalc,sdraw,simpress,smath,soffice,swriter} %i/bin
+  for bin in base calc draw impress math writer; do
+    /bin/ln -s %p/lib/%n/program/s${bin} %i/bin
+    /bin/ln -s s${bin} %i/bin/oo${bin}
+  done
+  /bin/ln -s %p/lib/%n/program/soffice %i/bin
+  /bin/ln -s soffice %i/bin/ooffice
 
   /bin/ln -s %p/lib/libdb_java-4.2.jnilib %i/lib/%n/program
 
   /usr/bin/install -m 755 -d %i/share/doc/%n
   /bin/cp %i/lib/%n/LICENSE %i/share/doc/%n/LICENSE
 
-  # Currently, Fink cannot handle "OpenOffice.org 2.0.app" (which contains space character) ?
+  # Currently, Fink cannot handle "OpenOffice.org 2.0.app" (which contains space character)
   /usr/bin/install -d -m 755 %i/Applications
-  /bin/cp -pR "instsetoo_native/unxmacxp.pro/OpenOffice/install/en-US_temp/OpenOffice.org 2.0.app" '%i/Applications/'
+  /usr/bin/tar xf solver/680/unxmacxp.pro/bin/OpenOffice.org.app.tar -C %i/Applications
+  /bin/mv %i/Applications/OpenOffice.org.app "%i/Applications/OpenOffice.org 2.0.app"
+  /bin/ln -s %p/lib/%n "%i/Applications/OpenOffice.org 2.0.app/Contents"
   /bin/chmod -R o-w '%i/Applications/'
   [ -x /Developer/Tools/SplitForks ] && /Developer/Tools/SplitForks '%i/Applications/'
 <<
@@ -436,11 +442,8 @@ set SAL_USE_VCLPLUGIN environmental variable to "gtk".
 
 To update system fonts, execute these lines:
   cd %p/lib/openoffice.org/share/fonts/truetype
-  for font in /Library/Fonts/*; do
-    /sw/bin/fondu --force "$font"
-  done
-  for font in /System/Library/Fonts/*; do
-    /sw/bin/fondu --force "$font"
+  for font in /System/Library/Fonts/* /Library/Fonts/*; do
+    %p/bin/fondu --force "$font"
   done
 or just one line:
   fink reinstall openoffice.org
