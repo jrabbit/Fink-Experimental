@@ -1,0 +1,33 @@
+SplitOff: <<
+  Package: %N-@LANG_LOWERCASE@
+  Description: Language Pack(@LANG@) for OpenOffice.org
+  Depends: %N (= %v-%r)
+  InstallScript: <<
+    #!/bin/bash -ev
+
+    # Setting up environment
+    . MacosxEnv.Set.sh
+    export OUT="../$INPATH"
+    export LOCAL_OUT="$OUT"
+    export LOCAL_COMMON_OUT="$OUT"
+
+    build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
+
+    # Install
+    pushd instsetoo_native/util
+    /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
+      -f openoffice.lst -l @LANG@ -p OpenOffice \
+      -packagelist ../inc_openoffice/unix/packagelist.txt \
+      -buildid $build -destdir %i \
+      -languagepack \
+      -simple /lib/openoffice.org
+    popd
+
+    # Remove the list files
+    /bin/rm -vf %i/gid_Module*
+
+    /usr/bin/install -m 755 -d %i/share/doc/%n
+    /bin/ln -sf %i/lib/%n/LICENSE_@LANG@ %i/share/doc/%n/LICENSE
+  <<
+<<
+

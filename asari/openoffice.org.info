@@ -2,7 +2,7 @@ Info2: <<
 Package: openoffice.org
 Description: Integrated office productivity suite
 Version: 2.0.0
-Revision: 20rc3
+Revision: 21rc3
 License: LGPL
 Maintainer: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>
 
@@ -41,23 +41,10 @@ Depends: <<
   fondu, startup-notification-shlibs
 <<
 
-# FIXME -- workaround
+# FIXME -- workaround for IssueZilla #54110 and #54113 (duplicities)
 Replaces: <<
-  openoffice.org-af, openoffice.org-ar, openoffice.org-bg,
-  openoffice.org-ca, openoffice.org-cs, openoffice.org-cy,
-  openoffice.org-da, openoffice.org-de, openoffice.org-el,
-  openoffice.org-en-gb, openoffice.org-eo, openoffice.org-es,
-  openoffice.org-et, openoffice.org-eu, openoffice.org-fi,
-  openoffice.org-fr, openoffice.org-gl, openoffice.org-he,
-  openoffice.org-hi-in, openoffice.org-hu, openoffice.org-it,
-  openoffice.org-ja, openoffice.org-km, openoffice.org-kn-in,
-  openoffice.org-ko, openoffice.org-lt, openoffice.org-ms,
-  openoffice.org-nb, openoffice.org-nl, openoffice.org-nn,
-  openoffice.org-ns, openoffice.org-pl, openoffice.org-pt,
-  openoffice.org-pt-br, openoffice.org-ru, openoffice.org-sk,
-  openoffice.org-sl, openoffice.org-sv, openoffice.org-th,
-  openoffice.org-tn, openoffice.org-tr, openoffice.org-xh,
-  openoffice.org-zh-cn, openoffice.org-zh-tw, openoffice.org-zu,
+  openoffice.org-bg,
+  openoffice.org-en-gb,
   openoffice.org
 <<
 
@@ -163,7 +150,8 @@ SetCXX: g++-3.3
 SetCPPFLAGS: -I%p/include/db4 -I%p/include/boost
 ConfigureParams: <<
   --with-gnu-cp=%p/bin/cp \
-  --with-package-format=portable \
+  --disable-epm \
+  --with-lang=ALL \
   --with-x --x-includes=/usr/X11R6/include --x-libraries=/usr/X11R6/lib \
   --with-jdk-home=/Library/Java/Home --with-ant-home=%p/lib/ant \
   --disable-crashdump \
@@ -292,20 +280,21 @@ CompileScript: <<
 
   set +v
 
+  /usr/bin/printf "\n\n[ Phase 4: Statistics ]\n\n" >> %n-%v-%r.buildlog
   echo
   echo "[ Message from OpenOffice.org package maintainer ] ================="
   echo
   echo "Congratulations!"
   echo "The building process of OpenOffice.org has completed!"
-  echo "   Started:   $STARTTIME"
+  echo "   Started:   $STARTTIME" | /usr/bin/tee -a %n-%v-%r.buildlog
 
   ENDTIME=`/bin/date +"%%F %%T %%Z(%%z)"`
 
-  echo "   Completed: $ENDTIME"
+  echo "   Completed: $ENDTIME"   | /usr/bin/tee -a %n-%v-%r.buildlog
 
   DISKUSAGE=`/usr/bin/du -sh %b | /usr/bin/cut -f1`
 
-  echo "   $DISKUSAGE is used for this building process (not including tarball)."
+  echo "   $DISKUSAGE is used for this building process (not including tarball)." | /usr/bin/tee -a %n-%v-%r.buildlog
   echo
   echo "===================================================================="
   echo
@@ -314,15 +303,40 @@ CompileScript: <<
 InstallScript: <<
   #!/bin/bash -ev
 
-  # Mainly, this InstallScript is taken from solenv/unxmacxp/bin/create-package.sh
+  # Mainly, this InstallScript is derived from
+  # "ooinstall" in ooo-build and instsetoo_native/util/makefile.mk
 
-  for i in instsetoo_native/unxmacxp.pro/OpenOffice/install/en-US/darwin-*/*.sw; do
-    /usr/bin/tar xf $i -C %i
-  done
-  /bin/mv %i/{Applications,lib}
-  /bin/mv %i/lib/{openoffice.org*,%n}
+  # Setting up environment
+  . MacosxEnv.Set.sh
+  export OUT="../$INPATH"
+  export LOCAL_OUT="$OUT"
+  export LOCAL_COMMON_OUT="$OUT"
 
-  # Taken from the post-install script of openoffice.org-pyuno.install
+  build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
+
+  # Some dirty hacks to reduce disk consumption
+
+  # Force make_installer.pl to use ln instead of cp
+  /usr/bin/sed -i .bak 's/cp -af/ln -f/' \
+    $SOLARENV/bin/modules/installer/worker.pm
+  # Disable making download installation set  
+  /usr/bin/sed -i .bak 's/$makedownload = .;/$makedownload = 0;/' \
+    $SOLARENV/bin/modules/installer/globals.pm
+
+  # Install
+  pushd instsetoo_native/util
+  /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
+    -f openoffice.lst -l en-US -p OpenOffice \
+    -packagelist ../inc_openoffice/unix/packagelist.txt \
+    -buildid $build -destdir %i \
+    -simple /lib/openoffice.org
+  popd
+
+  # Remove the list files
+  /bin/rm %i/../gid_Module*
+
+  # Install pyuno
+  # -- derived from the post-install script of openoffice.org-pyuno.install
   /bin/ln -s python-core-2.3.4 %i/lib/%n/program/python-core
   /bin/ln -s python.sh %i/lib/%n/program/python
   /bin/chmod +x %i/lib/%n/program/python-core-2.3.4/bin/python
@@ -342,14 +356,17 @@ exec "$cmd" "$@"
 EOF
   /bin/chmod 755 %i/ooffice
 
+  # Symlink libdb_java-4.2.jnilib so that Java can find it
   /bin/ln -s %p/lib/libdb_java-4.2.jnilib %i/lib/%n/program
 
+  # Install DocFiles
   /usr/bin/install -m 755 -d %i/share/doc/%n
-  /bin/cp %i/lib/%n/LICENSE %i/share/doc/%n/LICENSE
+  /bin/ln -s %i/lib/%n/LICENSE %i/share/doc/%n/LICENSE
 
-  # Currently, Fink cannot handle "OpenOffice.org 2.0.app" (which contains space character)
+  # Currently, Fink cannot handle "OpenOffice.org 2.0.app"
+  # (which contains space character) with AppBundles field.
   /usr/bin/install -d -m 755 %i/Applications
-  /usr/bin/tar xf solver/680/unxmacxp.pro/bin/OpenOffice.org.app.tar -C %i/Applications
+  /usr/bin/tar -xf $STAR_RESOURCEPATH/OpenOffice.org.app.tar -C %i/Applications
   /bin/mv %i/Applications/OpenOffice.org.app "%i/Applications/OpenOffice.org 2.0.app"
   /bin/ln -s %p/lib/%n "%i/Applications/OpenOffice.org 2.0.app/Contents"
   /bin/chmod -R o-w '%i/Applications/'
@@ -358,15 +375,11 @@ EOF
 #AppBundles: instsetoo_native/unxmacxp.pro/OpenOffice/install/en-US_temp/OpenOffice.org*.app
 PostInstScript: <<
   cd %p/lib/openoffice.org/share/fonts/truetype
-  if [ -e .fondudone ]; then
-    echo "Fonts seems to be already converted. skipping..."
-  else
-    echo "Converting Mac OS X fonts..."
-    /usr/bin/touch .fondudone
-    for font in /System/Library/Fonts/* /Library/Fonts/*; do
-      %p/bin/fondu --force "$font" || true
-    done
-  fi    
+  echo "Converting Mac OS X fonts..."
+  /usr/bin/touch .fondudone
+  for font in /System/Library/Fonts/* /Library/Fonts/*; do
+    %p/bin/fondu --force "$font" || true
+  done
   
   [ ! -e /Applications/Fink ] && /usr/bin/install -d -m 755 /Applications/Fink
   /bin/ln -s '%p/Applications/OpenOffice.org 2.0.app' /Applications/Fink/
