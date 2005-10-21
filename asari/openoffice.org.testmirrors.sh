@@ -3,16 +3,17 @@
 INFOFILE=${INFOFILE:-openoffice.org.info}
 TMPFILE=`/usr/bin/mktemp /tmp/\`basename $0\`.XX`
 
-hosts=$(/usr/bin/sed -n 's/.*\(...\)-\(..\): \(.*\)$/[\1-\2],\3/p' ${INFOFILE})
+hosts=$(/usr/bin/sed -n 's/\(#*\)\(...\)-\(..\): \(.*\)$/\1,[\2-\3],\4/p' ${INFOFILE})
 version=`/usr/bin/sed -n -e 's/^Version: \(.*\)$/\1/p' "$INFOFILE"`
 source=`/usr/bin/sed -n -e "s/%v/$version/g" -e 's/^Source: mirror:custom:\(.*\)$/\1/p' "$INFOFILE"`
 
 for host in ${hosts[*]}; do
-  area=`echo $host | /usr/bin/cut -d, -f1`
-  url=`echo $host | /usr/bin/cut -d, -f2`
+  disabled=`[ -n "$(echo $host | /usr/bin/cut -d, -f1)" ] && echo "DISABLED " || true`
+  area=`echo $host | /usr/bin/cut -d, -f2`
+  url=`echo $host | /usr/bin/cut -d, -f3`
   outputfile=`/usr/bin/mktemp "${TMPFILE}"XXX`
   echo $outputfile >> "${TMPFILE}"
-  echo "${area} ${url}" >"$outputfile"
+  echo "${disabled}${area} ${url}" >"$outputfile"
   /usr/bin/curl -fILsS "${url}${source}" >>"$outputfile" 2>&1 &
 done
 
