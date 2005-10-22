@@ -84,7 +84,8 @@ PatchScript: <<
 ## builds also with --enable-componentlib (but had to add the "-m" flag to the ld command there), but leads to launch problems
 # (appparently not dyld related...).
 # Some more work ahead for those.
-ConfigureParams: --enable-optimize="-O3 -fstrict-aliasing" --enable-image-decoders=all --enable-ldap-experimental --enable-xpctools --enable-necko-protocols=all --enable-efence --enable-native-uconv --enable-ctl --enable-calendar --with-system-jpeg --with-system-png --with-system-zlib --with-ft-prefix=%p/lib/freetype2 --enable-xft --enable-postscript --enable-ipv6 --enable-tests
+### --enable-optimize="-O3 -fstrict-aliasing" removed for testing..
+ConfigureParams: --enable-optimize="-O3 -g -ggdb" --enable-image-decoders=all --enable-ldap-experimental --enable-xpctools --enable-necko-protocols=all --enable-efence --enable-native-uconv --enable-ctl --enable-calendar --with-system-jpeg --with-system-png --with-system-zlib --with-ft-prefix=%p/lib/freetype2 --enable-xft --enable-postscript --enable-ipv6 --enable-tests
 CompileScript: <<
 #!/bin/sh -ev
 export PATH="%p/lib/freetype2/bin:${PATH}"
@@ -347,6 +348,7 @@ SplitOff5: <<
 SplitOff6: <<
   Package: %N-calendar
   Depends: %N-browser (>= %v-%r)
+  Replaces: %N-browser (<= 1.7.5-2)
   Description: Mozilla - Calendar
   InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
   PreInstScript: <<
@@ -378,7 +380,7 @@ SplitOff6: <<
 <<
 SplitOff7: <<
   Package: %N-shlibs
-  Replaces: %N (<< 1.1.0-4), %N-mailnews (<< 1.3-1), %N-browser (<< 1.7.11-1)
+  Replaces: %N (<< 1.1.0-4), %N-mailnews (<= 1.7.5-2), %N-psm (<= 1.7.5-2), %N-browser (<< 1.7.11-1)
   Depends: freetype2-hinting-shlibs | freetype2-shlibs, gtk+2-shlibs
   DocFiles: LEGAL LICENSE
   Description: Mozilla - shared libraries
@@ -500,6 +502,14 @@ Mozilla is an open-source web browser, designed for standards
 compliance, performance and portability.
 <<
 DescPort: <<
+Adding (in patch) %p/lib/mozilla/components to DYLD_LIBRARY_PATH _ else links with qt3's libeditor...
+(then added also plugins and ipc/modules, by analogy).
+And then %p/lib, to make sure eg libcrypto comes from %p and not from /usr.
+And then /usr/X11R6/lib between the latter 2, to make sure libfreetype.6.dylib comes from there..
+
+Added in the patch -x flag to the regxpcom command in update-mozilla-chrome, to get correct PostInstScripts. 
+(and use there same DYLD_LIBRARY_PATH as in %p/bin/mozilla).
+
 Patch does following things:
  - uses gtk+2 toolkit.
  - pass exact install directory to the linker
