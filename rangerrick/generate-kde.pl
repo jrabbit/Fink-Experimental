@@ -110,6 +110,7 @@ for my $file (@files) {
 
 								if ($tree =~ /^10.3/) {
 									$line =~ s/libicu32-dev, *//;
+									$line =~ s/(^|,)\s*macosx \(>= 10.4.*?\)(\s*,|$)//;
 								} elsif ($tree =~ /^10.4/) {
 									$line =~ s/libicu31-dev, *//;
 								}

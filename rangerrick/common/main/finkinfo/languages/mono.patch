@@ -1,5 +1,5 @@
---- mono-1.1.9/configure	2005-09-08 19:32:51.000000000 -0400
-+++ mono-1.1.9-new/configure	2005-09-13 13:15:33.000000000 -0400
+--- mono-1.1.9.2/configure	2005-10-05 12:43:26.000000000 -0400
++++ mono-1.1.9.2-new/configure	2005-10-22 15:01:30.000000000 -0400
 @@ -34801,7 +34801,7 @@
  	INTL="libintl.dylib"
  	SQLITE="libsqlite.0.dylib"
@@ -9,33 +9,528 @@
  	;;
       *-*-*netbsd*)
  	LIBC="libc.so.12"
---- mono-1.1.9/data/config.in	2005-09-02 06:27:31.000000000 -0400
-+++ mono-1.1.9-new/data/config.in	2005-09-13 13:14:51.000000000 -0400
-@@ -2,15 +2,19 @@
- 	<dllmap dll="cygwin1.dll" target="@LIBC@" />
- 	<dllmap dll="libc" target="@LIBC@" />
- 	<dllmap dll="libintl" target="@INTL@" />
+--- mono-1.1.9.2/data/config.in	2005-09-02 06:27:31.000000000 -0400
++++ mono-1.1.9.2-new/data/config.in	2005-10-22 15:01:30.000000000 -0400
+@@ -1,16 +1,20 @@
+ <configuration>
+-	<dllmap dll="cygwin1.dll" target="@LIBC@" />
+-	<dllmap dll="libc" target="@LIBC@" />
+-	<dllmap dll="libintl" target="@INTL@" />
 -	<dllmap dll="libxslt.dll" target="libxslt@libsuffix@" />
-+	<dllmap dll="libxslt.dll" target="libxslt.1@libsuffix@" />
- 	<dllmap dll="libmySQL.dll" target="libmysqlclient@libsuffix@" />
+-	<dllmap dll="libmySQL.dll" target="libmysqlclient@libsuffix@" />
 -	<dllmap dll="odbc32.dll" target="libodbc@libsuffix@" />
++	<dllmap dll="cygwin1.dll" target="/usr/lib/@LIBC@" />
++	<dllmap dll="libc" target="/usr/lib/@LIBC@" />
++	<dllmap dll="libintl" target="@FINKPREFIX@/lib/@INTL@" />
++	<dllmap dll="libxslt.dll" target="@FINKPREFIX@/lib/libxslt.1@libsuffix@" />
++	<dllmap dll="libmySQL.dll" target="@FINKPREFIX@/lib/libmysqlclient@libsuffix@" />
 +	<dllmap dll="odbc32.dll" target="libodbc.1@libsuffix@" />
  	<dllmap dll="oci" target="clntsh" />
  	<dllmap dll="db2cli" target="libdb2_36@libsuffix@"/>
- 	<dllmap dll="msvcrt" target="@LIBC@"/>
- 	<dllmap dll="MonoPosixHelper" target="libMonoPosixHelper@libsuffix@"/>
-+	<dllmap dll="libgtk-win32-2.0-0.dll" target="libgtk-x11-2.0.0@libsuffix@"/>
-+	<dllmap dll="glib-2.0" target="libglib-2.0.0@libsuffix@"/>
-+	<dllmap dll="gnomevfs-2" target="libgnomevfs-2.0@libsuffix@"/>
-+	<dllmap dll="gtksourceview-1.0" target="libgtksourceview-1.0.0@libsuffix@"/>
- 	<dllmap dll="sqlite" target="@SQLITE@"/>
- 	<dllmap dll="sqlite3" target="@SQLITE3@"/>
- 	<dllmap dll="libX11" target="@X11@"/>
+-	<dllmap dll="msvcrt" target="@LIBC@"/>
+-	<dllmap dll="MonoPosixHelper" target="libMonoPosixHelper@libsuffix@"/>
+-	<dllmap dll="sqlite" target="@SQLITE@"/>
+-	<dllmap dll="sqlite3" target="@SQLITE3@"/>
+-	<dllmap dll="libX11" target="@X11@"/>
 -	<dllmap dll="libcairo-2.dll" target="libcairo.so.2"/>
-+	<dllmap dll="libcairo-2.dll" target="libcairo.2@libsuffix@"/>
++	<dllmap dll="msvcrt" target="/usr/lib/@LIBC@"/>
++	<dllmap dll="MonoPosixHelper" target="@FINKPREFIX@/lib/libMonoPosixHelper@libsuffix@"/>
++	<dllmap dll="libgtk-win32-2.0-0.dll" target="@FINKPREFIX@/lib/libgtk-x11-2.0.0@libsuffix@"/>
++	<dllmap dll="glib-2.0" target="@FINKPREFIX@/lib/libglib-2.0.0@libsuffix@"/>
++	<dllmap dll="gnomevfs-2" target="@FINKPREFIX@/lib/libgnomevfs-2.0@libsuffix@"/>
++	<dllmap dll="gtksourceview-1.0" target="@FINKPREFIX@/lib/libgtksourceview-1.0.0@libsuffix@"/>
++	<dllmap dll="sqlite" target="@FINKPREFIX@/lib/@SQLITE@"/>
++	<dllmap dll="sqlite3" target="@FINKPREFIX@/lib/@SQLITE3@"/>
++	<dllmap dll="libX11" target="/usr/X11R6/lib/@X11@"/>
++	<dllmap dll="libcairo-2.dll" target="@FINKPREFIX@/lib/libcairo.2@libsuffix@"/>
  </configuration>
---- mono-1.1.9/mono/metadata/Makefile.in	2005-09-08 19:32:45.000000000 -0400
-+++ mono-1.1.9-new/mono/metadata/Makefile.in	2005-09-13 11:03:48.000000000 -0400
+--- mono-1.1.9.2/libgc/ChangeLog	2005-08-25 09:48:41.000000000 -0400
++++ mono-1.1.9.2-new/libgc/ChangeLog	2005-10-22 15:02:40.000000000 -0400
+@@ -1,3 +1,8 @@
++2005-10-11  Zoltan Varga  <vargaz@gmail.com>
++ 
++	* pthread_support.c (GC_thread_deregister_foreign): Make this return
++	void instead of void*.
++	
+ 2005-08-24  Zoltan Varga  <vargaz@gmail.com>
+ 
+ 	* win32_threads.c: If GC_INSIDE_DLL is defined, define the DllMain function for automatic registration
+--- mono-1.1.9.2/libgc/include/private/pthread_support.h	2005-08-01 10:51:35.000000000 -0400
++++ mono-1.1.9.2-new/libgc/include/private/pthread_support.h	2005-10-22 15:02:40.000000000 -0400
+@@ -92,7 +92,7 @@
+ 
+ GC_thread GC_lookup_thread(pthread_t id);
+ 
+-void *GC_thread_deregister_foreign (void *data);
++void GC_thread_deregister_foreign (void *data);
+ 
+ void GC_stop_init();
+ 
+--- mono-1.1.9.2/libgc/pthread_support.c	2005-08-01 10:51:35.000000000 -0400
++++ mono-1.1.9.2-new/libgc/pthread_support.c	2005-10-22 15:02:41.000000000 -0400
+@@ -223,7 +223,7 @@
+ 
+ void GC_delete_thread(pthread_t id);
+ 
+-void *GC_thread_deregister_foreign (void *data)
++void GC_thread_deregister_foreign (void *data)
+ {
+     GC_thread me = (GC_thread)data;
+  /*   GC_fprintf1( "\n\n\n\n --- Deregister %x ---\n\n\n\n\n", me->flags ); */
+--- mono-1.1.9.2/mcs/class/System/Microsoft.CSharp/CSharpCodeCompiler.cs	2005-08-22 15:39:30.000000000 -0400
++++ mono-1.1.9.2-new/mcs/class/System/Microsoft.CSharp/CSharpCodeCompiler.cs	2005-10-22 15:01:31.000000000 -0400
+@@ -152,9 +152,8 @@
+ 			// FIXME: these lines had better be platform independent.
+ 			if (Path.DirectorySeparatorChar == '\\') {
+ 				mcs.StartInfo.FileName = windowsMonoPath;
+-				mcs.StartInfo.Arguments = windowsMcsPath + ' ' + BuildArgs (options, fileNames);
+-			}
+-			else {
++                               mcs.StartInfo.Arguments = "\"" + windowsMcsPath + "\" " + BuildArgs (options, fileNames);
++                       } else {
+ #if NET_2_0
+ 				// FIXME: This is a temporary hack to make code genaration work in 2.0
+ 				mcs.StartInfo.FileName="gmcs";
+--- mono-1.1.9.2/mcs/class/System/Microsoft.CSharp/ChangeLog	2005-08-22 15:39:30.000000000 -0400
++++ mono-1.1.9.2-new/mcs/class/System/Microsoft.CSharp/ChangeLog	2005-10-22 15:01:31.000000000 -0400
+@@ -1,3 +1,7 @@
++2005-10-19  Miguel de Icaza  <miguel@novell.com>
++
++       * CSharpCodeCompiler.cs: Quote the directory, to fix #76469
++
+ 2005-08-22 Gonzalo Paniagua Javier <gonzalo@ximian.com>
+ 
+ 	* CSharpCodeCompiler.cs: patch from Maksim Vorobiev that prevents
+--- mono-1.1.9.2/mcs/class/System.Web/System.Web.UI.WebControls/ButtonColumn.cs	2005-10-02 19:28:32.000000000 -0400
++++ mono-1.1.9.2-new/mcs/class/System.Web/System.Web.UI.WebControls/ButtonColumn.cs	2005-10-22 15:01:31.000000000 -0400
+@@ -171,7 +171,7 @@
+ 				switch (ButtonType) {
+ 				case ButtonColumnType.LinkButton: 
+ 				{
+-					LinkButton butt = new LinkButton ();
++					LinkButton butt = new ForeColorLinkButton ();
+ 					
+ 					butt.Text = Text;
+ 					butt.CommandName = CommandName;
+--- mono-1.1.9.2/mcs/class/System.Web/System.Web.UI.WebControls/ChangeLog	2005-10-04 03:51:04.000000000 -0400
++++ mono-1.1.9.2-new/mcs/class/System.Web/System.Web.UI.WebControls/ChangeLog	2005-10-22 15:01:31.000000000 -0400
+@@ -1,3 +1,25 @@
++2005-10-07 Gonzalo Paniagua Javier <gonzalo@ximian.com>
++
++	* TemplateColumn.cs: SelectedItem was missing from the select (). Fixes
++	bug #76359.
++
++2005-10-06 Gonzalo Paniagua Javier <gonzalo@ximian.com>
++
++	* PagedDataSource.cs: fix the upper bound for collection and ilist
++	enumarators.
++
++2005-10-06 Gonzalo Paniagua Javier <gonzalo@ximian.com>
++
++	* DataGrid.cs: change the ListItemType for the item selected, set
++	SelectedIndex before calling OnSelectedIndexChanged and set the selected
++	item type correctly when creating the columns. Fixes bug #76334.
++
++	* ButtonColumn.cs:
++	* EditCommandColumn.cs: use a ForeColorLinkbutton, otherwise when
++	selecting the row, the button keep the regular link color.
++
++	* DataGridColumn.cs: made the class internal.
++
+ 2005-10-04 Gonzalo Paniagua Javier <gonzalo@ximian.com>
+ 
+ 	* DataGrid.cs: fix breakaga of alternating item style in one of my
+--- mono-1.1.9.2/mcs/class/System.Web/System.Web.UI.WebControls/DataGrid.cs	2005-10-04 03:51:04.000000000 -0400
++++ mono-1.1.9.2-new/mcs/class/System.Web/System.Web.UI.WebControls/DataGrid.cs	2005-10-22 15:01:31.000000000 -0400
+@@ -176,6 +176,37 @@
+ 			}
+ 		}
+ 
++		void AdjustItemTypes (int prev_select, int new_select)
++		{
++			if (items_list == null)
++				return; // nothing to select
++
++			int count = items_list.Count;
++			if (count == 0)
++				return; // nothing to select
++
++			DataGridItem item;
++			// Restore item type for the previously selected one.
++			if (prev_select >= 0 && prev_select < count) {
++				item = (DataGridItem) items_list [prev_select];
++				
++				if (item.ItemType == ListItemType.EditItem) {
++					// nothing to do. This has priority.
++				} else if ((item.ItemIndex % 2) != 0) {
++					item.SetItemType (ListItemType.AlternatingItem);
++				} else {
++					item.SetItemType (ListItemType.Item);
++				}
++			}
++
++			if (new_select == -1 || new_select >= count)
++				return; // nothing to select
++
++			item = (DataGridItem) items_list [new_select];
++			if (item.ItemType != ListItemType.EditItem) // EditItem takes precedence
++				item.SetItemType (ListItemType.SelectedItem);
++		}
++
+ 		[Bindable(true)]
+ 		[DefaultValue(-1)]
+ 		[WebSysDescription ("")]
+@@ -185,6 +216,9 @@
+ 			set {
+ 				if (value < -1)
+ 					throw new ArgumentOutOfRangeException ("value");
++
++				int selected_index = ViewState.GetInt ("SelectedIndex", -1);
++				AdjustItemTypes (selected_index, value);
+ 				ViewState ["SelectedIndex"] = value;
+ 			}
+ 		}
+@@ -893,6 +927,8 @@
+ 			int index = 0;
+ 			bool first = true;
+ 			string key = null;
++			int selected_index = SelectedIndex;
++			int edit_item_index = EditItemIndex;
+ 			while (enumerator != null && (skip_first || enumerator.MoveNext ())) {
+ 				// MS does not render <table blah></table> on empty datasource.
+ 				if (first) {
+@@ -911,9 +947,10 @@
+ 					keys.Add (DataBinder.GetPropertyValue (data, key));
+ 
+ 				ListItemType type = ListItemType.Item;
+-
+-				if (this.EditItemIndex == index) 
++				if (index == edit_item_index) 
+ 					type = ListItemType.EditItem;
++				else if (index == selected_index) 
++					type = ListItemType.SelectedItem;
+ 				else if (index % 2 != 0) 
+ 					type = ListItemType.AlternatingItem;
+ 
+@@ -1057,6 +1094,7 @@
+ 			} else if (String.Compare (cn, EditCommandName, true, inv) == 0) {
+ 				OnEditCommand (de);
+ 			} else if (String.Compare (cn, SelectCommandName, true, inv) == 0) {
++				SelectedIndex = de.Item.ItemIndex;
+ 				OnSelectedIndexChanged (de);
+ 			} else if (String.Compare (cn, SortCommandName, true, inv) == 0) {
+ 				DataGridSortCommandEventArgs se = new DataGridSortCommandEventArgs (de.CommandSource, de);
+--- mono-1.1.9.2/mcs/class/System.Web/System.Web.UI.WebControls/DataGridColumn.cs	2005-10-03 00:44:53.000000000 -0400
++++ mono-1.1.9.2-new/mcs/class/System.Web/System.Web.UI.WebControls/DataGridColumn.cs	2005-10-22 15:01:31.000000000 -0400
+@@ -185,7 +185,7 @@
+ 			}
+ 		}
+ 
+-		class ForeColorLinkButton : LinkButton {
++		internal class ForeColorLinkButton : LinkButton {
+ 			Color GetForeColor (WebControl control)
+ 			{
+ 				if (control == null)
+--- mono-1.1.9.2/mcs/class/System.Web/System.Web.UI.WebControls/EditCommandColumn.cs	2005-09-29 22:25:29.000000000 -0400
++++ mono-1.1.9.2-new/mcs/class/System.Web/System.Web.UI.WebControls/EditCommandColumn.cs	2005-10-22 15:01:31.000000000 -0400
+@@ -120,7 +120,7 @@
+ 			LinkButton d;
+ 
+ 			if (type == ButtonColumnType.LinkButton) {
+-				d = new LinkButton();
++				d = new ForeColorLinkButton();
+ 				d.Text = text;
+ 				d.CommandName = command;
+ 				d.CausesValidation = valid;
+--- mono-1.1.9.2/mcs/class/System.Web/System.Web.UI.WebControls/PagedDataSource.cs	2005-09-29 01:28:31.000000000 -0400
++++ mono-1.1.9.2-new/mcs/class/System.Web/System.Web.UI.WebControls/PagedDataSource.cs	2005-10-22 15:01:31.000000000 -0400
+@@ -207,14 +207,20 @@
+ 			// IList goes first, as it implements ICollection
+ 			IList list = source as IList;
+ 			int first = 0;
++			int count;
++			int limit;
+ 			if (list != null) {
+ 				first = FirstIndexInPage;
+-				return GetListEnum (list, first, first + page_size);
++				count = ((ICollection) source).Count;
++				limit = ((first + page_size) > count) ? count : page_size;
++				return GetListEnum (list, first, first + limit);
+ 			}
+ 
+ 			ICollection col = source as ICollection;
+ 			if (col != null) {
+ 				first = FirstIndexInPage;
++				count = col.Count;
++				limit = ((first + page_size) > count) ? count : page_size;
+ 				return GetEnumeratorEnum (col.GetEnumerator (), first, first + page_size);
+ 			}
+ 
+--- mono-1.1.9.2/mcs/class/System.Web/System.Web.UI.WebControls/TemplateColumn.cs	2005-09-01 17:25:48.000000000 -0400
++++ mono-1.1.9.2-new/mcs/class/System.Web/System.Web.UI.WebControls/TemplateColumn.cs	2005-10-22 15:01:31.000000000 -0400
+@@ -44,6 +44,7 @@
+ 				break;
+ 			case ListItemType.Item:
+ 			case ListItemType.AlternatingItem:
++			case ListItemType.SelectedItem:
+ 				t = ItemTemplate;
+ 				break;
+ 			case ListItemType.EditItem:
+--- mono-1.1.9.2/mcs/gmcs/support.cs	2005-09-05 09:37:10.000000000 -0400
++++ mono-1.1.9.2-new/mcs/gmcs/support.cs	2005-10-22 15:01:31.000000000 -0400
+@@ -433,21 +433,18 @@
+ 	}
+ 
+ 	/// <summary>
+-	///   This is a wrapper around StreamReader which is seekable.
++	///   This is a wrapper around StreamReader which is seekable backwards
++	///   within a window of around 2048 chars.
+ 	/// </summary>
+ 	public class SeekableStreamReader
+ 	{
+ 		public SeekableStreamReader (StreamReader reader)
+ 		{
+ 			this.reader = reader;
+-			this.buffer = new char [DefaultCacheSize];
+-			
+-			// Compute the preamble size
+-			
++			this.buffer = new char [AverageReadLength * 3];
++
+ 			// Let the StreamWriter autodetect the encoder
+ 			reader.Peek ();
+-			
+-			preamble_size = (int) reader.BaseStream.Position;
+ 		}
+ 
+ 		public SeekableStreamReader (Stream stream, Encoding encoding)
+@@ -456,61 +453,47 @@
+ 
+ 		StreamReader reader;
+ 
+-		private const int DefaultCacheSize = 1024;
++		private const int AverageReadLength = 1024;
+ 
+ 		char[] buffer;
+-		int buffer_start;       // in bytes
+-		int buffer_size;        // in bytes
++		int buffer_start;       // in chars
+ 		int char_count;         // count buffer[] valid characters
+ 		int pos;                // index into buffer[]
+-		int preamble_size;
+ 
+ 		/// <remarks>
+-		///   The difference to the StreamReader's BaseStream.Position is that this one is reliable; ie. it
+-		//    always reports the correct position and if it's modified, it also takes care of the buffered data.
++		///   This value corresponds to the current position in a stream of characters.
++		///   The StreamReader hides its manipulation of the underlying byte stream and all
++		///   character set/decoding issues.  Thus, we cannot use this position to guess at
++		///   the corresponding position in the underlying byte stream even though there is
++		///   a correlation between them.
+ 		/// </remarks>
+ 		public int Position {
+-			get {
+-				return buffer_start + reader.CurrentEncoding.GetByteCount (buffer, 0, pos);
+-			}
++			get { return buffer_start + pos; }
+ 
+ 			set {
+-				// This one is easy: we're modifying the position within our current
+-				// buffer.
+-				if ((value >= buffer_start) && (value < buffer_start + buffer_size)) {
+-					int byte_offset = value - buffer_start;
+-
+-					// If we have an uni-byte encoding, 'pos' will be the same as 
+-					// 'byte_offset'.  If we have a multi-byte encoding, 'byte_offset'
+-					// can be bigger than the desired value of 'pos', but not smaller.
+-					// (IOW, the number of characters <= number of bytes)
+-					//
+-					// So, we start pos off at byte_offset, and fix it up.
+-					pos = byte_offset;
+-					if (pos > char_count)
+-						pos = char_count;
+-					while (reader.CurrentEncoding.GetByteCount (buffer, 0, pos) > byte_offset)
+-						--pos;
+-					return;
+-				}
+-
+-				if (value == 0)	// Skip preamble
+-					value = preamble_size;
+-
+-				// Ok, now we need to seek.
+-				reader.DiscardBufferedData ();
+-				reader.BaseStream.Position = buffer_start = value;
+-				char_count = buffer_size = pos = 0;
++				if (value < buffer_start || value > buffer_start + char_count)
++					throw new InternalErrorException ("can't seek that far back: " + (pos - value));
++				pos = value - buffer_start;
+ 			}
+ 		}
+ 
+ 		private bool ReadBuffer ()
+ 		{
+-			pos = 0;
+-			buffer_start += buffer_size;
+-			char_count = reader.Read (buffer, 0, buffer.Length);
+-			buffer_size = reader.CurrentEncoding.GetByteCount (buffer, 0, char_count);
+-			return buffer_size > 0;
++			int slack = buffer.Length - char_count;
++			if (slack <= AverageReadLength / 2) {
++				// shift the buffer to make room for AverageReadLength number of characters
++				int shift = AverageReadLength - slack;
++				Array.Copy (buffer, shift, buffer, 0, char_count - shift);
++				pos -= shift;
++				char_count -= shift;
++				buffer_start += shift;
++				slack += shift;		// slack == AverageReadLength
++			}
++
++			int chars_read = reader.Read (buffer, char_count, slack);
++			char_count += chars_read;
++
++			return pos < char_count;
+ 		}
+ 
+ 		public int Peek ()
+--- mono-1.1.9.2/mcs/mcs/support.cs	2005-08-31 00:52:16.000000000 -0400
++++ mono-1.1.9.2-new/mcs/mcs/support.cs	2005-10-22 15:01:30.000000000 -0400
+@@ -345,22 +345,18 @@
+ 	}
+ 
+ 	/// <summary>
+-	///   This is a wrapper around StreamReader which is seekable.
++	///   This is a wrapper around StreamReader which is seekable backwards
++	///   within a window of around 2048 chars.
+ 	/// </summary>
+ 	public class SeekableStreamReader
+ 	{
+ 		public SeekableStreamReader (StreamReader reader)
+ 		{
+ 			this.reader = reader;
+-			this.buffer = new char [DefaultCacheSize];
+-			
+-			// Compute the preamble size
+-			
++			this.buffer = new char [AverageReadLength * 3];
++
+ 			// Let the StreamWriter autodetect the encoder
+ 			reader.Peek ();
+-			
+-			Encoding enc = reader.CurrentEncoding;
+-			preamble_size = (int) reader.BaseStream.Position;
+ 		}
+ 
+ 		public SeekableStreamReader (Stream stream, Encoding encoding)
+@@ -369,61 +365,47 @@
+ 
+ 		StreamReader reader;
+ 
+-		private const int DefaultCacheSize = 1024;
++		private const int AverageReadLength = 1024;
+ 
+ 		char[] buffer;
+-		int buffer_start;       // in bytes
+-		int buffer_size;        // in bytes
++		int buffer_start;       // in chars
+ 		int char_count;         // count buffer[] valid characters
+ 		int pos;                // index into buffer[]
+-		int preamble_size;
+ 
+ 		/// <remarks>
+-		///   The difference to the StreamReader's BaseStream.Position is that this one is reliable; ie. it
+-		//    always reports the correct position and if it's modified, it also takes care of the buffered data.
++		///   This value corresponds to the current position in a stream of characters.
++		///   The StreamReader hides its manipulation of the underlying byte stream and all
++		///   character set/decoding issues.  Thus, we cannot use this position to guess at
++		///   the corresponding position in the underlying byte stream even though there is
++		///   a correlation between them.
+ 		/// </remarks>
+ 		public int Position {
+-			get {
+-				return buffer_start + reader.CurrentEncoding.GetByteCount (buffer, 0, pos);
+-			}
++			get { return buffer_start + pos; }
+ 
+ 			set {
+-				// This one is easy: we're modifying the position within our current
+-				// buffer.
+-				if ((value >= buffer_start) && (value < buffer_start + buffer_size)) {
+-					int byte_offset = value - buffer_start;
+-
+-					// If we have an uni-byte encoding, 'pos' will be the same as 
+-					// 'byte_offset'.  If we have a multi-byte encoding, 'byte_offset'
+-					// can be bigger than the desired value of 'pos', but not smaller.
+-					// (IOW, the number of characters <= number of bytes)
+-					//
+-					// So, we start pos off at byte_offset, and fix it up.
+-					pos = byte_offset;
+-					if (pos > char_count)
+-						pos = char_count;
+-					while (reader.CurrentEncoding.GetByteCount (buffer, 0, pos) > byte_offset)
+-						--pos;
+-					return;
+-				}
+-
+-				if (value == 0)	// Skip preamble
+-					value = preamble_size;
+-
+-				// Ok, now we need to seek.
+-				reader.DiscardBufferedData ();
+-				reader.BaseStream.Position = buffer_start = value;
+-				char_count = buffer_size = pos = 0;
++				if (value < buffer_start || value > buffer_start + char_count)
++					throw new InternalErrorException ("can't seek that far back: " + (pos - value));
++				pos = value - buffer_start;
+ 			}
+ 		}
+ 
+ 		private bool ReadBuffer ()
+ 		{
+-			pos = 0;
+-			buffer_start += buffer_size;
+-			char_count = reader.Read (buffer, 0, buffer.Length);
+-			buffer_size = reader.CurrentEncoding.GetByteCount (buffer, 0, char_count);
+-			return buffer_size > 0;
++			int slack = buffer.Length - char_count;
++			if (slack <= AverageReadLength / 2) {
++				// shift the buffer to make room for AverageReadLength number of characters
++				int shift = AverageReadLength - slack;
++				Array.Copy (buffer, shift, buffer, 0, char_count - shift);
++				pos -= shift;
++				char_count -= shift;
++				buffer_start += shift;
++				slack += shift;		// slack == AverageReadLength
++			}
++
++			int chars_read = reader.Read (buffer, char_count, slack);
++			char_count += chars_read;
++
++			return pos < char_count;
+ 		}
+ 
+ 		public int Peek ()
+--- mono-1.1.9.2/mono/dis/ChangeLog	2005-09-08 11:03:38.000000000 -0400
++++ mono-1.1.9.2-new/mono/dis/ChangeLog	2005-10-22 15:02:41.000000000 -0400
+@@ -1,3 +1,7 @@
++2005-10-02  Zoltan Varga  <vargaz@freemail.hu>
++
++	* get.h get.c main.c: Fix some warnings and bugs.
++
+ 2005-09-08  Ankit Jain  <jankit@novell.com>
+ 
+ 	* monodis.1: Document --customattr, --declsec, --forward-decls, --implmap,
+--- mono-1.1.9.2/mono/dis/get.h	2005-08-25 11:12:40.000000000 -0400
++++ mono-1.1.9.2-new/mono/dis/get.h	2005-10-22 15:02:41.000000000 -0400
+@@ -44,6 +44,7 @@
+ char *dis_stringify_method_signature (MonoImage *m, MonoMethodSignature *method, int methoddef_row,
+ 				      MonoGenericContext *context, gboolean fully_qualified);
+ char *dis_stringify_function_ptr (MonoImage *m, MonoMethodSignature *method);
++char *dis_stringify_marshal_spec (MonoMarshalSpec *spec);
+ 
+ guint32 method_dor_to_token (guint32 idx);
+ 
+--- mono-1.1.9.2/mono/metadata/Makefile.in	2005-10-05 12:43:20.000000000 -0400
++++ mono-1.1.9.2-new/mono/metadata/Makefile.in	2005-10-22 15:01:30.000000000 -0400
 @@ -68,7 +68,7 @@
  am_libmonoruntime_static_la_OBJECTS = $(am__objects_1)
  libmonoruntime_static_la_OBJECTS =  \
@@ -45,13 +540,13 @@
  am_libmonoruntime_la_OBJECTS = reflection.lo object.lo icall.lo \
  	decimal.lo boehm-gc.lo null-gc.lo gc.lo marshal.lo monitor.lo \
  	threads.lo threadpool.lo file-io.lo socket-io.lo exception.lo \
---- mono-1.1.9/mono/metadata/loader.c	2005-08-03 01:09:35.000000000 -0400
-+++ mono-1.1.9-new/mono/metadata/loader.c	2005-09-13 11:03:48.000000000 -0400
+--- mono-1.1.9.2/mono/metadata/loader.c	2005-08-03 01:09:35.000000000 -0400
++++ mono-1.1.9.2-new/mono/metadata/loader.c	2005-10-22 15:01:30.000000000 -0400
 @@ -780,6 +780,19 @@
  		}
  
  		if (!gmodule) {
-+			full_name = g_module_build_path ("@PREFIX@/lib", file_name);
++			full_name = g_module_build_path ("@FINKPREFIX@/lib", file_name);
 +			mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_DLLIMPORT,
 +					"DllImport loading location: '%s'.", full_name);
 +			gmodule = g_module_open (full_name, G_MODULE_BIND_LAZY);
