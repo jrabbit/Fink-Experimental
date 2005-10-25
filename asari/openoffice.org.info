@@ -295,33 +295,40 @@ CompileScript: <<
   echo "   $DISKUSAGE is used for this building process (not including tarball)." | /usr/bin/tee -a %n-%v-%r.buildlog
   echo
   echo "===================================================================="
-  echo
 <<
 
 InstallScript: <<
-  #!/bin/bash -e
+  #!/bin/bash
+
+  set  -e
 
   # Mainly, this InstallScript is derived from
   # "ooinstall" in ooo-build and instsetoo_native/util/makefile.mk
 
+  /usr/bin/printf "\n\n[ Install Phase ]\n\n"
+
   # Setting up environment
   . MacosxEnv.Set.sh
+
+  set -v
+
+  # Variables needed to execute make_installer.pl
   export OUT="../$INPATH"
   export LOCAL_OUT="$OUT"
   export LOCAL_COMMON_OUT="$OUT"
-
   build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
-
-  set -v
 
   # Some dirty hacks to reduce disk consumption
 
   # Force make_installer.pl to use ln instead of cp
-  /usr/bin/sed -i .bak 's/cp -af/ln -f/' \
+  /usr/bin/sed -i .bak 's|cp -af|/bin/ln -f|' \
     $SOLARENV/bin/modules/installer/worker.pm
   # Disable making download installation set  
   /usr/bin/sed -i .bak 's/$makedownload = .;/$makedownload = 0;/' \
     $SOLARENV/bin/modules/installer/globals.pm
+  # Disable cleaning output tree, to reuse unzipped files
+  /usr/bin/sed -i .bak 's/installer::worker::clean_output_tree();/# Disabled by Fink; /' \
+    $SOLARENV/bin/make_installer.pl
 
   # Install
   pushd instsetoo_native/util
@@ -331,6 +338,19 @@ InstallScript: <<
     -buildid $build -destdir %i \
     -simple /lib/openoffice.org
   popd
+
+  # Some dirty hacks to reduce disk consumption -- again
+
+  # Revert cleaning feature
+  /bin/mv $SOLARENV/bin/make_installer.pl{.bak,}
+  # Don't recurse in symlinks on cleaning
+  /usr/bin/sed -i .bak 's/-f $item/( -l $item ) || ( -f $item )/' \
+    $SOLARENV/bin/modules/installer/systemactions.pm
+  # Surpress further unzipping from now on
+  /usr/bin/sed -i .bak \
+    -e 's|\(.installer::globals::unzippath -o -q[^"]*\)|if [ -d %b/instsetoo_native/util/OpenOffice/zipfiles/en-US/00/$onefilename ]; then /bin/rmdir $unzipdir; /bin/ln -s %b/instsetoo_native/util/OpenOffice/zipfiles/en-US/00/$onefilename `/usr/bin/dirname ${unzipdir}foo`; elif [ -d %b/instsetoo_native/util/OpenOffice/zipfiles/en-US/en-US/$onefilename ]; then /bin/rmdir $unzipdir; /bin/ln -s %b/instsetoo_native/util/OpenOffice/zipfiles/en-US/en-US/$onefilename `/usr/bin/dirname ${unzipdir}foo`; else \1; fi|' \
+    -e 's/installer::systemactions::copy_one_file/installer::systemactions::hardlink_one_file/' \
+    $SOLARENV/bin/modules/installer/archivefiles.pm
 
   # Remove the list files
   /bin/rm %i/gid_Module*
@@ -366,6 +386,9 @@ InstallScript: <<
   /bin/ln -s %p/lib/%n "%i/Applications/OpenOffice.org 2.0.app/Contents"
   /bin/chmod -R o-w '%i/Applications/'
   [ -x /Developer/Tools/SplitForks ] && /Developer/Tools/SplitForks '%i/Applications/'
+
+  # End of Install Phase. Proceeding to install language packs...
+
 <<
 #AppBundles: instsetoo_native/unxmacxp.pro/OpenOffice/install/en-US_temp/OpenOffice.org*.app
 PostInstScript: <<
@@ -468,14 +491,17 @@ SplitOff: <<
   Description: Language Pack(af) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -485,8 +511,8 @@ SplitOff: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l af -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -494,7 +520,7 @@ SplitOff: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_af %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_af %i/share/doc/%n/LICENSE
   <<
 <<
 
@@ -503,14 +529,17 @@ SplitOff2: <<
   Description: Language Pack(ar) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -520,8 +549,8 @@ SplitOff2: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l ar -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -529,23 +558,64 @@ SplitOff2: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_ar %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_ar %i/share/doc/%n/LICENSE
   <<
 <<
 
 SplitOff3: <<
+  Package: %N-be-by
+  Description: Language Pack(be-BY) for OpenOffice.org
+  Depends: %N (= %v-%r)
+  InstallScript: <<
+    #!/bin/bash
+
+    set -e
+
+    # Setting up environment
+    . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
+    export OUT="../$INPATH"
+    export LOCAL_OUT="$OUT"
+    export LOCAL_COMMON_OUT="$OUT"
+    build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
+
+    set -v
+
+    # Install language pack be-BY
+    pushd instsetoo_native/util
+    /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
+      -f openoffice.lst -l be-BY -p OpenOffice \
+      -packagelist ../inc_openoffice/unix/packagelist.txt \
+      -buildid $build -languagepack \
+      -destdir %i \
+      -simple /lib/openoffice.org
+    popd
+
+    # Remove the list files
+    /bin/rm -vf %i/gid_Module*
+
+    /usr/bin/install -m 755 -d %i/share/doc/%n
+    /bin/ln -sf %p/lib/%N/LICENSE_be-BY %i/share/doc/%n/LICENSE
+  <<
+<<
+
+SplitOff4: <<
   Package: %N-bg
   Description: Language Pack(bg) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -555,8 +625,8 @@ SplitOff3: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l bg -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -564,23 +634,64 @@ SplitOff3: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_bg %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_bg %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff4: <<
+SplitOff5: <<
+  Package: %N-bn
+  Description: Language Pack(bn) for OpenOffice.org
+  Depends: %N (= %v-%r)
+  InstallScript: <<
+    #!/bin/bash
+
+    set -e
+
+    # Setting up environment
+    . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
+    export OUT="../$INPATH"
+    export LOCAL_OUT="$OUT"
+    export LOCAL_COMMON_OUT="$OUT"
+    build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
+
+    set -v
+
+    # Install language pack bn
+    pushd instsetoo_native/util
+    /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
+      -f openoffice.lst -l bn -p OpenOffice \
+      -packagelist ../inc_openoffice/unix/packagelist.txt \
+      -buildid $build -languagepack \
+      -destdir %i \
+      -simple /lib/openoffice.org
+    popd
+
+    # Remove the list files
+    /bin/rm -vf %i/gid_Module*
+
+    /usr/bin/install -m 755 -d %i/share/doc/%n
+    /bin/ln -sf %p/lib/%N/LICENSE_bn %i/share/doc/%n/LICENSE
+  <<
+<<
+
+SplitOff6: <<
   Package: %N-ca
   Description: Language Pack(ca) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -590,8 +701,8 @@ SplitOff4: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l ca -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -599,23 +710,26 @@ SplitOff4: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_ca %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_ca %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff5: <<
+SplitOff7: <<
   Package: %N-cs
   Description: Language Pack(cs) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -625,8 +739,8 @@ SplitOff5: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l cs -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -634,23 +748,26 @@ SplitOff5: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_cs %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_cs %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff6: <<
+SplitOff8: <<
   Package: %N-cy
   Description: Language Pack(cy) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -660,8 +777,8 @@ SplitOff6: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l cy -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -669,23 +786,26 @@ SplitOff6: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_cy %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_cy %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff7: <<
+SplitOff9: <<
   Package: %N-da
   Description: Language Pack(da) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -695,8 +815,8 @@ SplitOff7: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l da -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -704,23 +824,26 @@ SplitOff7: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_da %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_da %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff8: <<
+SplitOff10: <<
   Package: %N-de
   Description: Language Pack(de) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -730,8 +853,8 @@ SplitOff8: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l de -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -739,23 +862,26 @@ SplitOff8: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_de %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_de %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff9: <<
+SplitOff11: <<
   Package: %N-el
   Description: Language Pack(el) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -765,8 +891,8 @@ SplitOff9: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l el -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -774,23 +900,26 @@ SplitOff9: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_el %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_el %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff10: <<
+SplitOff12: <<
   Package: %N-en-gb
   Description: Language Pack(en-GB) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -800,8 +929,8 @@ SplitOff10: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l en-GB -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -809,23 +938,26 @@ SplitOff10: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_en-GB %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_en-GB %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff11: <<
+SplitOff13: <<
   Package: %N-eo
   Description: Language Pack(eo) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -835,8 +967,8 @@ SplitOff11: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l eo -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -844,23 +976,26 @@ SplitOff11: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_eo %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_eo %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff12: <<
+SplitOff14: <<
   Package: %N-es
   Description: Language Pack(es) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -870,8 +1005,8 @@ SplitOff12: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l es -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -879,23 +1014,26 @@ SplitOff12: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_es %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_es %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff13: <<
+SplitOff15: <<
   Package: %N-et
   Description: Language Pack(et) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -905,8 +1043,8 @@ SplitOff13: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l et -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -914,23 +1052,26 @@ SplitOff13: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_et %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_et %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff14: <<
+SplitOff16: <<
   Package: %N-eu
   Description: Language Pack(eu) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -940,8 +1081,8 @@ SplitOff14: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l eu -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -949,23 +1090,26 @@ SplitOff14: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_eu %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_eu %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff15: <<
+SplitOff17: <<
   Package: %N-fi
   Description: Language Pack(fi) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -975,8 +1119,8 @@ SplitOff15: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l fi -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -984,23 +1128,26 @@ SplitOff15: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_fi %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_fi %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff16: <<
+SplitOff18: <<
   Package: %N-fr
   Description: Language Pack(fr) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1010,8 +1157,8 @@ SplitOff16: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l fr -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1019,23 +1166,64 @@ SplitOff16: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_fr %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_fr %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff17: <<
+SplitOff19: <<
+  Package: %N-ga
+  Description: Language Pack(ga) for OpenOffice.org
+  Depends: %N (= %v-%r)
+  InstallScript: <<
+    #!/bin/bash
+
+    set -e
+
+    # Setting up environment
+    . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
+    export OUT="../$INPATH"
+    export LOCAL_OUT="$OUT"
+    export LOCAL_COMMON_OUT="$OUT"
+    build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
+
+    set -v
+
+    # Install language pack ga
+    pushd instsetoo_native/util
+    /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
+      -f openoffice.lst -l ga -p OpenOffice \
+      -packagelist ../inc_openoffice/unix/packagelist.txt \
+      -buildid $build -languagepack \
+      -destdir %i \
+      -simple /lib/openoffice.org
+    popd
+
+    # Remove the list files
+    /bin/rm -vf %i/gid_Module*
+
+    /usr/bin/install -m 755 -d %i/share/doc/%n
+    /bin/ln -sf %p/lib/%N/LICENSE_ga %i/share/doc/%n/LICENSE
+  <<
+<<
+
+SplitOff20: <<
   Package: %N-gl
   Description: Language Pack(gl) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1045,8 +1233,8 @@ SplitOff17: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l gl -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1054,23 +1242,64 @@ SplitOff17: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_gl %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_gl %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff18: <<
+SplitOff21: <<
+  Package: %N-gu-in
+  Description: Language Pack(gu-IN) for OpenOffice.org
+  Depends: %N (= %v-%r)
+  InstallScript: <<
+    #!/bin/bash
+
+    set -e
+
+    # Setting up environment
+    . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
+    export OUT="../$INPATH"
+    export LOCAL_OUT="$OUT"
+    export LOCAL_COMMON_OUT="$OUT"
+    build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
+
+    set -v
+
+    # Install language pack gu-IN
+    pushd instsetoo_native/util
+    /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
+      -f openoffice.lst -l gu-IN -p OpenOffice \
+      -packagelist ../inc_openoffice/unix/packagelist.txt \
+      -buildid $build -languagepack \
+      -destdir %i \
+      -simple /lib/openoffice.org
+    popd
+
+    # Remove the list files
+    /bin/rm -vf %i/gid_Module*
+
+    /usr/bin/install -m 755 -d %i/share/doc/%n
+    /bin/ln -sf %p/lib/%N/LICENSE_gu-IN %i/share/doc/%n/LICENSE
+  <<
+<<
+
+SplitOff22: <<
   Package: %N-he
   Description: Language Pack(he) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1080,8 +1309,8 @@ SplitOff18: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l he -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1089,23 +1318,26 @@ SplitOff18: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_he %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_he %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff19: <<
+SplitOff23: <<
   Package: %N-hi-in
   Description: Language Pack(hi-IN) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1115,8 +1347,8 @@ SplitOff19: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l hi-IN -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1124,23 +1356,64 @@ SplitOff19: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_hi-IN %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_hi-IN %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff20: <<
+SplitOff24: <<
+  Package: %N-hr
+  Description: Language Pack(hr) for OpenOffice.org
+  Depends: %N (= %v-%r)
+  InstallScript: <<
+    #!/bin/bash
+
+    set -e
+
+    # Setting up environment
+    . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
+    export OUT="../$INPATH"
+    export LOCAL_OUT="$OUT"
+    export LOCAL_COMMON_OUT="$OUT"
+    build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
+
+    set -v
+
+    # Install language pack hr
+    pushd instsetoo_native/util
+    /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
+      -f openoffice.lst -l hr -p OpenOffice \
+      -packagelist ../inc_openoffice/unix/packagelist.txt \
+      -buildid $build -languagepack \
+      -destdir %i \
+      -simple /lib/openoffice.org
+    popd
+
+    # Remove the list files
+    /bin/rm -vf %i/gid_Module*
+
+    /usr/bin/install -m 755 -d %i/share/doc/%n
+    /bin/ln -sf %p/lib/%N/LICENSE_hr %i/share/doc/%n/LICENSE
+  <<
+<<
+
+SplitOff25: <<
   Package: %N-hu
   Description: Language Pack(hu) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1150,8 +1423,8 @@ SplitOff20: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l hu -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1159,23 +1432,26 @@ SplitOff20: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_hu %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_hu %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff21: <<
+SplitOff26: <<
   Package: %N-it
   Description: Language Pack(it) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1185,8 +1461,8 @@ SplitOff21: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l it -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1194,23 +1470,26 @@ SplitOff21: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_it %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_it %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff22: <<
+SplitOff27: <<
   Package: %N-ja
   Description: Language Pack(ja) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1220,8 +1499,8 @@ SplitOff22: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l ja -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1229,23 +1508,26 @@ SplitOff22: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_ja %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_ja %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff23: <<
+SplitOff28: <<
   Package: %N-km
   Description: Language Pack(km) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1255,8 +1537,8 @@ SplitOff23: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l km -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1264,23 +1546,26 @@ SplitOff23: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_km %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_km %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff24: <<
+SplitOff29: <<
   Package: %N-kn-in
   Description: Language Pack(kn-IN) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1290,8 +1575,8 @@ SplitOff24: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l kn-IN -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1299,23 +1584,26 @@ SplitOff24: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_kn-IN %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_kn-IN %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff25: <<
+SplitOff30: <<
   Package: %N-ko
   Description: Language Pack(ko) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1325,8 +1613,8 @@ SplitOff25: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l ko -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1334,23 +1622,64 @@ SplitOff25: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_ko %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_ko %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff26: <<
+SplitOff31: <<
+  Package: %N-lo
+  Description: Language Pack(lo) for OpenOffice.org
+  Depends: %N (= %v-%r)
+  InstallScript: <<
+    #!/bin/bash
+
+    set -e
+
+    # Setting up environment
+    . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
+    export OUT="../$INPATH"
+    export LOCAL_OUT="$OUT"
+    export LOCAL_COMMON_OUT="$OUT"
+    build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
+
+    set -v
+
+    # Install language pack lo
+    pushd instsetoo_native/util
+    /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
+      -f openoffice.lst -l lo -p OpenOffice \
+      -packagelist ../inc_openoffice/unix/packagelist.txt \
+      -buildid $build -languagepack \
+      -destdir %i \
+      -simple /lib/openoffice.org
+    popd
+
+    # Remove the list files
+    /bin/rm -vf %i/gid_Module*
+
+    /usr/bin/install -m 755 -d %i/share/doc/%n
+    /bin/ln -sf %p/lib/%N/LICENSE_lo %i/share/doc/%n/LICENSE
+  <<
+<<
+
+SplitOff32: <<
   Package: %N-lt
   Description: Language Pack(lt) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1360,8 +1689,8 @@ SplitOff26: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l lt -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1369,23 +1698,26 @@ SplitOff26: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_lt %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_lt %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff27: <<
+SplitOff33: <<
   Package: %N-ms
   Description: Language Pack(ms) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1395,8 +1727,8 @@ SplitOff27: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l ms -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1404,23 +1736,26 @@ SplitOff27: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_ms %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_ms %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff28: <<
+SplitOff34: <<
   Package: %N-nb
   Description: Language Pack(nb) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1430,8 +1765,8 @@ SplitOff28: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l nb -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1439,23 +1774,64 @@ SplitOff28: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_nb %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_nb %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff29: <<
+SplitOff35: <<
+  Package: %N-ne
+  Description: Language Pack(ne) for OpenOffice.org
+  Depends: %N (= %v-%r)
+  InstallScript: <<
+    #!/bin/bash
+
+    set -e
+
+    # Setting up environment
+    . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
+    export OUT="../$INPATH"
+    export LOCAL_OUT="$OUT"
+    export LOCAL_COMMON_OUT="$OUT"
+    build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
+
+    set -v
+
+    # Install language pack ne
+    pushd instsetoo_native/util
+    /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
+      -f openoffice.lst -l ne -p OpenOffice \
+      -packagelist ../inc_openoffice/unix/packagelist.txt \
+      -buildid $build -languagepack \
+      -destdir %i \
+      -simple /lib/openoffice.org
+    popd
+
+    # Remove the list files
+    /bin/rm -vf %i/gid_Module*
+
+    /usr/bin/install -m 755 -d %i/share/doc/%n
+    /bin/ln -sf %p/lib/%N/LICENSE_ne %i/share/doc/%n/LICENSE
+  <<
+<<
+
+SplitOff36: <<
   Package: %N-nl
   Description: Language Pack(nl) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1465,8 +1841,8 @@ SplitOff29: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l nl -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1474,23 +1850,26 @@ SplitOff29: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_nl %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_nl %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff30: <<
+SplitOff37: <<
   Package: %N-nn
   Description: Language Pack(nn) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1500,8 +1879,8 @@ SplitOff30: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l nn -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1509,23 +1888,64 @@ SplitOff30: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_nn %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_nn %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff31: <<
+SplitOff38: <<
+  Package: %N-nr
+  Description: Language Pack(nr) for OpenOffice.org
+  Depends: %N (= %v-%r)
+  InstallScript: <<
+    #!/bin/bash
+
+    set -e
+
+    # Setting up environment
+    . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
+    export OUT="../$INPATH"
+    export LOCAL_OUT="$OUT"
+    export LOCAL_COMMON_OUT="$OUT"
+    build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
+
+    set -v
+
+    # Install language pack nr
+    pushd instsetoo_native/util
+    /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
+      -f openoffice.lst -l nr -p OpenOffice \
+      -packagelist ../inc_openoffice/unix/packagelist.txt \
+      -buildid $build -languagepack \
+      -destdir %i \
+      -simple /lib/openoffice.org
+    popd
+
+    # Remove the list files
+    /bin/rm -vf %i/gid_Module*
+
+    /usr/bin/install -m 755 -d %i/share/doc/%n
+    /bin/ln -sf %p/lib/%N/LICENSE_nr %i/share/doc/%n/LICENSE
+  <<
+<<
+
+SplitOff39: <<
   Package: %N-ns
   Description: Language Pack(ns) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1535,8 +1955,8 @@ SplitOff31: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l ns -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1544,23 +1964,64 @@ SplitOff31: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_ns %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_ns %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff32: <<
+SplitOff40: <<
+  Package: %N-pa-in
+  Description: Language Pack(pa-IN) for OpenOffice.org
+  Depends: %N (= %v-%r)
+  InstallScript: <<
+    #!/bin/bash
+
+    set -e
+
+    # Setting up environment
+    . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
+    export OUT="../$INPATH"
+    export LOCAL_OUT="$OUT"
+    export LOCAL_COMMON_OUT="$OUT"
+    build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
+
+    set -v
+
+    # Install language pack pa-IN
+    pushd instsetoo_native/util
+    /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
+      -f openoffice.lst -l pa-IN -p OpenOffice \
+      -packagelist ../inc_openoffice/unix/packagelist.txt \
+      -buildid $build -languagepack \
+      -destdir %i \
+      -simple /lib/openoffice.org
+    popd
+
+    # Remove the list files
+    /bin/rm -vf %i/gid_Module*
+
+    /usr/bin/install -m 755 -d %i/share/doc/%n
+    /bin/ln -sf %p/lib/%N/LICENSE_pa-IN %i/share/doc/%n/LICENSE
+  <<
+<<
+
+SplitOff41: <<
   Package: %N-pl
   Description: Language Pack(pl) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1570,8 +2031,8 @@ SplitOff32: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l pl -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1579,23 +2040,26 @@ SplitOff32: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_pl %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_pl %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff33: <<
+SplitOff42: <<
   Package: %N-pt
   Description: Language Pack(pt) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1605,8 +2069,8 @@ SplitOff33: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l pt -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1614,23 +2078,26 @@ SplitOff33: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_pt %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_pt %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff34: <<
+SplitOff43: <<
   Package: %N-pt-br
   Description: Language Pack(pt-BR) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1640,8 +2107,8 @@ SplitOff34: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l pt-BR -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1649,23 +2116,26 @@ SplitOff34: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_pt-BR %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_pt-BR %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff35: <<
+SplitOff44: <<
   Package: %N-ru
   Description: Language Pack(ru) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1675,8 +2145,8 @@ SplitOff35: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l ru -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1684,23 +2154,102 @@ SplitOff35: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_ru %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_ru %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff36: <<
+SplitOff45: <<
+  Package: %N-rw
+  Description: Language Pack(rw) for OpenOffice.org
+  Depends: %N (= %v-%r)
+  InstallScript: <<
+    #!/bin/bash
+
+    set -e
+
+    # Setting up environment
+    . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
+    export OUT="../$INPATH"
+    export LOCAL_OUT="$OUT"
+    export LOCAL_COMMON_OUT="$OUT"
+    build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
+
+    set -v
+
+    # Install language pack rw
+    pushd instsetoo_native/util
+    /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
+      -f openoffice.lst -l rw -p OpenOffice \
+      -packagelist ../inc_openoffice/unix/packagelist.txt \
+      -buildid $build -languagepack \
+      -destdir %i \
+      -simple /lib/openoffice.org
+    popd
+
+    # Remove the list files
+    /bin/rm -vf %i/gid_Module*
+
+    /usr/bin/install -m 755 -d %i/share/doc/%n
+    /bin/ln -sf %p/lib/%N/LICENSE_rw %i/share/doc/%n/LICENSE
+  <<
+<<
+
+SplitOff46: <<
+  Package: %N-sh-yu
+  Description: Language Pack(sh-YU) for OpenOffice.org
+  Depends: %N (= %v-%r)
+  InstallScript: <<
+    #!/bin/bash
+
+    set -e
+
+    # Setting up environment
+    . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
+    export OUT="../$INPATH"
+    export LOCAL_OUT="$OUT"
+    export LOCAL_COMMON_OUT="$OUT"
+    build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
+
+    set -v
+
+    # Install language pack sh-YU
+    pushd instsetoo_native/util
+    /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
+      -f openoffice.lst -l sh-YU -p OpenOffice \
+      -packagelist ../inc_openoffice/unix/packagelist.txt \
+      -buildid $build -languagepack \
+      -destdir %i \
+      -simple /lib/openoffice.org
+    popd
+
+    # Remove the list files
+    /bin/rm -vf %i/gid_Module*
+
+    /usr/bin/install -m 755 -d %i/share/doc/%n
+    /bin/ln -sf %p/lib/%N/LICENSE_sh-YU %i/share/doc/%n/LICENSE
+  <<
+<<
+
+SplitOff47: <<
   Package: %N-sk
   Description: Language Pack(sk) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1710,8 +2259,8 @@ SplitOff36: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l sk -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1719,23 +2268,26 @@ SplitOff36: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_sk %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_sk %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff37: <<
+SplitOff48: <<
   Package: %N-sl
   Description: Language Pack(sl) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1745,8 +2297,8 @@ SplitOff37: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l sl -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1754,23 +2306,140 @@ SplitOff37: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_sl %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_sl %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff38: <<
+SplitOff49: <<
+  Package: %N-sr-cs
+  Description: Language Pack(sr-CS) for OpenOffice.org
+  Depends: %N (= %v-%r)
+  InstallScript: <<
+    #!/bin/bash
+
+    set -e
+
+    # Setting up environment
+    . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
+    export OUT="../$INPATH"
+    export LOCAL_OUT="$OUT"
+    export LOCAL_COMMON_OUT="$OUT"
+    build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
+
+    set -v
+
+    # Install language pack sr-CS
+    pushd instsetoo_native/util
+    /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
+      -f openoffice.lst -l sr-CS -p OpenOffice \
+      -packagelist ../inc_openoffice/unix/packagelist.txt \
+      -buildid $build -languagepack \
+      -destdir %i \
+      -simple /lib/openoffice.org
+    popd
+
+    # Remove the list files
+    /bin/rm -vf %i/gid_Module*
+
+    /usr/bin/install -m 755 -d %i/share/doc/%n
+    /bin/ln -sf %p/lib/%N/LICENSE_sr-CS %i/share/doc/%n/LICENSE
+  <<
+<<
+
+SplitOff50: <<
+  Package: %N-ss
+  Description: Language Pack(ss) for OpenOffice.org
+  Depends: %N (= %v-%r)
+  InstallScript: <<
+    #!/bin/bash
+
+    set -e
+
+    # Setting up environment
+    . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
+    export OUT="../$INPATH"
+    export LOCAL_OUT="$OUT"
+    export LOCAL_COMMON_OUT="$OUT"
+    build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
+
+    set -v
+
+    # Install language pack ss
+    pushd instsetoo_native/util
+    /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
+      -f openoffice.lst -l ss -p OpenOffice \
+      -packagelist ../inc_openoffice/unix/packagelist.txt \
+      -buildid $build -languagepack \
+      -destdir %i \
+      -simple /lib/openoffice.org
+    popd
+
+    # Remove the list files
+    /bin/rm -vf %i/gid_Module*
+
+    /usr/bin/install -m 755 -d %i/share/doc/%n
+    /bin/ln -sf %p/lib/%N/LICENSE_ss %i/share/doc/%n/LICENSE
+  <<
+<<
+
+SplitOff51: <<
+  Package: %N-st
+  Description: Language Pack(st) for OpenOffice.org
+  Depends: %N (= %v-%r)
+  InstallScript: <<
+    #!/bin/bash
+
+    set -e
+
+    # Setting up environment
+    . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
+    export OUT="../$INPATH"
+    export LOCAL_OUT="$OUT"
+    export LOCAL_COMMON_OUT="$OUT"
+    build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
+
+    set -v
+
+    # Install language pack st
+    pushd instsetoo_native/util
+    /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
+      -f openoffice.lst -l st -p OpenOffice \
+      -packagelist ../inc_openoffice/unix/packagelist.txt \
+      -buildid $build -languagepack \
+      -destdir %i \
+      -simple /lib/openoffice.org
+    popd
+
+    # Remove the list files
+    /bin/rm -vf %i/gid_Module*
+
+    /usr/bin/install -m 755 -d %i/share/doc/%n
+    /bin/ln -sf %p/lib/%N/LICENSE_st %i/share/doc/%n/LICENSE
+  <<
+<<
+
+SplitOff52: <<
   Package: %N-sv
   Description: Language Pack(sv) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1780,8 +2449,8 @@ SplitOff38: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l sv -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1789,23 +2458,102 @@ SplitOff38: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_sv %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_sv %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff39: <<
+SplitOff53: <<
+  Package: %N-sw-tz
+  Description: Language Pack(sw-TZ) for OpenOffice.org
+  Depends: %N (= %v-%r)
+  InstallScript: <<
+    #!/bin/bash
+
+    set -e
+
+    # Setting up environment
+    . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
+    export OUT="../$INPATH"
+    export LOCAL_OUT="$OUT"
+    export LOCAL_COMMON_OUT="$OUT"
+    build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
+
+    set -v
+
+    # Install language pack sw-TZ
+    pushd instsetoo_native/util
+    /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
+      -f openoffice.lst -l sw-TZ -p OpenOffice \
+      -packagelist ../inc_openoffice/unix/packagelist.txt \
+      -buildid $build -languagepack \
+      -destdir %i \
+      -simple /lib/openoffice.org
+    popd
+
+    # Remove the list files
+    /bin/rm -vf %i/gid_Module*
+
+    /usr/bin/install -m 755 -d %i/share/doc/%n
+    /bin/ln -sf %p/lib/%N/LICENSE_sw-TZ %i/share/doc/%n/LICENSE
+  <<
+<<
+
+SplitOff54: <<
+  Package: %N-ta-in
+  Description: Language Pack(ta-IN) for OpenOffice.org
+  Depends: %N (= %v-%r)
+  InstallScript: <<
+    #!/bin/bash
+
+    set -e
+
+    # Setting up environment
+    . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
+    export OUT="../$INPATH"
+    export LOCAL_OUT="$OUT"
+    export LOCAL_COMMON_OUT="$OUT"
+    build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
+
+    set -v
+
+    # Install language pack ta-IN
+    pushd instsetoo_native/util
+    /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
+      -f openoffice.lst -l ta-IN -p OpenOffice \
+      -packagelist ../inc_openoffice/unix/packagelist.txt \
+      -buildid $build -languagepack \
+      -destdir %i \
+      -simple /lib/openoffice.org
+    popd
+
+    # Remove the list files
+    /bin/rm -vf %i/gid_Module*
+
+    /usr/bin/install -m 755 -d %i/share/doc/%n
+    /bin/ln -sf %p/lib/%N/LICENSE_ta-IN %i/share/doc/%n/LICENSE
+  <<
+<<
+
+SplitOff55: <<
   Package: %N-th
   Description: Language Pack(th) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1815,8 +2563,8 @@ SplitOff39: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l th -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1824,23 +2572,26 @@ SplitOff39: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_th %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_th %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff40: <<
+SplitOff56: <<
   Package: %N-tn
   Description: Language Pack(tn) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1850,8 +2601,8 @@ SplitOff40: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l tn -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1859,23 +2610,26 @@ SplitOff40: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_tn %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_tn %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff41: <<
+SplitOff57: <<
   Package: %N-tr
   Description: Language Pack(tr) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1885,8 +2639,8 @@ SplitOff41: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l tr -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1894,23 +2648,140 @@ SplitOff41: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_tr %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_tr %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff42: <<
+SplitOff58: <<
+  Package: %N-ts
+  Description: Language Pack(ts) for OpenOffice.org
+  Depends: %N (= %v-%r)
+  InstallScript: <<
+    #!/bin/bash
+
+    set -e
+
+    # Setting up environment
+    . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
+    export OUT="../$INPATH"
+    export LOCAL_OUT="$OUT"
+    export LOCAL_COMMON_OUT="$OUT"
+    build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
+
+    set -v
+
+    # Install language pack ts
+    pushd instsetoo_native/util
+    /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
+      -f openoffice.lst -l ts -p OpenOffice \
+      -packagelist ../inc_openoffice/unix/packagelist.txt \
+      -buildid $build -languagepack \
+      -destdir %i \
+      -simple /lib/openoffice.org
+    popd
+
+    # Remove the list files
+    /bin/rm -vf %i/gid_Module*
+
+    /usr/bin/install -m 755 -d %i/share/doc/%n
+    /bin/ln -sf %p/lib/%N/LICENSE_ts %i/share/doc/%n/LICENSE
+  <<
+<<
+
+SplitOff59: <<
+  Package: %N-ve
+  Description: Language Pack(ve) for OpenOffice.org
+  Depends: %N (= %v-%r)
+  InstallScript: <<
+    #!/bin/bash
+
+    set -e
+
+    # Setting up environment
+    . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
+    export OUT="../$INPATH"
+    export LOCAL_OUT="$OUT"
+    export LOCAL_COMMON_OUT="$OUT"
+    build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
+
+    set -v
+
+    # Install language pack ve
+    pushd instsetoo_native/util
+    /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
+      -f openoffice.lst -l ve -p OpenOffice \
+      -packagelist ../inc_openoffice/unix/packagelist.txt \
+      -buildid $build -languagepack \
+      -destdir %i \
+      -simple /lib/openoffice.org
+    popd
+
+    # Remove the list files
+    /bin/rm -vf %i/gid_Module*
+
+    /usr/bin/install -m 755 -d %i/share/doc/%n
+    /bin/ln -sf %p/lib/%N/LICENSE_ve %i/share/doc/%n/LICENSE
+  <<
+<<
+
+SplitOff60: <<
+  Package: %N-vi
+  Description: Language Pack(vi) for OpenOffice.org
+  Depends: %N (= %v-%r)
+  InstallScript: <<
+    #!/bin/bash
+
+    set -e
+
+    # Setting up environment
+    . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
+    export OUT="../$INPATH"
+    export LOCAL_OUT="$OUT"
+    export LOCAL_COMMON_OUT="$OUT"
+    build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
+
+    set -v
+
+    # Install language pack vi
+    pushd instsetoo_native/util
+    /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
+      -f openoffice.lst -l vi -p OpenOffice \
+      -packagelist ../inc_openoffice/unix/packagelist.txt \
+      -buildid $build -languagepack \
+      -destdir %i \
+      -simple /lib/openoffice.org
+    popd
+
+    # Remove the list files
+    /bin/rm -vf %i/gid_Module*
+
+    /usr/bin/install -m 755 -d %i/share/doc/%n
+    /bin/ln -sf %p/lib/%N/LICENSE_vi %i/share/doc/%n/LICENSE
+  <<
+<<
+
+SplitOff61: <<
   Package: %N-xh
   Description: Language Pack(xh) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1920,8 +2791,8 @@ SplitOff42: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l xh -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1929,23 +2800,26 @@ SplitOff42: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_xh %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_xh %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff43: <<
+SplitOff62: <<
   Package: %N-zh-cn
   Description: Language Pack(zh-CN) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1955,8 +2829,8 @@ SplitOff43: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l zh-CN -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1964,23 +2838,26 @@ SplitOff43: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_zh-CN %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_zh-CN %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff44: <<
+SplitOff63: <<
   Package: %N-zh-tw
   Description: Language Pack(zh-TW) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -1990,8 +2867,8 @@ SplitOff44: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l zh-TW -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -1999,23 +2876,26 @@ SplitOff44: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_zh-TW %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_zh-TW %i/share/doc/%n/LICENSE
   <<
 <<
 
-SplitOff45: <<
+SplitOff64: <<
   Package: %N-zu
   Description: Language Pack(zu) for OpenOffice.org
   Depends: %N (= %v-%r)
   InstallScript: <<
-    #!/bin/bash -e
+    #!/bin/bash
+
+    set -e
 
     # Setting up environment
     . MacosxEnv.Set.sh
+
+    # Variables needed to execute make_installer.pl
     export OUT="../$INPATH"
     export LOCAL_OUT="$OUT"
     export LOCAL_COMMON_OUT="$OUT"
-
     build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
     set -v
@@ -2025,8 +2905,8 @@ SplitOff45: <<
     /usr/bin/perl -w $SOLARENV/bin/make_installer.pl \
       -f openoffice.lst -l zu -p OpenOffice \
       -packagelist ../inc_openoffice/unix/packagelist.txt \
-      -buildid $build -destdir %i \
-      -languagepack \
+      -buildid $build -languagepack \
+      -destdir %i \
       -simple /lib/openoffice.org
     popd
 
@@ -2034,9 +2914,7 @@ SplitOff45: <<
     /bin/rm -vf %i/gid_Module*
 
     /usr/bin/install -m 755 -d %i/share/doc/%n
-    /bin/ln -sf %i/lib/%n/LICENSE_zu %i/share/doc/%n/LICENSE
+    /bin/ln -sf %p/lib/%N/LICENSE_zu %i/share/doc/%n/LICENSE
   <<
 <<
-
-
 <<
