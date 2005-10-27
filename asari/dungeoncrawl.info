@@ -1,0 +1,74 @@
+Package: dungeoncrawl
+Version: 4.0.0b26+050313
+Revision: 1
+Description: Roguelike
+License: OSI-approved
+Maintainer: ASARI Takashi <asari@users.sourceforge.net>
+
+BuildDepends: libncurses5, x11-dev, libpng3
+Depends: libncurses5-shlibs, libpng3-shlibs
+
+Source: ftp://ftp.dungeoncrawl.org/dev/4.0.x/src/dc400b26-src.tbz2
+SourceRename: dc400b26-src.tar.bz2
+Source-MD5: 807810185ff93f06bd4e169067644d8f
+Source2: http://crawlj.sourceforge.jp/crawl/dc_e069_050313_src.zip
+Source2-MD5: e1742924b6cd9fec2fd68a4159270257
+Source3: http://www.geocities.co.jp/SiliconValley-SanJose/9606/cr/makefile.osx.gz
+Source3Rename: %n-%v-makefile.osx.gz
+Source3-MD5: a7a0f27b956c8fb34807ce11abc07228
+
+PatchScript: <<
+  /usr/bin/sed -i.bak "s|/opt/crawl/lib|%p/var/%n|" source/AppHdr.h
+  /usr/bin/sed -i.bak "s|||g" source/makefile.bor
+  /usr/bin/sed -i.bak "s|||g" source/mon-data.h
+  /usr/bin/iconv -f CP932 -t UTF-8 ../dc_e069_050313_src/dc400b26j069.pat | /usr/bin/patch -d source
+  /usr/bin/gzip -dc ../%n-%v-makefile.osx.gz | /usr/bin/sed -e "s|-I/usr/bin/ncurses|-I%p/include|" -e "s|-DJP ||" -e "s|-DX_LOCALE |-DX_LOCALE |" > source/makefile.osx
+<<
+
+GCC: 4.0
+CompileScript: <<
+   cd source && make -f makefile.osx
+<<
+
+InstallScript: <<
+#  make install MANDIR=%i/share/man/man6 INFODIR=%i/share/info prefix=%i
+#  install -m 755 -d %i/share/doc/%n
+#  cp CONTRIB COPYING ChangeLog NEWS README %i/share/doc/%n
+#  cp doc/{BOOKFILES,*.html,shogi.rules,*.gam} %i/share/doc/%n
+<<
+
+SplitOff: <<
+  Package: %N-x11
+  Description: Japanese version of chess (under X11) 
+  Depends: x11, gnushogi
+  Files: bin/xshogi share/man/man6/xshogi.6 
+  InstallScript: <<
+    install -m 755 -d %i/share/doc/%n
+	cp COPYING %i/share/doc/%n
+    cp xshogi/{BUGS,NEWS,README,README.xboard,REMOTEHOSTS} %i/share/doc/%n
+  <<
+<<
+
+Homepage: http://crawlj.sourceforge.jp/
+DescDetail: <<
+About Dungeon Crawl
+
+Linley's Dungeon Crawl is a free and portable roguelike molded in the tradition
+of the early greats of the genre: Rogue, Hack, and Moria. The player guides a
+single character deep into a subterranean complex to retrieve the Orb of Zot,
+fending off many horrible and hideous creatures along the way. Once retrieved,
+the player must return both character and Orb safely to the surface world.
+Easier said than done, but fun all the same.
+
+Initiated in 1995 by Linley Henzell as a personal project, refinement of Crawl
+continues today through collaborative effort among a small group of developers.
+Free to play and distribute, hours of gameplay await adventurers on several
+popular platforms, including: MS-DOS, Microsoft Windows, GNU/Linux, *BSD,
+Solaris, MacOS (both Classic and OS X), OS/2, and AmigaOS.
+
+
+<<
+DescUsage:<<
+The rules of the game are included in the distribution
+in the file '/sw/share/doc/gnushogi/shogi.rules.'
+<<
