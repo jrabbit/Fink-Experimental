@@ -1,6 +1,6 @@
 Package: aquaterm
 Version: 1.0.0
-Revision: 1
+Revision: 2
 Source: mirror:sourceforge:aquaterm/aquaterm_src.%v.tar.gz
 Source-MD5: 937461dfefb62178bee960bfe88e0991
 Depends: %N-shlibs (= %v-%r)
@@ -9,14 +9,13 @@ SourceDirectory: aquaterm
 CompileScript: echo nothing to do here, everything is done in the installscript
 InstallScript: <<
  #!/bin/sh -x
- cd src
- xcodebuild install -target AquaTerm -configuration Deployment DSTROOT=%d INSTALL_PATH=%p/Applications DYLIB_INSTALL_NAME_BASE=%p/lib GCC_PREPROCESSOR_DEFINITIONS="AQT_APP"
+ xcodebuild install -target AquaTerm -configuration Deployment DSTROOT=%d INSTALL_PATH=%p/Applications DYLIB_INSTALL_NAME_BASE=%p/Library/Frameworks GCC_PREPROCESSOR_DEFINITIONS="AQT_APP"
  mkdir -p %i/include/aquaterm
  cp AQTAdapter.h aquaterm.h %i/include
  cp AQTAdapter.h %i/include/aquaterm
- mkdir -p %i/lib
- mv %i/Applications/AquaTerm.framework %i/lib
- ln -s %p/lib/AquaTerm.framework/Versions/A/AquaTerm %i/lib/libaquaterm.1.0.0.dylib
+ mkdir -p %i/lib %i/Library/Frameworks
+ mv %i/Applications/AquaTerm.framework %i/Library/Frameworks
+ ln -s %p/Library/Frameworks/AquaTerm.framework/Versions/A/AquaTerm %i/lib/libaquaterm.1.0.0.dylib
  ln -s %p/lib/libaquaterm.1.0.0.dylib %i/lib/libaquaterm.dylib
  mkdir -p %i/share/%n
  cp -p -R ../adapters %i/share/%n
@@ -24,7 +23,7 @@ InstallScript: <<
 SplitOff: <<
   Package: %N-shlibs
   Replaces: %N (<= 1.0-1)
-  Files: lib/AquaTerm.framework lib/libaquaterm.*.dylib
+  Files: Library lib/libaquaterm.*.dylib
   Shlibs: <<
    %p/lib/lib/AquaTerm.framework/Versions/A/AquaTerm 1.0.0 %n (>= 1.0.0-1)
   <<
