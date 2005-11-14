@@ -129,13 +129,14 @@ CompileScript: <<
 	perl -pi.bak -e 's,hardcode_direct=yes,hardcode_direct=no,g' configure && \
 	./configure %c && \
 	make includedir=%p/include/postgresql includedir_internal=%p/include/postgresql/internal includedir_server=%p/include/postgresql && \
-	make install includedir=%p/include/postgresql includedir_internal=%p/include/postgresql/internal includedir_server=%p/include/postgresql DESTDIR=%d INSTALLSITEMAN3DIR=%i/share/man/man3 || exit 1
 	make -C contrib
 
 	# postgis
 	pushd contrib/postgis-1.0.4
 	make USE_PROJ=1 PROJ_DIR=%p USE_GEOS=1 GEOS_DIR=%p
 	popd
+
+	make install includedir=%p/include/postgresql includedir_internal=%p/include/postgresql/internal includedir_server=%p/include/postgresql DESTDIR=%d INSTALLSITEMAN3DIR=%i/share/man/man3 || exit 1
 
 	export PATH="%i/bin:$PATH"
 	export DYLD_LIBRARY_PATH="%i/lib:$DYLD_LIBRARY_PATH"
@@ -426,7 +427,7 @@ SplitOff: <<
 SplitOff2: <<
 	Description: PostgreSQL shared libraries
 	Package: %N-shlibs
-	Depends: libs, libgeos2-shlibs, proj-shlibs, libxml2-shlibs, libxslt-shlibs
+	Depends: libgeos2-shlibs, proj-shlibs, libxml2-shlibs, libxslt-shlibs
 	Conflicts: postgresql81-shlibs (<< %v-%r), postgresql81-ssl-shlibs (<< %v-%r)
 	Replaces: postgresql73-shlibs, postgresql73-ssl-shlibs, postgresql73-unified-shlibs, postgresql74-shlibs (<< %v-%r), postgresql74-ssl-shlibs (<< %v-%r), postgresql74-unified-shlibs (<< %v-%r), postgresql, postgresql-shlibs, postgresql80-unified-shlibs
 	Files: lib/*.dylib* var/postgresql-8.1/*.sh var/postgresql-8.1/*.list
