@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
-my $KDEVERSION    = '3.4.3';
-my $KDEDIRECTORY  = 'stable/%v/src/';
+my $KDEVERSION    = '3.5.0';
+my $KDEDIRECTORY  = 'unstable/3.5-rc1/src/';
 my $KDERELNUM     = 1;
 my $KDEI18NRELNUM = 1;
 my $KDEARTSVER    = '1.4.2-1';
@@ -11,6 +11,7 @@ my $KORELNUM      = '1';
 my $KOI18NRELNUM  = 1;
 my $VERBOSE       = 0;
 my $DRYRUN        = 0;
+my $KDERENAME     = '%n-%v-rc1.tar.bz2';
 
 my @kdepackages;
 my @kopackages;
@@ -49,10 +50,15 @@ for my $i18n (@KDEI18N) {
 		$replaces .= ", kde-i18n-norwegian-nyorsk" if ($normalized eq "norwegian-nynorsk");
 		my $filename = $i18n;
 		$filename =~ s#${KDEVERSION}#\%v#g;
+		my $sourcerename = "";
+		if ($KDERENAME) {
+			$sourcerename = 'SourceRename: ' . $KDERENAME;
+		}
 		push(@kdepackages, "kde-i18n-${normalized}");
 		my $contents = <<END;
 Package: kde-i18n-${normalized}
 Source: mirror:kde:${KDEDIRECTORY}kde-i18n/${filename}
+$sourcerename
 SourceDirectory: kde-i18n-${shortname}-%v
 Description: KDE - language files for $MAPPINGS{$shortname}
 DescDetail: Language files for the K Desktop Environment: $MAPPINGS{$shortname}
