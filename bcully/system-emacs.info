@@ -1,0 +1,74 @@
+Package: system-emacs
+Version: 21.2.1
+Revision: 1
+Source: none
+Provides: emacsen
+Depends: emacsen-common
+CompileScript: <<
+#!/bin/sh
+CANARY="%p/etc/%n/site-start.d/00fink-vars.elc"
+
+cat > system-emacs <<EOF
+#!/bin/sh
+
+if test -f "$CANARY" -a /usr/bin/emacs -nt "$CANARY"
+then
+  cat <<TOONEW
+/usr/bin/emacs appears to be newer than your %n package.
+Please run "fink reinstall %n" to recompile any installed emacs packages
+for the new version.
+TOONEW
+  exit 1
+fi
+
+exec /usr/bin/emacs -l "%p/etc/%n/startup" "\$@"
+EOF
+cat > startup.el <<EOF
+(add-to-list 'load-path "%p/share/emacs/site-lisp")
+(add-to-list 'load-path "%p/share/%n/site-lisp")
+(add-to-list 'load-path "%p/etc/emacs")
+(add-to-list 'load-path "%p/etc/%n")
+
+(if (load "fink-startup" t t)
+    (fink-startup 'system-emacs))
+EOF
+<<
+InstallScript: <<
+  mkdir -p %i/bin
+  mkdir -p %i/etc/%n/site-start.d
+  mkdir -p %i/share/%n/site-lisp
+  mkdir -p %i/share/doc/%n
+
+  chmod +x system-emacs
+  cp system-emacs %i/bin
+  cp startup.el %i/etc/%n
+
+  ln -s ../fink/COPYING %i/share/doc/%n
+<<
+PostInstScript: <<
+  update-alternatives --install %p/bin/emacs emacs %p/bin/system-emacs 10 --slave %p/share/man/man1/emacs.1 emacs.1 /usr/share/man/man1/emacs.1
+  update-alternatives --install %p/bin/etags etags /usr/bin/etags 10 --slave %p/share/man/man1/etags.1 etags.1 /usr/share/man/man1/etags.1
+  update-alternatives --install %p/bin/emacsclient emacsclient /usr/bin/emacsclient 10
+
+  %p/lib/emacsen-common/emacs-install %n
+  # ** The function `fink-startup' is not known to be defined.
+  # /usr/bin/emacs -batch -f batch-byte-compile "%p/etc/%n/startup.el"
+<<
+PreRmScript: <<
+if [ "$1" != upgrade ]
+then
+  update-alternatives --remove emacs %p/bin/system-emacs
+  update-alternatives --remove etags /usr/bin/etags
+  update-alternatives --remove emacsclient /usr/bin/emacsclient
+fi
+
+%p/lib/emacsen-common/emacs-remove %n
+<<
+Description: Fink support for system-installed emacs
+DescDetail: <<
+This package allows you to use fink emacs packages with the version
+of emacs bundled with your system.
+<<
+License: GPL
+Homepage: http://fink.sourceforge.net/
+Maintainer: Brendan Cully <bcully@users.sourceforge.net>
