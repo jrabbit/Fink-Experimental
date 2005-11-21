@@ -104,26 +104,6 @@
  {
    KServiceTypeProfile::setConfigurationMode();
    KLocale::setMainCatalogue("filetypes");
---- kdebase-3.5.0/kcontrol/kfontinst/configure.in.in	2005-09-10 04:25:09.000000000 -0400
-+++ kdebase-3.5.0-new/kcontrol/kfontinst/configure.in.in	2005-11-13 08:25:51.000000000 -0500
-@@ -56,7 +56,7 @@
-             done
-             LIBFONTCONFIG_RPATH=`echo $LIBFONTCONFIG_RPATH | sed -e "s/-L/-R/g"`
-             LIBFONTCONFIG_CFLAGS="`$PKGCONFIG fontconfig --cflags`"
--            KFI_FOUND_FONTCONFIG=1
-+            KFI_FOUND_FONTCONFIG=0
-         fi
-     fi
- 
-@@ -74,7 +74,7 @@
-             done
-             LIBFONTCONFIG_RPATH=`echo $LIBFONTCONFIG_RPATH | sed -e "s/-L/-R/g"`
-             LIBFONTCONFIG_CFLAGS="`$FONTCONFIG_CONFIG --cflags`"
--            KFI_FOUND_FONTCONFIG=1
-+            KFI_FOUND_FONTCONFIG=0
-         fi
-     fi
- 
 --- kdebase-3.5.0/kcontrol/kfontinst/kfontinst/Main.cpp	2005-10-10 11:03:47.000000000 -0400
 +++ kdebase-3.5.0-new/kcontrol/kfontinst/kfontinst/Main.cpp	2005-11-13 08:25:51.000000000 -0500
 @@ -190,7 +190,7 @@
@@ -444,7 +424,7 @@
  INCLUDES = -I.. -I$(top_srcdir)/kcheckpass -I$(top_srcdir)/kdmlib $(GLINC) $(all_includes)
 -kdesktop_lock_LDFLAGS  = $(all_libraries) $(KDE_RPATH)
 -kdesktop_lock_LDADD    = ../libkdesktopsettings.la ../../kdmlib/libdmctl.la $(LIB_KIO) $(LIB_XF86MISC) $(GLLIB)
-+kdesktop_lock_la_LDFLAGS  = $(all_libraries) $(KDE_RPATH) -module
++kdesktop_lock_la_LDFLAGS  = $(all_libraries) $(KDE_RPATH) -module -avoid-version
 +kdesktop_lock_la_LIBADD    = ../libkdesktopsettings.la ../../kdmlib/libdmctl.la $(LIB_KIO) $(LIB_XF86MISC) $(GLLIB)
  
  ####### Files
@@ -701,25 +681,6 @@
  	    "/usr/share/info",
  	    "/usr/info",
  	    "/usr/lib/info",
---- kdebase-3.5.0/kioslave/man/kio_man.cpp	2005-10-10 11:04:01.000000000 -0400
-+++ kdebase-3.5.0-new/kioslave/man/kio_man.cpp	2005-11-13 08:25:53.000000000 -0500
-@@ -50,7 +50,7 @@
- 
- MANProtocol *MANProtocol::_self = 0;
- 
--#define SGML2ROFF_DIRS "/usr/lib/sgml"
-+#define SGML2ROFF_DIRS "@FINKPREFIX@/share/sgml"
- 
- /*
-  * Drop trailing ".section[.gz]" from name
-@@ -862,6 +862,7 @@
-                         QStringList::split(space_regex, line);
-     
-                 if ( mapping.count() == 3 )
-+                        "@FINKPREFIX@/share/man",
-                 {
-                     const QString mandir = QDir::cleanDirPath( mapping[1] );
-                     const QString catmandir = QDir::cleanDirPath( mapping[2] );
 --- kdebase-3.5.0/kioslave/media/mounthelper/Makefile.am	2005-09-10 04:25:36.000000000 -0400
 +++ kdebase-3.5.0-new/kioslave/media/mounthelper/Makefile.am	2005-11-13 08:31:13.000000000 -0500
 @@ -1,12 +1,14 @@
@@ -1387,3 +1348,32 @@
  kwrapper ksmserver $KDEWM 
  if test $? -eq 255; then
    # Startup error
+--- kdebase-3.5.0/kioslave/man/kio_man.cpp	2005-10-10 11:04:01.000000000 -0400
++++ kdebase-3.5.0-new/kioslave/man/kio_man.cpp	2005-11-16 11:25:22.000000000 -0500
+@@ -50,7 +50,7 @@
+ 
+ MANProtocol *MANProtocol::_self = 0;
+ 
+-#define SGML2ROFF_DIRS "/usr/lib/sgml"
++#define SGML2ROFF_DIRS "@FINKPREFIX@/share/sgml"
+ 
+ /*
+  * Drop trailing ".section[.gz]" from name
+@@ -883,6 +883,7 @@
+ 
+     // Default paths
+     static const char *manpaths[] = {
++        "@FINKPREFIX@/share/man",
+         "/usr/X11/man",
+         "/usr/X11R6/man",
+         "/usr/man",
+--- kdebase-3.5.0/kioslave/ldap/configure.in.in	2005-10-10 11:04:01.000000000 -0400
++++ kdebase-3.5.0-new/kioslave/ldap/configure.in.in	2005-11-16 13:59:13.000000000 -0500
+@@ -42,6 +42,7 @@
+   AC_DEFINE_UNQUOTED(HAVE_LIBLDAP, 1, [Define if you have LDAP libraries])
+   LDAP_SUBDIR="ldap"
+   AC_MSG_RESULT(Apple framework)
++  with_ldap=FOUND
+   ;;
+ FOUND)
+   AC_MSG_RESULT(incs=$ldap_incdir libs=$ldap_libdir)
