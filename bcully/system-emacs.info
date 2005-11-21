@@ -21,16 +21,53 @@ TOONEW
   exit 1
 fi
 
-exec /usr/bin/emacs -l "%p/etc/%n/startup" "\$@"
+# To get our load file to precede .emacs, we add -q and then load the init file
+# in startup. But we need to capture whether or not the user also requested -q.
+declare -a args
+pos=0
+export SYSTEMEMACSUSER="\$USER"
+while test \$# -gt 0
+do
+  arg="\$1"
+  shift
+  if test x"\$arg" == x-q -o x"\$arg" == x--no-init-file
+  then
+    unset SYSTEMEMACSUSER
+  elif test x"\$arg" == x-u
+  then
+    SYSTEMEMACSUSER="\$1"
+    shift
+  else
+    args[\$pos]="\$arg"
+    pos=\$(expr \$pos + 1)
+  fi
+done
+
+exec /usr/bin/emacs -l "%p/etc/%n/startup" -q "\${args[@]}"
 EOF
 cat > startup.el <<EOF
-(add-to-list 'load-path "%p/share/emacs/site-lisp")
-(add-to-list 'load-path "%p/share/%n/site-lisp")
+(defun system-emacs-load-dirs (dir)
+  (add-to-list 'load-path dir)
+  (let ((cwd default-directory))
+    (cd dir)
+    (if (fboundp 'normal-top-level-add-subdirs-to-load-path)
+        (normal-top-level-add-subdirs-to-load-path))
+    (cd cwd)))
+
+(system-emacs-load-dirs "%p/share/emacs/site-lisp")
+(system-emacs-load-dirs "%p/share/system-emacs/site-lisp")
 (add-to-list 'load-path "%p/etc/emacs")
 (add-to-list 'load-path "%p/etc/%n")
 
-(if (load "fink-startup" t t)
-    (fink-startup 'system-emacs))
+(defun system-emacs-startup ()
+  (if (load "fink-startup" t t)
+      (fink-startup 'system-emacs)))
+(system-emacs-startup)
+;; I don't know why I need to do this. Probably need more before fink-startup
+(system-emacs-startup)
+
+(if (getenv "SYSTEMEMACSUSER")
+    (load (concat "~" (getenv "SYSTEMEMACSUSER") "/.emacs") t t))
 EOF
 <<
 InstallScript: <<
