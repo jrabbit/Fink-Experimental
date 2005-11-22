@@ -1,9 +1,9 @@
 Package: distcc
 Version: 2.18.3
-Revision: 3
-Depends: daemonic, libgettext3-shlibs, libiconv, popt-shlibs, passwd (>= 20031013-1)
+Revision: 4
+Depends: daemonic, libhowl-shlibs (>= 1.0.0-11), libiconv, popt-shlibs, passwd (>= 20031013-1)
 Suggests: ccache
-BuildDepends: libgettext3-dev, libiconv-dev, libxml2, passwd (>= 20031013-1), popt
+BuildDepends: gettext-dev, libhowl-dev (>= 1.0.0-11), libiconv-dev, libxml2, passwd (>= 20031013-1), popt
 BuildDependsOnly: true
 Maintainer: Benjamin Reed <distcc@fink.racoonfink.com>
 CustomMirror: <<
@@ -11,12 +11,14 @@ CustomMirror: <<
   nam-US: http://astrange.ithinksw.net/~astrange/ranger-fink
   nam-CA: http://www.southofheaven.net/befunk
 <<
-Source: http://www.opensource.apple.com/darwinsource/tarballs/other/%n-39.tar.gz
-Source-MD5: 8fa31000aea2d1af3a255981573d6355
-SourceDirectory: distcc/distcc_dist
+#Source: http://%n.samba.org/ftp/%n/%n-%v.tar.bz2
+Source: mirror:custom:%n-%v-patched.tar.bz2
+Source-MD5: b301583cfc9c757d6d27648e40db1682
+SourceDirectory: %n-%v
+#Patch: %n.patch
 ConfigureParams: --mandir=%p/share/man --infodir=%p/share/info
 NoSetCPPFLAGS: true
-SetCPPFLAGS: -no-cpp-precomp -I./src -I./lzo -I%p/include
+SetCPPFLAGS: -no-cpp-precomp -I./src -I./lzo -I%p/include -I%p/include/howl
 SetLIBS: -L%p/lib
 CompileScript: <<
 #!/bin/sh
@@ -82,6 +84,10 @@ DISTCCD_VERBOSE="true"
 
 # the log file to write to
 DISTCCD_LOGFILE="%p/var/log/distccd.log"
+
+# whether to use zeroconf
+# 0 = false, 1 = true
+DISTCCD_ZEROCONF=1
 END
 
   cat <<END > %i/bin/distccd-fink.sh
