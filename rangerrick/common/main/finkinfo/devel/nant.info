@@ -1,32 +1,42 @@
 Package: nant
 Version: 0.85
-Revision: 3
+Revision: 10
 
-CustomMirror: <<
-  nam-US: http://ranger.befunk.com/fink
-  nam-US: http://astrange.ithinksw.net/~astrange/ranger-fink
-  nam-CA: http://www.southofheaven.net/befunk
-<<
-Source: mirror:custom:%n-20051109.tar.gz
-#Source: mirror:sourceforge:%n/%n-%v-rc3-src.tar.gz
-Source-MD5: e7fbc3ac3131dff595c6ac5ebfe3ada8
-SourceDirectory: %n-%v-nightly-2005-11-09
+Source: mirror:sourceforge:%n/%n-%v-rc3-src.tar.gz
+Source-MD5: 64867347ec78a0e67f8e510fa5e14ac9
+SourceDirectory: %n-%v-rc3
+Patch: %n.patch
 DocFiles: COPYING.txt README.txt
 Depends: mono (>= 1.1.10-1)
+BuildDepends: mono-dev (>= 1.1.10-1), pkgconfig
 Homepage: http://nant.sourceforge.net/
 Maintainer: Benjamin Reed <nant@fink.racoonfink.com>
 Description: Ant-like build tool for .NET
-CompileScript: echo "none needed"
+NoSetCPPFLAGS: true
+SetCPPFLAGS: -I%p/include
+NoSETLDFLAGS: true
+SetLIBS: -L%p/lib
+NoSetMAKEFLAGS: true
+SetMAKEFLAGS: -j1
+CompileScript: <<
+#!/bin/sh -ex
+
+  export MONO_PATH="`pwd`/lib:%i/share/NAnt/bin/lib"
+  export DYLD_FALLBACK_LIBRARY_PATH="%i/share/NAnt/bin/lib:%i/lib:/usr/lib"
+
+  make build-bootstrap MONO="mono --debug" MCS="mcs -debug"
+<<
 InstallScript: <<
 #!/bin/sh -ex
 
-  install -d -m 755 %i/bin
-  install -d -m 755 %i/share/NAnt
-  mv bin %i/share/NAnt/
+  export MONO_PATH="`pwd`/lib:%i/share/NAnt/bin/lib"
+  export DYLD_FALLBACK_LIBRARY_PATH="%i/share/NAnt/bin/lib:%i/lib:/usr/lib"
 
+  make install prefix=%i MONO="mono --debug" MCS="mcs -debug"
   cat <<END >%i/bin/nant
 #!/bin/sh
-export MONO_PATH="%p/share/NAnt/bin:%p/share/NAnt/bin/lib:\$MONO_PATH"
+export MONO_PATH="%p/share/NAnt/bin/lib:\$MONO_PATH"
+export DYLD_FALLBACK_LIBRARY_PATH="%p/share/NAnt/bin/lib:/usr/lib"
 exec %p/bin/mono --debug %p/share/NAnt/bin/NAnt.exe "\$@"
 END
   chmod 755 %i/bin/nant
@@ -36,7 +46,6 @@ END
   install -d -m 755 %i/share/doc
   mv doc %i/share/doc/%n
   mv examples %i/share/doc/%n/
-  mv schema %i/share/doc/%n/
 <<
 
 DescDetail: <<

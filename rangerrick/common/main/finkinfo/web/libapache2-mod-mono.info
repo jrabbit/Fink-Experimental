@@ -1,15 +1,16 @@
 Package: libapache2-mod-mono
-Version: 1.0.9
+Version: 1.1.10
 Revision: 1
 Source: http://www.go-mono.com/sources/%n/mod_mono-%v.tar.gz
-Source-MD5: 945bfa14f96ef9c308ea71cb3414e34b
+Source-MD5: 5c0ab197d261987e7a3c65f776462ff4
+PatchScript: sed -e 's,@FINKPREFIX@,%p,g' %a/%n.patch | patch -p1
 DocFiles: AUTHORS COPYING* ChangeLog INSTALL* NEWS README*
 Depends: mono (>= %v-1), mono-xsp (>= %v-1), apache2-ssl | apache2
 BuildDepends: mono (>= %v-1), mono-xsp (>= %v-1), apache2-ssl-dev | apache2-dev, apr-ssl | apr
 Homepage: http://www.mono-project.com/contributing/asp-net.html
 Maintainer: Benjamin Reed <libapache2-mod-mono@fink.racoonfink.com>
 Description: Allow Apache to serve ASP.NET pages
-ConfigureParams: --mandir=%p/share/man --with-apxs=%p/sbin/apxs --with-mono-prefix=%p --with-apr-config=%p/bin/apr-config
+ConfigureParams: --mandir=%p/share/man --with-apxs=%p/sbin/apxs --with-mono-prefix=%p --with-apr-config=%p/bin/apr-config --enable-debug
 CompileScript: <<
 #!/bin/sh -ex
 
@@ -20,16 +21,14 @@ CompileScript: <<
 InstallScript: <<
 #!/bin/sh -ex
 
+  install -d -m 755 %i/share/man/man8
+  install -c -m 644 man/*.8 %i/share/man/man8/
+
   install -d -m 755 %i/etc/apache2
+  install -c -m 644 mod_mono.conf %i/etc/apache2/mono.conf
+
   install -d -m 755 %i/lib/apache2/modules
   install -c -m 755 src/.libs/mod_mono.so %i/lib/apache2/modules/mod_mono.so
-  cat <<END >%i/etc/apache2/mono.conf
-LoadModule mono_module %p/lib/apache2/modules/mod_mono.so
-
-# map a directory to a mono ASP.NET server directory
-MonoApplication /mono-test %p/share/doc/mono-xsp/test
-END
-
 <<
 ConfFiles: <<
   %p/etc/apache2/mono.conf
@@ -38,5 +37,9 @@ DescDetail: <<
 mod_mono allows Apache to serve ASP.NET pages by proxying the requests
 to a slightly modified version of our XSP called mod-mono-server that
 is installed along with XSP.
+<<
+DescUsage: <<
+Edit %p/etc/apache2/mono.conf as desired, and then symlink it into
+%p/etc/apache2/apache2.d/ and restart apache.
 <<
 License: OSI-Approved
