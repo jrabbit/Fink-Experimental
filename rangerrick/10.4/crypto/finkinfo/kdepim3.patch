@@ -361,32 +361,6 @@
  {
    KAboutData *about = MainWidget::aboutData();
  
---- kdepim-3.5.0/kmail/Makefile.am	2005-11-08 17:33:29.000000000 -0500
-+++ kdepim-3.5.0-new/kmail/Makefile.am	2005-11-28 11:41:31.000000000 -0500
-@@ -45,9 +45,11 @@
- linkdir = $(kde_datadir)/kmail/plugins/bodypartformatter
- link_DATA = application_octetstream.desktop
- 
--bin_PROGRAMS = kmail
--kmail_LDFLAGS = $(all_libraries) $(KDE_RPATH)
--kmail_LDADD   = libkmailprivate.la
-+bin_PROGRAMS = 
-+kdeinit_LTLIBRARIES = kmail.la
-+
-+kmail_la_LDFLAGS = $(all_libraries) $(KDE_PLUGIN) -module
-+kmail_la_LIBADD  = libkmailprivate.la
- 
- libkmailprivate_la_SOURCES = kmmessage.cpp kmmainwin.cpp configuredialog.cpp \
-                 configuredialog_p.cpp klistviewindexedsearchline.cpp \
-@@ -126,7 +128,7 @@
-                 managesievescriptsdialog.cpp chiasmuskeyselector.cpp \
-                 util.cpp
- 
--kmail_SOURCES = main.cpp
-+kmail_la_SOURCES = main.cpp
- 
- libkmailpart_la_SOURCES =  kmailpartIface.skel  kmail_part.cpp
- 
 --- kdepim-3.5.0/kmail/main.cpp	2005-09-10 04:24:02.000000000 -0400
 +++ kdepim-3.5.0-new/kmail/main.cpp	2005-11-28 11:41:31.000000000 -0500
 @@ -64,7 +64,7 @@
@@ -1201,3 +1175,39 @@
                           libkolabwizard.la libgroupwisewizard.la \
                           libexchangewizard.la
  
+--- kdepim-3.5.0/kmail/Makefile.am	2005-11-08 17:33:29.000000000 -0500
++++ kdepim-3.5.0-new/kmail/Makefile.am	2005-11-30 08:21:10.000000000 -0500
+@@ -29,15 +29,15 @@
+         ../libkpimidentities/libkpimidentities.la ../mimelib/libmimelib.la \
+         ../libksieve/libksieve.la ../libemailfunctions/libemailfunctions.la \
+         ../certmanager/lib/libkleopatra.la $(INDEXLIB) \
+-        ../libkcal/libkcal.la
++        ../libkcal/libkcal.la $(LIBZ)
+ 
+ kde_module_LTLIBRARIES = kcm_kmail.la libkmailpart.la libkmail_bodypartformatter_application_octetstream.la
+ libkmailpart_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -module -avoid-version -no-undefined
+-libkmailpart_la_LIBADD  = libkmailprivate.la
++libkmailpart_la_LIBADD  = libkmailprivate.la $(LIBZ)
+ 
+ kcm_kmail_la_SOURCES = kcm_kmail.cpp
+ kcm_kmail_la_LDFLAGS = $(all_libraries) -module -avoid-version -no-undefined
+-kcm_kmail_la_LIBADD = libkmailprivate.la $(LIB_KDECORE)
++kcm_kmail_la_LIBADD  = libkmailprivate.la $(LIB_KDECORE) $(LIBZ)
+ 
+ libkmail_bodypartformatter_application_octetstream_la_SOURCES = app_octetstream.cpp
+ libkmail_bodypartformatter_application_octetstream_la_LDFLAGS = $(all_libraries) -module $(KDE_PLUGIN)
+@@ -45,9 +45,11 @@
+ linkdir = $(kde_datadir)/kmail/plugins/bodypartformatter
+ link_DATA = application_octetstream.desktop
+ 
+-bin_PROGRAMS = kmail
+-kmail_LDFLAGS = $(all_libraries) $(KDE_RPATH)
+-kmail_LDADD   = libkmailprivate.la
++bin_PROGRAMS = 
++kdeinit_LTLIBRARIES = kmail.la
++
++kmail_la_LDFLAGS = $(all_libraries) $(KDE_RPATH) -module $(LIBZ)
++kmail_la_LIBADD  = libkmailprivate.la $(LIBZ)
+ 
+ libkmailprivate_la_SOURCES = kmmessage.cpp kmmainwin.cpp configuredialog.cpp \
+                 configuredialog_p.cpp klistviewindexedsearchline.cpp \
