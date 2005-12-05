@@ -1,0 +1,83 @@
+Package: apr1
+Version: 1.2.2
+Revision: 11
+Description: Apache Portable Runtime
+License: BSD
+Maintainer: Dustin Sias <dustin@coretechnologies.net>
+
+# Dependencies:
+Depends: %N-shlibs (= %v-%r), %N-common (= %v-%r)
+BuildDepends: expat (>= 1.95.3-1), fink (>= 0.11.0-1), gdbm3, db43-ssl (>= 4.2.52-12) | db43 (>= 4.2.52-12), libiconv-dev, openldap-dev (>= 2.2.26-1), cyrus-sasl2-dev (>= 2.1.21-3), system-openssl-dev, sqlite3-dev
+BuildDependsOnly: True
+GCC: 3.3
+
+# Unpack Phase:
+Source: mirror:apache:apr/apr-%v.tar.gz
+Source-MD5: f96e3b04ccf86ed28a0734d7efc5bb65
+Source2: mirror:apache:apr/apr-util-%v.tar.gz
+Source2-MD5: 8b3f04dde7048946c3c94f85b4debb94
+
+# Patch Phase:
+PatchScript: <<
+  ### Fix --tag for new libtool
+  for i in `/usr/bin/find . -name configure`; do perl -pi -e "s,LTFLAGS=\'--silent\',LTFLAGS=\'--silent --tag=CC\',g" $i; done
+<<
+
+# Compile Phase:
+ConfigureParams: --libexecdir='${prefix}/lib/apr-1' --datadir='${prefix}/share/apr-1' --sysconfdir='${prefix}/etc/apr-1' --sharedstatedir='${prefix}/share/apr-1' --includedir='${prefix}/include/apr-1' --mandir='${prefix}/share/man' --infodir='${prefix}/share/info' --with-expat=%p --with-dbm=db43 --with-berkeley-db=%p --with-ldap --with-ldap-include='${prefix}/include/' --with-ldap-lib='${prefix}/include/' --with-sqlite3=%p --without-mysql --without-pgsql --disable-dependency-tracking
+SetCPPFLAGS: -no-cpp-precomp -I%p/lib/system-openssl/include
+SetLDFLAGS: -L%p/lib/system-openssl/lib
+SetLIBS: -L%p/lib
+CompileScript: <<
+ export ac_cv_func_poll=no; SED=/usr/bin/sed ./configure %c
+ make
+ cd ../apr-util-%v; export ac_cv_func_poll=no; SED=/usr/bin/sed ./configure %c --with-apr=%b
+ cd ../apr-util-%v; make
+<<
+
+# Install Phase:
+DocFiles: LICENSE ../apr-util-%v/LICENSE:LICENSE_apr-util CHANGES ../apr-util-%v/CHANGES:CHANGES_apr-util NOTICE ../apr-util-%v/NOTICE:NOTICE_apr-util docs/*.html
+InstallScript: <<
+ make install prefix=%i
+ cd ../apr-util-%v; make install prefix=%i
+<<
+SplitOff: <<
+  Depends: expat-shlibs (>= 1.95.3-1), gdbm3-shlibs, db43-ssl-shlibs (>= 4.2.52-12) | db43-shlibs (>= 4.2.52-12), openldap-shlibs (>= 2.2.26-1), cyrus-sasl2-shlibs (>= 2.1.21-3), sqlite3-shlibs
+  Package: %N-shlibs
+  Files: lib/libapr-1.*.dylib lib/libaprutil-1.*.dylib
+  Shlibs: <<
+   %p/lib/libapr-1.0.dylib 3.0.0 apr1-shlibs (>= 1.2.2-1)
+   %p/lib/libaprutil-1.0.dylib 3.0.0 apr1-shlibs (>= 1.2.2-1)
+  <<
+  DocFiles: LICENSE ../apr-util-%v/LICENSE:LICENSE_apr-util CHANGES ../apr-util-%v/CHANGES:CHANGES_apr-util NOTICE ../apr-util-%v/NOTICE:NOTICE_apr-util
+<<
+SplitOff2: <<
+  Package: %N-common
+  Files: bin/apr-1-config bin/apu-1-config
+  DocFiles: LICENSE ../apr-util-%v/LICENSE:LICENSE_apr-util
+<<
+
+DescDetail: <<
+The mission of the Apache Portable Runtime (APR) is to provide a 
+free library of C data structures and routines, forming a system 
+portability layer to as many operating systems as possible, including 
+Unices, MS Win32, BeOS and OS/2.
+<<
+DescPackaging: <<
+Source taken from the apache2 source tarball since there is no 
+recent apr realease available at the moment.
+
+apr and apr-util are in one package since the building of apr-util needs
+files from the apr source directory (e.g. /sw/bin/build/rules.mk)
+<<
+DescPort: <<
+Patch needed to stop apr-util to relink a .dylib in the install path, 
+but hardcoding the /sw/lib path in the link command (i.e. %p) instead 
+of using %i (Thanks to Max Horn for fixing this)
+
+Also apr was looking for db-4.0 by default. Patched to use db-4.3
+
+Since configure is looking for an installed sed, set it to 
+'/usr/bin/sed' so we don't have to depend on the fink sed package.
+<<
+Homepage: http://apr.apache.org/
