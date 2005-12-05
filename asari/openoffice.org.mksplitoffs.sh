@@ -1,6 +1,6 @@
 #!/bin/sh
 
-LANGS="af ar be-BY bg bn ca cs cy da de el en-GB eo es et eu fi fr ga gl gu-IN he hi-IN hr hu it ja km kn-IN ko lo lt ms nb ne nl nn nr ns pa-IN pl pt pt-BR ru rw sh-YU sk sl sr-CS ss st sv sw-TZ ta-IN th tn tr ts ve vi xh zh-CN zh-TW zu"
+LANGS="af ar be-BY bg bn bn-BD bn-IN br bs ca cs cy da de el en-GB en-ZA eo es et eu fi fr ga gl gu-IN he hi-IN hr hu it ja km kn-IN ko lo lt lv mk ms nb ne nl nn nr ns pa-IN pl pt pt-BR ru rw sh-YU sk sl sr-CS ss st sv sw sw-TZ sx ta-IN th tn tr ts ve vi xh zh-CN zh-TW zu"
 
 nLangs=`echo $LANGS | wc -w`
 
