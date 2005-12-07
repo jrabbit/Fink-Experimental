@@ -109,8 +109,10 @@ for my $file (@files) {
 								}
 
 								if ($tree =~ /^10.3/) {
+									$line =~ s/libxine1/libxine/gs;
+									$line =~ s/(^\s*|,\s*)fontconfig2-shlibs//;
 									$line =~ s/libicu32-dev, *//;
-									$line =~ s/(^|,)\s*macosx \(>= 10.4.*?\)(\s*,|$)//;
+									$line =~ s/(^\s*|,\s*)macosx \(>= 10.4.*?\)//;
 								} elsif ($tree =~ /^10.4/) {
 									$line =~ s/libicu31-dev, *//;
 								}
