@@ -1,5 +1,5 @@
 Package: svn
-Version: 1.2.3
+Version: 1.3.0-rc4
 Revision: 11
 Description: Subversion - svnserve, tools
 License: BSD
@@ -7,20 +7,21 @@ Maintainer: Christian Schaffner <chris01@users.sourceforge.net>
 
 # Dependencies:
 Depends: %N-shlibs (= %v-%r), daemonic
-BuildDepends: apr (>= 0.9.6-12), apr-common (>= 0.9.6-12), db43-ssl | db43, gdbm3, expat (>= 1.95.6-2), libxml2 (>= 2.5.10-12), fink (>= 0.16.0-1), neon24 (>= 0.24.7-13), openldap23-dev, cyrus-sasl2-dev (>= 2.1.21-3), system-openssl-dev, swig (>= 1.3.20-2), texinfo (>= 4.2-22), libiconv-dev (>= 1.9.1-11), gettext-bin, gettext-tools, libgettext3-dev, io-string-pm, libtool14 (>= 1.5.10-1), autoconf2.5, automake1.9, gcc3.3
-Conflicts: svn-client (<= 1.2.3-0), svn-client-ssl (<= 0.26.0-2), apache2 (<< 2.0.47-1)
-Replaces: svn-client (<= 1.2.3-0), svn-client-ssl (<= 1.1.1-11)
+BuildDepends: libapr1, libapr1-common, db43-ssl | db43, gdbm3, expat (>= 1.95.6-2), libxml2 (>= 2.5.10-12), fink (>= 0.16.0-1), neon25, openldap23-dev, cyrus-sasl2-dev (>= 2.1.21-3), system-openssl-dev, texinfo (>= 4.2-22), libiconv-dev (>= 1.9.1-11), gettext-bin, gettext-tools, libgettext3-dev, io-string-pm, libtool14 (>= 1.5.10-1), autoconf2.5, automake1.9, gcc3.3, sqlite3-dev
+#, swig (>= 1.3.24-1)
 
 # Unpack Phase:
-Source: http://subversion.tigris.org/tarballs/subversion-%v.tar.bz2
-Source-MD5: a14bc6590241b6e5c2ff2b354cc184a1
+Source: http://subversion.tigris.org/downloads/subversion-%v.tar.bz2
+Source-MD5: 32bd8a7ff6855151704ae5d5773f7028
 
 # Patch Phase:
 Patch: %n.patch
 
 # Compile Phase:
-ConfigureParams: --libexecdir='${prefix}/lib/svn' --mandir='${prefix}/share/man' --infodir='${prefix}/share/info' --with-neon=%p --with-apr=%p --with-apr-util=%p --enable-shared --without-apxs --without-apache --disable-mod-activation --without-jdk --disable-javahl --with-jikes=no --disable-swig-bindings --with-swig=%p --without-python --without-perl --without-ruby
-SetCPPFLAGS: -I%p/include/db4 -no-cpp-precomp
+ConfigureParams: --libexecdir='${prefix}/lib/svn' --mandir='${prefix}/share/man' --infodir='${prefix}/share/info' --with-neon=%p --with-apr=%p --with-apr-util=%p --enable-shared --without-apxs --without-apache --disable-mod-activation --without-jdk --disable-javahl --with-jikes=no --disable-swig-bindings --without-swig --without-python --without-perl --without-ruby
+# --with-swig=%p
+SetCPPFLAGS: -no-cpp-precomp -I%p/lib/system-openssl/include
+SetLDFLAGS: -L%p/lib/system-openssl/lib
 GCC: 3.3
 CompileScript: <<
 #! /bin/sh -e
@@ -36,7 +37,7 @@ CompileScript: <<
  export CC=gcc-3.3; export CXX=g++-3.3; export F77=no; ./configure %c
 
  ### force SWIG to use gcc 3.3 too
- perl -pi.bak -e 's|(SWIG.*)gcc|${1}gcc-3.3|g' Makefile
+ #perl -pi.bak -e 's|(SWIG.*)gcc|${1}gcc-3.3|g' Makefile
  
  ### make everything shared
  make CC=gcc-3.3 CXX=g++-3.3
@@ -69,7 +70,7 @@ CompileScript: <<
 <<
 
 # Install Phase:
-DocFiles: BUGS CHANGES COMMITTERS COPYING HACKING INSTALL README
+DocFiles: BUGS CHANGES COMMITTERS COPYING HACKING INSTALL README TRANSLATING
 InstallScript: <<
  make install DESTDIR=%d
  
@@ -80,7 +81,6 @@ InstallScript: <<
  cp -r www %i/share/doc/%n
  cp -r doc/user %i/share/doc/%n
  cp -r notes %i/share/doc/%n
- cp -r doc/book %i/share/doc/%n
  
  ### Configure and install examples, tools and notes
  /usr/bin/install -d %i/share/%n
@@ -88,8 +88,10 @@ InstallScript: <<
  cp -r tools/bdb %i/share/%n/tools
  cp -r tools/client-side %i/share/%n/tools
  cp -r tools/dev %i/share/%n/tools
+ cp -r tools/diff %i/share/%n/tools
  cp -r tools/examples %i/share/%n/tools
  cp -r tools/hook-scripts %i/share/%n/tools
+ cp -r tools/po %i/share/%n/tools
  cp -r tools/test-scripts %i/share/%n/tools
  cp -r tools/xslt %i/share/%n/tools
  
@@ -191,7 +193,7 @@ SplitOff2: <<
   Package: %N-shlibs
   Conflicts: svn-client-ssl (<= 0.26.0-2), svn-client (<= 0.26.0-2)
   Replaces: svn-client-ssl (<= 0.26.0-2), svn-client (<= 0.26.0-2)
-  Depends: apr-shlibs (>= 0.9.6-12), db43-ssl-shlibs | db43-shlibs, gdbm3-shlibs, expat-shlibs (>= 1.95.6-2), libxml2-shlibs (>= 2.5.10-12), neon24-shlibs (>= 0.24.7-13), openldap23-shlibs, cyrus-sasl2-shlibs (>= 2.1.21-3), libgettext3-shlibs
+  Depends: libapr1-shlibs, db43-ssl-shlibs | db43-shlibs, gdbm3-shlibs, expat-shlibs (>= 1.95.6-2), libxml2-shlibs (>= 2.5.10-12), neon25-shlibs, openldap23-shlibs, cyrus-sasl2-shlibs (>= 2.1.21-3), libgettext3-shlibs
   Files: <<
     lib/libsvn_client-1.0.0.0.dylib
     lib/libsvn_delta-1.0.0.0.dylib
@@ -239,7 +241,7 @@ SplitOff2: <<
 <<
 SplitOff3: <<
   Description: Subversion - Client
-  Package: svn-client
+  Package: %N-client
   Depends: %N-shlibs (= %v-%r)
   Replaces: svn-ssl
   Files: <<
@@ -251,7 +253,7 @@ SplitOff3: <<
     share/%N/contrib/client-side
     share/%N/tools/client-side
   <<
-  DocFiles: BUGS CHANGES COMMITTERS COPYING HACKING INSTALL README
+  DocFiles: BUGS CHANGES COMMITTERS COPYING HACKING INSTALL README  TRANSLATING
   DescUsage: <<
     This installs the subversion client.
     Type 'svn help' for usage and look in %p/share/svn/tools and 
@@ -277,7 +279,7 @@ SplitOff8: <<
 <<
 # SplitOff7: <<
 #   Package: %N-swig-java
-#   Depends: %N-shlibs (= %v-%r), system-java14, swig-shlibs (>= 1.3.20-2)
+#   Depends: %N-shlibs (= %v-%r), system-java14, swig-shlibs (>= 1.3.24-1)
 #   Files: <<
 #     share/java/%N-swig-java
 #   <<
