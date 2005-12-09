@@ -1,0 +1,110 @@
+Package: cyrus22
+Version: 2.2.12
+Revision: 1
+Depends: <<
+  daemonic, passwd (>= 20051118-1), cyrus-sasl2-shlibs,
+  db44-aes-shlibs | db44-shlibs, perl586-core
+<<
+BuildDepends: <<
+  cyrus-sasl2, db44-aes | db44, system-openssl-dev, perl586-core
+<<
+Source: http://cyrus.andrew.cmu.edu/imapd/cyrus-imapd-%v.tar.gz
+Source-MD5: 70b3bba526a8d36d3bb23a87d37e9188
+PatchScript: sed -e 's,@PREFIX@,%p,g' %a/%n.patch | patch -p1
+UpdateConfigGuess: yes
+# Apple's com_err seems to be short __et_list
+ConfigureParams: --sysconfdir=%p/etc --mandir=%p/share/man --with-cyrus-prefix=%p/lib/cyrus --with-statedir=%p/var --with-bdb-incdir=%p/include/db4 --with-sasl=%p --with-com_err=yes --with-cyrus-user=cyrusimap --with-perl=/usr/bin/perl --without-snmp --enable-listext
+CompileScript: <<
+  ./configure CPPFLAGS='-I%p/lib/system-openssl/include -I%p/include' LDFLAGS='-L%p/lib/system-openssl/lib -L%p/lib' %c
+  make
+<<
+InstallScript: <<
+  make install DESTDIR=%d
+  mkdir -p %i/share/doc/%n
+  cp -r doc/*.html doc/*.png doc/*.fig doc/man doc/text %i/share/doc/%n
+  rm -r %i/share/doc/%n/text/CVS %i/share/doc/%n/text/Makefile
+  mkdir -p %i/etc
+  sed -e 's,/var/imap,%p/var/lib/cyrus,g' master/conf/normal.conf > %i/etc/cyrus.conf
+  cp fink/imapd.conf %i/etc
+  install -m 755 fink/cyrus-makedirs %i/sbin
+  mkdir -p %i/share/man/man8
+  install -m 644 fink/cyrus-makedirs.8 %i/share/man/man8
+<<
+UpdatePOD: true
+DocFiles: COPYRIGHT README
+SplitOff: <<
+  Package: %N-dev
+  Depends: %N (= %v-%r)
+  Description: Cyrus IMAP system - development files
+  Files: <<
+    %p/include
+    %p/lib/lib*
+  <<
+<<
+SplitOff2: <<
+  Package: %N-doc
+  Files: <<
+    share/doc/%N/*.html
+    share/doc/%N/*.png
+    share/doc/%N/*.fig
+    share/doc/%N/man
+    share/doc/%N/text
+  <<
+  Description: Cyrus mail system - documentation
+<<
+PostInstScript: <<
+  daemonic update %n
+  %p/sbin/cyrus-makedirs
+<<
+PreRmScript: <<
+  [ -f %p/var/run/%n.pid ] && kill `cat %p/var/run/%n.pid`
+  if [ $1 != "upgrade" ]; then
+    daemonic remove %n
+  fi
+<<
+ConfFiles: %p/etc/cyrus.conf %p/etc/imapd.conf
+DaemonicName: cyrus22
+DaemonicFile: <<
+<service>
+  <description>Cyrus IMAP server</description>
+  <message>Cyrus IMAP server</message>
+
+  <daemon name="cyrus22">
+    <executable background="no">%p/lib/cyrus/bin/master</executable>
+    <parameters>-d -p %p/var/run/%n.pid</parameters>
+    <pidfile>%p/var/run/%n.pid</pidfile>
+  </daemon>
+</service>
+<<
+
+Description: Cyrus mail system
+DescDetail: <<
+    Cyrus is a fully-featured IMAP daemon, with a number of features not
+    found in other IMAP implementations, including:
+     o Designed to handle massive quantities of mail
+     o No need for users to have login accounts
+     o Support for POP3 in addition to IMAP
+     o Sieve server-side email filtering
+     o Servers don't run as root
+     o Easy support for mail quotas
+     o SSL support, including secure IMAP
+    For more information, see http://asg.web.cmu.edu/cyrus/.
+    .
+    Note: Cyrus doesn't support reading from and storing mail in your
+    standard mail spool - it stores mail in a separate directory in its
+    own MH-like format.
+<<
+DescUsage: <<
+Use "sudo daemonic enable %n" to start the IMAP server automatically on boot.
+You're on your own getting your mail server of choice to deliver to cyrus, but
+see %p/etc/imapd.conf for the path to Cyrus' LMTP socket. You might need to relocate
+this depending on what permissions your MTA runs with.
+
+You'll also need to set permissions correctly on %p/etc/sasldb2. Depending on which
+authentication mechanism you choose, imapd may need read or even write (for OTP) access
+to the database.
+<<
+
+License: OSI-Approved
+Maintainer: Brendan Cully <bcully@users.sourceforge.net>
+Homepage: http://asg.web.cmu.edu/cyrus/
