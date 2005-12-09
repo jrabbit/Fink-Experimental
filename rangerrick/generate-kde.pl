@@ -23,7 +23,7 @@ for my $file (@files) {
 	my ($dir, $filename) = (dirname($file), basename($file));
 
 	next unless ($file =~ /\.(info|patch)$/);
-	next unless ($file =~ /(kde|postgres|libpq|libpg|wv2|icecream|qt3|qca|kgpg|xfree86|xorg|\/mono\.|libgdiplus|monodevelop|cocoa-sharp)/);
+	next unless ($file =~ /(kde|postgres|libpq|libpg|wv2|icecream|qt3|qca|kgpg|xfree86|xorg|\/mono\.|libgdiplus|monodevelop|cocoa-sharp|fung-calc)/);
 	next if ($file =~ /notready/);
 
 	#for my $tree ('10.2-gcc3.3', '10.3', '10.4') {
@@ -87,7 +87,18 @@ for my $file (@files) {
 										@versions = qw(5.8.1 5.8.4 5.8.6);
 									}
 									$line = $1 . "Type: perl(@versions)\n";
+								} elsif ($line =~ /^(\s*)type:\s*python\s*\((.*)\)\s*$/i) {
+									my @versions = split(/\s+/, $2);
+									if ($tree =~ /^10\.2/) {
+										@versions = qw(2.1 2.2 2.3);
+									} elsif ($tree =~ /^10\.3/) {
+										@versions = qw(2.1 2.2 2.3 2.4);
+									} elsif ($tree =~ /^10\.4/) {
+										@versions = qw(2.2 2.3 2.4);
+									}
+									$line = $1 . "Type: python(@versions)\n";
 								}
+
 								if ($tree =~ /^10\.2/) {
 									$line =~ s/^\#10.2\s+(.*)$/$1/;
 									$line =~ s/libgsf-dev/libgsf/g;
