@@ -1388,3 +1388,29 @@ diff -uNr kdebase-3.5.0/nsplugins/viewer/viewer.cpp kdebase-3.5.0-new/nsplugins/
  {
      // nspluginviewer is a helper app, it shouldn't do session management at all
     setenv( "SESSION_MANAGER", "", 1 );
+diff -uNr kdebase-3.5.0/kioslave/nfs/mount.h kdebase-3.5.0-new/kioslave/nfs/mount.h
+--- kdebase-3.5.0/kioslave/nfs/mount.h	Sat Sep 10 04:25:37 2005
++++ kdebase-3.5.0-new/kioslave/nfs/mount.h	Thu Dec  8 10:09:04 2005
+@@ -8,6 +8,22 @@
+ 
+ #include <rpc/rpc.h>
+ 
++#if !defined(IXDR_GET_INT32)
++#define IXDR_GET_INT32(buf)             ((int32_t)ntohl((u_int32_t)*(buf)++))
++#endif
++
++#if !defined(IXDR_PUT_INT32)
++#define IXDR_PUT_INT32(buf, v)          (*(buf)++ =(int32_t)htonl((u_int32_t)v))
++#endif
++
++#if !defined(IXDR_GET_U_INT32) && defined(IXDR_GET_INT32)
++#define IXDR_GET_U_INT32(buf)           ((u_int32_t)IXDR_GET_INT32(buf))
++#endif
++
++#if !defined(IXDR_PUT_U_INT32) && defined(IXDR_PUT_INT32)
++#define IXDR_PUT_U_INT32(buf, v)        IXDR_PUT_INT32((buf), ((int32_t)(v)))
++#endif
++
+ /*
+  * Sun RPC is a product of Sun Microsystems, Inc. and is provided for
+  * unrestricted use provided that this legend is included on all tape
