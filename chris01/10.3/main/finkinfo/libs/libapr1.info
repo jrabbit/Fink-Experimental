@@ -9,7 +9,8 @@ Maintainer: Dustin Sias <dustin@coretechnologies.net>
 Depends: %N-shlibs (= %v-%r), %N-common (= %v-%r)
 BuildDepends: expat (>= 1.95.3-1), fink (>= 0.11.0-1), gdbm3, db43-ssl (>= 4.2.52-12) | db43 (>= 4.2.52-12), libiconv-dev, openldap23-dev, cyrus-sasl2-dev (>= 2.1.21-3), system-openssl-dev, sqlite3-dev
 BuildDependsOnly: True
-Conflicts: svn-client (<< 0.14.3-1), apache2 (<< 2.0.47-1)
+Conflicts: svn-client (<< 0.14.3-1), apache2 (<< 2.0.47-1), apr, apr-ssl
+Replaces: apr, apr-ssl
 GCC: 3.3
 
 # Unpack Phase:
@@ -22,6 +23,8 @@ Source2-MD5: 8b3f04dde7048946c3c94f85b4debb94
 PatchScript: <<
   ### Fix --tag for new libtool
   for i in `/usr/bin/find . -name configure`; do perl -pi -e "s,LTFLAGS=\'--silent\',LTFLAGS=\'--silent --tag=CC\',g" $i; done
+  ### Force use of awk over gawk
+  perl -pi -e 's,gawk mawk nawk awk,awk mawk nawk gawk,g' apr/configure
 <<
 
 # Compile Phase:
@@ -30,9 +33,9 @@ SetCPPFLAGS: -no-cpp-precomp -I%p/lib/system-openssl/include
 SetLDFLAGS: -L%p/lib/system-openssl/lib
 SetLIBS: -L%p/lib
 CompileScript: <<
- export ac_cv_func_poll=no; SED=/usr/bin/sed ./configure %c
+ export ac_cv_func_poll=no; AWK=/usr/bin/awk SED=/usr/bin/sed ./configure %c
  make
- cd ../apr-util-%v; export ac_cv_func_poll=no; SED=/usr/bin/sed ./configure %c --with-apr=%b
+ cd ../apr-util-%v; export ac_cv_func_poll=no; AWK=/usr/bin/awk SED=/usr/bin/sed ./configure %c --with-apr=%b
  cd ../apr-util-%v; make
 <<
 
