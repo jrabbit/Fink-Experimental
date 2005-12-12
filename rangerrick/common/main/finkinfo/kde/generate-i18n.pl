@@ -1,9 +1,9 @@
 #!/usr/bin/perl
 
 my $KDEVERSION    = '3.5.0';
-my $KDEDIRECTORY  = 'unstable/3.5-rc1/src/';
+my $KDEDIRECTORY  = 'stable/3.5/src/';
 my $KDERELNUM     = 1;
-my $KDEI18NRELNUM = 1;
+my $KDEI18NRELNUM = 2;
 my $KDEARTSVER    = '1.4.2-1';
 my $KOVERSION     = '1.4.2';
 my $KODIRECTORY   = 'stable/koffice-1.4.2/src/koffice-l10n/';
@@ -11,7 +11,7 @@ my $KORELNUM      = '1';
 my $KOI18NRELNUM  = 1;
 my $VERBOSE       = 0;
 my $DRYRUN        = 0;
-my $KDERENAME     = '%n-%v-rc1.tar.bz2';
+#my $KDERENAME     = '%n-%v.tar.bz2';
 
 my @kdepackages;
 my @kopackages;
@@ -47,7 +47,9 @@ for my $i18n (@KDEI18N) {
 		$normalized =~ s#[^a-zA-Z]+#-#g;
 		$normalized =~ s#-*$##;
 		my $replaces = "koffice-i18n-${normalized}, khangman, kturtle";
-		$replaces .= ", kde-i18n-norwegian-nyorsk" if ($normalized eq "norwegian-nynorsk");
+		$replaces .= ", kde-i18n-norwegian-nyorsk"     if ($normalized eq "norwegian-nynorsk");
+		$replaces .= ", kde-i18n-serbian-latin-script" if ($normalized eq "serbian");
+		$replaces .= ", kde-i18n-serbian"              if ($normalized eq "serbian-latin-script");
 		my $filename = $i18n;
 		$filename =~ s#${KDEVERSION}#\%v#g;
 		my $sourcerename = "";

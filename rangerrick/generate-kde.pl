@@ -23,7 +23,7 @@ for my $file (@files) {
 	my ($dir, $filename) = (dirname($file), basename($file));
 
 	next unless ($file =~ /\.(info|patch)$/);
-	next unless ($file =~ /(kde|postgres|libpq|libpg|wv2|icecream|qt3|qca|kgpg|xfree86|xorg|\/mono\.|libgdiplus|monodevelop|cocoa-sharp|fung-calc)/);
+	next unless ($file =~ /(kde|postgres|libpq|libpg|wv2|icecream|qt3|qca|kgpg|xfree86|xorg|\/mono\.|libgdiplus|monodevelop|cocoa-sharp|perlmods|fung-calc)/);
 	next if ($file =~ /notready/);
 
 	#for my $tree ('10.2-gcc3.3', '10.3', '10.4') {
@@ -82,7 +82,7 @@ for my $file (@files) {
 									if ($tree =~ /^10\.2/) {
 										@versions = qw(5.6.0 5.6.1 5.8.1);
 									} elsif ($tree =~ /^10\.3/) {
-										@versions = qw(5.6.0 5.6.1 5.8.0 5.8.4 5.8.6);
+										@versions = qw(5.6.0 5.8.0 5.8.1 5.8.4 5.8.6);
 									} elsif ($tree =~ /^10\.4/) {
 										@versions = qw(5.8.1 5.8.4 5.8.6);
 									}

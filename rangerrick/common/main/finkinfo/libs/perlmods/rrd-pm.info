@@ -1,7 +1,7 @@
 Info2: <<
 Package: rrd-pm%type_pkg[perl]
 Version: 1.2.9
-Revision: 1
+Revision: 2
 BuildDepends: libpng3, perl%type_pkg[perl]-core, rrdtool (>= 1.2.9-1), rrdtool-dev (>= 1.2.9-1)
 Depends: libpng3-shlibs, perl%type_pkg[perl]-core
 Provides: rrd-pm, rrdtool-perl-pm%type_pkg[perl]
@@ -17,43 +17,35 @@ DocFiles: bindings/perl-piped/README:README.piped bindings/perl-shared/README:RE
 CompileScript: <<
 #!/bin/sh -ex
 
-  if perl -e 'use 5.8.1' >/dev/null 2>&1; then
-    perlarchdir=darwin-thread-multi-2level
-  else
-    perlarchdir=darwin
-  fi
+	eval "`perl$perlversion -V:archname`"
 
-  export PERLMAKEARGS="PREFIX=%p INSTALLPRIVLIB=%p/lib/perl5/%type_raw[perl] INSTALLARCHLIB=%p/lib/perl5/%type_raw[perl]/$perlarchdir INSTALLSITELIB=%p/lib/perl5/%type_raw[perl] INSTALLSITEARCH=%p/lib/perl5/%type_raw[perl]/$perlarchdir INSTALLMAN1DIR=%p/lib/perl5/%type_raw[perl] INSTALLMAN3DIR=%p/lib/perl5/%type_raw[perl] INSTALLSITEMAN1DIR=%p/lib/perl5/%type_raw[perl] INSTALLSITEMAN3DIR=%p/lib/perl5/%type_raw[perl] INSTALLBIN=%p/bin INSTALLSITEBIN=%p/bin INSTALLSCRIPT=%p/bin"
+	export PERLMAKEARGS="PREFIX=%p INSTALLPRIVLIB=%p/lib/perl5/%type_raw[perl] INSTALLARCHLIB=%p/lib/perl5/%type_raw[perl]/$archname INSTALLSITELIB=%p/lib/perl5/%type_raw[perl] INSTALLSITEARCH=%p/lib/perl5/%type_raw[perl]/$archname INSTALLMAN1DIR=%p/lib/perl5/%type_raw[perl] INSTALLMAN3DIR=%p/lib/perl5/%type_raw[perl] INSTALLSITEMAN1DIR=%p/lib/perl5/%type_raw[perl] INSTALLSITEMAN3DIR=%p/lib/perl5/%type_raw[perl] INSTALLBIN=%p/bin INSTALLSITEBIN=%p/bin INSTALLSCRIPT=%p/bin"
 
-  pushd bindings/perl-piped
-  perl%type_raw[perl] Makefile.PL $PERLMAKEARGS
-  make
-  make test
-  popd
-  pushd bindings/perl-shared
-  perl%type_raw[perl] Makefile.PL $PERLMAKEARGS
-  make INC="-I%p/include" OTHERLDFLAGS="-L%p/lib -lrrd -lcgi"
-  make test
-  popd
+	pushd bindings/perl-piped
+	perl%type_raw[perl] Makefile.PL $PERLMAKEARGS
+	make
+	make test
+	popd
+	pushd bindings/perl-shared
+	perl%type_raw[perl] Makefile.PL $PERLMAKEARGS
+	make INC="-I%p/include" OTHERLDFLAGS="-L%p/lib -lrrd -lcgi"
+	make test
+	popd
 <<
 InstallScript: <<
 #!/bin/sh -ex
 
-  if perl -e 'use 5.8.1' >/dev/null 2>&1; then
-    perlarchdir=darwin-thread-multi-2level
-  else
-    perlarchdir=darwin
-  fi
+	eval "`perl$perlversion -V:archname`"
 
-  export PERLMAKEARGS="PREFIX=%i INSTALLPRIVLIB=%i/lib/perl5/%type_raw[perl] INSTALLARCHLIB=%i/lib/perl5/%type_raw[perl]/$perlarchdir INSTALLSITELIB=%i/lib/perl5/%type_raw[perl] INSTALLSITEARCH=%i/lib/perl5/%type_raw[perl]/$perlarchdir INSTALLMAN1DIR=%i/lib/perl5/%type_raw[perl] INSTALLMAN3DIR=%i/lib/perl5/%type_raw[perl] INSTALLSITEMAN1DIR=%i/lib/perl5/%type_raw[perl] INSTALLSITEMAN3DIR=%i/lib/perl5/%type_raw[perl] INSTALLBIN=%i/bin INSTALLSITEBIN=%i/bin INSTALLSCRIPT=%i/bin"
+	export PERLMAKEARGS="PREFIX=%i INSTALLPRIVLIB=%i/lib/perl5/%type_raw[perl] INSTALLARCHLIB=%i/lib/perl5/%type_raw[perl]/$archname INSTALLSITELIB=%i/lib/perl5/%type_raw[perl] INSTALLSITEARCH=%i/lib/perl5/%type_raw[perl]/$archname INSTALLMAN1DIR=%i/lib/perl5/%type_raw[perl] INSTALLMAN3DIR=%i/lib/perl5/%type_raw[perl] INSTALLSITEMAN1DIR=%i/lib/perl5/%type_raw[perl] INSTALLSITEMAN3DIR=%i/lib/perl5/%type_raw[perl] INSTALLBIN=%i/bin INSTALLSITEBIN=%i/bin INSTALLSCRIPT=%i/bin"
 
-  pushd bindings/perl-piped
-  make install $PERLMAKEARGS
-  popd
+	pushd bindings/perl-piped
+	make install $PERLMAKEARGS
+	popd
 
-  pushd bindings/perl-shared
-  make install $PERLMAKEARGS
-  popd
+	pushd bindings/perl-shared
+	make install $PERLMAKEARGS
+	popd
 <<
 Description: RRDTool Perl bindings module
 DescDetail: <<
