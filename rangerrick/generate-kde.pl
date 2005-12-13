@@ -133,9 +133,13 @@ for my $file (@files) {
 									$line =~ s/gcc3.1[,\s]*//;
 									# java's broken everywhere right now
 									#$line =~ s/--disable-java //;
+								} else {
+									if ($line =~ /libkfontinst/) {
+										$line = "###RR:skip###\n";
+									}
 								}
 								$line .= "\n" unless ($line =~ /\n+$/);
-								print FILEOUT $line;
+								print FILEOUT $line unless ($line =~ /###RR:skip###/);
 							}
 						}
 						if ($filename =~ /(arts|kde\S+3|koffice|quanta|bundle-kde)/ and open(DESCUSAGE, $path . '/kdedesc.txt')) {
