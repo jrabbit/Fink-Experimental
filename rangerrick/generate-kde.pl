@@ -23,7 +23,7 @@ for my $file (@files) {
 	my ($dir, $filename) = (dirname($file), basename($file));
 
 	next unless ($file =~ /\.(info|patch)$/);
-	next unless ($file =~ /(kde|postgres|libpq|libpg|wv2|icecream|qt3|qca|kgpg|xfree86|xorg|\/mono\.|libgdiplus|monodevelop|cocoa-sharp|perlmods|fung-calc)/);
+	next unless ($file =~ /(kde|postgres|libpq|libpg|wv2|icecream|qt3|qca|kgpg|xfree86|xorg|\/mono\.|libgdiplus|monodevelop|cocoa-sharp|perlmods|libsmoke|fung-calc)/);
 	next if ($file =~ /notready/);
 
 	#for my $tree ('10.2-gcc3.3', '10.3', '10.4') {
