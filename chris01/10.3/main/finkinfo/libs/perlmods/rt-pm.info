@@ -1,0 +1,141 @@
+Info2: <<
+Package: rt-pm%type_pkg[perl]
+Version: 3.4.4
+Revision: 1
+Type: perl (5.8.4 5.8.6)
+Description: Request Tracker
+License: GPL
+Maintainer: Christian Schaffner <chris01@users.sourceforge.net>
+
+# Dependencies:
+Depends: <<
+ perl%type_pkg[perl]-core,
+ libapache2-ssl-mod-perl%type_pkg[perl],
+ passwd (>= 20041122-1),
+ apache-session-pm%type_pkg[perl] (>= 1.53-1),
+ cache-cache-pm%type_pkg[perl],
+ apache-dbi-pm%type_pkg[perl],
+ cache-simple-timedexpiry-pm,
+ cgi-pm%type_pkg[perl],
+ class-returnvalue-pm%type_pkg[perl] (>= 0.40-1),
+ dbd-mysql-pm%type_pkg[perl] (>= 2.1018-1),
+ dbi-pm%type_pkg[perl] (>= 1.37-1),
+ dbix-searchbuilder-pm%type_pkg[perl] (>= 1.26-1),
+ digest-md5-pm%type_pkg[perl],
+ exception-class-pm%type_pkg[perl] (>= 1.14-1),
+ error-pm,
+ file-spec-pm%type_pkg[perl],
+ file-temp-pm%type_pkg[perl],
+ freezethaw-pm,
+ getopt-long-pm%type_pkg[perl],
+ html-mason-pm%type_pkg[perl] (>= 1.23-1),
+ html-tree-pm%type_pkg[perl],
+ html-format-pm%type_pkg[perl],
+ html-scrubber-pm%type_pkg[perl] (>= 0.08-1),
+ http-server-simple-mason-pm%type_pkg[perl],
+ libnet-pm%type_pkg[perl],
+ locale-maketext-pm%type_pkg[perl],
+ locale-maketext-fuzzy-pm%type_pkg[perl],
+ locale-maketext-lexicon-pm%type_pkg[perl] (>= 0.32-1),
+ log-dispatch-pm%type_pkg[perl] (>= 2.0-1),
+ mailtools-pm%type_pkg[perl] (>= 1.57-1),
+ mime-tools-pm%type_pkg[perl] (>= 5.108-1),
+ mldbm-pm,
+ module-versions-report-pm,
+ params-validate-pm%type_pkg[perl] (>= 0.02-1),
+ regexp-common-pm,
+ scalar-list-utils-pm%type_pkg[perl],
+ term-readkey-pm%type_pkg[perl],
+ test-inline-pm%type_pkg[perl],
+ text-autoformat-pm,
+ text-quoted-pm,
+ text-template-pm,
+ text-wikiformat-pm%type_pkg[perl],
+ text-wrapper-pm,
+ time-modules-pm,
+ time-hires-pm%type_pkg[perl],
+ tree-simple-pm,
+ www-mechanize-pm,
+ xml-rss-pm%type_pkg[perl],
+ xml-simple-pm%type_pkg[perl]
+<<
+BuildDepends: <<
+ perl%type_pkg[perl],
+ apache-test-pm%type_pkg[perl],
+ module-refresh-pm,
+ regexp-common-pm,
+ test-www-mechanize-pm%type_pkg[perl],
+ fink (>= 0.22.0-1)
+<<
+
+# Unpack Phase:
+Source: http://download.bestpractical.com/pub/rt/release/rt-%v.tar.gz
+Source-MD5: 769d77eea39006be643cbd2db4820ba3
+
+# Patch Phase:
+PatchScript: sed 's|@PREFIX@|%p|g' < %a/%{Ni}.patch | patch -p1
+
+# Compile Phase: 
+ConfigureParams: ./configure PERL=%p/bin/perl%type_raw[perl] --prefix=%p/share/rt-pm%type_pkg[perl] --with-db-type=mysql --with-db-dba=mysql --with-apachectl=/usr/sbin/apachectl
+CompileScript: <<
+ #!/bin/bash -ev
+ ./configure %c
+ make testdeps
+<<
+
+# Install Phase:
+InstallScript: <<
+ make install DESTDIR=%d
+ /usr/bin/install -d %i/share
+ /usr/bin/install -d %i/share/rt-pm%type_pkg[perl]
+ /usr/bin/install -d %i/share/rt-pm%type_pkg[perl]/etc
+ cp -r etc/upgrade %i/share/rt-pm%type_pkg[perl]/etc
+<<
+UpdatePOD: true
+DocFiles: Changelog README UPGRADING COPYING
+ConfFiles: %p/share/rt-pm%type_pkg[perl]/etc/RT_SiteConfig.pm
+PostInstScript: <<
+ echo
+ echo PLEASE NOTE:
+ echo After first installation be sure to edit the file
+ echo %p/share/rt-pm%type_pkg[perl]/etc/RT_SiteConfig.pm
+ echo and to initialize the database with the command
+ echo sudo %p/share/rt-pm%type_pkg[perl]/sbin/rt-setup-database --action init --prompt-for-dba-password
+<<
+
+# Additional Data:
+DescDetail: <<
+RT is an enterprise-grade ticketing system which enables a group of people to
+intelligently and efficiently manage tasks, issues, and requests submitted by a
+community of users.
+
+The RT platform has been under development since 1996, and is used by systems
+administrators, customer support staffs, IT managers, developers and marketing
+departments at thousands of sites around the world.
+
+Written in object-oriented Perl, RT is a high-level, portable, platform
+independent system that eases collaboration within organizations and makes it
+easy for them to take care of their customers.
+
+RT manages key tasks such as the identification, prioritization, assignment,
+resolution and notification required by enterprise-critical applications
+including project management, help desk, NOC ticketing, CRM and software
+development.
+
+RT is used by Fortune 100 companies, government agencies, educational
+institutions, and development organizations worldwide.
+<<
+DescUsage: <<
+After first installation be sure to edit the file
+%p/share/rt-pm%type_pkg[perl]/etc/RT_SiteConfig.pm
+and to initialize the database with the command
+sudo %p/share/rt-pm%type_pkg[perl]/sbin/rt-setup-database \
+     --action init --prompt-for-dba-password
+<<
+DescPackaging: <<
+Patched to include the fink perl include path when used via apache.
+<<
+Homepage: http://www.bestpractical.com/rt/
+
+# End of Info2
+<<
