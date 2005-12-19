@@ -1,0 +1,90 @@
+Package: openh323
+Version: 1.15.6
+Revision: 1
+Maintainer: Shawn Hsiao <shawn@users.sourceforge.net>
+BuildDepends: fink (>= 0.9.12), pwlib1.8, speex3, doxygen
+#Also, at least some of ffmpeg-dev | libavcodec1-dev | libavformat1-dev , probably gsm ...
+Depends: %N-shlibs (= %v-%r), speex3-shlibs
+Source: http://www.gnomemeeting.org/admin/downloads/latest/sources/sources/%n-%v.tar.gz
+Source-MD5: 6c49f41c4cec39172000586a26b98c48
+PatchScript: <<
+#!/bin/sh -ev
+  sed -ri.bak -e '/ awk/s,>,- >,' src/Makefile
+  sed -ri.bak -e '/^install:/,/^$/{s!lib/\*_r\.so !`ls -F1 lib|egrep -v "[/@]$$"|sed -r "s,^,lib/,"|xargs` !
+     /for fn in lib/,/libh323/c \
+\t(cd lib; ls=`ls -1|egrep "dylib"|tail -n+2|xargs`; cd $(DESTDIR)$(LIBDIR); l=`ls *.dylib`; \\\
+\t   for fn in $$ls ; do rm -f $$fn; ln -s $$l $$fn ; \\
+     s,_r,_*,g; s/\.so/.dylib/g
+     /INSTALL.*OH323_FILE/d; s,\$\(OH323_FILE\),`ls -1|egrep ".*[a-z]\.dylib"`,; s,rm lib,rm -f lib, }' Makefile.in
+  sed -ri.bak -e '/^STDCCFLAGS/s,\(OH323_INCDIR\)$,(OPENH323DIR)/include,' openh323u.mak.in
+  perl -pi.bak -e 's,malloc.h,sys/$&,' plugins/audio/GSM0610/gsm06_10_codec.c
+  perl -pi.bak -e 's,\-lgsm0610_audio_s,,' configure
+  perl -pi.bak -e 's,darwin\*\) *,$&LDSO="-bundle" ,' plugins/configure
+  perl -pi.bak -e 's,(\$\(LDSO\))\$\(SONAME\),\1,' plugins/audio/*/Makefile.in
+  sed -ri -e '/^\$\(PLUGIN\):/,/^$/s,\(CC\),\(CXX\),' plugins/audio/Speex/Makefile.in
+<<
+NoSetLDFLAGS: true
+SetLIBRARY_PATH: %p/lib/pwlib1.8/lib:%b/lib:%p/lib
+NoSetCPPFLAGS: true
+NoSetMAKEFLAGS: true
+SetMAKEFLAGS: -j1
+SetCFLAGS: -O3 -fstrict-aliasing
+SetCXXFLAGS: -O3 -fstrict-aliasing
+#ConfigureParams: PWLIBDIR=%p/lib/pwlib LD_LIBRARY_PATH=%p/lib/pwlib/lib:%b/lib --prefix=%p/lib/%n --enable-embeddedgsm
+#ConfigureParams: --prefix=%p/lib/%n --enable-rfc2190avcodec=%p/include/ffmpeg
+ConfigureParams: --prefix=%p/lib/%n
+CompileScript: <<
+#!/bin/sh -ev
+  export PWLIBDIR=%p/lib/pwlib1.8
+  export H323_AVCODEC=1
+ # export H323_RFC2190_AVCODEC=1
+ # export H323_VICH263=1
+  export CPATH=%p/include/ffmpeg:%p/include/speex:%p/include
+  export STDCCFLAGS=-I%b/include
+  ./configure %c
+ # make opt libso_target="lib/libh323_Darwin_ppc_r.%v.dylib" \
+  make opt apps docs NOTRACE=1 libso_target="lib/libh323_Darwin_ppc_n.%v.dylib" \
+	 LDSOOPTS="-dynamiclib -compatibility_version 1.15.0 -current_version %v -install_name %p/lib/%n/lib/libh323_Darwin_ppc_n.1.15.dylib" \
+<<
+InstallScript: <<
+make install DESTDIR=%d
+mv %i/lib/%n/include/%n/* %i/lib/%n/include
+rm -fR %i/lib/%n/include/%n
+ln -s . %i/lib/%n/include/%n
+cp version.h %i/lib/%n/include
+mkdir -p %i/bin
+cp samples/simple/obj_Darwin_ppc_*/simph323 %i/bin/simph323
+install -m 644 OpenH323* openh323* %i/lib/%n
+mkdir -p %i/share/doc/%n/html
+install -m 644 mpl-1.0.htm ReadMe.txt %i/share/doc/%n
+install -m 644 html/* %i/share/doc/%n/html
+ranlib %i/lib/%n/lib/*.a
+strip %i/bin/simph323
+<<
+SplitOff: <<
+Package: %N-shlibs
+Description: Shared libraries for openh323
+Depends: cyrus-sasl2-shlibs, expat-shlibs, openldap23-shlibs, openssl097-shlibs, pwlib1.8-shlibs, sdl-shlibs
+Files: lib/%N/lib/libh323_Darwin_ppc*.1*.dylib
+Shlibs: <<
+%p/lib/%N/lib/libh323_Darwin_ppc_n.1.15.dylib 1.15.0 %n (>= 1.15.3-1)
+<<
+DocFiles: mpl-1.0.htm ReadMe.txt
+<<
+SplitOff2: <<
+Package: %N-bin
+Depends: %N-shlibs (= %v-%r)
+Description: Binary utilities for openh323 (simph323)
+Files: bin/simph323
+InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
+PreInstScript: if [ upgrade = "$1" ]; then rm -fR %p/share/doc/%n ; fi
+<<
+Description: OpenH323 Libraries + simph323
+DescPort: <<
+It is a different compile method, so i've decided to copy the dir of the 
+compiled into %p/lib/openh323/. To compile a file that requires them add 
+to make 'OPENH323DIR=%p/lib/openh323/'
+<<
+DescPackaging: Version 1.12.2-10 by James Gibbs <jimgibbs@mac.com>
+Homepage: http://www.openh323.org/
+License: OSI-Approved
