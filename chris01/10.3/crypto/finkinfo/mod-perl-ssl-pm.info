@@ -1,0 +1,136 @@
+Info2: <<
+Package: mod-perl-ssl-pm%type_pkg[perl]
+Version: 2.0.2
+Revision: 1
+###
+Depends: apache2-ssl, perl%type_pkg[perl]-core, expat-shlibs, gdbm3-shlibs
+BuildDepends: apr-ssl, apr-ssl-common, apache2-ssl-dev, expat, gdbm3
+Conflicts: %{Ni}-581, %{Ni}-584, %{Ni}-586, apache-test-pm%type_pkg[perl]
+Replaces: %{Ni}-581, %{Ni}-584, %{Ni}-586, apache-test-pm%type_pkg[perl]
+Provides: apache-test-pm%type_pkg[perl]
+###
+Source: mirror:apache:perl/mod_perl-%v.tar.gz
+Source-MD5: ad0a509fd34e3b8452887d80a1d45dea
+Patch: %{Ni}.patch
+###
+###
+Type: perl (5.8.1 5.8.4 5.8.6)
+UpdatePOD: true
+###
+DocFiles: Changes INSTALL LICENSE README RELEASE STATUS
+###
+NoPerlTests: true
+CompileScript: <<
+ %p/bin/perl%type_raw[perl] Makefile.PL PERL=%p/bin/perl%type_raw[perl] PREFIX=%p \
+  INSTALLPRIVLIB=%p/lib/perl5/%type_raw[perl] \
+  INSTALLARCHLIB=%p/lib/perl5/%type_raw[perl]/darwin-thread-multi-2level \
+  INSTALLSITELIB=%p/lib/perl5/%type_raw[perl] \
+  INSTALLSITEARCH=%p/lib/perl5/%type_raw[perl]/darwin-thread-multi-2level \
+  INSTALLMAN1DIR=%p/share/man/man1 \
+  INSTALLMAN3DIR=%p/share/man/man3 \
+  INSTALLSITEMAN1DIR=%p/share/man/man1 \
+  INSTALLSITEMAN3DIR=%p/share/man/man3 \
+  INSTALLBIN=%p/bin \
+  INSTALLSITEBIN=%p/bin \
+  INSTALLSCRIPT=%p/bin \
+  MP_APR_CONFIG=%p/bin/apr-config \
+  MP_APU_CONFIG=%p/bin/apu-config \
+  MP_APXS=%p/sbin/apxs \
+  MP_USE_DSO=1
+ perl -pi.bak -e 's|'%p/bin/perl'|'%p/bin/perl%type_raw[perl]'|g' blib/lib/Apache2/BuildConfig.pm
+ perl -pi.bak -e 's|'%p/bin/perl'|'%p/bin/perl%type_raw[perl]'|g' lib/Apache2/BuildConfig.pm
+ perl -pi.bak -e 's|%p/bin/perl|%p/bin/perl%type_raw[perl]|g' src/modules/perl/Makefile
+ make
+### Disabled since httpd can't be running and I thought it was pointless
+### to stop the server to test something I know works :)
+#  make test APACHE_USER=www APACHE_GROUP=www APXS=%p/sbin/apxs APACHE_PORT=80 APACHE=%p/sbin/httpd
+<<
+InstallScript: <<
+ make install DESTDIR=%d
+ mv %i/share/man %i/lib/perl5/%type_raw[perl]
+<<
+###
+SplitOff: <<
+  Package: libapache2-ssl-mod-perl%type_pkg[perl]
+  Description: Apache2 perl DSO Module
+  Depends: apache2-ssl, apache2-ssl-common, mod-perl-ssl-pm%type_pkg[perl]
+  Files: <<
+    lib/apache2/modules
+  <<
+  DocFiles: LICENSE
+  PostInstScript: <<
+    APXS=%p/sbin/apxs
+    MOD_PREFIX=`$APXS -q LIBEXECDIR`
+
+    MODULENAME=perl
+    MODULE=$MOD_PREFIX/mod_$MODULENAME.so
+
+    echo "Enabling mod_$MODULENAME module..."
+
+    $APXS -e -a -n $MODULENAME $MODULE
+
+    if test `ps -U www | grep -c %p/sbin/httpd` -ge 1; then
+      echo "Restarting apache2..."
+      %p/sbin/apachectl graceful
+    fi
+  <<
+  PreRmScript: <<
+    if [ "$1" != "remove" -a "$1" != "purge" ]; then
+      exit 0
+    fi
+
+    APXS=%p/sbin/apxs
+    MOD_PREFIX=`$APXS -q LIBEXECDIR`
+
+    MODULENAME=perl
+    MODULE=$MOD_PREFIX/mod_$MODULENAME.so
+
+    echo "Disabling mod_$MODULENAME module..."
+
+    $APXS -e -A -n $MODULENAME $MODULE
+
+    if %p/sbin/apachectl configtest > /dev/null 2>&1; then
+      # httpd.conf is correct, e.g. doesn't contain any DAV provider
+      if test `ps -U www | grep -c %p/sbin/httpd` -ge 1; then
+     echo "Restarting apache2..."
+     %p/sbin/apachectl graceful
+      fi
+    else
+      # httpd.conf has syntax errors, e.g. remaining DAV providers
+      echo "#####################################################################"
+      echo "The subversion apache modules are now disabled in the"
+      echo "%p/etc/apache2/httpd.conf file and will be removed. Please make sure"
+      echo "that you haven't any svn repositories still enabled in your"
+      echo "%p/etc/apache2/httpd.conf file. You then should restart apache by"
+      echo "typing '%p/sbin/apachectl graceful'."
+      echo "#####################################################################"
+    fi
+  <<
+<<
+###
+SplitOff2: <<
+ Package: %N-dev
+ Description: Apache2 perl DSO Module (dev. headers)
+ Depends: %N (= %v-%r)
+ Conflicts: %{Ni}581-dev, %{Ni}584-dev, %{Ni}586-dev
+ Replaces: %{Ni}581-dev, %{Ni}584-dev, %{Ni}586-dev
+ BuildDependsOnly: true
+ Files: <<
+  include
+ <<
+ DocFiles: LICENSE
+<<
+SplitOff3: <<
+ Package: %N-bin
+ Depends: %N (= %v-%r)
+ Conflicts: %{Ni}581-bin, %{Ni}584-bin, %{Ni}586-bin
+ Replaces: %{Ni}581-bin, %{Ni}584-bin, %{Ni}586-bin
+ Files: bin
+ DocFiles: LICENSE
+<<
+###
+Description: Apache 2 Perl Module
+License: BSD
+Maintainer: None <fink-devel@lists.sourceforge.net>
+Homepage: http://perl.apache.org/
+<<
