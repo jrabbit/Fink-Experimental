@@ -1,0 +1,78 @@
+Package: qt4mac-static
+Version: 4.1.0
+Revision: 1
+Source: ftp://ftp.trolltech.com/qt/source/qt-mac-opensource-src-%v.tar.gz
+Source-MD5: 6afd1fb082b38bca7809fdd240cfaf33
+Description: Aqua version of QT4 library and tools
+Depends: pkgconfig
+BuildDepends: <<
+  cctools (>= 446) | cctools-single-module,
+  cups-dev, fink (>= 0.17.3-1), freetype219, gcc4.0,
+  libpng3 (>= 1.2.5-4), libjpeg
+<<
+BuildConflicts: qt3, qt3-designer, qt3-dev, qt3mac
+BuildDependsOnly: true
+GCC: 4.0
+SetCC: /usr/bin/gcc-4.0
+SetCXX: /usr/bin/g++-4.0
+NoSetLDFLAGS: true
+CompileScript: <<
+#!/bin/sh -ex
+
+ unset QMAKESPEC
+ export QTDIR=%b
+ export DYLD_LIBRARY_PATH="$QTDIR/lib:%p/lib/freetype219/lib:$DYLD_LIBRARY_PATH"
+ export PATH="$QTDIR/bin:%p/lib/freetype219/bin:$PATH"
+# export INSTALL_ROOT=""
+# LIBRESOLV="-lresolv"
+ echo "yes" | ./configure \
+   -prefix %p/lib/%n -docdir %p/share/doc/%n -datadir %p/share/%n \
+   -release -static -I%p/lib/freetype219/include/freetype2 -I%p/include \
+   -L%p/lib/freetype219/lib -L%p/lib -qt-gif
+# '-I$(QTDIR)/include' 
+# '-L$(QTDIR)/lib'  $LIBRESOLV \
+# -platform macx-g++ -xplatform macx-g++ \
+# -translationdir '%p/share/%n/translations' \
+# -shared -no-exceptions -thread -cups -stl \
+# -qt-gif -plugin-imgfmt-png -plugin-imgfmt-jpeg -plugin-imgfmt-mng \
+# -system-libpng -system-libjpeg -system-zlib -largefile -verbose \
+# -plugin-sql-sqlite -no-sql-ibase -no-sql-mysql -no-sql-odbc -no-sql-psql
+# don't link against older versions of self
+/usr/bin/find . -name Makefile -print0 | xargs -0 perl -pi -e 's,-L%p/lib/%n/lib,,g'
+# attempt to counterfix qmake's warped fileFixify logic that makes install break
+# when %p is a symlink and something exists already at -libdir or -datadir etc
+# second, better attempt at unfixifying %p:
+ pushd %p; FixifiedSW=`/bin/pwd`; popd
+ /usr/bin/find . -name Makefile -print0 | xargs -0 perl -pi -e "s,\\$\\(INSTALL_ROOT\\)$FixifiedSW,\\$\\(INSTALL_ROOT\\)%p,g"
+# 
+ make
+<<
+InstallScript: <<
+#!/bin/sh -e
+ make install INSTALL_ROOT=%d
+# remove stuff from the libtool archive that libtool doesn't understand
+ perl -pi.bak -e 's,\$\(QTDIR\),%p,g;s,\-framework.*,\-lz \-ldl'\'',g' %i/lib/%n/lib/libqt-mt.la
+# move the app bundles; the AppBundles field seems not to work here...
+ /usr/bin/install -d -m 755 %i/Applications
+ /usr/bin/install -d -m 755 %d/Applications/Fink
+ for APP in assistant designer linguist qtconfig
+   do
+     /bin/mv %i/lib/%n/bin/${APP}.app %i/Applications/
+     ln -s %p/Applications/${APP}.app %d/Applications/Fink/
+   done
+<<
+#DocFiles: FAQ INSTALL LICENSE* MANIFEST PLATFORMS README* changes*
+License: GPL
+DescUsage: <<
+ This version is independent of X11. 
+ It installs the applications assistant, designer, linguist, qtconfig in 
+ %p/Applications and makes double-clickable symbolic links to them
+ in /Applications/Fink/.
+ Since it installs into %p/lib/qt3mac and %/share/qt3mac, it can coexist with 
+ the qt3 packages. To use its dylibs, set QTDIR to %p/lib/qt3mac.
+ Fink packages that want to use it will also have to use
+  BuildConflicts: qt3, qt3-dev
+<<
+DescPort: Adapted from Martin Costabel's qt3mac package
+Maintainer: ASARI Takashi
+Homepage: http://www.trolltech.com/
