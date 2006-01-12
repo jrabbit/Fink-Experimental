@@ -1,6 +1,6 @@
 Package: postgresql80-unified
-Version: 8.0.4
-Revision: 14
+Version: 8.0.6
+Revision: 11
 GCC: 3.3
 CustomMirror: <<
 	afr-ZA: ftp://ftp.za.postgresql.org/mirror/ftp.postgresql.org
@@ -82,10 +82,9 @@ CustomMirror: <<
 	nam-US: ftp://ftp22.us.postgresql.org/mirrors/ftp.postgresql.org
 <<
 Source: mirror:custom:source/v%v/postgresql-%v.tar.bz2
-Source-MD5: 381bd337cf703220aafdf1ee24dae78d
-Source2: http://postgis.refractions.net/download/postgis-1.0.5.tar.gz
-Source2-MD5: 0fb63a885a723b2d71b52207fd05888a
-Source2ExtractDir: postgresql-%v/contrib
+Source-MD5: f3b27b8171267f9a87592f931c09f0ee
+Source2: http://www.postgis.org/download/postgis-1.1.0.tar.gz
+Source2-MD5: 57768cb808d358b667075273aef40122
 BuildDepends: gcc3.3, readline5, autoconf2.5, bison, proj, libgeos2, system-openssl-dev, passwd (>= 20030906-1)
 Conflicts: postgresql (<< %v-%r), postgresql-ssl (<< %v-%r), postgresql73 (<< 7.3.4-14), postgresql73-ssl (<< 7.3.4-14), postgresql80 (<< %v-%r), postgresql80-ssl (<< %v-%r)
 Replaces: postgresql, postgresql-shlibs, postgresql-ssl, postgresql-ssl-shlibs, postgresql-python, postgresql-ssl-python, postgresql-perl, postgresql-ssl-perl, postgresql73, postgresql73-ssl, postgresql73-unified, postgresql74, postgresql74-ssl, postgresql74-unified, postgresql80, postgresql80-ssl
@@ -99,8 +98,8 @@ CompileScript: <<
 #!/bin/sh -xe
 
 	export lt_cv_sys_max_cmd_len=65536
-	export CPPFLAGS="-I%i/include/postgresql -I%i/include -I%p/include -DHAVE_OPTRESET -fno-common"
-	export LDFLAGS="-L%p/lib/system-openssl/lib -L%i/lib -L%p/lib"
+	export CPPFLAGS="-I%p/include -DHAVE_OPTRESET -fno-common"
+	export LDFLAGS="-L%p/lib/system-openssl/lib -L%p/lib"
 	export SHELL="/bin/sh -xe"
 
 	PG_ID=`id -u postgres 2>/dev/null`
@@ -117,11 +116,14 @@ CompileScript: <<
 	./configure %c && \
 	make includedir=%p/include/postgresql includedir_internal=%p/include/postgresql/internal includedir_server=%p/include/postgresql && \
 	make -C contrib
+	make install includedir=%p/include/postgresql includedir_internal=%p/include/postgresql/internal includedir_server=%p/include/postgresql DESTDIR=%d INSTALLSITEMAN3DIR=%i/share/man/man3
 
-	# postgis
-	pushd contrib/postgis-1.0.5
-	make USE_PROJ=1 PROJ_DIR=%p USE_GEOS=1 GEOS_DIR=%p
-	popd
+	pushd ../postgis-1.1.0
+	./configure --prefix=%p --with-pgsql=%i/bin/pg_config && \
+	perl -pi -e 's,^PROJ_DIR=%p,PROJ_DIR=%i,; s,^PGFFEINCLUDES=.*,PGFEINCLUDES=-I%i/include/postgresql -I%i/include -I%p/include,; s,^PGBEINCLUDES=.*,PGBEINCLUDES=-I%i/include/postgresql -I%i/include -I%p/include,; s,^PGFELIBS=.*,PGFELIBS=-L%i/lib -L%p/lib -lpq,; s,^PGBELIBS=.*,PGBELIBS=-L%i/lib -L%p/lib -lpostgres,; s,^libdir=.*,libdir=%p/lib/postgresql-8.0,; s,^datadir=.*,datadir=%p/share/postgresql-8.0,; s,^DLFLAGS=.*,DLFLAGS=-no-cpp-precomp -undefined dynamic_lookup -multiply_defined suppress,;' Makefile.config && \
+	make || exit 3
+	popd 
+
 <<
 InstallScript: <<
 #!/bin/sh -xe
@@ -134,13 +136,13 @@ InstallScript: <<
 	make -C contrib install includedir=%p/include/postgresql includedir_internal=%p/include/postgresql/internal includedir_server=%p/include/postgresql DESTDIR=%d INSTALLSITEMAN3DIR=%i/share/man/man3
 	install -m 755 contrib/adddepend/adddepend %i/bin/adddepend
 
+	# postgis
+	pushd ../postgis-1.1.0
+	make install DESTDIR=%d
+	popd
+
 	find %i/share -ls > /tmp/sharefiles-postgresql.txt
 	mv %i/share/doc/postgresql-8.0 %i/share/doc/%N >/dev/null 2>&1
-
-	# postgis
-	pushd contrib/postgis-1.0.5
-	make install DESTDIR=%d USE_PROJ=1 PROJ_DIR=%p USE_GEOS=1 GEOS_DIR=%p
-	popd
 
 	ranlib %i/lib/*.a
 
@@ -304,6 +306,7 @@ done
 END
 
 	chmod 755 %i/var/postgresql-8.0/*.sh
+	perl -pi -e 's,^%d,,' %i/bin/pg_config*
 <<
 SplitOff: <<
 	Description: PostgreSQL development headers and libraries
@@ -344,25 +347,37 @@ SplitOff2: <<
 SplitOff3: <<
 	Description: Upgrade package for PostgreSQL 8.0
 	Package: postgresql80
-	Depends: %N (= %v-%r), postgresql80-shlibs (= %v-%r)
+	Depends: %N (>= %v-%r)
 	DocFiles: COPYRIGHT HISTORY INSTALL README
 <<
 SplitOff4: <<
-	Description: Upgrade package for PostgreSQL 8.0 libraries
-	Package: postgresql80-shlibs
-	Depends: %N-shlibs (= %v-%r)
+	Description: Upgrade package for PostgreSQL 8.0 development
+	Package: postgresql80-dev
+	Depends: %N-dev (>= %v-%r)
 	DocFiles: COPYRIGHT HISTORY INSTALL README
 <<
 SplitOff5: <<
-	Description: Upgrade package for PostgreSQL 8.0 (SSL)
-	Package: postgresql80-ssl
-	Depends: %N (= %v-%r), postgresql80-ssl-shlibs (= %v-%r)
+	Description: Upgrade package for PostgreSQL 8.0 libraries
+	Package: postgresql80-shlibs
+	Depends: %N-shlibs (>= %v-%r)
 	DocFiles: COPYRIGHT HISTORY INSTALL README
 <<
 SplitOff6: <<
+	Description: Upgrade package for PostgreSQL 8.0 (SSL)
+	Package: postgresql80-ssl
+	Depends: %N (>= %v-%r)
+	DocFiles: COPYRIGHT HISTORY INSTALL README
+<<
+SplitOff7: <<
+	Description: Upgrade package for PostgreSQL 8.0 development (SSL)
+	Package: postgresql80-ssl-dev
+	Depends: %N-dev (>= %v-%r)
+	DocFiles: COPYRIGHT HISTORY INSTALL README
+<<
+SplitOff8: <<
 	Description: Upgrade package for PostgreSQL 8.0 libraries (SSL)
 	Package: postgresql80-ssl-shlibs
-	Depends: %N-shlibs (= %v-%r)
+	Depends: %N-shlibs (>= %v-%r)
 	DocFiles: COPYRIGHT HISTORY INSTALL README
 <<
 

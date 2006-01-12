@@ -1,6 +1,6 @@
 Package: postgresql81
-Version: 8.1.0
-Revision: 22
+Version: 8.1.2
+Revision: 21
 GCC: 3.3
 CustomMirror: <<
 	afr-ZA: ftp://ftp.za.postgresql.org/mirror/ftp.postgresql.org
@@ -82,7 +82,7 @@ CustomMirror: <<
 	nam-US: ftp://ftp22.us.postgresql.org/mirrors/ftp.postgresql.org
 <<
 Source: mirror:custom:source/v%v/postgresql-%v.tar.bz2
-Source-MD5: 5e1f1a7c5f62170b56a3bf2512fdec2d
+Source-MD5: 12d54a11bc3a414477d37ef338bec161
 Source2: mirror:custom:odbc/versions/src/psqlodbc-07.03.0100.tar.gz
 Source2-MD5: 8967ea8ca49397f97d016e4db8a047a7
 Source3: ftp://gborg.postgresql.org/pub/libpqpp/stable/libpq++-4.0.tar.gz
@@ -93,9 +93,8 @@ Source5: ftp://gborg.postgresql.org/pub/libpqxx/stable/libpqxx-2.5.5.tar.gz
 Source5-MD5: db71975570ee31ecd0a11380dbaa8634
 Source6: ftp://gborg.postgresql.org/pub/pgeasy/stable/libpgeasy-3.0.4.tar.gz
 Source6-MD5: 5aaf078d069c8878588cd2bc7c3a5bc5
-Source7: http://postgis.refractions.net/download/postgis-1.0.5.tar.gz
-Source7-MD5: 0fb63a885a723b2d71b52207fd05888a
-Source7ExtractDir: postgresql-%v/contrib
+Source7: http://www.postgis.org/download/postgis-1.1.0.tar.gz
+Source7-MD5: 57768cb808d358b667075273aef40122
 BuildDepends: readline5, autoconf2.5, bison, system-openssl-dev, libgeos2, proj, libxml2, libxslt, passwd (>= 20030906-1)
 Conflicts: postgresql (<< %v-%r), postgresql-ssl (<< %v-%r)
 Replaces: postgresql (<< %v-%r), postgresql-ssl (<< %v-%r), postgresql-shlibs, postgresql-ssl-shlibs, postgresql-python, postgresql-ssl-python, postgresql-perl, postgresql-ssl-perl, postgresql73, postgresql73-ssl, postgresql74 (<< %v-%r), postgresql74-ssl (<< %v-%r)
@@ -112,8 +111,8 @@ CompileScript: <<
 #!/bin/sh -xe
 
 	export lt_cv_sys_max_cmd_len=65536
-	export CPPFLAGS="-I%i/include/postgresql -I%i/include -I%p/include -DHAVE_OPTRESET -fno-common"
-	export LDFLAGS="-L%p/lib/system-openssl/lib -L%i/lib -L%p/lib"
+	export CPPFLAGS="-I%p/include -DHAVE_OPTRESET -fno-common"
+	export LDFLAGS="-L%p/lib/system-openssl/lib -L%p/lib"
 	export SHELL="/bin/sh -xe"
 
 	PG_ID=`id -u postgres 2>/dev/null`
@@ -131,17 +130,18 @@ CompileScript: <<
 	make includedir=%p/include/postgresql includedir_internal=%p/include/postgresql/internal includedir_server=%p/include/postgresql && \
 	make -C contrib
 
-	# postgis
-	pushd contrib/postgis-1.0.5
-	make USE_PROJ=1 PROJ_DIR=%p USE_GEOS=1 GEOS_DIR=%p
-	popd
-
 	make install includedir=%p/include/postgresql includedir_internal=%p/include/postgresql/internal includedir_server=%p/include/postgresql DESTDIR=%d INSTALLSITEMAN3DIR=%i/share/man/man3 || exit 1
 
 	export PATH="%i/bin:$PATH"
 	export DYLD_LIBRARY_PATH="%i/lib:$DYLD_LIBRARY_PATH"
 	export CPPFLAGS="-I%i/include/postgresql -I%i/include $CPPFLAGS"
 	export LDFLAGS="-L%i/lib $LDFLAGS"
+
+	pushd ../postgis-1.1.0
+	./configure --prefix=%p --with-pgsql=%i/bin/pg_config && \
+	perl -pi -e 's,^PROJ_DIR=%p,PROJ_DIR=%i,; s,^PGFFEINCLUDES=.*,PGFEINCLUDES=-I%i/include/postgresql -I%i/include -I%p/include,; s,^PGBEINCLUDES=.*,PGBEINCLUDES=-I%i/include/postgresql -I%i/include -I%p/include,; s,^PGFELIBS=.*,PGFELIBS=-L%i/lib -L%p/lib -lpq,; s,^PGBELIBS=.*,PGBELIBS=-L%i/lib -L%p/lib -lpostgres,; s,^libdir=.*,libdir=%p/lib/postgresql-8.1,; s,^datadir=.*,datadir=%p/share/postgresql-8.1,; s,^DLFLAGS=.*,DLFLAGS=-no-cpp-precomp -undefined dynamic_lookup -multiply_defined suppress,;' Makefile.config && \
+	make || exit 1
+	popd 
 
 	# libpq++
 	pushd ../libpq++-4.0 && \
@@ -191,13 +191,13 @@ InstallScript: <<
 	make -C contrib install includedir=%p/include/postgresql includedir_internal=%p/include/postgresql/internal includedir_server=%p/include/postgresql DESTDIR=%d INSTALLSITEMAN3DIR=%i/share/man/man3
 	install -m 755 contrib/adddepend/adddepend %i/bin/adddepend
 
+	# postgis
+	pushd ../postgis-1.1.0
+	make install DESTDIR=%d
+	popd
+
 	find %i/share -ls > /tmp/sharefiles-postgresql.txt
 	mv %i/share/doc/postgresql-8.1 %i/share/doc/%N >/dev/null 2>&1
-
-	# postgis
-	pushd contrib/postgis-1.0.5
-	make install DESTDIR=%d USE_PROJ=1 PROJ_DIR=%p USE_GEOS=1 GEOS_DIR=%p
-	popd
 
 	# libpq++
 	pushd ../libpq++-4.0
@@ -397,6 +397,7 @@ done
 END
 
 	chmod 755 %i/var/postgresql-8.1/*.sh
+	perl -pi -e 's,^%d,,' %i/bin/pg_config*
 <<
 SplitOff: <<
 	Description: PostgreSQL development headers and libraries
@@ -449,16 +450,14 @@ SplitOff2: <<
 SplitOff3: <<
 	Description: Upgrade package for PostgreSQL
 	Package: postgresql
-	Depends: %N (= %v-%r)
-	Conflicts: postgresql-ssl
+	Depends: %N (>= %v-%r)
 	Replaces: postgresql-ssl
 	DocFiles: COPYRIGHT HISTORY INSTALL README
 <<
 SplitOff4: <<
 	Description: Upgrade package for PostgreSQL
 	Package: postgresql-ssl
-	Depends: %N (= %v-%r)
-	Conflicts: postgresql
+	Depends: %N (>= %v-%r)
 	Replaces: postgresql
 	DocFiles: COPYRIGHT HISTORY INSTALL README
 <<

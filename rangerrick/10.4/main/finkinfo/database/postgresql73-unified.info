@@ -1,6 +1,6 @@
 Package: postgresql73-unified
-Version: 7.3.11
-Revision: 23
+Version: 7.3.13
+Revision: 21
 GCC: 3.3
 CustomMirror: <<
 	afr-ZA: ftp://ftp.za.postgresql.org/mirror/ftp.postgresql.org
@@ -82,7 +82,9 @@ CustomMirror: <<
 	nam-US: ftp://ftp22.us.postgresql.org/mirrors/ftp.postgresql.org
 <<
 Source: mirror:custom:source/v%v/postgresql-%v.tar.bz2
-Source-MD5: de66d71f12caac28959ba6e6cb98c7c2
+Source-MD5: 914968e877794f5af42d7b2a506bcddf
+Source2: http://www.postgis.org/download/postgis-1.1.0.tar.gz
+Source2-MD5: 57768cb808d358b667075273aef40122
 BuildDepends: readline5, autoconf2.5, bison, system-openssl-dev, passwd (>= 20030906-1)
 Conflicts: postgresql-ssl (<< %v-%r), postgresql (<< %v-%r)
 Replaces: postgresql (<< %v-%r), postgresql-shlibs, postgresql-ssl-shlibs, postgresql-ssl, postgresql-python, postgresql-ssl-python, postgresql-perl, postgresql-ssl-perl, postgresql73, postgresql73-ssl
@@ -96,8 +98,8 @@ CompileScript: <<
 #!/bin/sh -e
 
 	export lt_cv_sys_max_cmd_len=65536
-	export CPPFLAGS="-I%i/include/postgresql -I%i/include -I%p/include"
-	export LDFLAGS="-L%p/lib/system-openssl/lib -L%i/lib -L%p/lib"
+	export CPPFLAGS="-I%p/include"
+	export LDFLAGS="-L%p/lib/system-openssl/lib -L%p/lib"
 
 	PG_ID=`id -u postgres 2>/dev/null`
 	if [ -z "$PG_ID" ]; then
@@ -111,7 +113,14 @@ CompileScript: <<
 	perl -pi.bak -e 's,hardcode_direct=yes,hardcode_direct=no,g' configure && \
 	./configure %c && \
 	make includedir=%p/include/postgresql includedir_internal=%p/include/postgresql/internal includedir_server=%p/include/postgresql && \
-	make -C contrib
+	make -C contrib && \
+	make install install-all-headers includedir=%p/include/postgresql includedir_internal=%p/include/postgresql/internal includedir_server=%p/include/postgresql DESTDIR=%d INSTALLSITEMAN3DIR=%i/share/man/man3
+
+	pushd ../postgis-1.1.0
+	./configure --prefix=%p --with-pgsql=%i/bin/pg_config && \
+	perl -pi -e 's,^PROJ_DIR=%p,PROJ_DIR=%i,; s,^PGFFEINCLUDES=.*,PGFEINCLUDES=-I%i/include/postgresql -I%i/include -I%p/include,; s,^PGBEINCLUDES=.*,PGBEINCLUDES=-I%i/include/postgresql -I%i/include -I%p/include,; s,^PGFELIBS=.*,PGFELIBS=-L%i/lib -L%p/lib -lpq,; s,^PGBELIBS=.*,PGBELIBS=-L%i/lib -L%p/lib -lpostgres,; s,^libdir=.*,libdir=%p/lib/postgresql-7.3,; s,^datadir=.*,datadir=%p/share/postgresql-7.3,; s,^DLFLAGS=.*,DLFLAGS=-no-cpp-precomp -undefined dynamic_lookup -multiply_defined suppress,;' Makefile.config && \
+	make || exit 3
+	popd
 <<
 InstallScript: <<
 #!/bin/sh -e
@@ -122,6 +131,11 @@ InstallScript: <<
 	install -m 755 contrib/adddepend/adddepend %i/bin/adddepend
 
 	mv %i/share/doc/postgresql %i/share/doc/%N >/dev/null 2>&1
+
+	# postgis
+	pushd ../postgis-1.1.0
+	make install DESTDIR=%d
+	popd
 
 	ranlib %i/lib/*.a
 
@@ -260,7 +274,7 @@ done
 END
 
 	chmod 755 %i/var/postgresql/*.sh
-
+	perl -pi -e 's,^%d,,' %i/bin/pg_config*
 <<
 SplitOff: <<
 	Description: PostgreSQL development headers and libraries
@@ -295,25 +309,37 @@ SplitOff2: <<
 SplitOff3: <<
 	Package: postgresql73
 	Description: upgrade package for postgresql73
-	Depends: %N (= %v-%r)
+	Depends: %N (>= %v-%r)
 	DocFiles: COPYRIGHT HISTORY INSTALL README
 <<
 SplitOff4: <<
 	Package: postgresql73-shlibs
 	Description: upgrade package for postgresql73-shlibs
-	Depends: %N-shlibs (= %v-%r)
+	Depends: %N-shlibs (>= %v-%r)
 	DocFiles: COPYRIGHT HISTORY INSTALL README
 <<
 SplitOff5: <<
-	Package: postgresql73-ssl
-	Description: upgrade package for postgresql73-ssl
-	Depends: %N (= %v-%r)
+	Package: postgresql73-dev
+	Description: upgrade package for postgresql73-dev
+	Depends: %N-dev (>= %v-%r)
 	DocFiles: COPYRIGHT HISTORY INSTALL README
 <<
 SplitOff6: <<
+	Package: postgresql73-ssl
+	Description: upgrade package for postgresql73-ssl
+	Depends: %N (>= %v-%r)
+	DocFiles: COPYRIGHT HISTORY INSTALL README
+<<
+SplitOff7: <<
 	Package: postgresql73-ssl-shlibs
 	Description: upgrade package for postgresql73-ssl-shlibs
-	Depends: %N-shlibs (= %v-%r)
+	Depends: %N-shlibs (>= %v-%r)
+	DocFiles: COPYRIGHT HISTORY INSTALL README
+<<
+SplitOff8: <<
+	Package: postgresql73-ssl-dev
+	Description: upgrade package for postgresql73-ssl-dev
+	Depends: %N-dev (>= %v-%r)
 	DocFiles: COPYRIGHT HISTORY INSTALL README
 <<
 
