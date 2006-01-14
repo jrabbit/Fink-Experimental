@@ -1,0 +1,60 @@
+#!/bin/sh
+
+# Find some string in files
+
+help_findanywhere()
+{
+echo "-----------------------------------------------------"
+echo -e "Purpose: Search some string in files\n"
+echo -e "Usage: $0 -s -w -m\n"
+echo -e "Options: -s and -w mandatory.\n"
+echo " -s the string to search"
+echo " -w the location from which the files are searched for"
+echo " -m the maximum depth to search, default to 6"
+echo "Author: Michele Garoche Date: April 16th, 2004"
+echo "-----------------------------------------------------"
+
+exit 1
+}
+
+# Default value
+MAXRECURS="6"
+
+# No argument
+if [[ $# -lt 2 ]]; then
+help_findanywhere
+fi
+
+OPTIND=1
+while getopts "s:w:m:" flag
+do
+case "$flag" in
+s) STRINGTOSEARCH="$OPTARG";;
+w) WHERETOSEARCH="$OPTARG";;
+m) MAXRECURS="$OPTARG";;
+\?) help_findanywhere;;
+esac
+done
+
+if [[ $STRINGTOSEARCH = '' ]]; then
+echo "Please, supply a string to search."
+help_findanywhere
+fi
+
+if [[ $WHERETOSEARCH = '' ]]; then
+echo "Please, supply a location to search for."
+help_findanywhere
+fi
+
+if [[ !(-d $WHERETOSEARCH) ]]; then
+echo "The path " $WHERETOSEARCH "does not exist."
+help_findanywhere
+fi
+
+echo "Searching " ${STRINGTOSEARCH} " from " ${WHERETOSEARCH} " descending to " ${MAXRECURS}
+
+cd $WHERETOSEARCH
+
+# Search for the $STRINGTOSEARCH string in all files located in $WHERETOSEARCH directory
+find $WHERETOSEARCH -maxdepth $MAXRECURS -print0 -type f | xargs -0 grep -n $STRINGTOSEARCH
+

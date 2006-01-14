@@ -1,0 +1,67 @@
+#!/bin/sh
+
+# Find some string in tarballs
+
+help_findintarball()
+{
+echo "-----------------------------------------------------"
+echo -e "Purpose: Search some string in tarballs\n"
+echo -e "Usage: $0 -s -w\n"
+echo -e "Options: -s is mandatory, the other one is optional.\n"
+echo " -s the string to search"
+echo " -w the location of the directory to search" 
+echo -e "    default to /sw/src\n"
+echo "Author: Michele Garoche Date: April 16th, 2004"
+echo "-----------------------------------------------------"
+exit 1
+}
+
+# Default values 
+MYSW="/sw/src"
+
+# No argument
+if [[ $# -lt 1 ]]; then
+help_findintarball
+fi
+
+OPTIND=1
+while getopts "s:w:" flag
+do
+case "$flag" in
+s) STRINGTOSEARCH="$OPTARG";;
+w) MYSW="$OPTARG";;
+\?) help_findininfo;;
+esac
+done
+
+if [[ $STRINGTOSEARCH = '' ]]; then
+echo "Please, supply a string to search."
+help_findintarball
+fi
+
+WHERETOSEARCH=${MYSW}
+
+if [[ !(-d $WHERETOSEARCH) ]]; then
+echo "The path " $WHERETOSEARCH "does not exist."
+help_findintarball
+fi
+
+echo "Searching " ${STRINGTOSEARCH} "within tarballs located in " ${WHERETOSEARCH}
+
+cd $WHERETOSEARCH
+
+# Search for the $STRINGTOSEARCH string in all tarballs located in $WHERETOSEARCH directory
+for FIL in `find . -name \*.*gz`
+do
+# Expand the tarball on the fly and search
+if [[ -n `tar zxOf $FIL | grep $STRINGTOSEARCH` ]]; then
+echo $FIL
+fi
+done
+
+for FIL in `find . -name \*.bz2`
+do
+if [[ -n `bzcat $FIL | grep $STRINGTOSEARCH` ]]; then
+echo $FIL
+fi
+done
