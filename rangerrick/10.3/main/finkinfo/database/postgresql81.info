@@ -531,25 +531,30 @@ if %p/bin/pgsql.sh-8.1 start; then
 
 else
 
-	echo "WARNING: unable to start postgresql on an alternate port, not installing plpgsql!"
+	cat <<END
+WARNING: unable to start postgresql on an alternate port, not installing plpgsql!
 
-fi
+	If you wish to install it manually, run:
 
+		sudo -u postgres %p/bin/pgsql.sh-8.1 start
+		sudo -u postgres %p/bin/createlang-8.1 plpgsql template1
+	
+END
+
+fi 
+	
 cat <<END
-*** WARNING! *** *** WARNING! *** *** WARNING! *** *** WARNING! *** *** WARNING! *** *** WARNING! ***
+WARNING: If you are using PostGIS, you will need to upgrade your PostGIS functions after starting up the
+	PostgreSQL database:
+	
+		sudo -u postgres %p/bin/pgsql.sh-8.1 start
+		sudo -u postgres %p/bin/psql-8.1 -f %p/share/postgresql-8.1/lwpostgis_upgrade.sql -d <your_spatial_database>
 
-If you are using PostGIS, you will need to upgrade your PostGIS functions after starting up the
-PostgreSQL database:
+	To configure/install PostGIS for the first time, you should instead use:
+	
+		sudo -u postgres %p/bin/pgsql.sh-8.1 start
+		sudo -u postgres %p/bin/psql-8.1 -f %p/share/postgresql-8.1/lwpostgis.sql -d <your_spatial_database>
 
-	sudo -u postgres %p/bin/pgsql.sh-8.1 start
-	sudo -u postgres %p/bin/psql-8.1 -f %p/share/postgresql-8.1/lwpostgis_upgrade.sql -d <your_spatial_database>
-
-To configure/install PostGIS for the first time, you should instead use:
-
-	sudo -u postgres %p/bin/pgsql.sh-8.1 start
-	sudo -u postgres %p/bin/psql-8.1 -f %p/share/postgresql-8.1/lwpostgis.sql -d <your_spatial_database>
-
-*** WARNING! *** *** WARNING! *** *** WARNING! *** *** WARNING! *** *** WARNING! *** *** WARNING! ***
 END
 <<
 PreRmScript: <<
