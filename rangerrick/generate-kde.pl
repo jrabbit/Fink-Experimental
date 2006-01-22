@@ -136,6 +136,11 @@ for my $file (@files) {
 									$line =~ s/^\s*GCC: 3.3\s*$/GCC: 4.0/;
 									$line =~ s/gcc-3.3/gcc-4.0/gs;
 									$line =~ s/g\+\+-3.3/g\+\+-4.0/gs;
+#									$line =~ s/(^\s*|,\s*)(apt(?:-dev|-shlibs)?)(?:\s+\([^\)]+\))/$1$2 (>= 0.5.4-1052)/gs;
+#									$line =~ s/(^\s*|,\s*)(dpkg)(?:\s+\([^\)]+\))/$1$2 (>= 1.10.21-1217)/gs;
+#									$line =~ s/(^\s*|,\s*)(ncurses|libncurses5(?:-shlibs)?)(?:\s+\([^\)]+\))/$1$2 (>= 5.4-20041023-1006)/gs;
+#									$line =~ s/(^\s*|,\s*)(libncursesw5(?:-shlibs)?)(?:\s+\([^\)]+\))/$1$2 (>= 5.4-20041023-1001)/gs;
+#									$line =~ s/(^\s*|,\s*)(ncurses(?:-dev|-shlibs))(?:\s+\([^\)]+\))/$1$2 (>= 5.3-20031018-1501)/gs;
 								}
 
 								if ($tree ge '10.4') {
