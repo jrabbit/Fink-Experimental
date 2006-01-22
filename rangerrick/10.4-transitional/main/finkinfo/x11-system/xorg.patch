@@ -1,0 +1,71 @@
+diff -uNr xc/extras/freetype2/builds/unix/detect.mk xc-new/extras/freetype2/builds/unix/detect.mk
+--- xc/extras/freetype2/builds/unix/detect.mk	2004-04-28 06:38:58.000000000 -0400
++++ xc-new/extras/freetype2/builds/unix/detect.mk	2005-10-20 15:21:02.000000000 -0400
+@@ -20,7 +20,8 @@
+   #
+   is_unix := $(strip $(wildcard /sbin/init) \
+                      $(wildcard /usr/sbin/init) \
+-                     $(wildcard /hurd/auth))
++                     $(wildcard /hurd/auth) \
++                     $(wildcard /sbin/SystemStarter))
+   ifneq ($(is_unix),)
+ 
+     PLATFORM := unix
+diff -uNr xc/extras/freetype2/include/freetype/freetype.h xc-new/extras/freetype2/include/freetype/freetype.h
+--- xc/extras/freetype2/include/freetype/freetype.h	2005-03-07 14:00:12.000000000 -0500
++++ xc-new/extras/freetype2/include/freetype/freetype.h	2005-10-20 15:22:20.000000000 -0400
+@@ -16,13 +16,6 @@
+ /***************************************************************************/
+ 
+ 
+-#ifndef FT_FREETYPE_H
+-#error "`ft2build.h' hasn't been included yet!"
+-#error "Please always use macros to include FreeType header files."
+-#error "Example:"
+-#error "  #include <ft2build.h>"
+-#error "  #include FT_FREETYPE_H"
+-#endif
+ 
+ 
+ #ifndef __FREETYPE_H__
+diff -uNr xc/extras/freetype2/src/base/ftapi.c xc-new/extras/freetype2/src/base/ftapi.c
+--- xc/extras/freetype2/src/base/ftapi.c	2003-11-14 11:48:24.000000000 -0500
++++ xc-new/extras/freetype2/src/base/ftapi.c	2005-10-20 15:23:34.000000000 -0400
+@@ -117,5 +117,16 @@
+     FT_Stream_ExitFrame( stream );
+   }
+                    
++  FT_BASE_DEF( FT_Short )
++  FT_Get_Short( FT_Stream stream )
++  {
++    return FT_GET_SHORT();
++  }
++
++  FT_BASE_DEF( FT_Long )
++  FT_Get_Long( FT_Stream stream )
++  {
++    return FT_GET_LONG();
++  }
+ 
+ /* END */
+diff -uNr xc/extras/freetype2/src/truetype/ttinterp.c xc-new/extras/freetype2/src/truetype/ttinterp.c
+--- xc/extras/freetype2/src/truetype/ttinterp.c	2004-04-28 06:39:07.000000000 -0400
++++ xc-new/extras/freetype2/src/truetype/ttinterp.c	2005-10-20 15:24:21.000000000 -0400
+@@ -2492,7 +2492,7 @@
+     else
+       S2 = FALSE;
+ 
+-    while ( W < 0x1000000L )
++    while ( W < 0x10000000L )
+     {
+       /* We need to increase W by a minimal amount */
+       if ( Vx < Vy )
+@@ -2503,7 +2503,7 @@
+       W = Vx * Vx + Vy * Vy;
+     }
+ 
+-    while ( W >= 0x1004000L )
++    while ( W >= 0x10004000L )
+     {
+       /* We need to decrease W by a minimal amount */
+       if ( Vx < Vy )

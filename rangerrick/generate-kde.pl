@@ -27,7 +27,7 @@ for my $file (@files) {
 	next if ($file =~ /notready/);
 
 	#for my $tree ('10.2-gcc3.3', '10.3', '10.4') {
-	for my $tree ('10.3', '10.4') {
+	for my $tree ('10.3', '10.4', '10.4-transitional') {
 		my $todir = $dir;
 		$todir =~ s,common/,${tree}/,;
 
@@ -47,11 +47,13 @@ for my $file (@files) {
 								$revision = $1;
 								if (my ($pre, $post) = $revision =~ /^(.*\.)(\d+)$/) {
 									$post += 10 if ($tree eq '10.3');
-									$post += 20 if ($tree eq '10.4');
+									$post += 20 if ($tree eq '10.4-transitional');
+									$post += 30 if ($tree eq '10.4');
 									$revision = $pre . $post;
 								} else {
 									$revision += 10 if ($tree eq '10.3');
-									$revision += 20 if ($tree eq '10.4');
+									$revision += 20 if ($tree eq '10.4-transitional');
+									$revision += 30 if ($tree eq '10.4');
 								}
 								print FILEOUT "Revision: $revision\n";
 							} else {
@@ -66,11 +68,13 @@ for my $file (@files) {
 											#print "$package ($version-$revision) -> ";
 											if (my ($pre, $post) = $revision =~ /^(.*\.)(\d+)$/) {
 												$post += 10 if ($tree eq '10.3');
-												$post += 20 if ($tree eq '10.4');
+												$post += 20 if ($tree eq '10.4-transitional');
+												$post += 30 if ($tree eq '10.4');
 												$revision = $pre . $post;
 											} else {
 												$revision += 10 if ($tree eq '10.3');
-												$revision += 20 if ($tree eq '10.4');
+												$revision += 20 if ($tree eq '10.4-transitional');
+												$revision += 30 if ($tree eq '10.4');
 											}
 											$newline =~ s/${package}\s+\([^\)]*?\)/$package ($comparator $version-$revision)/g;
 											#print "($version-$revision)... ";
@@ -128,7 +132,13 @@ for my $file (@files) {
 									$line =~ s/libicu31-dev, *//;
 								}
 
-								if ($tree >= 10.4) {
+								if ($tree eq '10.4') {
+									$line =~ s/^\s*GCC: 3.3\s*$/GCC: 4.0/;
+									$line =~ s/gcc-3.3/gcc-4.0/gs;
+									$line =~ s/g\+\+-3.3/g\+\+-4.0/gs;
+								}
+
+								if ($tree ge '10.4') {
 									$line =~ s/(^|,\s*)libftw0(-shlibs)?\s*//;
 									$line =~ s/gcc3.1[,\s]*//;
 									# java's broken everywhere right now
