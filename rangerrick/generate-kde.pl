@@ -23,7 +23,7 @@ for my $file (@files) {
 	my ($dir, $filename) = (dirname($file), basename($file));
 
 	next unless ($file =~ /\.(info|patch)$/);
-	next unless ($file =~ /(gst.*0.10.*|kde|postgres|libpq|libpg|wv2|icecream|qt3|qca|kgpg|xfree86|xorg|\/mono\.|libgdiplus|monodevelop|cocoa-sharp|perlmods|libsmoke|fung-calc|.*-pm.info$)/);
+	next unless ($file =~ /(openexr|gst.*0.10.*|kde|postgres|libpq|libpg|wv2|icecream|qt3|qca|kgpg|xfree86|xorg|\/mono\.|libgdiplus|monodevelop|cocoa-sharp|perlmods|libsmoke|fung-calc|.*-pm.info$)/);
 	next if ($file =~ /notready/);
 
 	#for my $tree ('10.2-gcc3.3', '10.3', '10.4') {
@@ -136,6 +136,7 @@ for my $file (@files) {
 									$line =~ s/^\s*GCC: 3.3\s*$/GCC: 4.0/;
 									$line =~ s/gcc-3.3/gcc-4.0/gs;
 									$line =~ s/g\+\+-3.3/g\+\+-4.0/gs;
+									$line =~ s/(BuildDepends:.*),\s+gcc3.3(.*)$/$1$2/gs;
 #									$line =~ s/(^\s*|,\s*)(apt(?:-dev|-shlibs)?)(?:\s+\([^\)]+\))/$1$2 (>= 0.5.4-1052)/gs;
 #									$line =~ s/(^\s*|,\s*)(dpkg)(?:\s+\([^\)]+\))/$1$2 (>= 1.10.21-1217)/gs;
 #									$line =~ s/(^\s*|,\s*)(ncurses|libncurses5(?:-shlibs)?)(?:\s+\([^\)]+\))/$1$2 (>= 5.4-20041023-1006)/gs;
