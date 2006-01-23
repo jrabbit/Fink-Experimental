@@ -1,0 +1,53 @@
+Package: auctex
+Version: 11.82
+Revision: 1
+Description: Integrated environment for TeX/LaTeX document writing
+License: GPL
+Maintainer: Sebastien Maret <bmaret@users.sourceforge.net>
+Depends: emacsen, tetex-base
+Source: mirror:gnu:auctex/auctex-%v.tar.gz
+Source-MD5: a18d6ac70b332f47386980f0c4df62e6 
+PatchScript: sed 's|@PREFIX@|%p|g' <%a/%n.patch | patch -p1
+InstallScript: <<
+  make
+  make install prefix=%i
+  rm -f %i/share/emacs/site-lisp/auctex/*.elc
+  rm -f %i/share/emacs/site-lisp/auctex/style/*.elc
+  rm -f %i/share/emacs/site-lisp/preview/*.elc
+  install -m 644 lpath.el %i/share/emacs/site-lisp/auctex
+  mkdir -p %i/lib/emacsen-common/packages/install
+  install -m 755 fink/install %i/lib/emacsen-common/packages/install/%n
+  mkdir -p %i/lib/emacsen-common/packages/remove
+  install -m 755 fink/remove %i/lib/emacsen-common/packages/remove/%n
+  mkdir -p %i/sbin
+  install -m 755 fink/update-auctex-elisp %i/sbin
+  install -m 755 fink/update-auctex-install %i/sbin
+  mkdir -p %i/share/man/man8
+  install -m 644 fink/update-auctex-elisp.8 %i/share/man/man8	
+  mkdir -p %i/share/info
+  install -m 644 doc/auctex.info doc/preview-latex.info %i/share/info
+  mkdir -p %i/var/lib/auctex
+<<
+PostInstScript: <<
+  %p/lib/emacsen-common/emacs-package-install %n
+  %p/bin/texhash
+<<
+PreRmScript: %p/lib/emacsen-common/emacs-package-remove %n
+DocFiles: README COPYING
+InfoDocs: auctex.info preview-latex.info
+DescDetail: <<
+AUCTeX is an extensible package for writing and formatting TeX files
+in GNU Emacs. It supports many different TeX macro packages, including
+AMS-TeX, LaTeX, Texinfo, ConTeXt, and docTeX (dtx files).  AUCTeX
+includes preview-latex which makes LaTeX a tightly integrated
+component of your editing workflow by visualizing selected source
+chunks (such as single formulas or graphics) directly as images in the
+source buffer.
+<<
+DescUsage: <<
+Users can enable AUCTeX by adding the following lines to their .emacs
+files:
+   (load "auctex.el" nil t t)
+   (load "preview-latex.el" nil t t)
+<<
+Homepage: http://www.gnu.org/software/auctex/
