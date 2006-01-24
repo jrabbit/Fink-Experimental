@@ -4,6 +4,7 @@ use strict;
 
 use lib '/sw/lib/perl5';
 use lib '/Users/ranger/cvs.build/fink/perlmod';
+use lib '/Users/ranger/cvs/fink/perlmod';
 
 use Clone qw(clone);
 use File::Basename;
@@ -45,6 +46,7 @@ my $version_lookup = {
 		'^dpkg$'                                    => [ '1.10.21',      '1217' ],
 		'^fltk-x11(-shlibs)?$'                      => [ '1.1.6',        '11.1' ],
 		'^glib2(-dev|-shlibs)?$'                    => [ '2.6.6',        '1111' ],
+		'^guile16(-dev|-libs|-shlibs)?$'            => [ '1.6.7',        '1010' ],
 		'^kaptain$'                                 => [ '0.72',         '1012' ],
 		'^libidl2(-shlibs)?$'                       => [ '0.8.3',        '1002' ],
 		'^(libncurses5(-shlibs)?|ncurses)$'         => [ '5.4-20041023', '1006' ],
@@ -56,6 +58,13 @@ my $version_lookup = {
 		'^readline(-shlibs)?$'                      => [ '4.3',          '1028' ],
 		'^readline5(-shlibs)?$'                     => [ '5.0',          '1004' ],
 		'^sdl(-shlibs)?$'                           => [ '1.2.9',        '1001' ],
+		'^macosx$'                                  => [ '10.4.3',       '1'    ],
+	},
+	'10.4-transitional' => {
+		'^macosx$'                                  => [ '10.4.3',       '1'    ],
+	},
+	'10.3' => {
+		'^macosx$'                                  => [ '10.3.0',       '1'    ],
 	},
 	'all' => {
 		'^arts(-dev|-shlibs)?$'                     => [ undef,          '+'    ],
@@ -65,15 +74,25 @@ my $version_lookup = {
 	},
 };
 
-my @KEYS = qw( Package Version Revision Epoch Description Type License Maintainer <CR> Depends BuildDepends BuildConflicts Provides
-	Conflicts Replaces Recommends Suggests Enhances Pre-Depends Essential BuildDependsOnly GCC <CR>
-	CustomMirror Source Source<N> SourceDirectory NoSourceDirectory Source<N>ExtractDir SourceRename
-	Source<N>Rename Source-MD5 Source<N>-MD5 TarFilesRename Tar<N>FilesRename UpdateConfigGuess
-	UpdateConfigGuessInDirs UpdateLibtool UpdateLibtoolInDirs UpdatePoMakefile Patch PatchScript <CR>
-	Set<S> NoSet<S> ConfigureParams CompileScript <CR> UpdatePOD InstallScript NoPerlTests JarFiles DocFiles
-	RuntimeVars SplitOff SplitOff<N> Files Shlibs <CR> PreInstScript PostInstScript PreRmScript PostRmScript
-	ConfFiles InfoDocs DaemonicFile DaemonicName <CR> Homepage DescDetail DescUsage DescPackaging
-	DescPort );
+my @KEYS = (
+	'Package', 'Version', 'Revision', 'Epoch', 'Architecture', 'Description', 'Type',
+		'License', 'Maintainer', '<CR>',
+	'Depends', 'BuildDepends', 'BuildConflicts', 'Provides', 'Conflicts', 'Replaces',
+		'Recommends', 'Suggests', 'Enhances', 'Pre-Depends', 'Essential',
+		'BuildDependsOnly', 'GCC', '<CR>',
+	'CustomMirror', 'Source', 'Source<N>', 'SourceDirectory', 'Source<N>Directory',
+		'NoSourceDirectory', 'SourceExtractDir', 'Source<N>ExtractDir', 'SourceRename',
+		'Source<N>Rename', 'Source-MD5', 'Source<N>-MD5', 'TarFilesRename',
+		'Tar<N>FilesRename', 'UpdateConfigGuess', 'UpdateConfigGuessInDirs',
+		'UpdateLibtool', 'UpdateLibtoolInDirs', 'UpdatePoMakefile', 'Patch',
+		'PatchScript', '<CR>',
+	'Set<S>', 'NoSet<S>', 'ConfigureParams', 'CompileScript', '<CR>',
+	'UpdatePOD', 'InstallScript', 'NoPerlTests', 'JarFiles', 'DocFiles',
+		'RuntimeVars', 'SplitOff', 'SplitOff<N>', 'Files', 'Shlibs', '<CR>',
+	'PreInstScript', 'PostInstScript', 'PreRmScript', 'PostRmScript', 'ConfFiles',
+		'InfoDocs', 'DaemonicFile', 'DaemonicName', '<CR>',
+	'Homepage', 'DescDetail', 'DescUsage', 'DescPackaging', 'DescPort',
+);
 
 my @TREES = qw( 10.3 10.4-transitional 10.4 );
 
@@ -110,7 +129,10 @@ for my $file (@files) {
 		my $properties = info_hash_from_var(
 			$file,
 			$contents,
+			{ case_sensitive => 1 },
 		);
+
+#		print Dumper($properties), "\n";
 
 		for my $tree (@TREES) {
 			my $treeproperties = clone($properties);
@@ -202,11 +224,12 @@ sub serialize_to_info {
 	my $package = clone(shift);
 	my $indent  = shift || 0;
 
+	#print Dumper($package), "\n";
 	my $output = "";
 
 	delete $package->{'Tree'};
-	my $infolevel = int($package->{'infolevel'});
-	delete $package->{'infolevel'};
+	my $infolevel = int($package->{'InfoLevel'});
+	delete $package->{'InfoLevel'};
 
 	$output .= "Info${infolevel}: <<\n" if ($infolevel >= 2 and not $indent);
 
@@ -217,36 +240,44 @@ sub serialize_to_info {
 			my $regex = $key;
 			$regex =~ s/<N>/\\d\+/gs;
 			for my $field (sort keys %$package) {
-				if ($field =~ /^$regex/i) {
+				if ($field =~ /^\s*${regex}\s*$/gsi) {
 					if (ref $package->{$field}) {
 						$output .= print_indent($field, serialize_to_info($package->{$field}, $indent + 1), $indent);
 					} else {
 						$output .= print_indent($field, $package->{$field}, $indent);
 					}
 					delete $package->{$field};
+					#warn "$key matched $field (/^$regex\$/i\n";
+				} else {
+					#warn "$key did not match $field (/^$regex\$/i\n";
 				}
 			}
 		} elsif ($key =~ /<S>/) {
 			my $regex = $key;
 			$regex =~ s/<S>/\.\+/gs;
 			for my $field (sort keys %$package) {
-				if ($field =~ /^$regex/i) {
+				if ($field =~ /^\s*${regex}\s*$/gsi) {
 					if (ref $package->{$field}) {
 						$output .= print_indent($field, serialize_to_info($package->{$field}, $indent + 1), $indent);
 					} else {
 						$output .= print_indent($field, $package->{$field}, $indent);
 					}
 					delete $package->{$field};
+					#warn "$key matched $field (/^$regex\$/i\n";
+				} else {
+					#warn "$key did not match $field (/^$regex\$/i\n";
 				}
 			}
 		} else {
-			if (exists $package->{$key}) {
-				if (ref $package->{$key}) {
-					$output .= print_indent($key, serialize_to_info($package->{$key}, $indent + 1), $indent);
-				} else {
-					$output .= print_indent($key, $package->{$key}, $indent);
+			for my $field (keys %$package) {
+				if ($field =~ /^\s*${key}\s*$/gsi) {
+					if (ref $package->{$field}) {
+						$output .= print_indent($key, serialize_to_info($package->{$field}, $indent + 1), $indent);
+					} else {
+						$output .= print_indent($key, $package->{$field}, $indent);
+					}
+					delete $package->{$field};
 				}
-				delete $package->{$key};
 			}
 		}
 	}
@@ -268,9 +299,9 @@ sub prettify_field_name {
 		if ($key =~ /<N>/) {
 			my $regex = $key;
 			$regex =~ s/<N>/\(\\d\+\)/gs;
-			if (my ($number) = $field =~ /^$regex/i) {
+			if (my ($number) = $field =~ /^${regex}$/gsi) {
 				my $field_name = $key;
-				$field_name =~ s/<N>/$number/i;
+				$field_name =~ s/<N>/$number/gsi;
 				return $field_name;
 			}
 		} elsif (my ($set, $var) = $field =~ /^(NoSet|Set)(.*)$/i) {
@@ -282,17 +313,19 @@ sub prettify_field_name {
 		} elsif ($key =~ /<S>/i) {
 			my $regex = $key;
 			$regex =~ s/<S>/\(\.\+\)/gsi;
-			if (my ($string) = $field =~ /^$regex/i) {
+			if (my ($string) = $field =~ /^${regex}$/i) {
 				my $field_name = $key;
-				$field_name =~ s/<S>/$string/i;
+				$field_name =~ s/<S>/$string/gsi;
 				return $field_name;
-			} else {
 			}
-		} elsif ($key =~ /^${field}$/i) {
+		} elsif ($field =~ /^\s*${key}\s*$/gsi) {
+			# warn "prettify: $key =~ /^${field}\$/gsi matched\n";
 			return $key;
+		} else {
+			# warn "prettify: $key =~ /^${field}\$/gsi did not match\n";
 		}
 	}
-	warn "prettify: no match for $field\n";
+	warn "prettify: no match for '$field'\n";
 	return $field;
 }
 
@@ -372,7 +405,7 @@ sub transform_gcc {
 sub transform_type {
 	my $tree = shift->{'Tree'};
 	my $type = shift;
-	if ($type =~ /^perl/) {
+	if ($type =~ /^perl/i) {
 		my @versions = qw(5.6.0 5.6.1 5.8.0 5.8.1 5.8.4 5.8.5 5.8.6);
 		if ($tree =~ /^10.3/) {
 			@versions = qw(5.6.0 5.8.0 5.8.1 5.8.4 5.8.6);
@@ -380,7 +413,7 @@ sub transform_type {
 			@versions = qw(5.8.1 5.8.4 5.8.6);
 		}
 		$type = "perl(@versions)";
-	} elsif ($type =~ /^python/) {
+	} elsif ($type =~ /^python/i) {
 		my @versions = qw(2.1 2.2 2.3 2.4);
 		if ($tree =~ /^10.3/) {
 			@versions = qw(2.1 2.2 2.3 2.4);
@@ -456,11 +489,11 @@ sub transform_dependency {
 		if (exists $package_lookup->{$tree_iterator}) {
 			for my $key (keys %{$package_lookup->{$tree_iterator}}) {
 				my $replace = $package_lookup->{$tree_iterator}->{$key};
-				if ($package =~ /$key/) {
+				if ($package =~ /$key/i) {
 					if (not defined $replace) {
 						$delete++;
 					} else {
-						$package =~ s/$key/$replace/gs;
+						$package =~ s/$key/$replace/gsi;
 					}
 				}
 			}
@@ -469,7 +502,7 @@ sub transform_dependency {
 			#print "checking in $tree_iterator\n";
 	
 			for my $key (keys %{$version_lookup->{$tree_iterator}}) {
-				if ($package =~ /$key/) {
+				if ($package =~ /$key/i) {
 					#print "transform_dependency[$dep_spec]: $package matches $key\n";
 					my ($newversion, $newrevision) = @{$version_lookup->{$tree_iterator}->{$key}};
 					if (defined $version and defined $revision and $revision ne '%r' and $newrevision eq '+') {
@@ -561,18 +594,18 @@ sub info_hash_from_var {
 	for my $key (keys %$properties) {
 		my $newkey = prettify_field_name($key);
 		#print "$key = $newkey\n";
-		if ($key =~ /^splitoff/) {
+		if ($key =~ /^splitoff/i) {
 			$return->{$newkey} = info_hash_from_var(
 				$filename . ' (' . $key . ')',
 				$properties->{$key},
-				{ remove_space => 1 },
+				{ remove_space => 1, %$options },
 			);
 		} else {
 			$return->{$newkey} = $properties->{$key};
 		}
 	}
 
-	$return->{'infolevel'} = $infolevel;
+	$return->{'InfoLevel'} = $infolevel;
 
 	return $return;
 }
