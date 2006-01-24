@@ -523,7 +523,7 @@ sub transform_revision {
 	} elsif ($tree eq '10.4-transitional') {
 		$revision = revision_add($revision, 20);
 	} elsif ($tree eq '10.4') {
-		$revision = revision_add($revision, 30);
+		$revision = revision_add($revision, 1020);
 	} else {
 		warn "unhandled tree '$tree'\n";
 	}
