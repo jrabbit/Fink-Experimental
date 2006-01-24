@@ -387,7 +387,7 @@ sub transform_compilescript {
 	my $compilescript = shift;
 
 	if ($tree eq '10.4') {
-		$compilescript =~ s/(gcc|g\+\+)-3.3/$1/;
+		$compilescript =~ s/(gcc|g\+\+)-3.3/$1/gs;
 	}
 
 	return $compilescript;
