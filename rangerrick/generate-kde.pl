@@ -1,14 +1,83 @@
 #!/usr/bin/perl
 
+use strict;
+
+use lib '/sw/lib/perl5';
+use lib '/Users/ranger/cvs.build/fink/perlmod';
+
+use Clone qw(clone);
 use File::Basename;
 use File::Find;
 use File::Path;
 use Cwd 'abs_path';
+use Fink;
+use Fink::PkgVersion;
+use Fink::Services qw(&read_properties_var &pkglist2lol &lol2pkglist);
+use Data::Dumper;
+
+Fink->import;
 
 my $path = abs_path(dirname($0));
 
 my @files = @ARGV;
 my %files;
+
+my $package_lookup = {
+	'10.3' => {
+		'^libxine1(\S*)$'      => 'libxine$1',
+		'^fontconfig2-shlibs$' => undef,
+		'^libicu32-dev$'       => undef,
+	},
+	'10.4-transitional' => {
+		'^libicu31-dev$'       => undef,
+		'^gcc3.1$'             => undef,
+	},
+	'10.4' => {
+		'^libicu31-dev$'       => undef,
+		'^gcc3.1$'             => undef,
+		'^gcc3.3$'             => undef,
+	},
+};
+
+my $version_lookup = {
+	'10.4' => {
+		'^apt(-dev|-shlibs)?$'                      => [ '0.5.4',        '1052' ],
+		'^dpkg$'                                    => [ '1.10.21',      '1217' ],
+		'^fltk-x11(-shlibs)?$'                      => [ '1.1.6',        '11.1' ],
+		'^glib2(-dev|-shlibs)?$'                    => [ '2.6.6',        '1111' ],
+		'^kaptain$'                                 => [ '0.72',         '1012' ],
+		'^libidl2(-shlibs)?$'                       => [ '0.8.3',        '1002' ],
+		'^(libncurses5(-shlibs)?|ncurses)$'         => [ '5.4-20041023', '1006' ],
+		'^libncursesw5(-shlibs)?$'                  => [ '5.4-20041023', '1001' ],
+		'^ncurses-(dev|shlibs)$'                    => [ '5.3-20031018', '1501' ],
+		'^openexr(-dev)?$'                          => [ '1.2.2',        '31'   ],
+		'^openjade$'                                => [ '1.3.2',        '1028' ],
+		'^qt3(-.+)?$'                               => [ '3.3.5',        '1023' ],
+		'^readline(-shlibs)?$'                      => [ '4.3',          '1028' ],
+		'^readline5(-shlibs)?$'                     => [ '5.0',          '1004' ],
+		'^sdl(-shlibs)?$'                           => [ '1.2.9',        '1001' ],
+	},
+	'all' => {
+		'^arts(-dev|-shlibs)?$'                     => [ undef,          '+'    ],
+		'^kde\S+(i18n|3|3-unified)(-dev|-shlibs)?$' => [ undef,          '+'    ],
+		'^qt3(-.+)?$'                               => [ undef,          '+'    ],
+		'^postgresql\S+$'                           => [ undef,          '+'    ],
+	},
+};
+
+my @KEYS = qw( Package Version Revision Epoch Description Type License Maintainer <CR> Depends BuildDepends BuildConflicts Provides
+	Conflicts Replaces Recommends Suggests Enhances Pre-Depends Essential BuildDependsOnly GCC <CR>
+	CustomMirror Source Source<N> SourceDirectory NoSourceDirectory Source<N>ExtractDir SourceRename
+	Source<N>Rename Source-MD5 Source<N>-MD5 TarFilesRename Tar<N>FilesRename UpdateConfigGuess
+	UpdateConfigGuessInDirs UpdateLibtool UpdateLibtoolInDirs UpdatePoMakefile Patch PatchScript <CR>
+	Set<S> NoSet<S> ConfigureParams CompileScript <CR> UpdatePOD InstallScript NoPerlTests JarFiles DocFiles
+	RuntimeVars SplitOff SplitOff<N> Files Shlibs <CR> PreInstScript PostInstScript PreRmScript PostRmScript
+	ConfFiles InfoDocs DaemonicFile DaemonicName <CR> Homepage DescDetail DescUsage DescPackaging
+	DescPort );
+
+my @TREES = qw( 10.3 10.4-transitional 10.4 );
+
+my $APPEND_USAGE = '^arts|kde\S+3|kdevelop|koffice|bundle-kde|kgpg';
 
 if (not @files) {
 	find(sub {
@@ -26,160 +95,486 @@ for my $file (@files) {
 	next unless ($file =~ /(openexr|gst.*0.10.*|kde|postgres|libpq|libpg|wv2|icecream|qt3|qca|kgpg|xfree86|xorg|\/mono\.|libgdiplus|monodevelop|cocoa-sharp|perlmods|libsmoke|fung-calc|.*-pm.info$)/);
 	next if ($file =~ /notready/);
 
-	#for my $tree ('10.2-gcc3.3', '10.3', '10.4') {
-	for my $tree ('10.3', '10.4', '10.4-transitional') {
-		my $todir = $dir;
-		$todir =~ s,common/,${tree}/,;
+	my $contents;
+	if (open (FILEIN, $file)) {
+		local $/ = undef;
+		$contents = <FILEIN>;
+		close (FILEIN);
+	} else {
+		warn "unable to read from $file: $!\n";
+		next;
+	}
 
-		print "- $todir/$filename... ";
+	print $file, "\n";
+	if ($file =~ /\.info$/) {
+		my $properties = info_hash_from_var(
+			$file,
+			$contents,
+		);
 
-		if (mkdir_p($todir)) {
-			system('cp', $dir . '/' . $filename, $todir . '/' . $filename) == 0
-				or "couldn't copy $filename to $todir: $!\n";
-			if ($filename =~ /\.info$/) {
-				if (open(FILEIN, $dir .'/'. $filename)) {
-					if (open(FILEOUT , '>' . $todir . '/' . $filename)) {
-						print "converting... ";
-						my $version = 0;
-						my $revision = 0;
-						while (my $line = <FILEIN>) {
-							if ($line =~ /^\s*revision:\s*(.*?)\s*$/i) {
-								$revision = $1;
-								if (my ($pre, $post) = $revision =~ /^(.*\.)(\d+)$/) {
-									$post += 10 if ($tree eq '10.3');
-									$post += 20 if ($tree eq '10.4-transitional');
-									$post += 30 if ($tree eq '10.4');
-									$revision = $pre . $post;
-								} else {
-									$revision += 10 if ($tree eq '10.3');
-									$revision += 20 if ($tree eq '10.4-transitional');
-									$revision += 30 if ($tree eq '10.4');
-								}
-								print FILEOUT "Revision: $revision\n";
-							} else {
-								if ($line =~ /^\s*(Build)?Depends/gi) {
-									my $newline = $line;
-									while ($line =~ /\G.*?((?:arts|kde\S+(?:i18n|3|3-unified)|qt3|postgresql80)\S*)\s+\(([^\)]*?)\)/g) {
-										my $package = $1;
-										my $version = $2;
-										my ($comparator, $revision);
-										if ($version =~ /^([^\%]+?)\s+([^-]+)-([^\%]+?)$/) {
-											($comparator, $version, $revision) = ($1, $2, $3);
-											#print "$package ($version-$revision) -> ";
-											if (my ($pre, $post) = $revision =~ /^(.*\.)(\d+)$/) {
-												$post += 10 if ($tree eq '10.3');
-												$post += 20 if ($tree eq '10.4-transitional');
-												$post += 30 if ($tree eq '10.4');
-												$revision = $pre . $post;
-											} else {
-												$revision += 10 if ($tree eq '10.3');
-												$revision += 20 if ($tree eq '10.4-transitional');
-												$revision += 30 if ($tree eq '10.4');
-											}
-											$newline =~ s/${package}\s+\([^\)]*?\)/$package ($comparator $version-$revision)/g;
-											#print "($version-$revision)... ";
-										}
-									}
-									$line = $newline;
-								} elsif ($line =~ /^(\s*)type:\s*perl\s*\((.*)\)\s*$/i) {
-									my @versions = split(/\s+/, $2);
-									if ($tree =~ /^10\.2/) {
-										@versions = qw(5.6.0 5.6.1 5.8.1);
-									} elsif ($tree =~ /^10\.3/) {
-										@versions = qw(5.6.0 5.8.0 5.8.1 5.8.4 5.8.6);
-									} elsif ($tree =~ /^10\.4/) {
-										@versions = qw(5.8.1 5.8.4 5.8.6);
-									}
-									$line = $1 . "Type: perl(@versions)\n";
-								} elsif ($line =~ /^(\s*)type:\s*python\s*\((.*)\)\s*$/i) {
-									my @versions = split(/\s+/, $2);
-									if ($tree =~ /^10\.2/) {
-										@versions = qw(2.1 2.2 2.3);
-									} elsif ($tree =~ /^10\.3/) {
-										@versions = qw(2.1 2.2 2.3 2.4);
-									} elsif ($tree =~ /^10\.4/) {
-										@versions = qw(2.2 2.3 2.4);
-									}
-									$line = $1 . "Type: python(@versions)\n";
-								}
+		for my $tree (@TREES) {
+			my $treeproperties = clone($properties);
+			$treeproperties->{'Tree'} = $tree;
 
-								if ($tree =~ /^10\.2/) {
-									$line =~ s/^\#10.2\s+(.*)$/$1/;
-									$line =~ s/libgsf-dev/libgsf/g;
-									$line =~ s/gstreamer\S*?(\s+\([^\)]+\))?\s*[\,\s]*//g;
-									$line =~ s/((imagemagick.*?)-dev)/$2/g;
-									$line =~ s/(freetype2\S*) \((\S+)\s+2.1.3-\d+\)/$1 ($2 2.1.3-2)/g;
-								} else {
-									$line =~ s/(kerberos[^,]*, )//g unless ($tree =~ /^10\.4/);
-									$line =~ s/^\#(\s*export\s+LD_TWOLEVEL_NAMESPACE.*)$/$1/;
-									$line =~ s/(dlcompat|libpoll)(\S*)(\s+\([^\)]+\))?[\,\s]*//g unless ($line =~ m#-I/usr/X11R6/include#);
-									$line =~ s/(dlcompat|libpoll|mdnsresponder)(\S*)(\s+\([^\)]+\))?[\,\s]*//g unless ($line =~ m#-I/usr/X11R6/include#);
-									$line =~ s/, libgnugetopt(-shlibs)?$//;
-									$line =~ s/libgnugetopt(-shlibs)?, //;
-									$line =~ s/-I.*?\/include\/gnugetopt //;
-									$line =~ s/^SetMACOSX_DEPLOYMENT_TARGET: 10.2/SetMACOSX_DEPLOYMENT_TARGET: $tree/;
-									$line =~ s/--disable-(ada|haskell|pascal) *//g;
-									$line =~ s/^\#${tree}\s+(.*)$/$1/;
-									next if ($line =~ /^\s*Depends: libgnugetopt-shlibs$/);
-								}
+			$treeproperties = transform_fields($treeproperties, clone($treeproperties));
 
-								if ($tree =~ /^10.3/) {
-									$line =~ s/libxine1/libxine/gs;
-									$line =~ s/(^\s*|,\s*)fontconfig2-shlibs//;
-									$line =~ s/libicu32-dev, *//;
-									$line =~ s/(^\s*|,\s*)macosx \(>= 10.4.*?\)//;
-								} elsif ($tree =~ /^10.4/) {
-									$line =~ s/libicu31-dev, *//;
-								}
+			my $todir = $dir;
+			$todir =~ s#/common/#/${tree}/#;
+			mkdir_p($todir) unless (-d $todir);
 
-								if ($tree eq '10.4') {
-									$line =~ s/^\s*GCC: 3.3\s*$/GCC: 4.0/;
-									$line =~ s/gcc-3.3/gcc-4.0/gs;
-									$line =~ s/g\+\+-3.3/g\+\+-4.0/gs;
-									$line =~ s/(BuildDepends:.*),\s+gcc3.3(.*)$/$1$2/gs;
-#									$line =~ s/(^\s*|,\s*)(apt(?:-dev|-shlibs)?)(?:\s+\([^\)]+\))/$1$2 (>= 0.5.4-1052)/gs;
-#									$line =~ s/(^\s*|,\s*)(dpkg)(?:\s+\([^\)]+\))/$1$2 (>= 1.10.21-1217)/gs;
-#									$line =~ s/(^\s*|,\s*)(ncurses|libncurses5(?:-shlibs)?)(?:\s+\([^\)]+\))/$1$2 (>= 5.4-20041023-1006)/gs;
-#									$line =~ s/(^\s*|,\s*)(libncursesw5(?:-shlibs)?)(?:\s+\([^\)]+\))/$1$2 (>= 5.4-20041023-1001)/gs;
-#									$line =~ s/(^\s*|,\s*)(ncurses(?:-dev|-shlibs))(?:\s+\([^\)]+\))/$1$2 (>= 5.3-20031018-1501)/gs;
-								}
-
-								if ($tree ge '10.4') {
-									$line =~ s/(^|,\s*)libftw0(-shlibs)?\s*//;
-									$line =~ s/gcc3.1[,\s]*//;
-									# java's broken everywhere right now
-									#$line =~ s/--disable-java //;
-								} else {
-									if ($line =~ /libkfontinst/) {
-										$line = "###RR:skip###\n";
-									}
-								}
-								$line .= "\n" unless ($line =~ /\n+$/);
-								print FILEOUT $line unless ($line =~ /###RR:skip###/);
-							}
-						}
-						if ($filename =~ /(arts|kde\S+3|koffice|quanta|bundle-kde)/ and open(DESCUSAGE, $path . '/kdedesc.txt')) {
-							while (<DESCUSAGE>) {
-								print FILEOUT;
-							}
-							close(DESCUSAGE);
-						}
-						print "done\n";
-						close(FILEOUT);
-					} else {
-						warn "couldn't write to $todir/$filename: $!\n";
-					}
-					close(FILEIN);
-				} else {
-					warn "couldn't read from $dir/$filename: $!\n";
-				}
-			} else {
-				print "copied\n";
+			my $info = serialize_to_info($treeproperties) . "\n";
+			if (open (FILEOUT, '>' . $todir . '/' . $filename)) {
+				print FILEOUT $info;
+				close (FILEOUT);
 			}
+		}
+
+	} elsif ($file =~ /\.patch$/) {
+		for my $tree (@TREES) {
+			my $todir = $dir;
+			$todir =~ s#/common/#/${tree}/#;
+			mkdir_p($todir) unless (-d $todir);
+
+			if (open (FILEOUT, '>' . $todir . '/' . $filename)) {
+				print FILEOUT $contents;
+				close (FILEOUT);
+			}
+		}
+
+	} else {
+		warn "unhandled file: $file\n";
+	}
+
+}
+
+sub transform_fields {
+	my $packagehash = shift;
+	my $properties  = shift;
+
+	for my $field (keys %$properties) {
+		my $lcfield = lc($field);
+		no strict qw(refs);
+		if ($field =~ /^splitoff/i) {
+			$properties->{$field} = transform_fields($packagehash, $properties->{$field});
+		} elsif (defined &{"transform_$lcfield"}) {
+			$properties->{$field} = &{"transform_$lcfield"}($packagehash, $properties->{$field});
 		} else {
-			warn "couldn't create $todir: $!\n";
+			#warn "unhandled field: $field\n";
 		}
 	}
+
+	if ($packagehash->{'Package'} =~ /$APPEND_USAGE/i) {
+		$properties->{'DescUsage'} = transform_descusage($packagehash, $properties->{'DescUsage'});
+	}
+
+	return $properties;
+}
+
+sub print_indent {
+	my $field_name = shift;
+	my $text       = shift;
+	my $indent     = shift || 0;
+
+	$text =~ s/^\n+//gsi;
+	$text =~ s/\n+$//gsi;
+
+	my $return = "";
+
+	if ($text =~ /\n/) {
+		$return .= "\t" x $indent . $field_name . ": <<\n";
+		if ($field_name =~ /^(files|conffiles|custommirror|patchscript|shlibs)$/i) {
+			for my $line (split(/\n/, $text)) {
+				$line =~ s/^\s+//;
+				$return .= "\t" x ($indent + 1) . $line . "\n";
+			}
+		} else {
+			$return .= $text . "\n";
+		}
+		$return .= "\t" x $indent . "<<\n";
+	} else {
+		$return .= "\t" x $indent . $field_name . ": " . $text . "\n";
+	}
+
+	return $return;
+}
+
+sub serialize_to_info {
+	my $package = clone(shift);
+	my $indent  = shift || 0;
+
+	my $output = "";
+
+	delete $package->{'Tree'};
+	my $infolevel = int($package->{'infolevel'});
+	delete $package->{'infolevel'};
+
+	$output .= "Info${infolevel}: <<\n" if ($infolevel >= 2 and not $indent);
+
+	for my $key (@KEYS) {
+		if ($key eq "<CR>") {
+			$output .= "\n" unless ($output =~ /\n\n$/gs or $indent);
+		} elsif ($key =~ /<N>/) {
+			my $regex = $key;
+			$regex =~ s/<N>/\\d\+/gs;
+			for my $field (sort keys %$package) {
+				if ($field =~ /^$regex/i) {
+					if (ref $package->{$field}) {
+						$output .= print_indent($field, serialize_to_info($package->{$field}, $indent + 1), $indent);
+					} else {
+						$output .= print_indent($field, $package->{$field}, $indent);
+					}
+					delete $package->{$field};
+				}
+			}
+		} elsif ($key =~ /<S>/) {
+			my $regex = $key;
+			$regex =~ s/<S>/\.\+/gs;
+			for my $field (sort keys %$package) {
+				if ($field =~ /^$regex/i) {
+					if (ref $package->{$field}) {
+						$output .= print_indent($field, serialize_to_info($package->{$field}, $indent + 1), $indent);
+					} else {
+						$output .= print_indent($field, $package->{$field}, $indent);
+					}
+					delete $package->{$field};
+				}
+			}
+		} else {
+			if (exists $package->{$key}) {
+				if (ref $package->{$key}) {
+					$output .= print_indent($key, serialize_to_info($package->{$key}, $indent + 1), $indent);
+				} else {
+					$output .= print_indent($key, $package->{$key}, $indent);
+				}
+				delete $package->{$key};
+			}
+		}
+	}
+
+	for my $key (sort keys %$package) {
+		die "ERROR: '$key' is missing from \@KEYS!\n";
+	}
+
+	$output =~ s/\n\n+/\n\n/gsi;
+	$output .= "<<\n" if ($infolevel >= 2 and not $indent);
+
+	return $output;
+}
+
+sub prettify_field_name {
+	my $field = shift;
+
+	for my $key (@KEYS) {
+		if ($key =~ /<N>/) {
+			my $regex = $key;
+			$regex =~ s/<N>/\(\\d\+\)/gs;
+			if (my ($number) = $field =~ /^$regex/i) {
+				my $field_name = $key;
+				$field_name =~ s/<N>/$number/i;
+				return $field_name;
+			}
+		} elsif (my ($set, $var) = $field =~ /^(NoSet|Set)(.*)$/i) {
+			if ($set =~ /^no/i) {
+				return "NoSet" . uc($var);
+			} else {
+				return "Set" . uc($var);
+			}
+		} elsif ($key =~ /<S>/i) {
+			my $regex = $key;
+			$regex =~ s/<S>/\(\.\+\)/gsi;
+			if (my ($string) = $field =~ /^$regex/i) {
+				my $field_name = $key;
+				$field_name =~ s/<S>/$string/i;
+				return $field_name;
+			} else {
+			}
+		} elsif ($key =~ /^${field}$/i) {
+			return $key;
+		}
+	}
+	warn "prettify: no match for $field\n";
+	return $field;
+}
+
+sub transform_descusage {
+	my $packagehash = shift;
+	my $descusage   = shift;
+
+	if ($packagehash->{'Package'} =~ /$APPEND_USAGE/i) {
+		if (open (FILEIN, $path . '/kdedesc.txt')) {
+			local $/ = undef;
+			if ($descusage !~ /^[\s\n]*$/gsi) {
+				warn "descusage is not empty, overwriting:\n$descusage\n";
+			}
+			$descusage = <FILEIN>;
+			close (FILEIN);
+		} else {
+			warn "unable to open kdedesc.txt: $!\n";
+		}
+	}
+
+	return $descusage;
+}
+
+sub transform_files {
+	my $tree  = shift->{'Tree'};
+	my $files = shift;
+
+	my @newlines;
+
+	for my $line (split(/\r?\n/, $files)) {
+		if ($tree eq "10.3") {
+			next if ($line =~ /libkfontinst/i);
+		}
+		push(@newlines, $line);
+	}
+
+	return join("\n", @newlines);
+}
+
+sub transform_shlibs {
+	my $tree   = shift->{'Tree'};
+	my $shlibs = shift;
+	my @newlines;
+
+	for my $line (split(/\r?\n/, $shlibs)) {
+		if ($tree eq "10.3") {
+			next if ($line =~ /libkfontinst/i);
+		}
+		push(@newlines, $line);
+	}
+
+	return join("\n", @newlines);
+}
+
+sub transform_compilescript {
+	my $tree          = shift->{'Tree'};
+	my $compilescript = shift;
+
+	if ($tree eq '10.4') {
+		$compilescript =~ s/(gcc|g\+\+)-3.3/$1/;
+	}
+
+	return $compilescript;
+}
+
+sub transform_gcc {
+	my $tree = shift->{'Tree'};
+	my $gcc  = shift;
+
+	if ($tree eq "10.4") {
+		$gcc = "4.0";
+	}
+
+	return $gcc;
+}
+
+sub transform_type {
+	my $tree = shift->{'Tree'};
+	my $type = shift;
+	if ($type =~ /^perl/) {
+		my @versions = qw(5.6.0 5.6.1 5.8.0 5.8.1 5.8.4 5.8.5 5.8.6);
+		if ($tree =~ /^10.3/) {
+			@versions = qw(5.6.0 5.8.0 5.8.1 5.8.4 5.8.6);
+		} elsif ($tree =~ /^10.4/) {
+			@versions = qw(5.8.1 5.8.4 5.8.6);
+		}
+		$type = "perl(@versions)";
+	} elsif ($type =~ /^python/) {
+		my @versions = qw(2.1 2.2 2.3 2.4);
+		if ($tree =~ /^10.3/) {
+			@versions = qw(2.1 2.2 2.3 2.4);
+		} elsif ($tree =~ /^10.4/) {
+			@versions = qw(2.2 2.3 2.4);
+		}
+		$type = "python(@versions)";
+	}
+
+	return $type;
+}
+
+sub transform_enhances {
+	return transform_depends(@_);
+}
+
+sub transform_recommends {
+	return transform_depends(@_);
+}
+
+sub transform_suggests {
+	return transform_depends(@_);
+}
+
+sub transform_runtimedepends {
+	return transform_depends(@_);
+}
+
+sub transform_builddepends {
+	return transform_depends(@_);
+}
+
+sub transform_depends {
+	my $packagehash = shift;
+	my $depends     = pkglist2lol(shift);
+	my @newdepends;
+
+	for my $dep (@$depends) {
+		my @newdep;
+		for my $pkg (@$dep) {
+			my $newdep = transform_dependency($packagehash->{'Tree'}, $pkg);
+			push(@newdep, $newdep) if (defined $newdep);
+		}
+		push(@newdepends, \@newdep);
+	}
+
+	return lol2pkglist(\@newdepends);
+}
+
+sub transform_dependency {
+	my $tree     = shift;
+	my $dep_spec = shift;
+	my $delete   = 0;
+
+	my ($prefix, $package, $comparator, $version, $revision);
+	if ($dep_spec =~ s/^\s*\(([^\)]+)\)\s+//) {
+		$prefix = $1;
+	}
+	if (($package, $comparator, $version, $revision) = $dep_spec =~ /^(\S+)\s+\((\S+)\s+(\S+)\-(\S+)\)$/) {
+		#print "transform_dependency[$dep_spec]: $package matched long-form dep\n";
+	} elsif (($package) = $dep_spec =~ /^(\S+)$/) {
+		#print "transform_dependency[$dep_spec]: $package matched short-form dep\n";
+	} elsif (($package, $comparator, $version) = $dep_spec =~ /^(\S+)\s+\((\S+)\s+([^\-\s]+)\)$/) {
+		#print "transform_dependency[$dep_spec]: $package matched incorrect dep\n";
+		$revision = 0;
+	} else {
+		warn "transform_dependency[$dep_spec]: unhandled dependency specification\n";
+	}
+
+	my $matched = 0;
+	for my $tree_iterator ($tree, 'all') {
+		next if ($matched);
+		if (exists $package_lookup->{$tree_iterator}) {
+			for my $key (keys %{$package_lookup->{$tree_iterator}}) {
+				my $replace = $package_lookup->{$tree_iterator}->{$key};
+				if ($package =~ /$key/) {
+					if (not defined $replace) {
+						$delete++;
+					} else {
+						$package =~ s/$key/$replace/gs;
+					}
+				}
+			}
+		}
+		if (exists $version_lookup->{$tree_iterator}) {
+			#print "checking in $tree_iterator\n";
+	
+			for my $key (keys %{$version_lookup->{$tree_iterator}}) {
+				if ($package =~ /$key/) {
+					#print "transform_dependency[$dep_spec]: $package matches $key\n";
+					my ($newversion, $newrevision) = @{$version_lookup->{$tree_iterator}->{$key}};
+					if (defined $version and defined $revision and $revision ne '%r' and $newrevision eq '+') {
+						$revision = transform_revision( { Tree => $tree }, $revision );
+					} elsif (defined $newversion and defined $newrevision) {
+						$version  = $newversion;
+						$revision = $newrevision;
+					} else {
+						if ((not defined $version and not defined $revision) or ($version eq '%v' and $revision eq '%r')) {
+							# it's OK to do nothing here
+						} else {
+							warn "transform_dependency[$dep_spec]: not sure how to handle ($newversion, $newrevision) when version = $version and revision = $revision\n";
+						}
+					}
+					$matched++;
+					last;
+				} else {
+					#print "transform_dependency[$dep_spec]: $package does not match $key\n";
+				}
+			}
+		}
+	}
+
+	if (defined $package and defined $version and defined $revision) {
+		$comparator = '>=' unless (defined $comparator);
+		$dep_spec = $package . ' (' . $comparator . ' ' . $version . '-' . $revision . ')';
+		$dep_spec = '(' . $prefix . ') ' . $dep_spec if (defined $prefix);
+	} elsif (defined $package) {
+		$dep_spec = $package;
+		$dep_spec = '(' . $prefix . ') ' . $dep_spec if (defined $prefix);
+	}
+
+	#print "transform_dependency: returning $dep_spec\n";
+
+	return undef if ($delete);
+	return $dep_spec;
+}
+
+sub transform_version {
+	my $packagehash = shift;
+	my $version     = shift;
+	return $version;
+}
+
+sub transform_revision {
+	my $tree     = shift->{'Tree'};
+	my $revision = shift;
+
+	if ($tree eq '10.3') {
+		$revision = revision_add($revision, 10);
+	} elsif ($tree eq '10.4-transitional') {
+		$revision = revision_add($revision, 20);
+	} elsif ($tree eq '10.4') {
+		$revision = revision_add($revision, 30);
+	} else {
+		warn "unhandled tree '$tree'\n";
+	}
+	return $revision;
+}
+
+sub revision_add {
+	my $revision = shift;
+	my $amount   = shift;
+
+	if (my ($pre, $post) = $revision =~ /^(.*\.)(\d+)$/) {
+		$post += $amount;
+		$revision = $pre . $post;
+	} else {
+		$revision += $amount;
+	}
+	return $revision;
+}
+
+sub info_hash_from_var {
+	my $filename = shift;
+	my $var      = shift;
+	my $options  = shift;
+	my $infolevel = 0;
+
+	my $properties = read_properties_var(
+		$filename,
+		$var,
+		$options,
+	);
+	($properties, $infolevel) = Fink::PkgVersion->handle_infon_block($properties, $filename);
+
+	my $return;
+
+	for my $key (keys %$properties) {
+		my $newkey = prettify_field_name($key);
+		#print "$key = $newkey\n";
+		if ($key =~ /^splitoff/) {
+			$return->{$newkey} = info_hash_from_var(
+				$filename . ' (' . $key . ')',
+				$properties->{$key},
+				{ remove_space => 1 },
+			);
+		} else {
+			$return->{$newkey} = $properties->{$key};
+		}
+	}
+
+	$return->{'infolevel'} = $infolevel;
+
+	return $return;
 }
 
 sub mkdir_p {
@@ -193,4 +588,3 @@ sub mkdir_p {
 	}
 	return;
 }
-

@@ -1,18 +1,23 @@
 Package: icecream
 Version: 0.6
 Revision: 11
-Depends: kdelibs3-ssl-shlibs | kdelibs3-shlibs
-Suggests: ccache
-BuildDepends: kdelibs3-ssl-dev | kdelibs3-dev
+Description: Centralized distributed compilation tool
+License: GPL
 Maintainer: Benjamin Reed <icecream@fink.racoonfink.com>
+
+Depends: kdelibs3-ssl-shlibs | kdelibs3-shlibs
+BuildDepends: kdelibs3-ssl-dev | kdelibs3-dev
+Suggests: ccache
+
 Source: ftp://ftp.suse.com/pub/projects/%n/%n-%v-20040829.tar.bz2
-Source-MD5: 969bb373964f31a26198a00b57c54d5a
 SourceDirectory: %N
+Source-MD5: 969bb373964f31a26198a00b57c54d5a
 Patch: %n.patch
+
+SetCPPFLAGS: -no-cpp-precomp -I./src -I./lzo -I%p/include
+SetLIBS: -L%p/lib
 NoSetCPPFLAGS: true
-SetCPPFLAGS: -no-cpp-precomp -I./src -I./lzo -I%p/include -I%p/include/gnugetopt
-SetLIBS: -L%p/lib -lgnugetopt
-ConfigureParams:  --mandir=%p/share/man --infodir=%p/share/info --with-qt-dir=%p --with-qt-includes=%p/include/qt
+ConfigureParams: --mandir=%p/share/man --infodir=%p/share/info --with-qt-dir=%p --with-qt-includes=%p/include/qt
 CompileScript: <<
 #!/bin/sh -ex
   unset DISTCC_HOSTS
@@ -21,6 +26,7 @@ CompileScript: <<
   ./configure %c
   make
 <<
+
 InstallScript: <<
 #!/bin/sh -ex
 
@@ -53,17 +59,17 @@ END
 
  chmod 755 %i/etc/profile.d/*
 <<
-SplitOff: <<
-  Package: %N-default
-  Depends: %N (>= %v-%r), ccache (>= 2.2), ccache-default (>= 2.2)
-  Description: Enable icecream+ccache by default
-  RuntimeVars: <<
-    CCACHE_PREFIX: icecc
-  <<
-<<
-ConfFiles: %p/etc/icecream.conf
 DocFiles: README TODO
-Description: Centralized distributed compilation tool
+SplitOff: <<
+	Package: %N-default
+	Description: Enable icecream+ccache by default
+	Depends: %N (>= %v-%r), ccache (>= 2.2-0), ccache-default (>= 2.2-0)
+	RuntimeVars: CCACHE_PREFIX: icecc
+<<
+
+ConfFiles: %p/etc/icecream.conf
+
+Homepage: http://wiki.kde.org/tiki-index.php?page=icecream
 DescDetail: <<
 Icecream is created by SUSE and is based on ideas and code by distcc.
 Like distcc it takes compile jobs from your (KDE) build and distributes
@@ -74,5 +80,4 @@ dynamic.  This advantage pays off mostly for shared computers, if
 you're the only user on x machines, you have full control over them
 anyway.
 <<
-Homepage: http://wiki.kde.org/tiki-index.php?page=icecream
-License: GPL
+

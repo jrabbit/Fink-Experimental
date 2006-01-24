@@ -17,22 +17,19 @@ CustomMirror: <<
 	nam-CA: http://www.southofheaven.net/befunk
 <<
 Source: mirror:kde:stable/%n-%v/src/%n-%v.tar.bz2
-Source-MD5: 6b456fb7d54c84b11396b27a96ae0cf8
-SourceDirectory: %n-%v
 Source2: mirror:custom:kde-admindir-3.5.0-2.tar.bz2
-Source2-MD5: 444f6ccbe74646c5313dd0b4fa4b36ac
-Source2ExtractDir: %n-%v
+SourceDirectory: %n-%v
+Source-MD5: 6b456fb7d54c84b11396b27a96ae0cf8
 PatchScript: <<
 	sed -e 's,@FINKPREFIX@,%p,g' %a/%n.patch | patch -p1 
 	perl -pi.bak -e 's,-O2,-Os,g; s,doc/HTML,doc/kde,g; s,/usr/share/doc/packages/qt3/html,%p/share/doc/qt3/html,g;' admin/*
 <<
 
+SetMAKEFLAGS: -j1
 NoSetCPPFLAGS: true
 NoSetLDFLAGS: true
 NoSetMAKEFLAGS: true
-SetMAKEFLAGS: -j1
 ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --disable-final --enable-mysql --with-mysql-includes=%p/include/mysql --with-mysql-libraries=%p/lib --enable-pgsql --with-pgsqlincdir=%p/include/postgresql --with-pgsqllibdir=%p/lib --with-pqxxincdir=%p/include/postgresql --with-pqxxlibdir=%p/lib --with-distribution='Fink/Mac OS X' --disable-dependency-tracking
-
 CompileScript: <<
 #!/bin/sh -e
 
@@ -60,7 +57,6 @@ InstallScript: <<
 	touch %i/share/doc/installed-packages/%N
 	touch %i/share/doc/installed-packages/%N-base
 <<
-
 DocFiles: AUTHORS COPYING* INSTALL README
 SplitOff: <<
 	Package: karbon
@@ -82,6 +78,460 @@ SplitOff: <<
 		share/icons/hicolor/48x48/apps/karbon*
 		share/icons/hicolor/scalable/apps/karbon*
 		share/services/karbon*
+	<<
+	DescUsage: <<
+---[ Installation ]---------------------------------------------------
+
+To install all of the official KDE packages, install "bundle-kde" or
+"bundle-kde-ssl" (depending on whether crypotgraphic laws permit
+downloading strong cryptography).  Unless you have a specific reason
+not to, "bundle-kde-ssl" is suggested.
+
+---[ Configuration ]--------------------------------------------------
+
+To use KDE as your windowing system in XDarwin, create a file called
+".xinitrc" in your home directory, containing the following line:
+
+  /sw/bin/startkde >/tmp/kde.log 2>&1
+
+See http://fink.sourceforge.net/doc/x11/run-xfree86.php#xinitrc
+for more information on the xinitrc files and how they work.
+
+If you want to use Apple's X11 instead of the KDE window manager,
+put the following line before the startkde line in .xinitrc:
+
+  export KDEWM=quartz-wm
+
+Note that depending on your version of Apple's X11, this can cause
+strange resizing issues with the kicker (KDE task bar).
+
+---[ Startup ]--------------------------------------------------------
+
+Once you have created an ~/.xinitrc file, you should be able to start
+KDE by clicking on the "XDarwin" icon in your Applications folder.  
+
+NOTE: By default, X11 on Mac OS X runs in "rootless" mode, generally.
+If you run KDE in rootless mode, it will take over your desktop with
+a window that covers everything up.  You can remove this by disabling
+desktop icons in the KDE control center.  Open the control center
+(either from the "K" menu bar, or by typing "kcontrol" in an xterm)
+then expand the "Desktop" list, click "Behavior", and uncheck the
+"Show icons on desktop" checkbox.
+   
+---[ Removal ]--------------------------------------------------------
+   
+To remove all of the official KDE packages, you can remove the KDE
+libraries and anything that depends on them by running, in a terminal:
+   
+  sudo apt-get remove kdelibs3-ssl-shlibs kdelibs3-shlibs
+
+To remove an individual KDE package collection (like kdenetwork3 or
+kdesdk3) you can generally remove [package]-base.  For example, to
+remove all of the kdenetwork3 packages, run:
+
+  sudo apt-get remove kdenetwork3-base
+	<<
+<<
+SplitOff10: <<
+	Package: kword
+	Description: KDE - a frame-based word processor
+	Depends: %N-common (>= %v-%r)
+	Replaces: %N-common (<< %v-%r), kspread (<< %v-%r)
+	Files: <<
+		bin/kword
+		lib/kde3/kwmailmerge_*
+		lib/kde3/kword.*
+		lib/kde3/libkwordpart.*
+		lib/libkdeinit_kword.*
+		share/applnk/Office/kword*
+		share/apps/konqueror/servicemenus/kword*
+		share/apps/kword
+		share/doc/kde/en/kword
+		share/icons/hicolor/16x16/apps/kword*
+		share/icons/hicolor/22x22/apps/kword*
+		share/icons/hicolor/32x32/apps/kword*
+		share/icons/hicolor/48x48/apps/kword*
+		share/services/kwmailmerge_*
+		share/services/kword*
+		share/services/kwserialletter_*
+		share/services/ole_hancomword*
+		share/services/ole_winword97*
+		share/servicetypes/kwmailmerge.*
+	<<
+	DescDetail: <<
+KWord is a frame-based word-processing and desktop
+publishing application.  KWord is capable of creating
+demanding and professional looking documents.  Whether you
+are a corporate or home user, production artist or student,
+KWord will prove a valuable and easy to use tool for all
+your word processing and layout needs.
+
+KWord is a wordprocessor based on frames. This can be used
+to place components in precise locations, as with many
+professional DTP applications.  KWord can also handle huge
+amounts of texts and allows you to do professional markup
+with ease.
+
+KWord's features include:
+
+* paragraph style sheets (borders, alignment, spacing,
+	indentation, bullet points, tab stops, page breaks, and
+	font type, style, color and size), together with a stylist
+	to edit, add, remove and update styles (a number of
+	predefined styles are provided);
+* a frame orientation, suitable for simple desktop
+	publishing (DTP);
+* numerous preset as well as custom page sizes;
+* multiple columns per page;
+* headers and footers (including different first page
+	headers/footers);
+* variables, such as page number, company name, user name,
+	document summary, date and time or a custom variable;
+* tables;
+* embedding of text frames, images and clip-art (.wmf and
+	.svg files);
+* chapter numbering;
+* auto-generation of table of contents;
+* auto-correction and spell checking
+* templates
+	<<
+	DescUsage: <<
+---[ Installation ]---------------------------------------------------
+
+To install all of the official KDE packages, install "bundle-kde" or
+"bundle-kde-ssl" (depending on whether crypotgraphic laws permit
+downloading strong cryptography).  Unless you have a specific reason
+not to, "bundle-kde-ssl" is suggested.
+
+---[ Configuration ]--------------------------------------------------
+
+To use KDE as your windowing system in XDarwin, create a file called
+".xinitrc" in your home directory, containing the following line:
+
+  /sw/bin/startkde >/tmp/kde.log 2>&1
+
+See http://fink.sourceforge.net/doc/x11/run-xfree86.php#xinitrc
+for more information on the xinitrc files and how they work.
+
+If you want to use Apple's X11 instead of the KDE window manager,
+put the following line before the startkde line in .xinitrc:
+
+  export KDEWM=quartz-wm
+
+Note that depending on your version of Apple's X11, this can cause
+strange resizing issues with the kicker (KDE task bar).
+
+---[ Startup ]--------------------------------------------------------
+
+Once you have created an ~/.xinitrc file, you should be able to start
+KDE by clicking on the "XDarwin" icon in your Applications folder.  
+
+NOTE: By default, X11 on Mac OS X runs in "rootless" mode, generally.
+If you run KDE in rootless mode, it will take over your desktop with
+a window that covers everything up.  You can remove this by disabling
+desktop icons in the KDE control center.  Open the control center
+(either from the "K" menu bar, or by typing "kcontrol" in an xterm)
+then expand the "Desktop" list, click "Behavior", and uncheck the
+"Show icons on desktop" checkbox.
+   
+---[ Removal ]--------------------------------------------------------
+   
+To remove all of the official KDE packages, you can remove the KDE
+libraries and anything that depends on them by running, in a terminal:
+   
+  sudo apt-get remove kdelibs3-ssl-shlibs kdelibs3-shlibs
+
+To remove an individual KDE package collection (like kdenetwork3 or
+kdesdk3) you can generally remove [package]-base.  For example, to
+remove all of the kdenetwork3 packages, run:
+
+  sudo apt-get remove kdenetwork3-base
+	<<
+<<
+SplitOff11: <<
+	Package: %N-shlibs
+	Description: KDE - shared libraries for KOffice
+	Depends: %N-base (>= %v-%r)
+	Replaces: %N-common, karbon, kchart, kexi, kformula, kivio, kpresenter, krita, kspread, kugar, kword
+	Files: <<
+		lib/kde3
+		lib/*.*.dylib
+	<<
+	DescUsage: <<
+---[ Installation ]---------------------------------------------------
+
+To install all of the official KDE packages, install "bundle-kde" or
+"bundle-kde-ssl" (depending on whether crypotgraphic laws permit
+downloading strong cryptography).  Unless you have a specific reason
+not to, "bundle-kde-ssl" is suggested.
+
+---[ Configuration ]--------------------------------------------------
+
+To use KDE as your windowing system in XDarwin, create a file called
+".xinitrc" in your home directory, containing the following line:
+
+  /sw/bin/startkde >/tmp/kde.log 2>&1
+
+See http://fink.sourceforge.net/doc/x11/run-xfree86.php#xinitrc
+for more information on the xinitrc files and how they work.
+
+If you want to use Apple's X11 instead of the KDE window manager,
+put the following line before the startkde line in .xinitrc:
+
+  export KDEWM=quartz-wm
+
+Note that depending on your version of Apple's X11, this can cause
+strange resizing issues with the kicker (KDE task bar).
+
+---[ Startup ]--------------------------------------------------------
+
+Once you have created an ~/.xinitrc file, you should be able to start
+KDE by clicking on the "XDarwin" icon in your Applications folder.  
+
+NOTE: By default, X11 on Mac OS X runs in "rootless" mode, generally.
+If you run KDE in rootless mode, it will take over your desktop with
+a window that covers everything up.  You can remove this by disabling
+desktop icons in the KDE control center.  Open the control center
+(either from the "K" menu bar, or by typing "kcontrol" in an xterm)
+then expand the "Desktop" list, click "Behavior", and uncheck the
+"Show icons on desktop" checkbox.
+   
+---[ Removal ]--------------------------------------------------------
+   
+To remove all of the official KDE packages, you can remove the KDE
+libraries and anything that depends on them by running, in a terminal:
+   
+  sudo apt-get remove kdelibs3-ssl-shlibs kdelibs3-shlibs
+
+To remove an individual KDE package collection (like kdenetwork3 or
+kdesdk3) you can generally remove [package]-base.  For example, to
+remove all of the kdenetwork3 packages, run:
+
+  sudo apt-get remove kdenetwork3-base
+	<<
+<<
+SplitOff12: <<
+	Package: %N-dev
+	Description: KDE - development headers and libraries for KOffice
+	Depends: %N (>= %v-%r)
+	Replaces: %N-common (<< %v-%r)
+	Files: <<
+		include
+		lib/*.la
+		lib/libkarboncommon.dylib
+		lib/libkchartcommon.dylib
+		lib/libkdchart.dylib
+		lib/libkexicore.dylib
+		lib/libkexidatatable.dylib
+		lib/libkexidb.dylib
+		lib/libkexidbparser.dylib
+		lib/libkexiextendedwidgets.dylib
+		lib/libkexiformutils.dylib
+		lib/libkexiguiutils.dylib
+		lib/libkeximain.dylib
+		lib/libkeximigrate.dylib
+		lib/libkexipropertyeditor.dylib
+		lib/libkexirelationsview.dylib
+		lib/libkexisql2.dylib
+		lib/libkexisql3.dylib
+		lib/libkformdesigner.dylib
+		lib/libkformulalib.dylib
+		lib/libkiviocommon.dylib
+		lib/libkochart.dylib
+		lib/libkofficecore.dylib
+		lib/libkofficeui.dylib
+		lib/libkopainter.dylib
+		lib/libkoscript.dylib
+		lib/libkotext.dylib
+		lib/libkowmf.dylib
+		lib/libkritacommon.dylib
+		lib/libkspreadcommon.dylib
+		lib/libkstore.dylib
+		lib/libkugarlib.dylib
+		lib/libkwmailmerge_interface.dylib
+		lib/libkwmf.dylib
+		lib/libkwordexportfilters.dylib
+	<<
+	DescUsage: <<
+---[ Installation ]---------------------------------------------------
+
+To install all of the official KDE packages, install "bundle-kde" or
+"bundle-kde-ssl" (depending on whether crypotgraphic laws permit
+downloading strong cryptography).  Unless you have a specific reason
+not to, "bundle-kde-ssl" is suggested.
+
+---[ Configuration ]--------------------------------------------------
+
+To use KDE as your windowing system in XDarwin, create a file called
+".xinitrc" in your home directory, containing the following line:
+
+  /sw/bin/startkde >/tmp/kde.log 2>&1
+
+See http://fink.sourceforge.net/doc/x11/run-xfree86.php#xinitrc
+for more information on the xinitrc files and how they work.
+
+If you want to use Apple's X11 instead of the KDE window manager,
+put the following line before the startkde line in .xinitrc:
+
+  export KDEWM=quartz-wm
+
+Note that depending on your version of Apple's X11, this can cause
+strange resizing issues with the kicker (KDE task bar).
+
+---[ Startup ]--------------------------------------------------------
+
+Once you have created an ~/.xinitrc file, you should be able to start
+KDE by clicking on the "XDarwin" icon in your Applications folder.  
+
+NOTE: By default, X11 on Mac OS X runs in "rootless" mode, generally.
+If you run KDE in rootless mode, it will take over your desktop with
+a window that covers everything up.  You can remove this by disabling
+desktop icons in the KDE control center.  Open the control center
+(either from the "K" menu bar, or by typing "kcontrol" in an xterm)
+then expand the "Desktop" list, click "Behavior", and uncheck the
+"Show icons on desktop" checkbox.
+   
+---[ Removal ]--------------------------------------------------------
+   
+To remove all of the official KDE packages, you can remove the KDE
+libraries and anything that depends on them by running, in a terminal:
+   
+  sudo apt-get remove kdelibs3-ssl-shlibs kdelibs3-shlibs
+
+To remove an individual KDE package collection (like kdenetwork3 or
+kdesdk3) you can generally remove [package]-base.  For example, to
+remove all of the kdenetwork3 packages, run:
+
+  sudo apt-get remove kdenetwork3-base
+	<<
+<<
+SplitOff13: <<
+	Package: %N-base
+	Description: KDE - koffice base package
+	Depends: kdebase3-unified (>= %v-21)
+	Replaces: %N-common (<< %v-%r), %N (<< %v-%r), %N-dev (<< %v-%r)
+	Recommends: %N (>= %v-%r)
+	Files: share/doc/installed-packages/%N-base
+	DescUsage: <<
+---[ Installation ]---------------------------------------------------
+
+To install all of the official KDE packages, install "bundle-kde" or
+"bundle-kde-ssl" (depending on whether crypotgraphic laws permit
+downloading strong cryptography).  Unless you have a specific reason
+not to, "bundle-kde-ssl" is suggested.
+
+---[ Configuration ]--------------------------------------------------
+
+To use KDE as your windowing system in XDarwin, create a file called
+".xinitrc" in your home directory, containing the following line:
+
+  /sw/bin/startkde >/tmp/kde.log 2>&1
+
+See http://fink.sourceforge.net/doc/x11/run-xfree86.php#xinitrc
+for more information on the xinitrc files and how they work.
+
+If you want to use Apple's X11 instead of the KDE window manager,
+put the following line before the startkde line in .xinitrc:
+
+  export KDEWM=quartz-wm
+
+Note that depending on your version of Apple's X11, this can cause
+strange resizing issues with the kicker (KDE task bar).
+
+---[ Startup ]--------------------------------------------------------
+
+Once you have created an ~/.xinitrc file, you should be able to start
+KDE by clicking on the "XDarwin" icon in your Applications folder.  
+
+NOTE: By default, X11 on Mac OS X runs in "rootless" mode, generally.
+If you run KDE in rootless mode, it will take over your desktop with
+a window that covers everything up.  You can remove this by disabling
+desktop icons in the KDE control center.  Open the control center
+(either from the "K" menu bar, or by typing "kcontrol" in an xterm)
+then expand the "Desktop" list, click "Behavior", and uncheck the
+"Show icons on desktop" checkbox.
+   
+---[ Removal ]--------------------------------------------------------
+   
+To remove all of the official KDE packages, you can remove the KDE
+libraries and anything that depends on them by running, in a terminal:
+   
+  sudo apt-get remove kdelibs3-ssl-shlibs kdelibs3-shlibs
+
+To remove an individual KDE package collection (like kdenetwork3 or
+kdesdk3) you can generally remove [package]-base.  For example, to
+remove all of the kdenetwork3 packages, run:
+
+  sudo apt-get remove kdenetwork3-base
+	<<
+<<
+SplitOff14: <<
+	Package: %N-common
+	Description: KDE - files used by all of KOffice
+	Depends: %N-shlibs (>= %v-%r)
+	Replaces: karbon, kchart, kexi, kformula, kivio, kpresenter, krita, kspread, kugar, kword, %N-dev (<< %v-%r)
+	Files: <<
+		bin
+		share/app*
+		share/config*
+		share/doc/kde*
+		share/icons*
+		share/mime*
+		share/service*
+		share/template*
+		lib
+	<<
+	DescUsage: <<
+---[ Installation ]---------------------------------------------------
+
+To install all of the official KDE packages, install "bundle-kde" or
+"bundle-kde-ssl" (depending on whether crypotgraphic laws permit
+downloading strong cryptography).  Unless you have a specific reason
+not to, "bundle-kde-ssl" is suggested.
+
+---[ Configuration ]--------------------------------------------------
+
+To use KDE as your windowing system in XDarwin, create a file called
+".xinitrc" in your home directory, containing the following line:
+
+  /sw/bin/startkde >/tmp/kde.log 2>&1
+
+See http://fink.sourceforge.net/doc/x11/run-xfree86.php#xinitrc
+for more information on the xinitrc files and how they work.
+
+If you want to use Apple's X11 instead of the KDE window manager,
+put the following line before the startkde line in .xinitrc:
+
+  export KDEWM=quartz-wm
+
+Note that depending on your version of Apple's X11, this can cause
+strange resizing issues with the kicker (KDE task bar).
+
+---[ Startup ]--------------------------------------------------------
+
+Once you have created an ~/.xinitrc file, you should be able to start
+KDE by clicking on the "XDarwin" icon in your Applications folder.  
+
+NOTE: By default, X11 on Mac OS X runs in "rootless" mode, generally.
+If you run KDE in rootless mode, it will take over your desktop with
+a window that covers everything up.  You can remove this by disabling
+desktop icons in the KDE control center.  Open the control center
+(either from the "K" menu bar, or by typing "kcontrol" in an xterm)
+then expand the "Desktop" list, click "Behavior", and uncheck the
+"Show icons on desktop" checkbox.
+   
+---[ Removal ]--------------------------------------------------------
+   
+To remove all of the official KDE packages, you can remove the KDE
+libraries and anything that depends on them by running, in a terminal:
+   
+  sudo apt-get remove kdelibs3-ssl-shlibs kdelibs3-shlibs
+
+To remove an individual KDE package collection (like kdenetwork3 or
+kdesdk3) you can generally remove [package]-base.  For example, to
+remove all of the kdenetwork3 packages, run:
+
+  sudo apt-get remove kdenetwork3-base
 	<<
 <<
 SplitOff2: <<
@@ -171,6 +621,58 @@ Chart Types:
 	thickness | relative thickness
 * Polar: normal | stacked | percent
 	<<
+	DescUsage: <<
+---[ Installation ]---------------------------------------------------
+
+To install all of the official KDE packages, install "bundle-kde" or
+"bundle-kde-ssl" (depending on whether crypotgraphic laws permit
+downloading strong cryptography).  Unless you have a specific reason
+not to, "bundle-kde-ssl" is suggested.
+
+---[ Configuration ]--------------------------------------------------
+
+To use KDE as your windowing system in XDarwin, create a file called
+".xinitrc" in your home directory, containing the following line:
+
+  /sw/bin/startkde >/tmp/kde.log 2>&1
+
+See http://fink.sourceforge.net/doc/x11/run-xfree86.php#xinitrc
+for more information on the xinitrc files and how they work.
+
+If you want to use Apple's X11 instead of the KDE window manager,
+put the following line before the startkde line in .xinitrc:
+
+  export KDEWM=quartz-wm
+
+Note that depending on your version of Apple's X11, this can cause
+strange resizing issues with the kicker (KDE task bar).
+
+---[ Startup ]--------------------------------------------------------
+
+Once you have created an ~/.xinitrc file, you should be able to start
+KDE by clicking on the "XDarwin" icon in your Applications folder.  
+
+NOTE: By default, X11 on Mac OS X runs in "rootless" mode, generally.
+If you run KDE in rootless mode, it will take over your desktop with
+a window that covers everything up.  You can remove this by disabling
+desktop icons in the KDE control center.  Open the control center
+(either from the "K" menu bar, or by typing "kcontrol" in an xterm)
+then expand the "Desktop" list, click "Behavior", and uncheck the
+"Show icons on desktop" checkbox.
+   
+---[ Removal ]--------------------------------------------------------
+   
+To remove all of the official KDE packages, you can remove the KDE
+libraries and anything that depends on them by running, in a terminal:
+   
+  sudo apt-get remove kdelibs3-ssl-shlibs kdelibs3-shlibs
+
+To remove an individual KDE package collection (like kdenetwork3 or
+kdesdk3) you can generally remove [package]-base.  For example, to
+remove all of the kdenetwork3 packages, run:
+
+  sudo apt-get remove kdenetwork3-base
+	<<
 <<
 SplitOff3: <<
 	Package: kexi
@@ -229,6 +731,58 @@ is motivated by the lack of Rapid Application Development
 powerful, inexpensive, open standards driven and portable
 across many operating systems and hardware platforms.
 	<<
+	DescUsage: <<
+---[ Installation ]---------------------------------------------------
+
+To install all of the official KDE packages, install "bundle-kde" or
+"bundle-kde-ssl" (depending on whether crypotgraphic laws permit
+downloading strong cryptography).  Unless you have a specific reason
+not to, "bundle-kde-ssl" is suggested.
+
+---[ Configuration ]--------------------------------------------------
+
+To use KDE as your windowing system in XDarwin, create a file called
+".xinitrc" in your home directory, containing the following line:
+
+  /sw/bin/startkde >/tmp/kde.log 2>&1
+
+See http://fink.sourceforge.net/doc/x11/run-xfree86.php#xinitrc
+for more information on the xinitrc files and how they work.
+
+If you want to use Apple's X11 instead of the KDE window manager,
+put the following line before the startkde line in .xinitrc:
+
+  export KDEWM=quartz-wm
+
+Note that depending on your version of Apple's X11, this can cause
+strange resizing issues with the kicker (KDE task bar).
+
+---[ Startup ]--------------------------------------------------------
+
+Once you have created an ~/.xinitrc file, you should be able to start
+KDE by clicking on the "XDarwin" icon in your Applications folder.  
+
+NOTE: By default, X11 on Mac OS X runs in "rootless" mode, generally.
+If you run KDE in rootless mode, it will take over your desktop with
+a window that covers everything up.  You can remove this by disabling
+desktop icons in the KDE control center.  Open the control center
+(either from the "K" menu bar, or by typing "kcontrol" in an xterm)
+then expand the "Desktop" list, click "Behavior", and uncheck the
+"Show icons on desktop" checkbox.
+   
+---[ Removal ]--------------------------------------------------------
+   
+To remove all of the official KDE packages, you can remove the KDE
+libraries and anything that depends on them by running, in a terminal:
+   
+  sudo apt-get remove kdelibs3-ssl-shlibs kdelibs3-shlibs
+
+To remove an individual KDE package collection (like kdenetwork3 or
+kdesdk3) you can generally remove [package]-base.  For example, to
+remove all of the kdenetwork3 packages, run:
+
+  sudo apt-get remove kdenetwork3-base
+	<<
 <<
 SplitOff4: <<
 	Package: kformula
@@ -266,6 +820,58 @@ KFormula uses the KOffice formula drawing library.  If you
 have to deal with many formulas you may wish to use a
 KFormula object embedded in KWord or KSpread.
 	<<
+	DescUsage: <<
+---[ Installation ]---------------------------------------------------
+
+To install all of the official KDE packages, install "bundle-kde" or
+"bundle-kde-ssl" (depending on whether crypotgraphic laws permit
+downloading strong cryptography).  Unless you have a specific reason
+not to, "bundle-kde-ssl" is suggested.
+
+---[ Configuration ]--------------------------------------------------
+
+To use KDE as your windowing system in XDarwin, create a file called
+".xinitrc" in your home directory, containing the following line:
+
+  /sw/bin/startkde >/tmp/kde.log 2>&1
+
+See http://fink.sourceforge.net/doc/x11/run-xfree86.php#xinitrc
+for more information on the xinitrc files and how they work.
+
+If you want to use Apple's X11 instead of the KDE window manager,
+put the following line before the startkde line in .xinitrc:
+
+  export KDEWM=quartz-wm
+
+Note that depending on your version of Apple's X11, this can cause
+strange resizing issues with the kicker (KDE task bar).
+
+---[ Startup ]--------------------------------------------------------
+
+Once you have created an ~/.xinitrc file, you should be able to start
+KDE by clicking on the "XDarwin" icon in your Applications folder.  
+
+NOTE: By default, X11 on Mac OS X runs in "rootless" mode, generally.
+If you run KDE in rootless mode, it will take over your desktop with
+a window that covers everything up.  You can remove this by disabling
+desktop icons in the KDE control center.  Open the control center
+(either from the "K" menu bar, or by typing "kcontrol" in an xterm)
+then expand the "Desktop" list, click "Behavior", and uncheck the
+"Show icons on desktop" checkbox.
+   
+---[ Removal ]--------------------------------------------------------
+   
+To remove all of the official KDE packages, you can remove the KDE
+libraries and anything that depends on them by running, in a terminal:
+   
+  sudo apt-get remove kdelibs3-ssl-shlibs kdelibs3-shlibs
+
+To remove an individual KDE package collection (like kdenetwork3 or
+kdesdk3) you can generally remove [package]-base.  For example, to
+remove all of the kdenetwork3 packages, run:
+
+  sudo apt-get remove kdenetwork3-base
+	<<
 <<
 SplitOff5: <<
 	Package: kivio
@@ -302,6 +908,58 @@ Features:
 * Scriptable stencils using Python.
 * Support for Dia stencils.
 * Plugin framework for adding more functionality.
+	<<
+	DescUsage: <<
+---[ Installation ]---------------------------------------------------
+
+To install all of the official KDE packages, install "bundle-kde" or
+"bundle-kde-ssl" (depending on whether crypotgraphic laws permit
+downloading strong cryptography).  Unless you have a specific reason
+not to, "bundle-kde-ssl" is suggested.
+
+---[ Configuration ]--------------------------------------------------
+
+To use KDE as your windowing system in XDarwin, create a file called
+".xinitrc" in your home directory, containing the following line:
+
+  /sw/bin/startkde >/tmp/kde.log 2>&1
+
+See http://fink.sourceforge.net/doc/x11/run-xfree86.php#xinitrc
+for more information on the xinitrc files and how they work.
+
+If you want to use Apple's X11 instead of the KDE window manager,
+put the following line before the startkde line in .xinitrc:
+
+  export KDEWM=quartz-wm
+
+Note that depending on your version of Apple's X11, this can cause
+strange resizing issues with the kicker (KDE task bar).
+
+---[ Startup ]--------------------------------------------------------
+
+Once you have created an ~/.xinitrc file, you should be able to start
+KDE by clicking on the "XDarwin" icon in your Applications folder.  
+
+NOTE: By default, X11 on Mac OS X runs in "rootless" mode, generally.
+If you run KDE in rootless mode, it will take over your desktop with
+a window that covers everything up.  You can remove this by disabling
+desktop icons in the KDE control center.  Open the control center
+(either from the "K" menu bar, or by typing "kcontrol" in an xterm)
+then expand the "Desktop" list, click "Behavior", and uncheck the
+"Show icons on desktop" checkbox.
+   
+---[ Removal ]--------------------------------------------------------
+   
+To remove all of the official KDE packages, you can remove the KDE
+libraries and anything that depends on them by running, in a terminal:
+   
+  sudo apt-get remove kdelibs3-ssl-shlibs kdelibs3-shlibs
+
+To remove an individual KDE package collection (like kdenetwork3 or
+kdesdk3) you can generally remove [package]-base.  For example, to
+remove all of the kdenetwork3 packages, run:
+
+  sudo apt-get remove kdenetwork3-base
 	<<
 <<
 SplitOff6: <<
@@ -354,6 +1012,58 @@ include:
 * using XML as the document format;
 * a Presentations Structure Viewer
 	<<
+	DescUsage: <<
+---[ Installation ]---------------------------------------------------
+
+To install all of the official KDE packages, install "bundle-kde" or
+"bundle-kde-ssl" (depending on whether crypotgraphic laws permit
+downloading strong cryptography).  Unless you have a specific reason
+not to, "bundle-kde-ssl" is suggested.
+
+---[ Configuration ]--------------------------------------------------
+
+To use KDE as your windowing system in XDarwin, create a file called
+".xinitrc" in your home directory, containing the following line:
+
+  /sw/bin/startkde >/tmp/kde.log 2>&1
+
+See http://fink.sourceforge.net/doc/x11/run-xfree86.php#xinitrc
+for more information on the xinitrc files and how they work.
+
+If you want to use Apple's X11 instead of the KDE window manager,
+put the following line before the startkde line in .xinitrc:
+
+  export KDEWM=quartz-wm
+
+Note that depending on your version of Apple's X11, this can cause
+strange resizing issues with the kicker (KDE task bar).
+
+---[ Startup ]--------------------------------------------------------
+
+Once you have created an ~/.xinitrc file, you should be able to start
+KDE by clicking on the "XDarwin" icon in your Applications folder.  
+
+NOTE: By default, X11 on Mac OS X runs in "rootless" mode, generally.
+If you run KDE in rootless mode, it will take over your desktop with
+a window that covers everything up.  You can remove this by disabling
+desktop icons in the KDE control center.  Open the control center
+(either from the "K" menu bar, or by typing "kcontrol" in an xterm)
+then expand the "Desktop" list, click "Behavior", and uncheck the
+"Show icons on desktop" checkbox.
+   
+---[ Removal ]--------------------------------------------------------
+   
+To remove all of the official KDE packages, you can remove the KDE
+libraries and anything that depends on them by running, in a terminal:
+   
+  sudo apt-get remove kdelibs3-ssl-shlibs kdelibs3-shlibs
+
+To remove an individual KDE package collection (like kdenetwork3 or
+kdesdk3) you can generally remove [package]-base.  For example, to
+remove all of the kdenetwork3 packages, run:
+
+  sudo apt-get remove kdenetwork3-base
+	<<
 <<
 SplitOff7: <<
 	Package: krita
@@ -385,6 +1095,58 @@ be suitable for all your image creation and editing needs,
 such as creating original art, making images for websites,
 touching up scanned photographs or anything else you might
 need to do with bitmapped images.
+	<<
+	DescUsage: <<
+---[ Installation ]---------------------------------------------------
+
+To install all of the official KDE packages, install "bundle-kde" or
+"bundle-kde-ssl" (depending on whether crypotgraphic laws permit
+downloading strong cryptography).  Unless you have a specific reason
+not to, "bundle-kde-ssl" is suggested.
+
+---[ Configuration ]--------------------------------------------------
+
+To use KDE as your windowing system in XDarwin, create a file called
+".xinitrc" in your home directory, containing the following line:
+
+  /sw/bin/startkde >/tmp/kde.log 2>&1
+
+See http://fink.sourceforge.net/doc/x11/run-xfree86.php#xinitrc
+for more information on the xinitrc files and how they work.
+
+If you want to use Apple's X11 instead of the KDE window manager,
+put the following line before the startkde line in .xinitrc:
+
+  export KDEWM=quartz-wm
+
+Note that depending on your version of Apple's X11, this can cause
+strange resizing issues with the kicker (KDE task bar).
+
+---[ Startup ]--------------------------------------------------------
+
+Once you have created an ~/.xinitrc file, you should be able to start
+KDE by clicking on the "XDarwin" icon in your Applications folder.  
+
+NOTE: By default, X11 on Mac OS X runs in "rootless" mode, generally.
+If you run KDE in rootless mode, it will take over your desktop with
+a window that covers everything up.  You can remove this by disabling
+desktop icons in the KDE control center.  Open the control center
+(either from the "K" menu bar, or by typing "kcontrol" in an xterm)
+then expand the "Desktop" list, click "Behavior", and uncheck the
+"Show icons on desktop" checkbox.
+   
+---[ Removal ]--------------------------------------------------------
+   
+To remove all of the official KDE packages, you can remove the KDE
+libraries and anything that depends on them by running, in a terminal:
+   
+  sudo apt-get remove kdelibs3-ssl-shlibs kdelibs3-shlibs
+
+To remove an individual KDE package collection (like kdenetwork3 or
+kdesdk3) you can generally remove [package]-base.  For example, to
+remove all of the kdenetwork3 packages, run:
+
+  sudo apt-get remove kdenetwork3-base
 	<<
 <<
 SplitOff8: <<
@@ -435,6 +1197,58 @@ include:
 * cell customization (data/number format, precision, border,
 	alignment, rotation, background color and pattern, font
 	type, style and size, etc.).
+	<<
+	DescUsage: <<
+---[ Installation ]---------------------------------------------------
+
+To install all of the official KDE packages, install "bundle-kde" or
+"bundle-kde-ssl" (depending on whether crypotgraphic laws permit
+downloading strong cryptography).  Unless you have a specific reason
+not to, "bundle-kde-ssl" is suggested.
+
+---[ Configuration ]--------------------------------------------------
+
+To use KDE as your windowing system in XDarwin, create a file called
+".xinitrc" in your home directory, containing the following line:
+
+  /sw/bin/startkde >/tmp/kde.log 2>&1
+
+See http://fink.sourceforge.net/doc/x11/run-xfree86.php#xinitrc
+for more information on the xinitrc files and how they work.
+
+If you want to use Apple's X11 instead of the KDE window manager,
+put the following line before the startkde line in .xinitrc:
+
+  export KDEWM=quartz-wm
+
+Note that depending on your version of Apple's X11, this can cause
+strange resizing issues with the kicker (KDE task bar).
+
+---[ Startup ]--------------------------------------------------------
+
+Once you have created an ~/.xinitrc file, you should be able to start
+KDE by clicking on the "XDarwin" icon in your Applications folder.  
+
+NOTE: By default, X11 on Mac OS X runs in "rootless" mode, generally.
+If you run KDE in rootless mode, it will take over your desktop with
+a window that covers everything up.  You can remove this by disabling
+desktop icons in the KDE control center.  Open the control center
+(either from the "K" menu bar, or by typing "kcontrol" in an xterm)
+then expand the "Desktop" list, click "Behavior", and uncheck the
+"Show icons on desktop" checkbox.
+   
+---[ Removal ]--------------------------------------------------------
+   
+To remove all of the official KDE packages, you can remove the KDE
+libraries and anything that depends on them by running, in a terminal:
+   
+  sudo apt-get remove kdelibs3-ssl-shlibs kdelibs3-shlibs
+
+To remove an individual KDE package collection (like kdenetwork3 or
+kdesdk3) you can generally remove [package]-base.  For example, to
+remove all of the kdenetwork3 packages, run:
+
+  sudo apt-get remove kdenetwork3-base
 	<<
 <<
 SplitOff9: <<
@@ -503,149 +1317,57 @@ Features include:
 * Additional formatting (negative numbers, currency, commas
 	for numbers and dates).
 	<<
-<<
-SplitOff10: <<
-	Package: kword
-	Description: KDE - a frame-based word processor
-	Depends: %N-common (>= %v-%r)
-	Replaces: %N-common (<< %v-%r), kspread (<< %v-%r)
-	Files: <<
-		bin/kword
-		lib/kde3/kwmailmerge_*
-		lib/kde3/kword.*
-		lib/kde3/libkwordpart.*
-		lib/libkdeinit_kword.*
-		share/applnk/Office/kword*
-		share/apps/konqueror/servicemenus/kword*
-		share/apps/kword
-		share/doc/kde/en/kword
-		share/icons/hicolor/16x16/apps/kword*
-		share/icons/hicolor/22x22/apps/kword*
-		share/icons/hicolor/32x32/apps/kword*
-		share/icons/hicolor/48x48/apps/kword*
-		share/services/kwmailmerge_*
-		share/services/kword*
-		share/services/kwserialletter_*
-		share/services/ole_hancomword*
-		share/services/ole_winword97*
-		share/servicetypes/kwmailmerge.*
-	<<
-	DescDetail: <<
-KWord is a frame-based word-processing and desktop
-publishing application.  KWord is capable of creating
-demanding and professional looking documents.  Whether you
-are a corporate or home user, production artist or student,
-KWord will prove a valuable and easy to use tool for all
-your word processing and layout needs.
+	DescUsage: <<
+---[ Installation ]---------------------------------------------------
 
-KWord is a wordprocessor based on frames. This can be used
-to place components in precise locations, as with many
-professional DTP applications.  KWord can also handle huge
-amounts of texts and allows you to do professional markup
-with ease.
+To install all of the official KDE packages, install "bundle-kde" or
+"bundle-kde-ssl" (depending on whether crypotgraphic laws permit
+downloading strong cryptography).  Unless you have a specific reason
+not to, "bundle-kde-ssl" is suggested.
 
-KWord's features include:
+---[ Configuration ]--------------------------------------------------
 
-* paragraph style sheets (borders, alignment, spacing,
-	indentation, bullet points, tab stops, page breaks, and
-	font type, style, color and size), together with a stylist
-	to edit, add, remove and update styles (a number of
-	predefined styles are provided);
-* a frame orientation, suitable for simple desktop
-	publishing (DTP);
-* numerous preset as well as custom page sizes;
-* multiple columns per page;
-* headers and footers (including different first page
-	headers/footers);
-* variables, such as page number, company name, user name,
-	document summary, date and time or a custom variable;
-* tables;
-* embedding of text frames, images and clip-art (.wmf and
-	.svg files);
-* chapter numbering;
-* auto-generation of table of contents;
-* auto-correction and spell checking
-* templates
-	<<
-<<
-SplitOff11: <<
-	Package: %N-shlibs
-	Description: KDE - shared libraries for KOffice
-	Depends: %N-base (>= %v-%r)
-	Replaces: %N-common, karbon, kchart, kexi, kformula, kivio, kpresenter, krita, kspread, kugar, kword
-	Files: <<
-		lib/kde3
-		lib/*.*.dylib
-	<<
-<<
-SplitOff12: <<
-	Package: %N-dev
-	Description: KDE - development headers and libraries for KOffice
-	Depends: %N (>= %v-%r)
-	Replaces: %N-common (<< %v-%r)
-	Files: <<
-		include
-		lib/*.la
-		lib/libkarboncommon.dylib
-		lib/libkchartcommon.dylib
-		lib/libkdchart.dylib
-		lib/libkexicore.dylib
-		lib/libkexidatatable.dylib
-		lib/libkexidb.dylib
-		lib/libkexidbparser.dylib
-		lib/libkexiextendedwidgets.dylib
-		lib/libkexiformutils.dylib
-		lib/libkexiguiutils.dylib
-		lib/libkeximain.dylib
-		lib/libkeximigrate.dylib
-		lib/libkexipropertyeditor.dylib
-		lib/libkexirelationsview.dylib
-		lib/libkexisql2.dylib
-		lib/libkexisql3.dylib
-		lib/libkformdesigner.dylib
-		lib/libkformulalib.dylib
-		lib/libkiviocommon.dylib
-		lib/libkochart.dylib
-		lib/libkofficecore.dylib
-		lib/libkofficeui.dylib
-		lib/libkopainter.dylib
-		lib/libkoscript.dylib
-		lib/libkotext.dylib
-		lib/libkowmf.dylib
-		lib/libkritacommon.dylib
-		lib/libkspreadcommon.dylib
-		lib/libkstore.dylib
-		lib/libkugarlib.dylib
-		lib/libkwmailmerge_interface.dylib
-		lib/libkwmf.dylib
-		lib/libkwordexportfilters.dylib
-	<<
-<<
-SplitOff13: <<
-	Package: %N-base
-	Description: KDE - koffice base package
-	Depends: kdebase3-unified (>= %v-21)
-	Replaces: %N-common (<< %v-%r), %N (<< %v-%r), %N-dev (<< %v-%r)
-	Recommends: %N (>= %v-%r)
-	Files: <<
-		share/doc/installed-packages/%N-base
-	<<
-<<
-SplitOff14: <<
-	Package: %N-common
-	Description: KDE - files used by all of KOffice
-	Depends: %N-shlibs (>= %v-%r)
-	Replaces: karbon, kchart, kexi, kformula, kivio, kpresenter, krita, kspread, kugar, kword, %N-dev (<< %v-%r)
-	Files: <<
-		bin
-		share/app*
-		share/config*
-		share/doc/kde*
-		share/icons*
-		share/mime*
-		share/service*
-		share/template*
-		lib
+To use KDE as your windowing system in XDarwin, create a file called
+".xinitrc" in your home directory, containing the following line:
+
+  /sw/bin/startkde >/tmp/kde.log 2>&1
+
+See http://fink.sourceforge.net/doc/x11/run-xfree86.php#xinitrc
+for more information on the xinitrc files and how they work.
+
+If you want to use Apple's X11 instead of the KDE window manager,
+put the following line before the startkde line in .xinitrc:
+
+  export KDEWM=quartz-wm
+
+Note that depending on your version of Apple's X11, this can cause
+strange resizing issues with the kicker (KDE task bar).
+
+---[ Startup ]--------------------------------------------------------
+
+Once you have created an ~/.xinitrc file, you should be able to start
+KDE by clicking on the "XDarwin" icon in your Applications folder.  
+
+NOTE: By default, X11 on Mac OS X runs in "rootless" mode, generally.
+If you run KDE in rootless mode, it will take over your desktop with
+a window that covers everything up.  You can remove this by disabling
+desktop icons in the KDE control center.  Open the control center
+(either from the "K" menu bar, or by typing "kcontrol" in an xterm)
+then expand the "Desktop" list, click "Behavior", and uncheck the
+"Show icons on desktop" checkbox.
+   
+---[ Removal ]--------------------------------------------------------
+   
+To remove all of the official KDE packages, you can remove the KDE
+libraries and anything that depends on them by running, in a terminal:
+   
+  sudo apt-get remove kdelibs3-ssl-shlibs kdelibs3-shlibs
+
+To remove an individual KDE package collection (like kdenetwork3 or
+kdesdk3) you can generally remove [package]-base.  For example, to
+remove all of the kdenetwork3 packages, run:
+
+  sudo apt-get remove kdenetwork3-base
 	<<
 <<
 
@@ -707,3 +1429,4 @@ remove all of the kdenetwork3 packages, run:
 
   sudo apt-get remove kdenetwork3-base
 <<
+

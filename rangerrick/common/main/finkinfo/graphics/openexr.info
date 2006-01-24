@@ -1,20 +1,23 @@
 Package: openexr
 Version: 1.2.2
-Revision: 1
+Revision: 3
 
 Source: http://savannah.nongnu.org/download/%n/OpenEXR-%v.tar.gz
-Source-MD5: cb931247581764730fae630f79f4832a
+Source-MD5: a2e56af78dc47c7294ff188c8f78394b
+Patch: %n.patch
+PatchScript: perl -pi -e 's,-L\$\(top_builddir\)\S+,,g;s,-l(IlmImf|Imath|Half|Iex),\$(top_builddir)/\1/lib\1.la,g' `find . -name Makefile.in`
 BuildDepends: fltk-x11, x11-dev, gcc3.3
 Depends: fltk-x11-shlibs, x11-shlibs
 ConfigureParams: --enable-shared=no --enable-imfexamples
+NoSetMAKEFLAGS: true
+SetMAKEFLAGS: -j1
 GCC: 3.3
 
 InstallScript: <<
-#!/bin/sh
+#!/bin/sh -e
 
   make install DESTDIR="%d"
   install -d -m 755 %i/share/doc/%N
-  cp -pR doc/*.html doc/images %i/share/doc/%N/
   mv %i/share/doc/OpenEXR-%v/examples %i/share/doc/%N/
   rmdir %i/share/doc/OpenEXR-%v
 <<
@@ -30,7 +33,7 @@ SplitOff: <<
     share/aclocal
   <<
 <<
-DocFiles: AUTHORS COPYING ChangeLog INSTALL LICENSE NEWS README*
+DocFiles: AUTHORS COPYING ChangeLog INSTALL LICENSE NEWS README* doc/*.pdf
 Description: Dynamic-range image file tools
 DescDetail: <<
 OpenEXR is a high dynamic-range (HDR) image file format
