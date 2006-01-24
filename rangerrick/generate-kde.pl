@@ -58,6 +58,8 @@ my $version_lookup = {
 		'^readline(-shlibs)?$'                      => [ '4.3',          '1028' ],
 		'^readline5(-shlibs)?$'                     => [ '5.0',          '1004' ],
 		'^sdl(-shlibs)?$'                           => [ '1.2.9',        '1001' ],
+		'^sdl-mixer(-shlibs)?$'                     => [ '1.2.6',        '1012' ],
+		'^smpeg(-shlibs)?$'                         => [ '0.4.4',        '1025' ],
 		'^macosx$'                                  => [ '10.4.3',       '1'    ],
 	},
 	'10.4-transitional' => {
