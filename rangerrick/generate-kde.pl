@@ -383,6 +383,16 @@ sub transform_shlibs {
 		if ($tree eq "10.3") {
 			next if ($line =~ /libkfontinst/i);
 		}
+
+		# whoo!  crazy lexing!
+		my $newline;
+		while ($line =~ /\G(.+?\(\S+\s+\S+\-)([^\-]+)\)/gsi) {
+			my ($rest, $revision) = ($1, $2);
+			$newline .= $rest . transform_revision( $tree, $revision ) . ')';
+		}
+		$line =~ /\G\(.*$/;
+		$newline .= $1;
+
 		push(@newlines, $line);
 	}
 
@@ -515,7 +525,7 @@ sub transform_dependency {
 					#print "transform_dependency[$dep_spec]: $package matches $key\n";
 					my ($newversion, $newrevision) = @{$version_lookup->{$tree_iterator}->{$key}};
 					if (defined $version and defined $revision and $revision ne '%r' and $newrevision eq '+') {
-						$revision = transform_revision( { Tree => $tree }, $revision );
+						$revision = transform_revision( $tree, $revision );
 					} elsif (defined $newversion and defined $newrevision) {
 						$version  = $newversion;
 						$revision = $newrevision;
@@ -557,8 +567,9 @@ sub transform_version {
 }
 
 sub transform_revision {
-	my $tree     = shift->{'Tree'};
+	my $tree     = shift;
 	my $revision = shift;
+	$tree = $tree->{'Tree'} if (ref $tree eq "HASH");
 
 	if ($tree eq '10.3') {
 		$revision = revision_add($revision, 10);
