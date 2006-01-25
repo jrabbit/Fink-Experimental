@@ -33,40 +33,40 @@ ConfigureParams: --includedir=%p/include --libdir=%p/lib --with-extra-includes=%
 CompileScript: <<
 #!/bin/sh -e
 
-  export HOME=/tmp
-  export PREFIX="%p"
-  . ./environment-helper.sh
-  export CPPFLAGS="$CPPFLAGS -UHAVE_REALTIME_SCHED -I%p/include/qt"
-  export lt_cv_sys_max_cmd_len=65536
+	export HOME=/tmp
+	export PREFIX="%p"
+	. ./environment-helper.sh
+	export CPPFLAGS="$CPPFLAGS -UHAVE_REALTIME_SCHED -I%p/include/qt"
+	export lt_cv_sys_max_cmd_len=65536
 
-  export CC=gcc CXX=g++
+	export CC=gcc CXX=g++
 
-  PRODUCT_VERSION=`uname -r`
+	PRODUCT_VERSION=`uname -r`
 
-  case $PRODUCT_VERSION in 
-    8.[012]*)
-      export CPPFLAGS="$CPPFLAGS -DTIGER_DLSYM_HACK=1"
-      ;;
-  esac
+	case $PRODUCT_VERSION in 
+		8.[012]*)
+			export CPPFLAGS="$CPPFLAGS -DTIGER_DLSYM_HACK=1"
+			;;
+	esac
 
-  ./build-helper.sh cvs       %N %v %r make -f admin/Makefile.common cvs
-  ./build-helper.sh configure %N %v %r ./configure %c
+	./build-helper.sh cvs       %N %v %r make -f admin/Makefile.common cvs
+	./build-helper.sh configure %N %v %r ./configure %c
 
-  perl -pi -e 's,@\kdeinitdir\@,%p/lib/kde3,' soundserver/Makefile
+	perl -pi -e 's,@\kdeinitdir\@,%p/lib/kde3,' soundserver/Makefile
 
-  ./build-helper.sh make      %N %v %r make all all_libraries="$ALL_LIBRARIES"
+	./build-helper.sh make      %N %v %r make all all_libraries="$ALL_LIBRARIES"
 <<
 
 InstallScript: <<
 #!/bin/sh -e
 
-  export PREFIX="%p"
-  . ./environment-helper.sh
+	export PREFIX="%p"
+	. ./environment-helper.sh
 
-  ./build-helper.sh install %N %v %r make -j1 install DESTDIR=%d
+	./build-helper.sh install %N %v %r make -j1 install DESTDIR=%d
 
-  mkdir -p %i/share/doc/installed-packages
-  touch %i/share/doc/installed-packages/%N
+	mkdir -p %i/share/doc/installed-packages
+	touch %i/share/doc/installed-packages/%N
 <<
 DocFiles: COPYING COPYING.LIB INSTALL
 SplitOff: <<
@@ -175,6 +175,17 @@ SplitOff2: <<
 		lib/libqtmcop.dylib
 		lib/libsoundserver_idl.dylib
 		lib/libx11globalcomm.so
+		lib/libartsc.la
+		lib/libartsflow.la
+		lib/libartsflow_idl.la
+		lib/libgmcop.la
+		lib/libkmedia2.la
+		lib/libkmedia2_idl.la
+		lib/libmcop.la
+		lib/libmcop_mt.la
+		lib/libqtmcop.la
+		lib/libsoundserver_idl.la
+		lib/libx11globalcomm.la
 	<<
 	DescUsage: <<
 ---[ Installation ]---------------------------------------------------
@@ -231,18 +242,18 @@ remove all of the kdenetwork3 packages, run:
 <<
 
 DaemonicFile: <<
-  <service>
-    <description>Analog Realtime Synthesizer Server</description>
-    <message>Analog Realtime Synthesizer Server</message>
+	<service>
+		<description>Analog Realtime Synthesizer Server</description>
+		<message>Analog Realtime Synthesizer Server</message>
 
-    <daemon name="artsd">
-      <executable background="yes">%p/bin/artsd</executable>
-      <!-- the daemon will background itself, but may take a while
-           to start up to the point where it does so -->
-      <pidfile>%p/var/run/arts.pid</pidfile>
-    </daemon>
+		<daemon name="artsd">
+			<executable background="yes">%p/bin/artsd</executable>
+			<!-- the daemon will background itself, but may take a while
+			     to start up to the point where it does so -->
+			<pidfile>%p/var/run/arts.pid</pidfile>
+		</daemon>
 
-  </service>
+	</service>
 <<
 DaemonicName: arts
 
