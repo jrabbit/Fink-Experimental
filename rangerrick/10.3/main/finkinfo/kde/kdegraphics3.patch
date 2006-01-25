@@ -592,17 +592,6 @@
  libkfaximage_la_LIBADD  = $(LIB_KDECORE)
  libkfaximage_la_SOURCES = kfaximage.cpp faxexpand.cpp faxinit.cpp
  
---- kdegraphics/kpovmodeler/pmshell.cpp	2005/07/26 18:54:59	438982
-+++ kdegraphics/kpovmodeler/pmshell.cpp	2005/11/26 15:25:33	483453
-@@ -641,7 +641,7 @@
- 
- bool PMShell::overwriteURL( const KURL& u )
- {
--   int query = KMessageBox::Yes;
-+   int query = KMessageBox::Continue;
- 
-    if( u.isLocalFile( ) )
-    {
 --- kdegraphics-3.5.0/kpdf/xpdf/xpdf/GlobalParams.cc	Tue Nov  8 17:25:47 2005
 +++ kdegraphics-3.5.0-new/kpdf/xpdf/xpdf/GlobalParams.cc	Sat Jan 14 16:23:46 2006
 @@ -1315,7 +1315,7 @@
@@ -631,3 +620,17 @@
  	if (!p) goto fin;
  	m = XftFontMatch(qt_xdisplay(),qt_xscreen(),p,&res);
  	if (!m) goto fin;
+--- kdegraphics-3.5.1/kpdf/part.cpp	2006-01-19 11:38:22.000000000 -0500
++++ kdegraphics-3.5.1-new/kpdf/part.cpp	2006-01-24 16:57:42.000000000 -0500
+@@ -697,6 +697,11 @@
+     KURL saveURL = KFileDialog::getSaveURL( url().isLocalFile() ? url().url() : url().fileName(), QString::null, widget() );
+     if ( saveURL.isValid() && !saveURL.isEmpty() )
+     {
++        if (saveURL == url())
++        {
++                KMessageBox::information( widget(), i18n("You are trying to overwrite \"%1\" with itself. This is not allowed. Please save it in another location.").arg(saveURL.filename()) );
++  	             return;
++        }
+         if ( KIO::NetAccess::exists( saveURL, false, widget() ) )
+         {
+             if (KMessageBox::warningContinueCancel( widget(), i18n("A file named \"%1\" already exists. Are you sure you want to overwrite it?").arg(saveURL.filename()), QString::null, i18n("Overwrite")) != KMessageBox::Continue)
