@@ -1,28 +1,45 @@
 #!/bin/sh -e
 
-INFOFILE=${INFOFILE:-openoffice.org.info}
-TMPFILE=`/usr/bin/mktemp /tmp/\`basename $0\`.XX`
+: ${INFOFILE="openoffice.org.info.m4"}
+: ${M4="/usr/bin/m4"}
+: ${CURL="/usr/bin/curl"}
+myname=`basename $0`
 
-hosts=$(/usr/bin/sed -n 's/\(#*\)\(...\)-\(..\): \(.*\)$/\1,[\2-\3],\4/p' ${INFOFILE})
-version=`/usr/bin/sed -n -e 's/^Version: \(.*\)$/\1/p' "$INFOFILE"`
-source=`/usr/bin/sed -n -e "s/%v/$version/g" -e 's/^Source: mirror:custom:\(.*\)$/\1/p' "$INFOFILE"`
+if test -x "/usr/bin/mktemp"; then
+  tmpdir=`/usr/bin/mktemp -d "/tmp/$myname.XXXX"`
+  # Just in case
+  test -n "$tmpdir" || exit 1
+else
+  tmpdir=/tmp/$myname.$$
+  mkdir "$tmpdir"
+fi
+trap 'rm -f "$tmpdir"/*.tmp; rmdir "$tmpdir"' 0
 
-for host in ${hosts[*]}; do
-  disabled=`[ -n "$(echo $host | /usr/bin/cut -d, -f1)" ] && echo "DISABLED " || true`
-  area=`echo $host | /usr/bin/cut -d, -f2`
-  url=`echo $host | /usr/bin/cut -d, -f3`
-  outputfile=`/usr/bin/mktemp "${TMPFILE}"XXX`
-  echo $outputfile >> "${TMPFILE}"
-  echo "${disabled}${area} ${url}" >"$outputfile"
-  /usr/bin/curl -fILsS "${url}${source}" >>"$outputfile" 2>&1 &
-done
+case x${SNAPSHOT+set} in
+  xset) mode=DumpSnapshotMirrors;;
+  x) mode=DumpMirrors;;
+esac
+$M4 -B32768 -S200 -DMODE=$mode "$INFOFILE" > "$tmpdir/mirrors.tmp"
+
+exec 3< "$tmpdir/mirrors.tmp"
+read version sourcespec <&3
+source=`echo "$sourcespec" | sed "s/%v/$version/g"`
+seq=1
+while read enabled area url; do
+  outputfile=`printf '%s/HEAD%03d.tmp' "$tmpdir" $seq`
+  seq=`expr $seq + 1`
+  case $enabled in
+    1) disabled=;;
+    0) disabled="DISABLED ";;
+    *) exit 1;;
+  esac
+  {
+    echo
+    echo "${disabled}[${area}] ${url}"
+    $CURL -fILsS "${url}${source}" 2>&1 &
+  } > "$outputfile"
+done <&3
 
 wait
 
-for file in `/bin/cat "${TMPFILE}"`; do
-  /bin/cat "$file"
-  echo
-  /bin/rm "$file"
-done
-
-/bin/rm "${TMPFILE}"
+cat "$tmpdir"/HEAD*.tmp | tr -d '\r'
