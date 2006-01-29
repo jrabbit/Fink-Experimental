@@ -1,7 +1,7 @@
 diff -ruN -x '*~' auctex-11.82/fink/install auctex-11.82.patched/fink/install
 --- auctex-11.82/fink/install	1969-12-31 19:00:00.000000000 -0500
-+++ auctex-11.82.patched/fink/install	2005-12-19 14:04:31.000000000 -0500
-@@ -0,0 +1,138 @@
++++ auctex-11.82.patched/fink/install	2006-01-29 12:17:57.000000000 -0500
+@@ -0,0 +1,142 @@
 +#! /bin/bash -e
 +#
 +# <% elisp %> emacs install script for auctex
@@ -85,6 +85,9 @@ diff -ruN -x '*~' auctex-11.82/fink/install auctex-11.82.patched/fink/install
 +	@PREFIX@/share/emacs/site-lisp/tex-site.el \
 +	@PREFIX@/share/${FLAVOR}/site-lisp \
 +	>> @PREFIX@/share/${FLAVOR}/site-lisp/auctex//CompilationLog 2>&1
++    perl -pi -e "s|@PREFIX@/var/auctex|@PREFIX@/var/lib/auctex/${FLAVOR}|" \
++	@PREFIX@/share/${FLAVOR}/site-lisp/tex-site.el \
++	>> @PREFIX@/share/${FLAVOR}/site-lisp/auctex//CompilationLog 2>&1 
 +    install -m 644 @PREFIX@/share/emacs/site-lisp/auctex/lpath.el \
 +	@PREFIX@/share/${FLAVOR}/site-lisp/auctex \
 +	>> @PREFIX@/share/${FLAVOR}/site-lisp/auctex//CompilationLog 2>&1
@@ -120,11 +123,12 @@ diff -ruN -x '*~' auctex-11.82/fink/install auctex-11.82.patched/fink/install
 +}
 +
 +do_auto () {
-+    LOGFILE="@PREFIX@/var/auctex/UpdateLog"
++    LOGFILE="@PREFIX@/var/lib/auctex/${FLAVOR}/UpdateLog"
 +    echo >&2 -n "update-auctex-elisp: "
 +    echo >&2 "Further output will appear in: ${LOGFILE}.gz."
 +    echo >&2 -n "auctex: "
 +    echo >&2 -n "Waiting for update-auctex-elisp to terminate... "
++    mkdir @PREFIX@/var/lib/auctex/${FLAVOR}
 +    @PREFIX@/sbin/update-auctex-elisp ${FLAVOR} > ${LOGFILE} 2>&1
 +    gzip -9fq ${LOGFILE}
 +    echo >&2 "done."
@@ -256,7 +260,7 @@ diff -ruN -x '*~' auctex-11.82/fink/update-auctex-elisp auctex-11.82.patched/fin
 +rm -f $(find @PREFIX@/var/lib/auctex/ -type f -name \*.el)
 diff -ruN -x '*~' auctex-11.82/fink/update-auctex-elisp.8 auctex-11.82.patched/fink/update-auctex-elisp.8
 --- auctex-11.82/fink/update-auctex-elisp.8	1969-12-31 19:00:00.000000000 -0500
-+++ auctex-11.82.patched/fink/update-auctex-elisp.8	2005-12-18 12:53:02.000000000 -0500
++++ auctex-11.82.patched/fink/update-auctex-elisp.8	2006-01-28 19:37:44.000000000 -0500
 @@ -0,0 +1,60 @@
 +.\" Emacs, you know, this is an -*- nroff -*- source file.
 +.\"
@@ -310,7 +314,7 @@ diff -ruN -x '*~' auctex-11.82/fink/update-auctex-elisp.8 auctex-11.82.patched/f
 +.SH BUGS
 +None known.
 +.SH FILES
-+.B /var/lib/auctex/:
++.B @PREFIX@/var/lib/auctex/:
 +the hierarchy containing the byte-compiled files.
 +.SH SEE ALSO
 +.BR emacs (1),
@@ -360,7 +364,7 @@ diff -ruN -x '*~' auctex-11.82/fink/update-auctex-install auctex-11.82.patched/f
 +
 diff -ruN -x '*~' auctex-11.82/fink/update-auctex-install.8 auctex-11.82.patched/fink/update-auctex-install.8
 --- auctex-11.82/fink/update-auctex-install.8	1969-12-31 19:00:00.000000000 -0500
-+++ auctex-11.82.patched/fink/update-auctex-install.8	2005-12-18 12:53:02.000000000 -0500
++++ auctex-11.82.patched/fink/update-auctex-install.8	2006-01-29 11:58:31.000000000 -0500
 @@ -0,0 +1,61 @@
 +.\" Emacs, you know, this is an -*- nroff -*- source file.
 +.\"
@@ -407,7 +411,7 @@ diff -ruN -x '*~' auctex-11.82/fink/update-auctex-install.8 auctex-11.82.patched
 +is not called weekly by a
 +.BR cron (8)
 +driven mechanism, because it modifies files installed in the
-+.B /usr/
++.B @PREFIX@/
 +hierarchy, and that would not be policy compliant.  You may call it by hand,
 +or have the maintainer of relevant packages add a call for it in their
 +.B postinst
@@ -415,7 +419,7 @@ diff -ruN -x '*~' auctex-11.82/fink/update-auctex-install.8 auctex-11.82.patched
 +.SH BUGS
 +None known.
 +.SH FILES
-+.B /usr/:
++.B @PREFIX@/usr/:
 +the hierarchy containing AUCTeX installed files.
 +.SH SEE ALSO
 +.BR emacs (1),
