@@ -23,6 +23,8 @@ my $path = abs_path(dirname($0));
 my @files = @ARGV;
 my %files;
 
+my $translate = '(openexr|gst.*0.10.*|kde|postgres|libpq|libpg|wv2|icecream|qt3|qca|kgpg|xfree86|xorg|\\/mono\\.|libgdiplus|monodevelop|cocoa-sharp|perlmods|libsmoke|fung-calc|.*-pm.info$|libagg)';
+
 my $package_lookup = {
 	'10.3' => {
 		'^libxine1(\S*)$'      => 'libxine$1',
@@ -42,6 +44,11 @@ my $package_lookup = {
 
 my $version_lookup = {
 	'10.4' => {
+		'^abiword$'                                 => [ '2.2.7',        '1003' ],
+		'^advancemame$'                             => [ '0.84.0',       '1020' ],
+		'^apache2.*$'                               => [ '2.0.55',       '1010' ],
+		'^libapache2-mod-(actions|auth-anon|auth-dbm|auth-digest|bucketeer|cgid|expires|headers|info|isapi|mime-magic|proxy|proxy-connect|proxy-ftp|proxy-http|rewrite|speling|ssl|suexec|unique-id|usertrack|vhost-alias)$'                              => [ '2.0.55',       '1010' ],
+		'^apr(-ssl)?(-common|-shlibs)?$'            => [ '0.9.7',        '1011' ],
 		'^apt(-dev|-shlibs)?$'                      => [ '0.5.4',        '1052' ],
 		'^aqbanking$'                               => [ '1.0.4',        '1beta.1000' ],
 		'^aspell(-dev|-shlibs)?$'                   => [ '0.50.5',       '1002' ],
@@ -59,6 +66,7 @@ my $version_lookup = {
 		'^imagemagick(-nox)?(-dev|-shlibs)?$'       => [ '6.1.8',        '1002' ],
 		'^kaptain$'                                 => [ '0.72',         '1012' ],
 		'^ktoblzcheck$'                             => [ '1.2',          '1003' ],
+		'^lammpi(-dev|-examples|-shlibs)?$'         => [ '7.0.6',        '1011' ],
 		'^libidl2(-shlibs)?$'                       => [ '0.8.3',        '1002' ],
 		'^(libncurses5(-shlibs)?|ncurses)$'         => [ '5.4-20041023', '1006' ],
 		'^libncursesw5(-shlibs)?$'                  => [ '5.4-20041023', '1001' ],
@@ -69,6 +77,11 @@ my $version_lookup = {
 		'^openexr(-dev)?$'                          => [ '1.2.2',        '31'   ],
 		'^openhbci(-shlibs)?$'                      => [ '0.9.13',       '1012' ],
 		'^openjade$'                                => [ '1.3.2',        '1028' ],
+		'^python23(-shlibs|-socket)?$'              => [ '1:2.3.5',      '1124' ],
+		'^python23-nox(-shlibs|-socket)?$'          => [ '1:2.3.4',      '1104' ],
+		'^python23-socket-ssl$'                     => [ '1:2.3.5',      '1101' ],
+		'^python24(-shlibs|-socket)?$'              => [ '1:2.4.2',      '1004' ],
+		'^python24-socket-ssl$'                     => [ '2.4.2',        '1101' ],
 		'^qt3(-.+)?$'                               => [ '3.3.5',        '1023' ],
 		'^readline(-shlibs)?$'                      => [ '4.3',          '1028' ],
 		'^readline5(-shlibs)?$'                     => [ '5.0',          '1004' ],
@@ -129,7 +142,7 @@ for my $file (@files) {
 	my ($dir, $filename) = (dirname($file), basename($file));
 
 	next unless ($file =~ /\.(info|patch)$/);
-	next unless ($file =~ /(openexr|gst.*0.10.*|kde|postgres|libpq|libpg|wv2|icecream|qt3|qca|kgpg|xfree86|xorg|\/mono\.|libgdiplus|monodevelop|cocoa-sharp|perlmods|libsmoke|fung-calc|.*-pm.info$)/);
+	next unless ($file =~ /$translate/);
 	next if ($file =~ /notready/);
 
 	my $contents;
