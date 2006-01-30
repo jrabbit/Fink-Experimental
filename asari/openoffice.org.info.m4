@@ -1,159 +1,22 @@
 divert(-1)
 changequote([, ])
 dnl $Id$
-dnl Usage: m4 -B32768 -S200 -DTREE=xxx [-DMODE=DumpMirrors|DumpSnapshotMirrors] openoffice.org.info.m4
+dnl Usage: m4 -DTREE=xxx [-DMODE=Normal|DumpMirrors|DumpSnapshotMirrors] openoffice.org.info.m4
 
 dnl ### Configurations ###
+ifdef([MODE],,
+ [define([MODE], [Normal])])
 define([BASEVERSION], [[2.0.1]])
 define([SNAPSHOT], [[m152]])
 define([SOURCE_MD5], [[de893aa3bbd15022089abafbd8a2e623]])
-define([TREE_TO_REVISION],
-  [[[10.3], [1]], [[10.4-transitional], [101]], [[10.4], [201]]])
+define([REVISION_10_3], 1)
+define([REVISION_10_4_TRANSITIONAL], 101)
+define([REVISION_10_4], 201)
 define([REVISION_SUFFIX],[])
 ifdef([USE_FINK_PYTHON],,
  [define([USE_FINK_PYTHON], 1)])
 define([RELEASE_SOURCE], [[stable/%v/OOo_%v_src.tar.gz]])
 define([SNAPSHOT_SOURCE], [[OOo_SRC680_]SNAPSHOT[_source.tar.bz2]])
-
-define([LANGUAGES], [[af], [ar], [be-BY], [bg], [bn], [bn-BD],
- [bn-IN], [br], [bs], [ca], [cs], [cy], [da], [de], [el], [en-GB],
- [en-ZA], [eo], [es], [et], [eu], [fi], [fr], [ga], [gl], [gu-IN],
- [he], [hi-IN], [hr], [hu], [it], [ja], [km], [kn-IN], [ko], [lo],
- [lt], [lv], [mk], [ms], [nb], [ne], [nl], [nn], [nr], [ns],
- [pa-IN], [pl], [pt], [pt-BR], [ru], [rw], [sh-YU], [sk], [sl],
- [sr-CS], [ss], [st], [sv], [sw], [sw-TZ], [sx], [ta-IN], [th],
- [tn], [tr], [ts], [ve], [vi], [xh], [zh-CN], [zh-TW], [zu]])
-
-define([RELEASE_MIRRORS], [
- [0, [aus-AU], [http://openoffice.mirrors.ilisys.com.au/]],
- [1, [aus-AU], [ftp://mirror.pacific.net.au/OpenOffice/]],
- [0, [aus-AU], [http://mirror.pacific.net.au/openoffice/]],
- [1, [aus-AU], [ftp://ftp.planetmirror.com/pub/openoffice/]],
- [1, [aus-AU], [http://public.planetmirror.com/pub/openoffice/]],
- [1, [eur-AT], [http://gd.tuwien.ac.at/office/openoffice/]],
- [1, [eur-AT], [ftp://gd.tuwien.ac.at/office/openoffice/]],
- [1, [eur-BE], [http://ftp.belnet.be/pub/mirror/ftp.openoffice.org/]],
- [1, [eur-BE], [ftp://ftp.scarlet.be/pub/openoffice/]],
- [1, [eur-BE], [http://ftp.scarlet.be/pub/openoffice/]],
- [1, [eur-BE], [ftp://ftp.openoffice.skynet.be/pub/ftp.openoffice.org/]],
- [1, [eur-BE], [ftp://ftp.kulnet.kuleuven.ac.be/pub/mirror/openoffice.org/]],
- [1, [sam-BR], [http://linorg.usp.br/OpenOffice.org/]],
- [1, [sam-BR], [ftp://ftp.pucpr.br/openoffice/]],
- [1, [eur-BG], [http://ftp.spnet.net/openoffice/]],
- [1, [eur-BG], [ftp://ftp.spnet.net/openoffice/]],
- [1, [nam-CA], [ftp://openoffice.mirror.rafal.ca/openoffice/]],
- [1, [nam-CA], [http://openoffice.mirror.rafal.ca/]],
- [1, [nam-CA], [http://gulus.USherbrooke.ca/pub/appl/openoffice/]],
- [1, [eur-CZ], [http://ftp.sh.cvut.cz/MIRRORS/OpenOffice/]],
- [1, [eur-CZ], [ftp://ftp.sh.cvut.cz/MIRRORS/OpenOffice/]],
- [1, [eur-DK], [http://mirrors.dotsrc.org/openoffice/]],
- [1, [eur-DK], [ftp://mirrors.dotsrc.org/openoffice/]],
- [1, [eur-EE], [http://openoffice.offline.ee/]],
- [1, [eur-FI], [ftp://ftp.funet.fi/pub/mirrors/openoffice.org/]],
- [0, [eur-FR], [ftp://openoffice.cict.fr/openoffice/]],
- [1, [eur-FR], [ftp://ftp.free.fr/mirrors/ftp.openoffice.org/]],
- [1, [eur-DE], [ftp://ftp.tu-chemnitz.de/pub/openoffice/]],
- [1, [eur-DE], [ftp://ftp.gwdg.de/pub/misc/openoffice/]],
- [1, [eur-DE], [ftp://sunsite.informatik.rwth-aachen.de/pub/mirror/OpenOffice/]],
- [1, [eur-DE], [ftp://ftp.leo.org/pub/openoffice/]],
- [1, [eur-DE], [http://ftp.leo.org/pub/openoffice/]],
- [1, [eur-DE], [ftp://ftp.uni-muenster.de/pub/software/OpenOffice/]],
- [1, [eur-DE], [ftp://openoffice.tu-bs.de/OpenOffice.org/]],
- [1, [eur-DE], [ftp://ftp.stardiv.de/pub/OpenOffice.org/]],
- [1, [eur-DE], [http://ftp.stardiv.de/pub/OpenOffice.org/]],
- [1, [eur-DE], [ftp://ftp-stud.fht-esslingen.de/pub/Mirrors/ftp.openoffice.org/]],
- [1, [eur-DE], [http://mirror.xaranet.de/openoffice/]],
- [1, [eur-GR], [http://www.ellak.gr/pub/openoffice/]],
- [1, [eur-GR], [http://ftp.ntua.gr/pub/OpenOffice/]],
- [1, [eur-GR], [ftp://ftp.ntua.gr/pub/OpenOffice/]],
- [1, [eur-HU], [http://ftp.fsf.hu/OpenOffice.org/]],
- [1, [eur-HU], [ftp://ftp.fsf.hu/OpenOffice.org/]],
- [1, [eur-IS], [ftp://ftp.rhnet.is/pub/OpenOffice/]],
- [1, [eur-IS], [http://ftp.rhnet.is/pub/OpenOffice/]],
- [1, [asi-ID], [http://openoffice.ugm.ac.id/]],
- [1, [asi-ID], [ftp://kambing.vlsm.org/openoffice/]],
- [1, [asi-ID], [http://kambing.vlsm.org/openoffice/]],
- [1, [eur-IE], [ftp://ftp.heanet.ie/mirrors/openoffice.org/]],
- [1, [eur-IE], [http://ftp.heanet.ie/mirrors/openoffice.org/]],
- [1, [eur-IT], [ftp://na.mirror.garr.it/mirrors/openoffice/]],
- [1, [eur-IT], [http://na.mirror.garr.it/mirrors/openoffice/]],
- [1, [asi-JP], [ftp://ftp.kddlabs.co.jp/office/openoffice/]],
- [0, [asi-JP], [ftp://ftp.ring.gr.jp/pub/misc/openoffice/]],
- [1, [asi-JP], [http://www.ring.gr.jp/archives/misc/openoffice/]],
- [1, [asi-JP], [ftp://ftp.yz.yamagata-u.ac.jp/pub/openoffice/]],
- [1, [asi-JP], [http://ftp.yz.yamagata-u.ac.jp/pub/openoffice/]],
- [1, [eur-LT], [ftp://files.akl.lt/OpenOffice.org/]],
- [1, [eur-LT], [http://files.akl.lt/OpenOffice.org/]],
- [0, [asi-MY], [http://mymirror.asiaosc.org/openoffice/]],
- [1, [eur-NL], [ftp://ftp.nluug.nl/pub/office/openoffice/]],
- [1, [eur-NL], [http://ftp.nluug.nl/pub/office/openoffice/]],
- [1, [eur-NL], [ftp://ftp.snt.utwente.nl/pub/software/openoffice/]],
- [1, [eur-NL], [ftp://borft.student.utwente.nl/]],
- [1, [eur-NL], [http://borft.student.utwente.nl/openoffice/]],
- [1, [eur-NL], [ftp://niihau.student.utwente.nl/]],
- [1, [eur-NL], [http://vlaai.snt.utwente.nl/pub/software/openoffice/]],
- [1, [eur-PL], [ftp://ftp.man.poznan.pl/pub/openoffice/]],
- [1, [eur-PL], [ftp://ftp.openoffice.pl/OpenOffice.ORG/]],
- [1, [eur-PL], [ftp://ftp.tpnet.pl/d9/OpenOffice/]],
- [1, [eur-PL], [http://ftp.tpnet.pl/vol/d9/OpenOffice/]],
- [0, [eur-PT], [http://ftpdem.ubi.pt/OpenOffice]],
- [0, [eur-PT], [http://mirrors.oninet.pt/openoffice/]],
- [0, [eur-PT], [http://tux.cprm.net/pub/openoffice.org/]],
- [0, [eur-PT], [ftp://tux.cprm.net/pub/openoffice.org/]],
- [1, [eur-RO], [ftp://ftp.iasi.roedu.net/pub/mirrors/openoffice.org/]],
- [1, [eur-RO], [http://ftp.iasi.roedu.net/mirrors/openoffice.org/]],
- [1, [eur-RO], [ftp://mirrors.evolva.ro/openoffice.org/]],
- [1, [eur-RO], [ftp://ftp.idilis.ro/mirrors/openoffice.org/]],
- [1, [eur-RO], [http://ftp.idilis.ro/mirrors/openoffice.org/]],
- [1, [eur-RU], [ftp://ftp.chg.ru/pub/OpenOffice/]],
- [1, [eur-RU], [http://ftp.chg.ru/pub/OpenOffice/]],
- [1, [eur-YU], [ftp://mirror.etf.bg.ac.yu/openoffice.org/]],
- [1, [eur-YU], [http://mirror.etf.bg.ac.yu/openoffice/]],
- [1, [asi-SG], [ftp://mirror.averse.net/pub/openoffice/]],
- [1, [asi-SG], [http://mirror.averse.net/openoffice/]],
- [1, [eur-SI], [ftp://ftp.bevc.net/mirrors/openoffice/]],
- [1, [eur-SI], [http://mirrors.bevc.net/openoffice/]],
- [0, [eur-SI], [http://www.wsection.com/openoffice/]],
- [1, [afr-ZA], [ftp://ftp.is.co.za/mirrors/OpenOffice/]],
- [1, [asi-KR], [ftp://ftp.kr.freebsd.org/pub/openoffice/]],
- [1, [eur-ES], [http://ftp.rediris.es/ftp/mirror/openoffice.org/]],
- [1, [eur-ES], [ftp://ftp.rediris.es/mirror/openoffice.org/]],
- [1, [eur-SE], [http://ftp.sunet.se/pub/Office/OpenOffice.org/]],
- [0, [eur-CH], [ftp://ftp.solnet.ch/mirror/OpenOffice/]],
- [1, [eur-CH], [ftp://sunsite.cnlab-switch.ch/mirror/OpenOffice/]],
- [1, [eur-CH], [http://mirror.switch.ch/ftp/mirror/OpenOffice/]],
- [1, [eur-CH], [ftp://mirror.switch.ch/mirror/OpenOffice/]],
- [1, [asi-TW], [ftp://ftp.isu.edu.tw/pub/OpenOffice/]],
- [1, [asi-TW], [http://ftp.isu.edu.tw/pub/OpenOffice/]],
- [1, [asi-TW], [ftp://ftp.nctu.edu.tw/UNIX/OpenOffice/]],
- [1, [eur-UK], [ftp://ftp.mirrorservice.org/sites/ny1.mirror.openoffice.org/]],
- [1, [eur-UK], [http://www.mirrorservice.org/sites/ny1.mirror.openoffice.org/]],
- [0, [eur-UK], [ftp://mirrors.blueyonder.co.uk/sites/openoffice.org]],
- [1, [eur-UK], [http://openoffice.blueyonder.co.uk/]],
- [1, [eur-UK], [ftp://ftp.mirror.ac.uk/mirror/sunsite.dk/openoffice/]],
- [1, [eur-UK], [http://www.mirror.ac.uk/mirror/sunsite.dk/openoffice/]],
- [0, [nam-US], [http://openoffice.collab.net/]],
- [1, [nam-US], [ftp://ftp.osuosl.org/pub/openoffice/]],
- [1, [nam-US], [http://ftp.osuosl.org/pub/openoffice/]],
- [0, [nam-US], [http://www.binarycode.org/openoffice/]],
- [1, [nam-US], [http://mirrors.ibiblio.org/pub/mirrors/openoffice/]],
- [1, [nam-US], [ftp://ftp.ibiblio.org/pub/mirrors/openoffice/]],
- [1, [nam-US], [ftp://ftp.ussg.iu.edu/pub/openoffice/]],
- [1, [nam-US], [http://mirrors.isc.org/pub/openoffice/]],
- [0, [nam-US], [http://www.online-mirror.org/openoffice/]],
- [1, [nam-US], [ftp://openoffice.mirrors.pair.com/]],
- [1, [nam-US], [http://openoffice.mirrors.pair.com/ftp/]],
- [1, [nam-US], [ftp://openofficeorg.secsup.org/pub/software/openoffice/]],
- [1, [nam-US], [http://openofficeorg.secsup.org/]],
- [1, [nam-US], [http://openoffice.mirror.wrpn.net/]],
- [1, [nam-US], [ftp://openoffice.mirrors.tds.net/pub/openoffice/]],
- [1, [nam-US], [http://openoffice.mirrors.tds.net/pub/openoffice/]],
- [0, [nam-US], [http://mirrors.wehost4u.net/openoffice/]]])
-
-define([SNAPSHOT_MIRRORS], [
- [1, [asi-JP], [http://www.sodan.ecc.u-tokyo.ac.jp/~shinra/distfiles/]],
- [1, [asi-JP], [http://www.j10n.org/files/]],
- [1, [Primary], [ftp://ooopackages.good-day.net/pub/OpenOffice.org/sources/]]])
 
 dnl ### Macro Library ###
 dnl Replace uppercases of $1 to lowercases.
@@ -163,77 +26,59 @@ dnl Returns *quoted* newline.
 define([NEWLINE], [[
 ]])
 
-dnl Usage: EQ_ANY([Query], [Str], [Str], ...)
-dnl Returns 1 if one of $2... equals to $1, 0 otherwise.
-define([EQ_ANY], [ifelse($#, 0, 0, $#, 1, 0,
- [$1], [$2], 1, $#, 2, 0,
- [EQ_ANY([$1], shift(shift($@)))])])
+dnl Usage: STR_EQ([Str1], [Str2])
+dnl Returns 1 if Str1 is identical to Str2, 0 otherwise.
+define([STR_EQ], [ifelse([$1], [$2], 1, 0)])
+
+dnl Usage: DEFINED([Macro])
+dnl Returns 1 if Macro is defined, 0 otherwise.
+define([DEFINED], [ifdef([$1], 1, 0)])
 
 dnl Print a error message $1 and exit.
-define([ERREXIT], [errprint([$1]NEWLINE)m4exit(1)])
-
-dnl Usage: ALIST_GET([Query], [[Key], [Value]], [[Key], [Value]], ...)
-dnl Returns [1, [Value]] if found, 0 otherwise.
-define([ALIST_GET], [ifelse($#, 0, [0], $#, 1, [0],
- [$1], FIRST($2), [1, SECOND($2)], $#, 2, [0],
- [ALIST_GET([$1], shift(shift($@)))])])
-define([FIRST], [[$1]])
-define([SECOND], [[$2]])
-
-dnl Evaluate $2 only once and define $1 to it.
-define([DEFINE_LAZILY], [define([$1], [define([$1], QUOTE($2))$1])])
-define([QUOTE], [ifelse($#, 1, [[[$1]]], [ERREXIT([Bad quoting])])])
+ifdef([__line__],
+ [define([ERREXIT], [errprint(__line__: [$1]NEWLINE)m4exit(1)])],
+ [define([ERREXIT], [errprint([$1]NEWLINE)m4exit(1)])])
 
 dnl ### Other Macros ###
 ifdef([SNAPSHOT],
  [define([FINKVERSION], [BASEVERSION+SNAPSHOT])
-  define([SOURCE], [SNAPSHOT_SOURCE])
-  define([MIRRORS], [SNAPSHOT_MIRRORS])],
+  define([SOURCE], [SNAPSHOT_SOURCE])],
  [define([FINKVERSION], [BASEVERSION])
-  define([SOURCE], [RELEASE_SOURCE])
-  define([MIRRORS], [RELEASE_MIRRORS])])
+  define([SOURCE], [RELEASE_SOURCE])])
 
-define([MAKE_REVISION], [ifelse([$1], 0, [ERREXIT([Wrong TREE])], [[$2]])])
-DEFINE_LAZILY([REVISION],
- [ifdef([TREE], [MAKE_REVISION(ALIST_GET(TREE, TREE_TO_REVISION))],
+ifelse(MODE, [Normal],
+ [ifdef([TREE],
+   [ifelse(TREE, [10.3],
+     [define([REVISION], [REVISION_10_3])],
+     TREE, [10.4-transitional],
+     [define([REVISION], [REVISION_10_4_TRANSITIONAL])],
+     TREE, [10.4],
+     [define([REVISION], [REVISION_10_4])],
+     [ERREXIT([Wrong TREE])])],
    [ERREXIT([You must define the TREE])])])
 
-define([LANGUAGEPACK_SPLITOFF],[ifelse([$2],,,
-[ifelse($1,1,SplitOff,SplitOff$1)[: <<
-  Package: %N-]TOLOWER([[$2]])[
-  Description: Language Pack($2) for OpenOffice.org
+ifelse(MODE, [Normal],
+ [define([MIRROR], [ifelse($1, 0, [[#]])[$2: $3]])],
+ [define([MIRROR], [[$1 $2 $3]])])
+
+define([SPLITOFF_ID], 1)
+define([LANGUAGE],
+[[SplitOff]ifelse(SPLITOFF_ID, 1, , SPLITOFF_ID)[: <<
+  Package: %N-]TOLOWER([[$1]])[
+  Description: Language Pack($1) for OpenOffice.org
   Depends: %N (= %v-%r)
-  InstallScript: ./languagepack-splitoff ]TOLOWER([[$2]])[ $2 %p %d %i
-<<]
-
-LANGUAGEPACK_SPLITOFF(incr($1),shift(shift($@)))dnl
-])])
-
-define([CUSTOM_MIRRORS], [ifelse([$1],,,
-[CUSTOM_MIRRORS_SUBR($1)
-CUSTOM_MIRRORS(shift($@))dnl
-])])
-define([CUSTOM_MIRRORS_SUBR], [ifelse($1,0,[[#]])[$2: $3]])
-
-define([DUMP_MIRRORS], [ifelse([$1],,,
-[DUMP_MIRRORS_SUBR($1)
-DUMP_MIRRORS(shift($@))dnl
-])])
-define([DUMP_MIRRORS_SUBR], [[$1 $2 $3]])
+  InstallScript: ./languagepack-splitoff ]TOLOWER([[$1]])[ $1 %p %d %i
+<<
+]define([SPLITOFF_ID], incr(SPLITOFF_ID))])
 
 dnl ### Run Commands ###
-ifdef([MODE],
- [ifelse(
-   MODE, [DumpMirrors],
-[divert(0)BASEVERSION RELEASE_SOURCE
-DUMP_MIRRORS(RELEASE_MIRRORS)m4exit(0)],
-
-   MODE, [DumpSnapshotMirrors],
-[divert(0)FINKVERSION SNAPSHOT_SOURCE
-DUMP_MIRRORS(SNAPSHOT_MIRRORS)m4exit(0)],
-
-   [ERREXIT([Bad mode specified])])],
- [divert(0)])dnl
+ifelse(MODE, [Normal],
+ [divert(0)],
+ MODE, [DumpMirrors],
+ [divert(0)BASEVERSION RELEASE_SOURCE[]NEWLINE[]divert(-1)],
+ MODE, [DumpSnapshotMirrors],
+ [divert(0)FINKVERSION SNAPSHOT_SOURCE[]NEWLINE[]divert(-1)],
+ [ERREXIT([Bad mode specified])])dnl
 dnl
 dnl ### Body ###
 [Package: openoffice.org
@@ -259,10 +104,11 @@ BuildDepends: <<
   gtk+2-dev, libbonobo2-dev, libbonoboui2-dev, libglade2,
   libgnome2-dev, libgnomecanvas2-dev, libgnomeprint2.2-dev,
   libgnomeprintui2.2-dev, libgnomeui2-dev, libiconv-dev, 
-  orbit2-dev, pango1-xft2-dev, pcre, pkgconfig, popt, vte-dev, 
-  ]ifelse(USE_FINK_PYTHON, 1, [boost1.32-py24, python24],
-    [boost1.32-py23 | boost1.32-py24])[,
-  autoconf2.5
+  orbit2-dev, pango1-xft2-dev, pcre, pkgconfig, popt, vte-dev,]
+ifelse(USE_FINK_PYTHON, 1,
+[[  boost1.32-py24, python24,]],
+[[  boost1.32-py23 | boost1.32-py24,]])
+[  autoconf2.5
 <<
 
 Depends: <<
@@ -273,13 +119,148 @@ Depends: <<
   sane-backends-shlibs, libcurl3-unified-shlibs,
   libsndfile1-shlibs,
   portaudio-shlibs (>= 18.1-1), neon24-ssl-shlibs | neon24-shlibs,
-  mozilla-shlibs, mozilla-mailnews, libart2-shlibs,
-  ]ifelse(USE_FINK_PYTHON, 1, [[python24-shlibs,
-  ]])[fondu, startup-notification-shlibs
+  mozilla-shlibs, mozilla-mailnews, libart2-shlibs,]
+ifelse(USE_FINK_PYTHON, 1,
+[[  python24-shlibs,
+]])dnl
+  [fondu, startup-notification-shlibs
 <<
 
 CustomMirror: <<]
-CUSTOM_MIRRORS(MIRRORS)dnl
+ifelse(eval((STR_EQ(MODE, [Normal]) && !DEFINED([SNAPSHOT])) ||
+             STR_EQ(MODE, [DumpMirrors])),
+  1, [divert(0)], [divert(-1)])dnl
+MIRROR(0, [aus-AU], [http://openoffice.mirrors.ilisys.com.au/])
+MIRROR(1, [aus-AU], [ftp://mirror.pacific.net.au/OpenOffice/])
+MIRROR(0, [aus-AU], [http://mirror.pacific.net.au/openoffice/])
+MIRROR(1, [aus-AU], [ftp://ftp.planetmirror.com/pub/openoffice/])
+MIRROR(1, [aus-AU], [http://public.planetmirror.com/pub/openoffice/])
+MIRROR(1, [eur-AT], [http://gd.tuwien.ac.at/office/openoffice/])
+MIRROR(1, [eur-AT], [ftp://gd.tuwien.ac.at/office/openoffice/])
+MIRROR(1, [eur-BE], [http://ftp.belnet.be/pub/mirror/ftp.openoffice.org/])
+MIRROR(1, [eur-BE], [ftp://ftp.scarlet.be/pub/openoffice/])
+MIRROR(1, [eur-BE], [http://ftp.scarlet.be/pub/openoffice/])
+MIRROR(1, [eur-BE], [ftp://ftp.openoffice.skynet.be/pub/ftp.openoffice.org/])
+MIRROR(1, [eur-BE], [ftp://ftp.kulnet.kuleuven.ac.be/pub/mirror/openoffice.org/])
+MIRROR(1, [sam-BR], [http://linorg.usp.br/OpenOffice.org/])
+MIRROR(1, [sam-BR], [ftp://ftp.pucpr.br/openoffice/])
+MIRROR(1, [eur-BG], [http://ftp.spnet.net/openoffice/])
+MIRROR(1, [eur-BG], [ftp://ftp.spnet.net/openoffice/])
+MIRROR(1, [nam-CA], [ftp://openoffice.mirror.rafal.ca/openoffice/])
+MIRROR(1, [nam-CA], [http://openoffice.mirror.rafal.ca/])
+MIRROR(1, [nam-CA], [http://gulus.USherbrooke.ca/pub/appl/openoffice/])
+MIRROR(1, [eur-CZ], [http://ftp.sh.cvut.cz/MIRRORS/OpenOffice/])
+MIRROR(1, [eur-CZ], [ftp://ftp.sh.cvut.cz/MIRRORS/OpenOffice/])
+MIRROR(1, [eur-DK], [http://mirrors.dotsrc.org/openoffice/])
+MIRROR(1, [eur-DK], [ftp://mirrors.dotsrc.org/openoffice/])
+MIRROR(1, [eur-EE], [http://openoffice.offline.ee/])
+MIRROR(1, [eur-FI], [ftp://ftp.funet.fi/pub/mirrors/openoffice.org/])
+MIRROR(0, [eur-FR], [ftp://openoffice.cict.fr/openoffice/])
+MIRROR(1, [eur-FR], [ftp://ftp.free.fr/mirrors/ftp.openoffice.org/])
+MIRROR(1, [eur-DE], [ftp://ftp.tu-chemnitz.de/pub/openoffice/])
+MIRROR(1, [eur-DE], [ftp://ftp.gwdg.de/pub/misc/openoffice/])
+MIRROR(1, [eur-DE], [ftp://sunsite.informatik.rwth-aachen.de/pub/mirror/OpenOffice/])
+MIRROR(1, [eur-DE], [ftp://ftp.leo.org/pub/openoffice/])
+MIRROR(1, [eur-DE], [http://ftp.leo.org/pub/openoffice/])
+MIRROR(1, [eur-DE], [ftp://ftp.uni-muenster.de/pub/software/OpenOffice/])
+MIRROR(1, [eur-DE], [ftp://openoffice.tu-bs.de/OpenOffice.org/])
+MIRROR(1, [eur-DE], [ftp://ftp.stardiv.de/pub/OpenOffice.org/])
+MIRROR(1, [eur-DE], [http://ftp.stardiv.de/pub/OpenOffice.org/])
+MIRROR(1, [eur-DE], [ftp://ftp-stud.fht-esslingen.de/pub/Mirrors/ftp.openoffice.org/])
+MIRROR(1, [eur-DE], [http://mirror.xaranet.de/openoffice/])
+MIRROR(1, [eur-GR], [http://www.ellak.gr/pub/openoffice/])
+MIRROR(1, [eur-GR], [http://ftp.ntua.gr/pub/OpenOffice/])
+MIRROR(1, [eur-GR], [ftp://ftp.ntua.gr/pub/OpenOffice/])
+MIRROR(1, [eur-HU], [http://ftp.fsf.hu/OpenOffice.org/])
+MIRROR(1, [eur-HU], [ftp://ftp.fsf.hu/OpenOffice.org/])
+MIRROR(1, [eur-IS], [ftp://ftp.rhnet.is/pub/OpenOffice/])
+MIRROR(1, [eur-IS], [http://ftp.rhnet.is/pub/OpenOffice/])
+MIRROR(1, [asi-ID], [http://openoffice.ugm.ac.id/])
+MIRROR(1, [asi-ID], [ftp://kambing.vlsm.org/openoffice/])
+MIRROR(1, [asi-ID], [http://kambing.vlsm.org/openoffice/])
+MIRROR(1, [eur-IE], [ftp://ftp.heanet.ie/mirrors/openoffice.org/])
+MIRROR(1, [eur-IE], [http://ftp.heanet.ie/mirrors/openoffice.org/])
+MIRROR(1, [eur-IT], [ftp://na.mirror.garr.it/mirrors/openoffice/])
+MIRROR(1, [eur-IT], [http://na.mirror.garr.it/mirrors/openoffice/])
+MIRROR(1, [asi-JP], [ftp://ftp.kddlabs.co.jp/office/openoffice/])
+MIRROR(0, [asi-JP], [ftp://ftp.ring.gr.jp/pub/misc/openoffice/])
+MIRROR(1, [asi-JP], [http://www.ring.gr.jp/archives/misc/openoffice/])
+MIRROR(1, [asi-JP], [ftp://ftp.yz.yamagata-u.ac.jp/pub/openoffice/])
+MIRROR(1, [asi-JP], [http://ftp.yz.yamagata-u.ac.jp/pub/openoffice/])
+MIRROR(1, [eur-LT], [ftp://files.akl.lt/OpenOffice.org/])
+MIRROR(1, [eur-LT], [http://files.akl.lt/OpenOffice.org/])
+MIRROR(0, [asi-MY], [http://mymirror.asiaosc.org/openoffice/])
+MIRROR(1, [eur-NL], [ftp://ftp.nluug.nl/pub/office/openoffice/])
+MIRROR(1, [eur-NL], [http://ftp.nluug.nl/pub/office/openoffice/])
+MIRROR(1, [eur-NL], [ftp://ftp.snt.utwente.nl/pub/software/openoffice/])
+MIRROR(1, [eur-NL], [ftp://borft.student.utwente.nl/])
+MIRROR(1, [eur-NL], [http://borft.student.utwente.nl/openoffice/])
+MIRROR(1, [eur-NL], [ftp://niihau.student.utwente.nl/])
+MIRROR(1, [eur-NL], [http://vlaai.snt.utwente.nl/pub/software/openoffice/])
+MIRROR(1, [eur-PL], [ftp://ftp.man.poznan.pl/pub/openoffice/])
+MIRROR(1, [eur-PL], [ftp://ftp.openoffice.pl/OpenOffice.ORG/])
+MIRROR(1, [eur-PL], [ftp://ftp.tpnet.pl/d9/OpenOffice/])
+MIRROR(1, [eur-PL], [http://ftp.tpnet.pl/vol/d9/OpenOffice/])
+MIRROR(0, [eur-PT], [http://ftpdem.ubi.pt/OpenOffice])
+MIRROR(0, [eur-PT], [http://mirrors.oninet.pt/openoffice/])
+MIRROR(0, [eur-PT], [http://tux.cprm.net/pub/openoffice.org/])
+MIRROR(0, [eur-PT], [ftp://tux.cprm.net/pub/openoffice.org/])
+MIRROR(1, [eur-RO], [ftp://ftp.iasi.roedu.net/pub/mirrors/openoffice.org/])
+MIRROR(1, [eur-RO], [http://ftp.iasi.roedu.net/mirrors/openoffice.org/])
+MIRROR(1, [eur-RO], [ftp://mirrors.evolva.ro/openoffice.org/])
+MIRROR(1, [eur-RO], [ftp://ftp.idilis.ro/mirrors/openoffice.org/])
+MIRROR(1, [eur-RO], [http://ftp.idilis.ro/mirrors/openoffice.org/])
+MIRROR(1, [eur-RU], [ftp://ftp.chg.ru/pub/OpenOffice/])
+MIRROR(1, [eur-RU], [http://ftp.chg.ru/pub/OpenOffice/])
+MIRROR(1, [eur-YU], [ftp://mirror.etf.bg.ac.yu/openoffice.org/])
+MIRROR(1, [eur-YU], [http://mirror.etf.bg.ac.yu/openoffice/])
+MIRROR(1, [asi-SG], [ftp://mirror.averse.net/pub/openoffice/])
+MIRROR(1, [asi-SG], [http://mirror.averse.net/openoffice/])
+MIRROR(1, [eur-SI], [ftp://ftp.bevc.net/mirrors/openoffice/])
+MIRROR(1, [eur-SI], [http://mirrors.bevc.net/openoffice/])
+MIRROR(0, [eur-SI], [http://www.wsection.com/openoffice/])
+MIRROR(1, [afr-ZA], [ftp://ftp.is.co.za/mirrors/OpenOffice/])
+MIRROR(1, [asi-KR], [ftp://ftp.kr.freebsd.org/pub/openoffice/])
+MIRROR(1, [eur-ES], [http://ftp.rediris.es/ftp/mirror/openoffice.org/])
+MIRROR(1, [eur-ES], [ftp://ftp.rediris.es/mirror/openoffice.org/])
+MIRROR(1, [eur-SE], [http://ftp.sunet.se/pub/Office/OpenOffice.org/])
+MIRROR(0, [eur-CH], [ftp://ftp.solnet.ch/mirror/OpenOffice/])
+MIRROR(1, [eur-CH], [ftp://sunsite.cnlab-switch.ch/mirror/OpenOffice/])
+MIRROR(1, [eur-CH], [http://mirror.switch.ch/ftp/mirror/OpenOffice/])
+MIRROR(1, [eur-CH], [ftp://mirror.switch.ch/mirror/OpenOffice/])
+MIRROR(1, [asi-TW], [ftp://ftp.isu.edu.tw/pub/OpenOffice/])
+MIRROR(1, [asi-TW], [http://ftp.isu.edu.tw/pub/OpenOffice/])
+MIRROR(1, [asi-TW], [ftp://ftp.nctu.edu.tw/UNIX/OpenOffice/])
+MIRROR(1, [eur-UK], [ftp://ftp.mirrorservice.org/sites/ny1.mirror.openoffice.org/])
+MIRROR(1, [eur-UK], [http://www.mirrorservice.org/sites/ny1.mirror.openoffice.org/])
+MIRROR(0, [eur-UK], [ftp://mirrors.blueyonder.co.uk/sites/openoffice.org])
+MIRROR(1, [eur-UK], [http://openoffice.blueyonder.co.uk/])
+MIRROR(1, [eur-UK], [ftp://ftp.mirror.ac.uk/mirror/sunsite.dk/openoffice/])
+MIRROR(1, [eur-UK], [http://www.mirror.ac.uk/mirror/sunsite.dk/openoffice/])
+MIRROR(0, [nam-US], [http://openoffice.collab.net/])
+MIRROR(1, [nam-US], [ftp://ftp.osuosl.org/pub/openoffice/])
+MIRROR(1, [nam-US], [http://ftp.osuosl.org/pub/openoffice/])
+MIRROR(0, [nam-US], [http://www.binarycode.org/openoffice/])
+MIRROR(1, [nam-US], [http://mirrors.ibiblio.org/pub/mirrors/openoffice/])
+MIRROR(1, [nam-US], [ftp://ftp.ibiblio.org/pub/mirrors/openoffice/])
+MIRROR(1, [nam-US], [ftp://ftp.ussg.iu.edu/pub/openoffice/])
+MIRROR(1, [nam-US], [http://mirrors.isc.org/pub/openoffice/])
+MIRROR(0, [nam-US], [http://www.online-mirror.org/openoffice/])
+MIRROR(1, [nam-US], [ftp://openoffice.mirrors.pair.com/])
+MIRROR(1, [nam-US], [http://openoffice.mirrors.pair.com/ftp/])
+MIRROR(1, [nam-US], [ftp://openofficeorg.secsup.org/pub/software/openoffice/])
+MIRROR(1, [nam-US], [http://openofficeorg.secsup.org/])
+MIRROR(1, [nam-US], [http://openoffice.mirror.wrpn.net/])
+MIRROR(1, [nam-US], [ftp://openoffice.mirrors.tds.net/pub/openoffice/])
+MIRROR(1, [nam-US], [http://openoffice.mirrors.tds.net/pub/openoffice/])
+MIRROR(0, [nam-US], [http://mirrors.wehost4u.net/openoffice/])
+ifelse(eval((STR_EQ(MODE, [Normal]) && DEFINED([SNAPSHOT])) ||
+             STR_EQ(MODE, [DumpSnapshotMirrors])),
+  1, [divert(0)], [divert(-1)])dnl
+MIRROR(1, [asi-JP], [http://www.sodan.ecc.u-tokyo.ac.jp/~shinra/distfiles/])
+MIRROR(1, [asi-JP], [http://www.j10n.org/files/])
+MIRROR(1, [Primary], [ftp://ooopackages.good-day.net/pub/OpenOffice.org/sources/])
+ifelse(MODE, [Normal], [divert(0)], [divert(-1)])dnl
 [<<
 Source: mirror:custom:]SOURCE[
 Source-MD5: ]SOURCE_MD5[
@@ -324,11 +305,12 @@ ConfigureParams: <<
   --with-system-libxml \
   --with-system-python \]
 ifelse(USE_FINK_PYTHON, 1,
-[[  --with-python-libs="-L%p/lib/python2.4/config -lpython2.4" \]]NEWLINE)dnl
+[[  --with-python-libs="-L%p/lib/python2.4/config -lpython2.4" \
+]])dnl
 [  --enable-libsn
 <<
 ]
-ifelse(EQ_ANY(TREE, [10.3], [10.4-transitional]), 1,
+ifelse(eval(STR_EQ(TREE, [10.3]) || STR_EQ(TREE, [10.4-transitional])), 1,
 [[GCC: 3.3
 SetCC: gcc-3.3
 SetCXX: g++-3.3]],
@@ -640,4 +622,76 @@ To update fonts, execute these lines:
 or just one line:
   fink reinstall openoffice.org
 <<]
-LANGUAGEPACK_SPLITOFF(1, LANGUAGES)dnl
+LANGUAGE([af])
+LANGUAGE([ar])
+LANGUAGE([be-BY])
+LANGUAGE([bg])
+LANGUAGE([bn])
+LANGUAGE([bn-BD])
+LANGUAGE([bn-IN])
+LANGUAGE([br])
+LANGUAGE([bs])
+LANGUAGE([ca])
+LANGUAGE([cs])
+LANGUAGE([cy])
+LANGUAGE([da])
+LANGUAGE([de])
+LANGUAGE([el])
+LANGUAGE([en-GB])
+LANGUAGE([en-ZA])
+LANGUAGE([eo])
+LANGUAGE([es])
+LANGUAGE([et])
+LANGUAGE([eu])
+LANGUAGE([fi])
+LANGUAGE([fr])
+LANGUAGE([ga])
+LANGUAGE([gl])
+LANGUAGE([gu-IN])
+LANGUAGE([he])
+LANGUAGE([hi-IN])
+LANGUAGE([hr])
+LANGUAGE([hu])
+LANGUAGE([it])
+LANGUAGE([ja])
+LANGUAGE([km])
+LANGUAGE([kn-IN])
+LANGUAGE([ko])
+LANGUAGE([lo])
+LANGUAGE([lt])
+LANGUAGE([lv])
+LANGUAGE([mk])
+LANGUAGE([ms])
+LANGUAGE([nb])
+LANGUAGE([ne])
+LANGUAGE([nl])
+LANGUAGE([nn])
+LANGUAGE([nr])
+LANGUAGE([ns])
+LANGUAGE([pa-IN])
+LANGUAGE([pl])
+LANGUAGE([pt])
+LANGUAGE([pt-BR])
+LANGUAGE([ru])
+LANGUAGE([rw])
+LANGUAGE([sh-YU])
+LANGUAGE([sk])
+LANGUAGE([sl])
+LANGUAGE([sr-CS])
+LANGUAGE([ss])
+LANGUAGE([st])
+LANGUAGE([sv])
+LANGUAGE([sw])
+LANGUAGE([sw-TZ])
+LANGUAGE([sx])
+LANGUAGE([ta-IN])
+LANGUAGE([th])
+LANGUAGE([tn])
+LANGUAGE([tr])
+LANGUAGE([ts])
+LANGUAGE([ve])
+LANGUAGE([vi])
+LANGUAGE([xh])
+LANGUAGE([zh-CN])
+LANGUAGE([zh-TW])
+LANGUAGE([zu])
