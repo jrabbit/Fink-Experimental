@@ -1,36 +1,37 @@
-Package: kdevelop
-Version: 3.3.1
-Revision: 21
-Description: KDE - development IDE
+Package: kdebase3-apidox
+Version: 3.5.1
+Revision: 1021
+Description: KDE - base system (API documentation)
 License: GPL/LGPL
-Maintainer: Benjamin Reed <kdevelop@fink.racoonfink.com>
+Maintainer: Benjamin Reed <kdebase3-apidox@fink.racoonfink.com>
 
-Depends: db41-shlibs | db41-ssl-shlibs, kdebase3-unified (>= 3.5.1-21), kdelibs3-apidox (>= 3.5.1-1), kdebase3-apidox (>= 3.5.1-1), graphviz, libgettext3-shlibs, libiconv, python24 | python24-nox
-BuildDepends: arts-dev (>= 1.5.1-21), autoconf2.5 (>= 2.58-1), automake1.7, cctools (>= 446-1) | cctools-single-module, db41 | db41-ssl, doxygen1.3, fink (>= 0.20.2.1-1), flex-devel (>= 2.5.31-1), freetype219, graphviz, kdelibs3-unified-dev (>= 3.5.1-21), kdelibs3-apidox (>= 3.5.1-1), kdebase3-apidox (>= 3.5.1-1), libart2, libgettext3-dev, libidn, libiconv-dev, libjpeg, libpng3 (>= 1.2.5-4), pcre, python24 | python24-nox, qt3 (>= 3.3.5-23), x11-dev
+Depends: kdebase3-unified (>= %v-1021)
+BuildDepends: pcre, arts-dev (>= 1.5.1-1021), audiofile, autoconf2.5, automake1.7, cctools (>= 446-1) | cctools-single-module, cups-dev, esound, doxygen1.3, fink (>= 0.20.2.1-1), freetype219, fontconfig2-dev, libgettext3-dev, gettext-tools, glib2 (>= 2.6.6-1111), glib2-dev (>= 2.6.6-1111), kdelibs3-unified-dev (>= %v-1021), lesstif (>= 0.93.18-6), libart2, libjpeg, libiconv-dev, libidn, libogg, libpng3 (>= 1.2.5-4), libusb (>= 0.1.8-1014), libvorbis0, libmad, qt3 (>= 3.3.5-1023), qt3-doc (>= 3.3.5-1023), system-openssl-dev, x11-dev, xfontpath
 BuildConflicts: unsermake
-GCC: 3.3
+Provides: kate, kdm, konqueror, konsole, kwrite
+Conflicts: kio-fish
+Replaces: kdebase3 (<< 3.5.1-1), kdebase3-ssl (<< 3.5.1-1), kdebase3-unified (<< 3.5.1-1), kdebase3-dev (<< 3.5.1-1), kdebase3-ssl-dev (<< 3.5.1-1), kdebase3-unified-dev (<< 3.5.1-1)
+GCC: 4.0
 
 CustomMirror: <<
 	nam-US: http://ranger.befunk.com/fink
 	nam-US: http://astrange.ithinksw.net/~astrange/ranger-fink
 	nam-CA: http://www.southofheaven.net/befunk
 <<
-Source: mirror:kde:stable/%v/src/%n-%v.tar.bz2
+Source: mirror:kde:stable/%v/src/kdebase-%v.tar.bz2
 Source2: mirror:custom:kde-admindir-3.5.0-2.tar.bz2
-SourceDirectory: %n-%v
-Source2ExtractDir: %n-%v
-Source-MD5: e5e3d3ce60a0dcafb99721f6304f87ef
+SourceDirectory: kdebase-%v
+Source2ExtractDir: kdebase-%v
+Source-MD5: 484c7b3895ce4f95173f4789571eb1cc
 Source2-MD5: 444f6ccbe74646c5313dd0b4fa4b36ac
 PatchScript: <<
-	sed -e 's,@FINKPREFIX@,%p,g' %a/%n.patch | patch -p1 
+	sed -e 's,@FINKPREFIX@,%p,g' %a/kdebase3-unified.patch | patch -p1 
 	perl -pi.bak -e 's,-O2,-Os,g; s,doc/HTML,doc/kde,g; s,/usr/share/doc/packages/qt3/html,%p/share/doc/qt3/html,g;' admin/*
 <<
 
-SetMAKEFLAGS: -j1
 NoSetCPPFLAGS: true
 NoSetLDFLAGS: true
-NoSetMAKEFLAGS: true
-ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --disable-final --with-pythondir=%p --with-qtdoc-dir=%p/share/doc/qt3/html --with-kdelibsdoxy-dir=%p/share/doc/kde/en/kdelibs-apidocs --with-kdelibsdoc-dir=%p --disable-debug --with-distribution='Fink/Mac OS X' --enable-scripting --enable-autoproject --enable-scriptproject --enable-trollproject --enable-customproject --enable-cvs --enable-ada --enable-haskell --disable-java --enable-pascal --enable-cxx --enable-dynamic --enable-rpc --enable-tcl --with-tcl --enable-vba --disable-dependency-tracking --with-db-includedir=%p/include/db4 --with-db-libdir=%p/lib
+ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --without-nfs --disable-final --with-ldap=framework --with-distribution='Fink/Mac OS X' --with-ssl --with-ssl-dir=%p/lib/system-openssl --disable-dependency-tracking
 CompileScript: <<
 #!/bin/sh -e
 
@@ -38,12 +39,19 @@ CompileScript: <<
 	. ./environment-helper.sh
 	export lt_cv_sys_max_cmd_len=65536
 
-	export CC=gcc-3.3 CXX=g++-3.3
+	export CC=gcc CXX=g++
 
-	ranlib %p/lib/*.a >/dev/null 2>&1
+	export PKG_CONFIG_PATH="%p/lib/fontconfig2/lib/pkgconfig:%p/lib/freetype219/lib/pkgconfig:$PKG_CONFIG_PATH"
+
+	case $SW_VERSION in
+		10.[0123])
+			perl -pi -e 's,FONTINST_SUBDIR="kfontinst",FONTINST_SUBDIR="",' kcontrol/kfontinst/configure.in.in
+			;;
+	esac
+
 	./build-helper.sh cvs       %N %v %r make -f admin/Makefile.common cvs
 	./build-helper.sh configure %N %v %r ./configure %c
-	./build-helper.sh make      %N %v %r make all LEX=%p/lib/flex/bin/flex LEXLIB="" USE_EXCEPTIONS="-fexceptions -fno-coalesce" all_libraries="$ALL_LIBRARIES"
+	./build-helper.sh apidox    %N %v %r make apidox all_libraries="$ALL_LIBRARIES" KDM_FLAGS="-UHAVE_UTMPX -DBSD_UTMP=1"
 <<
 
 InstallScript: <<
@@ -52,14 +60,14 @@ InstallScript: <<
 	export HOME=/tmp PREFIX="%p" PATH="%p/lib/doxygen1.3/bin:$PATH" QTDOCDIR="%p/share/doc/qt3/html"
 	. ./environment-helper.sh
 
-	./build-helper.sh install %N %v %r make -j1 install DESTDIR=%d
+	./build-helper.sh install-apidox %N %v %r make -j1 install-apidox DESTDIR=%d
 
 	mkdir -p %i/share/doc/installed-packages
 	touch %i/share/doc/installed-packages/%N
 <<
-DocFiles: AUTHORS COPYING* ChangeLog HACKING INSTALL NEWS README TODO
+DocFiles: AUTHORS COPYING INSTALL README README.pam
 
-DescDetail: 	A full integrated development environment for KDE.
+DescDetail: API documentation for the core applications for the K Desktop Environment.
 DescUsage: <<
 ---[ Installation ]---------------------------------------------------
 
@@ -112,5 +120,4 @@ remove all of the kdenetwork3 packages, run:
 
   sudo apt-get remove kdenetwork3-base
 <<
-DescPackaging: 	No java plugin support on 10.3 or lower, it's uncompilable with gcc 3.3.
 

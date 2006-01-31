@@ -1,6 +1,6 @@
 Package: postgresql81
 Version: 8.1.2
-Revision: 22
+Revision: 23
 Description: PostgreSQL open-source database
 License: BSD
 Maintainer: Benjamin Reed <postgresql81@fink.racoonfink.com>
@@ -96,14 +96,14 @@ Source3: ftp://gborg.postgresql.org/pub/libpqpp/stable/libpq++-4.0.tar.gz
 Source4: http://ranger.befunk.com/fink/libpqxx-1.5.1.tar.gz
 Source5: ftp://gborg.postgresql.org/pub/libpqxx/stable/libpqxx-2.5.5.tar.gz
 Source6: ftp://gborg.postgresql.org/pub/pgeasy/stable/libpgeasy-3.0.4.tar.gz
-Source7: http://www.postgis.org/download/postgis-1.1.0.tar.gz
+Source7: http://www.postgis.org/download/postgis-1.1.1.tar.gz
 Source-MD5: 12d54a11bc3a414477d37ef338bec161
 Source2-MD5: 8967ea8ca49397f97d016e4db8a047a7
 Source3-MD5: da71cb79ef45cef55f4bc97a33a0857d
 Source4-MD5: 3c0f2b5a89ece20e7a84808c594dd7aa
 Source5-MD5: db71975570ee31ecd0a11380dbaa8634
 Source6-MD5: 5aaf078d069c8878588cd2bc7c3a5bc5
-Source7-MD5: 57768cb808d358b667075273aef40122
+Source7-MD5: 3c86999ff2fa8678bb3d210202a84358
 PatchScript: <<
 	sed -e 's|@BUILDDIR@|%b|g' -e 's|@INSTPREFIX@|%p|g' < %a/%n.patch | patch -p1
 	perl -pi -e 's,^enum,static enum,' contrib/pgcrypto/pgp.h
@@ -142,7 +142,7 @@ CompileScript: <<
 	export CPPFLAGS="-I%i/include/postgresql -I%i/include $CPPFLAGS"
 	export LDFLAGS="-L%i/lib $LDFLAGS"
 
-	pushd ../postgis-1.1.0
+	pushd ../postgis-1.1.1
 	./configure --prefix=%p --with-pgsql=%i/bin/pg_config && \
 	perl -pi -e 's,^PROJ_DIR=%p,PROJ_DIR=%i,; s,^PGFFEINCLUDES=.*,PGFEINCLUDES=-I%i/include/postgresql -I%i/include -I%p/include,; s,^PGBEINCLUDES=.*,PGBEINCLUDES=-I%i/include/postgresql -I%i/include -I%p/include,; s,^PGFELIBS=.*,PGFELIBS=-L%i/lib -L%p/lib -lpq,; s,^PGBELIBS=.*,PGBELIBS=-L%i/lib -L%p/lib -lpostgres,; s,^libdir=.*,libdir=%p/lib/postgresql-8.1,; s,^datadir=.*,datadir=%p/share/postgresql-8.1,; s,^DLFLAGS=.*,DLFLAGS=-no-cpp-precomp -undefined dynamic_lookup -multiply_defined suppress,;' Makefile.config && \
 	make MODULE_FILENAME=%p/lib/postgresql-8.1/liblwgeom.1.so || exit 1
@@ -197,7 +197,7 @@ InstallScript: <<
 	install -m 755 contrib/adddepend/adddepend %i/bin/adddepend
 
 	# postgis
-	pushd ../postgis-1.1.0
+	pushd ../postgis-1.1.1
 	make install DESTDIR=%d MODULE_FILENAME=%p/lib/postgresql-8.1/liblwgeom.1.so
 	popd
 
@@ -501,6 +501,7 @@ while true; do
 		break
 	fi
 done
+export PGPORT
 echo "- starting PostgreSQL on port $PGPORT"
 if %p/bin/pgsql.sh-8.1 start; then
 
@@ -508,7 +509,8 @@ if %p/bin/pgsql.sh-8.1 start; then
 
 	# install the plpgsql language if possible
 	echo -e "- attempting to install the plpgsql language in the template1 database... \c"
-	%p/bin/createlang-8.1 -U postgres -p $PGPORT plpgsql template1 || ERROR="$?"
+	%p/bin/createlang-8.1 -U postgres -p $PGPORT plpgsql template1
+	ERROR="$?"
 	if [ $ERROR -eq 0 ]; then
 		echo "done"
 	elif [ $ERROR -gt 0 ] && [ $ERROR -ne 2 ]; then
@@ -528,7 +530,7 @@ WARNING: unable to start postgresql on an alternate port, not installing plpgsql
 
 	If you wish to install it manually, run:
 
-		sudo -u postgres %p/bin/pgsql.sh-8.1 start
+		sudo %p/bin/pgsql.sh-8.1 start
 		sudo -u postgres %p/bin/createlang-8.1 plpgsql template1
 	
 END
@@ -539,12 +541,12 @@ cat <<END
 WARNING: If you are using PostGIS, you will need to upgrade your PostGIS functions after starting up the
 	PostgreSQL database:
 	
-		sudo -u postgres %p/bin/pgsql.sh-8.1 start
+		sudo %p/bin/pgsql.sh-8.1 start
 		sudo -u postgres %p/bin/psql-8.1 -f %p/share/postgresql-8.1/lwpostgis_upgrade.sql -d <your_spatial_database>
 
 	To configure/install PostGIS for the first time, you should instead use:
 	
-		sudo -u postgres %p/bin/pgsql.sh-8.1 start
+		sudo %p/bin/pgsql.sh-8.1 start
 		sudo -u postgres %p/bin/psql-8.1 -f %p/share/postgresql-8.1/lwpostgis.sql -d <your_spatial_database>
 
 END

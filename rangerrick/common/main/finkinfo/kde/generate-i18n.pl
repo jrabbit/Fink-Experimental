@@ -41,8 +41,7 @@ close(MAPPING);
 for my $i18n (@KDEI18N) {
 	my ($shortname) = $i18n =~ /kde-i18n-([^\-]+)-${KDEVERSION}.*.tar.(gz|bz2)/;
 	if (exists $MAPPINGS{$shortname}) {
-		chomp(my $md5 = `md5 /sw/src/$i18n`);
-		$md5 =~ s/^.*\s*=\s*//;
+		my ($md5) = `md5deep /sw/src/$i18n` =~ /^\s*(\S+)\s+/;
 		my $normalized = lc($MAPPINGS{$shortname});
 		$normalized =~ s#[^a-zA-Z]+#-#g;
 		$normalized =~ s#-*$##;

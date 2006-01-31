@@ -1,0 +1,75 @@
+Package: kdebase3-apidox
+Version: 3.5.1
+Revision: 1
+Description: KDE - base system (API documentation)
+License: GPL/LGPL
+Maintainer: Benjamin Reed <kdebase3-apidox@fink.racoonfink.com>
+
+Depends: kdebase3-unified (>= %v-1)
+BuildDepends: pcre, arts-dev (>= 1.5.1-1), audiofile, autoconf2.5, automake1.7, cctools (>= 446-1) | cctools-single-module, cups-dev, esound, doxygen1.3, fink (>= 0.20.2.1-1), freetype219, fontconfig2-dev, libgettext3-dev, gettext-tools, glib2 (>= 2.2.1-4), glib2-dev (>= 2.2.1-4), kdelibs3-unified-dev (>= %v-1), lesstif (>= 0.93.18-6), libart2, libjpeg, libiconv-dev, libidn, libogg, libpng3 (>= 1.2.5-4), libusb, libvorbis0, libmad, qt3 (>= 3.3.5-3), qt3-doc, system-openssl-dev, x11-dev, xfontpath
+Conflicts: kio-fish
+BuildConflicts: unsermake
+Replaces: kdebase3 (<< 3.5.1-1), kdebase3-ssl (<< 3.5.1-1), kdebase3-unified (<< 3.5.1-1), kdebase3-dev (<< 3.5.1-1), kdebase3-ssl-dev (<< 3.5.1-1), kdebase3-unified-dev (<< 3.5.1-1)
+Provides: kate, kdm, konqueror, konsole, kwrite
+GCC: 3.3
+
+CustomMirror: <<
+	nam-US: http://ranger.befunk.com/fink
+	nam-US: http://astrange.ithinksw.net/~astrange/ranger-fink
+	nam-CA: http://www.southofheaven.net/befunk
+<<
+Source: mirror:kde:stable/%v/src/kdebase-%v.tar.bz2
+Source-MD5: 484c7b3895ce4f95173f4789571eb1cc
+SourceDirectory: kdebase-%v
+Source2: mirror:custom:kde-admindir-3.5.0-2.tar.bz2
+Source2-MD5: 444f6ccbe74646c5313dd0b4fa4b36ac
+Source2ExtractDir: kdebase-%v
+
+PatchScript: <<
+	sed -e 's,@FINKPREFIX@,%p,g' %a/kdebase3-unified.patch | patch -p1 
+	perl -pi.bak -e 's,-O2,-Os,g; s,doc/HTML,doc/kde,g; s,/usr/share/doc/packages/qt3/html,%p/share/doc/qt3/html,g;' admin/*
+<<
+
+NoSetLDFLAGS: true
+NoSetCPPFLAGS: true
+
+ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --without-nfs --disable-final --with-ldap=framework --with-distribution='Fink/Mac OS X' --with-ssl --with-ssl-dir=%p/lib/system-openssl --disable-dependency-tracking
+
+CompileScript: <<
+#!/bin/sh -e
+
+	export HOME=/tmp PREFIX="%p" PATH="%p/lib/doxygen1.3/bin:$PATH" QTDOCDIR="%p/share/doc/qt3/html"
+	. ./environment-helper.sh
+	export lt_cv_sys_max_cmd_len=65536
+
+	export CC=gcc-3.3 CXX=g++-3.3
+
+	export PKG_CONFIG_PATH="%p/lib/fontconfig2/lib/pkgconfig:%p/lib/freetype219/lib/pkgconfig:$PKG_CONFIG_PATH"
+
+	case $SW_VERSION in
+		10.[0123])
+			perl -pi -e 's,FONTINST_SUBDIR="kfontinst",FONTINST_SUBDIR="",' kcontrol/kfontinst/configure.in.in
+			;;
+	esac
+
+	./build-helper.sh cvs       %N %v %r make -f admin/Makefile.common cvs
+	./build-helper.sh configure %N %v %r ./configure %c
+	./build-helper.sh apidox    %N %v %r make apidox all_libraries="$ALL_LIBRARIES" KDM_FLAGS="-UHAVE_UTMPX -DBSD_UTMP=1"
+<<
+
+InstallScript: <<
+#!/bin/sh -e
+
+	export HOME=/tmp PREFIX="%p" PATH="%p/lib/doxygen1.3/bin:$PATH" QTDOCDIR="%p/share/doc/qt3/html"
+	. ./environment-helper.sh
+
+	./build-helper.sh install-apidox %N %v %r make -j1 install-apidox DESTDIR=%d
+
+	mkdir -p %i/share/doc/installed-packages
+	touch %i/share/doc/installed-packages/%N
+<<
+
+DocFiles: AUTHORS COPYING INSTALL README README.pam
+DescDetail: <<
+API documentation for the core applications for the K Desktop Environment.
+<<

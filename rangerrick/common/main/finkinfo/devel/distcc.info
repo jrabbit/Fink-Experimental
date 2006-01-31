@@ -1,6 +1,6 @@
 Package: distcc
 Version: 2.18.3
-Revision: 5
+Revision: 6
 Suggests: ccache
 Depends: daemonic, libgettext3-shlibs, libhowl-shlibs (>= 1.0.0-11), libiconv, passwd (>= 20031013-1), popt-shlibs
 BuildDepends: libgettext3-dev, libhowl-dev (>= 1.0.0-11), libiconv-dev, libxml2, passwd (>= 20031013-1), pkgconfig, popt
@@ -34,6 +34,9 @@ InstallScript: <<
   make install DESTDIR=%d
   install -d -m 755 %i/etc
   cat <<END > %i/etc/distcc.conf
+# the location of the distcc configuration files
+#DISTCC_DIR=%p/var/cache/distcc
+
 # the hosts to use when compiling
 DISTCC_HOSTS='localhost'
 
@@ -124,6 +127,7 @@ END
   install -d -m 755 %i/etc/profile.d
   cat <<END > %i/etc/profile.d/distcc.sh
 #### DO NOT EDIT BELOW HERE ####
+grep -q -E '^ *DISTCC_DIR' %p/etc/distcc.conf      && export DISTCC_DIR=\`grep DISTCC_DIR %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\` || :
 grep -q -E '^ *DISTCC_MMAP' %p/etc/distcc.conf     && export DISTCC_MMAP=\`grep DISTCC_MMAP %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\` || :
 grep -q -E '^ *DISTCC_HOSTS' %p/etc/distcc.conf    && export DISTCC_HOSTS=\`grep DISTCC_HOSTS %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\` || :
 grep -q -E '^ *DISTCC_VERBOSE' %p/etc/distcc.conf  && export DISTCC_VERBOSE=\`grep DISTCC_VERBOSE %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\` || :
@@ -133,6 +137,7 @@ grep -q -E '^ *MAKEFLAGS' %p/etc/distcc.conf       && export MAKEFLAGS=\`grep MA
 END
   cat <<END > %i/etc/profile.d/distcc.csh
 #### DO NOT EDIT BELOW HERE ####
+grep -q -E '^ *DISTCC_DIR' %p/etc/distcc.conf      && setenv DISTCC_DIR \`grep DISTCC_DIR %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\` || :
 grep -q -E '^ *DISTCC_MMAP' %p/etc/distcc.conf     && setenv DISTCC_MMAP \`grep DISTCC_MMAP %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\` || :
 grep -q -E '^ *DISTCC_HOSTS' %p/etc/distcc.conf    && setenv DISTCC_HOSTS \`grep DISTCC_HOSTS %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\` || :
 grep -q -E '^ *DISTCC_VERBOSE' %p/etc/distcc.conf  && setenv DISTCC_VERBOSE \`grep DISTCC_VERBOSE %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\` || :
