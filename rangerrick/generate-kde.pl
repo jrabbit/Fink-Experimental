@@ -74,6 +74,7 @@ my $version_lookup = {
 		'^libncursesw5(-shlibs)?$'                  => [ '5.4-20041023', '1001' ],
 		'^libofx1(-shlibs)?$'                       => [ '0.7.0',        '1002' ],
 		'^libusb(-shlibs)?$'                        => [ '0.1.8',        '1014' ],
+		'^mjpegtools2?(-dev|-shlibs)?$'             => [ '1.6.2',        '1003' ],
 		'^mozilla(-.*)?$'                           => [ '1.7.5',        '1102' ],
 		'^ncurses-(dev|shlibs)$'                    => [ '5.3-20031018', '1501' ],
 		'^openexr(-dev)?$'                          => [ '1.2.2',        '31'   ],
@@ -94,9 +95,11 @@ my $version_lookup = {
 		'^macosx$'                                  => [ '10.4.3',       '1'    ],
 	},
 	'10.4-transitional' => {
+		'^mjpegtools2?(-dev|-shlibs)?$'             => [ '1.6.2',        '3'    ],
 		'^macosx$'                                  => [ '10.4.3',       '1'    ],
 	},
 	'10.3' => {
+		'^mjpegtools2?(-dev|-shlibs)?$'             => [ '1.6.2',        '3'    ],
 		'^macosx$'                                  => [ '10.3.0',       '1'    ],
 	},
 	'all' => {
