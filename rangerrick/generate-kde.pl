@@ -39,6 +39,8 @@ my $package_lookup = {
 		'^libicu31-dev$'       => undef,
 		'^gcc3.1$'             => undef,
 		'^gcc3.3$'             => undef,
+#		'^mjpegtools2-dev$'    => 'mjpegtools1.8-dev',
+#		'^mjpetools2-shlibs$'  => 'mjpegtools1.8-shlibs',
 	},
 };
 
