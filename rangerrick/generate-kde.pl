@@ -194,7 +194,7 @@ for my $file (@files) {
 			mkdir_p($todir) unless (-d $todir);
 
 			if (open (FILEOUT, '>' . $todir . '/' . $filename)) {
-				print FILEOUT $contents;
+				print FILEOUT transform_patch($tree, $contents);
 				close (FILEOUT);
 			}
 		}
@@ -363,6 +363,17 @@ sub prettify_field_name {
 	}
 	warn "prettify: no match for '$field'\n";
 	return $field;
+}
+
+sub transform_patch {
+	my $tree = shift;
+	my $text = shift;
+
+	if ($tree eq "10.4") {
+		$text =~ s/g(cc|\+\+)-3\.3/g$1-4.0/gi;
+	}
+
+	return $text;
 }
 
 sub transform_descusage {
