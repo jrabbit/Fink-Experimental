@@ -177,6 +177,8 @@ for my $file (@files) {
 #		print Dumper($properties), "\n";
 
 		for my $tree (@TREES) {
+			next if ($file =~ /postgresql73/ and $tree ne "10.3");
+
 			my $treeproperties = clone($properties);
 			$treeproperties->{'Tree'} = $tree;
 
@@ -195,6 +197,8 @@ for my $file (@files) {
 
 	} elsif ($file =~ /\.patch$/) {
 		for my $tree (@TREES) {
+			next if ($file =~ /postgresql73/ and $tree ne "10.3");
+
 			my $todir = $dir;
 			$todir =~ s#/common/#/${tree}/#;
 			mkdir_p($todir) unless (-d $todir);
