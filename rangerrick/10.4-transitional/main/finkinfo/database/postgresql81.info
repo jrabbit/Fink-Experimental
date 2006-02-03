@@ -503,13 +503,13 @@ while true; do
 done
 export PGPORT
 echo "- starting PostgreSQL on port $PGPORT"
-if %p/bin/pgsql.sh-8.1 start; then
+if %p/bin/pgsql.sh-8.1 start >/dev/null 2>&1; then
 
 	sleep 5
 
 	# install the plpgsql language if possible
 	echo -e "- attempting to install the plpgsql language in the template1 database... \c"
-	%p/bin/createlang-8.1 -U postgres -p $PGPORT plpgsql template1
+	%p/bin/createlang-8.1 -U postgres -p $PGPORT plpgsql template1 >/dev/null 2>&1
 	ERROR="$?"
 	if [ $ERROR -eq 0 ]; then
 		echo "done"
@@ -521,7 +521,7 @@ if %p/bin/pgsql.sh-8.1 start; then
 
 	sleep 5
 
-	%p/bin/pgsql.sh-8.1 stop || echo "WARNING: unable to stop postgresql: run 'PGPORT=$PGPORT sudo %p/bin/pgsql.sh-8.1 stop' to try again"
+	%p/bin/pgsql.sh-8.1 stop >/dev/null 2>&1 || echo "WARNING: unable to stop postgresql: run 'PGPORT=$PGPORT sudo %p/bin/pgsql.sh-8.1 stop' to try again"
 
 else
 
@@ -589,6 +589,20 @@ password, and then run the command as the postgres user.
 For example, to create a new database, you would run:
 
   sudo -u postgres createdb mydb
+
+Also, if you are using PostGIS, you will need to upgrade your PostGIS
+functions after starting up the PostgreSQL database:
+	
+		sudo %p/bin/pgsql.sh-8.1 start
+		sudo -u postgres %p/bin/psql-8.1 -f \
+			%p/share/postgresql-8.1/lwpostgis_upgrade.sql -d <your_spatial_database>
+
+	To configure/install PostGIS for the first time, you should
+	instead use:
+	
+		sudo %p/bin/pgsql.sh-8.1 start
+		sudo -u postgres %p/bin/psql-8.1 -f \
+			%p/share/postgresql-8.1/lwpostgis.sql -d <your_spatial_database>
 <<
 DescPackaging: <<
 IMPORTANT: The location of the data files has changed from early
