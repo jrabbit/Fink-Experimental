@@ -23,7 +23,7 @@ my $path = abs_path(dirname($0));
 my @files = @ARGV;
 my %files;
 
-my $translate = '(openexr|gst.*0.10.*|gstreamer|gst-plugins|kde|postgres|libpq|libpg|wv2|icecream|qt3|qca|kgpg|xfree86|xorg|\\/mono\\.|libgdiplus|monodevelop|cocoa-sharp|perlmods|libsmoke|fung-calc|.*-pm.info$|libagg|doxygen1.3|piklab|poppler-qt3|distcc|gtk-sharp|gecko-sharp|gtksourceview-sharp|ikvm|ekg|gconfmm2|gnomoradio|libmusicbrainz4|libtunepimp|^taglib)';
+my $translate = '(openexr|gst.*0.10.*|gstreamer|gst-plugins|kde|postgres|libpq|libpg|wv2|icecream|qt3|qca|kgpg|xfree86|xorg|\\/mono\\.|libgdiplus|monodevelop|cocoa-sharp|perlmods|libsmoke|fung-calc|.*-pm.info$|libagg|doxygen1.3|piklab|poppler-qt3|distcc|gtk-sharp|gecko-sharp|gtksourceview-sharp|ikvm|ekg|gconfmm2|gnomoradio|libmusicbrainz4|libtunepimp|^taglib|dbus)';
 
 my $package_lookup = {
 	'10.3' => {
@@ -59,6 +59,8 @@ my $version_lookup = {
 		'^ccp4(-.*)?$'                              => [ '5.99.5',       '1001' ],
 		'^cdrdao$'                                  => [ '1.2.0',        '1010' ],
 		'^dasher(-.*)?$'                            => [ '3.2.18',       '1001' ],
+		'^dbus(-shlibs|-dev)?$'                     => [ '0.60',         '1003' ],
+		'^dbus(-qt3|-qt4)(-shlibs|-dev)?$'          => [ '0.60',         '1001' ],
 		'^dialog$'                                  => [ '0.9b-20020814', '1024' ],
 		'^db3(-bin|-doc|-shlibs)?$'                 => [ '3.3.11',       '1027' ],
 		'^db4(-bin|-doc|-shlibs)?$'                 => [ '4.0.14',       '1026' ],
@@ -482,12 +484,26 @@ sub transform_shlibs {
 	return join("\n", @newlines);
 }
 
+sub transform_configureparams {
+	my $tree   = shift->{'Tree'};
+	my $params = shift;
+
+	if ($tree eq '10.4') {
+		$params =~ s/--disable-java//gs;
+	}
+
+	return $params;
+}
+
 sub transform_compilescript {
 	my $tree          = shift->{'Tree'};
 	my $compilescript = shift;
 
 	if ($tree eq '10.4') {
+		# I really don't like having these hardcoded here, need to figure out a way to
+		# make it more configurable
 		$compilescript =~ s/(gcc|g\+\+)-3.3/$1/gs;
+		$compilescript =~ s/-fno-coalesce//gs;
 	}
 
 	return $compilescript;
