@@ -62,8 +62,12 @@ SplitOff2: <<
 
 PostInstScript: <<
 	if [ configure = "$1" ]; then
-		gst-register-0.8 --gst-mask=0 >/dev/null 2>&1 || true
-		gst-compprep-0.8 >/dev/null 2>&1 || true
+		mkdir -p "%p/var/cache/%n-0.8"
+		echo "" > /tmp/gstreamer-postinst.log
+		for command in "gst-register-0.8 --gst-mask=0" gst-compprep-0.8; do
+			echo "=== $command" >>/tmp/gstreamer-postinst.log
+			$command >>/tmp/gstreamer-postinst.log 2>&1 || :
+		done
 		for progname in complete compprep feedback inspect launch md5sum register typefind xmlinspect xmllaunch; do
 			update-alternatives --install %p/bin/gst-$progname              gst-$progname   %p/bin/gst-$progname-0.8              8
 			update-alternatives --install %p/share/man/man1/gst-$progname.1 gst-$progname.1 %p/share/man/man1/gst-$progname-0.8.1 8
