@@ -83,6 +83,19 @@ DocFiles: COPYING COPYING.LIB INSTALL
 RuntimeVars: <<
 	KDEDIR: %p
 <<
+PostInstScript: <<
+	if [ -e "%p/etc/xdg/menus/applications.menu" ] && [ ! -L "%p/etc/xdg/menus/applications.menu" ]; then
+		mv "%p/etc/xdg/menus/applications.menu" "%p/etc/xdg/menus/applications.menu.bak"
+	fi
+	update-alternatives --install "%p/etc/xdg/menus/applications.menu" "applications.menu" "%p/etc/xdg/menus/kde-applications.menu" 10
+<<
+PostRmScript: <<
+	if [ -e "%p/etc/xdg/menus/applications.menu" ] && [ ! -L "%p/etc/xdg/menus/applications.menu" ]; then
+		mv "%p/etc/xdg/menus/applications.menu" "%p/etc/xdg/menus/applications.menu.bak"
+	fi
+	update-alternatives --remove "applications.menu" "%p/etc/xdg/menus/kde-applications.menu"
+<<
+
 SplitOff: <<
 	Package: %N-shlibs
 	Description: KDE - essential shared libraries
