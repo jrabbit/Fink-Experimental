@@ -118,7 +118,7 @@ my $version_lookup = {
 		'^python24(-shlibs|-socket)?$'              => [ '1:2.4.2',      '1004' ],
 		'^python24-socket-ssl$'                     => [ '2.4.2',        '1101' ],
 		'^qcad$'                                    => [ '2.0.1.3-1',    '1002' ],
-		'^qt3(-.+)?$'                               => [ '3.3.5',        '1023' ],
+		'^qt3(-.+)?$'                               => [ '3.3.5',        '1026' ],
 		'^readline(-shlibs)?$'                      => [ '4.3',          '1028' ],
 		'^readline5(-shlibs)?$'                     => [ '5.0',          '1004' ],
 		'^rep-gtk$'                                 => [ '0.18',         '1013' ],
@@ -139,16 +139,18 @@ my $version_lookup = {
 	},
 	'10.4-transitional' => {
 		'^mjpegtools2?(-dev|-shlibs)?$'             => [ '1.6.2',        '3'    ],
+		'^qt3(-.+)?$'                               => [ '3.3.5',        '26'   ],
 		'^macosx$'                                  => [ '10.4.3',       '1'    ],
 	},
 	'10.3' => {
 		'^mjpegtools2?(-dev|-shlibs)?$'             => [ '1.6.2',        '3'    ],
+		'^qt3(-.+)?$'                               => [ '3.3.5',        '16'   ],
 		'^macosx$'                                  => [ '10.3.0',       '1'    ],
 	},
 	'all' => {
 		'^arts(-dev|-shlibs)?$'                     => [ undef,          '+'    ],
 		'^kde\S+(i18n|3|3-unified)(-dev|-shlibs)?$' => [ undef,          '+'    ],
-		'^qt3(-.+)?$'                               => [ undef,          '+'    ],
+#		'^qt3(-.+)?$'                               => [ undef,          '+'    ],
 		'^postgresql\S+$'                           => [ undef,          '+'    ],
 	},
 };
