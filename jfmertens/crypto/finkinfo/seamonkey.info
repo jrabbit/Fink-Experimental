@@ -1,0 +1,432 @@
+Package: seamonkey
+Version: 1.0
+Revision: 1
+Source-MD5: e4f2edc5b2248d090303c70f5b28f210
+Source: mirror:custom:mozilla.org/%N/releases/%v/%N-%v.source.tar.bz2
+CustomMirror: <<
+  Primary: http://ftp.mozilla.org/pub/
+  nam-US: ftp://ftp.tux.org/pub/net/mozilla/
+  eur-DE: ftp://ftp.fh-wolfenbuettel.de/pub/www/mozilla/
+  asi-JP: http://www.t.ring.gr.jp/pub/net/www/mozilla/
+<<
+SourceDirectory: mozilla
+Depends: %N-psm (>= %v-%r), %N-mailnews (>= %v-%r), %N-chatzilla (>= %v-%r), %N-js-debugger (>= %v-%r), %N-dom-inspector (>= %v-%r)
+BuildDepends: cairo, atk1, gconf2-dev, glib2-dev, gnome-vfs2-ssl-dev | gnome-vfs2-dev, gtk+2-dev, libbonobo2-dev, libgettext3-dev, libiconv-dev, libidl2, libjpeg, libpng3, orbit2-dev, pango1-xft2-dev, xft2-dev, x11-dev, pkgconfig
+NoSetLDFLAGS: true
+SetLIBRARY_PATH: %p/lib
+NoSetCPPFLAGS: true
+PatchScript: <<
+ #!/bin/sh -ev
+ sed 's|@PREFIX@|%p|g' <%a/%n.patch | patch -p1
+ perl -pi.bak -e 's,\@executable_path,%p/lib/%N,; s,install_names.*,install_names,' security/coreconf/Darwin.mk
+# The norwegian letter 'circled a' causes "unterminated comment" errors in javascripts:
+ find mailnews/base security/manager/pki/resources/content -name *.js|xargs perl -pi -e 's,H.kan,Haakan,'
+#### MISSING INCLUDES
+ perl -pi.bak -e 's,\#ifndef NSS,#include "pki1t.h"\n$&,' security/nss/lib/pki1/oiddata.h
+## All the following are "for safety" : to avoid "implicit declaration" warnings :
+ perl -pi.bak -e 's,\#include,\#include <unistd.h>\n$&,' directory/c-sdk/ldap/libraries/liblber/io.c
+ perl -pi.bak -e 's,\#if 0,\#include <unistd.h>\n$&,' directory/c-sdk/ldap/libraries/libldap/os-ip.c
+# for strcpy :
+ perl -pi.bak -e 's,gtk/gtk.h>,$&\n\#include <string.h>,' gfx/src/gtk/nsPrintdGTK.c
+# for NSSRWLock_LockWrite, NSSRWLock_UnlockWrite, NSSRWLock_LockRead, and NSSRWLock_UnlockRead :
+ perl -pi.bak -e 's,secmod.h"$,$&\n\#include "nssrwlk.h",' security/nss/lib/pki/pki3hack.c
+#### MISC
+## To enable "native-uconv" :
+ perl -pi.bak -e 's,\|darwin\*\|,\|,' configure
+ perl -pi.bak -e 's;ifeq;ifeq (\$(OS_ARCH), Darwin)\nCPPSRCS\t= nsNativeUConvService.cpp\nendif\n$&;' intl/uconv/native/Makefile.in
+ perl -pi.bak -e 's,\((char *\*\*\)\&(z|aSrc)),\(const \1,' intl/uconv/native/nsNativeUConvService.cpp
+## configure fails to detect libresolv (hence the 'env' before ./configure),
+## and even if it would detect it, it forgets to add -lresolv to LIBS
+## We put it as far as possible in the link line _ and just for the link that needs it, in order not to get
+## libresolv in the LOAD_COMMANDS everywhere :
+ perl -pi.bak -e 's,^MODULE\s,OS_LIBS += -lresolv\n$&,' netwerk/build/Makefile.in
+## For the componentlib (avoiding hard-coded version numbers) (cf above for -lresolv):
+ lstdc="`ls -1 /usr/lib/libstdc++.*dylib|tail -n1|sed -e 's,/usr/lib/lib,l,' -e 's,\.dylib$,,'`"
+ lgcc="`ls -1 /usr/lib/libgcc_s.*dylib|tail -n1|sed -e 's,/usr/lib/lib,l,' -e 's,\.dylib$,,'`"
+ perl -pi.bak -e "s,^\#EXTRA,EXTRA,; s,t exported_symbols$,$& -x -dead_strip -single_module -search_paths_first -m -lresolv,; s,lstdc\+\+,${lstdc},; s,lgcc,${lgcc},; s,\\\$\(EXTRA_DSO_LIBS\),\\\$\(FT2_LIBS\) \\\\\n\t\$&," embedding/componentlib/Makefile.in
+# not better with the following (also, the problem does not seem to lie with the several --enables) :
+# perl -pi.bak -e "s,^\#EXTRA,EXTRA,; s,\-exported_symbols_list exported_symbols$,-search_paths_first -m -lresolv,; s,lstdc\+\+,${lstdc},; s,lgcc,${lgcc},; s,\\\$\(EXTRA_DSO_LIBS\),\\\$\(FT2_LIBS\) \\\\\n\t\$&," embedding/componentlib/Makefile.in
+## Experiment _ why is it not enabled for Darwin while it is for all unix platforms ?
+ perl -pi -e 's,Darwin"; then$,$&\n  MOZ_MOVEMAIL=1,' configure
+####
+### Finally, ad-hoc correction of some install_names :
+ perl -pi -e "s;rules.mk;$&\nEXTRA_DSO_LDOPTS := \\\$\(subst install_name \\\$\(mozappdir\)/,install_name \\\$\(mozappdir\)/ipc/modules/,\\\$\(EXTRA_DSO_LDOPTS\)\);" ipc/ipcd/{extensions/{lock/src,transmngr},test}/module/Makefile.in
+ perl -pi -e "s;rules.mk;$&\nEXTRA_DSO_LDOPTS := \\\$\(subst install_name \\\$\(mozappdir\)/,install_name \\\$\(mozappdir\)/plugins/,\\\$\(EXTRA_DSO_LDOPTS\)\);" modules/plugin/samples/default/unix/Makefile.in
+<<
+##########
+## builds also with --enable-componentlib (but had to add the "-m" flag to the ld command there), but leads to launch problems
+# (appparently not dyld related...).
+# Some more work ahead for this.
+ConfigureParams: --enable-xft --disable-freetype2 --enable-calendar --enable-optimize="-O3 -fstrict-aliasing" --disable-debug --enable-application=suite --enable-macos-target=10.4 --enable-prebinding --enable-default-toolkit=gtk2 --with-pthreads --with-default-mozilla-five-home=%p/lib/%N --mandir=%p/share/man --enable-strip --enable-extensions=all --enable-image-decoders=all --enable-ldap-experimental --enable-xpctools --enable-necko-protocols=all --enable-efence --enable-native-uconv --enable-ctl --enable-xinerama --with-system-mng --with-system-jpeg --with-system-png --with-system-zlib --enable-postscript --enable-ipv6 --enable-tests --with-x --enable-canvas --with-qtdir=%p --enable-pango --enable-svg --enable-update-packaging --enable-storage --enable-system-cairo --enable-profilesharing
+## "Cannot enable XFT and FREETYPE2 at the same time".
+# Thus temporarily rm " --enable-freetype2 --with-ft-prefix=/usr/X11R6"
+CompileScript: <<
+#!/bin/sh -ev
+export CPATH=%p/include/cairo:%p/include
+env ac_cv_func_res_ninit=yes ./configure %c
+make -w
+# Divide installed-chrome.txt for each split-off.
+sed -e '/pipnss/d' -e '/pippki/d' -e '/messenger/d' -e '/chatzilla/d' \
+  -e '/venkman/d' -e '/inspector/d' -e '/calendar/d' \
+  dist/bin/chrome/installed-chrome.txt >fink/chrome.d/00browser
+egrep 'pip(nss|pki)' dist/bin/chrome/installed-chrome.txt >fink/chrome.d/00psm
+grep 'messenger' dist/bin/chrome/installed-chrome.txt >fink/chrome.d/00mailnews
+grep 'chatzilla' dist/bin/chrome/installed-chrome.txt >fink/chrome.d/00chatzilla
+grep 'venkman' dist/bin/chrome/installed-chrome.txt >fink/chrome.d/00js-debugger
+grep 'inspector' dist/bin/chrome/installed-chrome.txt >fink/chrome.d/00dom-inspector
+grep 'calendar' dist/bin/chrome/installed-chrome.txt >fink/chrome.d/00calendar || true
+<<
+InstallScript: <<
+#!/bin/sh -ev
+
+make install DESTDIR=%d
+
+# The following gets installed twice. To hedge our bets, put a symlink in one of the 2 places :
+if test -f %i/lib/%N/ipc/modules/libtestmodule.dylib
+   then if test -f %i/lib/%N/libtestmodule.dylib
+           then rm -f %i/lib/%N/libtestmodule.dylib ; ln -s ipc/modules/libtestmodule.dylib %i/lib/%N
+        fi
+fi
+
+# Install NSS headers.
+/bin/cp -R -L dist/public/nss %i/include/%N/nss
+
+# These files are redundant.
+for f in %i/lib/%N/chrome/*.jar; do
+  rm -rf ${f/.jar/}
+done
+
+# These files are created dynamically.
+rm -rf %i/lib/%N/chrome/overlayinfo
+rm -f %i/lib/%N/chrome/*.rdf
+rm -f %i/lib/%N/component.reg
+rm -f %i/lib/%N/components/*.dat
+
+# Multi user setting.
+touch %i/lib/%N/chrome/user-skins.rdf
+touch %i/lib/%N/chrome/user-locales.rdf
+
+# Empty installed-chrome.txt.
+rm %i/lib/%N/chrome/installed-chrome.txt
+touch %i/lib/%N/chrome/installed-chrome.txt
+
+# Install fink specific files.
+install -d -m 755 %i/bin %i/sbin %i/var/lib/%N/chrome.d
+# keep for the moment the file, but under the name moz
+# in order not to conflict with mozilla, to compare with the original %i/bin/%N
+install -c -m 755 fink/mozilla %i/bin/moz
+install -c -m 755 fink/update-%N-chrome %i/sbin
+install -c -m 644 fink/chrome.d/* %i/var/lib/%N/chrome.d/
+
+# Move config file into %p/etc.
+install -d -m 755 %i/etc/%N
+install -c -m 644 fink/prefs.js %i/etc/%N
+ln -sf %p/etc/%N/prefs.js %i/lib/%N/defaults/pref/fink.js
+
+# Install gnome .desktop files.
+install -d -m 755 %i/share/applications
+install -c -m 644 fink/applications/* %i/share/applications/
+
+install -d -m 755 %i/share/pixmaps
+install -c -m 644 dist/bin/chrome/icons/default/main-window.xpm %i/share/pixmaps/%N.xpm
+install -c -m 644 dist/bin/chrome/icons/default/addressbookWindow.xpm %i/share/pixmaps/%N-addressbook.xpm
+install -c -m 644 dist/bin/chrome/icons/default/chatzilla-window.xpm %i/share/pixmaps/%N-chatzilla.xpm
+install -c -m 644 dist/bin/chrome/icons/default/editorWindow.xpm %i/share/pixmaps/%N-editor.xpm
+install -c -m 644 dist/bin/chrome/icons/default/msgcomposeWindow.xpm %i/share/pixmaps/%N-mail-composer.xpm
+install -c -m 644 dist/bin/chrome/icons/default/messengerWindow.xpm %i/share/pixmaps/%N-mailnews.xpm
+install -c -m 644 dist/bin/chrome/icons/default/calendar-window.xpm %i/share/pixmaps/%N-calendar.xpm
+### And all others remain in ???
+# ls -l %p/bld/mozilla-1.7.11-5/mozilla/dist/bin/chrome/icons/default
+# total 140
+
+# Install a symlink to the docfiles
+mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
+<<
+SplitOff: <<
+  Package: %N-psm
+  Depends: %N-browser (>= %v-%r)
+  Description: Seamonkey - personal security manager
+  InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
+  PostInstScript: <<
+    if [ configure = "$1" ]; then
+        update-%N-chrome
+    fi
+  <<
+  PostRmScript: <<
+    if [ upgrade != "$1" ]; then
+        update-%N-chrome
+    fi
+  <<
+  Files: <<
+    lib/%N/chrome/pipnss.jar
+    lib/%N/chrome/pippki.jar
+    lib/%N/components/pipboot.xpt
+    lib/%N/components/pipnss.xpt
+    lib/%N/components/pippki.xpt
+    var/lib/%N/chrome.d/00psm
+  <<
+<<
+SplitOff2: <<
+  Package: %N-mailnews
+  Depends: %N-browser (>= %v-%r)
+  Description: Seamonkey - mail and news support
+  InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
+  PostInstScript: <<
+    if [ configure = "$1" ]; then
+        update-%N-chrome
+    fi
+  <<
+  PostRmScript: <<
+    if [ upgrade != "$1" ]; then
+        update-%N-chrome
+    fi
+  <<
+  Files: <<
+    lib/%N/chrome/messenger.jar
+    lib/%N/components/addrbook.xpt
+    lib/%N/components/impComm4xMail.xpt
+    lib/%N/components/import.xpt
+    lib/%N/components/mailnews.xpt
+    lib/%N/components/mailview.xpt
+    lib/%N/components/mdn-service.js
+    lib/%N/components/mime.xpt
+    lib/%N/components/msgbase.xpt
+    lib/%N/components/msgcompose.xpt
+    lib/%N/components/msgdb.xpt
+    lib/%N/components/msgimap.xpt
+    lib/%N/components/msglocal.xpt
+    lib/%N/components/msgnews.xpt
+    lib/%N/components/msgsearch.xpt
+    lib/%N/components/msgsmime.xpt
+    lib/%N/components/nsLDAPPrefsService.js
+    lib/%N/components/smime-service.js
+    lib/%N/defaults/pref/mailnews.js
+    lib/%N/defaults/pref/mdn.js
+    lib/%N/defaults/pref/smime.js
+    share/applications/Seamonkey-mail-composer.desktop
+    share/applications/Seamonkey-mail.desktop
+    share/applications/Seamonkey-news.desktop
+    share/pixmaps/%N-mail-composer.xpm
+    share/pixmaps/%N-mailnews.xpm
+    var/lib/%N/chrome.d/00mailnews
+  <<
+<<
+SplitOff3: <<
+  Package: %N-chatzilla
+  Depends: %N-browser (>= %v-%r)
+  Description: Seamonkey - irc client
+  InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
+  PostInstScript: <<
+    if [ configure = "$1" ]; then
+        update-%N-chrome
+    fi
+  <<
+  PostRmScript: <<
+    if [ upgrade != "$1" ]; then
+        update-%N-chrome
+    fi
+  <<
+  Files: <<
+    lib/%N/chrome/chatzilla.jar
+    lib/%N/chrome/icons/default/chatzilla*
+    lib/%N/components/chatzilla-service.js
+    share/applications/Seamonkey-chatzilla.desktop
+    var/lib/%N/chrome.d/00chatzilla
+  <<
+<<
+SplitOff4: <<
+  Package: %N-js-debugger
+  Depends: %N-browser (>= %v-%r)
+  Description: Seamonkey - java script debugger
+  InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
+  PostInstScript: <<
+    if [ configure = "$1" ]; then
+        update-%N-chrome
+    fi
+  <<
+  PostRmScript: <<
+    if [ upgrade != "$1" ]; then
+        update-%N-chrome
+    fi
+  <<
+  Files: <<
+    lib/%N/chrome/venkman.jar
+    lib/%N/chrome/icons/default/venkman*
+    lib/%N/components/venkman-service.js
+    var/lib/%N/chrome.d/00js-debugger
+  <<
+<<
+SplitOff5: <<
+  Package: %N-dom-inspector
+  Depends: %N-browser (>= %v-%r)
+  Description: Seamonkey - DOM inspector
+  InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
+  PostInstScript: <<
+    if [ configure = "$1" ]; then
+        update-%N-chrome
+    fi
+  <<
+  PostRmScript: <<
+    if [ upgrade != "$1" ]; then
+        update-%N-chrome
+    fi
+  <<
+  Files: <<
+    lib/%N/chrome/inspector.jar
+    lib/%N/components/inspector.xpt
+    lib/%N/components/libinspector.dylib
+    lib/%N/defaults/pref/inspector.js
+    var/lib/%N/chrome.d/00dom-inspector
+  <<
+# Where did this one go ??
+#    lib/%N/res/inspector
+<<
+SplitOff6: <<
+  Package: %N-calendar
+  Depends: %N-browser (>= %v-%r)
+  Description: Seamonkey - Calendar
+  InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
+  PostInstScript: <<
+    if [ configure = "$1" ]; then
+        update-%N-chrome
+    fi
+  <<
+  PostRmScript: <<
+    if [ upgrade != "$1" ]; then
+        update-%N-chrome
+    fi
+  <<
+  Files: <<
+    lib/%N/chrome/calendar*
+    lib/%N/components/cal*
+    lib/%N/init.d/S80calendar_fix_permissions_bug_230617
+    lib/%N/chrome/icons/default/calendar-window*.xpm
+    share/applications/Seamonkey-calendar.desktop
+    share/pixmaps/%N-calendar.xpm
+    var/lib/%N/chrome.d/00calendar
+  <<
+<<
+SplitOff7: <<
+  Package: %N-shlibs
+  Depends: gtk+2-shlibs
+  DocFiles: LEGAL LICENSE
+  Description: Seamonkey - shared libraries
+# Many "dylib"'s under lib/%N are in fact bundles, hence don't belong here.
+# Further the exact sets, both dylibs and of bundles, vary with %c _ and from %v to %v,
+# so we don't want to hardcode them.
+  InstallScript: <<
+    #!/bin/sh -ev
+    mkdir -p %i/lib/%N/plugins
+    cd %I/lib/%N
+    for f in `ls -1 *.dylib|xargs file|grep dynamically|cut -f1 -d:`
+      do mv $f %i/lib/%N
+    done
+    mv plugins/libnullplugin.dylib %i/lib/%N/plugins
+    mv ipc %i/lib/%N
+    cd -
+  <<
+# The following depends strongly on %c. Adjust at the last minute.
+  Shlibs: <<
+    %p/lib/%N/libDebugRobot.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/libgfxpsshar.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/libgkgfx.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/libgtkembedmoz.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/libgtkxtbin.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/libjsj.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/libldap50.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/libmozjs.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/libmozpango-dvngx.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/libmozpango-thaix.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/libmozpango.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/libmsgbaseutil.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/libnpsimple.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/libnspr4.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/libnss3.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/libplc4.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/libplds4.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/libprldap50.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/libsmime3.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/libsoftokn3.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/libssl3.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/libxpcom.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/libxpcom_compat.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/libxpcom_core.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/libxpistub.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/plugins/libnullplugin.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/ipc/modules/liblockmodule.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/ipc/modules/libtransmgr.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/ipc/modules/libtestmodule.dylib 1.0.0 %n (>= 1.0-1)
+  <<
+#    %p/lib/%N/libxlibrgb.dylib 1.0.0 %n (>= 1.7.11-1)  seems to have disaappeared .. ?
+<<
+SplitOff8: <<
+  Package: %N-bin
+  Depends: libidl2-shlibs, %N-shlibs (= %v-%r)
+  Description: Seamonkey - extra binaries
+  InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
+  Files: lib/%N/xp*
+<<
+SplitOff9: <<
+  Package: %N-dev
+  Depends: %N-shlibs (= %v-%r), pkgconfig
+# The following is for %p/share/aclocal/nspr.m4 _ not sure the replaces
+# is really warranted, and the Conflicts not, but convenience is worth something..
+#  Conflicts: mozilla-dev
+  Replaces: mozilla-dev
+  BuildDependsOnly: true
+  Description: Seamonkey - development headers and libraries
+  InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
+  Files: bin/%N-config include lib/pkgconfig  share/aclocal share/idl
+<<
+SplitOff10: <<
+  Package: %N-browser
+## The following might no longer be true (some errors at least have been corrected...) :
+# At least when launched under KDE, I see (under ps) gnome-terminal coming up; clearly also when launched under gnome.
+# Don't know yet what happens when launched from an xterm; if confirmed, gnome-terminal should be added
+# to Depends instead of gtk+2 and gnome-vfs2-ssl-shlibs | gnome-vfs2-shlibs.
+  Recommends: gnome-terminal
+  Depends: %N-shlibs (>= %v-%r), cairo-shlibs, gnome-vfs2-ssl-shlibs | gnome-vfs2-shlibs, gtk+2
+  ConfFiles: %p/etc/%N/prefs.js
+  Description: Seamonkey - web browser
+  InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
+  PostInstScript: <<
+# Those 2 empty files are not installed by dpkg
+    touch %p/lib/%N/chrome/user-skins.rdf
+    touch %p/lib/%N/chrome/user-locales.rdf
+
+    if [ configure = "$1" ]; then
+        update-%N-chrome
+    fi
+  <<
+  PostRmScript: <<
+  case "$1" in
+    purge)
+      rm -rf %p/lib/%N/chrome/overlayinfo
+      rm -f %p/lib/%N/chrome/*.rdf 
+      rm -f %p/lib/%N/component.reg   
+      rm -f %p/lib/%N/components/*.dat
+      ;;
+  esac
+  <<
+  Files: bin etc lib sbin share/applications share/man share/pixmaps var
+<<
+Description: WWW, chat, mail, news, calendar, a-book, etc
+DescDetail: <<
+%N is an open-source web browser, designed for standards
+compliance, performance and portability.
+<<
+DescPort: <<
+Adding (in patch) %p/lib/%N/components to DYLD_LIBRARY_PATH _ else links with qt3's libeditor...
+(then added also plugins and ipc/modules, by analogy).
+And then %p/lib, to make sure eg libcrypto comes from %p and not from /usr.
+And then /usr/X11R6/lib between the latter 2, to make sure libfreetype.6.dylib comes from there..
+
+Added in the patch -x flag to the regxpcom command in update-%N-chrome, to get correct PostInstScripts. 
+(and use there same DYLD_LIBRARY_PATH as in %p/bin/%N).
+<<
+DescPackaging: <<
+ Wouldn't it be better to have just %N, %N-dev and %N-shlibs ?
+<<
+License: OSI-Approved
+Maintainer: The Gnome Core Team <fink-gnome-core@lists.sourceforge.net>
+Homepage: http://www.mozilla.org/projects/seamonkey
