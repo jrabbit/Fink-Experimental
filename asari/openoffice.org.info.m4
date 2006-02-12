@@ -120,18 +120,21 @@ BuildDepends: <<
   x11-dev, ant, bison, fileutils, system-java14-dev,
   archive-zip-pm]PERLVERSION[,
   libjpeg, expat, freetype219, libwpd-0.8-dev, libxml2,
-  libsablot-dev, libsablot, unixodbc2-nox | unixodbc2,
   sane-backends-dev, libcurl3-unified, libsndfile1-dev,
   portaudio (>= 18.1-1), neon24-ssl | neon24,
   libart2, startup-notification-dev, libgettext3-dev,
-  atk1, glib2-dev,  gtk+2-dev, orbit2-dev, pango1-xft2-dev,
+  atk1, gtk+2-dev, orbit2-dev, pango1-xft2-dev,
   libiconv-dev, openldap23-dev,]
 IF_10_4(
-[[  db42-ssl (>= 4.2.52-1017) | db42 (>= 4.2.52-1017),]],
-[[  db42-ssl | db42,]])
+[[  glib2-dev (>= 2.6.6-1111),
+  db42-ssl (>= 4.2.52-1017) | db42 (>= 4.2.52-1017),
+  libsablot-dev (>= 0.98-1024), libsablot (>= 0.98-1024),
+  unixodbc2-nox (>= 2.2.11-1010) | unixodbc2 (>= 2.2.11-1010),]],
+[[  glib2-dev, db42-ssl | db42,
+  libsablot-dev, libsablot, unixodbc2-nox | unixodbc2,]])
 IF_CRYPTO(
  [IF_FIREFOX(
-   [[  firefox-dev,]],
+   [[  firefox-dev]IF_10_4([[ (>= 1.0.7-1007)]]),],
    [[  mozilla-dev]IF_10_4([[ (>= 1.7.5-1102)]]),])
 ])dnl
 ifelse(USE_FINK_PYTHON, 1,
@@ -143,19 +146,22 @@ ifelse(USE_FINK_PYTHON, 1,
 Depends: <<
   x11, system-java14, system-perl,
   libjpeg-shlibs, expat-shlibs, freetype219-shlibs, libwpd-0.8-shlibs, libxml2-shlibs,
-  libsablot-shlibs, unixodbc2-nox-shlibs | unixodbc2-shlibs,
   sane-backends-shlibs, libcurl3-unified-shlibs, libsndfile1-shlibs,
   portaudio-shlibs (>= 18.1-1), neon24-ssl-shlibs | neon24-shlibs,
   libart2-shlibs, startup-notification-shlibs,
-  atk1-shlibs, gtk+2-shlibs, glib2-shlibs, libgettext3-shlibs, pango1-xft2-shlibs,
+  atk1-shlibs, gtk+2-shlibs, libgettext3-shlibs, pango1-xft2-shlibs,
   libiconv, openldap23-shlibs,]
 IF_10_4(
-[[  db42-ssl-shlibs (>= 4.2.52-1017) | db42-shlibs (>= 4.2.52-1017),
-  db42-ssl-java (>= 4.2.52-1012) | db42-java (>= 4.2.52-1012),]],
-[[  db42-ssl-shlibs | db42-shlibs, db42-ssl-java | db42-java,]])
+[[  glib2-shlibs (>= 2.6.6-1111),
+  db42-ssl-shlibs (>= 4.2.52-1017) | db42-shlibs (>= 4.2.52-1017),
+  db42-ssl-java (>= 4.2.52-1012) | db42-java (>= 4.2.52-1012),
+  libsablot-shlibs (>= 0.98-1024),
+  unixodbc2-nox-shlibs (>= 2.2.11-1010) | unixodbc2-shlibs (>= 2.2.11-1010),]],
+[[  glib2-shlibs, db42-ssl-shlibs | db42-shlibs, db42-ssl-java | db42-java,
+  libsablot-shlibs, unixodbc2-nox-shlibs | unixodbc2-shlibs,]])
 IF_CRYPTO(
  [IF_FIREFOX(
-   [[  firefox-shlibs,]],
+   [[  firefox-shlibs]IF_10_4([[ (>= 1.0.7-1007)]]),],
    [IF_10_4(
      [[  mozilla-shlibs (>= 1.7.5-1102), mozilla-mailnews (>= 1.7.5-1102),]],
      [[  mozilla-shlibs, mozilla-mailnews,]])])
