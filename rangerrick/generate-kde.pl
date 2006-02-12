@@ -23,7 +23,7 @@ my $path = abs_path(dirname($0));
 my @files = @ARGV;
 my %files;
 
-my $translate = '(openexr|gst.*0.10.*|gstreamer|gst-plugins|kde|postgres|libpq|libpg|wv2|icecream|qt3|qca|kgpg|xfree86|xorg|\\/mono\\.|libgdiplus|monodevelop|cocoa-sharp|perlmods|libsmoke|fung-calc|.*-pm.info$|libagg|doxygen1.3|piklab|poppler-qt3|distcc|gtk-sharp|gecko-sharp|gtksourceview-sharp|ikvm|ekg|gconfmm2|gnomoradio|libmusicbrainz4|libtunepimp|^taglib|dbus)';
+my $translate = '(openexr|gst.*0.10.*|gstreamer|gst-plugins|kde|postgres|libpq|libpg|wv2|icecream|qt3|qca|kgpg|xfree86|xorg|\\/mono\\.|libgdiplus|monodevelop|cocoa-sharp|perlmods|libsmoke|fung-calc|.*-pm.info$|libagg|doxygen1.3|piklab|poppler-qt3|distcc|gtk-sharp|gecko-sharp|gtksourceview-sharp|ikvm|ekg|gconfmm2|gnomoradio|libmusicbrainz4|libtunepimp|^taglib|dbus|libmath)';
 
 my $package_lookup = {
 	'10.3' => {
@@ -88,14 +88,19 @@ my $version_lookup = {
 		'^ktoblzcheck$'                             => [ '1.2',          '1003' ],
 		'^ladspa(-dev)?$'                           => [ '1.12',         '1012' ],
 		'^lammpi(-dev|-examples|-shlibs)?$'         => [ '7.0.6',        '1011' ],
+		'^libemf(-shlibs|-bin)?$'                   => [ '1.0.2',        '1011' ],
 		'^libgeos2(-.*)?$'                          => [ '2.1.4',        '1001' ],
 		'^libhttpd-persistent$'                     => [ '1.3',          '1010' ],
 		'^libidl2(-shlibs)?$'                       => [ '0.8.3',        '1002' ],
+		'^libmath..(-dev)?$'                        => [ '0.0.4',        '1001' ],
 		'^libmusicbrainz4(-shlibs)?$'               => [ '2.1.1',        '1001' ],
 		'^(libncurses5(-shlibs)?|ncurses)$'         => [ '5.4-20041023', '1006' ],
 		'^libncursesw5(-shlibs)?$'                  => [ '5.4-20041023', '1001' ],
 		'^libofx1(-shlibs)?$'                       => [ '0.7.0',        '1002' ],
+		'^libogdi3(-bin|-shlibs)?$'                 => [ '3.1.5',        '1002' ],
 		'^librep(-dev|-shlibs)?$'                   => [ '0.16.2',       '1011' ],
+		'^librsync(-bin|-shlibs)?$'                 => [ '0.9.7',        '1001' ],
+		'^libsablot(-dev|-shlibs)?$'                => [ '0.98',         '1024' ],
 		'^libsigc..12(-shlibs)?$'                   => [ '1.2.5',        '1002' ],
 		'^libsigc..2(-shlibs)?$'                    => [ '2.0.11',       '1003' ],
 		'^libtunepimp2(-shlibs)?$'                  => [ '0.3.0',        '1001' ],
@@ -111,6 +116,9 @@ my $version_lookup = {
 		'^openexr(-dev)?$'                          => [ '1.2.2',        '31'   ],
 		'^openhbci(-shlibs)?$'                      => [ '0.9.13',       '1012' ],
 		'^openjade$'                                => [ '1.3.2',        '1028' ],
+		'^postgresql-perl.*$'                       => [ '8.1.2',        '1022' ],
+		'^postgresql-tcl.*$'                        => [ '8.1.2',        '1021' ],
+		'^postgresql80(-.*)$'                       => [ '8.0.6',        '1026' ],
 		'^pygtk-py23$'                              => [ '0.6.9',        '1016' ],
 		'^python23(-shlibs|-socket)?$'              => [ '1:2.3.5',      '1124' ],
 		'^python23-nox(-shlibs|-socket)?$'          => [ '1:2.3.4',      '1104' ],
@@ -122,6 +130,7 @@ my $version_lookup = {
 		'^readline(-shlibs)?$'                      => [ '4.3',          '1028' ],
 		'^readline5(-shlibs)?$'                     => [ '5.0',          '1004' ],
 		'^rep-gtk$'                                 => [ '0.18',         '1013' ],
+		'^reportlab-.*$'                            => [ '1.20',         '1011' ],
 		'^sdl(-shlibs)?$'                           => [ '1.2.9',        '1001' ],
 		'^sdl-mixer(-shlibs)?$'                     => [ '1.2.6',        '1012' ],
 		'^smpeg(-shlibs)?$'                         => [ '0.4.4',        '1025' ],
@@ -627,7 +636,7 @@ sub transform_dependency {
 					my ($newversion, $newrevision) = @{$version_lookup->{$tree_iterator}->{$key}};
 					if (defined $version and defined $revision and $revision ne '%r' and $newrevision eq '+') {
 						$revision = transform_revision( $tree, $revision );
-					} elsif (defined $newversion and defined $newrevision) {
+					} elsif (defined $newversion and defined $newrevision and $revision ne '%r') {
 						$version  = $newversion;
 						$revision = $newrevision;
 					} else {
