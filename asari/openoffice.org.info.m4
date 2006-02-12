@@ -7,14 +7,18 @@ dnl ### Configurations ###
 ifdef([MODE],,
  [define([MODE], [Normal])])
 define([BASEVERSION], [[2.0.1]])
-define([SNAPSHOT], [[m152]])
-define([SOURCE_MD5], [[de893aa3bbd15022089abafbd8a2e623]])
-define([REVISION_10_3], 1)
-define([REVISION_10_4_TRANSITIONAL], 101)
-define([REVISION_10_4], 201)
+define([SNAPSHOT], [[m156]])
+define([SOURCE_MD5], [[bbc1d1fd1cdb5c8213f3c008f88548ce]])
+define([REVISION_10_3], 2)
+define([REVISION_10_4_TRANSITIONAL], 102)
+define([REVISION_10_4], 1002)
 define([REVISION_SUFFIX],[])
 ifdef([USE_FINK_PYTHON],,
  [define([USE_FINK_PYTHON], 1)])
+ifdef([USE_FIREFOX],,
+ [define([USE_FIREFOX], 0)])
+ifdef([USE_CRYPTO],,
+ [define([USE_CRYPTO], 1)])
 define([RELEASE_SOURCE], [[stable/%v/OOo_%v_src.tar.gz]])
 define([SNAPSHOT_SOURCE], [[OOo_SRC680_]SNAPSHOT[_source.tar.bz2]])
 
@@ -57,9 +61,29 @@ ifelse(MODE, [Normal],
      [ERREXIT([Wrong TREE])])],
    [ERREXIT([You must define the TREE])])])
 
+dnl Usage: IF_10_4([Action if 10.4 or higher])
+dnl        IF_10_4([Action if 10.4 or higher], [Action if 10.4-transitional or 10.3])
+ifelse(MODE, [Normal],
+ [ifelse(eval(STR_EQ(TREE, [10.3]) || STR_EQ(TREE, [10.4-transitional])), 1,
+   [define([IF_10_4], [$2])],
+   [define([IF_10_4], [$1])])])
+
 ifelse(MODE, [Normal],
  [define([MIRROR], [ifelse($1, 0, [[#]])[$2: $3]])],
  [define([MIRROR], [[$1 $2 $3]])])
+
+ifelse(MODE, [Normal],
+ [ifelse(TREE, [10.3],
+   [define([PERLVERSION], 581)],
+   [define([PERLVERSION], 586)])])
+
+ifelse(USE_FIREFOX, 1,
+ [define([IF_FIREFOX], [$1])],
+ [define([IF_FIREFOX], [$2])])
+
+ifelse(USE_CRYPTO, 1,
+ [define([IF_CRYPTO], [$1])],
+ [define([IF_CRYPTO], [$2])])
 
 define([SPLITOFF_ID], 1)
 define([LANGUAGE],
@@ -67,7 +91,7 @@ define([LANGUAGE],
   Package: %N-]TOLOWER([[$1]])[
   Description: Language Pack($1) for OpenOffice.org
   Depends: %N (= %v-%r)
-  InstallScript: ./languagepack-splitoff ]TOLOWER([[$1]])[ $1 %p %d %i
+  InstallScript: ./languagepack-splitoff ]TOLOWER([[$1]])[ $1 %p %d %i %N
 <<
 ]define([SPLITOFF_ID], incr(SPLITOFF_ID))])
 
@@ -81,49 +105,65 @@ ifelse(MODE, [Normal],
  [ERREXIT([Bad mode specified])])dnl
 dnl
 dnl ### Body ###
-[Package: openoffice.org
+[Package: openoffice.org]IF_CRYPTO([IF_FIREFOX([-firefox])], [-nocrypto])[
 Description: Integrated office productivity suite
 Version: ]FINKVERSION[
 Revision: ]REVISION[]REVISION_SUFFIX[
 License: LGPL
 Maintainer: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>
 
+Conflicts: openoffice.org, openoffice.org-firefox, openoffice.org-nocrypto
+Replaces: openoffice.org, openoffice.org-firefox, openoffice.org-nocrypto
+Provides: openoffice.org-generation2
 BuildConflicts: libicu32-dev
 BuildDepends: <<
   x11-dev, ant, bison, fileutils, system-java14-dev,
-  archive-zip-pm586,
+  archive-zip-pm]PERLVERSION[,
   libjpeg, expat, freetype219, libwpd-0.8-dev, libxml2,
-  db42-ssl | db42,
-  libsablot-dev, libsablot, unixodbc2 | unixodbc2-nox,
-  sane-backends, libcurl3-unified,
-  libsndfile1-dev,
+  libsablot-dev, libsablot, unixodbc2-nox | unixodbc2,
+  sane-backends-dev, libcurl3-unified, libsndfile1-dev,
   portaudio (>= 18.1-1), neon24-ssl | neon24,
-  mozilla-dev, libart2, startup-notification-dev,
-  atk1, audiofile, esound, gconf2-dev, libgettext3-dev, glib2-dev,
-  gnome-keyring-dev (>= 0.4.3-1), gnome-vfs2-ssl-dev | gnome-vfs2-dev,
-  gtk+2-dev, libbonobo2-dev, libbonoboui2-dev, libglade2,
-  libgnome2-dev, libgnomecanvas2-dev, libgnomeprint2.2-dev,
-  libgnomeprintui2.2-dev, libgnomeui2-dev, libiconv-dev, 
-  orbit2-dev, pango1-xft2-dev, pcre, pkgconfig, popt, vte-dev,]
+  libart2, startup-notification-dev, libgettext3-dev,
+  atk1, glib2-dev,  gtk+2-dev, orbit2-dev, pango1-xft2-dev,
+  libiconv-dev, openldap23-dev,]
+IF_10_4(
+[[  db42-ssl (>= 4.2.52-1017) | db42 (>= 4.2.52-1017),]],
+[[  db42-ssl | db42,]])
+IF_CRYPTO(
+ [IF_FIREFOX(
+   [[  firefox-dev,]],
+   [[  mozilla-dev]IF_10_4([[ (>= 1.7.5-1102)]]),])
+])dnl
 ifelse(USE_FINK_PYTHON, 1,
-[[  boost1.32-py24, python24,]],
+[[  boost1.32-py24, python24]IF_10_4([[ (>= 1:2.4.2-1004)]]),],
 [[  boost1.32-py23 | boost1.32-py24,]])
-[  autoconf2.5
+[  pkgconfig, popt, autoconf2.5
 <<
 
 Depends: <<
   x11, system-java14, system-perl,
-  libjpeg-shlibs, expat-shlibs, libwpd-0.8-shlibs, libxml2-shlibs,
-  db42-ssl-shlibs | db42-shlibs, db42-ssl-java,
-  libsablot-shlibs, unixodbc2-shlibs | unixodbc2-nox-shlibs,
-  sane-backends-shlibs, libcurl3-unified-shlibs,
-  libsndfile1-shlibs,
+  libjpeg-shlibs, expat-shlibs, freetype219-shlibs, libwpd-0.8-shlibs, libxml2-shlibs,
+  libsablot-shlibs, unixodbc2-nox-shlibs | unixodbc2-shlibs,
+  sane-backends-shlibs, libcurl3-unified-shlibs, libsndfile1-shlibs,
   portaudio-shlibs (>= 18.1-1), neon24-ssl-shlibs | neon24-shlibs,
-  mozilla-shlibs, mozilla-mailnews, libart2-shlibs,]
+  libart2-shlibs, startup-notification-shlibs,
+  atk1-shlibs, gtk+2-shlibs, glib2-shlibs, libgettext3-shlibs, pango1-xft2-shlibs,
+  libiconv, openldap23-shlibs,]
+IF_10_4(
+[[  db42-ssl-shlibs (>= 4.2.52-1017) | db42-shlibs (>= 4.2.52-1017),
+  db42-ssl-java (>= 4.2.52-1012) | db42-java (>= 4.2.52-1012),]],
+[[  db42-ssl-shlibs | db42-shlibs, db42-ssl-java | db42-java,]])
+IF_CRYPTO(
+ [IF_FIREFOX(
+   [[  firefox-shlibs,]],
+   [IF_10_4(
+     [[  mozilla-shlibs (>= 1.7.5-1102), mozilla-mailnews (>= 1.7.5-1102),]],
+     [[  mozilla-shlibs, mozilla-mailnews,]])])
+])dnl
 ifelse(USE_FINK_PYTHON, 1,
-[[  python24-shlibs,
-]])dnl
-  [fondu, startup-notification-shlibs
+[[  python24-shlibs]IF_10_4([[ (>= 1:2.4.2-1004)]]),
+])dnl
+[  fondu
 <<
 
 CustomMirror: <<]
@@ -267,10 +307,11 @@ Source-MD5: ]SOURCE_MD5[
 NoSourceDirectory: true
 
 PatchScript: <<
-  /usr/bin/patch -p0 < %a/%n.patch
+  /usr/bin/patch -p0 < %a/openoffice.org.patch
   chmod a+x languagepack-splitoff
 <<
 
+GCC: ]IF_10_4(4.0, 3.3)[
 SetCPPFLAGS: -I%p/include/db4 -I%p/include/boost
 ConfigureParams: <<
   --with-gnu-cp=%p/bin/cp \
@@ -297,8 +338,8 @@ ConfigureParams: <<
   --with-system-zlib \
   --with-system-jpeg \
   --with-system-expat \
-  --with-system-mozilla \
   --enable-gtk \
+  --disable-kde \
   --with-system-freetype \
   --with-system-boost \
   --without-nas \
@@ -307,17 +348,14 @@ ConfigureParams: <<
 ifelse(USE_FINK_PYTHON, 1,
 [[  --with-python-libs="-L%p/lib/python2.4/config -lpython2.4" \
 ]])dnl
-[  --enable-libsn
+IF_CRYPTO(
+[  IF_FIREFOX([[--with-firefox ]])[--with-system-mozilla \]],
+[[  --disable-mozilla \]])
+[  --enable-openldap \
+  --enable-libsn
 <<
-]
-ifelse(eval(STR_EQ(TREE, [10.3]) || STR_EQ(TREE, [10.4-transitional])), 1,
-[[GCC: 3.3
-SetCC: gcc-3.3
-SetCXX: g++-3.3]],
-[[GCC: 4.0
-SetCC: gcc-4.0
-SetCXX: g++-4.0]])
-[CompileScript: <<
+
+CompileScript: <<
   #!/bin/bash
 
   set -e
@@ -373,8 +411,13 @@ ifelse(USE_FINK_PYTHON, 1,
   export PYTHON=/usr/bin/python]])
 [
   /usr/bin/printf "[ Phase 1: Configure ]\n\n" >> %n-%v-%r.buildlog
-  (cd config_office && autoconf && ./configure %c) 2>&1 |
+  (cd config_office && autoconf && ./configure %c || exit) 2>&1 |
     /usr/bin/tee -ai %n-%v-%r.buildlog
+  case %m in
+    powerpc) machine=PPC;;
+    i386) machine=Intel;;
+    *) echo 'Unknown architecture'; exit 1;;
+  esac
 
   /usr/bin/printf "\n\n[ Phase 2: Bootstrap ]\n\n" >> %n-%v-%r.buildlog
   ./bootstrap 2>&1 |
@@ -383,10 +426,11 @@ ifelse(USE_FINK_PYTHON, 1,
   # Because we are using %p, $SOLARINC and $SOLARLIB need modified  
   # Include libdb_java-4.2.jnilib to DYLD_LIBRARY_PATH so that Java can find it
   /usr/bin/sed -i.bak \
-    -e"/^SOLARLIB/s|-L/usr/lib|-L%p/lib/freetype219/lib -L%p/lib -L/usr/lib|" \
-    -e"/^SOLARINC/s|-I/usr/X11R6/include -I/usr/X11R6/include/freetype2|-I%p/include/db4 -I%p/lib/freetype219/include/freetype2 -I%p/lib/freetype219/include -I%p/include -I/usr/X1186/include|" \
-    -e"/^DYLD_LIBRARY_PATH/s|/lib|/lib:%b/FINKLIBS|" \
-    MacosxEnv.Set MacosxEnv.Set.sh
+    -e"/^\(setenv \)*SOLARLIB/s|-L/usr/lib|-L%p/lib/freetype219/lib -L%p/lib -L/usr/lib|" \
+    -e"/^\(setenv \)*SOLARINC/s|-I/usr/X11R6/include -I/usr/X11R6/include/freetype2|-I%p/include/db4 -I%p/lib/freetype219/include/freetype2 -I%p/lib/freetype219/include -I%p/include -I/usr/X1186/include|" \
+    -e"/^\(setenv \)*DYLD_LIBRARY_PATH/s|/lib|/lib:%b/FINKLIBS|" \
+    -e"/^\(setenv \)*PROFULLSWITCH/s|product=full|--dlv_switch -link product=full|" \
+    MacOSX${machine}Env.Set MacOSX${machine}Env.Set.sh
 
   /bin/mkdir FINKLIBS
   /bin/ln -s %p/lib/libdb_java-4.2.jnilib FINKLIBS
@@ -394,7 +438,7 @@ ifelse(USE_FINK_PYTHON, 1,
   # Retry forever to build OOo until success!
   until [ -n "$succeeded" ]; do
     /usr/bin/printf "\n\n[ Phase 3: Make ]\n\n" >> %n-%v-%r.buildlog
-    . ./MacosxEnv.Set.sh
+    . ./MacOSX${machine}Env.Set.sh
     dmake 2>&1 | /usr/bin/tee -ai %n-%v-%r.buildlog
     if [ ${PIPESTATUS[0]} == 0 ]; then
       succeeded=TRUE
@@ -449,7 +493,11 @@ InstallScript: <<
   /usr/bin/printf "\n\n[ Install Phase ]\n\n"
 
   # Setting up environment
-  . ./MacosxEnv.Set.sh
+  case %m in
+    powerpc) . ./MacOSXPPCEnv.Set.sh;;
+    i386) . ./MacOSXIntelEnv.Set.sh;;
+    *) echo 'Unknown architecture'; exit 1;;
+  esac
 
   set -v
 
@@ -479,7 +527,7 @@ InstallScript: <<
     -f openoffice.lst -l en-US -p OpenOffice \
     -packagelist ../inc_openoffice/unix/packagelist.txt \
     -buildid $build -destdir %d \
-    -simple %p/lib/openoffice.org
+    -simple %p/lib/%n
   popd
 
   # Some dirty hacks to reduce disk consumption -- again
@@ -512,10 +560,18 @@ ifelse(USE_FINK_PYTHON, 0,
   done
   /bin/ln -s ../lib/%n/program/soffice %i/bin
   /usr/bin/sed -e "s/ -calc//" %i/lib/%n/program/scalc > %i/bin/ooffice
-  /bin/chmod 755 %i/bin/ooffice
+  /bin/chmod 755 %i/bin/ooffice]
+ifelse(eval(USE_FIREFOX || !USE_CRYPTO), 1,
+[[  /bin/ln -s %n %i/lib/openoffice.org
+]])dnl
 
-  # Symlink libdb_java-4.2.jnilib so that Java can find it
+[  # Symlink libdb_java-4.2.jnilib so that Java can find it
   /bin/ln -s %p/lib/libdb_java-4.2.jnilib %i/lib/%n/program
+
+  # Install update-ooo-fonts
+  /usr/bin/install -m 755 -d %i/sbin
+  sed 's|@PREFIX@|%p|g;s|@PKGNAME@|%n|g' update-ooo-fonts.in > %i/sbin/update-ooo-fonts
+  /bin/chmod 755 %i/sbin/update-ooo-fonts
 
   # Install DocFiles
   /usr/bin/install -m 755 -d %i/share/doc/%n
@@ -535,16 +591,11 @@ ifelse(USE_FINK_PYTHON, 0,
 <<
 #AppBundles: instsetoo_native/unxmacxp.pro/OpenOffice/install/en-US_temp/OpenOffice.org*.app
 PostInstScript: <<
-  cd %p/lib/openoffice.org/share/fonts/truetype
-  echo "Converting Mac OS X fonts..."
-  /usr/bin/touch .fondudone
-  for font in /System/Library/Fonts/* /Library/Fonts/*; do
-    %p/bin/fondu --force "$font" || true
-  done
-  
+  %p/sbin/update-ooo-fonts
   [ ! -e /Applications/Fink ] && /usr/bin/install -d -m 755 /Applications/Fink
   /bin/ln -s '%p/Applications/OpenOffice.org 2.0.app' /Applications/Fink/
 <<
+PreRmScript: %p/sbin/update-ooo-fonts --clean
 PostRmScript: /bin/rm -f '/Applications/Fink/OpenOffice.org 2.0.app'
 
 Homepage: http://www.openoffice.org/
@@ -578,7 +629,7 @@ It is reported that:
 
 Because DYLD_LIBRARY_PATH does not contain %p/lib by default,
 Java cannot find %p/lib/libdb_java-4.2.jnilib at compile time and runtime.
-This script tries to make a symlink of it in %p/lib/openoffice.org/programs.
+This script tries to make a symlink of it in %p/lib/%n/programs.
 <<
 DescPackaging: <<
 To Do 1: Report build failures on building nas (Network Audio System)
@@ -594,17 +645,9 @@ These --with-system flags are not used because they are not in Fink:
    --with-system-altlinuxhyph
    --enable-evolution2
 
-I have no idea about openldap. Maybe mozilla is enough?
-   --enable-openldap
-
 Some comments about configure logs:
 # checking whether to enable fontconfig support... no
 Using fontconfig is not supported on Mac OS X.
-
-# checking whether to build Mozilla addressbook connectivity...
-#  no, not possible with system-mozilla
-# checking whether to use Mozilla or Firefox... Mozilla
-Shall I use Firefox instead of Mozilla?
 <<
 DescUsage: <<
 To start OpenOffice.org, type "soffice" on your terminal,
@@ -614,13 +657,7 @@ To use GTK+ look and feel,
 set SAL_USE_VCLPLUGIN environmental variable to "gtk".
 normally this is done by rewriting %p/bin/soffice startup script.
 
-To update fonts, execute these lines:
-  cd %p/lib/openoffice.org/share/fonts/truetype
-  for font in /System/Library/Fonts/* /Library/Fonts/*; do
-    %p/bin/fondu --force "$font"
-  done
-or just one line:
-  fink reinstall openoffice.org
+To update fonts, execute %p/sbin/update-ooo-fonts.
 <<]
 LANGUAGE([af])
 LANGUAGE([ar])
