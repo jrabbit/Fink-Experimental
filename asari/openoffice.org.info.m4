@@ -7,8 +7,8 @@ dnl ### Configurations ###
 ifdef([MODE],,
  [define([MODE], [Normal])])
 define([BASEVERSION], [[2.0.1]])
-define([SNAPSHOT], [[m156]])
-define([SOURCE_MD5], [[bbc1d1fd1cdb5c8213f3c008f88548ce]])
+define([SNAPSHOT], [[156]])
+define([SOURCE_MD5], [[d98f2e47e8ed73986cf2818edefa7ad6]])
 define([REVISION_10_3], 2)
 define([REVISION_10_4_TRANSITIONAL], 102)
 define([REVISION_10_4], 1002)
@@ -20,7 +20,7 @@ ifdef([USE_FIREFOX],,
 ifdef([USE_CRYPTO],,
  [define([USE_CRYPTO], 1)])
 define([RELEASE_SOURCE], [[stable/%v/OOo_%v_src.tar.gz]])
-define([SNAPSHOT_SOURCE], [[OOo_SRC680_]SNAPSHOT[_source.tar.bz2]])
+define([SNAPSHOT_SOURCE], [[OOo_2.0.]SNAPSHOT[_src.tar.gz]])
 
 dnl ### Macro Library ###
 dnl Replace uppercases of $1 to lowercases.
@@ -45,7 +45,7 @@ ifdef([__line__],
 
 dnl ### Other Macros ###
 ifdef([SNAPSHOT],
- [define([FINKVERSION], [BASEVERSION+SNAPSHOT])
+ [define([FINKVERSION], [BASEVERSION+m[]SNAPSHOT])
   define([SOURCE], [SNAPSHOT_SOURCE])],
  [define([FINKVERSION], [BASEVERSION])
   define([SOURCE], [RELEASE_SOURCE])])
@@ -632,6 +632,8 @@ Java cannot find %p/lib/libdb_java-4.2.jnilib at compile time and runtime.
 This script tries to make a symlink of it in %p/lib/%n/programs.
 <<
 DescPackaging: <<
+This finkinfo is maintained by m4. See experimental/asari/openoffice.org.info.m4.
+
 To Do 1: Report build failures on building nas (Network Audio System)
   ( --without-nas or --with-system-nas )
 with internal nas, build fails on Panther. 
