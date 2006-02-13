@@ -19,8 +19,18 @@ PatchScript: <<
  #!/bin/sh -ev
  sed 's|@PREFIX@|%p|g' <%a/%n.patch | patch -p1
  perl -pi.bak -e 's,\@executable_path,%p/lib/%N,; s,install_names.*,install_names,' security/coreconf/Darwin.mk
-# The norwegian letter 'circled a' causes "unterminated comment" errors in javascripts:
- find mailnews/base security/manager/pki/resources/content -name *.js|xargs perl -pi -e 's,H.kan,Haakan,'
+# The norwegian letter 'circled a' causes "unterminated comment" errors in javascripts and css files
+#  _ at least with "Encoding=UTF-8" in the .desktop files (cf patch) _; for safety, getting rid of all
+#   'non-printable' chars in the comments of such files :
+ find mailnews/base security/manager/pki/resources/content -name *.js|xargs perl -pi -e 's,H.kan,Haakan,g; s,Sch.nheit,Schoenheit,g'
+ find themes toolkit/themes -name *.css|xargs perl -pi -e 's,H.kan,Haakan,g'
+ perl -pi -e 's,J.rgensen,Jorgensen,' xpfe/components/prefwindow/resources/content/pref-scripts.js
+ perl -pi -e 's,D.*sterloh,Dusterloh,' xpfe/global/resources/content/printProgress.js
+ perl -pi -e 's,(netscape\.com\)).*,\1,' toolkit/themes/qute/global/dialog.css
+ mv extensions/reporter/resources/content/prefs/reporter.js extensions/reporter/resources/content/prefs/reporter.js.bak
+ tr -d '\r' < extensions/reporter/resources/content/prefs/reporter.js.bak > extensions/reporter/resources/content/prefs/reporter.js
+ mv embedding/qa/jstests/bridge.js embedding/qa/jstests/bridge.js.bak
+ tr -d '\r' < embedding/qa/jstests/bridge.js.bak > embedding/qa/jstests/bridge.js
 #### MISSING INCLUDES
  perl -pi.bak -e 's,\#ifndef NSS,#include "pki1t.h"\n$&,' security/nss/lib/pki1/oiddata.h
 ## All the following are "for safety" : to avoid "implicit declaration" warnings :
@@ -51,7 +61,7 @@ PatchScript: <<
 ####
 ### Finally, ad-hoc correction of some install_names :
  perl -pi -e "s;rules.mk;$&\nEXTRA_DSO_LDOPTS := \\\$\(subst install_name \\\$\(mozappdir\)/,install_name \\\$\(mozappdir\)/ipc/modules/,\\\$\(EXTRA_DSO_LDOPTS\)\);" ipc/ipcd/{extensions/{lock/src,transmngr},test}/module/Makefile.in
- perl -pi -e "s;rules.mk;$&\nEXTRA_DSO_LDOPTS := \\\$\(subst install_name \\\$\(mozappdir\)/,install_name \\\$\(mozappdir\)/plugins/,\\\$\(EXTRA_DSO_LDOPTS\)\);" modules/plugin/samples/default/unix/Makefile.in
+ perl -pi -e "s;rules.mk;$&\nEXTRA_DSO_LDOPTS := \\\$\(subst install_name \\\$\(mozappdir\)/,install_name \\\$\(mozappdir\)/plugins/,\\\$\(EXTRA_DSO_LDOPTS\)\);" modules/plugin/samples/{default/unix,unixprinting}/Makefile.in
 <<
 ##########
 ## builds also with --enable-componentlib (but had to add the "-m" flag to the ld command there), but leads to launch problems
@@ -317,13 +327,15 @@ SplitOff7: <<
   InstallScript: <<
     #!/bin/sh -ev
     mkdir -p %i/lib/%N/plugins
-    cd %I/lib/%N
-    for f in `ls -1 *.dylib|xargs file|grep dynamically|cut -f1 -d:`
-      do mv $f %i/lib/%N
-    done
-    mv plugins/libnullplugin.dylib %i/lib/%N/plugins
-    mv ipc %i/lib/%N
-    cd -
+    for dir in lib/%N lib/%N/plugins
+	do
+	   cd %I/$dir
+	   for f in `ls -1 *.dylib|xargs file|grep dynamically|cut -f1 -d:`
+		do mv $f %i/$dir
+	   done
+	   cd -
+	done
+    mv %I/lib/%N/ipc %i/lib/%N
   <<
 # The following depends strongly on %c. Adjust at the last minute.
   Shlibs: <<
@@ -353,6 +365,7 @@ SplitOff7: <<
     %p/lib/%N/libxpcom_core.dylib 1.0.0 %n (>= 1.0-1)
     %p/lib/%N/libxpistub.dylib 1.0.0 %n (>= 1.0-1)
     %p/lib/%N/plugins/libnullplugin.dylib 1.0.0 %n (>= 1.0-1)
+    %p/lib/%N/plugins/libunixprintplugin.dylib 1.0.0 %n (>= 1.0-1)
     %p/lib/%N/ipc/modules/liblockmodule.dylib 1.0.0 %n (>= 1.0-1)
     %p/lib/%N/ipc/modules/libtransmgr.dylib 1.0.0 %n (>= 1.0-1)
     %p/lib/%N/ipc/modules/libtestmodule.dylib 1.0.0 %n (>= 1.0-1)
