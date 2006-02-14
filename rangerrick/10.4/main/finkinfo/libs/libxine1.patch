@@ -1,0 +1,102 @@
+diff -uNr xine-lib-1.1.1/configure.ac xine-lib-1.1.1-new/configure.ac
+--- xine-lib-1.1.1/configure.ac	2005-11-14 07:34:45.000000000 -0500
++++ xine-lib-1.1.1-new/configure.ac	2006-02-13 16:38:55.000000000 -0500
+@@ -1916,8 +1916,8 @@
+     
+     if test x$enable_altivec = xyes; then
+         AC_DEFINE_UNQUOTED(ENABLE_ALTIVEC,,[Define this if you want to use altivec on PowerPC CPUs])
+-        CFLAGS="$CFLAGS -faltivec"
+-        LIBMPEG2_CFLAGS="$LIBMPEG2_CFLAGS -force_cpusubtype_ALL -faltivec"
++        CFLAGS="$CFLAGS -faltivec -maltivec"
++        LIBMPEG2_CFLAGS="$LIBMPEG2_CFLAGS -force_cpusubtype_ALL -faltivec -maltivec"
+     fi
+     ;;
+   ppc-*-linux* | powerpc-*) 
+diff -uNr xine-lib-1.1.1/misc/cdda_server.c xine-lib-1.1.1-new/misc/cdda_server.c
+--- xine-lib-1.1.1/misc/cdda_server.c	2004-12-12 17:00:50.000000000 -0500
++++ xine-lib-1.1.1-new/misc/cdda_server.c	2006-02-13 14:58:22.000000000 -0500
+@@ -335,7 +335,9 @@
+ 
+   /* dlopening libdvdcss */
+ 
+-#ifndef _MSC_VER
++#if defined(__APPLE__)
++  dvdcss_library = dlopen("libdvdcss.2.dylib", RTLD_LAZY);
++#elif !defined(_MSC_VER)
+   dvdcss_library = dlopen("libdvdcss.so.2", RTLD_LAZY);
+ #else
+   dvdcss_library = dlopen("libdvdcss.dll", RTLD_LAZY);
+@@ -371,7 +373,7 @@
+       dvdcss_library = NULL;
+     } else if(!dvd_open  || !dvd_close || !dvd_title || !dvd_seek
+ 	      || !dvd_read || !dvd_error || !dvdcss_version) {
+-      fprintf(stderr,  "libdvdread: Missing symbols in libdvdcss.so.2, "
++      fprintf(stderr,  "libdvdread: Missing symbols in libdvdcss, "
+ 	      "this shouldn't happen !\n");
+       dlclose(dvdcss_library);
+     }
+diff -uNr xine-lib-1.1.1/src/input/input_dvd.c xine-lib-1.1.1-new/src/input/input_dvd.c
+--- xine-lib-1.1.1/src/input/input_dvd.c	2005-10-14 17:02:16.000000000 -0400
++++ xine-lib-1.1.1-new/src/input/input_dvd.c	2006-02-13 14:58:29.000000000 -0500
+@@ -1784,7 +1784,11 @@
+ 					       "DVD drive, which you intend to use for playing DVDs."),
+ 					     10, device_change_cb, (void *)this);
+   
++#ifdef __APPLE__
++  if ((dvdcss = dlopen("libdvdcss.2.dylib", RTLD_LAZY)) != NULL) {
++#else
+   if ((dvdcss = dlopen("libdvdcss.so.2", RTLD_LAZY)) != NULL) {
++#endif
+     /* we have found libdvdcss, enable the specific config options */
+     char *raw_device;
+     static char *decrypt_modes[] = { "key", "disc", "title", NULL };
+diff -uNr xine-lib-1.1.1/src/input/libdvdnav/dvd_input.c xine-lib-1.1.1-new/src/input/libdvdnav/dvd_input.c
+--- xine-lib-1.1.1/src/input/libdvdnav/dvd_input.c	2004-04-05 14:01:09.000000000 -0400
++++ xine-lib-1.1.1-new/src/input/libdvdnav/dvd_input.c	2006-02-13 14:57:36.000000000 -0500
+@@ -287,7 +287,9 @@
+ #else
+   /* dlopening libdvdcss */
+ 
+-#ifndef WIN32
++#ifdef __APPLE__
++  dvdcss_library = dlopen("libdvdcss.2.dylib", RTLD_LAZY);
++#elif !defined(WIN32)
+   dvdcss_library = dlopen("libdvdcss.so.2", RTLD_LAZY);
+ #else
+   dvdcss_library = dlopen("libdvdcss.dll", RTLD_LAZY);
+@@ -323,7 +325,7 @@
+       dvdcss_library = NULL;
+     } else if(!DVDcss_open  || !DVDcss_close || !DVDcss_title || !DVDcss_seek
+ 	      || !DVDcss_read || !DVDcss_error || !dvdcss_version) {
+-      fprintf(stderr,  "libdvdread: Missing symbols in libdvdcss.so.2, "
++      fprintf(stderr,  "libdvdread: Missing symbols in libdvdcss, "
+ 	      "this shouldn't happen !\n");
+       dlclose(dvdcss_library);
+     }
+diff -uNr xine-lib-1.1.1/src/xine-utils/xine_check.c xine-lib-1.1.1-new/src/xine-utils/xine_check.c
+--- xine-lib-1.1.1/src/xine-utils/xine_check.c	2005-03-08 21:05:16.000000000 -0500
++++ xine-lib-1.1.1-new/src/xine-utils/xine_check.c	2006-02-13 16:26:12.000000000 -0500
+@@ -369,7 +369,11 @@
+   /* Majority of thi code was taken from or inspired by the xvinfo.c file of XFree86 */
+ 
+   dlerror(); /* clear error code */
++#ifdef __APPLE__
++  x11_handle = dlopen("libX11.dylib", RTLD_LAZY);
++#else
+   x11_handle = dlopen("libX11.so", RTLD_LAZY);
++#endif
+   if(!x11_handle) {
+     hc->msg = dlerror();
+     hc->status = XINE_HEALTH_CHECK_FAIL;
+@@ -395,7 +399,11 @@
+   }
+   
+   dlerror(); /* clear error code */
++#ifdef __APPLE__
++  xv_handle = dlopen("libXv.dylib", RTLD_LAZY);
++#else
+   xv_handle = dlopen("libXv.so", RTLD_LAZY);
++#endif
+   if(!xv_handle) {
+     hc->msg = dlerror();
+     /* Xv might still work when linked statically into the output plugin,
