@@ -516,6 +516,21 @@ sub transform_configureparams {
 	return $params;
 }
 
+sub transform_setcxx {
+	transform_setcc(@_);
+}
+
+sub transform_setcc {
+	my $tree  = shift->{'Tree'};
+	my $setcc = shift;
+
+	if ($tree eq '10.4') {
+		$setcc =~ s/3\.3/4.0/gs;
+	}
+
+	return $setcc;
+}
+
 sub transform_compilescript {
 	my $tree          = shift->{'Tree'};
 	my $compilescript = shift;
