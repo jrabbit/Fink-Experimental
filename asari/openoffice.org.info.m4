@@ -9,9 +9,9 @@ ifdef([MODE],,
 define([BASEVERSION], [[2.0.1]])
 define([SNAPSHOT], [[156]])
 define([SOURCE_MD5], [[d98f2e47e8ed73986cf2818edefa7ad6]])
-define([REVISION_10_3], 2)
-define([REVISION_10_4_TRANSITIONAL], 102)
-define([REVISION_10_4], 1002)
+define([REVISION_10_3], 3)
+define([REVISION_10_4_TRANSITIONAL], 103)
+define([REVISION_10_4], 1003)
 define([REVISION_SUFFIX],[])
 ifdef([USE_FINK_PYTHON],,
  [define([USE_FINK_PYTHON], 1)])
@@ -21,6 +21,7 @@ ifdef([USE_CRYPTO],,
  [define([USE_CRYPTO], 1)])
 define([RELEASE_SOURCE], [[stable/%v/OOo_%v_src.tar.gz]])
 define([SNAPSHOT_SOURCE], [[OOo_2.0.]SNAPSHOT[_src.tar.gz]])
+define([SOURCE_DIRECTORY], [[SRC680_m]SNAPSHOT])
 
 dnl ### Macro Library ###
 dnl Replace uppercases of $1 to lowercases.
@@ -138,8 +139,8 @@ IF_CRYPTO(
    [[  mozilla-dev]IF_10_4([[ (>= 1.7.5-1102)]]),])
 ])dnl
 ifelse(USE_FINK_PYTHON, 1,
-[[  boost1.32-py24, python24]IF_10_4([[ (>= 1:2.4.2-1004)]]),],
-[[  boost1.32-py23 | boost1.32-py24,]])
+[[  boost1.32-py24]IF_10_4([[ (>= 1.32.0-1002)]])[, python24]IF_10_4([[ (>= 1:2.4.2-1004)]]),],
+[[  boost1.32-py23]IF_10_4([[ (>= 1.32.0-1002)]])[ | boost1.32-py24]IF_10_4([[ (>= 1.32.0-1002)]]),])
 [  pkgconfig, popt, autoconf2.5
 <<
 
@@ -310,7 +311,7 @@ ifelse(MODE, [Normal], [divert(0)], [divert(-1)])dnl
 [<<
 Source: mirror:custom:]SOURCE[
 Source-MD5: ]SOURCE_MD5[
-NoSourceDirectory: true
+SourceDirectory: ]SOURCE_DIRECTORY[
 
 PatchScript: <<
   /usr/bin/patch -p0 < %a/openoffice.org.patch
@@ -688,6 +689,7 @@ LANGUAGE([eo])
 LANGUAGE([es])
 LANGUAGE([et])
 LANGUAGE([eu])
+LANGUAGE([fa])
 LANGUAGE([fi])
 LANGUAGE([fr])
 LANGUAGE([ga])

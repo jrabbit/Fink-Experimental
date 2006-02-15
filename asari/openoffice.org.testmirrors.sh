@@ -2,7 +2,11 @@
 
 : ${INFOFILE="openoffice.org.info.m4"}
 : ${M4="/usr/bin/m4"}
-: ${CURL="/usr/bin/curl"}
+if test -x "/sw/bin/curl"; then
+    : ${CURL="/sw/bin/curl"}
+else
+    : ${CURL="/usr/bin/curl"}
+fi
 myname=`basename $0`
 
 if test -x "/usr/bin/mktemp"; then
