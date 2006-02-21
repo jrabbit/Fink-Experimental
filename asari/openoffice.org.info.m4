@@ -9,9 +9,9 @@ ifdef([MODE],,
 define([BASEVERSION], [[2.0.1]])
 define([SNAPSHOT], [[156]])
 define([SOURCE_MD5], [[d98f2e47e8ed73986cf2818edefa7ad6]])
-define([REVISION_10_3], 3)
-define([REVISION_10_4_TRANSITIONAL], 103)
-define([REVISION_10_4], 1003)
+define([REVISION_10_3], 4)
+define([REVISION_10_4_TRANSITIONAL], 104)
+define([REVISION_10_4], 1004)
 define([REVISION_SUFFIX],[])
 ifdef([USE_FINK_PYTHON],,
  [define([USE_FINK_PYTHON], 1)])
@@ -120,18 +120,18 @@ BuildConflicts: libicu32-dev
 BuildDepends: <<
   x11-dev, ant, bison, fileutils, system-java14-dev,
   archive-zip-pm]PERLVERSION[,
-  libjpeg, expat, freetype219, libwpd-0.8-dev, libxml2,
+  libjpeg, expat, freetype219, libxml2,
   sane-backends-dev, libcurl3-unified, libsndfile1-dev,
   portaudio (>= 18.1-1), neon24-ssl | neon24,
   libart2, startup-notification-dev, libgettext3-dev,
   atk1, gtk+2-dev, orbit2-dev, pango1-xft2-dev,
   libiconv-dev, openldap23-dev,]
 IF_10_4(
-[[  glib2-dev (>= 2.6.6-1111),
+[[  libwpd-0.8-dev (>= 0.8.2-1001), glib2-dev (>= 2.6.6-1111),
   db42-ssl (>= 4.2.52-1017) | db42 (>= 4.2.52-1017),
   libsablot-dev (>= 0.98-1024), libsablot (>= 0.98-1024),
   unixodbc2-nox (>= 2.2.11-1010) | unixodbc2 (>= 2.2.11-1010),]],
-[[  glib2-dev, db42-ssl | db42,
+[[  libwpd-0.8-dev, glib2-dev, db42-ssl | db42,
   libsablot-dev, libsablot, unixodbc2-nox | unixodbc2,]])
 IF_CRYPTO(
  [IF_FIREFOX(
@@ -146,19 +146,20 @@ ifelse(USE_FINK_PYTHON, 1,
 
 Depends: <<
   x11, system-java14, system-perl,
-  libjpeg-shlibs, expat-shlibs, freetype219-shlibs, libwpd-0.8-shlibs, libxml2-shlibs,
+  libjpeg-shlibs, expat-shlibs, freetype219-shlibs, libxml2-shlibs,
   sane-backends-shlibs, libcurl3-unified-shlibs, libsndfile1-shlibs,
   portaudio-shlibs (>= 18.1-1), neon24-ssl-shlibs | neon24-shlibs,
   libart2-shlibs, startup-notification-shlibs,
   atk1-shlibs, gtk+2-shlibs, libgettext3-shlibs, pango1-xft2-shlibs,
   libiconv, openldap23-shlibs,]
 IF_10_4(
-[[  glib2-shlibs (>= 2.6.6-1111),
+[[  libwpd-0.8-shlibs (>= 0.8.2-1001), glib2-shlibs (>= 2.6.6-1111),
   db42-ssl-shlibs (>= 4.2.52-1017) | db42-shlibs (>= 4.2.52-1017),
   db42-ssl-java (>= 4.2.52-1012) | db42-java (>= 4.2.52-1012),
   libsablot-shlibs (>= 0.98-1024),
   unixodbc2-nox-shlibs (>= 2.2.11-1010) | unixodbc2-shlibs (>= 2.2.11-1010),]],
-[[  glib2-shlibs, db42-ssl-shlibs | db42-shlibs, db42-ssl-java | db42-java,
+[[  libwpd-0.8-shlibs, glib2-shlibs,
+  db42-ssl-shlibs | db42-shlibs, db42-ssl-java | db42-java,
   libsablot-shlibs, unixodbc2-nox-shlibs | unixodbc2-shlibs,]])
 IF_CRYPTO(
  [IF_FIREFOX(
@@ -367,6 +368,11 @@ CompileScript: <<
 
   set -e
 
+  if ${CXX:-"g++"} --version | /usr/bin/grep -q 'i686.*4\.0\.1.*5250'; then
+    echo "Xcode 2.2.1 for Intel is buggy." >&2
+    exit 2
+  fi
+
   echo "[ Message from OpenOffice.org package maintainer ] ================="
   echo
   echo "Welcome to OpenOffice.org build script!"
@@ -405,6 +411,21 @@ CompileScript: <<
 
   set -v
 
+  # Check the architecture
+  case %m in
+    powerpc) machine=PPC;;
+    i386) machine=Intel;;
+    *) echo 'Unknown architecture'; exit 1;;
+  esac
+
+  # Create a log file
+  tmpdir=`/sw/sbin/mktemp -d /tmp/fink-ooo.XXXXXX`
+  test -n "$tmpdir"
+  trap 'rm -rf "$tmpdir"' 0
+  /usr/bin/mkfifo "$tmpdir/log"
+  /usr/bin/tee -i %n-%v-%r.buildlog < "$tmpdir/log" &
+  exec 3>"$tmpdir/log"
+
   # $X_LDFLAGS is needed to configure with X correctly.  
   export X_LDFLAGS=$LDFLAGS
 
@@ -417,18 +438,12 @@ ifelse(USE_FINK_PYTHON, 1,
 [[  # $PYTHON is needed to configure with the Darwin's python
   export PYTHON=/usr/bin/python]])
 [
-  /usr/bin/printf "[ Phase 1: Configure ]\n\n" >> %n-%v-%r.buildlog
-  (cd config_office && autoconf && ./configure %c || exit) 2>&1 |
-    /usr/bin/tee -ai %n-%v-%r.buildlog
-  case %m in
-    powerpc) machine=PPC;;
-    i386) machine=Intel;;
-    *) echo 'Unknown architecture'; exit 1;;
-  esac
 
-  /usr/bin/printf "\n\n[ Phase 2: Bootstrap ]\n\n" >> %n-%v-%r.buildlog
-  ./bootstrap 2>&1 |
-    /usr/bin/tee -ai %n-%v-%r.buildlog
+  /usr/bin/printf "[ Phase 1: Configure ]\n\n" >&3
+  (cd config_office && autoconf && ./configure %c) >&3 2>&3 || exit
+
+  /usr/bin/printf "\n\n[ Phase 2: Bootstrap ]\n\n" >&3
+  ./bootstrap >&3 2>&3
 
   # Because we are using %p, $SOLARINC and $SOLARLIB need modified  
   # Include libdb_java-4.2.jnilib to DYLD_LIBRARY_PATH so that Java can find it
@@ -443,14 +458,11 @@ ifelse(USE_FINK_PYTHON, 1,
   /bin/ln -s %p/lib/libdb_java-4.2.jnilib FINKLIBS
 
   # Retry forever to build OOo until success!
-  until [ -n "$succeeded" ]; do
-    /usr/bin/printf "\n\n[ Phase 3: Make ]\n\n" >> %n-%v-%r.buildlog
+  while :; do
+    /usr/bin/printf "\n\n[ Phase 3: Make ]\n\n" >&3
     . ./MacOSX${machine}Env.Set.sh
-    dmake 2>&1 | /usr/bin/tee -ai %n-%v-%r.buildlog
-    if [ ${PIPESTATUS[0]} == 0 ]; then
-      succeeded=TRUE
-      continue
-    fi
+    dmake >&3 2>&3 && break
+
     echo
     echo "[ Message from OpenOffice.org package maintainer ] ================="
     echo
@@ -470,21 +482,21 @@ ifelse(USE_FINK_PYTHON, 1,
 
   set +v
 
-  /usr/bin/printf "\n\n[ Phase 4: Statistics ]\n\n" >> %n-%v-%r.buildlog
+  /usr/bin/printf "\n\n[ Phase 4: Statistics ]\n\n" >&3
   echo
   echo "[ Message from OpenOffice.org package maintainer ] ================="
   echo
   echo "Congratulations!"
   echo "The building process of OpenOffice.org has completed!"
-  echo "   Started:   $STARTTIME" | /usr/bin/tee -ai %n-%v-%r.buildlog
+  echo "   Started:   $STARTTIME" >&3
 
   ENDTIME=`/bin/date +"%%F %%T %%Z(%%z)"`
 
-  echo "   Completed: $ENDTIME"   | /usr/bin/tee -ai %n-%v-%r.buildlog
+  echo "   Completed: $ENDTIME" >&3
 
   DISKUSAGE=`/usr/bin/du -sh %b | /usr/bin/cut -f1`
 
-  echo "   $DISKUSAGE is used for this building process (not including tarball)." | /usr/bin/tee -ai %n-%v-%r.buildlog
+  echo "   $DISKUSAGE is used for this building process (not including tarball)." >&3
   echo
   echo "===================================================================="
 <<
@@ -589,7 +601,7 @@ ifelse(eval(USE_FIREFOX || !USE_CRYPTO), 1,
   /usr/bin/install -d -m 755 %i/Applications
   /usr/bin/tar -xf $STAR_RESOURCEPATH/OpenOffice.org.app.tar -C %i/Applications
   /bin/mv %i/Applications/OpenOffice.org.app "%i/Applications/OpenOffice.org 2.0.app"
-  /bin/ln -s %p/lib/%n "%i/Applications/OpenOffice.org 2.0.app/Contents"
+  /bin/ln -s %p/lib/%n "%i/Applications/OpenOffice.org 2.0.app/Contents/openoffice.org"
   /bin/chmod -R o-w '%i/Applications/'
   [ -x /Developer/Tools/SplitForks ] && /Developer/Tools/SplitForks '%i/Applications/'
 
