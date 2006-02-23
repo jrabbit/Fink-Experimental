@@ -1,0 +1,72 @@
+#!/bin/sh -e
+
+# Find the Epoch-Version-Revision of a given package
+
+help_finkpkgver()
+{
+echo "-----------------------------------------------------"
+echo -e "Find the Epoch-Version-Revision of a given package"
+echo -e "in all trees, branches - including local - if it exists.\n"
+echo -e "Usage: $0 -w RootFinkTree -p Package"
+echo " -w the location of the root of fink tree"
+echo "    default to /sw"
+echo -e " -p the package to find\n"
+echo "It is on purpose that the Fink root tree is not"
+echo "retrieved automatically, thus allowing to search"
+echo -e "for a non active Fink tree, in case such a tree exists.\n"
+echo "Author: Michele Garoche Date: February 19th, 2006"
+echo "-----------------------------------------------------"
+exit 1
+}
+
+# Default values 
+MYSW="/sw"
+
+# No argument
+if [[ $# -lt 1 ]]; then
+help_finkpkgver
+fi
+
+OPTIND=1
+while getopts "w:p:" flag
+do
+case "$flag" in
+w) MYSW="$OPTARG";;
+p) MYPACK="$OPTARG";;
+\?) help_finkpkgver;;
+esac
+done
+
+# Wrong root fink directory
+if [ ! -e ${MYSW} ]; then
+echo -e "\nPlease, supply an existing Fink root directory\n"
+help_finkpkgver
+fi
+
+# Build the tree list to explore
+MYTREELIST=`for MYTREE in 10.3/stable/main/finkinfo 10.3/stable/crypto/finkinfo 10.3/unstable/main/finkinfo 10.3/unstable/crypto/finkinfo 10.3/local/main/finkinfo 10.4-transitional/stable/main/finkinfo 10.4-transitional/stable/crypto/finkinfo 10.4-transitional/unstable/main/finkinfo 10.4-transitional/unstable/crypto/finkinfo 10.4-transitional/local/main/finkinfo 10.4/stable/main/finkinfo 10.4/stable/crypto/finkinfo 10.4/unstable/main/finkinfo 10.4/unstable/crypto/finkinfo 10.4/local/main/finkinfo ; do
+cd ${MYSW}/fink
+# Do not take into account inexistant trees
+[ -x "${MYTREE}" ] || continue
+# Concatenate directories separated by space
+echo -n "${MYTREE}"' '
+done`
+
+# Explore the tree
+for MYTREE in ${MYTREELIST}; do
+cd ${MYSW}/fink/${MYTREE}
+# Distinguish between main (subtrees) and crypto, local (no subtrees)
+for FIL in ./*/${MYPACK}.info ./${MYPACK}.info; do
+# Treat only existant files
+if [ -e "${FIL}" ]; then
+# Distinguish between lenghth of directories, could surely be made a better way
+if [ $(dirname $(dirname ${MYTREE})) = "10.4-transitional/unstable" ]; then
+echo -n ${MYTREE}$'\t'`egrep '^Package: (?)*' ${FIL} | awk '{ print $2 }'`$'\t'`egrep '^Epoch: (?)*' ${FIL} | awk '{ print $2 }'`':'`egrep '^Version: (?)*' ${FIL} | awk '{ print $2 }'`'-'`egrep '^Revision: (?)*' ${FIL} | awk '{ print $2 }'`$'\n';
+elif [ $(dirname $(dirname ${MYTREE})) = "10.4-transitional/stable" ] || [ $(dirname $(dirname ${MYTREE})) = "10.4-transitional/local" ]; then
+echo -n ${MYTREE}$'\t\t'`egrep '^Package: (?)*' ${FIL} | awk '{ print $2 }'`$'\t'`egrep '^Epoch: (?)*' ${FIL} | awk '{ print $2 }'`':'`egrep '^Version: (?)*' ${FIL} | awk '{ print $2 }'`'-'`egrep '^Revision: (?)*' ${FIL} | awk '{ print $2 }'`$'\n';
+else
+echo -n ${MYTREE}$'\t\t\t'`egrep '^Package: (?)*' ${FIL} | awk '{ print $2 }'`$'\t'`egrep '^Epoch: (?)*' ${FIL} | awk '{ print $2 }'`':'`egrep '^Version: (?)*' ${FIL} | awk '{ print $2 }'`'-'`egrep '^Revision: (?)*' ${FIL} | awk '{ print $2 }'`$'\n';
+fi
+fi
+done
+done
