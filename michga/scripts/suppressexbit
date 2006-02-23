@@ -1,0 +1,48 @@
+#!/bin/sh -e
+
+# Find all info files whose executable bit is set
+
+help_suppressexbit()
+{
+echo "-----------------------------------------------------"
+echo -e "Purpose: Search info files whose executable bit is set\n"
+echo -e "Usage: $0 -w -r\n"
+echo -e "Options:\n"
+echo " -w the location of the root of fink tree" 
+echo "    default to /sw"
+echo " -r remove the executable bit"
+echo "    default don't remove it\n"
+echo "Author: Michele Garoche Date: February 23rd, 2006"
+echo "-----------------------------------------------------"
+
+exit 1
+}
+
+# Default
+MYSW="/sw"
+MYREMOVE=FALSE
+
+OPTIND=1
+while getopts ":w:r" flag
+do
+case "$flag" in
+w) MYSW="$OPTARG";;
+r) MYREMOVE=TRUE;;
+\?) help_suppressexbit;;
+esac
+done
+
+WHERE1=main/finkinfo
+WHERE2=crypto/finkinfo
+MYCOUNT=0
+
+for MYBRANCH in 10.3 10.4-transitional 10.4; do
+for MYTREE in stable unstable; do
+WHERE0=${MYSW}/fink/${MYBRANCH}/${MYTREE}/
+cd ${WHERE0}
+for FIL in `find ${WHERE1}/ -name \*.info` `find ${WHERE2}/ -name \*.info`; do
+[[ -x "${FIL}" ]] && echo -n ${MYBRANCH}-${MYTREE}: ${FIL}$'\n' && let MYCOUNT=MYCOUNT+1 && [[ "${MYREMOVE}" = TRUE ]] && chmod -x ${FIL}
+done
+done
+done
+echo "Found "${MYCOUNT}" executable bit(s) set." && [[ "${MYREMOVE}" = TRUE ]] && echo "Removed."
