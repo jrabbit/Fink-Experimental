@@ -1,3 +1,14 @@
+--- espgs-7.07.1/lib/ps2ps.org	2005-03-16 13:22:27.000000000 +0100
++++ espgs-7.07.1/lib/ps2ps	2005-03-16 13:22:44.000000000 +0100
+@@ -6,7 +6,7 @@
+ while true
+ do
+ 	case "$1" in
+-	-*) OPTIONS="$OPTIONS $1" ;;
++	-?*) OPTIONS="$OPTIONS $1" ;;
+ 	*)  break ;;
+ 	esac
+ 	shift
 --- espgs-7.07.1/lib/ps2epsi.org	2003-11-15 18:45:26.123092511 +0100
 +++ espgs-7.07.1/lib/ps2epsi	2003-11-15 18:45:43.224353499 +0100
 @@ -1,7 +1,7 @@
@@ -585,661 +596,7 @@ diff -Naur espgs-7.05.6.orig/lib/gs_res.ps.in espgs-7.05.6/lib/gs_res.ps.in
      }
      spputc(s, pxtSetLineDash);
 
-diff -ruN ghostscript-7.07.orig/lib/gs_ttf.ps ghostscript-7.07/lib/gs_ttf.ps
---- ghostscript-7.07.orig/lib/gs_ttf.ps	2003-04-12 23:02:38.000000000 +0900
-+++ ghostscript-7.07/lib/gs_ttf.ps	2003-07-24 19:00:37.000000000 +0900
-@@ -575,7 +575,7 @@
-   (maxp) 1 index
-   (name) 1 index
-   (OS/2) 1 index
--  (post) 1 index
-+  (post) { .readbigtable }
-   (vhea) 1 index
- 	% Big tables
-   (glyf) { .readbigtable }
-@@ -918,10 +918,17 @@
-   DEBUG { (fontname ) print fontname = } if
- 		% Stack: ... /FontInfo mark key1 value1 ...
-   post null ne {
--    /ItalicAngle post 4 gets32 65536.0 div
--    /isFixedPitch post 12 getu32 0 ne
--    /UnderlinePosition post 8 gets16 upem div
--    /UnderlineThickness post 10 gets16 upem div
-+    post type /arraytype eq {
-+      % this post table is a big table. /post should be [(...) ...]
-+      % data we actually need here should be first one in array.
-+      /posttable post 1 get def
-+    } {
-+      /posttable post def
-+    } ifelse
-+    /ItalicAngle posttable 4 gets32 65536.0 div
-+    /isFixedPitch posttable 12 getu32 0 ne
-+    /UnderlinePosition posttable 8 gets16 upem div
-+    /UnderlineThickness posttable 10 gets16 upem div
-   } if
-   counttomark 0 ne { .dicttomark } { pop pop } ifelse
-   /XUID [orgXUID 42 curxuid]
 
-diff -ruN ghostscript-7.07.orig/lib/gs_ttf.ps ghostscript-7.07/lib/gs_ttf.ps
---- ghostscript-7.07.orig/lib/gs_ttf.ps	2003-07-29 16:51:55.000000000 +0900
-+++ ghostscript-7.07/lib/gs_ttf.ps	2003-07-29 17:44:43.000000000 +0900
-@@ -1117,50 +1117,77 @@
-   /gsubh2v null def
-   tabdict /GSUB .knownget { % if
-     dup /gsubver exch 0 getu32 def
--    %dup /gsubosl exch 4 getu16 12 add def
--    %dup /gsubofl exch 6 getu16 12 add def
--    dup /gsuboll exch 8 getu16 12 add def
-+    %dup /gsubosl exch 4 getu16 def
-+    %dup /gsubofl exch 6 getu16 def
-+    dup /gsuboll exch 8 getu16 def
-     DEBUG {
-       (gsubver: ) print gsubver =
-       %(gsubosl: ) print gsubosl =
-       %(gsubofl: ) print gsubofl =
-       (gsuboll: ) print gsuboll =
-     } if
--    dup /gsubfmt exch gsuboll 0 add getu16 def
-+    % /gsuboll should be pointed out the LookupList table, but not Lookup table.
-+    % so this is wrong:
-+    % dup /gsubfmt exch gsuboll 0 add getu16 def
-+    dup /gsublc exch gsuboll 0 add getu16 def
-     DEBUG {
--      (gsubfmt: ) print gsubfmt =
-+      (gsublc: ) print gsublc =
-     } if
--%    gsubver 16#00010000 eq { % ifelse
--      gsubfmt 2 eq { % ifelse
--	dup /gsubocv exch gsuboll 2 add getu16 def
--	dup /gsubglc exch gsuboll 4 add getu16 def
--	% hacked by suzuki toshiya at 2001/3/6
--	%dup /gsubvog exch gsuboll 6 add gsubglc getinterval def
--	%dup /gsubhog exch gsuboll gsubocv add 4 add gsubglc getinterval def
--	dup /gsubvog exch gsuboll 6 add gsubglc 2 mul getinterval def
--	dup /gsubhog exch gsuboll gsubocv add 4 add gsubglc 2 mul getinterval def
-+    gsublc 0 ne {
-+      0 1 gsublc 1 sub {
-+	2 mul /gsubolt exch 2 index exch gsuboll 2 add add getu16 gsuboll add def
-+	dup /gsubltype exch gsubolt 0 add getu16 def
-+	dup /gsublflag exch gsubolt 2 add getu16 def
-+	dup /gsubsubc exch gsubolt 4 add getu16 def
- 	DEBUG {
--	  (gsubocv: ) print gsubocv =
--	  (gsubglc: ) print gsubglc =
--
--	  (gsubhog->gsubvog ) =
--	  0 2 gsubhog length 2 sub { % for
--	    dup
--	    gsubhog exch getu16 =only
--	    (->) =only
--	    gsubvog exch getu16 =
-+	  (gsubolt: ) print gsubolt =
-+	  (gsubltype: ) print gsubltype =
-+	  (gsublflag: ) print gsublflag =
-+	  (gsubsubc: ) print gsubsubc =
-+	} if
-+	gsubsubc 0 ne {
-+	  0 1 gsubsubc 1 sub {
-+	    2 mul /gsubost exch 2 index exch gsubolt 6 add add getu16 gsubolt add def
-+	    dup /substfmt exch gsubost 0 add getu16 def
-+	    DEBUG {
-+	      (gsubost: ) print gsubost =
-+	      (substfmt: ) print substfmt =
-+	    } if
-+%	    gsubver 16#00010000 eq { % ifelse
-+	    gsubltype 1 eq substfmt 2 eq and { % ifelse
-+	      dup /gsubocv exch gsubost 2 add getu16 def
-+	      dup /gsubglc exch gsubost 4 add getu16 def
-+	      % hacked by suzuki toshiya at 2001/3/6
-+	      %dup /gsubvog exch gsubost 6 add gsubglc getinterval def
-+	      %dup /gsubhog exch gsubost gsubocv add 4 add gsubglc getinterval def
-+	      dup /gsubvog exch gsubost 6 add gsubglc 2 mul getinterval def
-+	      dup /gsubhog exch gsubost gsubocv add 4 add gsubglc 2 mul getinterval def
-+	      DEBUG {
-+		(gsubocv: ) print gsubocv =
-+		(gsubglc: ) print gsubglc =
-+
-+		(gsubhog->gsubvog ) =
-+		0 2 gsubhog length 2 sub { % for
-+		  dup
-+		  gsubhog exch getu16 =only
-+		  (->) =only
-+		  gsubvog exch getu16 =
-+		} for
-+	      } if
-+	      /gsubh2v << 0 2 gsubhog length 2 sub {
-+		dup gsubhog exch getu16
-+		exch gsubvog exch getu16
-+	      } for >> def
-+	    } {
-+	      %(UNKNOWN GSUB FORMAT.) = flush
-+	    } ifelse
-+%	    } {
-+%	      (ILLEGAL GSUB VERSION.) = flush
-+%	    } ifelse
- 	  } for
- 	} if
--	/gsubh2v << 0 2 gsubhog length 2 sub {
--	  dup gsubhog exch getu16
--	  exch gsubvog exch getu16
--	} for >> def
--      } {
--	%(UNKNOWN GSUB FORMAT.) = flush
--      } ifelse
--%    } {
--%      (ILLEGAL GSUB VERSION.) = flush
--%    } ifelse
-+      } for
-+    } if
-     pop
-   } if
- } bind def
-
-diff -ruN ghostscript-7.07.orig/lib/gs_ttf.ps ghostscript-7.07/lib/gs_ttf.ps
---- ghostscript-7.07.orig/lib/gs_ttf.ps	2003-08-04 15:23:15.000000000 +0900
-+++ ghostscript-7.07/lib/gs_ttf.ps	2003-08-04 15:22:23.000000000 +0900
-@@ -1104,9 +1104,26 @@
- % 4	2	Offset	Coverage(--)
- % 6	2	uint16	GlyphCount
- % 8	2	GlyphID	Substitute(vertically oriented glyphs)
--% --	2	uint16	SubstFormat
--% +2	2	uint16	GlyphCount(same as above GlyphCount)
--% +4	2	GlyphID	GlyphArray(horizontally oriented glyphs)
-+%
-+% [Coverage Format 1, Individual glyph indices]
-+% Index Size    Type    Name of Entry
-+% -----------------------------------
-+% 0     2       uint16  CoverageFormat (Format identifier-format = 1)
-+% 2     2       uint16  GlyphCount (same as above GlyphCount)
-+% 4     2       GlyphID GlyphArray (horizontally oriented glyphs)
-+%
-+% [Coverage Format 2, Range of glyphs
-+% Index Size    Type    Name of Entry
-+% -----------------------------------
-+% 0     2       uint16  CoverageFormat (Format identifier-format = 2)
-+% 2     2       uint16  RangeCount
-+% 4     2       struct  RangeRecord[RangeCount]
-+% [RangeRecord]
-+% Index Size    Type    Name of Entry
-+% -----------------------------------
-+% 0     2       GlyphID First GlyphID in the range
-+% 2     2       GlyphID Last GlyphID in the range
-+% 4     2       uint16  Coverage Index of first GlpyhID in range
- % -----------------------------------
- % References
- % 1. http://www.microsoft.com/typography/OTSPEC/gsub.htm
-@@ -1161,10 +1178,13 @@
- 	      %dup /gsubvog exch gsubost 6 add gsubglc getinterval def
- 	      %dup /gsubhog exch gsubost gsubocv add 4 add gsubglc getinterval def
- 	      dup /gsubvog exch gsubost 6 add gsubglc 2 mul getinterval def
--	      dup /gsubhog exch gsubost gsubocv add 4 add gsubglc 2 mul getinterval def
-+	      dup /cvfmt exch gsubost gsubocv add 0 add getu16 def
-+	      dup /cvglc exch gsubost gsubocv add 2 add getu16 def
-+	      dup /gsubhog exch gsubost gsubocv add 4 add cvglc 2 mul getinterval def
- 	      DEBUG {
- 		(gsubocv: ) print gsubocv =
- 		(gsubglc: ) print gsubglc =
-+		(cvfmt: ) print cvfmt =
- 
- 		(gsubhog->gsubvog ) =
- 		0 2 gsubhog length 2 sub { % for
-@@ -1174,10 +1194,31 @@
- 		  gsubvog exch getu16 =
- 		} for
- 	      } if
--	      /gsubh2v << 0 2 gsubhog length 2 sub {
--		dup gsubhog exch getu16
--		exch gsubvog exch getu16
--	      } for >> def
-+	      cvfmt 1 eq {
-+		/gsubh2v << 0 2 gsubhog length 2 sub {
-+		  dup gsubhog exch getu16
-+		  exch gsubvog exch getu16
-+		} for >> def
-+	      } {
-+		cvfmt 2 eq {
-+		  /gsubh2v << 0 6 gsubhog length 6 sub {
-+		    dup 0 add /fgid exch gsubhog exch getu16 def
-+		    dup 2 add /lgid exch gsubhog exch getu16 def
-+		    4 add /cvidx exch gsubhog exch getu16 def
-+		    DEBUG {
-+		      (fgid: ) print fgid =
-+		      (lgid: ) print lgid =
-+		      (cvidx: ) print cvidx =
-+		    } if
-+		    fgid 1 lgid {
-+		      dup cvidx add fgid sub
-+		      exch gsubvog exch getu16
-+		    } for
-+		  } for >> def
-+		} {
-+		  %(UNKNWON COVERAGE FORMAT.) = flush
-+		} ifelse
-+	      } ifelse
- 	    } {
- 	      %(UNKNOWN GSUB FORMAT.) = flush
- 	    } ifelse
-
---- espgs-7.07.1/lib/ps2pdfwr.org	2003-09-01 18:39:30.000000000 +0900
-+++ espgs-7.07.1/lib/ps2pdfwr	2003-09-25 18:39:14.000000000 +0900
-@@ -31,6 +31,169 @@
- 	outfile="$2"
- fi
- 
-+[ "$NeverEmbedFontList" != "" ] || NeverEmbedFontList="
-+/Courier
-+/Courier-Bold
-+/Courier-BoldOblique
-+/Courier-Oblique
-+/Helvetica
-+/Helvetica-Bold
-+/Helvetica-BoldOblique
-+/Helvetica-Oblique
-+/Symbol
-+/Times-Bold
-+/Times-BoldItalic
-+/Times-Italic
-+/Times-Roman
-+/ZapfDingbats
-+"
-+[ "$AlwaysEmbedFontList" != "" ] || AlwaysEmbedFontList="
-+/AvantGarde-Book
-+/AvantGarde-BookOblique
-+/AvantGarde-Demi
-+/AvantGarde-DemiOblique
-+/Bookman-Demi
-+/Bookman-DemiItalic
-+/Bookman-Light
-+/Bookman-LightItalic
-+/Helvetica-Narrow
-+/Helvetica-Narrow-Bold
-+/Helvetica-Narrow-BoldOblique
-+/Helvetica-Narrow-Oblique
-+/Palatino-Bold
-+/Palatino-BoldItalic
-+/Palatino-Italic
-+/Palatino-Roman
-+/ZapfChancery-MediumItalic
-+
-+/Arial-BoldItalicMT
-+/Arial-BoldMT
-+/Arial-ItalicMT
-+/ArialMT
-+/ArialNarrow
-+/ArialNarrow-Bold
-+/ArialNarrow-BoldItalic
-+/ArialNarrow-Italic
-+/BookmanOldStyle
-+/BookmanOldStyle-Bold
-+/BookmanOldStyle-BoldItalic
-+/BookmanOldStyle-Italic
-+/CenturyGothic
-+/CenturyGothic-Bold
-+/CenturyGothic-BoldItalic
-+/CenturyGothic-Italic
-+/CourierNewPS-BoldItalicMT
-+/CourierNewPS-BoldMT
-+/CourierNewPS-ItalicMT
-+/CourierNewPSMT
-+/NewCenturySchlbk-Bold
-+/NewCenturySchlbk-BoldItalic
-+/NewCenturySchlbk-Italic
-+/NewCenturySchlbk-Roman
-+/PalatinoLinotype-Bold
-+/PalatinoLinotype-BoldItalic
-+/PalatinoLinotype-Italic
-+/PalatinoLinotype-Roman
-+/TimesNewRomanPS-BoldItalicMT
-+/TimesNewRomanPS-BoldMT
-+/TimesNewRomanPS-ItalicMT
-+/TimesNewRomanPSMT
-+"
-+[ "$NeverEmbedCIDFontList" != "" ] || NeverEmbedCIDFontList="
-+/MSung-Light
-+/MSung-Medium
-+/MHei-Medium
-+/MKai-Medium
-+/STSong-Light
-+/STFangsong-Light
-+/STHeiti-Regular
-+/STKaiti-Regular
-+/Ryumin-Light
-+/GothicBBB-Medium
-+/HeiseiMin-W3
-+/HeiseiKakuGo-W5
-+/KozMin-Regular
-+/HYGoThic-Medium
-+/HYGungSo-Bold
-+/HYKHeadLine-Bold
-+/HYKHeadLine-Medium
-+/HYSMyeongJo-Medium
-+/HYRGoThic-Medium
-+
-+/MOEKai-Regular
-+/MOESung-Regular
-+/WadaGo-Bold
-+/WadaMaruGo-Regular
-+/WadaMaruGo-RegularH
-+/WadaMin-Bold
-+/WadaMin-Regular
-+/WadaMin-RegularH
-+/Munhwa-Bold
-+/Munhwa-Regular
-+/MunhwaGothic-Bold
-+/MunhwaGothic-Regular
-+/MunhwaGungSeo-Bold
-+/MunhwaGungSeo-Light
-+/MunhwaGungSeoHeulim-Bold
-+/MunhwaGungSeoHeulim-Light
-+/MunhwaHoonMin-Regular
-+
-+/MingLiU
-+/PMingLiU
-+/SimHei
-+/SimSun
-+/NSimSun
-+/HGGothicE
-+/HGGothicEPRO
-+/HGGothicM
-+/HGGyoshotai
-+/HGMarugothicMPRO
-+/HGPGothicE
-+/HGPGothicM
-+/HGPGyoshotai
-+/HGPSoeiKakugothicUB
-+/HGPSoeiKakupoptai
-+/HGSGothicE
-+/HGSGothicM
-+/HGSGyoshotai
-+/HGSSoeiKakugothicUB
-+/HGSSoeiKakupoptai
-+/HGSeikaishotaiPRO
-+/HGSoeiKakugothicUB
-+/HGSoeiKakupoptai
-+/Kochi-Gothic
-+/Kochi-Mincho
-+/MojikumiKata-EB
-+/Mona
-+/MS-Mincho
-+/MS-PMincho
-+/MS-Gothic
-+/MS-PGothic
-+/MS-UIGothic
-+/Batang
-+/BatangChe
-+/Gungsuh
-+/GungsuhChe
-+/Gulim
-+/GulimChe
-+/Dotum
-+/DotumChe
-+/New-Gulim
-+
-+/MHei-Medium-Acro
-+/MSung-Light-Acro
-+/STSong-Light-Acro
-+/HeiseiKakuGo-W5-Acro
-+/HeiseiMin-W3-Acro
-+/HYGoThic-Medium-Acro
-+/HYSMyeongJo-Medium-Acro
-+"
-+[ "$AlwaysEmbedCIDFontList" != "" ] || AlwaysEmbedCIDFontList="
-+/SimSun-18030-Adobe-CNS1
-+/NSimSun-18030-Adobe-CNS1
-+/SimSun-18030
-+/NSimSun-18030
-+"
- # We have to include the options twice because -I only takes effect if it
- # appears before other options.
--exec gs $OPTIONS -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite "-sOutputFile=$outfile" $OPTIONS -c .setpdfwrite -f "$infile"
-+exec gs $OPTIONS -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite "-sOutputFile=$outfile" $OPTIONS -c ".setpdfwrite <</NeverEmbed [$NeverEmbedFontList $NeverEmbedCIDFontList] /AlwaysEmbed [$AlwaysEmbedFontList $AlwaysEmbedCIDFontList]>> setdistillerparams" -f "$infile"
-
---- espgs-7.07.1/lib/gs_cidfn.ps.org	2003-04-12 23:02:38.000000000 +0900
-+++ espgs-7.07.1/lib/gs_cidfn.ps	2003-09-03 07:28:28.000000000 +0900
-@@ -511,9 +511,32 @@
- 
- .loadinitialcidfonts
- 
-+% <fontname> <font> .RenameFontForNeverEmbed <fontname> <font'>
-+/.RenameFontForNeverEmbed {
-+    /DEVICE where { pop DEVICE (pdfwrite) eq {
-+        currentdistillerparams /NeverEmbed get {
-+            2 index eq {
-+                (*** unembeddable CIDFont: ) print 1 index == flush
-+                dup length 1 add dict copy
-+                dup /FID undef
-+                dup /.orig_CIDFontName 1 index /CIDFontName get put
-+                dup /CIDFontName 3 index dup type /stringtype eq {
-+                    dup rcheck {
-+                        dup length string 0 1 2 index length 1 sub {
-+                            2 index 1 index get 3 copy put pop pop
-+                        } for exch pop
-+                    } if
-+                } if put
-+                dup /FontName 1 index /CIDFontName get put
-+            } if
-+        } forall
-+    } if } if
-+} bind def
-+
- /CIDFontmapHandler <<
-   /nametype {
-     /CIDFont findresource
-+    .RenameFontForNeverEmbed
-     /CIDFont defineresource pop
-   } bind
-   /stringtype {
-@@ -528,6 +551,7 @@
- 	      pop pop
- 	  } {
- 	      % Give a name different from the name defined in the file
-+	      .RenameFontForNeverEmbed
- 	      /CIDFont defineresource pop
- 	  } ifelse
-       } {
-@@ -546,6 +570,7 @@
- 	  3 -1 roll put
- 	  % Expand array
- 	  aload pop .loadcjkvttcidfont
-+	  .RenameFontForNeverEmbed
- 	  /CIDFont defineresource pop
-       } {
- 	  /undefinedresource signalerror
-
---- espgs-7.07.1/src/gdevpdff.h.org	2003-01-17 09:49:02.000000000 +0900
-+++ espgs-7.07.1/src/gdevpdff.h	2003-09-18 23:42:38.000000000 +0900
-@@ -117,6 +117,12 @@
-     FONT_SUBSET_NO
- } pdf_font_do_subset_t;
- 
-+typedef enum {
-+    FONT_EMBED_STANDARD,	/* 14 standard fonts */
-+    FONT_EMBED_NO,
-+    FONT_EMBED_YES
-+} pdf_font_embed_t;
-+
- struct pdf_font_descriptor_s {
-     pdf_resource_common(pdf_font_descriptor_t);
-     pdf_font_name_t FontName;
-@@ -198,6 +204,7 @@
-     gs_font *font;		/* non-0 iff font will notify us; */
- 				/* should be a weak pointer */
-     int index;			/* in pdf_standard_fonts, -1 if not base 14 */
-+    pdf_font_embed_t embed;	/* status of pdf_font_embed_status() */
-     gs_matrix orig_matrix;	/* FontMatrix of unscaled font for embedding */
-     bool is_MM_instance;	/* for Type 1/2 fonts, true iff the font */
- 				/* is a Multiple Master instance */
-@@ -320,12 +327,6 @@
- 
- /* ---------------- Exported by gdevpdff.c ---------------- */
- 
--typedef enum {
--    FONT_EMBED_STANDARD,	/* 14 standard fonts */
--    FONT_EMBED_NO,
--    FONT_EMBED_YES
--} pdf_font_embed_t;
--
- typedef struct pdf_standard_font_s {
-     const char *fname;
-     gs_encoding_index_t base_encoding;
---- espgs-7.07.1/src/gdevpdff.c.org	2003-01-17 09:49:02.000000000 +0900
-+++ espgs-7.07.1/src/gdevpdff.c	2003-09-21 05:08:36.000000000 +0900
-@@ -276,6 +276,11 @@
-     const byte *chars = font->font_name.chars;
-     uint size = font->font_name.size;
- 
-+    /* CIDFonts has null string in font_name, key_name is used */
-+    if (0 == size) {
-+	chars = font->key_name.chars;
-+	size = font->key_name.size;
-+    }
-     /*
-      * The behavior of Acrobat Distiller changed between 3.0 (PDF 1.2),
-      * which will never embed the base 14 fonts, and 4.0 (PDF 1.3), which
-@@ -720,19 +725,22 @@
- 	same &= ~FONT_SAME_METRICS;
- 	break;
-     case FONT_EMBED_NO:
--	/*
--	 * Per the PDF 1.3 documentation, there are only 3 BaseEncoding
--	 * values allowed for non-embedded fonts.  Pick one here.
--	 */
--	BaseEncoding =
--	    ((const gs_font_base *)base_font)->nearest_encoding_index;
--	switch (BaseEncoding) {
--	default:
--	    BaseEncoding = ENCODING_INDEX_WINANSI;
--	case ENCODING_INDEX_WINANSI:
--	case ENCODING_INDEX_MACROMAN:
--	case ENCODING_INDEX_MACEXPERT:
--	    break;
-+	if (!(font->FontType == ft_CID_encrypted ||
-+	      font->FontType == ft_CID_TrueType)) {
-+	    /*
-+	     * Per the PDF 1.3 documentation, there are only 3 BaseEncoding
-+	     * values allowed for non-embedded fonts.  Pick one here.
-+	     */
-+	    BaseEncoding =
-+	        ((const gs_font_base *)base_font)->nearest_encoding_index;
-+	    switch (BaseEncoding) {
-+	    default:
-+	        BaseEncoding = ENCODING_INDEX_WINANSI;
-+	    case ENCODING_INDEX_WINANSI:
-+	    case ENCODING_INDEX_MACROMAN:
-+	    case ENCODING_INDEX_MACEXPERT:
-+	        break;
-+	    }
- 	}
- 	code = pdf_compute_font_descriptor(pdev, &fdesc, font, NULL);
- 	if (code < 0)
-@@ -888,6 +896,7 @@
- 	memcpy(ppf->widths_known, ftemp_widths_known,
- 	       sizeof(ftemp_widths_known));
-     }
-+    ppf->embed = embed;
-     code = pdf_register_font(pdev, font, ppf);
- 
-     *pppf = ppf;
---- espgs-7.07.1/src/gdevpdfw.c.org	2003-01-17 09:49:02.000000000 +0900
-+++ espgs-7.07.1/src/gdevpdfw.c	2003-09-25 17:50:54.000000000 +0900
-@@ -348,18 +348,19 @@
-     /* Use the most common width as DW. */
- 
-     {
--	ushort counts[1001];
-+        ushort counts[1500*2]; /* histogram of (-1500..1500) */
- 	int dw_count = 0, i;
- 
- 	memset(counts, 0, sizeof(counts));
- 	while (!psf_enumerate_glyphs_next(&genum, &glyph)) {
--	    int width = ppf->Widths[glyph - gs_min_cid_glyph];
-+	    int cid = glyph - gs_min_cid_glyph;
-+	    int width = ppf->Widths[cid];
- 
--	    counts[min(width, countof(counts) - 1)]++;
-+	    counts[max(0,min(width+countof(counts)/2,countof(counts)-1))]++;
- 	}
--	for (i = 0; i < countof(counts); ++i)
-+	for (i = 0; i < countof(counts); i++)
- 	    if (counts[i] > dw_count)
--		dw = i, dw_count = counts[i];
-+		dw = i - countof(counts)/2, dw_count = counts[i];
- 	if (dw != 0)
- 	    pprintd1(s, "/DW %d\n", dw);
-     }
-@@ -496,14 +497,16 @@
- 	if (pdf_has_subset_prefix(chars, size))
- 	    chars += SUBSET_PREFIX_SIZE, size -= SUBSET_PREFIX_SIZE;
- 	pdf_put_name(pdev, chars, size);
--	if (pef->sub_font_type == ft_CID_encrypted &&
-+	if ((pef->sub_font_type == ft_CID_encrypted ||
-+	     pef->sub_font_type == ft_CID_TrueType) &&
- 	    pef->cmapname[0] == '/'
- 	    ) {
- 	    stream_putc(s, '-');
- 	    pdf_put_name_chars(pdev, (const byte*) (pef->cmapname + 1),
- 			       strlen(pef->cmapname + 1));
- 	}
--	pprints1(s, "/Encoding %s", pef->cmapname);
-+	pprints1(s, (pef->cmapname[0] == '/') ? "/Encoding%s" : "/Encoding %s",
-+		 pef->cmapname);
- 	pprintld1(s, "/DescendantFonts[%ld 0 R]",
- 		pdf_resource_id((const pdf_resource_t *)pef->DescendantFont));
- 	write_Widths = 0;
-@@ -563,8 +566,10 @@
- 	break;
-     case -1:
- 	pdf_write_CIDFont_widths(pdev, pef);
--	if (pef->FontType == ft_CID_TrueType)
--	    pdf_write_CIDToGIDMap(pdev, pef, &cidmap_id);
-+	if (pef->FontType == ft_CID_TrueType) {
-+	    if (pef->embed != FONT_EMBED_NO)
-+	        pdf_write_CIDToGIDMap(pdev, pef, &cidmap_id);
-+	}
- 	break;
-     }
-     if (pef->Differences) {
---- espgs-7.07.1/src/gdevpdfs.c.org	2003-09-20 00:11:16.000000000 +0900
-+++ espgs-7.07.1/src/gdevpdfs.c	2003-09-25 17:44:10.000000000 +0900
-@@ -481,15 +481,21 @@
- 
- 	    if (cid < pfd->chars_count) {
- 		int index = cid >> 3, mask = 0x80 >> (cid & 7);
-+		int gid;
-+
-+		if (!(pfd->chars_used.data[index] & mask) ||
-+		    !(psubf->widths_known[index] & mask)) {
- 
--		if (!(pfd->chars_used.data[index] & mask)) {
--		    pfd->chars_used.data[index] |= mask;
- 		    if (psubf->CIDToGIDMap) {
- 			gs_font_cid2 *const subfont2 =
- 			    (gs_font_cid2 *)subfont;
--			int gid =
--			    subfont2->cidata.CIDMap_proc(subfont2, glyph);
- 
-+			gid = subfont2->cidata.CIDMap_proc(subfont2, glyph);
-+		    }
-+		}
-+		if (!(pfd->chars_used.data[index] & mask)) {
-+		    pfd->chars_used.data[index] |= mask;
-+		    if (psubf->CIDToGIDMap) {
- 			if (gid >= 0) {
- 			    psubf->CIDToGIDMap[cid] = gid;
- 			    mark_glyphs_used(subfont, gid + gs_min_cid_glyph,
-@@ -500,7 +506,11 @@
- 		if (!(psubf->widths_known[index] & mask)) {
- 		    int width;
- 
--		    code = pdf_glyph_width(psubf, glyph, subfont, &width);
-+		    if (psubf->CIDToGIDMap)
-+			code = pdf_glyph_width(psubf, gid + gs_min_cid_glyph,
-+					       subfont, &width);
-+		    else
-+		        code = pdf_glyph_width(psubf, glyph, subfont, &width);
- 		    if (code == 0) {
- 			psubf->Widths[cid] = width;
- 			psubf->widths_known[index] |= mask;
 diff -ruN espgs-7.07.1-orig/src/unixinst.mak espgs-7.07.1/src/unixinst.mak
 --- espgs-7.07.1-orig/src/unixinst.mak	Sun Jul 21 06:03:21 2002
 +++ espgs-7.07.1-patched/src/unixinst.mak	Tue Mar 22 16:49:19 2005
@@ -1280,3 +637,148 @@ diff -ruN espgs-7.07.1-orig/pstoraster/cups.mak espgs-7.07.1/pstoraster/cups.mak
  
  $(DD)cups.dev:	$(cups_) $(GLD)page.dev
  	$(SETPDEV2) $(DD)cups $(cups_)
+Index: gs/src/gxalloc.h
+===================================================================
+RCS file: /cvs/ghostscript/gs/src/gxalloc.h,v
+retrieving revision 1.11
+diff -b -u -r1.11 gxalloc.h
+--- gs/src/gxalloc.h	4 Aug 2004 19:36:12 -0000	1.11
++++ gs/src/gxalloc.h	14 Sep 2004 21:44:37 -0000
+@@ -143,7 +143,7 @@
+     byte *cbot;			/* bottom of free area */
+ 				/* (top of aligned objects) */
+     obj_header_t *rcur;		/* current refs object, 0 if none */
+-    byte *rtop;			/* top of rcur */
++    byte *rtop;			/* top of rcur, not aligned to obj_align_mod */
+     byte *ctop;			/* top of free area */
+ 				/* (bottom of strings) */
+     byte *climit;		/* top of strings */
+Index: gs/src/gxobj.h
+===================================================================
+RCS file: /cvs/ghostscript/gs/src/gxobj.h,v
+retrieving revision 1.6
+diff -b -u -r1.6 gxobj.h
+--- gs/src/gxobj.h	21 Feb 2002 22:24:53 -0000	1.6
++++ gs/src/gxobj.h	14 Sep 2004 21:44:37 -0000
+@@ -110,20 +110,22 @@
+ /* The only possible values for obj_align_mod are 4, 8, or 16.... */
+ #if obj_align_mod == 4
+ #  define log2_obj_align_mod 2
+-#else
+-#if obj_align_mod == 8
++#elif obj_align_mod == 8
+ #  define log2_obj_align_mod 3
+-#else
+-#if obj_align_mod == 16
++#elif obj_align_mod == 16
+ #  define log2_obj_align_mod 4
+-#endif
+-#endif
++#elif obj_align_mod == 32  /* for testing, not seen yet in the wild */
++#  define log2_obj_align_mod 5
++#else
++#  error Unexpected value of obj_align_mod
+ #endif
+ #define obj_align_mask (obj_align_mod-1)
+ #define obj_align_round(siz)\
+   (uint)(((siz) + obj_align_mask) & -obj_align_mod)
+ #define obj_size_round(siz)\
+   obj_align_round((siz) + sizeof(obj_header_t))
++#define ptr_align_round(p)\
++  ((byte *)obj_align_round((size_t)(p)))
+ 
+ /* Define the real object header type, taking alignment into account. */
+ struct obj_header_s {		/* must be a struct because of forward reference */
+Index: gs/src/ialloc.c
+===================================================================
+RCS file: /cvs/ghostscript/gs/src/ialloc.c,v
+retrieving revision 1.7
+diff -b -u -r1.7 ialloc.c
+--- gs/src/ialloc.c	4 Aug 2004 19:36:12 -0000	1.7
++++ gs/src/ialloc.c	14 Sep 2004 21:44:37 -0000
+@@ -157,8 +157,8 @@
+ 
+     /* If we're allocating a run of refs already, */
+     /* and we aren't about to overflow the maximum run length, use it. */
+-    if (mem->cc.rtop == mem->cc.cbot &&
+-	num_refs < (mem->cc.ctop - mem->cc.cbot) / sizeof(ref) &&
++    if (ptr_align_round(mem->cc.rtop) == mem->cc.cbot &&
++	num_refs < (mem->cc.ctop - mem->cc.rtop) / sizeof(ref) &&
+ 	mem->cc.rtop - (byte *) mem->cc.rcur + num_refs * sizeof(ref) <
+ 	max_size_st_refs
+ 	) {
+@@ -169,8 +169,8 @@
+ 		  ialloc_trace_space(mem), client_name_string(cname),
+ 		  num_refs, (ulong) obj);
+ 	mem->cc.rcur[-1].o_size += num_refs * sizeof(ref);
+-	end = (ref *) (mem->cc.rtop = mem->cc.cbot +=
+-		       num_refs * sizeof(ref));
++	end = (ref *) (mem->cc.rtop += num_refs * sizeof(ref));
++	mem->cc.cbot = ptr_align_round(mem->cc.rtop);
+ 	make_mark(end - 1);
+     } else {
+ 	/*
+@@ -225,12 +225,12 @@
+ 	return_error(e_Fatal);
+     diff = old_num_refs - new_num_refs;
+     /* Check for LIFO.  See gs_free_ref_array for more details. */
+-    if (mem->cc.rtop == mem->cc.cbot &&
++    if (ptr_align_round(mem->cc.rtop) == mem->cc.cbot &&
+ 	(byte *) (obj + (old_num_refs + 1)) == mem->cc.rtop
+ 	) {
+ 	/* Shorten the refs object. */
+-	ref *end = (ref *) (mem->cc.cbot = mem->cc.rtop -=
+-			    diff * sizeof(ref));
++	ref *end = (ref *) (mem->cc.rtop -= diff * sizeof(ref));
++	mem->cc.cbot = ptr_align_round(mem->cc.rtop);
+ 
+ 	if_debug4('A', "[a%d:<$ ]%s(%u) 0x%lx\n",
+ 		  ialloc_trace_space(mem), client_name_string(cname), diff,
+@@ -264,7 +264,7 @@
+      */
+     if (!r_has_type(parr, t_array))
+ 	DO_NOTHING;		/* don't look for special cases */
+-    else if (mem->cc.rtop == mem->cc.cbot &&
++    else if (ptr_align_round(mem->cc.rtop) == mem->cc.cbot &&
+ 	     (byte *) (obj + (num_refs + 1)) == mem->cc.rtop
+ 	) {
+ 	if ((obj_header_t *) obj == mem->cc.rcur) {
+@@ -278,7 +278,8 @@
+ 		      ialloc_trace_space(mem), client_name_string(cname),
+ 		      num_refs, (ulong) obj);
+ 	    mem->cc.rcur[-1].o_size -= num_refs * sizeof(ref);
+-	    mem->cc.rtop = mem->cc.cbot = (byte *) (obj + 1);
++	    mem->cc.rtop = (byte *) (obj + 1);
++	    mem->cc.cbot = ptr_align_round(mem->cc.rtop);
+ 	    make_mark(obj);
+ 	}
+ 	return;
+Index: gs/src/igcref.c
+===================================================================
+RCS file: /cvs/ghostscript/gs/src/igcref.c,v
+retrieving revision 1.6
+diff -b -u -r1.6 igcref.c
+--- gs/src/igcref.c	4 Aug 2004 19:36:12 -0000	1.6
++++ gs/src/igcref.c	14 Sep 2004 21:44:37 -0000
+@@ -720,15 +720,18 @@
+ 	    new_size += sizeof(ref_packed);
+     /* We want to make the newly freed space into a free block, */
+     /* but we can only do this if we have enough room. */
+-    if (size - new_size < sizeof(obj_header_t)) {	/* Not enough room.  Pad to original size. */
++    if (size < obj_align_round(new_size) + sizeof(obj_header_t)) { /* Not enough room.  Pad to original size. */
+ 	while (new_size < size)
+ 	    *dest++ = pt_tag(pt_integer),
+ 		new_size += sizeof(ref_packed);
+     } else {
+-	obj_header_t *pfree = (obj_header_t *) ((ref *) dest + 1);
++        byte *pfree_u = (byte *)dest + sizeof(ref);
++        byte *pfree_a = ptr_align_round(pfree_u);
++        obj_header_t *pfree = (obj_header_t *)pfree_a;
++        int align = pfree_a - pfree_u;
+ 
+ 	pfree->o_alone = 0;
+-	pfree->o_size = size - new_size - sizeof(obj_header_t);
++	pfree->o_size = size - new_size - sizeof(obj_header_t) - align;
+ 	pfree->o_type = &st_bytes;
+     }
+     /* Re-create the final ref. */
