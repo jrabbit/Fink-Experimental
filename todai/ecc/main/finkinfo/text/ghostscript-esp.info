@@ -1,6 +1,6 @@
 Package: ghostscript-esp
 Version: 7.07.1
-Revision: 19
+Revision: 20
 Description: Enhanced GNU Ghostscript with better CJK and printer support
 Source: mirror:sourceforge:espgs/espgs-%v-source.tar.bz2
 Source2: mirror:ctan:support/ghostscript/3rdparty/jpegsrc.v6b.tar.gz
@@ -43,7 +43,7 @@ Source19-MD5: 27903349daf2046d4e244d3d6f81bfaf
 SourceDirectory: espgs-%v
 Source3ExtractDir: Resource
 Source4ExtractDir: Resource
-Depends: x11, ghostscript-fonts, libpng3-shlibs (>= 1.2.5-3), gettext, applesystemfonts, appleotffonts
+Depends: x11, ghostscript-fonts, libpng3-shlibs (>= 1.2.5-3), gettext, applesystemfonts, appleotffonts, ipafonts
 BuildDepends: x11-dev, libpng3 (>= 1.2.5-3), gimp-print-dev | gimp-print7-dev, cups-dev, gettext-dev
 Conflicts: ghostscript, ghostscript-nox, ghostscript6, ghostscript6-nox, ghostscript7, system-ghostscript, system-ghostscript8, system-ghostscript6
 Replaces: ghostscript, ghostscript-nox, ghostscript6, ghostscript6-nox, ghostscript7
@@ -92,7 +92,9 @@ PatchScript: <<
  patch -p0 < ../fix_cidfonttype2_Adobe-Japan1-6.patch
 
  # add NeverEmbedCIDFontList and AlwaysEmbedCIDFontList
- (cd lib && sed 's|\(Sazanami-.*\)-Regular|\1|g' \
+ (cd lib && sed \
+	-e 's|\(Sazanami-.*\)-Regular|\1|g' \
+	-e 's|\(IPA\)\(.*\)|\1-\2|g' \
 	< ../../modify_ps2pdfwr-20050921.patch | patch -p0)
 
  sed 's|<PREFIX>|%p|g' < %a/%n.patch | patch -p1
@@ -106,7 +108,7 @@ CompileScript: <<
  make CFLAGS_STANDARD="-O2 -I%p/include" XLDFLAGS="-L%p/lib -lintl"
 <<
 InstallScript: <<
- make install_prefix=%i prefix=%i datadir=%i/share infodir=%i/share/info mandir=%i/share/man sysconfdir=%i/etc install
+ make install_prefix=%i prefix=%i datadir=%i/share install
  install -m 755 -d %i/share/ghostscript
  cp -R ../Resource %i/share/ghostscript/
  install -m 755 -d %i/share/ghostscript/Resource/Font
@@ -166,31 +168,30 @@ PreRmScript: <<
 <<
 DescUsage: <<
  ESP Ghostscript now supports for applesystemfonts and appleotffonts.
- In the case of previewing Japanese documents, however, very long time
- may be taken until the letters appear. This is because we use OTF fonts
- (Hiragino) as Japanese fonts by default.
+ In the case of previewing Japanese documents, however, GS uses ipafonts
+ (TTF) instead of appleotffonts. This is because GS may take a very long
+ time to display letters using OTF. 
 
- If you don't like that, use TTF fonts instead of OTF fonts.
- For example, install sazanami:
-  $ fink install sazanami
- Then modify CIDFnmap and CIDFnmap.CJK in %p/share/ghostscript/7.07/lib/.
+ If that doesn't matter for you and you want to use OTF(Hiragino) for a
+ preview, modify CIDFnmap.CJK in %p/share/ghostscript/7.07/lib/.
 <<
 DescPackaging: <<
- Patches to CIDFnmap, CIDFnmap.CJK, CIDFnmap.OSX and
- patches from Web are based on Mr. Yamada's Web page:
- http://www.aihara.co.jp/~taiji/gyve/
-
  A patch to ps2ps is based on Gentoo Linux's gs7.07.1-ps2ps.patch.
  A patch to gs.1 is based on Gentoo Linux's ghostscript-7.05.6.man.patch.
  A patch to gs_res.ps.in is based on Gentoo Linux's gs7.07.1-cjk.diff.
- A patch to CIDFnmap.Saz is also based on Gentoo Linux's gs7.07.1-cjk.diff.
  A patch to gdevpx.c is based on Gentoo Linux's gs7.05.6-gdevpx.patch.
  Patches to gxalloc.h, gxobj.h and ialloc.c are based on Gentoo Linux's
  gs-fix-gc.patch.
 
- A patch to unixinst.mak adds CIDFnmap.Saz and CIDFnmap.OSX to install list.
  A patch to configure.ac handles problems of encryption library.
  A patch to cups.mak changes install location of files related to cups.
+ A patch to unixinst.mak adds CIDFnmap.{IPA,Saz,OSX} to install list.
+
+ Patches to CIDFnmap.{CJK,IPA,Koc,Saz} are based on Gentoo Linux's
+ gs7.07.1-cjk.diff (again).
+ Patches to CIDFnmap, CIDFnmap.OSX, and
+ patches from Web are based on Mr. Yamada's Web page:
+ http://www.aihara.co.jp/~taiji/gyve/
 <<
 Maintainer: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>
 Homepage: http://www.cups.org/ghostscript.php
