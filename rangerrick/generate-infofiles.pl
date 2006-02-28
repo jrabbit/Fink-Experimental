@@ -305,6 +305,14 @@ sub transform_fields {
 		}
 	}
 
+	if (exists $properties->{'Type'} and $properties->{'Type'} =~ /^perl/ and $properties->{'Tree'} ge "10.4") {
+		if (exists $properties->{'Architecture'}) {
+			warn "type = perl, but architecture is already set!\n";
+		} else {
+			$properties->{'Architecture'} = '(%type_pkg[perl] = 581) powerpc, (%type_pkg[perl] = 584) powerpc';
+		}
+	}
+
 	if ($packagehash->{'Package'} =~ /$APPEND_USAGE/i) {
 		$properties->{'DescUsage'} = transform_descusage($packagehash, $properties->{'DescUsage'});
 	}
