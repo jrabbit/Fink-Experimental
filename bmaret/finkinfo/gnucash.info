@@ -1,0 +1,150 @@
+Package: gnucash
+Version: 1.9.1
+Revision: 1
+Description: Personal and business finances tracking program
+License: GPL
+Maintainer: Sebastien Maret <bmaret@users.sourceforge.net>
+Depends: <<
+  %n-shlibs (= %v-%r), atk1-shlibs, audiofile-shlibs, 
+  bzip2-shlibs, esound-shlibs, finance-quote-pm586,
+  finance-quotehist-pm586, g-wrap (>= 1.3.4-3), g-wrap-shlibs (>= 1.3.4-3),
+  gail17-shlibs, gconf2, gconf2-shlibs, glib2-shlibs, gnome-keyring-shlibs, 
+  gnome-vfs2-shlibs | gnome-vfs2-ssl-shlibs, gtk+2-shlibs, 
+  gtkhtml3.8.15-shlibs, guile16, guile16-shlibs, libart2-shlibs,
+  libbonobo2-shlibs, libbonoboui2-shlibs, libgettext3-shlibs,
+  libglade2-shlibs, libgnome2-shlibs, libgnomecanvas2-shlibs,
+  libgnomeprint2.2-shlibs, libgnomeprintui2.2-shlibs, libgnomeui2-shlibs,
+  libiconv, libjpeg-shlibs, libofx1-shlibs, libtool14-shlibs,
+  libxml2-shlibs, orbit2-shlibs, pango1-xft2-shlibs, popt-shlibs, 
+  x11-shlibs
+<<
+BuildDepends: <<
+  atk1, audiofile, bzip2-dev, esound, g-wrap-dev, 
+  gail17-dev, gconf2-dev, gettext-tools, glib2-dev, gnome-keyring-dev, 
+  gnome-vfs2-dev | gnome-vfs2-ssl-dev, gtk+2-dev, gtkhtml3.8.15-dev, 
+  guile16-dev, libart2, libbonobo2-dev, libbonoboui2-dev, 
+  libgettext3-dev, libglade2, libgnome2-dev, 
+  libgnomecanvas2-dev, libgnomeprint2.2-dev, libgnomeprintui2.2-dev, 
+  libgnomeui2-dev, libiconv-bin, libiconv-dev, libjpeg, libofx1, 
+  libtool14, libxml2, orbit2-dev, pango1-xft2-dev, pkgconfig, 
+  popt, x11-dev
+<<
+Conflicts: gnucash-hcbi (<< 1.9.0), gnucash-ofx (<< 1.9.0), gnucash-sql (<< 1.9.0)
+Replaces: gnucash-hcbi (<< 1.9.0), gnucash-ofx (<< 1.9.0), gnucash-sql (<< 1.9.0)
+Suggests: gnucash-docs (>= 1.8.0)
+Source: mirror:sourceforge:%n/%n-%v.tar.gz
+Source-MD5: fd1ba54948cf6a91faf1328f2051677d
+ConfigureParams: --mandir=%p/share/man --infodir=%p/share/info --libexecdir=%p/lib --enable-error-on-warning=no --disable-dependency-tracking --disable-schemas-install --enable-ofx --disable-aqbanking --disable-sql
+GCC: 3.3
+CompileScript: <<
+  guile16-build ./configure --prefix=%p %c
+  guile16-build make
+<<
+InstallScript: <<
+  make install prefix=%i
+<<
+DocFiles: README COPYING
+Shlibs: <<
+  %p/lib/libcore-utils.0.dylib 1.0.0 (>= 1.9.0)
+  %p/lib/libgnc-backend-file.0.dylib ? (>= 1.9.0)
+  %p/lib/libgncgnome.0.dylib 1.0.0 (>= 1.9.0)
+  %p/lib/libgncmodule.0.dylib 1.0.0 (>= 1.9.0)
+  %p/lib/libgw-core-utils.0.dylib 1.0.0 (>= 1.9.0)
+  %p/lib/libgw-gnc.0.dylib 1.0.0 (>= 1.9.0)
+  %p/lib/libqof-backend-qsf.0.dylib 1.0.0 (>= 1.9.0)
+  %p/lib/libqof.1.dylib 2.0.0 (>= 1.9.0)
+<<   
+Splitoff: <<
+  Package: %N-shlibs
+  Files: <<
+    lib/libcore-utils.0.0.0.dylib
+    lib/libgnc-backend-file.0.0.0.dylib
+    lib/libgncgnome.0.0.0.dylib
+    lib/libgncmodule.0.0.0.dylib
+    lib/libgw-core-utils.0.0.0.dylib
+    lib/libgw-gnc.0.0.0.dylib
+    lib/libqof-backend-qsf.0.0.0.dylib
+    lib/libqof.1.0.2.dylib
+    lib/libcore-utils.0.dylib
+    lib/libgnc-backend-file.0.dylib
+    lib/libgncgnome.0.dylib
+    lib/libgncmodule.0.dylib
+    lib/libgw-core-utils.0.dylib
+    lib/libgw-gnc.0.dylib
+    lib/libqof-backend-qsf.0.dylib
+    lib/libqof.1.dylib
+    lib/gnucash
+  <<
+  DocFiles: COPYING
+<<
+Splitoff2: <<
+  Package: %N-dev
+  BuildDependsOnly: true
+  Files: <<
+    include/gnucash
+    share/aclocal
+    lib/libcore-utils.dylib
+    lib/libgnc-backend-file.dylib
+    lib/libgncgnome.dylib
+    lib/libgncmodule.dylib
+    lib/libgw-core-utils.dylib
+    lib/libgw-gnc.dylib
+    lib/libqof-backend-qsf.dylib
+    lib/libqof.dylib
+    lib/libcore-utils.la
+    lib/libgnc-backend-file.la
+    lib/libgncgnome.la
+    lib/libgncmodule.la
+    lib/libgw-core-utils.la
+    lib/libgw-gnc.la
+    lib/libqof-backend-qsf.la
+    lib/libqof.la
+  <<
+  DocFiles: COPYING	
+<<
+PostInstScript: <<
+  if [ configure = "$1" ]; then
+    export GCONF_CONFIG_SOURCE=`gconftool-2 --get-default-source`
+    gconftool-2 --makefile-install-rule %p/etc/gconf/schemas/apps_gnucash_dialog_business_common.schemas >/dev/null
+    gconftool-2 --makefile-install-rule %p/etc/gconf/schemas/apps_gnucash_dialog_commodities.schemas >/dev/null
+    gconftool-2 --makefile-install-rule %p/etc/gconf/schemas/apps_gnucash_dialog_common.schemas >/dev/null
+    gconftool-2 --makefile-install-rule %p/etc/gconf/schemas/apps_gnucash_dialog_prices.schemas >/dev/null
+    gconftool-2 --makefile-install-rule %p/etc/gconf/schemas/apps_gnucash_dialog_print_checks.schemas >/dev/null
+    gconftool-2 --makefile-install-rule %p/etc/gconf/schemas/apps_gnucash_dialog_reconcile.schemas >/dev/null
+    gconftool-2 --makefile-install-rule %p/etc/gconf/schemas/apps_gnucash_dialog_totd.schemas >/dev/null
+    gconftool-2 --makefile-install-rule %p/etc/gconf/schemas/apps_gnucash_general.schemas >/dev/null
+    gconftool-2 --makefile-install-rule %p/etc/gconf/schemas/apps_gnucash_history.schemas >/dev/null
+    gconftool-2 --makefile-install-rule %p/etc/gconf/schemas/apps_gnucash_import_generic_matcher.schemas >/dev/null
+    gconftool-2 --makefile-install-rule %p/etc/gconf/schemas/apps_gnucash_warnings.schemas >/dev/null
+    gconftool-2 --makefile-install-rule %p/etc/gconf/schemas/apps_gnucash_window_pages_account_tree.schemas >/dev/null
+    gconftool-2 --makefile-install-rule %p/etc/gconf/schemas/apps_gnucash_window_pages_register.schemas >/dev/null
+  fi
+<<
+ConfFiles: <<
+  %p/etc/gconf/schemas/apps_gnucash_dialog_business_common.schemas
+  %p/etc/gconf/schemas/apps_gnucash_dialog_commodities.schemas
+  %p/etc/gconf/schemas/apps_gnucash_dialog_common.schemas
+  %p/etc/gconf/schemas/apps_gnucash_dialog_prices.schemas
+  %p/etc/gconf/schemas/apps_gnucash_dialog_print_checks.schemas
+  %p/etc/gconf/schemas/apps_gnucash_dialog_reconcile.schemas
+  %p/etc/gconf/schemas/apps_gnucash_dialog_totd.schemas
+  %p/etc/gconf/schemas/apps_gnucash_general.schemas
+  %p/etc/gconf/schemas/apps_gnucash_history.schemas
+  %p/etc/gconf/schemas/apps_gnucash_import_generic_matcher.schemas
+  %p/etc/gconf/schemas/apps_gnucash_warnings.schemas
+  %p/etc/gconf/schemas/apps_gnucash_window_pages_account_tree.schemas
+  %p/etc/gconf/schemas/apps_gnucash_window_pages_register.schemas
+<<
+DescDetail: <<
+Gnucash is a software to manage personal or business finances using
+Free Software. Designed to be easy to use, yet powerful and flexible,
+GnuCash allows you to track bank accounts, stocks, income and
+expenses. As quick and intuitive to use as a checkbook register, it is
+based on professional accounting principles to ensure balanced books
+and accurate reports. GnuCash is backed by an active development
+community and is blossoming into a full-fledged accounting system.
+<<
+DescPort: <<
+Previous versions by Peter o'Gorman.
+<<
+Homepage: http://www.gnucash.org
