@@ -67,18 +67,29 @@ diff -Naur espgs-7.05.6.orig/lib/gs_res.ps.in espgs-7.05.6/lib/gs_res.ps.in
  	}
      }
      spputc(s, pxtSetLineDash);
-diff -ruN espgs-7.07.1.orig/src/configure.ac espgs-7.07.1/src/configure.ac
---- espgs-7.07.1.orig/src/configure.ac	Thu Mar 24 01:00:21 2005
-+++ espgs-7.07.1/src/configure.ac	Thu Mar 24 01:15:03 2005
-@@ -448,7 +448,7 @@
+diff -ruN espgs-7.07.1.orig/src/configure espgs-7.07.1/src/configure
+--- espgs-7.07.1-orig/configure	2003-10-10 04:54:02.000000000 +0900
++++ espgs-7.07.1/configure	2006-02-28 14:20:23.000000000 +0900
+@@ -5192,7 +5192,7 @@
+ fi
+ 
  	if test "x$CUPSCONFIG" != x; then
- 	    dnl Use values from CUPS config...
- #	    LIBS="`$CUPSCONFIG --ldflags` `$CUPSCONFIG --static --image --libs | sed -e '1,$s/-lssl//'` $LIBS"
--	    LIBS="`$CUPSCONFIG --ldflags` `$CUPSCONFIG --image --libs` $LIBS"
-+	    LIBS="`$CUPSCONFIG --ldflags` `$CUPSCONFIG --image --libs | sed -e '1,$s/-lssl//' | sed -e '1,$s/-lcrypto//'` $LIBS"
+-	    #	    LIBS="`$CUPSCONFIG --ldflags` `$CUPSCONFIG --static --image --libs | sed -e '1,$s/-lssl//'` $LIBS"
++	    #	    LIBS="`$CUPSCONFIG --ldflags` `$CUPSCONFIG --static --image --libs | sed -e '1,$s/-lssl//' -e '1,$s/-lcrypto//'` $LIBS"
+ 	    LIBS="`$CUPSCONFIG --ldflags` `$CUPSCONFIG --image --libs` $LIBS"
  	    CFLAGS="`$CUPSCONFIG --cflags` $CFLAGS"
  	    cups_serverroot="`$CUPSCONFIG --serverroot`"
- 	    cups_serverbin="`$CUPSCONFIG --serverbin`"
+@@ -5568,8 +5568,8 @@
+ echo "${ECHO_T}yes" >&6
+ 
+         OMNIDEVS='$(DD)omni.dev'
+-        CFLAGS="$CFLAGS `$GLIB_CONFIG --cflags gmodule`"
+-        LIBS="$LIBS `$GLIB_CONFIG --libs gmodule`"
++        CFLAGS="$CFLAGS `$GLIB_CONFIG --cflags gmodule-2.0`"
++        LIBS="$LIBS `$GLIB_CONFIG --libs gmodule-2.0`"
+ 
+         if test -n "$GCC"; then
+ 	    LIBS="$LIBS -lstdc++"
 diff -ruN espgs-7.07.1-orig/pstoraster/cups.mak espgs-7.07.1/pstoraster/cups.mak
 --- espgs-7.07.1-orig/pstoraster/cups.mak	2003-08-21 00:12:43.000000000 +0900
 +++ espgs-7.07.1/pstoraster/cups.mak	2006-02-25 15:52:09.000000000 +0900
@@ -716,7 +727,7 @@ diff -Naur espgs-7.07.1-orig/lib/CIDFnmap.Saz espgs-7.07.1/lib/CIDFnmap.Saz
 +	fi
 +}
 +
-+function backup_file () {
++function backup () {
 +
 +	if [ -f ${1} ]
 +	then
@@ -724,7 +735,7 @@ diff -Naur espgs-7.07.1-orig/lib/CIDFnmap.Saz espgs-7.07.1/lib/CIDFnmap.Saz
 +	fi
 +}
 +
-+function restore_file () {
++function restore () {
 +
 +	if [ -f ${1}.finksave ]
 +	then
@@ -732,68 +743,68 @@ diff -Naur espgs-7.07.1-orig/lib/CIDFnmap.Saz espgs-7.07.1/lib/CIDFnmap.Saz
 +	fi
 +}
 +
-+function remove_symlink () {
++function unlink () {
 +
-+	if [ -L ${1} -a -f ${1}.finksave ]
++	if [ -L ${1} ]
 +	then
 +		show_and_run /bin/rm ${1}
 +	fi
 +}
 +
-+function link_to_system () {
++function make_links () {
 +
 +	get_cups_location
 +
 +	/bin/mkdir -p ${CUPSSERVER}/filter
 +	for file in <PREFIX>/lib/cups/filter/*
 +	do
-+		backup_file ${CUPSSERVER}/filter/${file##*/}
++		backup ${CUPSSERVER}/filter/${file##*/}
 +		show_and_run /bin/ln -s ${file} ${CUPSSERVER}/filter
 +	done
 +
 +	/bin/mkdir -p ${CUPSCONFIG}
 +	for file in <PREFIX>/etc/cups/*
 +	do
-+		backup_file ${CUPSCONFIG}/${file##*/}
++		backup ${CUPSCONFIG}/${file##*/}
 +		show_and_run /bin/ln -s ${file} ${CUPSCONFIG}
 +	done
 +
 +	/bin/mkdir -p ${CUPSDATA}/model
 +	for file in <PREFIX>/share/cups/model/*
 +	do
-+		backup_file ${CUPSDATA}/model/${file##*/}
++		backup ${CUPSDATA}/model/${file##*/}
 +		show_and_run /bin/ln -s ${file} ${CUPSDATA}/model
 +	done
 +}
 +
-+function unlink_from_system () {
++function remove_links () {
 +
 +	get_cups_location
 +
 +	for file in <PREFIX>/lib/cups/filter/*
 +	do
-+		remove_symlink ${CUPSSERVER}/filter/${file##*/}
-+		restore_file   ${CUPSSERVER}/filter/${file##*/}
++		unlink  ${CUPSSERVER}/filter/${file##*/}
++		restore ${CUPSSERVER}/filter/${file##*/}
 +	done
 +
 +	for file in <PREFIX>/etc/cups/*
 +	do
-+		remove_symlink ${CUPSCONFIG}/${file##*/}
-+		restore_file   ${CUPSCONFIG}/${file##*/}
++		unlink  ${CUPSCONFIG}/${file##*/}
++		restore ${CUPSCONFIG}/${file##*/}
 +	done
 +
 +	for file in <PREFIX>/share/cups/model/*
 +	do
-+		remove_symlink ${CUPSDATA}/model/${file##*/}
-+		restore_file   ${CUPSDATA}/model/${file##*/}
++		unlink  ${CUPSDATA}/model/${file##*/}
++		restore ${CUPSDATA}/model/${file##*/}
 +	done
 +}
 +
 +case "$1" in
 +	add)
-+		link_to_system ;;
++		make_links ;;
 +	remove)
-+		unlink_from_system ;;
++		remove_links ;;
 +	*)
 +		${show} "usage: ${0##*/} {add|remove}" ;;
 +esac
