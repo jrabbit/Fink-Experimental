@@ -23,15 +23,18 @@ PatchScript: <<
 	gcc/config/i386/t-cygming
 <<
 
+##
 ConfigureParams: <<
   --target=i686-pc-mingw32 \
+  --host=%m-apple-darwin`uname -r|cut -f1 -d.` \
   --prefix=%p/lib/mingw \
   --bindir=%p/bin --mandir=%p/share/man --infodir=%p/share/info --libexecdir=%p/lib \
-  --enable-languages=c++,objc,java \
+  --enable-languages=c,c++,objc,java \
   --disable-shared \
-  --disable-nls \   
+  --disable-nls \
   --enable-threads \
-  --with-gcc \
+  --disable-multilib \
+  --with-included-gettext \
   --with-as=%p/bin/i686-pc-mingw32-as \
   --with-ld=%p/bin/i686-pc-mingw32-ld \
   --disable-win32-registry \
@@ -40,8 +43,18 @@ ConfigureParams: <<
   --without-newlib
 <<
 
+CompileScript: <<
+ #!/bin/sh -e
+ ulimit -S -s unlimited
+ mkdir darwin
+ cd darwin
+ ../configure %c
+ make
+<<
+
 InstallScript: <<
   #!/bin/bash -ev
+  cd darwin
   /usr/bin/make install DESTDIR=%d
   #/usr/bin/sed -i.finkbak \
   #  -e 's|-L%b/i686-pc-mingw32/libstdc++-v3/src ||' \
