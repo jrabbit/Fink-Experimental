@@ -33,6 +33,7 @@ ConfigureParams: <<
   --disable-shared \
   --disable-nls \
   --enable-threads \
+  --enable-libgcj \
   --disable-multilib \
   --with-included-gettext \
   --with-as=%p/bin/i686-pc-mingw32-as \
@@ -56,13 +57,18 @@ InstallScript: <<
   #!/bin/bash -ev
   cd darwin
   /usr/bin/make install DESTDIR=%d
-  #/usr/bin/sed -i.finkbak \
-  #  -e 's|-L%b/i686-pc-mingw32/libstdc++-v3/src ||' \
-  #  -e 's|-L%b/i686-pc-mingw32/libstdc++-v3/src/.libs ||' \
-  #  -e 's|-L%b/gcc||' \
-  #  %i/lib/mingw/i686-pc-mingw32/lib/libstdc++.la \
-  #  %i/lib/mingw/i686-pc-mingw32/lib/libsupc++.la
-  #/bin/rm -f %i/lib/mingw/i686-pc-mingw32/lib/libs{td,up}c++.la.finkbak
+  
+  ## FIX ME -- somehow build dir was included into libtools file.
+  /usr/bin/sed -i.bak \
+    -e 's|-L%b/darwin/i686-pc-mingw32/libstdc++-v3/src ||' \
+    -e 's|-L%b/darwin/i686-pc-mingw32/libstdc++-v3/src/.libs ||' \
+    -e 's|-L%b/darwin/./gcc||' \
+    %i/lib/mingw/i686-pc-mingw32/lib/libstdc++.la \
+    %i/lib/mingw/i686-pc-mingw32/lib/libsupc++.la \
+    %i/lib/mingw/i686-pc-mingw32/lib/libgcj.la \
+    %i/lib/mingw/i686-pc-mingw32/lib/libgij.la
+  /bin/rm -f %i/lib/mingw/i686-pc-mingw32/lib/lib{stdc++,supc++,gcj,gij}.la.bak
+
   /bin/rm -f %i/lib/mingw/lib/libiberty.a
   /bin/rm -f %i/share/info/standards.info
   /bin/rm -f %i/share/info/configure.info*
