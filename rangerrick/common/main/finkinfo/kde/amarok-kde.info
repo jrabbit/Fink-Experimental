@@ -86,8 +86,8 @@ CustomMirror: <<
 <<
 Source: mirror:sourceforge:amarok/amarok-%v.tar.bz2
 Source-MD5: fd1ee0509568e5f9f7d0aeb9af094786
-Source2: mirror:custom:kde-admindir-3.5.0-2.tar.bz2
-Source2-MD5: 444f6ccbe74646c5313dd0b4fa4b36ac
+Source2: mirror:custom:kde-admindir-3.5.1.tar.bz2
+Source2-MD5: b6115a7310f8e8533af91be02e225d0e
 Source2ExtractDir: amarok-%v
 
 PatchScript: <<
@@ -99,7 +99,7 @@ DocFiles: AUTHORS COPYING ChangeLog INSTALL* README
 
 NoSetLDFLAGS: true
 NoSetCPPFLAGS: true
-ConfigureParams: --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --disable-final --disable-dependency-tracking --disable-mysql --disable-postgresql --without-nmm --without-mas --without-helix --without-libvisual --enable-gcc-hidden-visibility
+ConfigureParams: --disable-mysql --disable-postgresql --without-nmm --without-mas --without-helix --without-libvisual --with-distribution='Fink/Mac OS X'
 
 CompileScript: <<
 #!/bin/sh -e
@@ -116,17 +116,17 @@ CompileScript: <<
 		:
 	elif [ "%type_raw[amarok]" = "-gstreamer" ]; then
 		# just gstreamer, no xine
-		CONFIGURE_ARGS="--without-xine"
+		CONFIGURE_PARAMS="$CONFIGURE_PARAMS --without-xine"
 	elif [ "%type_raw[amarok]" = "-xine" ]; then
 		# just xine, no gstreamer
-		CONFIGURE_ARGS="--without-gstreamer"
+		CONFIGURE_PARAMS="$CONFIGURE_PARAMS --without-gstreamer"
 	else
 		# whoa, this shouldn't happen
 		exit 1
 	fi
 
 	./build-helper.sh cvs       %{Ni} %v %r make -f admin/Makefile.common cvs
-	./build-helper.sh configure %{Ni} %v %r ./configure %c $CONFIGURE_ARGS
+	./build-helper.sh configure %{Ni} %v %r ./configure %c $CONFIGURE_PARAMS
 	./build-helper.sh make      %{Ni} %v %r make all all_libraries="$ALL_LIBRARIES"
 <<
 

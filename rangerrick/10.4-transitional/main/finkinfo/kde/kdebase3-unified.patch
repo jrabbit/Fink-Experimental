@@ -1615,3 +1615,114 @@
    QString varLine = layvar.stripWhiteSpace();
    QRegExp rx(VARIANT_PATTERN);
    int pos = rx.search(varLine, 0);
+--- kdebase-3.5.1/kdesktop/krootwm.cc	2005-10-10 11:04:11.000000000 -0400
++++ kdebase-3.5.1-new/kdesktop/krootwm.cc	2006-02-28 21:07:46.000000000 -0500
+@@ -52,6 +52,7 @@
+ #include <kuser.h>
+ #include <qfile.h>
+ 
++#include <kprocess.h>
+ #include "krootwm.h"
+ #include "kdiconview.h"
+ #include "desktop.h"
+@@ -82,6 +83,9 @@
+   m_configDialog = 0;
+ 
+ 
++  new KAction(i18n("Konsole..." ), "openterm", 0, this, SLOT( slotOpenTerminal() ),
++               m_actionCollection, "open_terminal" );
++
+   // Creates the new menu
+   menuBar = 0; // no menubar yet
+   menuNew = 0;
+@@ -135,6 +139,7 @@
+   {
+      new KAction(i18n("Run Command..."), "run", 0, m_pDesktop, SLOT( slotExecuteCommand() ), m_actionCollection, "exec" );
+   }
++
+   if (!KGlobal::config()->isImmutable())
+   {
+      new KAction(i18n("Configure Desktop..."), "configure", 0, this, SLOT( slotConfigureDesktop() ),
+@@ -378,6 +383,13 @@
+     desktopMenu->disconnect( this );
+     bool needSeparator = false;
+ 
++    action = m_actionCollection->action("open_terminal");
++    if (action)
++    {
++       action->plug( desktopMenu );
++       needSeparator = true;
++    }
++
+     if (menuNew)
+     {
+        menuNew->plug( desktopMenu );
+@@ -724,6 +736,13 @@
+   return args;
+ }
+ 
++void KRootWm::slotOpenTerminal()
++{
++  KProcess proc;
++  proc << locate("exe", "konsole");
++  proc.start(KProcess::DontCare);
++}
++
+ void KRootWm::slotConfigureDesktop() {
+   if (!m_configDialog)
+   {
+--- kdebase-3.5.1/kdesktop/krootwm.h	2005-10-10 11:04:11.000000000 -0400
++++ kdebase-3.5.1-new/kdesktop/krootwm.h	2006-02-28 21:07:46.000000000 -0500
+@@ -119,6 +119,7 @@
+   void slotSessionActivated( int );
+   void slotNewSession();
+   void slotLockNNewSession();
++  void slotOpenTerminal();
+ 
+ private:
+   KDesktop* m_pDesktop;
+--- kdebase-3.5.1/konsole/konsole/TEWidget.cpp	2005-09-10 04:26:08.000000000 -0400
++++ kdebase-3.5.1-new/konsole/konsole/TEWidget.cpp	2006-02-28 21:06:55.000000000 -0500
+@@ -393,6 +393,8 @@
+   qApp->installEventFilter( this ); //FIXME: see below
+   KCursor::setAutoHideCursor( this, true );
+ 
++  setInputMethodEnabled( true );
++
+   // Init DnD ////////////////////////////////////////////////////////////////
+   setAcceptDrops(true); // attempt
+   dragInfo.state = diNone;
+--- kdebase-3.5.1/konsole/konsole/TEmuVt102.cpp	2005-09-10 04:26:07.000000000 -0400
++++ kdebase-3.5.1-new/konsole/konsole/TEmuVt102.cpp	2006-02-28 21:06:23.000000000 -0500
+@@ -952,7 +952,10 @@
+     scr->setHistCursor(scr->getHistLines());
+ 
+   if (cmd==CMD_send) {
+-    if ((ev->state() & AltButton) && !metaspecified ) sendString("\033");
++    if ( (ev->state() & AltButton) && 
++      !metaspecified &&
++      !(len && txt[0]==27) )
++      sendString("\033");
+     emit sndBlock(txt,len);
+     return;
+   }
+--- kdebase-3.5.1/kwin/events.cpp	2006-01-19 12:01:07.000000000 -0500
++++ kdebase-3.5.1-new/kwin/events.cpp	2006-02-28 21:09:11.000000000 -0500
+@@ -323,17 +323,7 @@
+             return ( e->xunmap.event != e->xunmap.window ); // hide wm typical event from Qt
+             }
+         case MapNotify:
+-            {
+-#if KDE_IS_VERSION( 3, 9, 90 )
+-#warning Consider dumping this workaround.
+-#endif
+-            // See bug #100177, especially comments #6 and #14. This workaround shouldn't be
+-            // necessary when X.org with that fix becomes available and it's an unnecessary
+-            // X roundtrip for an experimental unstable feature.
+-            if( addSystemTrayWin( e->xmap.window ))
+-                return true;
+             return ( e->xmap.event != e->xmap.window ); // hide wm typical event from Qt
+-            }
+         case ReparentNotify:
+             {
+         //do not confuse Qt with these events. After all, _we_ are the
