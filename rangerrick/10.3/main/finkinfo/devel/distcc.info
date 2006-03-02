@@ -39,7 +39,12 @@ InstallScript: <<
 	make install DESTDIR=%d
 	install -d -m 755 %i/etc
 	cat <<END > %i/etc/distcc.conf
+# whether to translate compiler calls into e.g.
+#   powerpc-apple-darwin8-gcc
+#DISTCC_TRANS=false
+
 # the location of the distcc configuration files
+# the default is %p/var/cache/distcc/[uid]
 #DISTCC_DIR=%p/var/cache/distcc/foo
 
 # the hosts to use when compiling
@@ -134,6 +139,7 @@ END
 #### DO NOT EDIT BELOW HERE ####
 mkdir -p "%p/var/cache/distcc/\`id -u\`"
 DISTCC_DIR="%p/var/cache/distcc/\`id -u \`"
+grep -q -E '^ *DISTCC_TRANS' %p/etc/distcc.conf    && export DISTCC_TRANS=\`grep DISTCC_TRANS %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\` || :
 grep -q -E '^ *DISTCC_DIR' %p/etc/distcc.conf      && export DISTCC_DIR=\`grep DISTCC_DIR %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\` || :
 grep -q -E '^ *DISTCC_MMAP' %p/etc/distcc.conf     && export DISTCC_MMAP=\`grep DISTCC_MMAP %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\` || :
 grep -q -E '^ *DISTCC_HOSTS' %p/etc/distcc.conf    && export DISTCC_HOSTS=\`grep DISTCC_HOSTS %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\` || :
@@ -146,6 +152,7 @@ END
 #### DO NOT EDIT BELOW HERE ####
 mkdir -p "%p/var/cache/distcc/\`id -u\`"
 setenv DISTCC_DIR "%p/var/cache/distcc/\`id -u\`"
+grep -q -E '^ *DISTCC_TRANS' %p/etc/distcc.conf    && setenv DISTCC_TRANS \`grep DISTCC_TRANS %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\` || :
 grep -q -E '^ *DISTCC_DIR' %p/etc/distcc.conf      && setenv DISTCC_DIR \`grep DISTCC_DIR %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\` || :
 grep -q -E '^ *DISTCC_MMAP' %p/etc/distcc.conf     && setenv DISTCC_MMAP \`grep DISTCC_MMAP %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\` || :
 grep -q -E '^ *DISTCC_HOSTS' %p/etc/distcc.conf    && setenv DISTCC_HOSTS \`grep DISTCC_HOSTS %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\` || :
