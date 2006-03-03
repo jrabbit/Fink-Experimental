@@ -1,6 +1,6 @@
 Package: mingw-gcc
 Version: 4.1.0
-Revision: 1
+Revision: 2
 Description: GNU GCC for MinGW
 License: LGPL
 Maintainer: ASARI Takashi <asari@sodan.ecc.u-tokyo.ac.jp>
@@ -64,7 +64,10 @@ InstallScript: <<
     -e 's|-L%b/darwin/i686-pc-mingw32/libstdc++-v3/src/.libs ||' \
     -e 's|-L%b/darwin/./gcc||' \
     %i/lib/mingw/i686-pc-mingw32/lib/libstdc++.la \
-    %i/lib/mingw/i686-pc-mingw32/lib/libsupc++.la \
+    %i/lib/mingw/i686-pc-mingw32/lib/libsupc++.la
+  /usr/bin/sed -i.bak \
+    -e 's|-L%b/darwin/i686-pc-mingw32/libjava ||' \
+    -e 's|-L%b/darwin/i686-pc-mingw32/libjava/.libs ||' \
     %i/lib/mingw/i686-pc-mingw32/lib/libgcj.la \
     %i/lib/mingw/i686-pc-mingw32/lib/libgij.la
   /bin/rm -f %i/lib/mingw/i686-pc-mingw32/lib/lib{stdc++,supc++,gcj,gij}.la.bak
@@ -91,6 +94,7 @@ with other potential toolchains.
 TODO: Native Language Support
 <<
 DescUsage: <<
+Case 1: GCC
 1. Write a code.
   $ cat > hello.c
   #include <windows.h>
@@ -103,8 +107,21 @@ DescUsage: <<
      MessageBox (NULL, "Hello World!", "Hello", MB_OK);
      return (0);
   }
-  ^C
+  ^D
 2. Compile.
   $ i686-pc-mingw32-gcc -o hello.exe hello.c -mwindows
 3. Run.
+
+Case 2: GCJ
+1. Write a code.
+  $ cat > HelloWorld.java
+  public class HelloWorld {
+      public static void main (String[] args) {
+          System.out.println("Hello, world!");
+      }
+  } 
+ ^D
+2. Compile.
+ $ i686-pc-mingw32-gcj --main=HelloWorld HelloWorld.java
+3. Complain about its not running; then give feedback to the Maintainer ;-)
 <<
