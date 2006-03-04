@@ -2,7 +2,7 @@ Info2: <<
 Package: ptex%type_pkg[-nox]
 Type: -nox (boolean)
 Version: 3.1.9
-Revision: 2
+Revision: 3
 GCC: 3.3
 Description: ASCII publishing TeX
 Depends: %N-base (= %v-%r), texinfo, debianutils, texi2html
@@ -26,36 +26,40 @@ Recommends: detex, ifmslide, latex2html, pdfscreen, pdfslide, ppower4, tex4ht, t
 Suggests: foiltex, latex2html-ja
 Source: mirror:ctan:systems/unix/teTeX/3.0/distrib/tetex-src-3.0.tar.gz
 Source-MD5: 944a4641e79e61043fdaf8f38ecbb4b3
-Source2: ftp://ftp.ring.gr.jp/pub/text/TeX/ascii-ptex/tetex/%{ni}-src-%v.tar.gz
-Source2-MD5: e847e5461ff4ea93bdd2291eed19482f
-Source2ExtractDir: tetex-src-3.0/texk/web2c
-Source3: ftp://ftp.ring.gr.jp/pub/text/TeX/ptex-win32/utils/dvipsk-5.95b-p1.7a.tar.gz
-Source3-MD5: 25a08e6a6c55b2254609a8e169e5848c
-Source3ExtractDir: tetex-src-3.0/texk/dvipsk
-Source4: ftp://ftp.ring.gr.jp/pub/text/TeX/ascii-ptex/mendex/mendexk2.6d.tar.gz
-Source4-MD5: a96792cb86d818ce3c88f84fc471d601
-Source4ExtractDir: tetex-src-3.0/texk
-Source5: ftp://ftp.ring.gr.jp/pub/text/TeX/ptex-win32/utils/jmpost-0.04b.tar.gz
-Source5-MD5: 1a078173636589209491efd721f1e9a5
-Source5ExtractDir: tetex-src-3.0/texk/web2c/%{ni}-src-%v
-Source6: http://tutimura.ath.cx/~nob/tex/ptetex/ptetex3/ptetex3-20051003.tar.gz
-Source6-MD5: e4c1abc2805bdd99a2258db2d7700deb
+Source2: http://tutimura.ath.cx/~nob/tex/ptetex/ptetex3/ptetex3-20060302.tar.gz
+Source2-MD5: a7028e01902033794c2306bf7e84cae7
+Source3: http://mh.sodan.ecc.u-tokyo.ac.jp/~okayama/distfiles/xdvik-tetex-3.0-20050922.diff.gz
+Source3-MD5: d3361e82570837dd56082fcb9d322b1e
+Source4: http://mh.sodan.ecc.u-tokyo.ac.jp/~okayama/distfiles/ptetex3-20060302-extract.patch
+Source4-MD5: 4ec66eb60e18e9147813d6593e0d2852
+PatchFile: %{ni}.patch
+PatchFile-MD5: b5bc9d386f66b9542970d63adcf8270d
 PatchScript: <<
- gzcat ../ptetex3-20051003/archive/xdvik-tetex-3.0-22.84.10.diff.gz | patch -p1
- gzcat ../ptetex3-20051003/archive/xdvik-tetex-3.0-20050922.diff.gz | \
+ # comment out some unnecessary lines in 2extract-src.sh
+ patch -p1 -d ../ptetex3-20060302 < ../ptetex3-20060302-extract.patch
+
+ # not to extract teTeX src (already extracted).
+ echo "TEXSRC_EXTRACT=no" >> ../ptetex3-20060302/my_option
+
+ # to use stable xdvik instead of the newest one (because of FreeType version)
+ # additionally change the path settings of OTF (for appleotffont).
+ gzip -dc ../xdvik-tetex-3.0-20050922.diff.gz | \
   sed 's|/usr/local/share/texmf/dvipdfm/CIDFont|%p/lib/X11/fonts/appleotf|g'| \
-  patch -p1
+  gzip -c > ../ptetex3-20060302/archive/xdvik-tetex-3.0-20050922.diff.gz
+ rm ../ptetex3-20060302/archive/xdvik-tetex-3.0-20051117.diff.gz
+
+ # extract pTeX src and apply patches of ptetex3
+ (cd ../ptetex3-20060302 && ./2extract-src.sh ../)
+
+ # to fix font problems
+ perl -pi -e 's|-\*-\*-medium-r|-misc-\*-medium-r|g' texk/xdvik/texmf/XDvi
+ perl -pi -e 's|-\*-\*-bold-r|-misc-\*-bold-r|g' texk/xdvik/texmf/XDvi
+
+ # apply the same patches in tetex.info
  sed -e 's|@PREFIX@|%p|g' \
-     -e 's|@PACKAGE@|%n-%v-%r|g' < %a/%{ni}.patch | patch -p1
+     -e 's|@PACKAGE@|%n-%v-%r|g' < %{PatchFile} | patch -p1
  perl -pi -e "s|hardcode_direct=yes|hardcode_direct=no|" texk/configure texk/kpathsea/configure
  perl -pi -e 's,-flat_namespace -undefined suppress,-twolevel_namespace -undefined error,g' texk/configure texk/kpathsea/configure
- patch -p1 < ../ptetex3-20051003/archive/tetex-src-3.0-omegaware.patch
-# patch -p0 -d texk/tetex < ../ptetex3-20051003/archive/updmap-nostop.patch
- patch -p0 -d texk/tetex < ../ptetex3-20051003/archive/updmap-3.0-3.diff
- patch -p1 < ../ptetex3-20051003/security/tetex-2.0.2-dvipdfm-security.patch
-# patch -p1 < ../ptetex3-20051003/security/tetex-3.0-CVE-2005-3193.patch
- patch -p1 < ../ptetex3-20051003/security/tetex-3.0-badscript.patch
- patch -p1 -d texk/dvipsk < texk/dvipsk/dvipsk-5.95b-p1.7a.diff
 <<
 
 ConfigureParams: <<
@@ -69,20 +73,18 @@ ConfigureParams: <<
   (%type_raw[-nox] = -nox) --without-x
 <<
 CompileScript: <<
- mv texk/mendexk* texk/mendexk
- mv texk/web2c/%{ni}-src-%v/jmpost* texk/web2c/%{ni}-src-%v/jmpost
  ./configure %c
  make
 
- ( cd texk/web2c/%{ni}-src-%v ; ./configure euc ; make )
- ( cd texk/web2c/%{ni}-src-%v/jmpost ; sh ./configure ; make )
+ ( cd texk/web2c/%{ni} ; ./configure EUC ; make )
+ ( cd texk/web2c/%{ni}/jmpost ; sh ./configure ; make )
  ( cd texk/mendexk ; ./configure EUC ; make )
 <<
 InstallScript: <<
 #!/bin/bash -ev
  make install prefix=%i texmf=%i/share/texmf
- ( cd texk/web2c/%{ni}-src-%v ; make install prefix=%i texmf=%i/share/texmf )
- ( cd texk/web2c/%{ni}-src-%v/jmpost ; make install prefix=%i texmf=%i/share/texmf )
+ ( cd texk/web2c/%{ni} ; make install prefix=%i texmf=%i/share/texmf )
+ ( cd texk/web2c/%{ni}/jmpost ; make install prefix=%i texmf=%i/share/texmf )
  ( cd texk/mendexk ; make install prefix=%i texmf=%i/share/texmf )
 
 echo "Removing files that belong to the libkpathsea4 package..."
@@ -110,6 +112,7 @@ echo "Creating a TEXMFCONFIG tree ..."
 
 echo "Removing the ls-R file, which is supplied in the tetex-texmf package ..."
  rm -f %i/share/texmf-dist/ls-R
+ rm -f %i/share/texmf/ls-R
 
 echo "Removing readlink, which is supplied in the debianutils package ..."
  rm -f %i/bin/readlink
@@ -126,8 +129,8 @@ fi
 <<
 DocFiles: <<
 LICENSE.src:tetex-LICENSE.src README:tetex-README README.fink:tetex-README.fink
-texk/web2c/%{ni}-src-%v/COPYRIGHT texk/web2c/%{ni}-src-%v/COPYRIGHT.jis
-texk/web2c/%{ni}-src-%v/README.txt
+texk/web2c/%{ni}/COPYRIGHT texk/web2c/%{ni}/COPYRIGHT.jis
+texk/web2c/%{ni}/README.txt
 <<
 SplitOff: <<
  Package: %N-base
@@ -167,8 +170,8 @@ SplitOff: <<
  LICENSE.src:tetex-LICENSE.src PROBLEMS:tetex-PROBLEMS
  README:tetex-README README.fink:tetex-README.fink
  QuickInstall:tetex-QuickInstall
- texk/web2c/%{Ni}-src-%v/COPYRIGHT texk/web2c/%{Ni}-src-%v/COPYRIGHT.jis
- texk/web2c/%{Ni}-src-%v/Changes.txt texk/web2c/%{Ni}-src-%v/INSTALL.txt texk/web2c/%{Ni}-src-%v/README.txt
+ texk/web2c/%{Ni}/COPYRIGHT texk/web2c/%{Ni}/COPYRIGHT.jis
+ texk/web2c/%{Ni}/Changes.txt texk/web2c/%{Ni}/INSTALL.txt texk/web2c/%{Ni}/README.txt
  <<
  PreInstScript: <<
   echo "Removing any leftover files from obsolete teTeX installations ..."
