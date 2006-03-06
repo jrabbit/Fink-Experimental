@@ -1,13 +1,12 @@
 Package: dvipdfmx
-Version: 20050201
-Revision: 7
-GCC: 3.3
+Version: 20050627
+Revision: 1
 Depends: ptex-generation3-base, libkpathsea4-shlibs, libpng3-shlibs, ghostscript, appleotffonts
-BuildDepends: libkpathsea4, libpng3
+BuildDepends: libkpathsea4, libpng3, fink (>= 0.24.12)
 Source: http://project.ktug.or.kr/dvipdfmx/snapshot/release/%n-%v.tar.gz
-Source-MD5: d6b69f30f9ad1ee52853e9ed3cd984f8
-PatchScript: perl -pi -e "s|^f cid-x.map$|f kanjix.map|g" data/config/dvipdfmx.cfg
-Patch: %n.patch
+Source-MD5: 5a02f615401052f67b13a250c6bbe9ec
+PatchFile: %n.patch
+PatchFile-MD5: 205e3f5aa9e1ac9751f437b2045bed33
 ConfigureParams: --prefix=%i --with-kpathsea=%p --with-png=%p --with-zlib=%p
 InstallScript: <<
  make install prefix=%i
@@ -15,11 +14,11 @@ InstallScript: <<
  mkdir -p %i/share/texmf/fonts/cmap/dvipdfm
  mkdir -p %i/share/texmf/fonts/map/dvipdfm
 
- mv %i/share/texmf/dvipdfm/CMap/glyphlist.txt %i/share/texmf/dvipdfm/
- mv %i/share/texmf/dvipdfm/CMap               %i/share/texmf/fonts/cmap/dvipdfm/
- mv %i/share/texmf/dvipdfm/config/cid-x.map   %i/share/texmf/fonts/map/dvipdfm/
+ mv %i/share/texmf/dvipdfm/config/glyphlist.txt %i/share/texmf/dvipdfm/
+ mv %i/share/texmf/dvipdfm/CMap                 %i/share/texmf/fonts/cmap/dvipdfm/
+ mv %i/share/texmf/dvipdfm/config/cid-x.map     %i/share/texmf/fonts/map/dvipdfm/
 <<
-DocFiles: BUGS COPYING ChangeLog INSTALL README TODO
+DocFiles: AUTHORS COPYING ChangeLog INSTALL NEWS README TODO
 ConfFiles: %p/share/texmf/dvipdfm/config/dvipdfmx.cfg
 PreInstScript: <<
  rm -f %p/share/texmf/dvipdfm/Resource
@@ -34,8 +33,7 @@ PostInstScript:<<
     ln -s $res .
   fi
   ln -s %p/lib/X11/fonts .
-  mktexlsr
-  updmap-sys
+  [ -x %p/bin/mktexlsr ] && %p/bin/mktexlsr
 <<
 PreRmScript:<<
  rm -f %p/share/texmf/dvipdfm/Resource
@@ -43,14 +41,12 @@ PreRmScript:<<
  rm -f %p/share/texmf/fonts/cmap/dvipdfm/Resource
  rm -f %p/share/texmf/fonts/cmap/dvipdfm/fonts
 <<
-PostRmScript:<<
-if [ -x %p/bin/mktexlsr ]
-then
-  mktexlsr
-  updmap-sys
-fi
+PostRmScript: [ -x %p/bin/mktexlsr ] && %p/bin/mktexlsr
+DescPackaging: <<
+ %n.patch modifies dvipdfmx.cfg to use NeverEmbed. It also changed cid-x.map
+ to dvipdfmx-20050307 version because there are no font entries in 20050627.
 <<
-Description: DVI to PDF converter with Japanese patch
+Description: DVI to PDF converter with multi-byte character support
 License: GPL
 Maintainer: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>
 Homepage: http://project.ktug.or.kr/dvipdfmx/
