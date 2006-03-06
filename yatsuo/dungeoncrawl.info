@@ -1,0 +1,78 @@
+Package: dungeoncrawl
+Version: 4.0.0b26+050313
+Revision: 1
+Description: Roguelike
+License: OSI-approved
+Maintainer: ASARI Takashi <asari@users.sourceforge.net>
+
+BuildDepends: libncurses5, x11-dev, libpng3
+Depends: libncurses5-shlibs, libpng3-shlibs
+
+Source: ftp://ftp.dungeoncrawl.org/dev/4.0.x/src/dc400b26-src.tbz2
+SourceRename: dc400b26-src.tar.bz2
+Source-MD5: 807810185ff93f06bd4e169067644d8f
+#Source2: http://crawlj.sourceforge.jp/crawl/dc_j070_051224_src.zip
+#Source2-MD5: 8b0b75c6addf63e03ddd8e80d5a9eb24
+Source2: http://crawlj.sourceforge.jp/crawl/dc_e070_051224_src.zip
+Source2-MD5: f5c61c9d67d7c1ca46d7de253634073e
+Source3: http://www.geocities.co.jp/SiliconValley-SanJose/9606/cr/makefile.osx.gz
+Source3Rename: %n-%v-makefile.osx.gz
+Source3-MD5: a7a0f27b956c8fb34807ce11abc07228
+Source4: http://crawlj.sourceforge.jp/dc_j070_051224_wt_osx.tar
+Source4-MD5: 5f523de9e17c3c59702cd46bd7867343
+
+PatchScript: <<
+  /usr/bin/sed -i.bak "s|/opt/crawl/lib|%p/var/%n|" source/AppHdr.h
+#  /usr/bin/sed -i.bak "s|\r||g" source/makefile.bor
+#  /usr/bin/sed -i.bak "s|\r||g" source/mon-data.h
+  nkf -d source/makefile.bor > tmp
+  mv tmp source/makefile.bor
+  nkf -d source/mon-data.h > tmp
+  mv tmp source/mon-data.h
+  /usr/bin/iconv -f CP932 -t UTF-8 ../dc_e070_051224_src/dc400b26j070.pat | /usr/bin/patch -d source
+  /usr/bin/sed -i.bak "s|\\\\0\"|\"|" source/chardump.cc
+  /usr/bin/sed -i.bak "s|\\\\0\"|\"|" source/output.cc
+  /usr/bin/sed -i.bak "s|-alias-|-misc-|" source/libx11.cc
+  /usr/bin/sed -i.bak "s|static void load_ghost|void load_ghost|" source/files.cc
+  /usr/bin/gzip -dc ../%n-%v-makefile.osx.gz | /usr/bin/sed -e "s|-I/usr/include/ncurses|-I/sw/include|" -e "s|-DWIZARD|-DV_FIX|" -e "s|{INCLUDE}|{INCLUDES}|" -e "s|-Wmissing-declarations||g" -e "s|-Wstrict-prototypes||" -e "s|-Wmissing-prototypes||" -e "s|^# LDFLAGS.*$|LDFLAGS = -L/usr/lib -L/sw/lib|" -e "s|^OBJECTS += .*$|OBJECTS += tiles.o libx11.o libx11_png.o libtile.o winclass.o winclass-x11.o|" > source/makefile.osx
+echo "libtile.o : defines.h externs.h stuff.h tiles.h tiledef.h tiledef-p.h tiledef-qv.h winclass.h" >> source/makefile.osx
+echo "winclass.o : winclass.h" >> source/makefile.osx
+echo "winclass-x11.o : winclass.h defines.h debug.h" >> source/makefile.osx
+awk 'NR == 4 {print "#include <locale.h>"} {print}' source/winclass-x11.cc > tmp
+mv tmp source/winclass-x11.cc
+<<
+
+GCC: 4.0
+CompileScript: <<
+   cd source && make -f makefile.osx
+<<
+
+InstallScript: <<
+cp  source/crawl %i/
+cp -r *.txt %i/
+cp -r ../dc_j070_051224_wt_osx/ %p/var/%n/
+cp ../dc_j070_051224_wt_osx/init.txt ~/.crawlrc
+<<
+
+Homepage: http://crawlj.sourceforge.jp/
+DescDetail: <<
+About Dungeon Crawl
+
+Linley's Dungeon Crawl is a free and portable roguelike molded in the tradition
+of the early greats of the genre: Rogue, Hack, and Moria. The player guides a
+single character deep into a subterranean complex to retrieve the Orb of Zot,
+fending off many horrible and hideous creatures along the way. Once retrieved,
+the player must return both character and Orb safely to the surface world.
+Easier said than done, but fun all the same.
+
+Initiated in 1995 by Linley Henzell as a personal project, refinement of Crawl
+continues today through collaborative effort among a small group of developers.
+Free to play and distribute, hours of gameplay await adventurers on several
+popular platforms, including: MS-DOS, Microsoft Windows, GNU/Linux, *BSD,
+Solaris, MacOS (both Classic and OS X), OS/2, and AmigaOS.
+<<
+
+DescUsage:<<
+The rules of the game are included in the distribution
+in the file '/sw/share/doc/gnushogi/shogi.rules.'
+<<
