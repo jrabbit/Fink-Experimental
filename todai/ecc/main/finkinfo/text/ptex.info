@@ -2,7 +2,7 @@ Info2: <<
 Package: ptex%type_pkg[-nox]
 Type: -nox (boolean)
 Version: 3.1.9
-Revision: 5
+Revision: 6
 GCC: 3.3
 Description: ASCII publishing TeX
 Depends: %N-base (= %v-%r), texinfo, debianutils, texi2html
@@ -31,16 +31,10 @@ Source2-MD5: a7028e01902033794c2306bf7e84cae7
 Source3: http://mh.sodan.ecc.u-tokyo.ac.jp/~okayama/distfiles/xdvik-tetex-3.0-20050922.diff.gz
 Source3-MD5: d3361e82570837dd56082fcb9d322b1e
 Source4: http://mh.sodan.ecc.u-tokyo.ac.jp/~okayama/distfiles/ptetex3-20060302-extract.patch
-Source4-MD5: 5b42477cbc3332db4b8c6d12a61013fe
+Source4-MD5: b58cbd0b40678b07c244cd35b4c443e8
 PatchFile: %{ni}.patch
 PatchFile-MD5: b5bc9d386f66b9542970d63adcf8270d
 PatchScript: <<
- # comment out some unnecessary lines in 2extract-src.sh
- patch -p1 -d ../ptetex3-20060302 < ../ptetex3-20060302-extract.patch
-
- # not to extract teTeX src (already extracted).
- echo "TEXSRC_EXTRACT=no" >> ../ptetex3-20060302/my_option
-
  # to use stable xdvik instead of the newest one (because of FreeType version)
  # additionally change the path settings of OTF (for appleotffont).
  gzip -dc ../xdvik-tetex-3.0-20050922.diff.gz | \
@@ -48,19 +42,45 @@ PatchScript: <<
   gzip -c > ../ptetex3-20060302/archive/xdvik-tetex-3.0-20050922.diff.gz
  rm ../ptetex3-20060302/archive/xdvik-tetex-3.0-20051117.diff.gz
 
+ ########### comment out some unnecessary lines in 2extract-src.sh ###########
+ # 1. (@@ -40,10 +40,10 @@)
+ #    A patch to texmf.in-teTeX conflicts with %{PatchFile}. This patch isn't
+ #    so useful for users actually, so we follow tetex.info's packaging way.
+ #    We don't need a patch to Makefile.in either.
+ # 2. (@@ -73,7 +73,7 @@) & (@@ -138,9 +138,9 @@)
+ #    Original patches aim at making configuration files from cid-x.map
+ #    (for Japanese fonts), and this implies DVIPDFMx will be installed with
+ #    pTeX. However, DVIPDFMx needs the path of kpathsea (included in pTeX)
+ #    for ./configure.
+ #    This situation looks like circular dependency between pTeX and DVIPDFMx,
+ #    and it is difficult to avoid this problem. So we don't want to use
+ #    these patches. pTeX and DVIPDFMx are not installed at the same time.
+ # 3. (@@ -215,12 +215,12 @@)
+ #    Skip md5sum check.
+ #############################################################################
+ patch -p1 -d ../ptetex3-20060302 < ../ptetex3-20060302-extract.patch
+
+ # not to extract teTeX src (already extracted).
+ echo "TEXSRC_EXTRACT=no" >> ../ptetex3-20060302/my_option
+
  # extract pTeX src and apply patches of ptetex3
  (cd ../ptetex3-20060302 && ./2extract-src.sh ../)
 
- # run mktexlsr only in the install directory
- perl -pi -e 's|mktexlsr|mktexlsr %i/share/texmf|' texk/web2c/ptex/Makefile.in
+ # don't run mktexlsr, texlinks and fmtutil-sys.
+ # (Run these commands in InstallScript and PostInstScript)
+ perl -pi -e 's|\$\(scriptdir\)/mktexlsr|echo "Done."|' \
+  texk/web2c/%{ni}/Makefile.in texk/web2c/%{ni}/jmpost/Makefile.in
+ perl -pi -e 's|\$\(scriptdir\)/texlinks|echo "Done."|' \
+  texk/web2c/%{ni}/Makefile.in texk/web2c/%{ni}/jmpost/Makefile.in
+ perl -pi -e 's|\$\(scriptdir\)/fmtutil-sys.*|echo "Done."|' \
+  texk/web2c/%{ni}/Makefile.in texk/web2c/%{ni}/jmpost/Makefile.in
 
  # to fix font problems
  perl -pi -e 's|-\*-\*-medium-r|-misc-\*-medium-r|' texk/xdvik/texmf/XDvi
- perl -pi -e 's|-\*-\*-bold-r|-misc-\*-bold-r|' texk/xdvik/texmf/XDvi
+ perl -pi -e 's|-\*-\*-bold-r|-misc-\*-bold-r|'     texk/xdvik/texmf/XDvi
 
  # apply the same patches in tetex.info
- sed -e 's|@PREFIX@|%p|g' \
-     -e 's|@PACKAGE@|%n-%v-%r|g' < %{PatchFile} | patch -p1
+ sed -e 's|@PREFIX@|%p|g' -e 's|@PACKAGE@|%n-%v-%r|g' %{PatchFile} | patch -p1
  perl -pi -e "s|hardcode_direct=yes|hardcode_direct=no|" texk/configure texk/kpathsea/configure
  perl -pi -e 's,-flat_namespace -undefined suppress,-twolevel_namespace -undefined error,g' texk/configure texk/kpathsea/configure
 <<
@@ -76,18 +96,31 @@ ConfigureParams: <<
   (%type_raw[-nox] = -nox) --without-x
 <<
 CompileScript: <<
+ echo "---------- start building tetex ----------"
  ./configure %c
  make
 
+ echo "---------- start building ptex ----------"
  ( cd texk/web2c/%{ni} ; ./configure EUC ; make )
+
+ echo "---------- start building jmpost ----------"
  ( cd texk/web2c/%{ni}/jmpost ; sh ./configure ; make )
+
+ echo "---------- start building mendexk ----------"
  ( cd texk/mendexk ; ./configure EUC ; make )
 <<
 InstallScript: <<
 #!/bin/bash -ev
+ echo "---------- start installing tetex ----------"
  make install prefix=%i texmf=%i/share/texmf
+
+ echo "---------- start installing ptex ----------"
  ( cd texk/web2c/%{ni} ; make install prefix=%i texmf=%i/share/texmf )
+
+ echo "---------- start installing jmpost ----------"
  ( cd texk/web2c/%{ni}/jmpost ; make install prefix=%i texmf=%i/share/texmf )
+
+ echo "---------- start installing mendexk ----------"
  ( cd texk/mendexk ; make install prefix=%i texmf=%i/share/texmf )
 
 echo "Removing files that belong to the libkpathsea4 package..."
