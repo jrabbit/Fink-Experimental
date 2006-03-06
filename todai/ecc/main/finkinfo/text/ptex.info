@@ -2,26 +2,28 @@ Info2: <<
 Package: ptex%type_pkg[-nox]
 Type: -nox (boolean)
 Version: 3.1.9
-Revision: 7
+Revision: 11
 GCC: 3.3
 Description: ASCII publishing TeX
 Depends: %N-base (= %v-%r), texinfo, debianutils, texi2html
 BuildDepends: <<
-  libkpathsea4, t1lib5, libpng3 (>= 1:1.2.8-1), libwww, libncurses5, 
-  libjpeg, libiconv-dev, fink (>= 0.24.12),
-  (%type_raw[-nox] = .) gd2 (>= 2.0.33-1),
-  (%type_raw[-nox] = .) x11,
-  (%type_raw[-nox] = .) openmotif3
+ libkpathsea4, t1lib5, libpng3 (>= 1:1.2.8-1), libwww, libncurses5, 
+ libjpeg, libiconv-dev, fink (>= 0.24.12),
+ (%type_raw[-nox] = .)  gd2 (>= 2.0.33-1),
+ (%type_raw[-nox] = .) x11,
+ (%type_raw[-nox] = .) openmotif3
 <<
 Conflicts: <<
- system-tetex, bundle-tetex, tetex, tetex-nox, ptex, ptex-nox,
- (%type_raw[-nox] = -nox) ptex-base (<= 3.1.3-8)
+ system-tetex, tetex, tetex-nox, ptex, ptex-nox,
+ (%type_raw[-nox] = -nox) tetex-base (<= 2.0.2-24),
+ (%type_raw[-nox] = -nox) ptex-base (<= 3.1.3-7)
 <<
 Replaces: <<
- bundle-tetex, tetex, tetex-nox, ptex, ptex-nox,
- (%type_raw[-nox] = -nox) ptex-base (<= 3.1.3-8)
+ tetex, tetex-nox, ptex, ptex-nox,
+ (%type_raw[-nox] = -nox) tetex-base (<= 2.0.2-24),
+ (%type_raw[-nox] = -nox) ptex-base (<= 3.1.3-7)
 <<
-Provides: tetex, tetex3, ptex
+Provides: bundle-tetex
 Recommends: detex, ifmslide, latex2html, pdfscreen, pdfslide, ppower4, tex4ht, texpower
 Suggests: foiltex, latex2html-ja
 Source: mirror:ctan:systems/unix/teTeX/3.0/distrib/tetex-src-3.0.tar.gz
@@ -31,7 +33,7 @@ Source2-MD5: a7028e01902033794c2306bf7e84cae7
 Source3: http://mh.sodan.ecc.u-tokyo.ac.jp/~okayama/distfiles/xdvik-tetex-3.0-20050922.diff.gz
 Source3-MD5: d3361e82570837dd56082fcb9d322b1e
 Source4: http://mh.sodan.ecc.u-tokyo.ac.jp/~okayama/distfiles/ptetex3-20060302-extract.patch
-Source4-MD5: b58cbd0b40678b07c244cd35b4c443e8
+Source4-MD5: 2e824751fac97266757cc1bd674e7d57
 PatchFile: %{ni}.patch
 PatchFile-MD5: b5bc9d386f66b9542970d63adcf8270d
 PatchScript: <<
@@ -44,18 +46,18 @@ PatchScript: <<
 
  ########### comment out some unnecessary lines in 2extract-src.sh ###########
  # 1. (@@ -40,10 +40,10 @@)
- #    A patch to texmf.in-teTeX conflicts with %{PatchFile}. This patch isn't
- #    so useful for users actually, so we follow tetex.info's packaging way.
+ #    An original patch to texmf.in-teTeX conflicts with %{PatchFile} (this
+ #    patch is the same as tetex.info). The ptetex3's patch isn't so useful
+ #    for users actually, so we follow tetex.info's packaging way.
  #    We don't need a patch to Makefile.in either.
- # 2. (@@ -73,7 +73,7 @@) & (@@ -138,9 +138,9 @@)
- #    Original patches aim at making configuration files from cid-x.map
- #    (for Japanese fonts), and this implies DVIPDFMx will be installed with
- #    pTeX. However, DVIPDFMx needs the path of kpathsea (included in pTeX)
- #    for ./configure.
- #    This situation looks like circular dependency between pTeX and DVIPDFMx,
- #    and it is difficult to avoid this problem. So we don't want to use
- #    these patches. pTeX and DVIPDFMx are not installed at the same time.
- # 3. (@@ -215,12 +215,12 @@)
+ # 2. (@@ -73,7 +73,7 @@):updmap & (@@ -138,9 +138,9 @@):psfonts_jp.map
+ #    Original patches aim at making all configuration files (xdvik, dvips,
+ #    and dvipdfmx) from cid-x.map for Japanese fonts. However this framework
+ #    is experimental and it doesn't work propery at above xdvik version. So
+ #    we don't use these patches now. //but may use them in the future?
+ # 3. (@@ -73,7 +73,7 @@):platex209
+ #    We don't use platex209 because of the license (not OSI-Approved)
+ # 4. (@@ -215,12 +215,12 @@)
  #    Skip md5sum check.
  #############################################################################
  patch -p1 -d ../ptetex3-20060302 < ../ptetex3-20060302-extract.patch
@@ -174,22 +176,26 @@ SplitOff: <<
  Depends: <<
   t1lib5-shlibs, libpng3-shlibs (>= 1:1.2.8-1), 
   libwww-bin, libncurses5-shlibs, ncurses,
-  fink (>= 0.12.0-1), libkpathsea4-shlibs (>= 3.0-1), ptex-texmf (>= 2.3-4), appleotffonts,
-  ghostscript | (%type_raw[-nox] = -nox) ghostscript-nox,
+  fink (>= 0.12.0-1), libkpathsea4-shlibs (>= 3.0-1), ptex-texmf (>= 2.3-4),
+  appleotffonts,
+  (%type_raw[-nox] = -nox) ghostscript-nox,
+  (%type_raw[-nox] = .) ghostscript,
   (%type_raw[-nox] = .) gd2-shlibs (>= 2.0.33-1), 
   (%type_raw[-nox] = .) x11, 
   (%type_raw[-nox] = .) x11-shlibs,
   (%type_raw[-nox] = .) openmotif3-shlibs
 <<
  Conflicts: <<
-  tetex-base, tetex-nox-base, ptex-base, ptex-nox-base,
-  ptex (<= 3.1.3-8), ptex-dev (<= 3.1.3-8), ptex-shlibs (<= 3.1.3-8), mendexk (<= 2.5-1),
+  tetex-base (>= 0), tetex-nox-base, ptex-base (>= 0), ptex-nox-base,
+  ptex (<= 3.1.3-8), ptex-dev (<= 3.1.3-8), ptex-shlibs (<= 3.1.3-8),
+  mendexk (<= 2.5-1),
   (%type_raw[-nox] = .) xdvik (<= 22.40y1-7)
  <<
  Replaces: <<
-  tetex-base, tetex-nox-base, ptex-base, ptex-nox-base,
-  ptex (<= 3.1.3-8), ptex-dev (<= 3.1.3-8), ptex-shlibs (<= 3.1.3-8), mendexk (<= 2.5-1),
-  context, dvipdfm, epstopdf, pdftex, tetex-macosx,
+  tetex-base (>= 0), tetex-nox-base, ptex-base (>= 0), ptex-nox-base,
+  context, dvipdfm, epstopdf, pdftex, tetex-macosx, tetex (<= 2.0-3),
+  ptex (<= 3.1.3-8), ptex-dev (<= 3.1.3-8), ptex-shlibs (<= 3.1.3-8),
+  mendexk (<= 2.5-1),
   (%type_raw[-nox] = .) xdvi (<= 22.70-1), 
   (%type_raw[-nox] = .) xdvik (<= 22.40y1-7)
  <<
