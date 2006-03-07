@@ -1,28 +1,43 @@
 ;; Language environment settings
 ;; $Id$
-(require 'utf-8m)
 
-(set-language-environment "Japanese")
-(setq utf-decode-to-japanese-symbol t) ;; obsolete
-(utf-translate-cjk-mode t)
-(custom-set-variables
-  '(utf-fragment-on-decoding nil)
-  '(utf-translate-cjk-unicode-range '((#x80 . #xd7a3) (#xff00 . #xffef)))
-  '(default-input-method "japanese-yc")
-  )
-(set-default-coding-systems 'utf-8)
-(set-buffer-file-coding-system 'utf-8)
-(unless (and (boundp 'mac-access-clipboard-in-unicode)
-	     mac-access-clipboard-in-unicode)
-  (set-clipboard-coding-system 'sjis-mac))
-(set-terminal-coding-system 'utf-8)
-(set-keyboard-coding-system
- (if (eq window-system 'mac) 'sjis-mac 'utf-8))
-(set-file-name-coding-system 'utf-8m)
-;; Workaround a bug of emacs21-20041117
-(if (and (fboundp 'utf-translate-cjk-load-tables)
-	 (eq fink-emacs-flavor 'emacs21))
-    (utf-translate-cjk-load-tables))
+;; Setup Japanese UTF-8 environment.
+;; Recent Emacs 22 (22.0.50.cvs20060118) is enough clever for us
+;; to accept most of its default configurations.
+;; We don't need even set-language-environment!
+(when (eq emacs-major-version 22)
+  (if (require 'utf-8m nil t)
+      (set-file-name-coding-system 'utf-8m))
+  (cond ((and (eq window-system 'mac)
+              (fboundp 'mac-setup-inline-input-method))
+         (mac-setup-inline-input-method))
+        ((eq current-language-environment "Japanese")
+         (custom-set-variables '(default-input-method "japanese-yc")))))
+;; For Todai Fink Team's obsolete emacs21-carbon package.
+;; As we moved utf-8m.el into emacs22-carbon, utf-8m is not available
+;; on emacs21-carbon now.
+(when (eq emacs-major-version 21)
+  (set-language-environment "Japanese")
+  (setq utf-decode-to-japanese-symbol t) ;; obsolete
+  (utf-translate-cjk-mode t)
+  (custom-set-variables
+    '(utf-fragment-on-decoding nil)
+    '(utf-translate-cjk-unicode-range '((#x80 . #xd7a3) (#xff00 . #xffef)))
+    '(default-input-method "japanese-yc")
+    )
+  (set-default-coding-systems 'utf-8)
+  (set-buffer-file-coding-system 'utf-8)
+  (unless (and (boundp 'mac-access-clipboard-in-unicode)
+               mac-access-clipboard-in-unicode)
+    (set-clipboard-coding-system 'sjis-mac))
+  (set-terminal-coding-system 'utf-8)
+  (set-keyboard-coding-system
+   (if (eq window-system 'mac) 'sjis-mac 'utf-8))
+  (set-file-name-coding-system 'utf-8)
+  ;; Workaround a bug of emacs21-20041117
+  (if (and (fboundp 'utf-translate-cjk-load-tables)
+           (eq fink-emacs-flavor 'emacs21))
+      (utf-translate-cjk-load-tables)))
 
 ;; Set up the keyboard so the delete key on both the regular keyboard
 ;; and the keypad delete the character under the cursor and to the right
@@ -72,7 +87,13 @@
 
 ;; carbon-font or appleotffonts-ja
 (when (eq window-system 'mac)
-  (if (require 'carbon-font nil t)
-      (set-default-font "fontset-hiraginokaku12")
-    (require 'appleotffonts-ja)	;; for emacs21-carbon < 20041229
-    (set-default-font "fontset-hirakakugo14")))
+  (cond ((require 'carbon-font nil t)
+         (cond ((memq "-*-*-medium-r-normal--12-*-*-*-*-*-fontset-hiraginokaku" (fontset-list))
+                ;; for emacs22-carbon >= 22.0.50.cvs20060118
+                (set-default-font "hiraginokaku"))
+               ((memq "-*-fixed-medium-r-normal-*-12-*-*-*-*-*-fontset-hiraginokaku12" (fontset-list))
+                ;; for emacs21-carbon >= 20041229
+                (set-default-font "fontset-hiraginokaku12"))))
+        ((require 'appleotffonts-ja nil t)
+         ;; for emacs21-carbon < 20041229
+         (set-default-font "fontset-hirakakugo14"))))
