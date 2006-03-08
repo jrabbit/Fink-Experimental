@@ -455,8 +455,13 @@ ifelse(USE_FINK_PYTHON, 1,
     MacOSX${machine}Env.Set MacOSX${machine}Env.Set.sh
 
   /bin/mkdir FINKLIBS
-  /bin/ln -s %p/lib/libdb_java-4.2.jnilib FINKLIBS
-
+  /bin/ln -s %p/lib/libdb_java-4.2.jnilib FINKLIBS]
+ifelse(TREE, [10.4-transitional],
+[[  # Xcode >= 2.2 has /usr/lib/libsupc++.a, which follows GCC 4.0 ABI.
+  # Unfortunately, g++-3.3 finds libsupc++.a at /usr/lib if -L/usr/lib is given.
+  /bin/ln -s /usr/lib/gcc/darwin/3.3/libsupc++.a FINKLIBS
+]])dnl
+[
   # Retry forever to build OOo until success!
   while :; do
     /usr/bin/printf "\n\n[ Phase 3: Make ]\n\n" >&3
