@@ -1,6 +1,6 @@
 Package: bbfink
 Version: 0.24.12.cvs20060308
-Revision: 1
+Revision: 2
 Depends: base-files, fink (>= 0.24.12), fink (<< 0.24.99)
 Source: mirror:custom:fink/fink-0.24.12.tar.gz
 Source-MD5: 02455b2a6a46af9321038dd26045a620
@@ -8,6 +8,49 @@ Source-MD5: 02455b2a6a46af9321038dd26045a620
 Patch: %n.patch
 CompileScript: sh bbfink-build.sh build %p
 InstallScript: sh bbfink-build.sh DESTDIR=%d install %p
+
+PreInstScript: <<
+f=%p/lib/fink/mirror/postinstall.pl
+case $1 in
+    install) ;;
+    upgrade)
+    dpkg --compare-versions "$2" ">=" 0.24.12.cvs20060308-2 && exit 0
+    ;;
+    abort-upgrade)
+    echo 'ERROR: %n.preinst cannot handle this situation. Remove remaining %n and try again.' >&2
+    exit 2
+    ;;
+    *) echo "%n.preinst": FATAL BUG: unexpected arguments: "$@" >&2; exit 2;;
+esac
+dpkg-divert --package %n --add --rename --divert $f.bbsaved $f
+<<
+
+PostRmScript: <<
+f=%p/lib/fink/mirror/postinstall.pl
+whenfailed=exit
+case $1 in
+    remove|disappear) ;;
+    purge) exit 0;;
+    upgrade)
+    dpkg --compare-versions "$2" ">=" 0.24.12.cvs20060308-2 && exit 0
+    # If downgraded to bbfink << 0.24.12.cvs20060308-2, first remove
+    # still existing postinstall.pl and then run dpkg-divert --remove.
+    rm $f
+    ;;
+    failed-upgrade)
+    echo 'WARNING: Your old %n is not cleanly removed.' >&2
+    echo '         You might need to remove some files or use dpkg-divert(8) MANUALLY.' >&2
+    exit 0
+    ;;
+    abort-install) whenfailed=:;;
+    abort-upgrade)
+    echo 'ERROR: %n.posrtm cannot handle this situation. Remove remaining %n and try again.' >&2
+    exit 2
+    ;;
+    *) echo "%n.postrm": FATAL BUG: unexpected arguments: "$@" >&2; exit 2;;
+esac
+dpkg-divert --package %n --remove --rename --divert $f.bbsaved $f || $whenfailed
+<<
 
 Description: Modified package manager for build servers
 DescDetail: <<

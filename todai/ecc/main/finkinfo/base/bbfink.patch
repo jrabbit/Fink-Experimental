@@ -1,7 +1,7 @@
 diff -Naur fink-0.24.12.orig/README.bbfink fink-0.24.12/README.bbfink
 --- fink-0.24.12.orig/README.bbfink	Thu Jan  1 00:00:00 1970
-+++ fink-0.24.12/README.bbfink	Wed Mar  8 18:06:45 2006
-@@ -0,0 +1,18 @@
++++ fink-0.24.12/README.bbfink	Thu Mar  9 09:16:45 2006
+@@ -0,0 +1,25 @@
 +The bbfink package is slightly modified version of Fink package manager.
 +This is intended to help you to run a pakcage build server.
 +
@@ -20,6 +20,13 @@ diff -Naur fink-0.24.12.orig/README.bbfink fink-0.24.12/README.bbfink
 +  ignores the error.
 +
 +* Don't forget -y option when fink is re-executed in selfupdating.
++
++* Extra fields X-Buildbox-LocalMirror-* are introduced to fink.conf(5).
++  Each specified mirror is included into mirror choices.
++  Namely, you can keep your site-local mirrors from being replaced into
++  fink-official mirrors when fink-mirrors package is updated.
++  For this purpose, the bbfink package replaces the original fink-mirrors'
++  postinstall.pl using dpkg-divert(8).
 diff -Naur fink-0.24.12.orig/VERSION fink-0.24.12/VERSION
 --- fink-0.24.12.orig/VERSION	Tue Feb 21 20:44:49 2006
 +++ fink-0.24.12/VERSION	Wed Mar  8 17:27:11 2006
@@ -28,8 +35,8 @@ diff -Naur fink-0.24.12.orig/VERSION fink-0.24.12/VERSION
 +0.24.12.cvs20060308
 diff -Naur fink-0.24.12.orig/bbfink-build.sh fink-0.24.12/bbfink-build.sh
 --- fink-0.24.12.orig/bbfink-build.sh	Thu Jan  1 00:00:00 1970
-+++ fink-0.24.12/bbfink-build.sh	Wed Mar  8 17:59:06 2006
-@@ -0,0 +1,96 @@
++++ fink-0.24.12/bbfink-build.sh	Thu Mar  9 14:14:45 2006
+@@ -0,0 +1,99 @@
 +#! /bin/sh
 +# vim: set sw=4 sts=4 ts=8 et:
 +
@@ -66,6 +73,7 @@ diff -Naur fink-0.24.12.orig/bbfink-build.sh fink-0.24.12/bbfink-build.sh
 +    go_sed perlmod/Fink/FinkVersion.pm.in perlmod/Fink/FinkVersion.pm "s|@VERSION@|$version|g;s|@BASEPATH@|$prefix|g"
 +    go_sed lockwait.in dpkg-lockwait "s|@PREFIX@|$prefix|g;s|@PROG@|dpkg|g"
 +    go_sed lockwait.in apt-get-lockwait "s|@PREFIX@|$prefix|g;s|@PROG@|apt-get|g"
++    go_sed mirror/postinstall.pl.in mirror/postinstall.pl "s|@PREFIX@|$prefix|g"
 +}
 +
 +mode_install() {
@@ -78,6 +86,8 @@ diff -Naur fink-0.24.12.orig/bbfink-build.sh fink-0.24.12/bbfink-build.sh
 +    go mkdir -m 755 -p "$instdir/bin"
 +    go rm -f "$instdir/bin/bbfink"
 +    go ln -s ../lib/buildbox/bin/fink "$instdir/bin/bbfink"
++    go mkdir -m 755 -p "$instdir/lib/fink/mirror"
++    go $INSTALL -m 755 mirror/postinstall.pl "$instdir/lib/fink/mirror"
 +    go mkdir -m 755 -p "$instdir/share/doc/bbfink"
 +    go $INSTALL -m 644 AUTHORS COPYING README.bbfink "$instdir/share/doc/bbfink"
 +
@@ -90,7 +100,7 @@ diff -Naur fink-0.24.12.orig/bbfink-build.sh fink-0.24.12/bbfink-build.sh
 +}
 +
 +mode_clean() {
-+    go rm -f fink perlmod/Fink/FinkVersion.pm dpkg-lockwait apt-get-lockwait
++    go rm -f fink perlmod/Fink/FinkVersion.pm dpkg-lockwait apt-get-lockwait mirror/postinstall.pl
 +}
 +
 +# Variables which can be overridden
@@ -178,6 +188,18 @@ diff -Naur fink-0.24.12.orig/lockwait.in fink-0.24.12/lockwait.in
  	
  	print STDERR "Clear close-on-exec, so exec'ed process gets the lock\n"
  		if $debug;
+diff -Naur fink-0.24.12.orig/mirror/postinstall.pl.in fink-0.24.12/mirror/postinstall.pl.in
+--- fink-0.24.12.orig/mirror/postinstall.pl.in	Tue Jan  3 19:51:16 2006
++++ fink-0.24.12/mirror/postinstall.pl.in	Thu Mar  9 09:01:04 2006
+@@ -26,7 +26,7 @@
+ use 5.008_001;  # perl 5.8.1 or newer required
+ use strict;
+ 
+-use lib "@PREFIX@/lib/perl5";
++use lib "@PREFIX@/lib/buildbox/perl5";
+ 
+ use Fink::Config qw($config);
+ use Fink::Services qw(&read_config);
 diff -Naur fink-0.24.12.orig/perlmod/Fink/ChangeLog fink-0.24.12/perlmod/Fink/ChangeLog
 --- fink-0.24.12.orig/perlmod/Fink/ChangeLog	Mon Feb 20 22:20:08 2006
 +++ fink-0.24.12/perlmod/Fink/ChangeLog	Wed Mar  8 17:27:11 2006
@@ -221,6 +243,31 @@ diff -Naur fink-0.24.12.orig/perlmod/Fink/ChangeLog fink-0.24.12/perlmod/Fink/Ch
  
  2006-01-24  Daniel Macks  <dmacks@netspace.org>
  
+diff -Naur fink-0.24.12.orig/perlmod/Fink/Configure.pm fink-0.24.12/perlmod/Fink/Configure.pm
+--- fink-0.24.12.orig/perlmod/Fink/Configure.pm	Mon Feb 20 22:20:08 2006
++++ fink-0.24.12/perlmod/Fink/Configure.pm	Thu Mar  9 14:28:29 2006
+@@ -315,6 +315,10 @@
+ 			$current_value = $config->param("Mirror-$mirrorname");
+ 			$is_obsolete = 1;
+ 			$list_of_mirrors = &read_properties_multival("$libpath/mirror/$mirrorname");
++			my $local_mirror = $config->param_default("X-Buildbox-LocalMirror-$mirrorname", "");
++			if ($local_mirror) {
++				$list_of_mirrors->{"local"} = [ $local_mirror ];
++			}
+ 			delete $list_of_mirrors->{timestamp};
+ 		  MIRROR_GEOG_LOOP:
+ 			foreach $property_value (values %{$list_of_mirrors}) {
+@@ -444,6 +448,10 @@
+ 		$def_value = $config->param_default("Mirror-$mirrorname", "");
+ 		if ($def_value) {
+ 			push @mirrors, ( "$current_prompt $def_value" => $def_value );
++		}
++		my $local_mirror = $config->param_default("X-Buildbox-LocalMirror-$mirrorname", "");
++		if ($local_mirror) {
++			push @mirrors, ( "Local: $local_mirror" => $local_mirror );
+ 		}
+ 
+ 		if (exists $all_mirrors->{primary}) {
 diff -Naur fink-0.24.12.orig/perlmod/Fink/Engine.pm fink-0.24.12/perlmod/Fink/Engine.pm
 --- fink-0.24.12.orig/perlmod/Fink/Engine.pm	Fri Jan 13 03:25:00 2006
 +++ fink-0.24.12/perlmod/Fink/Engine.pm	Wed Mar  8 18:23:29 2006
@@ -249,6 +296,36 @@ diff -Naur fink-0.24.12.orig/perlmod/Fink/Engine.pm fink-0.24.12/perlmod/Fink/En
  
  		open(RELEASE,">$treedir/Release") or die "can't write Release file: $!\n";
  		print RELEASE <<EOF;
+diff -Naur fink-0.24.12.orig/perlmod/Fink/Mirror.pm fink-0.24.12/perlmod/Fink/Mirror.pm
+--- fink-0.24.12.orig/perlmod/Fink/Mirror.pm	Tue Jan  3 20:14:47 2006
++++ fink-0.24.12/perlmod/Fink/Mirror.pm	Thu Mar  9 14:29:05 2006
+@@ -84,12 +84,16 @@
+ 		"rsync" => "Primary: rsync://master.us.finkmirrors.net/finkinfo/",
+ 		"sourceforge" => "Primary: http://west.dl.sourceforge.net/sourceforge/",
+ 		);
++	my $local_mirror = $config->param_default("X-Buildbox-LocalMirror-$name", "");
+ 	my ($key, $mirrordefault);
+ 	if (not -f $mirrorfile) {
+ 		foreach $key ( keys %mirrordefaults ) {
+ 			if ($name eq $key) {
+ 				$mirrordefault = $mirrordefaults{$key}."\n";
+ 				$self->{data} = &read_properties_multival_var("",$mirrordefault);
++				if ($local_mirror) {
++					$self->{data}->{"local"} = $local_mirror;
++				}
+ 				$self->initialize();
+ 				return $self;
+ 			}
+@@ -97,6 +101,9 @@
+ 		die "No mirror site list file found for mirror '$name'.\n";
+ 	}
+ 	$self->{data} = &read_properties_multival($mirrorfile);
++	if ($local_mirror) {
++		$self->{data}->{"local"} = [ $local_mirror ];
++	}
+ 
+ 	# Extract the timestamp, and delete it from the hash.
+ 	$self->{timestamp} = $self->{data}->{timestamp};
 diff -Naur fink-0.24.12.orig/perlmod/Fink/Package.pm fink-0.24.12/perlmod/Fink/Package.pm
 --- fink-0.24.12.orig/perlmod/Fink/Package.pm	Wed Feb  8 03:23:09 2006
 +++ fink-0.24.12/perlmod/Fink/Package.pm	Wed Mar  8 17:27:11 2006
