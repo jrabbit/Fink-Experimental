@@ -1,0 +1,51 @@
+Package: meld
+Version: 1.1.3
+Revision: 1
+Description: Visual diff and merge tool
+DescDetail: <<
+Meld is a GNOME 2 visual diff and merge tool. It integrates especially
+well with CVS. The diff viewer lets you edit files in place (diffs
+update dynamically), and a middle column shows detailed changes and
+allows merges. The margins show location of changes for easy
+navigation, and it also features a tabbed interface that allows you to
+open many diffs at once.
+<<
+DescPort: <<
+Patch the main script to use a specific python so that we make sure to
+have the one that has the needed python libraries and also to understand
+installation to tempdir %d not ultimate location.
+Patch target executable to use correct python interp.
+<<
+DescPackaging: <<
+The usual scrollkeeper install-time fix.
+<<
+Homepage: http://meld.sourceforge.net/
+License: GPL
+Maintainer: Daniel Macks <dmacks@netspace.org>
+Depends: x11, python24(>= 1:2.4.2-1005), gnome-python2-py24, pyorbit2-py24, pygtk2-py24, scrollkeeper, desktop-file-utils, scrollkeeper
+BuildDepends: x11-dev, pygtk2-py24-dev, gettext-bin, gettext-tools, intltool
+Source: mirror:gnome:sources/%n/1.1/%n-%v.tar.bz2
+Source-MD5: b958f6b3b5b849607d952f49eb082cba
+Patch: %n.patch
+PatchScript: <<
+  perl -pi.bak -e 's|/usr/bin/env python|%p/bin/python2.4|' meld tools/*
+<<
+CompileScript: <<
+  PYTHON=%p/bin/python2.4 make prefix=%p
+<<
+InstallScript: <<
+  PYTHON=%p/bin/python2.4 make prefix=%p install DESTDIR=%d
+<<
+DocFileS: AUTHORS COPYING changelog
+PostInstScript: <<
+  if [ configure = "$1" ]; then
+    scrollkeeper-update -q
+  fi
+ [ -x %p/bin/update-desktop-database ] && update-desktop-database -q || :
+<<
+PostRmScript: <<  
+  if [ remove != "$1" ]; then
+    scrollkeeper-update -q
+  fi
+ [ -x %p/bin/update-desktop-database ] && update-desktop-database -q || :
+<<
