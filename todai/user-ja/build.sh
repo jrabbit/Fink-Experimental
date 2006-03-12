@@ -77,6 +77,11 @@ go_p() {
     $run "$@" | $run eval "$dst"
 }
 
+go_cd() {
+    $show cd "$1"
+    cd "$1"
+}
+
 dobuild() {
     go $mkinstalldirscmd "$builddir"
     $show "creating build.sed"
@@ -98,7 +103,7 @@ EOF
 }
 
 doinstall() {
-    go cd "$builddir"
+    go_cd "$builddir"
     go $mkinstalldirscmd -m 755 "$destdir$bindir"
     go $installcmd -m 755 user-ja-conf "$destdir$bindir"
 
@@ -115,15 +120,14 @@ doinstall() {
     go $installcmd -m 755 user-ja.csh "$destdir$fink_sysconfdir/profile.d/zz90user-ja.csh"
 
     go $mkinstalldirscmd -m 755 "$destdir$sysconfdir/xinitrc.d"
-    go $installcmd -m 755 kinput2.sh "$destdir$sysconfdir/xinitrc.d/50kinput2.sh"
     go $installcmd -m 755 xmodmap-ja.sh "$destdir$sysconfdir/xinitrc.d/21xmodmap-ja.sh"
 
-    go cd "$firstpwd"
-    go cd "$srcdir/etcmlterm"
+    go_cd "$firstpwd"
+    go_cd "$srcdir/etcmlterm"
     go $mkinstalldirscmd -m 755 "$destdir$mydatadir/etcmlterm"
     go $installcmd -m 644 font main menu "$destdir$mydatadir/etcmlterm"
 
-    go cd "../simple"
+    go_cd "../simple"
     go $installcmd -m 644 dot.* "$destdir$mydatadir/skel"
 
     go $installcmd -m 644 inputrc user-ja.canna "$destdir$mydatadir"
