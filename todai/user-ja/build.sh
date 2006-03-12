@@ -119,9 +119,6 @@ doinstall() {
     go $installcmd -m 755 user-ja.sh "$destdir$fink_sysconfdir/profile.d/zz90user-ja.sh"
     go $installcmd -m 755 user-ja.csh "$destdir$fink_sysconfdir/profile.d/zz90user-ja.csh"
 
-    go $mkinstalldirscmd -m 755 "$destdir$sysconfdir/xinitrc.d"
-    go $installcmd -m 755 xmodmap-ja.sh "$destdir$sysconfdir/xinitrc.d/21xmodmap-ja.sh"
-
     go_cd "$firstpwd"
     go_cd "$srcdir/etcmlterm"
     go $mkinstalldirscmd -m 755 "$destdir$mydatadir/etcmlterm"
@@ -141,6 +138,13 @@ doinstall() {
 
     go $mkinstalldirscmd -m 755 "$destdir$fink_sysconfdir/app-defaults/ja_JP.UTF-8"
     go $installcmd -m 644 Emacs.ad "$destdir$fink_sysconfdir/app-defaults/ja_JP.UTF-8/Emacs"
+
+    go $mkinstalldirscmd -m 755 "$destdir$sysconfdir/xinitrc.d"
+    go $installcmd -m 755 xmodmap-ja.sh "$destdir$sysconfdir/xinitrc.d/21xmodmap-ja.sh"
+
+    go_cd "../doc"
+    go $mkinstalldirscmd -m 755 "$destdir$datadir/doc"
+    go $installcmd -m 644 *.txt "$destdir$datadir/doc"
 }
 
 doclean() {
