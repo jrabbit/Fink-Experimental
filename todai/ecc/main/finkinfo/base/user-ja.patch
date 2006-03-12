@@ -1,16 +1,34 @@
-diff -Nru user-ja-2.3.dummy/.cvsignore user-ja-2.3/.cvsignore
---- user-ja-2.3.dummy/.cvsignore	Thu Jan  1 09:00:00 1970
-+++ user-ja-2.3/.cvsignore	Thu Apr  7 21:31:26 2005
+diff -Nru user-ja-3.0.dummy/.cvsignore user-ja-3.0/.cvsignore
+--- user-ja-3.0.dummy/.cvsignore	Thu Jan  1 09:00:00 1970
++++ user-ja-3.0/.cvsignore	Thu Apr  7 21:31:26 2005
 @@ -0,0 +1,5 @@
 +build
 +semantic.cache
 +user-ja-[0-9]*
 +user-ja.info
 +user-ja.patch
-diff -Nru user-ja-2.3.dummy/ChangeLog user-ja-2.3/ChangeLog
---- user-ja-2.3.dummy/ChangeLog	Thu Jan  1 09:00:00 1970
-+++ user-ja-2.3/ChangeLog	Tue Mar  7 22:29:10 2006
-@@ -0,0 +1,217 @@
+diff -Nru user-ja-3.0.dummy/ChangeLog user-ja-3.0/ChangeLog
+--- user-ja-3.0.dummy/ChangeLog	Thu Jan  1 09:00:00 1970
++++ user-ja-3.0/ChangeLog	Sun Mar 12 23:52:15 2006
+@@ -0,0 +1,235 @@
++2006-03-12 AIDA Shinra <shinra@j10n.org>
++* 3.0 release
++* sedsrc/user-ja.el.in: customize utf-translate-cjk-unicode-range also
++  on Emacs22.
++
++2006-03-12 AIDA Shinra <shinra@j10n.org>
++* Document and copyright
++* doc/COPYRIGHT-en.txt: added
++* doc/canna.COPYRIGHT.txt: added
++* doc/user-ja.txt: per-file descriptions
++
++2006-03-12 AIDA Shinra <shinra@j10n.org>
++* Move $fink_prefix/etc/xinitrc.d/50kinput2.sh to the kinput2 package.
++* Small cleanup.
++* build.sh: go cd -> go_cd
++* sedsrc/kinput2.sh.in: removed
++* sedsrc/xmodmap-ja.sh.in: renamed to simple/xmodma-ja.sh
++
 +2006-03-07 AIDA Shinra <shinra@j10n.org>
 +* 2.3 release
 +* user-ja.info.in: fix Depends
@@ -228,10 +246,10 @@ diff -Nru user-ja-2.3.dummy/ChangeLog user-ja-2.3/ChangeLog
 +* Initial revision
 +
 +$Id$
-diff -Nru user-ja-2.3.dummy/build.sh user-ja-2.3/build.sh
---- user-ja-2.3.dummy/build.sh	Thu Jan  1 09:00:00 1970
-+++ user-ja-2.3/build.sh	Tue Mar  7 22:19:21 2006
-@@ -0,0 +1,251 @@
+diff -Nru user-ja-3.0.dummy/build.sh user-ja-3.0/build.sh
+--- user-ja-3.0.dummy/build.sh	Thu Jan  1 09:00:00 1970
++++ user-ja-3.0/build.sh	Sun Mar 12 22:55:53 2006
+@@ -0,0 +1,259 @@
 +#! /bin/sh
 +# $Id$
 +# vim: set sw=4:
@@ -311,6 +329,11 @@ diff -Nru user-ja-2.3.dummy/build.sh user-ja-2.3/build.sh
 +    $run "$@" | $run eval "$dst"
 +}
 +
++go_cd() {
++    $show cd "$1"
++    cd "$1"
++}
++
 +dobuild() {
 +    go $mkinstalldirscmd "$builddir"
 +    $show "creating build.sed"
@@ -332,7 +355,7 @@ diff -Nru user-ja-2.3.dummy/build.sh user-ja-2.3/build.sh
 +}
 +
 +doinstall() {
-+    go cd "$builddir"
++    go_cd "$builddir"
 +    go $mkinstalldirscmd -m 755 "$destdir$bindir"
 +    go $installcmd -m 755 user-ja-conf "$destdir$bindir"
 +
@@ -348,16 +371,12 @@ diff -Nru user-ja-2.3.dummy/build.sh user-ja-2.3/build.sh
 +    go $installcmd -m 755 user-ja.sh "$destdir$fink_sysconfdir/profile.d/zz90user-ja.sh"
 +    go $installcmd -m 755 user-ja.csh "$destdir$fink_sysconfdir/profile.d/zz90user-ja.csh"
 +
-+    go $mkinstalldirscmd -m 755 "$destdir$sysconfdir/xinitrc.d"
-+    go $installcmd -m 755 kinput2.sh "$destdir$sysconfdir/xinitrc.d/50kinput2.sh"
-+    go $installcmd -m 755 xmodmap-ja.sh "$destdir$sysconfdir/xinitrc.d/21xmodmap-ja.sh"
-+
-+    go cd "$firstpwd"
-+    go cd "$srcdir/etcmlterm"
++    go_cd "$firstpwd"
++    go_cd "$srcdir/etcmlterm"
 +    go $mkinstalldirscmd -m 755 "$destdir$mydatadir/etcmlterm"
 +    go $installcmd -m 644 font main menu "$destdir$mydatadir/etcmlterm"
 +
-+    go cd "../simple"
++    go_cd "../simple"
 +    go $installcmd -m 644 dot.* "$destdir$mydatadir/skel"
 +
 +    go $installcmd -m 644 inputrc user-ja.canna "$destdir$mydatadir"
@@ -371,6 +390,13 @@ diff -Nru user-ja-2.3.dummy/build.sh user-ja-2.3/build.sh
 +
 +    go $mkinstalldirscmd -m 755 "$destdir$fink_sysconfdir/app-defaults/ja_JP.UTF-8"
 +    go $installcmd -m 644 Emacs.ad "$destdir$fink_sysconfdir/app-defaults/ja_JP.UTF-8/Emacs"
++
++    go $mkinstalldirscmd -m 755 "$destdir$sysconfdir/xinitrc.d"
++    go $installcmd -m 755 xmodmap-ja.sh "$destdir$sysconfdir/xinitrc.d/21xmodmap-ja.sh"
++
++    go_cd "../doc"
++    go $mkinstalldirscmd -m 755 "$destdir$datadir/doc"
++    go $installcmd -m 644 *.txt "$destdir$datadir/doc"
 +}
 +
 +doclean() {
@@ -483,9 +509,89 @@ diff -Nru user-ja-2.3.dummy/build.sh user-ja-2.3/build.sh
 +    *) badarg "$mode"; exit ;;
 +esac
 +
-diff -Nru user-ja-2.3.dummy/doc/developers.txt user-ja-2.3/doc/developers.txt
---- user-ja-2.3.dummy/doc/developers.txt	Thu Jan  1 09:00:00 1970
-+++ user-ja-2.3/doc/developers.txt	Thu Apr  7 21:31:26 2005
+diff -Nru user-ja-3.0.dummy/doc/COPYRIGHT-en.txt user-ja-3.0/doc/COPYRIGHT-en.txt
+--- user-ja-3.0.dummy/doc/COPYRIGHT-en.txt	Thu Jan  1 09:00:00 1970
++++ user-ja-3.0/doc/COPYRIGHT-en.txt	Sun Mar 12 22:55:53 2006
+@@ -0,0 +1,11 @@
++You can use or modify or redistribute or do anything to this software
++as if it were in public domain, although Japan's laws do not admit
++to disclaim one's copyright.
++
++As its exception, the user-ja.canna is affected by the copyright of
++NEC Corporation and Canna Project, as it is derived from Canna[1].
++Read canna.COPYRIGHT for more information.
++
++[1] http://canna.sourceforge.jp/
++
++$Id$
+diff -Nru user-ja-3.0.dummy/doc/canna.COPYRIGHT.txt user-ja-3.0/doc/canna.COPYRIGHT.txt
+--- user-ja-3.0.dummy/doc/canna.COPYRIGHT.txt	Thu Jan  1 09:00:00 1970
++++ user-ja-3.0/doc/canna.COPYRIGHT.txt	Sun Mar 12 22:55:53 2006
+@@ -0,0 +1,61 @@
++The whole distribution is under following license agreements. You must
++agree with both of them to use or distribute Canna.
++
++/* Copyright (c) 2002-2004 Canna Project. All rights reserved.
++ *
++ * Permission to use, copy, modify, distribute and sell this software
++ * and its documentation for any purpose is hereby granted without
++ * fee, provided that the above copyright notice appear in all copies
++ * and that both that copyright notice and this permission notice
++ * appear in supporting documentation, and that the name of the
++ * author and contributors not be used in advertising or publicity
++ * pertaining to distribution of the software without specific, written
++ * prior permission.  The author and contributors no representations
++ * about the suitability of this software for any purpose.  It is
++ * provided "as is" without express or implied warranty.
++ *
++ * THE AUTHOR AND CONTRIBUTORS DISCLAIMS ALL WARRANTIES WITH REGARD TO
++ * THIS SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
++ * FITNESS, IN NO EVENT SHALL THE AUTHOR AND CONTRIBUTORS BE LIABLE FOR
++ * ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER
++ * RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF
++ * CONTRACT, NEGLIGENCE OR OTHER TORTUOUS ACTION, ARISING OUT OF OR IN
++ * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
++ */
++
++/* Copyright 1990-1997 NEC Corporation, Tokyo, Japan.
++ *
++ * Permission to use, copy, modify, distribute and sell this software
++ * and its documentation for any purpose is hereby granted without
++ * fee, provided that the above copyright notice appear in all copies
++ * and that both that copyright notice and this permission notice
++ * appear in supporting documentation, and that the name of NEC
++ * Corporation not be used in advertising or publicity pertaining to
++ * distribution of the software without specific, written prior
++ * permission.  NEC Corporation makes no representations about the
++ * suitability of this software for any purpose.  It is provided "as
++ * is" without express or implied warranty.
++ *
++ * NEC CORPORATION DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
++ * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN 
++ * NO EVENT SHALL NEC CORPORATION BE LIABLE FOR ANY SPECIAL, INDIRECT OR
++ * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF 
++ * USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR 
++ * OTHER TORTUOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR 
++ * PERFORMANCE OF THIS SOFTWARE. 
++ */
++
++Canuum is distributed under GNU GPL. See canuum/README.copyright and
++canuum/COPYRIGHT.
++
++Pubdic+ is distributed under so-called MIT license. See
++dic/ideo/pubdic/COPYRIGHT (in both Japanese and English).
++
++The zipcode dictionaries dic/ideo/words/zipcode.t and
++dic/ideo/words/jigyosyo.t are generated from data available from JAPANPOST.
++Neither JAPANPOST nor Canna Project claim any copyright about the two files.
++
++The tools in misc/zipcode directory is distributed under GNU GPL.
++See misc/zipcode/README.jp and misc/zipcode/COPYING.
++
++($Id$)
+diff -Nru user-ja-3.0.dummy/doc/developers.txt user-ja-3.0/doc/developers.txt
+--- user-ja-3.0.dummy/doc/developers.txt	Thu Jan  1 09:00:00 1970
++++ user-ja-3.0/doc/developers.txt	Thu Apr  7 21:31:26 2005
 @@ -0,0 +1,42 @@
 +user-jaの開発について
 +
@@ -529,24 +635,66 @@ diff -Nru user-ja-2.3.dummy/doc/developers.txt user-ja-2.3/doc/developers.txt
 +で出来上がるまっさらのディレクトリになるべく近づけます。
 +
 +$Id$
-diff -Nru user-ja-2.3.dummy/doc/user-ja.txt user-ja-2.3/doc/user-ja.txt
---- user-ja-2.3.dummy/doc/user-ja.txt	Thu Jan  1 09:00:00 1970
-+++ user-ja-2.3/doc/user-ja.txt	Thu Apr  7 21:31:26 2005
-@@ -0,0 +1,11 @@
+diff -Nru user-ja-3.0.dummy/doc/user-ja.txt user-ja-3.0/doc/user-ja.txt
+--- user-ja-3.0.dummy/doc/user-ja.txt	Thu Jan  1 09:00:00 1970
++++ user-ja-3.0/doc/user-ja.txt	Sun Mar 12 22:55:53 2006
+@@ -0,0 +1,53 @@
 +user-jaの設定ファイル、コマンド類の説明です。まだ未完成です。
 +
-+* user-ja-conf
++* <fink_prefix>/bin/user-ja-conf
 +日本語用の標準的な設定ファイルをホームディレクトリに作成します。
 +以前からあったファイルは~/user-ja-conf-bakに移動されます。
 +
-+なお、user-jaはpublic domainとします。日本の法律では著作権を
++* <fink_prefix>/etc/app-defaults/ja_JP.UTF-8/Emacs
++X11上のEmacsでXIMを無効にします。
++
++* <fink_prefix>/etc/emacs/site-start.d/90user-ja.el
++Emacsの日本語環境、色、ホイールマウスの設定などを行います。
++
++* <fink_prefix>/etc/gtk/gtkrc.ja_JP.eucjp
++* <fink_prefix>/etc/gtk/gtkrc.ja_JP.utf8
++GTKアプリケーションでのフォントの設定などを行います。
++
++* <fink_prefix>/etc/profile.d/zz90user-ja.sh
++* <fink_prefix>/etc/profile.d/zz90user-ja.csh
++環境変数の設定などを行います。
++
++* <fink_prefix>/etc/xinitrc.d/21xmodmap-ja.sh
++X11でのキーボードの設定を行います。
++
++* <fink_prefix>/share/inputrc
++bash等で使われる設定ファイルです。
++
++* <fink_prefix>/share/user-ja.canna
++日本語入力システムCannaの設定ファイルです。
++Canna標準の辞書(pubdic+)ではなくcannadicを用います。
++
++* <fink_prefix>/share/user-ja/etcmlterm/*
++多言語コンソールmltermの設定ファイルです。
++
++* <fink_prefix>/share/user-ja/skel/*
++user-ja-confがホームディレクトリにコピーする設定ファイルです。
++
++* <fink_prefix>/share/user-ja/xinitrc
++* <fink_prefix>/share/emacs/site-lisp/appleotffonts-ja.el
++後方互換性のために残されているファイルです。
++
++===========================================================
++
++本ソフトウェアはpublic domainとします。日本の法律では著作権を
 +放棄することは出来ませんが、public domainと同じように自由に
 +扱って結構です。
 +
++ただし、user-ja.cannaは、Canna[1]から派生したファイルであるため、
++日本電気株式会社とCanna Projectの著作権が及びます。
++詳しくはcanna.COPYRIGHT.txtを参照してください。
++
++[1] http://canna.sourceforge.jp/
++
 +$Id$
-diff -Nru user-ja-2.3.dummy/etcmlterm/font user-ja-2.3/etcmlterm/font
---- user-ja-2.3.dummy/etcmlterm/font	Thu Jan  1 09:00:00 1970
-+++ user-ja-2.3/etcmlterm/font	Thu Apr  7 21:31:26 2005
+diff -Nru user-ja-3.0.dummy/etcmlterm/font user-ja-3.0/etcmlterm/font
+--- user-ja-3.0.dummy/etcmlterm/font	Thu Jan  1 09:00:00 1970
++++ user-ja-3.0/etcmlterm/font	Thu Apr  7 21:31:26 2005
 @@ -0,0 +1,27 @@
 +# $Id$
 +# See also: ${prefix}/share/doc/mlterm/etc/font.ja
@@ -575,9 +723,9 @@ diff -Nru user-ja-2.3.dummy/etcmlterm/font user-ja-2.3/etcmlterm/font
 +#ISO10646_UCS4_1_BIWIDTH = -efont-fixed-medium-r-normal--14-*-*-*-c-140-iso10646-1
 +#ISO10646_UCS4_1_BOLD = -efont-fixed-bold-r-normal--14-*-*-*-c-70-iso10646-1
 +#ISO10646_UCS4_1_BIWIDTH_BOLD = -efont-fixed-bold-r-normal--14-*-*-*-c-140-iso10646-1
-diff -Nru user-ja-2.3.dummy/etcmlterm/main user-ja-2.3/etcmlterm/main
---- user-ja-2.3.dummy/etcmlterm/main	Thu Jan  1 09:00:00 1970
-+++ user-ja-2.3/etcmlterm/main	Thu Apr  7 21:31:26 2005
+diff -Nru user-ja-3.0.dummy/etcmlterm/main user-ja-3.0/etcmlterm/main
+--- user-ja-3.0.dummy/etcmlterm/main	Thu Jan  1 09:00:00 1970
++++ user-ja-3.0/etcmlterm/main	Thu Apr  7 21:31:26 2005
 @@ -0,0 +1,12 @@
 +# $Id$
 +# See also: ${prefix}/share/doc/mlterm/etc/main.ja
@@ -591,9 +739,9 @@ diff -Nru user-ja-2.3.dummy/etcmlterm/main user-ja-2.3/etcmlterm/main
 +xim_open_in_startup=true
 +use_variable_column_width=true
 +iso88591_font_for_usascii=true
-diff -Nru user-ja-2.3.dummy/etcmlterm/menu user-ja-2.3/etcmlterm/menu
---- user-ja-2.3.dummy/etcmlterm/menu	Thu Jan  1 09:00:00 1970
-+++ user-ja-2.3/etcmlterm/menu	Thu Apr  7 21:31:26 2005
+diff -Nru user-ja-3.0.dummy/etcmlterm/menu user-ja-3.0/etcmlterm/menu
+--- user-ja-3.0.dummy/etcmlterm/menu	Thu Jan  1 09:00:00 1970
++++ user-ja-3.0/etcmlterm/menu	Thu Apr  7 21:31:26 2005
 @@ -0,0 +1,15 @@
 +"Font Size" {
 +	"Larger"	"fontsize=larger"
@@ -610,14 +758,14 @@ diff -Nru user-ja-2.3.dummy/etcmlterm/menu user-ja-2.3/etcmlterm/menu
 +-
 +pty_list
 +"New PTY"	"open_pty"
-diff -Nru user-ja-2.3.dummy/sedsrc/.cvsignore user-ja-2.3/sedsrc/.cvsignore
---- user-ja-2.3.dummy/sedsrc/.cvsignore	Thu Jan  1 09:00:00 1970
-+++ user-ja-2.3/sedsrc/.cvsignore	Thu Apr  7 21:31:26 2005
+diff -Nru user-ja-3.0.dummy/sedsrc/.cvsignore user-ja-3.0/sedsrc/.cvsignore
+--- user-ja-3.0.dummy/sedsrc/.cvsignore	Thu Jan  1 09:00:00 1970
++++ user-ja-3.0/sedsrc/.cvsignore	Thu Apr  7 21:31:26 2005
 @@ -0,0 +1 @@
 +semantic.cache
-diff -Nru user-ja-2.3.dummy/sedsrc/dot.canna.in user-ja-2.3/sedsrc/dot.canna.in
---- user-ja-2.3.dummy/sedsrc/dot.canna.in	Thu Jan  1 09:00:00 1970
-+++ user-ja-2.3/sedsrc/dot.canna.in	Thu Apr  7 21:31:26 2005
+diff -Nru user-ja-3.0.dummy/sedsrc/dot.canna.in user-ja-3.0/sedsrc/dot.canna.in
+--- user-ja-3.0.dummy/sedsrc/dot.canna.in	Thu Jan  1 09:00:00 1970
++++ user-ja-3.0/sedsrc/dot.canna.in	Thu Apr  7 21:31:26 2005
 @@ -0,0 +1,7 @@
 +;; $Id$
 +;; gcanna(cannadic)を利用するか。
@@ -626,22 +774,9 @@ diff -Nru user-ja-2.3.dummy/sedsrc/dot.canna.in user-ja-2.3/sedsrc/dot.canna.in
 +;(setq  use-symbolic-definition t)
 +
 +(load "@MYDATADIR@/user-ja.canna")
-diff -Nru user-ja-2.3.dummy/sedsrc/kinput2.sh.in user-ja-2.3/sedsrc/kinput2.sh.in
---- user-ja-2.3.dummy/sedsrc/kinput2.sh.in	Thu Jan  1 09:00:00 1970
-+++ user-ja-2.3/sedsrc/kinput2.sh.in	Thu Apr  7 21:31:26 2005
-@@ -0,0 +1,9 @@
-+# $Id$
-+: ${xinitrc_kinput2_enable=YES}
-+case "x$xinitrc_kinput2_enable" in
-+    x[Yy][Ee][Ss])
-+    if test -x @FINK_PREFIX@/bin/kinput2; then
-+	@FINK_PREFIX@/bin/kinput2 -canna -xim &
-+    fi
-+    ;;
-+esac
-diff -Nru user-ja-2.3.dummy/sedsrc/user-ja-conf.in user-ja-2.3/sedsrc/user-ja-conf.in
---- user-ja-2.3.dummy/sedsrc/user-ja-conf.in	Thu Jan  1 09:00:00 1970
-+++ user-ja-2.3/sedsrc/user-ja-conf.in	Thu Apr  7 21:31:26 2005
+diff -Nru user-ja-3.0.dummy/sedsrc/user-ja-conf.in user-ja-3.0/sedsrc/user-ja-conf.in
+--- user-ja-3.0.dummy/sedsrc/user-ja-conf.in	Thu Jan  1 09:00:00 1970
++++ user-ja-3.0/sedsrc/user-ja-conf.in	Thu Apr  7 21:31:26 2005
 @@ -0,0 +1,80 @@
 +#! /bin/sh
 +# $Id$
@@ -723,9 +858,9 @@ diff -Nru user-ja-2.3.dummy/sedsrc/user-ja-conf.in user-ja-2.3/sedsrc/user-ja-co
 +#defaults write com.apple.Terminal DeleteKeySendsBackspace -string "YES"
 +
 +trap '' 0
-diff -Nru user-ja-2.3.dummy/sedsrc/user-ja.csh.in user-ja-2.3/sedsrc/user-ja.csh.in
---- user-ja-2.3.dummy/sedsrc/user-ja.csh.in	Thu Jan  1 09:00:00 1970
-+++ user-ja-2.3/sedsrc/user-ja.csh.in	Thu Apr  7 21:31:26 2005
+diff -Nru user-ja-3.0.dummy/sedsrc/user-ja.csh.in user-ja-3.0/sedsrc/user-ja.csh.in
+--- user-ja-3.0.dummy/sedsrc/user-ja.csh.in	Thu Jan  1 09:00:00 1970
++++ user-ja-3.0/sedsrc/user-ja.csh.in	Thu Apr  7 21:31:26 2005
 @@ -0,0 +1,14 @@
 +# $Id$
 +setenv LANG ja_JP.UTF-8
@@ -741,10 +876,10 @@ diff -Nru user-ja-2.3.dummy/sedsrc/user-ja.csh.in user-ja-2.3/sedsrc/user-ja.csh
 +    unset nokanji
 +    set dspmbyte=utf8
 +endif
-diff -Nru user-ja-2.3.dummy/sedsrc/user-ja.el.in user-ja-2.3/sedsrc/user-ja.el.in
---- user-ja-2.3.dummy/sedsrc/user-ja.el.in	Thu Jan  1 09:00:00 1970
-+++ user-ja-2.3/sedsrc/user-ja.el.in	Tue Mar  7 22:19:22 2006
-@@ -0,0 +1,99 @@
+diff -Nru user-ja-3.0.dummy/sedsrc/user-ja.el.in user-ja-3.0/sedsrc/user-ja.el.in
+--- user-ja-3.0.dummy/sedsrc/user-ja.el.in	Thu Jan  1 09:00:00 1970
++++ user-ja-3.0/sedsrc/user-ja.el.in	Sun Mar 12 23:52:15 2006
+@@ -0,0 +1,101 @@
 +;; Language environment settings
 +;; $Id$
 +
@@ -755,6 +890,8 @@ diff -Nru user-ja-2.3.dummy/sedsrc/user-ja.el.in user-ja-2.3/sedsrc/user-ja.el.i
 +(when (eq emacs-major-version 22)
 +  (if (require 'utf-8m nil t)
 +      (set-file-name-coding-system 'utf-8m))
++  (custom-set-variables
++    '(utf-translate-cjk-unicode-range '((#x80 . #xd7a3) (#xff00 . #xffef))))
 +  (cond ((and (eq window-system 'mac)
 +              (fboundp 'mac-setup-inline-input-method))
 +         (mac-setup-inline-input-method))
@@ -844,9 +981,9 @@ diff -Nru user-ja-2.3.dummy/sedsrc/user-ja.el.in user-ja-2.3/sedsrc/user-ja.el.i
 +        ((require 'appleotffonts-ja nil t)
 +         ;; for emacs21-carbon < 20041229
 +         (set-default-font "fontset-hirakakugo14"))))
-diff -Nru user-ja-2.3.dummy/sedsrc/user-ja.sh.in user-ja-2.3/sedsrc/user-ja.sh.in
---- user-ja-2.3.dummy/sedsrc/user-ja.sh.in	Thu Jan  1 09:00:00 1970
-+++ user-ja-2.3/sedsrc/user-ja.sh.in	Thu Apr  7 21:31:26 2005
+diff -Nru user-ja-3.0.dummy/sedsrc/user-ja.sh.in user-ja-3.0/sedsrc/user-ja.sh.in
+--- user-ja-3.0.dummy/sedsrc/user-ja.sh.in	Thu Jan  1 09:00:00 1970
++++ user-ja-3.0/sedsrc/user-ja.sh.in	Thu Apr  7 21:31:26 2005
 @@ -0,0 +1,9 @@
 +# $Id$
 +LANG=ja_JP.UTF-8; export LANG
@@ -857,9 +994,9 @@ diff -Nru user-ja-2.3.dummy/sedsrc/user-ja.sh.in user-ja-2.3/sedsrc/user-ja.sh.i
 +if [ ! -f "$HOME/.inputrc" ]; then
 +    INPUTRC="@MYDATADIR@/inputrc"; export INPUTRC
 +fi
-diff -Nru user-ja-2.3.dummy/sedsrc/xinitrc.in user-ja-2.3/sedsrc/xinitrc.in
---- user-ja-2.3.dummy/sedsrc/xinitrc.in	Thu Jan  1 09:00:00 1970
-+++ user-ja-2.3/sedsrc/xinitrc.in	Thu Apr  7 21:31:26 2005
+diff -Nru user-ja-3.0.dummy/sedsrc/xinitrc.in user-ja-3.0/sedsrc/xinitrc.in
+--- user-ja-3.0.dummy/sedsrc/xinitrc.in	Thu Jan  1 09:00:00 1970
++++ user-ja-3.0/sedsrc/xinitrc.in	Thu Apr  7 21:31:26 2005
 @@ -0,0 +1,8 @@
 +#! /bin/sh
 +# $Id$
@@ -869,28 +1006,16 @@ diff -Nru user-ja-2.3.dummy/sedsrc/xinitrc.in user-ja-2.3/sedsrc/xinitrc.in
 +else
 +    . @FINK_PREFIX@/bin/xinitrc.sh
 +fi
-diff -Nru user-ja-2.3.dummy/sedsrc/xmodmap-ja.sh.in user-ja-2.3/sedsrc/xmodmap-ja.sh.in
---- user-ja-2.3.dummy/sedsrc/xmodmap-ja.sh.in	Thu Jan  1 09:00:00 1970
-+++ user-ja-2.3/sedsrc/xmodmap-ja.sh.in	Thu Apr  7 21:31:26 2005
-@@ -0,0 +1,8 @@
-+# $Id$
-+: ${xinitrc_xmodmap_ja_enable=YES}
-+case "x$xinitrc_xmodmap_ja_enable" in
-+    x[Yy][Ee][Ss])
-+    xmodmap -e "keycode 101 = backslash bar"
-+    xmodmap -e "keycode 66 = Meta_L" -e "remove mod1 = Mode_switch" -e "add mod2 = Meta_L"
-+    ;;
-+esac
-diff -Nru user-ja-2.3.dummy/simple/Emacs.ad user-ja-2.3/simple/Emacs.ad
---- user-ja-2.3.dummy/simple/Emacs.ad	Thu Jan  1 09:00:00 1970
-+++ user-ja-2.3/simple/Emacs.ad	Thu Apr  7 21:31:26 2005
+diff -Nru user-ja-3.0.dummy/simple/Emacs.ad user-ja-3.0/simple/Emacs.ad
+--- user-ja-3.0.dummy/simple/Emacs.ad	Thu Jan  1 09:00:00 1970
++++ user-ja-3.0/simple/Emacs.ad	Thu Apr  7 21:31:26 2005
 @@ -0,0 +1,3 @@
 +! $Id$
 +! XIM support is broken for now
 +Emacs.UseXIM: false
-diff -Nru user-ja-2.3.dummy/simple/appleotffonts-ja.el user-ja-2.3/simple/appleotffonts-ja.el
---- user-ja-2.3.dummy/simple/appleotffonts-ja.el	Thu Jan  1 09:00:00 1970
-+++ user-ja-2.3/simple/appleotffonts-ja.el	Tue Mar  7 21:33:50 2006
+diff -Nru user-ja-3.0.dummy/simple/appleotffonts-ja.el user-ja-3.0/simple/appleotffonts-ja.el
+--- user-ja-3.0.dummy/simple/appleotffonts-ja.el	Thu Jan  1 09:00:00 1970
++++ user-ja-3.0/simple/appleotffonts-ja.el	Tue Mar  7 21:33:50 2006
 @@ -0,0 +1,73 @@
 +;; $Id$
 +;; This configuration is obsolete. Use "carbon-font" shipped with
@@ -965,17 +1090,17 @@ diff -Nru user-ja-2.3.dummy/simple/appleotffonts-ja.el user-ja-2.3/simple/appleo
 +  )
 +
 +(provide 'appleotffonts-ja)
-diff -Nru user-ja-2.3.dummy/simple/dot.vimrc user-ja-2.3/simple/dot.vimrc
---- user-ja-2.3.dummy/simple/dot.vimrc	Thu Jan  1 09:00:00 1970
-+++ user-ja-2.3/simple/dot.vimrc	Thu Apr  7 21:31:26 2005
+diff -Nru user-ja-3.0.dummy/simple/dot.vimrc user-ja-3.0/simple/dot.vimrc
+--- user-ja-3.0.dummy/simple/dot.vimrc	Thu Jan  1 09:00:00 1970
++++ user-ja-3.0/simple/dot.vimrc	Thu Apr  7 21:31:26 2005
 @@ -0,0 +1,4 @@
 +" $Id$
 +se enc=utf-8
 +" XXX: suspicious
 +se fencs=utf-8,cp932,euc-jp,iso-2022-jp,ucs-bom,ucs-2le,ucs-2
-diff -Nru user-ja-2.3.dummy/simple/gtkrc.ja_JP.eucjp user-ja-2.3/simple/gtkrc.ja_JP.eucjp
---- user-ja-2.3.dummy/simple/gtkrc.ja_JP.eucjp	Thu Jan  1 09:00:00 1970
-+++ user-ja-2.3/simple/gtkrc.ja_JP.eucjp	Thu Apr  7 21:31:26 2005
+diff -Nru user-ja-3.0.dummy/simple/gtkrc.ja_JP.eucjp user-ja-3.0/simple/gtkrc.ja_JP.eucjp
+--- user-ja-3.0.dummy/simple/gtkrc.ja_JP.eucjp	Thu Jan  1 09:00:00 1970
++++ user-ja-3.0/simple/gtkrc.ja_JP.eucjp	Thu Apr  7 21:31:26 2005
 @@ -0,0 +1,8 @@
 +style "gtk-default-ja" {
 +       fontset = "-adobe-helvetica-medium-r-normal--14-100-100-100-p-76-iso8859-1,\
@@ -985,9 +1110,9 @@ diff -Nru user-ja-2.3.dummy/simple/gtkrc.ja_JP.eucjp user-ja-2.3/simple/gtkrc.ja
 +}
 +class "GtkWidget" style "gtk-default-ja"
 +
-diff -Nru user-ja-2.3.dummy/simple/gtkrc.ja_JP.utf8 user-ja-2.3/simple/gtkrc.ja_JP.utf8
---- user-ja-2.3.dummy/simple/gtkrc.ja_JP.utf8	Thu Jan  1 09:00:00 1970
-+++ user-ja-2.3/simple/gtkrc.ja_JP.utf8	Thu Apr  7 21:31:26 2005
+diff -Nru user-ja-3.0.dummy/simple/gtkrc.ja_JP.utf8 user-ja-3.0/simple/gtkrc.ja_JP.utf8
+--- user-ja-3.0.dummy/simple/gtkrc.ja_JP.utf8	Thu Jan  1 09:00:00 1970
++++ user-ja-3.0/simple/gtkrc.ja_JP.utf8	Thu Apr  7 21:31:26 2005
 @@ -0,0 +1,9 @@
 +style "gtk-default-ja-jp-utf8" {
 +  fontset = "-adobe-helvetica-medium-r-normal--14-100-100-100-p-76-iso8859-1,\
@@ -998,18 +1123,18 @@ diff -Nru user-ja-2.3.dummy/simple/gtkrc.ja_JP.utf8 user-ja-2.3/simple/gtkrc.ja_
 +}
 +
 +class "GtkWidget" style "gtk-default-ja-jp-utf8"
-diff -Nru user-ja-2.3.dummy/simple/inputrc user-ja-2.3/simple/inputrc
---- user-ja-2.3.dummy/simple/inputrc	Thu Jan  1 09:00:00 1970
-+++ user-ja-2.3/simple/inputrc	Thu Apr  7 21:31:26 2005
+diff -Nru user-ja-3.0.dummy/simple/inputrc user-ja-3.0/simple/inputrc
+--- user-ja-3.0.dummy/simple/inputrc	Thu Jan  1 09:00:00 1970
++++ user-ja-3.0/simple/inputrc	Thu Apr  7 21:31:26 2005
 @@ -0,0 +1,5 @@
 +# $Id$
 +set input-meta on
 +set convert-meta off
 +set output-meta on
 +set editing-mode emacs
-diff -Nru user-ja-2.3.dummy/simple/user-ja.canna user-ja-2.3/simple/user-ja.canna
---- user-ja-2.3.dummy/simple/user-ja.canna	Thu Jan  1 09:00:00 1970
-+++ user-ja-2.3/simple/user-ja.canna	Thu Apr  7 21:31:26 2005
+diff -Nru user-ja-3.0.dummy/simple/user-ja.canna user-ja-3.0/simple/user-ja.canna
+--- user-ja-3.0.dummy/simple/user-ja.canna	Thu Jan  1 09:00:00 1970
++++ user-ja-3.0/simple/user-ja.canna	Sun Mar 12 19:52:02 2006
 @@ -0,0 +1,196 @@
 +;; Based on unix.canna and use gcanna
 +
@@ -1207,9 +1332,21 @@ diff -Nru user-ja-2.3.dummy/simple/user-ja.canna user-ja-2.3/simple/user-ja.cann
 +
 +;; Help ���ʤ��ͤ⤤��Τ� F1 �Ǥ�Ʊ��ư��򤵤��롣
 +(global-set-key "\F1" 'extend-mode)
-diff -Nru user-ja-2.3.dummy/user-ja.info.in user-ja-2.3/user-ja.info.in
---- user-ja-2.3.dummy/user-ja.info.in	Thu Jan  1 09:00:00 1970
-+++ user-ja-2.3/user-ja.info.in	Tue Mar  7 22:29:10 2006
+diff -Nru user-ja-3.0.dummy/simple/xmodmap-ja.sh user-ja-3.0/simple/xmodmap-ja.sh
+--- user-ja-3.0.dummy/simple/xmodmap-ja.sh	Thu Jan  1 09:00:00 1970
++++ user-ja-3.0/simple/xmodmap-ja.sh	Sun Mar 12 20:01:52 2006
+@@ -0,0 +1,8 @@
++# $Id$
++: ${xinitrc_xmodmap_ja_enable=YES}
++case "x$xinitrc_xmodmap_ja_enable" in
++    x[Yy][Ee][Ss])
++    xmodmap -e "keycode 101 = backslash bar"
++    xmodmap -e "keycode 66 = Meta_L" -e "remove mod1 = Mode_switch" -e "add mod2 = Meta_L"
++    ;;
++esac
+diff -Nru user-ja-3.0.dummy/user-ja.info.in user-ja-3.0/user-ja.info.in
+--- user-ja-3.0.dummy/user-ja.info.in	Thu Jan  1 09:00:00 1970
++++ user-ja-3.0/user-ja.info.in	Tue Mar  7 22:29:10 2006
 @@ -0,0 +1,13 @@
 +# $Id$
 +Package: user-ja
@@ -1224,8 +1361,8 @@ diff -Nru user-ja-2.3.dummy/user-ja.info.in user-ja-2.3/user-ja.info.in
 +Patch: %n.patch
 +CompileScript: sh ./build.sh prefix=%p build
 +InstallScript: sh ./build.sh prefix=%p destdir=%d install
-diff -Nru user-ja-2.3.dummy/version user-ja-2.3/version
---- user-ja-2.3.dummy/version	Thu Jan  1 09:00:00 1970
-+++ user-ja-2.3/version	Tue Mar  7 22:26:09 2006
+diff -Nru user-ja-3.0.dummy/version user-ja-3.0/version
+--- user-ja-3.0.dummy/version	Thu Jan  1 09:00:00 1970
++++ user-ja-3.0/version	Sun Mar 12 23:51:05 2006
 @@ -0,0 +1 @@
-+2.3
++3.0
