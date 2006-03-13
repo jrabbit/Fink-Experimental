@@ -491,17 +491,6 @@
  #ifdef HAVE_SYS_BITYPES_H
  #include <sys/bitypes.h> /* For uintXX_t on Tru64 */
  #endif
---- kdelibs-3.5.0/kded/kbuildsycoca.cpp	Tue Nov  8 17:39:36 2005
-+++ kdelibs-3.5.0-new/kded/kbuildsycoca.cpp	Mon Dec 12 14:39:41 2005
-@@ -379,7 +379,7 @@
-      connect(g_vfolder, SIGNAL(newService(const QString &, KService **)),
-              this, SLOT(slotCreateEntry(const QString &, KService **)));
-              
--     VFolderMenu::SubMenu *kdeMenu = g_vfolder->parseMenu("applications.menu", true);
-+     VFolderMenu::SubMenu *kdeMenu = g_vfolder->parseMenu("kde-applications.menu", true);
- 
-      KServiceGroup *entry = g_bsgf->addNew("/", kdeMenu->directoryFile, 0, false);
-      entry->setLayoutInfo(kdeMenu->layoutList);
 --- kdelibs-3.5.1/kded/Makefile.am	Mon Oct 10 11:06:29 2005
 +++ kdelibs-3.5.1-new/kded/Makefile.am	Sun Jan 22 10:14:31 2006
 @@ -58,7 +58,10 @@
@@ -516,3 +505,18 @@
  
  update_DATA = kded.upd
  updatedir = $(kde_datadir)/kconf_update
+--- kdelibs-3.5.1/kded/kbuildsycoca.cpp	2005-11-08 17:39:36.000000000 -0500
++++ kdelibs-3.5.1-new/kded/kbuildsycoca.cpp	2006-02-28 10:18:14.000000000 -0500
+@@ -379,7 +379,11 @@
+      connect(g_vfolder, SIGNAL(newService(const QString &, KService **)),
+              this, SLOT(slotCreateEntry(const QString &, KService **)));
+              
+-     VFolderMenu::SubMenu *kdeMenu = g_vfolder->parseMenu("applications.menu", true);
++     VFolderMenu::SubMenu *kdeMenu;
++     if ( QFile::exists( "@FINKPREFIX@/etc/xdg/menus/kde-applications.menu" ) )
++       kdeMenu = g_vfolder->parseMenu("kde-applications.menu", true);
++     else
++       kdeMenu = g_vfolder->parseMenu("applications.menu", true);
+ 
+      KServiceGroup *entry = g_bsgf->addNew("/", kdeMenu->directoryFile, 0, false);
+      entry->setLayoutInfo(kdeMenu->layoutList);
