@@ -1,5 +1,51 @@
---- apt-0.6.41/apt-inst/makefile	2005-08-01 12:05:41.000000000 -0400
-+++ apt-0.6.41-new/apt-inst/makefile	2005-09-09 12:30:35.000000000 -0400
+diff -uNr apt-0.6.43.3/apt-inst/contrib/extracttar.cc apt-0.6.43.3-new/apt-inst/contrib/extracttar.cc
+--- apt-0.6.43.3/apt-inst/contrib/extracttar.cc	2005-10-19 15:19:09.000000000 -0400
++++ apt-0.6.43.3-new/apt-inst/contrib/extracttar.cc	2006-03-11 12:35:32.000000000 -0500
+@@ -149,7 +149,30 @@
+    close(Pipes[1]);
+    return true;
+ }
++
++// Handle the ridiculous way that tar stores large numbers
++static bool TarUIDToNum(const char *Str, unsigned long &Res, unsigned Len) {
++	switch (*Str) {
++		case '\200':
++			Res = *((unsigned long *)(Str + Len - sizeof(unsigned long)));
++			return true;
++		default:
++			return StrToNum(Str+1, Res, Len-1, 8);
++	}
++}
+ 									/*}}}*/
++
++// Handle the ridiculous way that tar stores large numbers
++static bool TarUIDToNum(const char *Str, unsigned long &Res, unsigned Len) {
++	switch (*Str) {
++		case '\200':
++			Res = ntohl(*((unsigned long *)(Str + Len - sizeof(unsigned long))));
++			return true;
++		default:
++			return StrToNum(Str+1, Res, Len-1, 8);
++	}
++}
++
+ // ExtractTar::Go - Perform extraction					/*{{{*/
+ // ---------------------------------------------------------------------
+ /* This reads each 512 byte block from the archive and extracts the header
+@@ -197,8 +220,8 @@
+       // Decode all of the fields
+       pkgDirStream::Item Itm;
+       if (StrToNum(Tar->Mode,Itm.Mode,sizeof(Tar->Mode),8) == false ||
+-	  StrToNum(Tar->UserID,Itm.UID,sizeof(Tar->UserID),8) == false ||
+-	  StrToNum(Tar->GroupID,Itm.GID,sizeof(Tar->GroupID),8) == false ||
++	  TarUIDToNum(Tar->UserID,Itm.UID,sizeof(Tar->UserID)) == false ||
++	  TarUIDToNum(Tar->GroupID,Itm.GID,sizeof(Tar->GroupID)) == false ||
+ 	  StrToNum(Tar->Size,Itm.Size,sizeof(Tar->Size),8) == false ||
+ 	  StrToNum(Tar->MTime,Itm.MTime,sizeof(Tar->MTime),8) == false ||
+ 	  StrToNum(Tar->Major,Itm.Major,sizeof(Tar->Major),8) == false ||
+diff -uNr apt-0.6.43.3/apt-inst/makefile apt-0.6.43.3-new/apt-inst/makefile
+--- apt-0.6.43.3/apt-inst/makefile	2005-10-19 15:19:09.000000000 -0400
++++ apt-0.6.43.3-new/apt-inst/makefile	2006-03-11 12:27:33.000000000 -0500
 @@ -12,9 +12,9 @@
  # The library name
  LIBRARY=apt-inst
@@ -12,9 +58,10 @@
  APT_DOMAIN:=libapt-inst$(MAJOR)
  
  # Source code for the contributed non-core things
---- apt-0.6.41/apt-pkg/acquire-item.cc	2005-08-23 04:13:13.000000000 -0400
-+++ apt-0.6.41-new/apt-pkg/acquire-item.cc	2005-09-09 12:30:35.000000000 -0400
-@@ -708,12 +708,14 @@
+diff -uNr apt-0.6.43.3/apt-pkg/acquire-item.cc apt-0.6.43.3-new/apt-pkg/acquire-item.cc
+--- apt-0.6.43.3/apt-pkg/acquire-item.cc	2006-02-22 04:04:32.000000000 -0500
++++ apt-0.6.43.3-new/apt-pkg/acquire-item.cc	2006-03-11 12:27:33.000000000 -0500
+@@ -739,12 +739,14 @@
  // ---------------------------------------------------------------------
  /* This just sets up the initial fetch environment and queues the first
     possibilitiy */
@@ -30,8 +77,9 @@
  {
     Retries = _config->FindI("Acquire::Retries",0);
  
---- apt-0.6.41/apt-pkg/contrib/cdromutl.cc	2005-08-01 12:05:41.000000000 -0400
-+++ apt-0.6.41-new/apt-pkg/contrib/cdromutl.cc	2005-09-09 12:30:35.000000000 -0400
+diff -uNr apt-0.6.43.3/apt-pkg/contrib/cdromutl.cc apt-0.6.43.3-new/apt-pkg/contrib/cdromutl.cc
+--- apt-0.6.43.3/apt-pkg/contrib/cdromutl.cc	2005-10-19 15:19:08.000000000 -0400
++++ apt-0.6.43.3-new/apt-pkg/contrib/cdromutl.cc	2006-03-11 12:27:33.000000000 -0500
 @@ -23,13 +23,13 @@
      
  #include <sys/wait.h>
@@ -59,8 +107,9 @@
  	 return _error->Errno("statfs",_("Failed to stat the cdrom"));
        
        // We use a kilobyte block size to advoid overflow
---- apt-0.6.41/apt-pkg/deb/debindexfile.cc	2005-08-01 12:05:46.000000000 -0400
-+++ apt-0.6.41-new/apt-pkg/deb/debindexfile.cc	2005-09-09 12:30:35.000000000 -0400
+diff -uNr apt-0.6.43.3/apt-pkg/deb/debindexfile.cc apt-0.6.43.3-new/apt-pkg/deb/debindexfile.cc
+--- apt-0.6.43.3/apt-pkg/deb/debindexfile.cc	2005-10-19 15:19:08.000000000 -0400
++++ apt-0.6.43.3-new/apt-pkg/deb/debindexfile.cc	2006-03-11 12:27:33.000000000 -0500
 @@ -444,3 +444,9 @@
  }
  
@@ -71,8 +120,9 @@
 +  (void)_apt_Pkg;
 +  (void)_apt_Status;
 +}
---- apt-0.6.41/apt-pkg/deb/debsystem.cc	2005-08-23 04:13:13.000000000 -0400
-+++ apt-0.6.41-new/apt-pkg/deb/debsystem.cc	2005-09-09 12:30:35.000000000 -0400
+diff -uNr apt-0.6.43.3/apt-pkg/deb/debsystem.cc apt-0.6.43.3-new/apt-pkg/deb/debsystem.cc
+--- apt-0.6.43.3/apt-pkg/deb/debsystem.cc	2005-10-19 15:19:08.000000000 -0400
++++ apt-0.6.43.3-new/apt-pkg/deb/debsystem.cc	2006-03-11 12:27:33.000000000 -0500
 @@ -27,6 +27,111 @@
  #include <dirent.h>
  #include <errno.h>
@@ -273,8 +323,9 @@
     }
     
     return false;
---- apt-0.6.41/apt-pkg/deb/debsystem.h	2005-08-01 12:05:41.000000000 -0400
-+++ apt-0.6.41-new/apt-pkg/deb/debsystem.h	2005-09-09 12:30:35.000000000 -0400
+diff -uNr apt-0.6.43.3/apt-pkg/deb/debsystem.h apt-0.6.43.3-new/apt-pkg/deb/debsystem.h
+--- apt-0.6.43.3/apt-pkg/deb/debsystem.h	2005-10-19 15:19:08.000000000 -0400
++++ apt-0.6.43.3-new/apt-pkg/deb/debsystem.h	2006-03-11 12:27:33.000000000 -0500
 @@ -25,6 +25,7 @@
     bool CheckUpdates();
     
@@ -283,8 +334,9 @@
     
     public:
  
---- apt-0.6.41/apt-pkg/deb/debversion.cc	2005-08-01 12:05:41.000000000 -0400
-+++ apt-0.6.41-new/apt-pkg/deb/debversion.cc	2005-09-09 12:30:35.000000000 -0400
+diff -uNr apt-0.6.43.3/apt-pkg/deb/debversion.cc apt-0.6.43.3-new/apt-pkg/deb/debversion.cc
+--- apt-0.6.43.3/apt-pkg/deb/debversion.cc	2005-10-19 15:19:08.000000000 -0400
++++ apt-0.6.43.3-new/apt-pkg/deb/debversion.cc	2006-03-11 12:27:33.000000000 -0500
 @@ -24,6 +24,11 @@
  
  debVersioningSystem debVS;
@@ -297,8 +349,9 @@
  // debVS::debVersioningSystem - Constructor				/*{{{*/
  // ---------------------------------------------------------------------
  /* */
---- apt-0.6.41/apt-pkg/deb/dpkgpm.cc	2005-08-19 04:04:07.000000000 -0400
-+++ apt-0.6.41-new/apt-pkg/deb/dpkgpm.cc	2005-09-09 12:30:35.000000000 -0400
+diff -uNr apt-0.6.43.3/apt-pkg/deb/dpkgpm.cc apt-0.6.43.3-new/apt-pkg/deb/dpkgpm.cc
+--- apt-0.6.43.3/apt-pkg/deb/dpkgpm.cc	2005-10-19 15:19:08.000000000 -0400
++++ apt-0.6.43.3-new/apt-pkg/deb/dpkgpm.cc	2006-03-11 12:27:33.000000000 -0500
 @@ -26,6 +26,10 @@
  #include <errno.h>
  #include <stdio.h>
@@ -310,8 +363,9 @@
  #include <map>
  
  #include <config.h>
---- apt-0.6.41/apt-pkg/init.cc	2005-08-01 12:05:41.000000000 -0400
-+++ apt-0.6.41-new/apt-pkg/init.cc	2005-09-09 12:30:35.000000000 -0400
+diff -uNr apt-0.6.43.3/apt-pkg/init.cc apt-0.6.43.3-new/apt-pkg/init.cc
+--- apt-0.6.43.3/apt-pkg/init.cc	2005-11-28 04:55:46.000000000 -0500
++++ apt-0.6.43.3-new/apt-pkg/init.cc	2006-03-11 12:27:33.000000000 -0500
 @@ -15,6 +15,8 @@
  #include <apti18n.h>
  #include <config.h>
@@ -330,16 +384,16 @@
     
     // State   
     Cnf.Set("Dir::State","var/lib/apt/");
-@@ -69,7 +71,7 @@
+@@ -70,7 +72,7 @@
     Cnf.Set("Dir::Etc::main","apt.conf");
     Cnf.Set("Dir::Etc::parts","apt.conf.d");
     Cnf.Set("Dir::Etc::preferences","preferences");
 -   Cnf.Set("Dir::Bin::methods","/usr/lib/apt/methods");
 +   Cnf.Set("Dir::Bin::methods","@PREFIX@/lib/apt/methods");
- 	      
+    
     bool Res = true;
     
-@@ -110,6 +112,8 @@
+@@ -111,6 +113,8 @@
  /* */
  bool pkgInitSystem(Configuration &Cnf,pkgSystem *&Sys)
  {
@@ -348,19 +402,21 @@
     Sys = 0;
     string Label = Cnf.Find("Apt::System","");
     if (Label.empty() == false)
---- apt-0.6.41/apt-pkg/makefile	2005-08-19 04:04:07.000000000 -0400
-+++ apt-0.6.41-new/apt-pkg/makefile	2005-09-09 12:30:35.000000000 -0400
+diff -uNr apt-0.6.43.3/apt-pkg/makefile apt-0.6.43.3-new/apt-pkg/makefile
+--- apt-0.6.43.3/apt-pkg/makefile	2005-11-28 04:55:46.000000000 -0500
++++ apt-0.6.43.3-new/apt-pkg/makefile	2006-03-11 12:28:11.000000000 -0500
 @@ -13,7 +13,7 @@
  # methods/makefile - FIXME
  LIBRARY=apt-pkg
  LIBEXT=$(GLIBC_VER)$(LIBSTDCPP_VER)
--MAJOR=3.10
+-MAJOR=3.11
 +MAJOR=0.6.40
  MINOR=0
  SLIBS=$(PTHREADLIB) $(INTLLIBS)
  APT_DOMAIN:=libapt-pkg$(MAJOR)
---- apt-0.6.41/buildlib/environment.mak.in	2005-08-01 12:05:41.000000000 -0400
-+++ apt-0.6.41-new/buildlib/environment.mak.in	2005-09-09 12:30:35.000000000 -0400
+diff -uNr apt-0.6.43.3/buildlib/environment.mak.in apt-0.6.43.3-new/buildlib/environment.mak.in
+--- apt-0.6.43.3/buildlib/environment.mak.in	2005-10-19 15:19:09.000000000 -0400
++++ apt-0.6.43.3-new/buildlib/environment.mak.in	2006-03-11 12:27:33.000000000 -0500
 @@ -7,14 +7,14 @@
  CC = @CC@
  CPPFLAGS+= @CPPFLAGS@ @DEFS@ -D_REENTRANT -Wall
@@ -400,8 +456,9 @@
 +#endif
 +SONAME_MAGIC=-install_name @PREFIX@/lib/
 +LFLAGS_SO=-dynamiclib
---- apt-0.6.41/buildlib/library.mak	2005-08-01 12:05:41.000000000 -0400
-+++ apt-0.6.41-new/buildlib/library.mak	2005-09-09 12:30:35.000000000 -0400
+diff -uNr apt-0.6.43.3/buildlib/library.mak apt-0.6.43.3-new/buildlib/library.mak
+--- apt-0.6.43.3/buildlib/library.mak	2005-10-19 15:19:09.000000000 -0400
++++ apt-0.6.43.3-new/buildlib/library.mak	2006-03-11 12:27:33.000000000 -0500
 @@ -16,11 +16,11 @@
  # See defaults.mak for information about LOCAL
  
@@ -456,8 +513,9 @@
  	   $(filter %.opic,$^) \
  	   $($(@F)-SLIBS) 
  
---- apt-0.6.41/buildlib/ostable	2005-08-01 12:05:41.000000000 -0400
-+++ apt-0.6.41-new/buildlib/ostable	2005-09-09 12:30:35.000000000 -0400
+diff -uNr apt-0.6.43.3/buildlib/ostable apt-0.6.43.3-new/buildlib/ostable
+--- apt-0.6.43.3/buildlib/ostable	2005-10-19 15:19:09.000000000 -0400
++++ apt-0.6.43.3-new/buildlib/ostable	2006-03-11 12:27:33.000000000 -0500
 @@ -16,6 +16,7 @@
  hp-hpux[^-]*	    hp-ux
  sun-solaris[^-]*    solaris
@@ -466,8 +524,209 @@
  
  # Catch all
  .*	unknown
---- apt-0.6.41/cmdline/makefile	2005-08-01 12:05:41.000000000 -0400
-+++ apt-0.6.41-new/cmdline/makefile	2005-09-09 12:30:35.000000000 -0400
+diff -uNr apt-0.6.43.3/buildlib/sgml_manpage.mak apt-0.6.43.3-new/buildlib/sgml_manpage.mak
+--- apt-0.6.43.3/buildlib/sgml_manpage.mak	2005-10-19 15:19:09.000000000 -0400
++++ apt-0.6.43.3-new/buildlib/sgml_manpage.mak	2006-03-11 12:27:33.000000000 -0500
+@@ -11,7 +11,7 @@
+ # See defaults.mak for information about LOCAL
+ 
+ # Some local definitions
+-ifdef DOCBOOK2MAN
++ifdef DOCBOOK2MANx
+ 
+ LOCAL := sgml-manpage-$(firstword $(SOURCE))
+ $(LOCAL)-LIST := $(SOURCE)
+diff -uNr apt-0.6.43.3/cmdline/apt-get.cc apt-0.6.43.3-new/cmdline/apt-get.cc
+--- apt-0.6.43.3/cmdline/apt-get.cc	2006-02-22 04:04:32.000000000 -0500
++++ apt-0.6.43.3-new/cmdline/apt-get.cc	2006-03-11 12:27:33.000000000 -0500
+@@ -53,7 +53,7 @@
+ #include <termios.h>
+ #include <sys/ioctl.h>
+ #include <sys/stat.h>
+-#include <sys/statvfs.h>
++#include <sys/mount.h>
+ #include <signal.h>
+ #include <unistd.h>
+ #include <stdio.h>
+@@ -115,6 +115,8 @@
+ /* Returns true on a Yes.*/
+ bool YnPrompt(bool Default=true)
+ {
++   fflush(NULL);
++   
+    if (_config->FindB("APT::Get::Assume-Yes",false) == true)
+    {
+       c1out << _("Y") << endl;
+@@ -333,7 +335,20 @@
+ 		  if (Cache[Targ].CandidateVerIter(Cache).end() == true)
+ 		  {
+ 		     if (Targ->ProvidesList == 0)
+-			out << _("but it is not installable");
++		     {
++			out << _("but it is not installable. For Fink users, ");
++			out << _("this often means that you have attempted ");
++			out << _("to install a package from the binary distribution ");
++			out << _("that depends on a package (or has a subdependency) ");
++			out << _("that is not part of the binary distribution.  The ");
++			out << _("omitted package may be a virtual package, which ");
++			out << _("must be installed manually instead of with fink, ");
++			out << _("or one that has a \"Restrictive\" license that ");
++			out << _("prohibits binary distribution.  See:\n");
++			out << _("  <http://fink.sourceforge.net/faq/usage-fink.php#bindist>\n");
++			out << _("  <http://fink.sourceforge.net/doc/users-guide/packages.php#bin-exceptions>\n");
++			out << _("  <http://fink.sourceforge.net/doc/usage-general.php#virtpackage>\n");
++		     }
+ 		     else
+ 			out << _("but it is a virtual package");
+ 		  }		  
+@@ -640,13 +655,15 @@
+       return false;
+    
+    // Nothing is broken
+-   if (DCache->BrokenCount() == 0 || AllowBroken == true)
++   // FINK LOCAL added APT::Get::Ignore-Breakage test
++   if (DCache->BrokenCount() == 0 || AllowBroken == true
++       || _config->FindB("APT::Get::Ignore-Breakage") == true)
+       return true;
+ 
+    // Attempt to fix broken things
+    if (_config->FindB("APT::Get::Fix-Broken",false) == true)
+    {
+-      c1out << _("Correcting dependencies...") << flush;
++      c1out << _("Correcting dependencies...") << flush, fflush(NULL);
+       if (pkgFixBroken(*DCache) == false || DCache->BrokenCount() != 0)
+       {
+ 	 c1out << _(" failed.") << endl;
+@@ -749,7 +766,9 @@
+    Stats(c1out,Cache);
+ 
+    // Sanity check
+-   if (Cache->BrokenCount() != 0)
++   // FINK LOCAL added APT::Get::Ignore-Breakage test
++   if (Cache->BrokenCount() != 0
++       && _config->FindB("APT::Get::Ignore-Breakage",false) == false)
+    {
+       ShowBroken(c1out,Cache,false);
+       return _error->Error(_("Internal error, InstallPackages was called with broken packages!"));
+@@ -840,10 +859,10 @@
+    if (_config->FindB("APT::Get::Print-URIs") == false &&
+        _config->FindB("APT::Get::Download",true) == true)
+    {
+-      struct statvfs Buf;
++      struct statfs Buf;
+       string OutputDir = _config->FindDir("Dir::Cache::Archives");
+-      if (statvfs(OutputDir.c_str(),&Buf) != 0)
+-	 return _error->Errno("statvfs",_("Couldn't determine free space in %s"),
++      if (statfs(OutputDir.c_str(),&Buf) != 0)
++	 return _error->Errno("statfs",_("Couldn't determine free space in %s"),
+ 			      OutputDir.c_str());
+       if (unsigned(Buf.f_bfree) < (FetchBytes - FetchPBytes)/Buf.f_bsize)
+ 	 return _error->Error(_("You don't have enough free space in %s."),
+@@ -868,7 +887,7 @@
+ 	       _("You are about to do something potentially harmful.\n"
+ 		 "To continue type in the phrase '%s'\n"
+ 		 " ?] "),Prompt);
+-      c2out << flush;
++      c2out << flush, fflush(NULL);
+       if (AnalPrompt(Prompt) == false)
+       {
+ 	 c2out << _("Abort.") << endl;
+@@ -1146,7 +1165,9 @@
+       ExpectedInst++;
+    
+    // Install it with autoinstalling enabled.
+-   if (State.InstBroken() == true && BrokenFix == false)
++   // FINK LOCAL added APT::Get::Ignore-Breakage test
++   if (State.InstBroken() == true && BrokenFix == false
++      && _config->FindB("APT::Get::Ignore-Breakage") == false)
+       Cache.MarkInstall(Pkg,true);
+    return true;
+ }
+@@ -1541,7 +1562,9 @@
+    /* If we are in the Broken fixing mode we do not attempt to fix the
+       problems. This is if the user invoked install without -f and gave
+       packages */
+-   if (BrokenFix == true && Cache->BrokenCount() != 0)
++   // FINK LOCAL added APT::Get::Ignore-Breakage test
++   if (BrokenFix == true && Cache->BrokenCount() != 0
++       && _config->FindB("APT::Get::Ignore-Breakage") == false)
+    {
+       c1out << _("You might want to run `apt-get -f install' to correct these:") << endl;
+       ShowBroken(c1out,Cache,false);
+@@ -1551,11 +1574,13 @@
+    
+    // Call the scored problem resolver
+    Fix.InstallProtect();
+-   if (Fix.Resolve(true) == false)
++   // FINK LOCAL added APT::Get::Ignore-Breakage test
++   if (_config->FindB("APT::Get::Ignore-Breakage") == false && Fix.Resolve(true) == false)
+       _error->Discard();
+ 
+    // Now we check the state of the packages,
+-   if (Cache->BrokenCount() != 0)
++   // FINK LOCAL added APT::Get::Ignore-Breakage test
++   if (Cache->BrokenCount() != 0 && _config->FindB("APT::Get::Ignore-Breakage") == false)
+    {
+       c1out << 
+        _("Some packages could not be installed. This may mean that you have\n" 
+@@ -1965,10 +1990,10 @@
+    double DebBytes = Fetcher.TotalNeeded();
+ 
+    // Check for enough free space
+-   struct statvfs Buf;
++   struct statfs Buf;
+    string OutputDir = ".";
+-   if (statvfs(OutputDir.c_str(),&Buf) != 0)
+-      return _error->Errno("statvfs",_("Couldn't determine free space in %s"),
++   if (statfs(OutputDir.c_str(),&Buf) != 0)
++      return _error->Errno("statfs",_("Couldn't determine free space in %s"),
+ 			   OutputDir.c_str());
+    if (unsigned(Buf.f_bfree) < (FetchBytes - FetchPBytes)/Buf.f_bsize)
+       return _error->Error(_("You don't have enough free space in %s"),
+@@ -2464,6 +2489,8 @@
+    _config->Set("APT::Get::Simulate",false);
+    _config->Set("APT::Get::Assume-Yes",false);
+    _config->Set("APT::Get::Fix-Broken",false);
++   // FINK LOCAL added APT::Get::Ignore-Breakage
++   _config->Set("APT::Get::Ignore-Breakage",false);
+    _config->Set("APT::Get::Force-Yes",false);
+    _config->Set("APT::Get::List-Cleanup",true);
+ }
+@@ -2502,6 +2529,8 @@
+       {'y',"yes","APT::Get::Assume-Yes",0},
+       {'y',"assume-yes","APT::Get::Assume-Yes",0},      
+       {'f',"fix-broken","APT::Get::Fix-Broken",0},
++      // FINK LOCAL added APT::Get::Ignore-Breakage
++      {0,"ignore-breakage","APT::Get::Ignore-Breakage",0},
+       {'u',"show-upgraded","APT::Get::Show-Upgraded",0},
+       {'m',"ignore-missing","APT::Get::Fix-Missing",0},
+       {'t',"target-release","APT::Default-Release",CommandLine::HasArg},
+@@ -2565,6 +2594,22 @@
+       ShowHelp(CmdL);
+       return 0;
+    }
++
++   /* FINK LOCAL begin */
++   if (_config->FindB("APT::Get::Ignore-Breakage",false) == true) {
++     if (_config->FindB("APT::Get::Print-URIs",false) == false &&
++	 _config->FindB("APT::Get::Download-Only",false) == false) {
++       _error->Error("--ignore-breakage can only be used with --print-uris or --download-only");
++       _error->DumpErrors();
++       return 100;
++     }
++     if (strcmp(CmdL.FileList[0],"install") != 0) {
++       _error->Error("--ignore-breakage can only be used with apt-get install");
++       _error->DumpErrors();
++       return 100;
++     }
++   }
++   /* FINK LOCAL end */
+    
+    // Deal with stdout not being a tty
+    if (!isatty(STDOUT_FILENO) && _config->FindI("quiet",0) < 1)
+diff -uNr apt-0.6.43.3/cmdline/makefile apt-0.6.43.3-new/cmdline/makefile
+--- apt-0.6.43.3/cmdline/makefile	2005-10-19 15:19:09.000000000 -0400
++++ apt-0.6.43.3-new/cmdline/makefile	2006-03-11 12:27:33.000000000 -0500
 @@ -7,42 +7,42 @@
  
  # The apt-cache program
@@ -517,8 +776,9 @@
  LIB_MAKES = apt-pkg/makefile
  SOURCE = apt-extracttemplates.cc 
  include $(PROGRAM_H)
---- apt-0.6.41/configure	2005-09-05 17:01:37.000000000 -0400
-+++ apt-0.6.41-new/configure	2005-09-09 12:30:36.000000000 -0400
+diff -uNr apt-0.6.43.3/configure apt-0.6.43.3-new/configure
+--- apt-0.6.43.3/configure	2006-02-22 04:22:55.000000000 -0500
++++ apt-0.6.43.3-new/configure	2006-03-11 12:27:33.000000000 -0500
 @@ -1296,8 +1296,8 @@
  
  ac_ext=c
@@ -552,7 +812,7 @@
  ac_compiler_gnu=$ac_cv_c_compiler_gnu
  
  
-@@ -2439,8 +2439,8 @@
+@@ -2493,8 +2493,8 @@
  
  ac_ext=cc
  ac_cpp='$CXXCPP $CPPFLAGS'
@@ -563,7 +823,7 @@
  ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
  if test -n "$ac_tool_prefix"; then
    for ac_prog in $CCC g++ c++ gpp aCC CC cxx cc++ cl FCC KCC RCC xlC_r xlC
-@@ -2784,14 +2784,14 @@
+@@ -2838,14 +2838,14 @@
  
  ac_ext=c
  ac_cpp='$CPP $CPPFLAGS'
@@ -582,7 +842,7 @@
  ac_compiler_gnu=$ac_cv_c_compiler_gnu
  echo "$as_me:$LINENO: checking how to run the C preprocessor" >&5
  echo $ECHO_N "checking how to run the C preprocessor... $ECHO_C" >&6
-@@ -3018,8 +3018,8 @@
+@@ -3072,8 +3072,8 @@
  
  ac_ext=c
  ac_cpp='$CPP $CPPFLAGS'
@@ -593,7 +853,7 @@
  ac_compiler_gnu=$ac_cv_c_compiler_gnu
  
  if test -n "$ac_tool_prefix"; then
-@@ -8629,7 +8629,7 @@
+@@ -8683,7 +8683,7 @@
  fi
  
  
@@ -602,7 +862,7 @@
            ac_config_commands="$ac_config_commands default"
  cat >confcache <<\_ACEOF
  # This file is a shell script that caches the results of configure
-@@ -9173,7 +9173,7 @@
+@@ -9227,7 +9227,7 @@
    case "$ac_config_target" in
    # Handling of arguments.
    "environment.mak" ) CONFIG_FILES="$CONFIG_FILES environment.mak:buildlib/environment.mak.in" ;;
@@ -611,7 +871,7 @@
    "default-1" ) CONFIG_COMMANDS="$CONFIG_COMMANDS default-1" ;;
    "default" ) CONFIG_COMMANDS="$CONFIG_COMMANDS default" ;;
    "include/config.h" ) CONFIG_HEADERS="$CONFIG_HEADERS include/config.h:buildlib/config.h.in" ;;
-@@ -10018,7 +10018,7 @@
+@@ -10072,7 +10072,7 @@
          ;;
        esac
      done ;;
@@ -620,16 +880,18 @@
    esac
  done
  _ACEOF
---- apt-0.6.41/configure.in	2005-08-23 04:13:13.000000000 -0400
-+++ apt-0.6.41-new/configure.in	2005-09-09 12:30:36.000000000 -0400
+diff -uNr apt-0.6.43.3/configure.in apt-0.6.43.3-new/configure.in
+--- apt-0.6.43.3/configure.in	2006-02-22 04:04:32.000000000 -0500
++++ apt-0.6.43.3-new/configure.in	2006-03-11 12:27:33.000000000 -0500
 @@ -200,4 +200,4 @@
  AC_SUBST(USE_NLS)
  AC_PATH_PROG(BASH, bash)
  
 -AC_OUTPUT(environment.mak:buildlib/environment.mak.in makefile:buildlib/makefile.in,make -s dirs)
 +AC_OUTPUT(environment.mak:buildlib/environment.mak.in makefile.wrap:buildlib/makefile.in,make -f makefile.wrap -s dirs)
---- apt-0.6.41/doc/apt-cache.8	2005-09-05 17:01:54.000000000 -0400
-+++ apt-0.6.41-new/doc/apt-cache.8	2005-09-09 12:30:36.000000000 -0400
+diff -uNr apt-0.6.43.3/doc/apt-cache.8 apt-0.6.43.3-new/doc/apt-cache.8
+--- apt-0.6.43.3/doc/apt-cache.8	2006-02-22 04:23:13.000000000 -0500
++++ apt-0.6.43.3-new/doc/apt-cache.8	2006-03-11 12:27:33.000000000 -0500
 @@ -42,7 +42,7 @@
  
  .TP
@@ -676,8 +938,9 @@
  
  .SH AUTHORS
  Jason Gunthorpe, APT team.
---- apt-0.6.41/doc/apt-cdrom.8	2005-09-05 17:01:57.000000000 -0400
-+++ apt-0.6.41-new/doc/apt-cdrom.8	2005-09-09 12:30:36.000000000 -0400
+diff -uNr apt-0.6.43.3/doc/apt-cdrom.8 apt-0.6.43.3-new/doc/apt-cdrom.8
+--- apt-0.6.43.3/doc/apt-cdrom.8	2006-02-22 04:23:17.000000000 -0500
++++ apt-0.6.43.3-new/doc/apt-cdrom.8	2006-03-11 12:27:33.000000000 -0500
 @@ -43,7 +43,7 @@
  add
  add is used to add a new disc to the source list\&. It will unmount the CDROM device, prompt for a disk to be inserted and then procceed to scan it and copy the index files\&. If the disc does not have a proper \fIdisk\fR directory you will be prompted for a descriptive title\&.
@@ -696,8 +959,9 @@
  
  .SH AUTHORS
  Jason Gunthorpe, APT team.
---- apt-0.6.41/doc/apt-config.8	2005-09-05 17:02:02.000000000 -0400
-+++ apt-0.6.41-new/doc/apt-config.8	2005-09-09 12:30:36.000000000 -0400
+diff -uNr apt-0.6.43.3/doc/apt-config.8 apt-0.6.43.3-new/doc/apt-config.8
+--- apt-0.6.43.3/doc/apt-config.8	2006-02-22 04:23:27.000000000 -0500
++++ apt-0.6.43.3-new/doc/apt-config.8	2006-03-11 12:27:33.000000000 -0500
 @@ -31,7 +31,7 @@
  .SH "DESCRIPTION"
  
@@ -716,8 +980,9 @@
  
  .SH AUTHORS
  Jason Gunthorpe, APT team.
---- apt-0.6.41/doc/apt-get.8	2005-09-05 17:01:55.000000000 -0400
-+++ apt-0.6.41-new/doc/apt-get.8	2005-09-09 12:30:36.000000000 -0400
+diff -uNr apt-0.6.43.3/doc/apt-get.8 apt-0.6.43.3-new/doc/apt-get.8
+--- apt-0.6.43.3/doc/apt-get.8	2006-02-22 04:23:15.000000000 -0500
++++ apt-0.6.43.3-new/doc/apt-get.8	2006-03-11 12:27:33.000000000 -0500
 @@ -38,11 +38,11 @@
  
  .TP
@@ -824,8 +1089,9 @@
  
  .SH AUTHORS
  Jason Gunthorpe, APT team.
---- apt-0.6.41/doc/apt_preferences.5	2005-09-05 17:02:03.000000000 -0400
-+++ apt-0.6.41-new/doc/apt_preferences.5	2005-09-09 12:30:36.000000000 -0400
+diff -uNr apt-0.6.43.3/doc/apt_preferences.5 apt-0.6.43.3-new/doc/apt_preferences.5
+--- apt-0.6.43.3/doc/apt_preferences.5	2006-02-22 04:23:31.000000000 -0500
++++ apt-0.6.43.3-new/doc/apt_preferences.5	2006-03-11 12:27:33.000000000 -0500
 @@ -23,7 +23,7 @@
  .SH "DESCRIPTION"
  
@@ -862,8 +1128,9 @@
  
  .SH AUTHOR
  APT team.
---- apt-0.6.41/doc/sources.list.5	2005-09-05 17:02:00.000000000 -0400
-+++ apt-0.6.41-new/doc/sources.list.5	2005-09-09 12:30:36.000000000 -0400
+diff -uNr apt-0.6.43.3/doc/sources.list.5 apt-0.6.43.3-new/doc/sources.list.5
+--- apt-0.6.43.3/doc/sources.list.5	2006-02-22 04:23:24.000000000 -0500
++++ apt-0.6.43.3-new/doc/sources.list.5	2006-03-11 12:27:33.000000000 -0500
 @@ -23,7 +23,7 @@
  .SH "DESCRIPTION"
  
@@ -873,7 +1140,7 @@
  
  .PP
  The source list is designed to support any number of active sources and a variety of source media\&. The file lists one source per line, with the most preferred source listed first\&. The format of each line is: type uri args The first item, type determines the format for args  uri is a Universal Resource Identifier (URI), which is a superset of the more specific and well\-known Universal Resource Locator, or URL\&. The rest of the line can be marked as a comment by using a #\&.
-@@ -159,7 +159,7 @@
+@@ -164,7 +164,7 @@
  .SH "BUGS"
  
  .PP
@@ -882,8 +1149,9 @@
  
  .SH AUTHORS
  Jason Gunthorpe, APT team.
---- apt-0.6.41/dselect/install	2005-08-01 12:05:41.000000000 -0400
-+++ apt-0.6.41-new/dselect/install	2005-09-09 12:30:36.000000000 -0400
+diff -uNr apt-0.6.43.3/dselect/install apt-0.6.43.3-new/dselect/install
+--- apt-0.6.43.3/dselect/install	2005-10-19 15:19:09.000000000 -0400
++++ apt-0.6.43.3-new/dselect/install	2006-03-11 12:27:33.000000000 -0500
 @@ -6,8 +6,8 @@
  # Get the configuration from /etc/apt/apt.conf
  CLEAN="prompt"
@@ -895,8 +1163,9 @@
  DPKG_OPTS="--admindir=$1"
  APT_OPT0="-oDir::State::status=$1/status"
  APT_OPT1="-oDPkg::Options::=$DPKG_OPTS"
---- apt-0.6.41/dselect/setup	2005-08-01 12:05:41.000000000 -0400
-+++ apt-0.6.41-new/dselect/setup	2005-09-09 12:30:36.000000000 -0400
+diff -uNr apt-0.6.43.3/dselect/setup apt-0.6.43.3-new/dselect/setup
+--- apt-0.6.43.3/dselect/setup	2005-10-19 15:19:09.000000000 -0400
++++ apt-0.6.43.3-new/dselect/setup	2006-03-11 12:27:33.000000000 -0500
 @@ -23,15 +23,17 @@
  my $vardir=$ARGV[0];
  my $method=$ARGV[1];
@@ -969,8 +1238,9 @@
      my $answer = <STDIN>;
      chomp ($answer);
      $answer =~ s/\s+/ /og;
---- apt-0.6.41/dselect/update	2005-08-01 12:05:43.000000000 -0400
-+++ apt-0.6.41-new/dselect/update	2005-09-09 12:30:36.000000000 -0400
+diff -uNr apt-0.6.43.3/dselect/update apt-0.6.43.3-new/dselect/update
+--- apt-0.6.43.3/dselect/update	2005-10-19 15:19:09.000000000 -0400
++++ apt-0.6.43.3-new/dselect/update	2006-03-11 12:27:33.000000000 -0500
 @@ -7,13 +7,13 @@
  # Get the configuration from /etc/apt/apt.conf
  CLEAN="prompt"
@@ -989,13 +1259,42 @@
  PROMPT="false"
  RES=`apt-config shell CLEAN DSelect::Clean OPTS DSelect::UpdateOptions \
  		      DPKG Dir::Bin::dpkg/f APTGET Dir::Bin::apt-get/f \
---- apt-0.6.41/methods/makefile	2005-08-19 04:04:07.000000000 -0400
-+++ apt-0.6.41-new/methods/makefile	2005-09-09 12:30:36.000000000 -0400
+diff -uNr apt-0.6.43.3/ftparchive/contents.cc apt-0.6.43.3-new/ftparchive/contents.cc
+--- apt-0.6.43.3/ftparchive/contents.cc	2005-10-19 15:19:09.000000000 -0400
++++ apt-0.6.43.3-new/ftparchive/contents.cc	2006-03-11 12:27:33.000000000 -0500
+@@ -41,7 +41,6 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+-#include <malloc.h>    
+ 									/*}}}*/
+ 
+ // GenContents::~GenContents - Free allocated memory			/*{{{*/
+diff -uNr apt-0.6.43.3/ftparchive/makefile apt-0.6.43.3-new/ftparchive/makefile
+--- apt-0.6.43.3/ftparchive/makefile	2005-10-19 15:19:09.000000000 -0400
++++ apt-0.6.43.3-new/ftparchive/makefile	2006-03-11 12:27:33.000000000 -0500
+@@ -8,7 +8,7 @@
+ # The apt-ftparchive program
+ ifdef BDBLIB
+ PROGRAM=apt-ftparchive
+-SLIBS = -lapt-pkg -lapt-inst $(BDBLIB)
++SLIBS = -lapt-pkg -lapt-inst $(BDBLIB) $(INTLLIBS) -lftw
+ LIB_MAKES = apt-pkg/makefile apt-inst/makefile
+ SOURCE = apt-ftparchive.cc cachedb.cc writer.cc contents.cc override.cc \
+          multicompress.cc
+diff -uNr apt-0.6.43.3/ftparchive-conf apt-0.6.43.3-new/ftparchive-conf
+--- apt-0.6.43.3/ftparchive-conf	1969-12-31 19:00:00.000000000 -0500
++++ apt-0.6.43.3-new/ftparchive-conf	2006-03-11 12:27:33.000000000 -0500
+@@ -0,0 +1 @@
++Dir::Bin::gzip "@PREFIX@/bin/gzip";
+diff -uNr apt-0.6.43.3/methods/makefile apt-0.6.43.3-new/methods/makefile
+--- apt-0.6.43.3/methods/makefile	2005-11-28 04:55:47.000000000 -0500
++++ apt-0.6.43.3-new/methods/makefile	2006-03-11 12:29:16.000000000 -0500
 @@ -7,61 +7,61 @@
  BIN := $(BIN)/methods
  
  # FIXME..
--LIB_APT_PKG_MAJOR = 3.10
+-LIB_APT_PKG_MAJOR = 3.11
 +LIB_APT_PKG_MAJOR = 0.6.40
  APT_DOMAIN := libapt-pkg$(LIB_APT_PKG_MAJOR)
  
@@ -1062,8 +1361,9 @@
  LIB_MAKES = apt-pkg/makefile
  SOURCE = rsh.cc
  include $(PROGRAM_H)
---- apt-0.6.41/methods/rfc2553emu.h	2005-08-01 12:05:41.000000000 -0400
-+++ apt-0.6.41-new/methods/rfc2553emu.h	2005-09-09 12:30:37.000000000 -0400
+diff -uNr apt-0.6.43.3/methods/rfc2553emu.h apt-0.6.43.3-new/methods/rfc2553emu.h
+--- apt-0.6.43.3/methods/rfc2553emu.h	2005-10-19 15:19:09.000000000 -0400
++++ apt-0.6.43.3-new/methods/rfc2553emu.h	2006-03-11 12:27:33.000000000 -0500
 @@ -26,6 +26,11 @@
  #include <sys/types.h>
  #include <sys/socket.h>
@@ -1095,8 +1395,9 @@
  
    #define sockaddr_storage sockaddr_in
  #endif
---- apt-0.6.41/patch_flush	1969-12-31 19:00:00.000000000 -0500
-+++ apt-0.6.41-new/patch_flush	2005-09-09 12:30:37.000000000 -0400
+diff -uNr apt-0.6.43.3/patch_flush apt-0.6.43.3-new/patch_flush
+--- apt-0.6.43.3/patch_flush	1969-12-31 19:00:00.000000000 -0500
++++ apt-0.6.43.3-new/patch_flush	2006-03-11 12:27:33.000000000 -0500
 @@ -0,0 +1,11 @@
 +#!/bin/sh
 +set -e
@@ -1109,257 +1410,3 @@
 +done
 +
 +exit 0
---- apt-0.6.41/cmdline/apt-get.cc	2005-08-23 04:13:13.000000000 -0400
-+++ apt-0.6.41-new/cmdline/apt-get.cc	2005-10-03 11:13:16.000000000 -0400
-@@ -51,7 +51,7 @@
- #include <termios.h>
- #include <sys/ioctl.h>
- #include <sys/stat.h>
--#include <sys/statvfs.h>
-+#include <sys/mount.h>
- #include <signal.h>
- #include <unistd.h>
- #include <stdio.h>
-@@ -113,6 +113,8 @@
- /* Returns true on a Yes.*/
- bool YnPrompt(bool Default=true)
- {
-+   fflush(NULL);
-+   
-    if (_config->FindB("APT::Get::Assume-Yes",false) == true)
-    {
-       c1out << _("Y") << endl;
-@@ -331,7 +333,20 @@
- 		  if (Cache[Targ].CandidateVerIter(Cache).end() == true)
- 		  {
- 		     if (Targ->ProvidesList == 0)
--			out << _("but it is not installable");
-+		     {
-+			out << _("but it is not installable. For Fink users, ");
-+			out << _("this often means that you have attempted ");
-+			out << _("to install a package from the binary distribution ");
-+			out << _("that depends on a package (or has a subdependency) ");
-+			out << _("that is not part of the binary distribution.  The ");
-+			out << _("omitted package may be a virtual package, which ");
-+			out << _("must be installed manually instead of with fink, ");
-+			out << _("or one that has a \"Restrictive\" license that ");
-+			out << _("prohibits binary distribution.  See:\n");
-+			out << _("  <http://fink.sourceforge.net/faq/usage-fink.php#bindist>\n");
-+			out << _("  <http://fink.sourceforge.net/doc/users-guide/packages.php#bin-exceptions>\n");
-+			out << _("  <http://fink.sourceforge.net/doc/usage-general.php#virtpackage>\n");
-+		     }
- 		     else
- 			out << _("but it is a virtual package");
- 		  }		  
-@@ -638,13 +653,15 @@
-       return false;
-    
-    // Nothing is broken
--   if (DCache->BrokenCount() == 0 || AllowBroken == true)
-+   // FINK LOCAL added APT::Get::Ignore-Breakage test
-+   if (DCache->BrokenCount() == 0 || AllowBroken == true
-+       || _config->FindB("APT::Get::Ignore-Breakage") == true)
-       return true;
- 
-    // Attempt to fix broken things
-    if (_config->FindB("APT::Get::Fix-Broken",false) == true)
-    {
--      c1out << _("Correcting dependencies...") << flush;
-+      c1out << _("Correcting dependencies...") << flush, fflush(NULL);
-       if (pkgFixBroken(*DCache) == false || DCache->BrokenCount() != 0)
-       {
- 	 c1out << _(" failed.") << endl;
-@@ -747,7 +764,9 @@
-    Stats(c1out,Cache);
- 
-    // Sanity check
--   if (Cache->BrokenCount() != 0)
-+   // FINK LOCAL added APT::Get::Ignore-Breakage test
-+   if (Cache->BrokenCount() != 0
-+       && _config->FindB("APT::Get::Ignore-Breakage",false) == false)
-    {
-       ShowBroken(c1out,Cache,false);
-       return _error->Error(_("Internal error, InstallPackages was called with broken packages!"));
-@@ -838,10 +857,10 @@
-    if (_config->FindB("APT::Get::Print-URIs") == false &&
-        _config->FindB("APT::Get::Download",true) == true)
-    {
--      struct statvfs Buf;
-+      struct statfs Buf;
-       string OutputDir = _config->FindDir("Dir::Cache::Archives");
--      if (statvfs(OutputDir.c_str(),&Buf) != 0)
--	 return _error->Errno("statvfs",_("Couldn't determine free space in %s"),
-+      if (statfs(OutputDir.c_str(),&Buf) != 0)
-+	 return _error->Errno("statfs",_("Couldn't determine free space in %s"),
- 			      OutputDir.c_str());
-       if (unsigned(Buf.f_bfree) < (FetchBytes - FetchPBytes)/Buf.f_bsize)
- 	 return _error->Error(_("You don't have enough free space in %s."),
-@@ -866,7 +885,7 @@
- 	       _("You are about to do something potentially harmful.\n"
- 		 "To continue type in the phrase '%s'\n"
- 		 " ?] "),Prompt);
--      c2out << flush;
-+      c2out << flush, fflush(NULL);
-       if (AnalPrompt(Prompt) == false)
-       {
- 	 c2out << _("Abort.") << endl;
-@@ -1144,7 +1163,9 @@
-       ExpectedInst++;
-    
-    // Install it with autoinstalling enabled.
--   if (State.InstBroken() == true && BrokenFix == false)
-+   // FINK LOCAL added APT::Get::Ignore-Breakage test
-+   if (State.InstBroken() == true && BrokenFix == false
-+      && _config->FindB("APT::Get::Ignore-Breakage") == false)
-       Cache.MarkInstall(Pkg,true);
-    return true;
- }
-@@ -1521,7 +1542,9 @@
-    /* If we are in the Broken fixing mode we do not attempt to fix the
-       problems. This is if the user invoked install without -f and gave
-       packages */
--   if (BrokenFix == true && Cache->BrokenCount() != 0)
-+   // FINK LOCAL added APT::Get::Ignore-Breakage test
-+   if (BrokenFix == true && Cache->BrokenCount() != 0
-+       && _config->FindB("APT::Get::Ignore-Breakage") == false)
-    {
-       c1out << _("You might want to run `apt-get -f install' to correct these:") << endl;
-       ShowBroken(c1out,Cache,false);
-@@ -1531,11 +1554,13 @@
-    
-    // Call the scored problem resolver
-    Fix.InstallProtect();
--   if (Fix.Resolve(true) == false)
-+   // FINK LOCAL added APT::Get::Ignore-Breakage test
-+   if (_config->FindB("APT::Get::Ignore-Breakage") == false && Fix.Resolve(true) == false)
-       _error->Discard();
- 
-    // Now we check the state of the packages,
--   if (Cache->BrokenCount() != 0)
-+   // FINK LOCAL added APT::Get::Ignore-Breakage test
-+   if (Cache->BrokenCount() != 0 && _config->FindB("APT::Get::Ignore-Breakage") == false)
-    {
-       c1out << 
-        _("Some packages could not be installed. This may mean that you have\n" 
-@@ -1921,10 +1946,10 @@
-    double DebBytes = Fetcher.TotalNeeded();
- 
-    // Check for enough free space
--   struct statvfs Buf;
-+   struct statfs Buf;
-    string OutputDir = ".";
--   if (statvfs(OutputDir.c_str(),&Buf) != 0)
--      return _error->Errno("statvfs",_("Couldn't determine free space in %s"),
-+   if (statfs(OutputDir.c_str(),&Buf) != 0)
-+      return _error->Errno("statfs",_("Couldn't determine free space in %s"),
- 			   OutputDir.c_str());
-    if (unsigned(Buf.f_bfree) < (FetchBytes - FetchPBytes)/Buf.f_bsize)
-       return _error->Error(_("You don't have enough free space in %s"),
-@@ -2419,6 +2444,8 @@
-    _config->Set("APT::Get::Simulate",false);
-    _config->Set("APT::Get::Assume-Yes",false);
-    _config->Set("APT::Get::Fix-Broken",false);
-+   // FINK LOCAL added APT::Get::Ignore-Breakage
-+   _config->Set("APT::Get::Ignore-Breakage",false);
-    _config->Set("APT::Get::Force-Yes",false);
-    _config->Set("APT::Get::List-Cleanup",true);
- }
-@@ -2457,6 +2484,8 @@
-       {'y',"yes","APT::Get::Assume-Yes",0},
-       {'y',"assume-yes","APT::Get::Assume-Yes",0},      
-       {'f',"fix-broken","APT::Get::Fix-Broken",0},
-+      // FINK LOCAL added APT::Get::Ignore-Breakage
-+      {0,"ignore-breakage","APT::Get::Ignore-Breakage",0},
-       {'u',"show-upgraded","APT::Get::Show-Upgraded",0},
-       {'m',"ignore-missing","APT::Get::Fix-Missing",0},
-       {'t',"target-release","APT::Default-Release",CommandLine::HasArg},
-@@ -2520,6 +2549,22 @@
-       ShowHelp(CmdL);
-       return 0;
-    }
-+
-+   /* FINK LOCAL begin */
-+   if (_config->FindB("APT::Get::Ignore-Breakage",false) == true) {
-+     if (_config->FindB("APT::Get::Print-URIs",false) == false &&
-+	 _config->FindB("APT::Get::Download-Only",false) == false) {
-+       _error->Error("--ignore-breakage can only be used with --print-uris or --download-only");
-+       _error->DumpErrors();
-+       return 100;
-+     }
-+     if (strcmp(CmdL.FileList[0],"install") != 0) {
-+       _error->Error("--ignore-breakage can only be used with apt-get install");
-+       _error->DumpErrors();
-+       return 100;
-+     }
-+   }
-+   /* FINK LOCAL end */
-    
-    // Deal with stdout not being a tty
-    if (!isatty(STDOUT_FILENO) && _config->FindI("quiet",0) < 1)
---- apt-0.6.41/buildlib/sgml_manpage.mak	2005-08-01 12:05:41.000000000 -0400
-+++ apt-0.6.41-new/buildlib/sgml_manpage.mak	2005-10-03 13:47:16.000000000 -0400
-@@ -11,7 +11,7 @@
- # See defaults.mak for information about LOCAL
- 
- # Some local definitions
--ifdef DOCBOOK2MAN
-+ifdef DOCBOOK2MANx
- 
- LOCAL := sgml-manpage-$(firstword $(SOURCE))
- $(LOCAL)-LIST := $(SOURCE)
---- apt-0.6.41/ftparchive/contents.cc	2005-08-01 12:05:43.000000000 -0400
-+++ apt-0.6.41-new/ftparchive/contents.cc	2005-10-03 12:01:11.000000000 -0400
-@@ -41,7 +41,6 @@
- #include <stdio.h>
- #include <stdlib.h>
- #include <string.h>
--#include <malloc.h>    
- 									/*}}}*/
- 
- // GenContents::~GenContents - Free allocated memory			/*{{{*/
---- apt-0.6.41/ftparchive-conf	1969-12-31 19:00:00.000000000 -0500
-+++ apt-0.6.41-new/ftparchive-conf	2005-10-03 13:57:31.000000000 -0400
-@@ -0,0 +1 @@
-+Dir::Bin::gzip "@PREFIX@/bin/gzip";
---- apt-0.6.41/ftparchive/makefile	Mon Aug  1 12:05:41 2005
-+++ apt-0.6.41-new/ftparchive/makefile	Wed Oct  5 09:48:59 2005
-@@ -8,7 +8,7 @@
- # The apt-ftparchive program
- ifdef BDBLIB
- PROGRAM=apt-ftparchive
--SLIBS = -lapt-pkg -lapt-inst $(BDBLIB)
-+SLIBS = -lapt-pkg -lapt-inst $(BDBLIB) $(INTLLIBS) -lftw
- LIB_MAKES = apt-pkg/makefile apt-inst/makefile
- SOURCE = apt-ftparchive.cc cachedb.cc writer.cc contents.cc override.cc \
-          multicompress.cc
---- apt-0.6.41/apt-inst/contrib/extracttar.cc	2005-08-01 12:05:47.000000000 -0400
-+++ apt-0.6.41-new/apt-inst/contrib/extracttar.cc	2005-10-06 16:42:52.000000000 -0400
-@@ -149,6 +149,17 @@
-    close(Pipes[1]);
-    return true;
- }
-+
-+// Handle the ridiculous way that tar stores large numbers
-+static bool TarUIDToNum(const char *Str, unsigned long &Res, unsigned Len) {
-+	switch (*Str) {
-+		case '\200':
-+			Res = *((unsigned long *)(Str + Len - sizeof(unsigned long)));
-+			return true;
-+		default:
-+			return StrToNum(Str+1, Res, Len-1, 8);
-+	}
-+}
- 									/*}}}*/
- // ExtractTar::Go - Perform extraction					/*{{{*/
- // ---------------------------------------------------------------------
-@@ -197,8 +208,8 @@
-       // Decode all of the fields
-       pkgDirStream::Item Itm;
-       if (StrToNum(Tar->Mode,Itm.Mode,sizeof(Tar->Mode),8) == false ||
--	  StrToNum(Tar->UserID,Itm.UID,sizeof(Tar->UserID),8) == false ||
--	  StrToNum(Tar->GroupID,Itm.GID,sizeof(Tar->GroupID),8) == false ||
-+	  TarUIDToNum(Tar->UserID,Itm.UID,sizeof(Tar->UserID)) == false ||
-+	  TarUIDToNum(Tar->GroupID,Itm.GID,sizeof(Tar->GroupID)) == false ||
- 	  StrToNum(Tar->Size,Itm.Size,sizeof(Tar->Size),8) == false ||
- 	  StrToNum(Tar->MTime,Itm.MTime,sizeof(Tar->MTime),8) == false ||
- 	  StrToNum(Tar->Major,Itm.Major,sizeof(Tar->Major),8) == false ||

@@ -1,0 +1,175 @@
+Package: apt
+Version: 0.6.43.3
+Revision: 11
+Description: Advanced front-end for dpkg
+License: GPL
+Maintainer: Fink Core Group <fink-core@lists.sourceforge.net>
+
+Depends: apt0.6.40-shlibs (>= %v-%r), gzip, libftw0-shlibs
+BuildDepends: fink-prebinding, libftw0, libiconv-dev, libgettext3-dev, gettext-tools
+Conflicts: apt-ftparchive
+Replaces: apt-ftparchive
+GCC: 3.3
+
+Source: mirror:sourceforge:fink/%n_%v.tar.gz
+Source2: http://downloads.sleepycat.com/db-4.3.29.tar.gz
+SourceDirectory: %n-%v
+Source-MD5: 7d607342ffce8ba8705ae7797cb1a15c
+Source2-MD5: 200b9f5d74175875fcb3ee54adbf0007
+PatchScript: <<
+	#!/bin/sh -ex
+	DISTRIBUTION=`grep -i -E '^Distribution:' %p/etc/fink.conf | awk '{ print $2 }'`
+	sed -e 's|@PREFIX@|%p|g' -e "s|@DIST@|${DISTRIBUTION}|g" <%a/%n.patch | patch -p1
+	sh patch_flush
+	for i in `grep -rl '#ifdef __GNUG__' .` ; do perl -pi.bak -e 's/#ifdef __GNUG__/#if defined(__GNUG__) && !defined(__APPLE_CC__)/' $i; done
+<<
+
+SetCXXFLAGS: -O2 -DEMULATE_MMAP -D__USE_MISC -fconstant-cfstrings -g
+SetLIBS: -L%p/lib -undefined dynamic_lookup
+NoSetCPPFLAGS: true
+NoSetLDFLAGS: true
+CompileScript: <<
+#!/bin/sh -ex
+
+ export DBDIR=`pwd`/../db-4.3.28
+ pushd $DBDIR/build_unix
+ LIBS="" LDFLAGS="" CFLAGS="" CXXFLAGS="" F77=no ../dist/configure --enable-static=yes --enable-shared=no
+ make libdb.a
+ popd
+
+ export CPPFLAGS="-I$DBDIR/build_unix -I%p/include/ftw"
+ export LDFLAGS="-L$DBDIR/build_unix"
+ ./configure %c
+ make -f makefile.wrap NOISY=1 GLIBC_VER= LIBSTDCPP_VER= INTLLIBS="-L%p/lib -lintl" BDBLIB="$DBDIR/build_unix/libdb.a"
+<<
+
+InstallScript: <<
+#!/bin/sh -ex
+
+ install -d -m 755 %i/bin
+ install -d -m 755 %i/lib
+ install -d -m 755 %i/lib/apt/methods
+ install -d -m 755 %i/lib/dpkg/methods/apt
+ install -d -m 755 %i/include/apt-pkg
+ install -d -m 755 %i/share/man/man{1,5,8}
+ install -d -m 755 %i/etc/apt/apt.conf.d
+ install -d -m 755 %i/var/cache/apt/archives/partial
+ install -d -m 755 %i/var/lib/apt/lists/partial
+
+ install -c -m 644 ftparchive-conf %i/etc/apt/apt.conf.d/
+
+ for binfile in cache cdrom config extracttemplates ftparchive get sortpkgs; do
+   install -c -m 755 bin/apt-$binfile %i/bin/
+ done
+
+ install -c -m 644 bin/libapt-pkg.0.6.40.0.dylib %i/lib/
+ pushd %i/lib/ && ln -s libapt-pkg.0.6.40.0.dylib libapt-pkg.0.6.40.dylib && ln -s libapt-pkg.0.6.40.0.dylib libapt-pkg.dylib && popd
+ install -c -m 644 bin/libapt-inst.0.6.40.0.dylib %i/lib/
+ pushd %i/lib/ && ln -s libapt-inst.0.6.40.0.dylib libapt-inst.0.6.40.dylib && ln -s libapt-inst.0.6.40.0.dylib libapt-inst.dylib && popd
+
+ for method in bin/methods/*; do
+  install -c -m 755 $method %i/lib/apt/methods/
+ done
+
+ for method in scripts/dselect/*; do
+  install -c $method %i/lib/dpkg/methods/apt/
+ done
+
+ install -c -m 644 include/apt-pkg/*.h %i/include/apt-pkg/
+
+ for ext in 1 5 8; do
+  for file in doc/*.$ext docs/*.$ext; do
+   cp -f $file %i/share/man/man$ext/
+  done
+ done
+<<
+DocFiles: COPYING* AUTHORS
+SplitOff: <<
+	Package: apt0.6.40-shlibs
+	Depends: dpkg, fink (>= 0.20.6-1), libgettext3-shlibs
+	Replaces: apt-shlibs
+	DocFiles: COPYING* AUTHORS
+	Files: lib/lib*0.6.40*.dylib
+	Shlibs: <<
+		%p/lib/libapt-pkg.0.6.40.dylib 0.6.40 %n (>= 0.6.40.1-1)
+		%p/lib/libapt-inst.0.6.40.dylib 0.6.40 %n (>= 0.6.40.1-1)
+	<<
+<<
+SplitOff2: <<
+	Package: apt0.6.40-dev
+	Depends: apt0.6.40-shlibs (>= %v-%r)
+	Conflicts: apt-dev
+	Replaces: apt-dev
+	Recommends: libiconv-dev, libgettext3-dev
+	BuildDependsOnly: true
+	DocFiles: COPYING* AUTHORS
+	Files: lib/*.dylib include
+<<
+
+PostInstScript: <<
+if [ ! -f %p/var/lib/dpkg/cmethopt ]; then
+  echo "apt apt" >%p/var/lib/dpkg/cmethopt
+  chmod 644 %p/var/lib/dpkg/cmethopt
+else
+  read a b <%p/var/lib/dpkg/cmethopt
+  if [ "$a" != "apt" -o "$b" != "apt" ]; then
+    echo
+    echo "dselect is not set up to use apt as its access method. Downloading binary"
+    echo -n "package will likely not work. Do you want to use apt instead?"
+    read answer
+    answer=`echo $answer | sed 's/^[yY].*$/y/'`
+    if [ -z "$answer" -o "x$answer" = "xy" ]; then
+      echo "apt apt" >%p/var/lib/dpkg/cmethopt
+      chmod 644 %p/var/lib/dpkg/cmethopt
+    fi
+  fi
+fi
+
+rm -f %p/var/cache/apt/pkgcache.bin %p/var/cache/apt/srcpkgcache.bin
+<<
+
+Homepage: http://packages.qa.debian.org/a/apt.html
+DescPackaging: <<
+Previous versions by Christoph Pfisterer.
+
+We don't do anything with docbook2man even though it's detected,
+we just patch and install the man pages directly.
+<<
+DescPort: <<
+There are three troublemakers when porting apt:
+- It was written for Linux/ELF/glibc.
+- It was written to maintain a distribution that is in charge of the
+  system and hardcodes paths like /usr/bin, /usr/lib and /var/lib.
+- There is no install target in the Makefiles because the Debian
+  packaging files take care of what goes where.
+There's also the usual trouble like not recognizing Darwin and
+depending on a case-sensitive file system. All of this amounts to a
+big, bad patch.
+
+The patch also fixes some potential and some real crashing bugs.
+
+Oh, one more thing: mmap() is broken for non-trivial uses in OS X
+10.1. Luckily apt uses a wrapper class that can be equipped with a
+workaround (malloc() + read() + write()...).
+
+The -fno-rtti works around a bug in GCC 3.1 on Jaguar.
+
+Ben Hines - added patch to make apt recognize macosx and darwin pkgs
+
+The sources.list file is now supplied by the fink program rather than
+by apt-get.
+
+The type of the fifth parameter for getsocklen keeps changing. The
+original code uses unsigned int, which was never correct for darwin,
+so we patch several choices. Through OS X 10.3, it was int; starting
+in 10.4 it is socklen_t, a symbol that first appeared in 10.3 but was
+an int. So starting in 10.3 we can just use socklen_t.
+See: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=323716
+
+dmacks - Implemented "--ignore-breakage" cmdline flag to 'apt-get install'
+(first appears in: 10.2-gcc3.3/0.5.4-41, 10.3/0.5.4-51)
+
+rangerrick -- Updated everything to 0.6.41, including enabling
+ftparchive.  Be afraid!
+<<
+

@@ -1,0 +1,2236 @@
+diff -uNr dpkg-1.13.16/dpkg-deb/Makefile.in dpkg-1.13.16-new/dpkg-deb/Makefile.in
+--- dpkg-1.13.16/dpkg-deb/Makefile.in	2006-02-18 12:10:25.000000000 -0500
++++ dpkg-1.13.16-new/dpkg-deb/Makefile.in	2006-03-11 12:22:35.000000000 -0500
+@@ -85,7 +85,7 @@
+ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
+ 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+ CCLD = $(CC)
+-LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
++LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) $(EXEFLAGS) -o $@
+ SOURCES = $(dpkg_deb_SOURCES)
+ DIST_SOURCES = $(dpkg_deb_SOURCES)
+ ETAGS = etags
+@@ -232,7 +232,7 @@
+ 	main.c
+ 
+ dpkg_deb_LDADD = \
+-	$(LIBINTL) ../lib/libdpkg.a $(ZLIB_LIBS) $(BZ2_LIBS) $(SELINUX_LIBS)
++	$(LIBINTL) ../lib/libdpkg.a ../getopt/libopt.a $(ZLIB_LIBS) $(BZ2_LIBS) $(SELINUX_LIBS)
+ 
+ all: all-am
+ 
+diff -uNr dpkg-1.13.16/dpkg-deb/build.c dpkg-1.13.16-new/dpkg-deb/build.c
+--- dpkg-1.13.16/dpkg-deb/build.c	2006-01-18 03:30:03.000000000 -0500
++++ dpkg-1.13.16-new/dpkg-deb/build.c	2006-03-11 12:22:35.000000000 -0500
+@@ -221,9 +221,11 @@
+       warns++;
+     }
+     for (field= checkedinfo->available.arbs; field; field= field->next) {
++	  if (strncmp("BuildDependsOnly",field->name,16)) {
+       fprintf(stderr, _("warning, `%s' contains user-defined field `%s'\n"),
+               controlfile, field->name);
+       warns++;
++	  }
+     }
+     checkversion(checkedinfo->available.version.version,"(upstream) version",&errs);
+     checkversion(checkedinfo->available.version.revision,"Debian revision",&errs);
+diff -uNr dpkg-1.13.16/dpkg-split/Makefile.in dpkg-1.13.16-new/dpkg-split/Makefile.in
+--- dpkg-1.13.16/dpkg-split/Makefile.in	2006-02-18 12:10:26.000000000 -0500
++++ dpkg-1.13.16-new/dpkg-split/Makefile.in	2006-03-11 12:22:35.000000000 -0500
+@@ -87,7 +87,7 @@
+ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
+ 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+ CCLD = $(CC)
+-LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
++LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) $(EXEFLAGS) -o $@
+ SOURCES = $(dpkg_split_SOURCES)
+ DIST_SOURCES = $(dpkg_split_SOURCES)
+ ETAGS = etags
+@@ -236,7 +236,7 @@
+ 	queue.c \
+ 	split.c
+ 
+-dpkg_split_LDADD = $(LIBINTL) ../lib/libdpkg.a
++dpkg_split_LDADD = $(LIBINTL) ../lib/libdpkg.a ../getopt/libopt.a
+ pkglib_SCRIPTS = mksplit
+ EXTRA_DIST = mksplit.pl
+ CLEANFILES = $(pkglib_SCRIPTS)
+diff -uNr dpkg-1.13.16/dselect/Makefile.in dpkg-1.13.16-new/dselect/Makefile.in
+--- dpkg-1.13.16/dselect/Makefile.in	2006-02-18 12:10:26.000000000 -0500
++++ dpkg-1.13.16-new/dselect/Makefile.in	2006-03-11 12:22:35.000000000 -0500
+@@ -97,7 +97,7 @@
+ CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
+ 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
+ CXXLD = $(CXX)
+-CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
++CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) $(EXEFLAGS) \
+ 	-o $@
+ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
+ 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+@@ -273,7 +273,7 @@
+ 	pkgsublist.cc \
+ 	pkgtop.cc
+ 
+-dselect_LDADD = $(LIBINTL) ../lib/libdpkg.a $(CURSES_LIBS)
++dselect_LDADD = $(LIBINTL) ../lib/libdpkg.a ../getopt/libopt.a -lSystemStubs $(CURSES_LIBS)
+ EXTRA_DIST = keyoverride mkcurkeys.pl
+ CLEANFILES = curkeys.h
+ all: all-recursive
+diff -uNr dpkg-1.13.16/dselect/main.cc dpkg-1.13.16-new/dselect/main.cc
+--- dpkg-1.13.16/dselect/main.cc	2006-02-17 02:23:31.000000000 -0500
++++ dpkg-1.13.16-new/dselect/main.cc	2006-03-11 12:22:35.000000000 -0500
+@@ -42,6 +42,11 @@
+ #include <dpkg.h>
+ #include <dpkg-db.h>
+ #include <myopt.h>
++/* FINK LOCAL begin */
++#include <sys/utsname.h>
++#include <CoreFoundation/CoreFoundation.h>
++static void finkinit();
++/* FINK LOCAL end */
+ }
+ #include "dselect.h"
+ #include "bindings.h"
+@@ -477,6 +482,155 @@
+   return urqr_quitmenu;
+   /* fixme: check packages OK */
+ }
++/* FINK LOCAL begin */
++extern "C" {
++struct FinkVirtualPkgs {
++  struct FinkVirtualPkgs *next;
++  char *pkgname;
++  struct versionrevision version;
++};
++
++struct FinkVirtualPkgs *fink_virt_pkg = NULL;
++}
++static void finkinit()
++{
++	FILE *virt_pkg_stream = NULL;
++	struct stat sb;
++	struct FinkVirtualPkgs *pkg;
++	char name[256];
++	char version[256];
++	char revision[256];
++	unsigned long  epoch;
++    Boolean status;
++    SInt32 errorCode;
++    CFURLRef fileURL = NULL;
++    CFDataRef resourceData = NULL;
++    CFPropertyListRef propertyList = NULL;
++    CFStringRef string;
++    static char buffer[256];	// This is static, to ensure the buffer stays around
++
++    static struct utsname ver;	// This is static, to ensure the buffer stays around
++	if (0 == stat("@PREFIX@/bin/fink-virtual-pkgs", &sb))
++	{
++	  virt_pkg_stream =popen("@PREFIX@/bin/fink-virtual-pkgs --dpkg","r");
++  	  if (virt_pkg_stream)
++	  {
++	    while (fscanf(virt_pkg_stream,"%s\t%u\t%s\t%s\n",name,&epoch,version, revision) == 4)
++	    {
++	      pkg = (struct FinkVirtualPkgs *)malloc(sizeof(struct FinkVirtualPkgs));
++	      if (pkg)
++	      {
++			  pkg->next = fink_virt_pkg;
++			  pkg->pkgname = strdup(name);
++			  pkg->version.epoch = epoch;
++			  pkg->version.version = strdup(version);
++			  pkg->version.revision = strdup(revision);
++			  /* Quick and simple sanity check */
++			  if ((NULL != pkg->pkgname) && (0 != strlen(pkg->pkgname)) &&
++			      (NULL != pkg->version.version) && (0 != strlen(pkg->version.version)) &&
++			      (NULL != pkg->version.revision) && (0 != strlen(pkg->version.revision)))
++			  {
++			  	/* We are leaking here if something fails the sanity check above */
++			  	fink_virt_pkg = pkg;
++			  }
++	      }
++	    }
++	    if (pclose(virt_pkg_stream))
++	    {
++	    	/* The fink-virtual-pkgs script returned a non zero exit status *
++	    	 * clean up and try the old way.                                */
++	    	while(NULL != fink_virt_pkg)
++	    	{
++	    		pkg = fink_virt_pkg;
++	    		if (NULL != pkg->pkgname) free(pkg->pkgname);
++	    		if (NULL != pkg->version.version) free((void*)pkg->version.version);
++	    		if (NULL != pkg->version.revision) free((void*)pkg->version.revision);
++	    		fink_virt_pkg = pkg->next;
++	    		free(pkg);
++	    	}
++	    }
++	  }
++	} 
++	if (NULL == fink_virt_pkg)
++	{
++	  /* Determine system version */
++	  /* TODO - should maybe check if this is really Darwin? */
++	  if (!uname(&ver)) {
++	      pkg = (struct FinkVirtualPkgs *)malloc(sizeof(struct FinkVirtualPkgs));
++	      if (pkg) {
++			  pkg->next = fink_virt_pkg;
++			  pkg->pkgname = strdup("darwin");
++			  pkg->version.epoch = 0;
++			  pkg->version.version = ver.release;
++			  pkg->version.revision = NULL;
++			  fink_virt_pkg = pkg;
++	      }  
++	  }
++	
++	  /* Check whether this is Mac OS X, and which version of it */
++
++	  fileURL = CFURLCreateWithFileSystemPath( NULL, 	
++			CFSTR("/System/Library/CoreServices/SystemVersion.plist"),
++			kCFURLPOSIXPathStyle,				
++			false );
++	  if (!fileURL)
++		goto BAIL;
++	  
++	  /* Read the XML */
++	  status = CFURLCreateDataAndPropertiesFromResource(
++			NULL,
++			fileURL,
++			&resourceData,
++			NULL,		
++			NULL,
++			&errorCode);
++	  if (!status || errorCode != 0)
++		goto BAIL;
++	  
++	  /* Reconstitute the dictionary using the XML data. */
++	  propertyList = CFPropertyListCreateFromXMLData( NULL,
++			resourceData,
++			kCFPropertyListImmutable,
++			&string);
++	  if (!propertyList)
++		goto BAIL;
++	  
++	  /* Try to read the system version from it. */
++	  status = CFDictionaryGetValueIfPresent( 
++			(CFDictionaryRef)propertyList,
++			(const void*)CFSTR("ProductVersion"),
++			(const void**)&string);
++	  if (!status)
++		goto BAIL;
++	  
++	  /* Convert into a C string */
++	  status = CFStringGetCString( string,
++			buffer,
++			sizeof(buffer),
++			kCFStringEncodingISOLatin1);
++	  if (!status)
++		goto BAIL;
++	  pkg = (struct FinkVirtualPkgs *)malloc(sizeof(struct FinkVirtualPkgs));
++	  if (pkg)
++	  {
++		  pkg->next = fink_virt_pkg;
++		  pkg->pkgname = strdup("macosx");
++		  pkg->version.epoch = 0;
++		  pkg->version.version = buffer;
++		  pkg->version.revision = NULL;
++		  fink_virt_pkg = pkg;
++	  }
++	BAIL:
++	  // Release all of the CF objects we're responsible for.
++	  if (fileURL)
++		CFRelease(fileURL);
++	  if (resourceData)
++		CFRelease(resourceData);
++	  if (propertyList)
++		CFRelease(propertyList);
++	}
++}
++/* FINK LOCAL end */
+ 
+ int main(int, const char *const *argv) {
+   jmp_buf ejbuf;
+@@ -484,7 +638,9 @@
+   setlocale(LC_ALL, "");
+   bindtextdomain(DSELECT, LOCALEDIR);
+   textdomain(DSELECT);
+-
++  /* FINK LOCAL begin */
++  finkinit();
++  /* FINK LOCAL end */
+   if (setjmp(ejbuf)) { /* expect warning about possible clobbering of argv */
+     cursesoff();
+     error_unwind(ehflag_bombout); exit(2);
+diff -uNr dpkg-1.13.16/dselect/pkgdepcon.cc dpkg-1.13.16-new/dselect/pkgdepcon.cc
+--- dpkg-1.13.16/dselect/pkgdepcon.cc	2006-01-18 03:30:03.000000000 -0500
++++ dpkg-1.13.16-new/dselect/pkgdepcon.cc	2006-03-11 12:22:35.000000000 -0500
+@@ -198,12 +198,20 @@
+ 
+   return 2;
+ }
+-
++/* FINK LOCAL begin */
++extern "C" {
++struct FinkVirtualPkgs {
++  struct FinkVirtualPkgs *next;
++  char *pkgname;
++  struct versionrevision version;
++};
++extern struct FinkVirtualPkgs *fink_virt_pkg;
++}
++/* FINK LOCAL end */
+ int packagelist::resolvedepcon(dependency *depends) {
+   perpackagestate *best, *fixbyupgrade;
+   deppossi *possi, *provider;
+   int r, foundany;
+-
+   if (depdebug && debug) {
+     fprintf(debug,"packagelist[%p]::resolvedepcon([%p] %s --%s-->",
+           this,depends,depends->up->name,gettext(relatestrings[depends->type]));
+@@ -214,7 +222,7 @@
+             ? gettext(wantstrings[depends->up->clientdata->suggested])
+             : _("(no clientdata)"));
+   }
+-  
++
+   if (!depends->up->clientdata) return 0;
+ 
+   switch (depends->type) {
+@@ -354,7 +362,28 @@
+ int packagelist::deppossatisfied(deppossi *possi, perpackagestate **fixbyupgrade) {
+   int would;
+   pkginfo::pkgwant want= pkginfo::want_purge;
+-  
++/* FINK LOCAL begin */
++  {
++      int interestingwarnings;
++      struct varbuf oemsgs;
++      struct FinkVirtualPkgs *virt_pkg = NULL; 
++      varbufinit(&oemsgs);
++      interestingwarnings= 0;
++      virt_pkg = fink_virt_pkg;
++      while (virt_pkg)
++      {
++            if (0==strcmp(possi->ed->name,virt_pkg->pkgname)) {
++            if (depdebug && debug)
++                fprintf(debug,"Found package : %s from VirtPackages.pm, depended by %s\n",virt_pkg->pkgname, possi->up->up->name);
++            if (versionsatisfied3(&virt_pkg->version,&possi->version,possi->verrel))
++            {
++                return 1;
++            }
++            }
++        virt_pkg = virt_pkg->next;
++      }
++  }    
++// FINK_LOCAL_END      
+   if (possi->ed->clientdata) {
+     want= possi->ed->clientdata->selected;
+     would= would_like_to_install(want,possi->ed);
+@@ -413,5 +442,6 @@
+         *fixbyupgrade= provider->up->up->clientdata;
+     }
+   }
++
+   return 0;
+ }
+diff -uNr dpkg-1.13.16/lib/Makefile.in dpkg-1.13.16-new/lib/Makefile.in
+--- dpkg-1.13.16/lib/Makefile.in	2006-02-18 12:10:26.000000000 -0500
++++ dpkg-1.13.16-new/lib/Makefile.in	2006-03-11 12:22:35.000000000 -0500
+@@ -79,7 +79,7 @@
+ 	showcright.$(OBJEXT) showpkg.$(OBJEXT) tarfn.$(OBJEXT) \
+ 	utils.$(OBJEXT) varbuf.$(OBJEXT) vercmp.$(OBJEXT)
+ libdpkg_a_OBJECTS = $(am_libdpkg_a_OBJECTS)
+-DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
++DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir) -I../getopt
+ depcomp = $(SHELL) $(top_srcdir)/config/depcomp
+ am__depfiles_maybe = depfiles
+ @AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/compat.Po \
+diff -uNr dpkg-1.13.16/lib/dpkg.h dpkg-1.13.16-new/lib/dpkg.h
+--- dpkg-1.13.16/lib/dpkg.h	2006-01-18 03:30:03.000000000 -0500
++++ dpkg-1.13.16-new/lib/dpkg.h	2006-03-11 12:22:35.000000000 -0500
+@@ -107,7 +107,7 @@
+ #define SHELLENV            "SHELL"
+ #define DEFAULTSHELL        "sh"
+ #define PAGERENV            "PAGER"
+-#define DEFAULTPAGER        "pager"
++#define DEFAULTPAGER        "less"
+ 
+ #define IMETHODMAXLEN        50
+ #define IOPTIONMAXLEN        IMETHODMAXLEN
+@@ -129,12 +129,12 @@
+ 
+ #define ARCHIVE_FILENAME_PATTERN "*.deb"
+ 
+-#define BACKEND		"dpkg-deb"
+-#define DPKGQUERY	"dpkg-query"
+-#define SPLITTER	"dpkg-split"
+-#define DSELECT		"dselect"
+-#define DPKG		"dpkg"
+-#define DEBSIGVERIFY	"/usr/bin/debsig-verify"
++#define BACKEND		"@PREFIX@/bin/dpkg-deb"
++#define DPKGQUERY	"@PREFIX@/bin/dpkg-query"
++#define SPLITTER	"@PREFIX@/bin/dpkg-split"
++#define DSELECT		"@PREFIX@/bin/dselect"
++#define DPKG		"@PREFIX@/bin/dpkg"
++#define DEBSIGVERIFY	"@PREFIX@/bin/debsig-verify"
+ 
+ #define TAR		"tar"
+ #define GZIP		"gzip"
+diff -uNr dpkg-1.13.16/lib/nfmalloc.c dpkg-1.13.16-new/lib/nfmalloc.c
+--- dpkg-1.13.16/lib/nfmalloc.c	2006-01-18 03:30:03.000000000 -0500
++++ dpkg-1.13.16-new/lib/nfmalloc.c	2006-03-11 12:22:35.000000000 -0500
+@@ -26,7 +26,7 @@
+ #include <dpkg.h>
+ #include <dpkg-db.h>
+ 
+-#include <obstack.h>
++#include "obstack.h"
+ 
+ #define obstack_chunk_alloc m_malloc
+ #define obstack_chunk_free free
+diff -uNr dpkg-1.13.16/lib/parsedump.h dpkg-1.13.16-new/lib/parsedump.h
+--- dpkg-1.13.16/lib/parsedump.h	2006-01-18 03:30:03.000000000 -0500
++++ dpkg-1.13.16-new/lib/parsedump.h	2006-03-11 12:22:35.000000000 -0500
+@@ -74,8 +74,9 @@
+   const char *canon;
+ };
+ 
+-extern const struct fieldinfo fieldinfos[];
+ extern const struct nickname nicknames[];
+ extern const int nfields; /* = elements in fieldinfos, including the sentinels */
+ 
+ #endif /* DPKG_PARSEDUMP_H */
++extern const struct fieldinfo fieldinfos[];
++
+diff -uNr dpkg-1.13.16/lib/tarfn.c dpkg-1.13.16-new/lib/tarfn.c
+--- dpkg-1.13.16/lib/tarfn.c	2006-01-18 03:30:03.000000000 -0500
++++ dpkg-1.13.16-new/lib/tarfn.c	2006-03-11 12:22:35.000000000 -0500
+@@ -59,8 +59,12 @@
+ {
+ 	int	len;
+ 	char *	str;
+-
+-	len = strnlen(s, size);
++	char * cpystr;
++	cpystr = malloc(size +1);
++	memcpy(cpystr, s, size);
++	cpystr[size] = 0;
++	len = strlen(cpystr);
++	free(cpystr);
+ 	str = malloc(len + 1);
+ 	memcpy(str, s, len);
+ 	str[len] = 0;
+diff -uNr dpkg-1.13.16/man/C/cleanup-info.8 dpkg-1.13.16-new/man/C/cleanup-info.8
+--- dpkg-1.13.16/man/C/cleanup-info.8	2006-01-18 03:30:03.000000000 -0500
++++ dpkg-1.13.16-new/man/C/cleanup-info.8	2006-03-11 12:22:35.000000000 -0500
+@@ -34,7 +34,7 @@
+ Output version and exit successfully.
+ .SH FILES
+ .TP
+-.I "/usr/info/dir or <dirname>/dir"
++.I "@PREFIX@/share/info/dir or <dirname>/dir"
+ The info directory file. The lock file is named the same, with ".lock" suffix.
+ .SH BUGS
+ Probably many.
+@@ -43,6 +43,7 @@
+ .BR info (1).
+ .SH AUTHOR
+ Copyright (C) 1996 Kim-Minh Kaplan.
++Paths modified by Carsten Klapp to reflect fink distribution, December 2002.
+ .sp
+ This is free software; see the GNU General Public Licence
+ version 2 or later for copying conditions.  There is NO warranty.
+diff -uNr dpkg-1.13.16/man/C/dpkg-deb.1 dpkg-1.13.16-new/man/C/dpkg-deb.1
+--- dpkg-1.13.16/man/C/dpkg-deb.1	2006-02-18 07:22:44.000000000 -0500
++++ dpkg-1.13.16-new/man/C/dpkg-deb.1	2006-03-11 12:22:35.000000000 -0500
+@@ -264,7 +264,7 @@
+ Copyright (C)1995-1996
+ by him and released under the GNU General Public Licence; there is NO
+ WARRANTY.  See
+-.B /usr/share/doc/dpkg/copyright
++.B @PREFIX@/share/doc/dpkg/copyright
+ and
+-.B /usr/share/common\-licenses/GPL
++.B @PREFIX@/share/common\-licenses/GPL
+ for details.
+diff -uNr dpkg-1.13.16/man/C/dpkg-divert.8 dpkg-1.13.16-new/man/C/dpkg-divert.8
+--- dpkg-1.13.16/man/C/dpkg-divert.8	2006-02-02 14:39:07.000000000 -0500
++++ dpkg-1.13.16-new/man/C/dpkg-divert.8	2006-03-11 12:22:35.000000000 -0500
+@@ -37,7 +37,7 @@
+ .SH OPTIONS
+ .TP
+ .I \-\-admindir <directory>
+-Set the dpkg data directory to <directory> (default: /var/lib/dpkg).
++Set the dpkg data directory to <directory> (default: @PREFIX@/var/lib/dpkg).
+ .TP
+ .I \-\-divert <divert-to>
+ <divert-to> is the name used by other packages' versions.
+@@ -95,7 +95,7 @@
+ dpkg-divert --package wibble --rename --remove /usr/bin/example
+ .SH FILES
+ .TP
+-.I /var/lib/dpkg/diversions
++.I @PREFIX@/var/lib/dpkg/diversions
+ File which contains the current list of diversions of the system. It is
+ located in the dpkg administration directory, along with other files
+ important to dpkg, such as `status' or `available'.
+@@ -106,6 +106,7 @@
+ .BR dpkg (1).
+ .SH AUTHOR
+ Copyright (C) 1995 Ian Jackson.
++Paths modified by Carsten Klapp to reflect fink distribution, December 2002.
+ .sp
+ This is free software; see the GNU General Public Licence
+ version 2 or later for copying conditions.  There is NO warranty.
+diff -uNr dpkg-1.13.16/man/C/dpkg-query.1 dpkg-1.13.16-new/man/C/dpkg-query.1
+--- dpkg-1.13.16/man/C/dpkg-query.1	2006-02-11 15:23:38.000000000 -0500
++++ dpkg-1.13.16-new/man/C/dpkg-query.1	2006-03-11 12:22:35.000000000 -0500
+@@ -41,7 +41,7 @@
+ .TP
+ \fB\-l\fP | \fB\-\-list\fP \fIpackage-name-pattern\fP ...
+ List packages matching given pattern. If no \fIpackage-name-pattern\fP
+-is given, list all packages in \fI/var/lib/dpkg/status\fP.  Normal
++is given, list all packages in \fI@PREFIX@/var/lib/dpkg/status\fP.  Normal
+ shell wildchars are allowed in \fIpackage-name-pattern\fP. Please note
+ you will probably have to quote \fIpackage-name-pattern\fP to prevent
+ the shell from performing filename expansion. For example this will
+@@ -81,7 +81,7 @@
+ .TP
+ \fB\-p\fP |\fB\-\-print\-avail\fP \fIpackage-name\fP
+ Display details about \fIpackage-name\fP, as found in
+-\fI/var/lib/dpkg/available\fP.
++\fI@PREFIX@/var/lib/dpkg/available\fP.
+ .TP
+ \fB\-\-licence\fP | \fB\-\-license\fP
+ Display licence and copyright information.
+@@ -93,7 +93,7 @@
+ .TP
+ \fB\-\-admindir=\fIdir\fP
+ Change the location of the \fBdpkg\fR database. The default location is
+-\fI/var/lib/dpkg\fP.
++\fI@PREFIX@/var/lib/dpkg\fP.
+ .TP
+ \fB-f\fP | \fB\-\-showformat=\fP\fIformat\fR
+ This option is used to specify the format of the output \fB\-\-show\fP
+@@ -171,6 +171,7 @@
+ .UR mailto:wakkerma@debian.org
+ <wakkerma@debian.org>
+ .UE
++Paths modified by Carsten Klapp to reflect fink distribution, December 2002.
+ .sp
+ This is free software; see the GNU General Public Licence version 2 or
+ later for copying conditions.  There is NO warranty.
+diff -uNr dpkg-1.13.16/man/C/dpkg-source.1 dpkg-1.13.16-new/man/C/dpkg-source.1
+--- dpkg-1.13.16/man/C/dpkg-source.1	2006-02-17 10:54:23.000000000 -0500
++++ dpkg-1.13.16-new/man/C/dpkg-source.1	2006-03-11 12:22:35.000000000 -0500
+@@ -54,13 +54,13 @@
+ .B dpkg\-shlibdeps
+ will read shared library dependency information from
+ .BR debian/shlibs.local ,
+-.BR /etc/dpkg/shlibs.override ,
++.BR @PREFIX@/etc/dpkg/shlibs.override ,
+ the
+ .B shlibs
+ control area file of the package containing the file which
+ .B objdump
+ reports as satisfying the library dependency, or
+-.BR /etc/dpkg/shlibs.default .
++.BR @PREFIX@/etc/dpkg/shlibs.default .
+ The first match will be used.  See
+ .BR dpkg-shlibdeps 1
+ for details of the format of shared library dependency files.
+@@ -796,10 +796,10 @@
+ .B debian/shlibs.local
+ Package-local overriding shared library dependency information.
+ .TP
+-.B /etc/dpkg/shlibs.override
++.B @PREFIX@/etc/dpkg/shlibs.override
+ Per-system overriding shared library dependency information.
+ .TP
+-.B /etc/dpkg/shlibs.default
++.B @PREFIX@/etc/dpkg/shlibs.default
+ Per-system default shared library dependency information.
+ .SH BUGS
+ The point at which field overriding occurs compared to certain
+@@ -823,6 +823,7 @@
+ .BR pgp (1).
+ .SH AUTHOR
+ The utilities and this manpage were written by Ian Jackson.
++Paths modified by Carsten Klapp to reflect fink distribution, December 2002.
+ .SH COPYRIGHT
+ Copyright (C) 1995-1996 Ian Jackson
+ .br
+@@ -830,7 +831,7 @@
+ .br
+ This is free software; see the GNU General Public Licence version 2 or later
+ for copying conditions. There is NO WARRANTY.  See
+-.B /usr/share/doc/dpkg/copyright
++.B @PREFIX@/share/doc/dpkg/copyright
+ and
+-.B /usr/share/common\-licenses/GPL
++.B @PREFIX@/share/common\-licenses/GPL
+ for details.
+diff -uNr dpkg-1.13.16/man/C/dpkg-split.1 dpkg-1.13.16-new/man/C/dpkg-split.1
+--- dpkg-1.13.16/man/C/dpkg-split.1	2006-02-02 14:39:07.000000000 -0500
++++ dpkg-1.13.16-new/man/C/dpkg-split.1	2006-03-11 12:22:36.000000000 -0500
+@@ -162,7 +162,7 @@
+ .BI \-\-depotdir " directory"
+ Specifies an alternative directory for the queue of parts awaiting
+ automatic reassembly.  The default is
+-.BR /var/lib/dpkg .
++.BR @PREFIX@/var/lib/dpkg .
+ .TP
+ .BI \-\-partsize\fR|\fB\-S " kbytes"
+ Specifies the maximum part size when splitting, in kilobytes (1024
+@@ -234,7 +234,7 @@
+ is not present in the filenames generated.
+ .SH FILES
+ .TP
+-.B /var/lib/dpkg/parts
++.B @PREFIX@/var/lib/dpkg/parts
+ The default queue directory for part files awaiting automatic
+ reassembly.
+ 
+@@ -253,7 +253,7 @@
+ Copyright (C) 1995-1996
+ by him and released under the GNU General Public Licence; there is NO
+ WARRANTY.  See
+-.B /usr/share/dpkg/copyright
++.B @PREFIX@/share/dpkg/copyright
+ and
+-.B /usr/share/common\-licenses/GPL
++.B @PREFIX@/share/common\-licenses/GPL
+ for details.
+diff -uNr dpkg-1.13.16/man/C/dpkg-statoverride.8 dpkg-1.13.16-new/man/C/dpkg-statoverride.8
+--- dpkg-1.13.16/man/C/dpkg-statoverride.8	2006-02-18 07:22:44.000000000 -0500
++++ dpkg-1.13.16-new/man/C/dpkg-statoverride.8	2006-03-11 12:22:36.000000000 -0500
+@@ -55,10 +55,10 @@
+ .TP
+ .I \-\-admindir
+ Change the directory of the dpkg database where the statoverride file is
+-also stored. Defaults to /var/lib/dpkg.
++also stored. Defaults to @PREFIX@/var/lib/dpkg.
+ .SH FILES
+ .TP
+-.I /var/lib/dpkg/statoverride
++.I @PREFIX@/var/lib/dpkg/statoverride
+ File which contains the current list of stat overrides of the system. It
+ is located in the dpkg administration directory, along with other files
+ important to dpkg, such as `status' or `available'.
+@@ -72,6 +72,7 @@
+ .UR mailto:wakkerma@debian.org
+ <wakkerma@debian.org>
+ .UE
++Paths modified by Carsten Klapp to reflect fink distribution, December 2002.
+ .sp
+ This is free software; see the GNU General Public Licence version 2 or
+ later for copying conditions.  There is NO warranty.
+diff -uNr dpkg-1.13.16/man/C/dpkg.1 dpkg-1.13.16-new/man/C/dpkg.1
+--- dpkg-1.13.16/man/C/dpkg.1	2006-02-18 07:22:44.000000000 -0500
++++ dpkg-1.13.16-new/man/C/dpkg.1	2006-03-11 12:23:41.000000000 -0500
+@@ -150,7 +150,7 @@
+ file).  \fB\-P\fP or \fB\-\-purge\fP removes everything, including configuration
+ files.  If \fB\-a\fP or \fB\-\-pending\fP is given instead of a package
+ name, then all packages unpacked, but marked to be removed or purged
+-in file \fI/var/lib/dpkg/status\fP, are removed or purged,
++in file \fI@PREFIX@/var/lib/dpkg/status\fP, are removed or purged,
+ respectively.
+ 
+ Removing of a package consists of the following steps:
+@@ -172,7 +172,7 @@
+ \fB\-\-update\-avail\fP, old information is replaced with the information
+ in the \fIPackages-file\fP.  The \fIPackages-file\fP distributed with
+ Debian is simply named \fIPackages\fP.  \fBdpkg\fP keeps its
+-record of available packages in \fI/var/lib/dpkg/available\fP.
++record of available packages in \fI@PREFIX@/var/lib/dpkg/available\fP.
+ 
+ A simpler one-shot command to retrieve and update the \fIavailable\fR
+ file is \fBdselect update\fR.
+@@ -281,14 +281,14 @@
+ \fBdpkg \-S\fP | \fB\-\-search\fP \fIfilename-search-pattern\fP ...
+     Search for a filename from installed packages.
+ \fBdpkg \-p\fP | \fB\-\-print\-avail\fP \fIpackage\fP
+-    Display details about \fIpackage\fP, as found in \fI/var/lib/dpkg/available\fP.
++    Display details about \fIpackage\fP, as found in \fI@PREFIX@/var/lib/dpkg/available\fP.
+ .fi
+ 
+ 
+ 
+ .SH OPTIONS
+ All options can be specified both on the command line and in the \fBdpkg\fP
+-configuration file \fI/etc/dpkg/dpkg.cfg\fP. Each line in the configuration
++configuration file \fI@PREFIX@/etc/dpkg/dpkg.cfg\fP. Each line in the configuration
+ file is either an option (exactly the same as the command line option but
+ without leading dashes) or a comment (if it starts with a \fB#\fR).
+ .br
+@@ -451,14 +451,14 @@
+ .TP
+ \fB\-\-root=\fP\fIdir\fP | \fB\-\-admindir=\fP\fIdir\fP | \fB\-\-instdir=\fP\fIdir\fP
+ Change default directories.  \fBadmindir\fP defaults to
+-\fI/var/lib/dpkg\fP and contains many files that give information
++\fI@PREFIX@/var/lib/dpkg\fP and contains many files that give information
+ about status of installed or uninstalled packages, etc.  \fBinstdir\fP
+ defaults to \fI/\fP and refers to the directory where packages are to
+ be installed.  \fBinstdir\fP is also the directory passed to
+ \fBchroot\fP(2) before running \fIpackage\fP's installation scripts, which
+ means that the scripts see \fBinstdir\fP as a root directory.
+ Changing \fBroot\fP changes \fBinstdir\fP to \fIdir\fP and
+-\fBadmindir\fP to \fIdir\fP\fB/var/lib/dpkg\fP.
++\fBadmindir\fP to \fIdir\fP\fB@PREFIX@/var/lib/dpkg\fP.
+ .TP
+ \fB\-O\fP | \fB\-\-selected\-only\fP
+ Only process the packages that are selected for installation. The
+@@ -479,7 +479,7 @@
+ .TP
+ \fB\-\-log=\fP\fIfilename\fP
+ Log status change updates and actions to \fIfilename\fP, instead of
+-the default \fI/var/log/dpkg.log\fP. If this option is given multiple
++the default \fI@PREFIX@/var/log/dpkg.log\fP. If this option is given multiple
+ times, the last filename is used. Log messages are of the form
+ `YYYY-MM-DD HH:MM:SS status
+ <state> <pkg> <installed-version>' for status change updates;
+@@ -493,20 +493,20 @@
+ Do not try to verify package signatures.
+ .SH FILES
+ .TP
+-.I /etc/dpkg/dpkg.cfg
++.I @PREFIX@/etc/dpkg/dpkg.cfg
+ Configuration file with default options.
+ .TP
+-.I /var/log/dpkg.log
+-Default log file (see \fI/etc/dpkg/dpkg.cfg\fP(5) and option
++.I @PREFIX@/var/log/dpkg.log
++Default log file (see \fI@PREFIX@/etc/dpkg/dpkg.cfg\fP(5) and option
+ \fB\-\-log\fP).
+ .P
+ The other files listed below are in their default directories, see option
+ \fB\-\-admindir\fP to see how to change locations of these files.
+ .TP
+-.I /var/lib/dpkg/available
++.I @PREFIX@/var/lib/dpkg/available
+ List of available packages.
+ .TP
+-.I /var/lib/dpkg/status
++.I @PREFIX@/var/lib/dpkg/status
+ Statuses of available packages. This file contains information about
+ whether a package is marked for removing or not, whether it is
+ installed or not, etc. See section \fBINFORMATION ABOUT PACKAGES\fP
+@@ -556,14 +556,14 @@
+ \fB     dpkg \-l \(aq*vi*\(aq\fP
+ .br
+ 
+-To see the entries in \fI/var/lib/dpkg/available\fP on two packages:
++To see the entries in \fI@PREFIX@/var/lib/dpkg/available\fP on two packages:
+ .br
+ \fB     dpkg \-\-print\-avail elvis vim | less\fP
+ .br
+ 
+ To search the listing of packages yourself:
+ .br
+-\fB     less /var/lib/dpkg/available\fP
++\fB     less @PREFIX@/var/lib/dpkg/available\fP
+ .br
+ 
+ To remove an installed elvis package:
+@@ -616,6 +616,6 @@
+ 
+ .SH AUTHORS
+ .nf
+-See \fB/usr/share/doc/dpkg/THANKS.gz\fP for the list of people who have
++See \fB@PREFIX@/share/doc/dpkg/THANKS.gz\fP for the list of people who have
+ contributed to \fBdpkg\fP .
+ .fi
+diff -uNr dpkg-1.13.16/man/C/dpkg.cfg.5 dpkg-1.13.16-new/man/C/dpkg.cfg.5
+--- dpkg-1.13.16/man/C/dpkg.cfg.5	2006-02-18 07:22:44.000000000 -0500
++++ dpkg-1.13.16-new/man/C/dpkg.cfg.5	2006-03-11 12:22:36.000000000 -0500
+@@ -8,10 +8,11 @@
+ here. Comments are allowed by starting a line with a hash sign
+ ("\fB#\fR").
+ .SH FILES
+-.I /etc/dpkg/dpkg.cfg
++.I @PREFIX@/etc/dpkg/dpkg.cfg
+ ~/.dpkg.cfg
+ .SH AUTHOR
+-See \fB/usr/share/doc/dpkg/THANKS\fP for the list of people who have
++See \fB@PREFIX@/share/doc/dpkg/THANKS\fP for the list of people who have
+ contributed to \fBdpkg\fP .
++Paths modified by Carsten Klapp to reflect fink distribution, December 2002.
+ .SH SEE ALSO
+ .BR dpkg (1)
+diff -uNr dpkg-1.13.16/man/C/dselect.1 dpkg-1.13.16-new/man/C/dselect.1
+--- dpkg-1.13.16/man/C/dselect.1	2006-02-07 16:08:46.000000000 -0500
++++ dpkg-1.13.16-new/man/C/dselect.1	2006-03-11 12:22:36.000000000 -0500
+@@ -34,7 +34,7 @@
+ of \fBdselect\fP or show additional information about the program.
+ .SH OPTIONS 
+ All options can be specified both on the commandline and in the \fBdselect\fP 
+-configuration file \fI/etc/dpkg/dselect.cfg\fP. Each line in the 
++configuration file \fI@PREFIX@/etc/dpkg/dselect.cfg\fP. Each line in the 
+ configuration file is either an option (exactly the same as the
+ commandline option but without leading dashes) or a comment (if it starts
+ with a \fB#\fR).
+@@ -42,7 +42,7 @@
+ .TP
+ .B --admindir <directory>
+ Changes the directory where the dpkg `status', `available' and similar
+-files are located. This defaults to \fI/var/lib/dpkg\fP
++files are located. This defaults to \fI@PREFIX@/var/lib/dpkg\fP
+ and normally there shouldn't be any need to change it.
+ .TP
+ .B --debug <file> | -D<file>
+diff -uNr dpkg-1.13.16/man/C/dselect.cfg.5 dpkg-1.13.16-new/man/C/dselect.cfg.5
+--- dpkg-1.13.16/man/C/dselect.cfg.5	2006-02-02 14:39:07.000000000 -0500
++++ dpkg-1.13.16-new/man/C/dselect.cfg.5	2006-03-11 12:22:36.000000000 -0500
+@@ -8,10 +8,11 @@
+ here. Comments are allowed by starting a line with a hash sign
+ ("\fB#\fR").
+ .SH FILES
+-.I /etc/dpkg/dselect.cfg
++.I @PREFIX@/etc/dpkg/dselect.cfg
+ ~/.dselect.cfg
+ .SH AUTHOR
+-See \fB/usr/share/doc/dpkg/THANKS\fP for the list of people who have
++See \fB@PREFIX@/share/doc/dpkg/THANKS\fP for the list of people who have
+ contributed to \fBdselect\fP .
++Paths modified by Carsten Klapp to reflect fink distribution, December 2002.
+ .SH SEE ALSO
+ .BR dselect (1)
+diff -uNr dpkg-1.13.16/man/C/install-info.8 dpkg-1.13.16-new/man/C/install-info.8
+--- dpkg-1.13.16/man/C/install-info.8	2006-02-18 07:22:44.000000000 -0500
++++ dpkg-1.13.16-new/man/C/install-info.8	2006-03-11 12:22:36.000000000 -0500
+@@ -156,7 +156,7 @@
+ be located in
+ .IR infodir .
+ The default is
+-.BR /usr/info .
++.BR @PREFIX@/share/info .
+ .TP
+ .BI \-\-align= nnn " [deprecated]"
+ Specifies that the first line of the description should be indented at
+@@ -266,6 +266,8 @@
+ processing steps are shown.
+ .SH "SEE ALSO"
+ emacs(1), info(1), gzip(1)
++.SH AUTHOR
++Paths modified by Carsten Klapp to reflect fink distribution, December 2002.
+ .SH COPYRIGHT
+ Copyright 1994, Ian Jackson.
+ .B install\-info
+diff -uNr dpkg-1.13.16/man/C/update-alternatives.8 dpkg-1.13.16-new/man/C/update-alternatives.8
+--- dpkg-1.13.16/man/C/update-alternatives.8	2006-02-18 07:22:44.000000000 -0500
++++ dpkg-1.13.16-new/man/C/update-alternatives.8	2006-03-11 12:22:36.000000000 -0500
+@@ -4,7 +4,7 @@
+ .\" it under the terms of the GNU General Public License as published
+ .\" by the Free Software Foundation; either version 2 of the License, or
+ .\" (at your option) any later version.  There is NO WARRANTY.  You can
+-.\" find the GNU GPL in /usr/share/common-licenses/GPL on any Debian system.
++.\" find the GNU GPL in @PREFIX@/share/common-licenses/GPL on any Debian system.
+ .TH UPDATE\-ALTERNATIVES 8 "19 January 1998" "Debian Project" "dpkg utilities"
+ .SH NAME
+ update\-alternatives - maintain symbolic links determining default commands
+@@ -79,13 +79,13 @@
+ .BR nvi (1)
+ are both installed on the system, the alternatives system will cause
+ the generic name
+-.I /usr/bin/editor
++.I @PREFIX@/bin/editor
+ to refer to
+-.I /usr/bin/nvi
++.I @PREFIX@/bin/nvi
+ by default.  The system administrator can override this and cause
+ it
+ to refer to
+-.I /usr/bin/ed
++.I @PREFIX@/bin/ed
+ instead,
+ and the alternatives system will not alter this setting until explicitly
+ requested to do so.
+@@ -97,7 +97,7 @@
+ which in turn is a symbolic link to the actual file referenced.
+ This is done so that the system administrator's changes can be confined
+ within the
+-.I /etc
++.I @PREFIX@/etc
+ directory: the FHS (q.v.) gives reasons why this is a Good Thing.
+ .PP
+ When each package
+@@ -117,9 +117,9 @@
+ of the
+ .BR vi (1)
+ editor are installed, the man page referenced by
+-.I /usr/share/man/man1/vi.1
++.I @PREFIX@/share/man/man1/vi.1
+ should correspond to the executable referenced by
+-.IR /usr/bin/vi .
++.IR @PREFIX@/bin/vi .
+ .B update\-alternatives
+ handles this by means of
+ .I master
+@@ -183,7 +183,7 @@
+ .TP
+ generic name
+ A name, like
+-.IR /usr/bin/editor ,
++.IR @PREFIX@/bin/editor ,
+ which refers, via the alternatives system, to one of a number of
+ files of similar function.
+ .TP
+@@ -198,12 +198,12 @@
+ .TP
+ alternatives directory
+ A directory, by default
+-.IR /etc/alternatives ,
++.IR @PREFIX@/etc/alternatives ,
+ containing the symlinks.
+ .TP
+ administrative directory
+ A directory, by default
+-.IR /var/lib/dpkg/alternatives ,
++.IR @PREFIX@/var/lib/dpkg/alternatives ,
+ containing
+ .BR update\-alternatives '
+ state information.
+@@ -400,13 +400,13 @@
+ mode.
+ .SH FILES
+ .TP
+-.I /etc/alternatives/
++.I @PREFIX@/etc/alternatives/
+ The default alternatives directory.
+ Can be overridden by the
+ .B \-\-altdir
+ option.
+ .TP
+-.I /var/lib/dpkg/alternatives/
++.I @PREFIX@/var/lib/dpkg/alternatives/
+ The default administration directory.
+ Can be overridden by the
+ .B \-\-admindir
+@@ -443,7 +443,7 @@
+ This is free documentation; see the GNU General Public Licence
+ version 2 or later for copying conditions.  There is NO WARRANTY.
+ .PP
+-You can find the GNU GPL in /usr/share/common\-licenses/GPL on any Debian system.
++You can find the GNU GPL in @PREFIX@/share/common\-licenses/GPL on any Debian system.
+ .SH "SEE ALSO"
+ .BR ln (1),
+ FHS, the Filesystem Hierarchy Standard.
+diff -uNr dpkg-1.13.16/man/de/md5sum.1 dpkg-1.13.16-new/man/de/md5sum.1
+--- dpkg-1.13.16/man/de/md5sum.1	1969-12-31 19:00:00.000000000 -0500
++++ dpkg-1.13.16-new/man/de/md5sum.1	2006-03-11 12:22:36.000000000 -0500
+@@ -0,0 +1,74 @@
++.\" Hey, Emacs!  This is an -*- nroff -*- source file.
++.hw ge-knackt
++.TH MD5SUM 1 "29. November 1995" "Lankester et al" "Debian GNU/Linux"
++.SH NAME
++md5sum \- generiert oder überprüft MD5-Prüfsummen
++
++.SH "ÜBERSICHT"
++.B md5sum
++[-bv] [-c [datei]] | [datei...]
++
++.SH BESCHREIBUNG
++.B md5sum
++generiert oder überprüft MD5-Prüfsummen. Der Algorithmus zur Generierung
++der Prüfsummen ist ausreichend schnell und sicher genug für die meisten
++Fälle. Die genaue Spezifikation der Algorithmus findet sich in
++.I RFC 1321.
++
++Normalerweise generiert
++.B md5sum
++Prüfsummen aller als Parameter übergebenen Dateien und gibt die Prüfsummen
++gefolgt von den entsprechenden Dateinamen aus. Wenn allerdings
++.B -c
++angegeben wird, ist nur ein Dateiname erlaubt. Diese Datei sollte Prüfsummen
++und zu ihnen gehörende Dateinamen enthalten; die aufgeführten Dateien werden
++dann mit den angegebenen Prüfsummen gegengeprüft. Siehe Option
++.B -c
++für mehr Information.
++
++.SH OPTIONEN
++.TP
++.B -b
++Binärmodus benutzen. In einer UNIX-Umgebung ist der einzige Unterschied zwischen
++diesem und dem Normalmodus ein Sternchen, das dem Dateinamen in der Ausgabe
++vorangeht.
++.TP
++.B -c
++Die Prüfsummen aller Dateien, die in
++.I datei
++aufgeführt sind, nachprüfen. Das Format dieser Datei ist das gleiche wie die
++Ausgabe von
++.B md5sum.
++Es beschreibt also jede Zeile eine Datei. Eine Zeile sieht so aus:
++
++.B <MD5-Prüfsumme>  <Dateiname>
++
++Wenn also beispielsweise eine Datei erstellt und ihre Prüfsumme berechnet wird,
++etwa so:
++
++.B echo foo > md5-test-file; md5sum md5-test-file
++
++dann würde
++.B md5sum
++Folgendes melden:
++
++.B d3b07384d113edec49eaa6238ad5ff00\  md5-test-file
++
++.TP
++.B -v
++Wortreicher sein. Gibt Dateinamen während der Überprüfung (mit \fB-c\fR) aus.
++
++.SH BUGS
++Der verwandte MD4-Prüfsummen-Algorithmus wurde im Oktober 1995 geknackt. MD5
++sieht nicht mehr so sicher aus wie früher.
++
++.B md5sum
++akzeptiert keine Standardoptionen wie
++.BR --help .
++
++.SH AUTOR
++
++.B md5sum
++wurde ursprünglich von Branko Lankester geschrieben und hiernach von
++Colin Plumb und Ian Jackson (ijackson@gnu.ai.mit.edu) geändert. Die Man-Seite
++wurde von Juho Vuori (javuori@cc.helsinki.fi) hinzugefügt.
+diff -uNr dpkg-1.13.16/man/es/md5sum.1 dpkg-1.13.16-new/man/es/md5sum.1
+--- dpkg-1.13.16/man/es/md5sum.1	1969-12-31 19:00:00.000000000 -0500
++++ dpkg-1.13.16-new/man/es/md5sum.1	2006-03-11 12:22:42.000000000 -0500
+@@ -0,0 +1,78 @@
++.\" Hey, Emacs!  This is an -*- nroff -*- source file.
++.TH MD5SUM 1 "29 de Noviembre de 1995" "Lankester et al" "Debian GNU/Linux"
++.SH NOMBRE
++md5sum \- genera o comprueba las sumas de control MD5
++
++.SH SINOPSIS
++.B md5sum
++[-bv] [-c [nombre_archivo]] | [nombre_archivo...]
++
++.SH DESCRIPCIÓN
++.B md5sum
++genera o comprueba las sumas de control MD5. El algoritmo que genera las
++sumas de control es razonablemente rápido y robusto para la mayoría de 
++los casos. Las especificaciones exactas del algoritmo están en 
++.I RFC 1321.
++
++Normalmente
++.B md5sum
++genera las sumas de control de todos los archivos que se le pasan como 
++argumentos e imprime las sumas de control seguidas de los nombres de 
++los archivos. Sin embargo si se especifica el parámetro
++.B -c
++, solo un nombre de archivo es permitido como parámetro.
++Este fichero debe de contener las sumas de control y los nombres de archivo
++a las que estas se refieren, entonces los ficheros listados en el archivo
++son comprobados con las sumas de control especificadas. Ver opción
++.B -c
++para mas información.
++
++.SS OPCIONES
++.TP
++.B -b
++Usar modo binario. En Unix, la única diferencia entre este modo y el normal
++es un asterisco que precede al nombre del fichero en la salida de la
++ejecución del comando.
++.TP
++.B -c
++Comprueba la suma de control md5 de todos los archivos listados en el
++.I archivo
++con la suma de control que aparece listada en el mismo fichero. El
++formato actual de este archivo es el mismo que la salida de
++.B md5sum.
++Esto es, cada linea en el archivo describe un fichero, y tiene
++dos campos, que son:
++
++.B <Suma de control MD5>  <nombre_archivo>
++
++Entonces, por ejemplo, si se crea un fichero y se calcula su suma de control como sigue:
++
++.B echo foo > md5-fichero-prueba; md5sum md5-fichero-prueba
++
++.B md5sum
++devolverá:
++
++.B d3b07384d113edec49eaa6238ad5ff00\  md5-fichero-prueba
++
++.TP
++.B -v
++Ser mas explicativo. Imprimir nombres de archivo (con -c).
++
++.SH FALLOS
++El relacionado algoritmo MD4 fue crackeado en octubre de 1995.
++MD5 no parece tan seguro como antes.
++
++Esta pagina del manual no es muy precisa y tiene un formato inconsistente
++con otras paginas del manual.
++
++.B md5sum
++no acepta opciones estándar como
++.BR --help .
++
++.SH AUTOR
++
++.B md5sum
++fue originalmente escrito por Branko Lankester, y modificado después por
++Colin Plumb y Ian Jackson (ijackson@gnu.ai.mit.edu). La pagina del manual
++fue agregada por  Juho Vuori (javuori@cc.helsinki.fi) y traducida por Rubén
++Porras (nahoo@inicia.es)
+diff -uNr dpkg-1.13.16/man/ja/md5sum.1 dpkg-1.13.16-new/man/ja/md5sum.1
+--- dpkg-1.13.16/man/ja/md5sum.1	1969-12-31 19:00:00.000000000 -0500
++++ dpkg-1.13.16-new/man/ja/md5sum.1	2006-03-11 12:22:44.000000000 -0500
+@@ -0,0 +1,86 @@
++.\" Hey, Emacs!  This is an -*- nroff -*- source file.
++.\"WORD:  message digest	¥á¥Ã¥»¡¼¥¸¥À¥¤¥¸¥§¥¹¥È
++.\"WORD:  checksum		¥Á¥§¥Ã¥¯¥µ¥à
++.\"WORD:  check			¾È¹ç
++.\"original revision: 1.2
++.TH MD5SUM 1 "29th November 1995" "Lankester et al" "Debian GNU/Linux"
++.SH Ì¾Á°
++md5sum \- MD5 ¥á¥Ã¥»¡¼¥¸¥À¥¤¥¸¥§¥¹¥È¤òºîÀ®¡¦¾È¹ç¤¹¤ë¡£
++
++.SH ½ñ¼°
++.B md5sum
++[-bv] [-c [file]] | [file...]
++
++.SH ÀâÌÀ
++.B md5sum
++¤Ï¡¢MD5 ¥Á¥§¥Ã¥¯¥µ¥à¤òºîÀ®¡¢¤â¤·¤¯¤Ï MD5 ¥Á¥§¥Ã¥¯¥µ¥à¤Î¾È¹ç¤ò¹Ô¤¦¡£
++¥Á¥§¥Ã¥¯¥µ¥à¤òÀ¸À®¤¹¤ë¥¢¥ë¥´¥ê¥º¥à¤ÏÈæ³ÓÅª¹âÂ®¤Ç¤¢¤ê¡¢¤Û¤È¤ó¤É¤Î
++¾ì¹ç¤Ç½½Ê¬·øÏ´¤Ç¤¢¤ë¡£¤³¤Î¥¢¥ë¥´¥ê¥º¥à¤Î¸·Ì©¤Ê»ÅÍÍ¤Ë¤Ä¤¤¤Æ¤Ï
++.I RFC 1321
++¤ò»²¾È¤µ¤ì¤¿¤¤¡£
++
++ÄÌ¾ï
++.B md5sum
++¤Ï¡¢°ú¿ô¤ËÍ¿¤¨¤é¤ì¤¿¤¹¤Ù¤Æ¤Î¥Õ¥¡¥¤¥ë¤Î¥Á¥§¥Ã¥¯¥µ¥à¤òºîÀ®¤·¡¢
++¥Á¥§¥Ã¥¯¥µ¥à¤È¤½¤Î¥Õ¥¡¥¤¥ëÌ¾¤ò°ì¹Ô¤º¤Ä½ÐÎÏ¤¹¤ë¡£¤·¤«¤·¡¢
++.B -c
++¥ª¥×¥·¥ç¥ó¤¬»ØÄê¤µ¤ì¤¿¾ì¹ç¡¢°ú¿ô¤Ë¤Ï¥Õ¥¡¥¤¥ëÌ¾¤¬¤Ò¤È¤Ä¤À¤±µö¤µ¤ì¤ë¡£
++°ú¿ô¤ËÍ¿¤¨¤é¤ì¤¿¥Õ¥¡¥¤¥ë¤Ë¤Ï¡¢¥Á¥§¥Ã¥¯¥µ¥à¤È¤½¤Î¥Õ¥¡¥¤¥ëÌ¾¤¬µ­½Ò¤µ
++¤ì¤Æ¤¤¤Ê¤±¤ì¤Ð¤Ê¤é¤Ê¤¤¡£µ­½Ò¤µ¤ì¤¿¥Õ¥¡¥¤¥ë¤ËÂÐ¤¹¤ë¼ÂºÝ¤Î¥Á¥§¥Ã¥¯¥µ
++¥à¤¬¡¢µ­½Ò¤µ¤ì¤¿¥Á¥§¥Ã¥¯¥µ¥à¤È¾È¹ç¤µ¤ì¤ë¡£¾ÜºÙ¤Ï¥ª¥×¥·¥ç¥ó
++.B -c
++¤Î¹àÌÜ¤ò»²¾È¤µ¤ì¤¿¤¤¡£
++
++.SS ¥ª¥×¥·¥ç¥ó
++.TP
++.B -b
++¥Ð¥¤¥Ê¥ê¥â¡¼¥É¤ò»ÈÍÑ¤¹¤ë¡£UNIX ´Ä¶­¤Ç¤Ï¡¢¥Ð¥¤¥Ê¥ê¥â¡¼¥É¤È¥Î¡¼¥Þ¥ë¥â¡¼
++¥É¤Î°ã¤¤¤Ï¡¢½ÐÎÏ¤µ¤ì¤ë¥Õ¥¡¥¤¥ëÌ¾¤ÎÁ°¤Ë¥¢¥¹¥¿¥ê¥¹¥¯¤¬ÉÕ¤¯¤Î¤ß¤Ç¤¢¤ë¡£
++.TP
++.B -c
++.I file
++Ãæ¤Ëµ­½Ò¤µ¤ì¤¿Á´¤Æ¤Î¥Õ¥¡¥¤¥ë¤Î md5sum ¤ò¼ÂºÝ¤Î¥Á¥§¥Ã¥¯¥µ¥à¤È
++¾È¹ç¤¹¤ë¡£°ú¿ô¤ËÍ¿¤¨¤ë¥Õ¥¡¥¤¥ë¤Î·Á¼°¤Ï
++.B md5sum
++¤Î½ÐÎÏ¤ÈÆ±¤¸¤Ç¤¢¤ë¡£¤Ä¤Þ¤ê¡¢¥Õ¥¡¥¤¥ëÃæ¤Î³Æ¹Ô¤Ë¤Ä¤­¤Ò¤È¤Ä¤Î¥Õ¥¡¥¤¥ë
++¤¬µ­½Ò¤µ¤ì¤ë¡£¤½¤Î·Á¼°¤Ï¡¢
++
++.B <MD5 checksum>  <filename>
++
++¤Ç¤¢¤ë¡£Îã¤¨¤Ð¡¢¼¡¤Î¤è¤¦¤Ë¥Õ¥¡¥¤¥ë¤òºîÀ®¤·¤Æ¡¢¤½¤Î¥á¥Ã¥»¡¼¥¸¥À¥¤¥¸¥§¥¹¥È
++¤ò·×»»¤¹¤ë¡£
++
++.B echo foo > md5-test-file; md5sum md5-test-file
++
++¤³¤Î¾ì¹ç¡¢
++.B md5sum
++¤Ï¼¡¤Î¤è¤¦¤ÊÊó¹ð¤ò¤¹¤ë¡£
++
++.B d3b07384d113edec49eaa6238ad5ff00\  md5-test-file
++
++.TP
++.B -v
++¾ÜºÙÉ½¼¨¡£(-c ¥ª¥×¥·¥ç¥ó¤Ç)¾È¹ç¤¹¤ë¾ì¹ç¤Ï¥Õ¥¡¥¤¥ëÌ¾¤ò½ÐÎÏ¤¹¤ë¡£
++
++.SH ¥Ð¥°
++MD4 ¥á¥Ã¥»¡¼¥¸¥À¥¤¥¸¥§¥¹¥È¥¢¥ë¥´¥ê¥º¥à¤¬ 1995 Ç¯ 10 ·î¤ËÇË¤é¤ì¤¿¡£
++Æ±·Ï¤Ç¤¢¤ë MD5 ¤â°ÊÁ°¤Û¤É°ÂÁ´¤È¤Ï¸À¤¨¤Ê¤¤¤Ç¤¢¤í¤¦¡£
++
++¤³¤Î¥Þ¥Ë¥å¥¢¥ë¥Ú¡¼¥¸¤ÏÉÔÀµ³Î¤Ç¤¢¤ê¡¢Â¾¤Î¥Þ¥Ë¥å¥¢¥ë¥Ú¡¼¥¸¤ÈÀ°¹çÀ­
++¤Î¤¢¤ë½ñ¼°¤Ç¤Ê¤¤¡£
++
++.B md5sum
++¤Ï
++.BR --help 
++¤Î¤è¤¦¤ÊÉ¸½àÅª¤Ê¥ª¥×¥·¥ç¥ó¤¬»È¤¨¤Ê¤¤¡£
++
++.SH Ãø¼Ô
++
++.B md5sum
++¤Ï¡¢¸µ¡¹ by Branko Lankester ¤Ë¤è¤ê½ñ¤«¤ì¡¢¤½¤Î¸å Colin Plumb ¤È
++ Ian Jackson (ijackson@gnu.ai.mit.edu) ¤Ë¤è¤ê½ñ¤­ÊÑ¤¨¤é¤ì¤¿¡£
++¥Þ¥Ë¥å¥¢¥ë¥Ú¡¼¥¸¤Ï Juho Vuori (javuori@cc.helsinki.fi) ¤Ë¤è¤êÄÉ²Ã¤µ¤ì¤¿¡£
++
++.SH ËÝÌõ¼Ô
++
++ÆéÃ« ±ÉÅ¸ <nabe@debian.or.jp>
+diff -uNr dpkg-1.13.16/man/sv/md5sum.1 dpkg-1.13.16-new/man/sv/md5sum.1
+--- dpkg-1.13.16/man/sv/md5sum.1	1969-12-31 19:00:00.000000000 -0500
++++ dpkg-1.13.16-new/man/sv/md5sum.1	2006-03-11 12:22:45.000000000 -0500
+@@ -0,0 +1,83 @@
++.\" Hey, Emacs!  This is an -*- nroff -*- source file.
++.\" Translation of CVS revision 1.2
++.TH MD5SUM 1 "29 november 1995" "Lankester m fl" "Debian GNU/Linux"
++.SH NAMN
++md5sum \- genererar eller kontrollerar MD5-meddelandesamlingar
++
++.SH SYNOPS
++.B md5sum
++[-bv] [-c [fil]] | [fil...]
++
++.SH BESKRIVNING
++.B md5sum
++genererar eller kontrollerar MD5-kontrollsummor.
++Algoritmen som genererar kontrollsumman är hyfsat snabb och tillräckligt
++stark för de flesta fallen.
++En exakt specifikation av algoritmen finns i
++.I RFC 1321.
++
++Normalt genererar
++.B md5sum
++kontrollsummor för samtliga filer som anges som flaggor och skriver
++kontrollsummorna följt av filnamnen.
++Om däremot flaggan
++.B -c
++anges tillåts endast en filnamnsparameter.
++Denna fil innehåller kontrollsummor och tillhörande filnamn, och filerna som
++listas i den filen kommer att kontrolleras gentemot kontrollsumman som står
++där.
++Se flaggan
++.B -c
++för ytterligare information.
++
++.SS FLAGGOR
++.TP
++.B -b
++Använd binärt läge.
++I en unixmiljö är den enda skillnaden mellan detta och det normala läget en
++asterisk framför filnamnet i utdata.
++.TP
++.B -c
++Kontrollera md5-summan för samtliga filer som listas i
++.I fil
++mot kontrollsummorna som står i filen.
++Formatet som används för denna fil är detsamma som utdata för
++.B md5sum.
++Det betyder att varje rad i filen beskriver en fil, på formen:
++
++.B <MD5-kontrollsumma>  <filnamn>
++
++Så, till exempel, om en fil skapats och dess meddelandesamlingar (message
++digest) beräknats enligt
++
++.B echo foo > md5-testfil; md5sum md5-testfil
++
++kommer
++.B md5sum
++rapportera:
++
++.B d3b07384d113edec49eaa6238ad5ff00\  md5-testfil
++
++.TP
++.B -v
++Var mer pratsam.
++Skriv ut filnamn när de kontrolleras (med -c).
++
++.SH PROGRAMFEL
++Den relaterade meddelandesamlingsalgoritmen MD4 knäcktes i oktober 1995.
++MD5 verkar inte vara lika säker som den en gång var.
++
++Denna manualsida är inte helt korrekt och har formatering som inte är
++konsistent med andra manualsidor.
++
++.B md5sum
++tillåter inte standardflaggor såsom
++.BR --help .
++
++.SH FÖRFATTARE
++
++.B md5sum
++skrevs ursprungligen av Branko Lankester och modifierades sedan av
++Colin Plumb och Ian Jackson (ijackson@gnu.ai.mit.edu).
++Manualsidan lades till av Juho Vuori (javuori@cc.helsinki.fi)
++och översattes av Peter Karlsson.
+diff -uNr dpkg-1.13.16/origin.fink dpkg-1.13.16-new/origin.fink
+--- dpkg-1.13.16/origin.fink	1969-12-31 19:00:00.000000000 -0500
++++ dpkg-1.13.16-new/origin.fink	2006-03-11 12:22:45.000000000 -0500
+@@ -0,0 +1,3 @@
++Vendor: Fink
++Vendor-URL: http://fink.sourceforge.net/
++Bugs: http://fink.sourceforge.net/
+diff -uNr dpkg-1.13.16/scripts/dpkg-name.sh dpkg-1.13.16-new/scripts/dpkg-name.sh
+--- dpkg-1.13.16/scripts/dpkg-name.sh	2006-01-18 03:30:03.000000000 -0500
++++ dpkg-1.13.16-new/scripts/dpkg-name.sh	2006-03-11 12:22:45.000000000 -0500
+@@ -10,6 +10,7 @@
+ license () {
+ echo "# ${prog} ${version} -- ${purpose}
+ # Copyright (C) 1995,1996 Erick Branderhorst <branderh@debian.org>.
++# Paths modified by Carsten Klapp to reflect fink distribution, December 2002.
+ 
+ # This is free software; you can redistribute it and/or modify it
+ # under the terms of the GNU General Public License as published by the
+@@ -19,7 +20,7 @@
+ # This is distributed in the hope that it will be useful, but
+ # WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
+-# /usr/share/common-licenses/GPL for more details."
++# @PREFIX@/share/common-licenses/GPL for more details."
+ }
+ 
+ stderr () {
+diff -uNr dpkg-1.13.16/scripts/update-alternatives.pl dpkg-1.13.16-new/scripts/update-alternatives.pl
+--- dpkg-1.13.16/scripts/update-alternatives.pl	2006-01-18 03:30:03.000000000 -0500
++++ dpkg-1.13.16-new/scripts/update-alternatives.pl	2006-03-11 12:22:45.000000000 -0500
+@@ -59,7 +59,7 @@
+ sub quit { print STDERR "update-alternatives: @_\n"; exit(2); }
+ sub badusage { print STDERR "update-alternatives: @_\n\n"; &usageversion; exit(2); }
+ 
+-$altdir= '/etc/alternatives';
++$altdir= '@PREFIX@/etc/alternatives';
+ $admindir= $admindir . '/alternatives';
+ $testmode= 0;
+ $verbosemode= 0;
+diff -uNr dpkg-1.13.16/src/Makefile.in dpkg-1.13.16-new/src/Makefile.in
+--- dpkg-1.13.16/src/Makefile.in	2006-02-18 12:10:28.000000000 -0500
++++ dpkg-1.13.16-new/src/Makefile.in	2006-03-11 12:22:45.000000000 -0500
+@@ -84,7 +84,7 @@
+ 	query.$(OBJEXT)
+ dpkg_query_OBJECTS = $(am_dpkg_query_OBJECTS)
+ dpkg_query_DEPENDENCIES = $(am__DEPENDENCIES_1) ../lib/libdpkg.a
+-DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
++DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir) -I../getopt
+ depcomp = $(SHELL) $(top_srcdir)/config/depcomp
+ am__depfiles_maybe = depfiles
+ @AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/archives.Po ./$(DEPDIR)/cleanup.Po \
+@@ -256,14 +256,14 @@
+ 	update.c
+ 
+ dpkg_LDADD = \
+-	$(LIBINTL) ../lib/libdpkg.a $(ZLIB_LIBS) $(BZ2_LIBS) $(SELINUX_LIBS)
++	$(LIBINTL) ../lib/libdpkg.a ../getopt/libopt.a $(EXEFLAGS) $(ZLIB_LIBS) $(BZ2_LIBS) $(SELINUX_LIBS)
+ 
+ dpkg_query_SOURCES = \
+ 	errors.c \
+ 	filesdb.c filesdb.h \
+ 	query.c
+ 
+-dpkg_query_LDADD = $(LIBINTL) ../lib/libdpkg.a
++dpkg_query_LDADD = $(LIBINTL) ../lib/libdpkg.a ../getopt/libopt.a $(EXEFLAGS)
+ all: all-am
+ 
+ .SUFFIXES:
+diff -uNr dpkg-1.13.16/src/configure.c dpkg-1.13.16-new/src/configure.c
+--- dpkg-1.13.16/src/configure.c	2006-02-10 09:40:46.000000000 -0500
++++ dpkg-1.13.16-new/src/configure.c	2006-03-11 12:22:45.000000000 -0500
+@@ -483,9 +483,10 @@
+ static void suspend(void) {
+ 	const char*	s;
+ 	int		pid;
+-
++#ifndef __APPLE__
+ 	s= getenv(NOJOBCTRLSTOPENV);
+ 	if (s && *s) {
++#endif
+ 		/* Do not job control to suspend but fork and start a new shell
+ 		 * instead.
+ 		 */
+@@ -513,11 +514,13 @@
+ 			onerr_abort++;
+ 			ohshite(_("wait for shell failed"));
+ 		}
++#ifndef __APPLE__
+ 	} else {
+ 		fputs(_("Don't forget to foreground (`fg') this "
+ 					"process when you're done !\n"), stderr);
+ 		kill(-getpgid(0),SIGTSTP);
+ 	}
++#endif
+ }
+ 
+ 
+diff -uNr dpkg-1.13.16/src/help.c dpkg-1.13.16-new/src/help.c
+--- dpkg-1.13.16/src/help.c	2006-02-10 11:22:50.000000000 -0500
++++ dpkg-1.13.16-new/src/help.c	2006-03-11 12:22:45.000000000 -0500
+@@ -69,11 +69,18 @@
+ 
+ void checkpath(void) {
+ /* Verify that some programs can be found in the PATH. */
+-  static const char *const checklist[]= { "ldconfig", 
+-#ifdef WITH_START_STOP_DAEMON
++  static const char *const checklist[]= {
++#ifndef __APPLE__
++    "ldconfig", 
++#endif
++#if WITH_START_STOP_DAEMON
+     "start-stop-daemon",
+ #endif    
+-    "install-info", "update-rc.d", 0
++    "install-info",
++#ifndef __APPLE__
++    "update-rc.d",
++#endif
++    0
+   };
+ 
+   struct stat stab;
+@@ -410,6 +417,26 @@
+     
+   debug(dbg_veryverbose, "isdirectoryinuse `%s' (except %s)", file->name,
+         pkg ? pkg->name : "<none>");
++
++  /* FINK LOCAL begin */
++
++  /*
++   * Darwin has symlinks /etc -> /private/etc and /var -> /private/var
++   * instead of actual /etc and /var dirs. If dpkg removes the last
++   * pkg that it has record of having installed a file in one of those
++   * top-level dirs, it will try to remove the dir (since it thinks
++   * it's an empty dir) and it will succeed (since it's just unlinking
++   * a symlink, not trying to remove a dir that is not actually
++   * empty). That's Bad. Here we make sure these top-level dirs are
++   * never thought to be empty.
++   */
++  if( !strcmp(file->name,"/etc") || !strcmp(file->name,"/tmp") || !strcmp(file->name,"/var") ) {
++    debug(dbg_veryverbose, "isdirectoryinuse precious!");
++    return 1;
++  }
++
++  /* FINK LOCAL end */
++
+   for (packageslump= file->packages; packageslump; packageslump= packageslump->more) {
+     debug(dbg_veryverbose, "isdirectoryinuse packageslump %s ...",
+           packageslump->pkgs[0] ? packageslump->pkgs[0]->name : "<none>");
+diff -uNr dpkg-1.13.16/src/main.c dpkg-1.13.16-new/src/main.c
+--- dpkg-1.13.16/src/main.c	2006-02-06 16:28:52.000000000 -0500
++++ dpkg-1.13.16-new/src/main.c	2006-03-11 12:22:45.000000000 -0500
+@@ -38,6 +38,12 @@
+ #include <dpkg-db.h>
+ #include <myopt.h>
+ 
++/* FINK LOCAL begin */
++#include <sys/utsname.h>
++#include <CoreFoundation/CoreFoundation.h>
++static void finkinit();
++/* FINK LOCAL end */
++
+ #include "main.h"
+ 
+ static void printversion(void) {
+@@ -549,6 +555,153 @@
+   }
+ }
+ 
++/* FINK LOCAL begin */
++struct FinkVirtualPkgs {
++  struct FinkVirtualPkgs *next;
++  char *pkgname;
++  struct versionrevision version;
++};
++
++struct FinkVirtualPkgs *fink_virt_pkg = NULL;
++static void finkinit()
++{
++	FILE *virt_pkg_stream = NULL;
++	struct stat sb;
++	struct FinkVirtualPkgs *pkg;
++	char name[256];
++	char version[256];
++	char revision[256];
++	unsigned long  epoch;
++    Boolean status;
++    SInt32 errorCode;
++    CFURLRef fileURL = NULL;
++    CFDataRef resourceData = NULL;
++    CFPropertyListRef propertyList = NULL;
++    CFStringRef string;
++    static char buffer[256];	// This is static, to ensure the buffer stays around
++
++    static struct utsname ver;	// This is static, to ensure the buffer stays around
++	if (0 == stat("@PREFIX@/bin/fink-virtual-pkgs", &sb))
++	{
++	  virt_pkg_stream =popen("@PREFIX@/bin/fink-virtual-pkgs --dpkg","r");
++  	  if (virt_pkg_stream)
++	  {
++	    while (fscanf(virt_pkg_stream,"%s\t%u\t%s\t%s\n",name,&epoch,version, revision) == 4)
++	    {
++	      pkg = (struct FinkVirtualPkgs *)malloc(sizeof(struct FinkVirtualPkgs));
++	      if (pkg)
++	      {
++			  pkg->next = fink_virt_pkg;
++			  pkg->pkgname = strdup(name);
++			  pkg->version.epoch = epoch;
++			  pkg->version.version = strdup(version);
++			  pkg->version.revision = strdup(revision);
++			  /* Quick and simple sanity check */
++			  if ((NULL != pkg->pkgname) && (0 != strlen(pkg->pkgname)) &&
++			      (NULL != pkg->version.version) && (0 != strlen(pkg->version.version)) &&
++			      (NULL != pkg->version.revision) && (0 != strlen(pkg->version.revision)))
++			  {
++			  	/* We are leaking here if something fails the sanity check above */
++			  	fink_virt_pkg = pkg;
++			  }
++	      }
++	    }
++	    if (pclose(virt_pkg_stream))
++	    {
++	    	/* The fink-virtual-pkgs script returned a non zero exit status *
++	    	 * clean up and try the old way.                                */
++	    	while(NULL != fink_virt_pkg)
++	    	{
++	    		pkg = fink_virt_pkg;
++	    		if (NULL != pkg->pkgname) free(pkg->pkgname);
++	    		if (NULL != pkg->version.version) free(pkg->version.version);
++	    		if (NULL != pkg->version.revision) free(pkg->version.revision);
++	    		fink_virt_pkg = pkg->next;
++	    		free(pkg);
++	    	}
++                fink_virt_pkg = NULL;
++	    }
++	  }
++	} 
++	if (NULL == fink_virt_pkg)
++	{
++	  /* Determine system version */
++	  /* TODO - should maybe check if this is really Darwin? */
++	  if (!uname(&ver)) {
++	      pkg = (struct FinkVirtualPkgs *)malloc(sizeof(struct FinkVirtualPkgs));
++	      if (pkg) {
++			  pkg->next = fink_virt_pkg;
++			  pkg->pkgname = strdup("darwin");
++			  pkg->version.epoch = 0;
++			  pkg->version.version = ver.release;
++			  pkg->version.revision = NULL;
++			  fink_virt_pkg = pkg;
++	      }  
++	  }
++	
++	  /* Check whether this is Mac OS X, and which version of it */
++
++	  fileURL = CFURLCreateWithFileSystemPath( NULL, 	
++			CFSTR("/System/Library/CoreServices/SystemVersion.plist"),
++			kCFURLPOSIXPathStyle,				
++			false );
++	  if (!fileURL)
++		goto BAIL;
++	  
++	  /* Read the XML */
++	  status = CFURLCreateDataAndPropertiesFromResource(
++			NULL,
++			fileURL,
++			&resourceData,
++			NULL,		
++			NULL,
++			&errorCode);
++	  if (!status || errorCode != 0)
++		goto BAIL;
++	  
++	  /* Reconstitute the dictionary using the XML data. */
++	  propertyList = CFPropertyListCreateFromXMLData( NULL,
++			resourceData,
++			kCFPropertyListImmutable,
++			&string);
++	  if (!propertyList)
++		goto BAIL;
++	  
++	  /* Try to read the system version from it. */
++	  status = CFDictionaryGetValueIfPresent( propertyList,
++			CFSTR("ProductVersion"),
++			(void*)&string);
++	  if (!status)
++		goto BAIL;
++	  
++	  /* Convert into a C string */
++	  status = CFStringGetCString( string,
++			buffer,
++			sizeof(buffer),
++			kCFStringEncodingISOLatin1);
++	  if (!status)
++		goto BAIL;
++	  pkg = (struct FinkVirtualPkgs *)malloc(sizeof(struct FinkVirtualPkgs));
++	  if (pkg)
++	  {
++		  pkg->next = fink_virt_pkg;
++		  pkg->pkgname = strdup("macosx");
++		  pkg->version.epoch = 0;
++		  pkg->version.version = buffer;
++		  pkg->version.revision = NULL;
++		  fink_virt_pkg = pkg;
++	  }
++	BAIL:
++	  // Release all of the CF objects we're responsible for.
++	  if (fileURL)
++		CFRelease(fileURL);
++	  if (resourceData)
++		CFRelease(resourceData);
++	  if (propertyList)
++		CFRelease(propertyList);
++	}
++}
++/* FINK LOCAL end */
+ 
+ int main(int argc, const char *const *argv) {
+   jmp_buf ejbuf;
+@@ -559,7 +712,9 @@
+ 
+   setvbuf(stdout,0,_IONBF,0);
+   filesdbinit();
+-
++  /* FINK LOCAL begin */
++  finkinit();
++  /* FINK LOCAL end */
+   actionfunction= (void (*)(const char* const*))cipaction->farg;
+ 
+   actionfunction(argv);
+diff -uNr dpkg-1.13.16/src/main.h dpkg-1.13.16-new/src/main.h
+--- dpkg-1.13.16/src/main.h	2006-02-10 19:35:17.000000000 -0500
++++ dpkg-1.13.16-new/src/main.h	2006-03-11 12:22:45.000000000 -0500
+@@ -95,6 +95,11 @@
+ extern const char *instdir;
+ extern struct packageinlist *ignoredependss;
+ extern const char architecture[];
++ 
++/* FINK LOCAL begin */
++extern struct versionrevision darwin_version;
++extern struct versionrevision macosx_version;
++/* FINK LOCAL end */
+ 
+ /* from filesdb.c */
+ 
+diff -uNr dpkg-1.13.16/src/packages.c dpkg-1.13.16-new/src/packages.c
+--- dpkg-1.13.16/src/packages.c	2006-01-18 03:30:03.000000000 -0500
++++ dpkg-1.13.16-new/src/packages.c	2006-03-11 12:22:45.000000000 -0500
+@@ -334,6 +334,30 @@
+     return thisf;
+   }
+ }
++ 
++/* FINK LOCAL begin */
++static int check_pseudo_package(const struct versionrevision *versrev, const struct deppossi *possi,
++                                int *interestingwarnings, struct varbuf *oemsgs) {
++
++  if (versionsatisfied3(versrev,&possi->version,possi->verrel)) {
++    return 3;
++  } else {
++    varbufaddstr(oemsgs, _("  Version of "));
++    varbufaddstr(oemsgs, possi->ed->name);
++    varbufaddstr(oemsgs, _(" on system is "));
++    varbufaddstr(oemsgs, versiondescribe(versrev, vdew_nonambig));
++    varbufaddstr(oemsgs, ".\n");
++    (*interestingwarnings)++;
++    return 0;
++  }
++}
++struct FinkVirtualPkgs {
++  struct FinkVirtualPkgs *next;
++  char *pkgname;
++  struct versionrevision version;
++};
++extern struct FinkVirtualPkgs *fink_virt_pkg;
++/* FINK LOCAL end */
+ 
+ int dependencies_ok(struct pkginfo *pkg, struct pkginfo *removing,
+                     struct varbuf *aemsgs) {
+@@ -341,7 +365,7 @@
+   struct varbuf oemsgs;
+   struct dependency *dep;
+   struct deppossi *possi, *provider;
+-
++  struct FinkVirtualPkgs *virt_pkg = NULL; 
+   varbufinit(&oemsgs);
+   interestingwarnings= 0;
+   ok= 2; /* 2=ok, 1=defer, 0=halt */
+@@ -355,6 +379,29 @@
+     found= 0; /* 0=none, 1=defer, 2=withwarning, 3=ok */
+     for (possi= dep->list; found != 3 && possi; possi= possi->next) {
+       debug(dbg_depcondetail,"    checking possibility  -> %s",possi->ed->name);
++      /* FINK LOCAL begin */
++      virt_pkg = fink_virt_pkg;
++      while (virt_pkg)
++      {
++        if (0==strcmp(possi->ed->name,virt_pkg->pkgname)) {
++          debug(dbg_depcondetail,"        pseudo package");
++          found= check_pseudo_package(&virt_pkg->version,possi,&interestingwarnings,&oemsgs);
++        }
++        virt_pkg = virt_pkg->next;
++      }
++/*      
++      if (0==strcmp(possi->ed->name,"darwin") && darwin_version.version) {
++        debug(dbg_depcondetail,"        pseudo package darwin");
++        found= check_pseudo_package(&darwin_version,possi,&interestingwarnings,&oemsgs);
++        break;
++      }
++      else if (0==strcmp(possi->ed->name,"macosx") && macosx_version.version) {
++        debug(dbg_depcondetail,"        pseudo package macosx");
++        found= check_pseudo_package(&macosx_version,possi,&interestingwarnings,&oemsgs);
++        break;
++      }
++*/      
++      /* FINK LOCAL end */
+       if (possi->cyclebreak) {
+         debug(dbg_depcondetail,"      break cycle so ok and found");
+         found= 3; break;
+diff -uNr dpkg-1.13.16/utils/Makefile.in dpkg-1.13.16-new/utils/Makefile.in
+--- dpkg-1.13.16/utils/Makefile.in	2006-02-18 12:10:28.000000000 -0500
++++ dpkg-1.13.16-new/utils/Makefile.in	2006-03-11 12:22:45.000000000 -0500
+@@ -14,7 +14,7 @@
+ 
+ @SET_MAKE@
+ 
+-SOURCES = $(enoent_SOURCES) $(start_stop_daemon_SOURCES)
++SOURCES = $(enoent_SOURCES) $(start_stop_daemon_SOURCES) $(md5sum_SOURCES)
+ 
+ srcdir = @srcdir@
+ top_srcdir = @top_srcdir@
+@@ -42,6 +42,7 @@
+ @WITH_START_STOP_DAEMON_TRUE@sbin_PROGRAMS =  \
+ @WITH_START_STOP_DAEMON_TRUE@	start-stop-daemon$(EXEEXT)
+ pkglib_PROGRAMS = enoent$(EXEEXT)
++bin_PROGRAMS = md5sum$(EXEEXT)
+ subdir = utils
+ DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
+ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
+@@ -69,10 +70,14 @@
+ mkinstalldirs = $(SHELL) $(top_srcdir)/config/mkinstalldirs
+ CONFIG_HEADER = $(top_builddir)/config.h
+ CONFIG_CLEAN_FILES =
+-am__installdirs = "$(DESTDIR)$(pkglibdir)" "$(DESTDIR)$(sbindir)"
++am__installdirs = "$(DESTDIR)$(pkglibdir)" "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(bindir)"
+ pkglibPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
+ sbinPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
+-PROGRAMS = $(pkglib_PROGRAMS) $(sbin_PROGRAMS)
++binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
++PROGRAMS = $(pkglib_PROGRAMS) $(sbin_PROGRAMS) $(bin_PROGRAMS)
++am_md5sum_OBJECTS = md5sum.$(OBJEXT)
++md5sum_OBJECTS = $(am_md5sum_OBJECTS)
++md5sum_LDADD = $(LDADD) $(LIBINTL) ../lib/libdpkg.a
+ am_enoent_OBJECTS = enoent.$(OBJEXT)
+ enoent_OBJECTS = $(am_enoent_OBJECTS)
+ enoent_LDADD = $(LDADD)
+@@ -92,9 +97,9 @@
+ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
+ 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+ CCLD = $(CC)
+-LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+-SOURCES = $(enoent_SOURCES) $(start_stop_daemon_SOURCES)
+-DIST_SOURCES = $(enoent_SOURCES) $(am__start_stop_daemon_SOURCES_DIST)
++LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) $(EXEFLAGS) -o $@
++SOURCES = $(enoent_SOURCES) $(start_stop_daemon_SOURCES) $(md5sum_SOURCES)
++DIST_SOURCES = $(enoent_SOURCES) $(am__start_stop_daemon_SOURCES_DIST) $(md5sum_SOURCES)
+ ETAGS = etags
+ CTAGS = ctags
+ DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+@@ -239,6 +244,8 @@
+ @WITH_START_STOP_DAEMON_TRUE@start_stop_daemon_LDADD = ../getopt/libopt.a $(SSD_LIBS)
+ enoent_SOURCES = \
+ 	enoent.c
++md5sum_SOURCES = \
++	md5sum.c
+ 
+ all: all-am
+ 
+@@ -296,6 +303,20 @@
+ 
+ clean-pkglibPROGRAMS:
+ 	-test -z "$(pkglib_PROGRAMS)" || rm -f $(pkglib_PROGRAMS)
++
++install-binPROGRAMS: $(bin_PROGRAMS)
++	@$(NORMAL_INSTALL)
++	test -z "$(bindir)" || $(mkdir_p) "$(DESTDIR)$(bindir)"
++	@list='$(bin_PROGRAMS)'; for p in $$list; do \
++	  p1=`echo $$p|sed 's/$(EXEEXT)$$//'`; \
++	  if test -f $$p \
++	  ; then \
++	    f=`echo "$$p1" | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'`; \
++	   echo " $(INSTALL_PROGRAM_ENV) $(binPROGRAMS_INSTALL) '$$p' '$(DESTDIR)$(bindir)/$$f'"; \
++	   $(INSTALL_PROGRAM_ENV) $(binPROGRAMS_INSTALL) "$$p" "$(DESTDIR)$(bindir)/$$f" || exit 1; \
++	  else :; fi; \
++	done
++
+ install-sbinPROGRAMS: $(sbin_PROGRAMS)
+ 	@$(NORMAL_INSTALL)
+ 	test -z "$(sbindir)" || $(mkdir_p) "$(DESTDIR)$(sbindir)"
+@@ -309,6 +330,14 @@
+ 	  else :; fi; \
+ 	done
+ 
++uninstall-binPROGRAMS:
++	@$(NORMAL_UNINSTALL)
++	@list='$(bin_PROGRAMS)'; for p in $$list; do \
++	  f=`echo "$$p" | sed 's,^.*/,,;s/$(EXEEXT)$$//;$(transform);s/$$/$(EXEEXT)/'`; \
++	  echo " rm -f '$(DESTDIR)$(bindir)/$$f'"; \
++	  rm -f "$(DESTDIR)$(bindir)/$$f"; \
++	done
++
+ uninstall-sbinPROGRAMS:
+ 	@$(NORMAL_UNINSTALL)
+ 	@list='$(sbin_PROGRAMS)'; for p in $$list; do \
+@@ -317,8 +346,16 @@
+ 	  rm -f "$(DESTDIR)$(sbindir)/$$f"; \
+ 	done
+ 
++clean-binPROGRAMS:
++	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
++
+ clean-sbinPROGRAMS:
+ 	-test -z "$(sbin_PROGRAMS)" || rm -f $(sbin_PROGRAMS)
++
++md5sum$(EXEEXT): $(md5sum_OBJECTS) $(md5sum_DEPENDENCIES) 
++	@rm -f md5sum$(EXEEXT)
++	$(LINK) $(md5sum_LDFLAGS) $(md5sum_OBJECTS) $(md5sum_LDADD) $(LIBS)
++
+ enoent$(EXEEXT): $(enoent_OBJECTS) $(enoent_DEPENDENCIES) 
+ 	@rm -f enoent$(EXEEXT)
+ 	$(LINK) $(enoent_LDFLAGS) $(enoent_OBJECTS) $(enoent_LDADD) $(LIBS)
+@@ -332,6 +369,7 @@
+ distclean-compile:
+ 	-rm -f *.tab.c
+ 
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/md5sum.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/enoent.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/start-stop-daemon.Po@am__quote@
+ 
+@@ -431,7 +469,7 @@
+ check: check-am
+ all-am: Makefile $(PROGRAMS)
+ installdirs:
+-	for dir in "$(DESTDIR)$(pkglibdir)" "$(DESTDIR)$(sbindir)"; do \
++	for dir in "$(DESTDIR)$(pkglibdir)" "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(bindir)"; do \
+ 	  test -z "$$dir" || $(mkdir_p) "$$dir"; \
+ 	done
+ install: install-am
+@@ -460,7 +498,7 @@
+ 	@echo "it deletes files that may require special tools to rebuild."
+ clean: clean-am
+ 
+-clean-am: clean-generic clean-pkglibPROGRAMS clean-sbinPROGRAMS \
++clean-am: clean-generic clean-pkglibPROGRAMS clean-sbinPROGRAMS clean-binPROGRAMS \
+ 	mostlyclean-am
+ 
+ distclean: distclean-am
+@@ -481,7 +519,7 @@
+ 
+ install-data-am:
+ 
+-install-exec-am: install-pkglibPROGRAMS install-sbinPROGRAMS
++install-exec-am: install-pkglibPROGRAMS install-sbinPROGRAMS install-binPROGRAMS
+ 
+ install-info: install-info-am
+ 
+@@ -507,20 +545,20 @@
+ ps-am:
+ 
+ uninstall-am: uninstall-info-am uninstall-pkglibPROGRAMS \
+-	uninstall-sbinPROGRAMS
++	uninstall-sbinPROGRAMS uninstall-binPROGRAMS
+ 
+ .PHONY: CTAGS GTAGS all all-am check check-am clean clean-generic \
+-	clean-pkglibPROGRAMS clean-sbinPROGRAMS ctags distclean \
++	clean-pkglibPROGRAMS clean-sbinPROGRAMS clean-binPROGRAMS ctags distclean \
+ 	distclean-compile distclean-generic distclean-tags distdir dvi \
+ 	dvi-am html html-am info info-am install install-am \
+ 	install-data install-data-am install-exec install-exec-am \
+ 	install-info install-info-am install-man \
+-	install-pkglibPROGRAMS install-sbinPROGRAMS install-strip \
++	install-pkglibPROGRAMS install-sbinPROGRAMS install-binPROGRAMS install-strip \
+ 	installcheck installcheck-am installdirs maintainer-clean \
+ 	maintainer-clean-generic mostlyclean mostlyclean-compile \
+ 	mostlyclean-generic pdf pdf-am ps ps-am tags uninstall \
+ 	uninstall-am uninstall-info-am uninstall-pkglibPROGRAMS \
+-	uninstall-sbinPROGRAMS
++	uninstall-sbinPROGRAMS uninstall-binPROGRAMS
+ 
+ # Tell versions [3.59,3.63) of GNU make to not export all variables.
+ # Otherwise a system limit (for SysV at least) may be exceeded.
+diff -uNr dpkg-1.13.16/utils/md5sum.1 dpkg-1.13.16-new/utils/md5sum.1
+--- dpkg-1.13.16/utils/md5sum.1	1969-12-31 19:00:00.000000000 -0500
++++ dpkg-1.13.16-new/utils/md5sum.1	2006-03-11 12:22:45.000000000 -0500
+@@ -0,0 +1,75 @@
++.\" Hey, Emacs!  This is an -*- nroff -*- source file.
++.TH MD5SUM 1 "29th November 1995" "Lankester et al" "Debian GNU/Linux"
++.SH NAME
++md5sum \- generates or checks MD5 message digests
++
++.SH SYNOPSIS
++.B md5sum
++[-bv] [-c [file]] | [file...]
++
++.SH DESCRIPTION
++.B md5sum
++generates or checks MD5 checksums. The algorithm to generate the
++checksum is reasonably fast and strong enough for most cases. Exact
++specification of the algorithm is in
++.I RFC 1321.
++
++Normally
++.B md5sum
++generates checksums of all files given to it as a parameter and prints
++the checksums followed by the filenames. If, however,
++.B -c
++is specified, only one filename parameter is allowed. This file should
++contain checksums and filenames to which these checksums refer to, and
++the files listed in that file are checked against the checksums listed
++there. See option
++.B -c
++for more information.
++
++.SS OPTIONS
++.TP
++.B -b
++Use binary mode. In unix environment, only difference between this and
++the normal mode is an asterix preceding the filename in the output.
++.TP
++.B -c
++Check md5sum of all files listed in
++.I file
++against the checksum listed in the same file. The actual format of that
++file is the same as output of
++.B md5sum.
++That is, each line in the file describes a file. A line looks like:
++
++.B <MD5 checksum>  <filename>
++
++So, for example, if a file was created and its message digest calculated
++like so:
++
++.B echo foo > md5-test-file; md5sum md5-test-file
++
++.B md5sum
++would report:
++
++.B d3b07384d113edec49eaa6238ad5ff00\  md5-test-file
++
++.TP
++.B -v
++Be more verbose. Print filenames when checking (with -c).
++
++.SH BUGS
++The related MD4 message digest algorithm was broken in October 1995.
++MD5 isn't looking as secure as it used to.
++
++This manpage is not quite accurate and has formatting inconsistent
++with other manpages.
++
++.B md5sum
++does not accept standard options like
++.BR --help .
++
++.SH AUTHOR
++
++.B md5sum
++was originally written by Branko Lankester, and modified afterwards by
++Colin Plumb and Ian Jackson (ijackson@gnu.ai.mit.edu). Manual page was
++added by Juho Vuori (javuori@cc.helsinki.fi)
+diff -uNr dpkg-1.13.16/utils/md5sum.c dpkg-1.13.16-new/utils/md5sum.c
+--- dpkg-1.13.16/utils/md5sum.c	1969-12-31 19:00:00.000000000 -0500
++++ dpkg-1.13.16-new/utils/md5sum.c	2006-03-11 12:22:45.000000000 -0500
+@@ -0,0 +1,312 @@
++/*
++ * md5sum.c	- Generate/check MD5 Message Digests
++ *
++ * Compile and link with md5.c.  If you don't have getopt() in your library
++ * also include getopt.c.  For MSDOS you can also link with the wildcard
++ * initialization function (wildargs.obj for Turbo C and setargv.obj for MSC)
++ * so that you can use wildcards on the commandline.
++ *
++ * Written March 1993 by Branko Lankester
++ * Modified June 1993 by Colin Plumb for altered md5.c.
++ * Modified Feburary 1995 by Ian Jackson for use with Colin Plumb's md5.c.
++ * Hacked (modified is too nice a word) January 1997 by Galen Hazelwood
++ *   to support GNU gettext.
++ * This file is in the public domain.
++ */
++
++#include "config.h"
++
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <getopt.h>
++#include <unistd.h>
++
++/* Take care of NLS matters.  */
++
++//#if HAVE_LOCALE_H
++//# include <locale.h>
++//#endif
++//#if !HAVE_SETLOCALE
++//# define setlocale(Category, Locale) /* empty */
++//#endif
++//
++//#if ENABLE_NLS
++//# include <libintl.h>
++//# define _(Text) gettext (Text)
++//#else
++//# undef bindtextdomain
++//# define bindtextdomain(Domain, Directory) /* empty */
++//# undef textdomain
++//# define textdomain(Domain) /* empty */
++//# define _(Text) Text
++//#endif
++
++#include <dpkg.h>
++
++#ifdef UNIX
++#define	FOPRTXT	"r"
++#define	FOPRBIN	"r"
++#else
++#ifdef VMS
++#define	FOPRTXT	"r","ctx=stm"
++#define	FOPRBIN	"rb","ctx=stm"
++#else
++#define	FOPRTXT	"r"
++#define	FOPRBIN	"rb"
++#endif
++#endif
++
++const char printforhelp[]= N_("Type md5sum --help for help.");
++const char thisname[]= "@PREFIX@/bin/md5sum";
++
++void usage(void) NONRETURNING;
++void print_digest(unsigned char *p);
++int mdfile(int fd, unsigned char **digest);
++int do_check(FILE *chkf);
++int hex_digit(int c);
++int get_md5_line(FILE *fp, unsigned char *digest, char *file);
++int process_arg(const char* arg, int bin_mode, unsigned char **digest);
++
++char *progname;
++int verbose = 0;
++int bin_mode = 0;
++
++static
++void
++print_md5sum_error(const char* emsg, const char* arg) {
++	fprintf(stderr, _("error processing %s: %s\n"), arg, emsg);
++}
++
++static void cu_closefile(int argc, void** argv) {
++	FILE *f = (FILE*)(argv[0]);
++	fclose(f);
++}
++
++int
++main(int argc, char **argv)
++{
++	jmp_buf ejbuf;
++	int opt, rc = 0;
++	int check = 0;
++	FILE *fp = NULL;
++	unsigned char *digest = NULL;
++
++	setlocale(LC_ALL, "");
++	bindtextdomain(PACKAGE, LOCALEDIR);
++	textdomain(PACKAGE);
++
++	progname = *argv;
++	while ((opt = getopt(argc, argv, "cbvp:h")) != EOF) {
++		switch (opt) {
++			case 'c': check = 1; break;
++			case 'v': verbose = 1; break;
++			case 'b': bin_mode = 1; break;
++			default: usage();
++		}
++	}
++	argc -= optind;
++	argv += optind;
++	if (check) {
++		switch (argc) {
++			case 0: fp = stdin; break;
++			case 1: if ((fp = fopen(*argv, FOPRTXT)) == NULL) {
++					perror(*argv);
++					exit(2);
++				}
++				break;
++			default: usage();
++		}
++		exit(do_check(fp));
++	}
++	if (argc == 0) {
++		if (setjmp(ejbuf)) {
++			error_unwind(ehflag_bombout);
++			exit(1);
++		}
++		push_error_handler(&ejbuf, print_md5sum_error, "stdin");
++
++		mdfile(fileno(stdin), &digest);
++		printf("%s %c-\n", digest, bin_mode ? '*' : ' ');
++		set_error_display(0, 0);
++		error_unwind(ehflag_normaltidy);
++		exit(0);
++	}
++	for ( ; argc > 0; --argc, ++argv) {
++		switch (process_arg(*argv, bin_mode, &digest)) {
++			case 1:
++				rc++;
++				break;
++			case 2:
++				perror(*argv);
++				rc++;
++				break;
++			case 3:
++				perror(*argv);
++				rc++;
++				break;
++			default:
++				printf("%s %c%s\n", digest, bin_mode ? '*' : ' ', *argv);
++		}
++	}
++	return rc;
++}
++
++int process_arg(const char* arg, int bin_mode, unsigned char **digest)
++{
++	jmp_buf ejbuf;
++	FILE *fp = NULL;
++
++	if (setjmp(ejbuf)) {
++		error_unwind(ehflag_bombout);
++		return 1;
++	}
++	push_error_handler(&ejbuf, print_md5sum_error, arg);
++	if (bin_mode)
++		fp = fopen(arg, FOPRBIN);
++	else
++		fp = fopen(arg, FOPRTXT);
++	if (fp == NULL)
++		return 2;
++	push_cleanup(cu_closefile,ehflag_bombout, 0,0, 1,(void*)fp);
++	if (mdfile(fileno(fp), digest)) {
++		fclose(fp);
++		return 3;
++	}
++	pop_cleanup(ehflag_normaltidy); /* fd= fopen() */
++	fclose(fp);
++	set_error_display(0, 0);
++	error_unwind(ehflag_normaltidy);
++	return 0;
++}
++
++void
++usage(void)
++{
++        fputs(_("usage: md5sum [-bv] [-c [file]] | [file...]\n\
++Generates or checks MD5 Message Digests\n\
++    -c  check message digests (default is generate)\n\
++    -v  verbose, print file names when checking\n\
++    -b  read files in binary mode\n\
++The input for -c should be the list of message digests and file names\n\
++that is printed on stdout by this program when it generates digests.\n"), stderr);
++	exit(2);
++}
++
++int
++mdfile(int fd, unsigned char **digest)
++{
++	off_t ret = fd_md5(fd, digest, -1, _("mdfile"));
++	if ( ret >= 0 )
++		return 0;
++	else
++		return ret;
++}
++
++int
++hex_digit(int c)
++{
++	if (c >= '0' && c <= '9')
++		return c - '0';
++	if (c >= 'a' && c <= 'f')
++		return c - 'a' + 10;
++	return -1;
++}
++
++int
++get_md5_line(FILE *fp, unsigned char *digest, char *file)
++{
++	char buf[1024];
++	int i, rc;
++	char *p = buf;
++
++	if (fgets(buf, sizeof(buf), fp) == NULL)
++		return -1;
++
++        /* A line must have: a digest (32), a separator (2), and a
++         * filename (at least 1)
++         *
++         * That means it must be at least 35 characters long.
++         */
++	if (strlen(buf) < 35)
++		return 0;
++
++	memcpy(digest, p, 32);
++	p += 32;
++	if (*p++ != ' ')
++		return 0;
++	/*
++	 * next char is an attribute char, space means text file
++	 * if it's a '*' the file should be checked in binary mode.
++	 */
++	if (*p == ' ')
++		rc = 1;
++	else if (*p == '*')
++		rc = 2;
++	else {
++		/* Don't print the buffer; we might be dealing with a
++		 * non-text file.
++		 */
++		fprintf(stderr, _("%s: unrecognized line\n"), progname);
++		return 0;
++	}
++	++p;
++	i = strlen(p);
++	if (i < 2 || i > 255)
++		return 0;
++
++        /* Strip the trailing newline, if present */
++        if (p[i-1] == '\n')
++          p[i-1] = '\0';
++
++	strcpy(file, p);
++	return rc;
++}
++
++int
++do_check(FILE *chkf)
++{
++	int rc, ex = 0, failed = 0, checked = 0;
++	unsigned char chk_digest[32], *file_digest = NULL;
++	char filename[256];
++	size_t flen = 14;
++
++	while ((rc = get_md5_line(chkf, chk_digest, filename)) >= 0) {
++		if (rc == 0)	/* not an md5 line */
++			continue;
++		if (verbose) {
++			if (strlen(filename) > flen)
++				flen = strlen(filename);
++			fprintf(stderr, "%-*s ", (int)flen, filename);
++		}
++		switch (process_arg(filename, bin_mode || rc == 2, &file_digest)) {
++			case 2:
++				fprintf(stderr, _("%s: can't open %s\n"), progname, filename);
++				ex = 2;
++				continue;
++			case 3:
++				fprintf(stderr, _("%s: error reading %s\n"), progname, filename);
++				ex = 2;
++				continue;
++		}
++		if (memcmp(chk_digest, file_digest, 32) != 0) {
++			if (verbose)
++				fprintf(stderr, _("FAILED\n"));
++			else
++				fprintf(stderr, _("%s: MD5 check failed for '%s'\n"), progname, filename);
++			++failed;
++		} else if (verbose)
++			fprintf(stderr, _("OK\n"));
++		++checked;
++	}
++	if (verbose && failed)
++		fprintf(stderr, _("%s: %d of %d file(s) failed MD5 check\n"), progname, failed, checked);
++	if (!checked) {
++		fprintf(stderr, _("%s: no files checked\n"), progname);
++		return 3;
++	}
++	if (!ex && failed)
++		ex = 1;
++	return ex;
++}
++
