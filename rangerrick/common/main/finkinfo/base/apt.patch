@@ -1,21 +1,20 @@
-diff -uNr apt-0.6.43.3/apt-inst/contrib/extracttar.cc apt-0.6.43.3-new/apt-inst/contrib/extracttar.cc
 --- apt-0.6.43.3/apt-inst/contrib/extracttar.cc	2005-10-19 15:19:09.000000000 -0400
-+++ apt-0.6.43.3-new/apt-inst/contrib/extracttar.cc	2006-03-11 12:35:32.000000000 -0500
++++ apt-0.6.43.3-new/apt-inst/contrib/extracttar.cc	2006-03-14 06:50:14.000000000 -0500
 @@ -149,7 +149,30 @@
     close(Pipes[1]);
     return true;
  }
 +
-+// Handle the ridiculous way that tar stores large numbers
-+static bool TarUIDToNum(const char *Str, unsigned long &Res, unsigned Len) {
-+	switch (*Str) {
-+		case '\200':
-+			Res = *((unsigned long *)(Str + Len - sizeof(unsigned long)));
-+			return true;
-+		default:
-+			return StrToNum(Str+1, Res, Len-1, 8);
-+	}
-+}
++
++
++
++
++
++
++
++
++
++
  									/*}}}*/
 +
 +// Handle the ridiculous way that tar stores large numbers
@@ -43,24 +42,22 @@ diff -uNr apt-0.6.43.3/apt-inst/contrib/extracttar.cc apt-0.6.43.3-new/apt-inst/
  	  StrToNum(Tar->Size,Itm.Size,sizeof(Tar->Size),8) == false ||
  	  StrToNum(Tar->MTime,Itm.MTime,sizeof(Tar->MTime),8) == false ||
  	  StrToNum(Tar->Major,Itm.Major,sizeof(Tar->Major),8) == false ||
-diff -uNr apt-0.6.43.3/apt-inst/makefile apt-0.6.43.3-new/apt-inst/makefile
 --- apt-0.6.43.3/apt-inst/makefile	2005-10-19 15:19:09.000000000 -0400
-+++ apt-0.6.43.3-new/apt-inst/makefile	2006-03-11 12:27:33.000000000 -0500
-@@ -12,9 +12,9 @@
++++ apt-0.6.43.3-new/apt-inst/makefile	2006-03-14 06:53:00.000000000 -0500
+@@ -12,9 +12,10 @@
  # The library name
  LIBRARY=apt-inst
  LIBEXT=$(GLIBC_VER)$(LIBSTDCPP_VER)
--MAJOR=1.1
-+MAJOR=0.6.40
++COMPAT=1.0
+ MAJOR=1.1
  MINOR=0
 -SLIBS=$(PTHREADLIB) -lapt-pkg
 +SLIBS=$(PTHREADLIB) -lapt-pkg $(INTLLIBS)
  APT_DOMAIN:=libapt-inst$(MAJOR)
  
  # Source code for the contributed non-core things
-diff -uNr apt-0.6.43.3/apt-pkg/acquire-item.cc apt-0.6.43.3-new/apt-pkg/acquire-item.cc
 --- apt-0.6.43.3/apt-pkg/acquire-item.cc	2006-02-22 04:04:32.000000000 -0500
-+++ apt-0.6.43.3-new/apt-pkg/acquire-item.cc	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/apt-pkg/acquire-item.cc	2006-03-14 06:50:14.000000000 -0500
 @@ -739,12 +739,14 @@
  // ---------------------------------------------------------------------
  /* This just sets up the initial fetch environment and queues the first
@@ -77,9 +74,8 @@ diff -uNr apt-0.6.43.3/apt-pkg/acquire-item.cc apt-0.6.43.3-new/apt-pkg/acquire-
  {
     Retries = _config->FindI("Acquire::Retries",0);
  
-diff -uNr apt-0.6.43.3/apt-pkg/contrib/cdromutl.cc apt-0.6.43.3-new/apt-pkg/contrib/cdromutl.cc
 --- apt-0.6.43.3/apt-pkg/contrib/cdromutl.cc	2005-10-19 15:19:08.000000000 -0400
-+++ apt-0.6.43.3-new/apt-pkg/contrib/cdromutl.cc	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/apt-pkg/contrib/cdromutl.cc	2006-03-14 06:50:14.000000000 -0500
 @@ -23,13 +23,13 @@
      
  #include <sys/wait.h>
@@ -107,9 +103,8 @@ diff -uNr apt-0.6.43.3/apt-pkg/contrib/cdromutl.cc apt-0.6.43.3-new/apt-pkg/cont
  	 return _error->Errno("statfs",_("Failed to stat the cdrom"));
        
        // We use a kilobyte block size to advoid overflow
-diff -uNr apt-0.6.43.3/apt-pkg/deb/debindexfile.cc apt-0.6.43.3-new/apt-pkg/deb/debindexfile.cc
 --- apt-0.6.43.3/apt-pkg/deb/debindexfile.cc	2005-10-19 15:19:08.000000000 -0400
-+++ apt-0.6.43.3-new/apt-pkg/deb/debindexfile.cc	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/apt-pkg/deb/debindexfile.cc	2006-03-14 06:50:14.000000000 -0500
 @@ -444,3 +444,9 @@
  }
  
@@ -120,9 +115,8 @@ diff -uNr apt-0.6.43.3/apt-pkg/deb/debindexfile.cc apt-0.6.43.3-new/apt-pkg/deb/
 +  (void)_apt_Pkg;
 +  (void)_apt_Status;
 +}
-diff -uNr apt-0.6.43.3/apt-pkg/deb/debsystem.cc apt-0.6.43.3-new/apt-pkg/deb/debsystem.cc
 --- apt-0.6.43.3/apt-pkg/deb/debsystem.cc	2005-10-19 15:19:08.000000000 -0400
-+++ apt-0.6.43.3-new/apt-pkg/deb/debsystem.cc	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/apt-pkg/deb/debsystem.cc	2006-03-14 06:50:14.000000000 -0500
 @@ -27,6 +27,111 @@
  #include <dirent.h>
  #include <errno.h>
@@ -323,9 +317,8 @@ diff -uNr apt-0.6.43.3/apt-pkg/deb/debsystem.cc apt-0.6.43.3-new/apt-pkg/deb/deb
     }
     
     return false;
-diff -uNr apt-0.6.43.3/apt-pkg/deb/debsystem.h apt-0.6.43.3-new/apt-pkg/deb/debsystem.h
 --- apt-0.6.43.3/apt-pkg/deb/debsystem.h	2005-10-19 15:19:08.000000000 -0400
-+++ apt-0.6.43.3-new/apt-pkg/deb/debsystem.h	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/apt-pkg/deb/debsystem.h	2006-03-14 06:50:14.000000000 -0500
 @@ -25,6 +25,7 @@
     bool CheckUpdates();
     
@@ -334,9 +327,8 @@ diff -uNr apt-0.6.43.3/apt-pkg/deb/debsystem.h apt-0.6.43.3-new/apt-pkg/deb/debs
     
     public:
  
-diff -uNr apt-0.6.43.3/apt-pkg/deb/debversion.cc apt-0.6.43.3-new/apt-pkg/deb/debversion.cc
 --- apt-0.6.43.3/apt-pkg/deb/debversion.cc	2005-10-19 15:19:08.000000000 -0400
-+++ apt-0.6.43.3-new/apt-pkg/deb/debversion.cc	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/apt-pkg/deb/debversion.cc	2006-03-14 06:50:14.000000000 -0500
 @@ -24,6 +24,11 @@
  
  debVersioningSystem debVS;
@@ -349,9 +341,8 @@ diff -uNr apt-0.6.43.3/apt-pkg/deb/debversion.cc apt-0.6.43.3-new/apt-pkg/deb/de
  // debVS::debVersioningSystem - Constructor				/*{{{*/
  // ---------------------------------------------------------------------
  /* */
-diff -uNr apt-0.6.43.3/apt-pkg/deb/dpkgpm.cc apt-0.6.43.3-new/apt-pkg/deb/dpkgpm.cc
 --- apt-0.6.43.3/apt-pkg/deb/dpkgpm.cc	2005-10-19 15:19:08.000000000 -0400
-+++ apt-0.6.43.3-new/apt-pkg/deb/dpkgpm.cc	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/apt-pkg/deb/dpkgpm.cc	2006-03-14 06:50:14.000000000 -0500
 @@ -26,6 +26,10 @@
  #include <errno.h>
  #include <stdio.h>
@@ -363,9 +354,8 @@ diff -uNr apt-0.6.43.3/apt-pkg/deb/dpkgpm.cc apt-0.6.43.3-new/apt-pkg/deb/dpkgpm
  #include <map>
  
  #include <config.h>
-diff -uNr apt-0.6.43.3/apt-pkg/init.cc apt-0.6.43.3-new/apt-pkg/init.cc
 --- apt-0.6.43.3/apt-pkg/init.cc	2005-11-28 04:55:46.000000000 -0500
-+++ apt-0.6.43.3-new/apt-pkg/init.cc	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/apt-pkg/init.cc	2006-03-14 06:50:14.000000000 -0500
 @@ -15,6 +15,8 @@
  #include <apti18n.h>
  #include <config.h>
@@ -402,21 +392,18 @@ diff -uNr apt-0.6.43.3/apt-pkg/init.cc apt-0.6.43.3-new/apt-pkg/init.cc
     Sys = 0;
     string Label = Cnf.Find("Apt::System","");
     if (Label.empty() == false)
-diff -uNr apt-0.6.43.3/apt-pkg/makefile apt-0.6.43.3-new/apt-pkg/makefile
 --- apt-0.6.43.3/apt-pkg/makefile	2005-11-28 04:55:46.000000000 -0500
-+++ apt-0.6.43.3-new/apt-pkg/makefile	2006-03-11 12:28:11.000000000 -0500
-@@ -13,7 +13,7 @@
++++ apt-0.6.43.3-new/apt-pkg/makefile	2006-03-14 06:53:10.000000000 -0500
+@@ -13,6 +13,7 @@
  # methods/makefile - FIXME
  LIBRARY=apt-pkg
  LIBEXT=$(GLIBC_VER)$(LIBSTDCPP_VER)
--MAJOR=3.11
-+MAJOR=0.6.40
++COMPAT=3
+ MAJOR=3.11
  MINOR=0
  SLIBS=$(PTHREADLIB) $(INTLLIBS)
- APT_DOMAIN:=libapt-pkg$(MAJOR)
-diff -uNr apt-0.6.43.3/buildlib/environment.mak.in apt-0.6.43.3-new/buildlib/environment.mak.in
 --- apt-0.6.43.3/buildlib/environment.mak.in	2005-10-19 15:19:09.000000000 -0400
-+++ apt-0.6.43.3-new/buildlib/environment.mak.in	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/buildlib/environment.mak.in	2006-03-14 06:50:14.000000000 -0500
 @@ -7,14 +7,14 @@
  CC = @CC@
  CPPFLAGS+= @CPPFLAGS@ @DEFS@ -D_REENTRANT -Wall
@@ -456,9 +443,8 @@ diff -uNr apt-0.6.43.3/buildlib/environment.mak.in apt-0.6.43.3-new/buildlib/env
 +#endif
 +SONAME_MAGIC=-install_name @PREFIX@/lib/
 +LFLAGS_SO=-dynamiclib
-diff -uNr apt-0.6.43.3/buildlib/library.mak apt-0.6.43.3-new/buildlib/library.mak
 --- apt-0.6.43.3/buildlib/library.mak	2005-10-19 15:19:09.000000000 -0400
-+++ apt-0.6.43.3-new/buildlib/library.mak	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/buildlib/library.mak	2006-03-14 06:54:25.000000000 -0500
 @@ -16,11 +16,11 @@
  # See defaults.mak for information about LOCAL
  
@@ -469,7 +455,7 @@ diff -uNr apt-0.6.43.3/buildlib/library.mak apt-0.6.43.3-new/buildlib/library.ma
  $(LOCAL)-DEP := $(addprefix $(DEP)/,$(addsuffix .opic.d,$(notdir $(basename $(SOURCE)))))
  $(LOCAL)-HEADERS := $(addprefix $(INCLUDE)/,$(HEADERS))
 -$(LOCAL)-SONAME := lib$(LIBRARY)$(LIBEXT).so.$(MAJOR)
-+$(LOCAL)-SONAME := lib$(LIBRARY)$(LIBEXT).$(MAJOR).dylib
++$(LOCAL)-SONAME := lib$(LIBRARY)$(LIBEXT).$(COMPAT).dylib
  $(LOCAL)-SLIBS := $(SLIBS)
  $(LOCAL)-LIBRARY := $(LIBRARY)
  
@@ -508,14 +494,13 @@ diff -uNr apt-0.6.43.3/buildlib/library.mak apt-0.6.43.3-new/buildlib/library.ma
  	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(PICFLAGS) $(LFLAGS) $(LFLAGS_SO)\
 -	   -o $@ $(SONAME_MAGIC)$($(@F)-SONAME) -shared \
 +	   -o $@ $(SONAME_MAGIC)$($(@F)-SONAME) \
-+	   -compatibility_version $(MAJOR) \
-+	   -current_version $(MAJOR) \
++	   -compatibility_version $(COMPAT) \
++	   -current_version $(MAJOR).$(MINOR) \
  	   $(filter %.opic,$^) \
  	   $($(@F)-SLIBS) 
  
-diff -uNr apt-0.6.43.3/buildlib/ostable apt-0.6.43.3-new/buildlib/ostable
 --- apt-0.6.43.3/buildlib/ostable	2005-10-19 15:19:09.000000000 -0400
-+++ apt-0.6.43.3-new/buildlib/ostable	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/buildlib/ostable	2006-03-14 06:50:14.000000000 -0500
 @@ -16,6 +16,7 @@
  hp-hpux[^-]*	    hp-ux
  sun-solaris[^-]*    solaris
@@ -524,9 +509,8 @@ diff -uNr apt-0.6.43.3/buildlib/ostable apt-0.6.43.3-new/buildlib/ostable
  
  # Catch all
  .*	unknown
-diff -uNr apt-0.6.43.3/buildlib/sgml_manpage.mak apt-0.6.43.3-new/buildlib/sgml_manpage.mak
 --- apt-0.6.43.3/buildlib/sgml_manpage.mak	2005-10-19 15:19:09.000000000 -0400
-+++ apt-0.6.43.3-new/buildlib/sgml_manpage.mak	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/buildlib/sgml_manpage.mak	2006-03-14 06:50:14.000000000 -0500
 @@ -11,7 +11,7 @@
  # See defaults.mak for information about LOCAL
  
@@ -536,9 +520,8 @@ diff -uNr apt-0.6.43.3/buildlib/sgml_manpage.mak apt-0.6.43.3-new/buildlib/sgml_
  
  LOCAL := sgml-manpage-$(firstword $(SOURCE))
  $(LOCAL)-LIST := $(SOURCE)
-diff -uNr apt-0.6.43.3/cmdline/apt-get.cc apt-0.6.43.3-new/cmdline/apt-get.cc
 --- apt-0.6.43.3/cmdline/apt-get.cc	2006-02-22 04:04:32.000000000 -0500
-+++ apt-0.6.43.3-new/cmdline/apt-get.cc	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/cmdline/apt-get.cc	2006-03-14 06:50:14.000000000 -0500
 @@ -53,7 +53,7 @@
  #include <termios.h>
  #include <sys/ioctl.h>
@@ -724,9 +707,8 @@ diff -uNr apt-0.6.43.3/cmdline/apt-get.cc apt-0.6.43.3-new/cmdline/apt-get.cc
     
     // Deal with stdout not being a tty
     if (!isatty(STDOUT_FILENO) && _config->FindI("quiet",0) < 1)
-diff -uNr apt-0.6.43.3/cmdline/makefile apt-0.6.43.3-new/cmdline/makefile
 --- apt-0.6.43.3/cmdline/makefile	2005-10-19 15:19:09.000000000 -0400
-+++ apt-0.6.43.3-new/cmdline/makefile	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/cmdline/makefile	2006-03-14 06:50:14.000000000 -0500
 @@ -7,42 +7,42 @@
  
  # The apt-cache program
@@ -776,9 +758,8 @@ diff -uNr apt-0.6.43.3/cmdline/makefile apt-0.6.43.3-new/cmdline/makefile
  LIB_MAKES = apt-pkg/makefile
  SOURCE = apt-extracttemplates.cc 
  include $(PROGRAM_H)
-diff -uNr apt-0.6.43.3/configure apt-0.6.43.3-new/configure
 --- apt-0.6.43.3/configure	2006-02-22 04:22:55.000000000 -0500
-+++ apt-0.6.43.3-new/configure	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/configure	2006-03-14 06:50:14.000000000 -0500
 @@ -1296,8 +1296,8 @@
  
  ac_ext=c
@@ -880,18 +861,16 @@ diff -uNr apt-0.6.43.3/configure apt-0.6.43.3-new/configure
    esac
  done
  _ACEOF
-diff -uNr apt-0.6.43.3/configure.in apt-0.6.43.3-new/configure.in
 --- apt-0.6.43.3/configure.in	2006-02-22 04:04:32.000000000 -0500
-+++ apt-0.6.43.3-new/configure.in	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/configure.in	2006-03-14 06:50:14.000000000 -0500
 @@ -200,4 +200,4 @@
  AC_SUBST(USE_NLS)
  AC_PATH_PROG(BASH, bash)
  
 -AC_OUTPUT(environment.mak:buildlib/environment.mak.in makefile:buildlib/makefile.in,make -s dirs)
 +AC_OUTPUT(environment.mak:buildlib/environment.mak.in makefile.wrap:buildlib/makefile.in,make -f makefile.wrap -s dirs)
-diff -uNr apt-0.6.43.3/doc/apt-cache.8 apt-0.6.43.3-new/doc/apt-cache.8
 --- apt-0.6.43.3/doc/apt-cache.8	2006-02-22 04:23:13.000000000 -0500
-+++ apt-0.6.43.3-new/doc/apt-cache.8	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/doc/apt-cache.8	2006-03-14 06:50:14.000000000 -0500
 @@ -42,7 +42,7 @@
  
  .TP
@@ -938,9 +917,8 @@ diff -uNr apt-0.6.43.3/doc/apt-cache.8 apt-0.6.43.3-new/doc/apt-cache.8
  
  .SH AUTHORS
  Jason Gunthorpe, APT team.
-diff -uNr apt-0.6.43.3/doc/apt-cdrom.8 apt-0.6.43.3-new/doc/apt-cdrom.8
 --- apt-0.6.43.3/doc/apt-cdrom.8	2006-02-22 04:23:17.000000000 -0500
-+++ apt-0.6.43.3-new/doc/apt-cdrom.8	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/doc/apt-cdrom.8	2006-03-14 06:50:14.000000000 -0500
 @@ -43,7 +43,7 @@
  add
  add is used to add a new disc to the source list\&. It will unmount the CDROM device, prompt for a disk to be inserted and then procceed to scan it and copy the index files\&. If the disc does not have a proper \fIdisk\fR directory you will be prompted for a descriptive title\&.
@@ -959,9 +937,8 @@ diff -uNr apt-0.6.43.3/doc/apt-cdrom.8 apt-0.6.43.3-new/doc/apt-cdrom.8
  
  .SH AUTHORS
  Jason Gunthorpe, APT team.
-diff -uNr apt-0.6.43.3/doc/apt-config.8 apt-0.6.43.3-new/doc/apt-config.8
 --- apt-0.6.43.3/doc/apt-config.8	2006-02-22 04:23:27.000000000 -0500
-+++ apt-0.6.43.3-new/doc/apt-config.8	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/doc/apt-config.8	2006-03-14 06:50:14.000000000 -0500
 @@ -31,7 +31,7 @@
  .SH "DESCRIPTION"
  
@@ -980,9 +957,8 @@ diff -uNr apt-0.6.43.3/doc/apt-config.8 apt-0.6.43.3-new/doc/apt-config.8
  
  .SH AUTHORS
  Jason Gunthorpe, APT team.
-diff -uNr apt-0.6.43.3/doc/apt-get.8 apt-0.6.43.3-new/doc/apt-get.8
 --- apt-0.6.43.3/doc/apt-get.8	2006-02-22 04:23:15.000000000 -0500
-+++ apt-0.6.43.3-new/doc/apt-get.8	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/doc/apt-get.8	2006-03-14 06:50:14.000000000 -0500
 @@ -38,11 +38,11 @@
  
  .TP
@@ -1089,9 +1065,8 @@ diff -uNr apt-0.6.43.3/doc/apt-get.8 apt-0.6.43.3-new/doc/apt-get.8
  
  .SH AUTHORS
  Jason Gunthorpe, APT team.
-diff -uNr apt-0.6.43.3/doc/apt_preferences.5 apt-0.6.43.3-new/doc/apt_preferences.5
 --- apt-0.6.43.3/doc/apt_preferences.5	2006-02-22 04:23:31.000000000 -0500
-+++ apt-0.6.43.3-new/doc/apt_preferences.5	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/doc/apt_preferences.5	2006-03-14 06:50:14.000000000 -0500
 @@ -23,7 +23,7 @@
  .SH "DESCRIPTION"
  
@@ -1128,9 +1103,8 @@ diff -uNr apt-0.6.43.3/doc/apt_preferences.5 apt-0.6.43.3-new/doc/apt_preference
  
  .SH AUTHOR
  APT team.
-diff -uNr apt-0.6.43.3/doc/sources.list.5 apt-0.6.43.3-new/doc/sources.list.5
 --- apt-0.6.43.3/doc/sources.list.5	2006-02-22 04:23:24.000000000 -0500
-+++ apt-0.6.43.3-new/doc/sources.list.5	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/doc/sources.list.5	2006-03-14 06:50:14.000000000 -0500
 @@ -23,7 +23,7 @@
  .SH "DESCRIPTION"
  
@@ -1149,9 +1123,8 @@ diff -uNr apt-0.6.43.3/doc/sources.list.5 apt-0.6.43.3-new/doc/sources.list.5
  
  .SH AUTHORS
  Jason Gunthorpe, APT team.
-diff -uNr apt-0.6.43.3/dselect/install apt-0.6.43.3-new/dselect/install
 --- apt-0.6.43.3/dselect/install	2005-10-19 15:19:09.000000000 -0400
-+++ apt-0.6.43.3-new/dselect/install	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/dselect/install	2006-03-14 06:50:14.000000000 -0500
 @@ -6,8 +6,8 @@
  # Get the configuration from /etc/apt/apt.conf
  CLEAN="prompt"
@@ -1163,9 +1136,8 @@ diff -uNr apt-0.6.43.3/dselect/install apt-0.6.43.3-new/dselect/install
  DPKG_OPTS="--admindir=$1"
  APT_OPT0="-oDir::State::status=$1/status"
  APT_OPT1="-oDPkg::Options::=$DPKG_OPTS"
-diff -uNr apt-0.6.43.3/dselect/setup apt-0.6.43.3-new/dselect/setup
 --- apt-0.6.43.3/dselect/setup	2005-10-19 15:19:09.000000000 -0400
-+++ apt-0.6.43.3-new/dselect/setup	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/dselect/setup	2006-03-14 06:50:14.000000000 -0500
 @@ -23,15 +23,17 @@
  my $vardir=$ARGV[0];
  my $method=$ARGV[1];
@@ -1238,9 +1210,8 @@ diff -uNr apt-0.6.43.3/dselect/setup apt-0.6.43.3-new/dselect/setup
      my $answer = <STDIN>;
      chomp ($answer);
      $answer =~ s/\s+/ /og;
-diff -uNr apt-0.6.43.3/dselect/update apt-0.6.43.3-new/dselect/update
 --- apt-0.6.43.3/dselect/update	2005-10-19 15:19:09.000000000 -0400
-+++ apt-0.6.43.3-new/dselect/update	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/dselect/update	2006-03-14 06:50:14.000000000 -0500
 @@ -7,13 +7,13 @@
  # Get the configuration from /etc/apt/apt.conf
  CLEAN="prompt"
@@ -1259,9 +1230,8 @@ diff -uNr apt-0.6.43.3/dselect/update apt-0.6.43.3-new/dselect/update
  PROMPT="false"
  RES=`apt-config shell CLEAN DSelect::Clean OPTS DSelect::UpdateOptions \
  		      DPKG Dir::Bin::dpkg/f APTGET Dir::Bin::apt-get/f \
-diff -uNr apt-0.6.43.3/ftparchive/contents.cc apt-0.6.43.3-new/ftparchive/contents.cc
 --- apt-0.6.43.3/ftparchive/contents.cc	2005-10-19 15:19:09.000000000 -0400
-+++ apt-0.6.43.3-new/ftparchive/contents.cc	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/ftparchive/contents.cc	2006-03-14 06:50:14.000000000 -0500
 @@ -41,7 +41,6 @@
  #include <stdio.h>
  #include <stdlib.h>
@@ -1270,9 +1240,8 @@ diff -uNr apt-0.6.43.3/ftparchive/contents.cc apt-0.6.43.3-new/ftparchive/conten
  									/*}}}*/
  
  // GenContents::~GenContents - Free allocated memory			/*{{{*/
-diff -uNr apt-0.6.43.3/ftparchive/makefile apt-0.6.43.3-new/ftparchive/makefile
 --- apt-0.6.43.3/ftparchive/makefile	2005-10-19 15:19:09.000000000 -0400
-+++ apt-0.6.43.3-new/ftparchive/makefile	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/ftparchive/makefile	2006-03-14 06:50:14.000000000 -0500
 @@ -8,7 +8,7 @@
  # The apt-ftparchive program
  ifdef BDBLIB
@@ -1282,20 +1251,18 @@ diff -uNr apt-0.6.43.3/ftparchive/makefile apt-0.6.43.3-new/ftparchive/makefile
  LIB_MAKES = apt-pkg/makefile apt-inst/makefile
  SOURCE = apt-ftparchive.cc cachedb.cc writer.cc contents.cc override.cc \
           multicompress.cc
-diff -uNr apt-0.6.43.3/ftparchive-conf apt-0.6.43.3-new/ftparchive-conf
 --- apt-0.6.43.3/ftparchive-conf	1969-12-31 19:00:00.000000000 -0500
-+++ apt-0.6.43.3-new/ftparchive-conf	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/ftparchive-conf	2006-03-14 06:50:14.000000000 -0500
 @@ -0,0 +1 @@
 +Dir::Bin::gzip "@PREFIX@/bin/gzip";
-diff -uNr apt-0.6.43.3/methods/makefile apt-0.6.43.3-new/methods/makefile
 --- apt-0.6.43.3/methods/makefile	2005-11-28 04:55:47.000000000 -0500
-+++ apt-0.6.43.3-new/methods/makefile	2006-03-11 12:29:16.000000000 -0500
-@@ -7,61 +7,61 @@
++++ apt-0.6.43.3-new/methods/makefile	2006-03-14 06:53:45.000000000 -0500
+@@ -7,61 +7,62 @@
  BIN := $(BIN)/methods
  
  # FIXME..
--LIB_APT_PKG_MAJOR = 3.11
-+LIB_APT_PKG_MAJOR = 0.6.40
++COMPAT=3
+ LIB_APT_PKG_MAJOR = 3.11
  APT_DOMAIN := libapt-pkg$(LIB_APT_PKG_MAJOR)
  
  # The file method
@@ -1361,17 +1328,16 @@ diff -uNr apt-0.6.43.3/methods/makefile apt-0.6.43.3-new/methods/makefile
  LIB_MAKES = apt-pkg/makefile
  SOURCE = rsh.cc
  include $(PROGRAM_H)
-diff -uNr apt-0.6.43.3/methods/rfc2553emu.h apt-0.6.43.3-new/methods/rfc2553emu.h
 --- apt-0.6.43.3/methods/rfc2553emu.h	2005-10-19 15:19:09.000000000 -0400
-+++ apt-0.6.43.3-new/methods/rfc2553emu.h	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/methods/rfc2553emu.h	2006-03-14 06:50:14.000000000 -0500
 @@ -26,6 +26,11 @@
  #include <sys/types.h>
  #include <sys/socket.h>
  
-+// Always use full emulation on Darwin:
-+//  netdb.h has the structures and constants, but getnameinfo() is missing
-+//  and getaddrinfo() seems to be broken
-+#ifndef __APPLE__
++
++
++
++
 +
  // Autosense getaddrinfo
  #if defined(AI_PASSIVE) && defined(EAI_NONAME)
@@ -1380,7 +1346,7 @@ diff -uNr apt-0.6.43.3/methods/rfc2553emu.h apt-0.6.43.3-new/methods/rfc2553emu.
  #define HAVE_GETNAMEINFO
  #endif
  
-+#endif /* __APPLE__ */
++
 +
  // getaddrinfo support?
  #ifndef HAVE_GETADDRINFO
@@ -1395,9 +1361,8 @@ diff -uNr apt-0.6.43.3/methods/rfc2553emu.h apt-0.6.43.3-new/methods/rfc2553emu.
  
    #define sockaddr_storage sockaddr_in
  #endif
-diff -uNr apt-0.6.43.3/patch_flush apt-0.6.43.3-new/patch_flush
 --- apt-0.6.43.3/patch_flush	1969-12-31 19:00:00.000000000 -0500
-+++ apt-0.6.43.3-new/patch_flush	2006-03-11 12:27:33.000000000 -0500
++++ apt-0.6.43.3-new/patch_flush	2006-03-14 06:50:14.000000000 -0500
 @@ -0,0 +1,11 @@
 +#!/bin/sh
 +set -e

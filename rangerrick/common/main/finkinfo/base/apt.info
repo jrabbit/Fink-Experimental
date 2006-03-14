@@ -2,21 +2,22 @@ Package: apt
 Version: 0.6.43.3
 Revision: 1
 GCC: 3.3
-Depends: apt0.6.40-shlibs (>= %v-%r), gzip, libftw0-shlibs
+Depends: libapt3-shlibs (>= %v-%r), gzip, libftw0-shlibs
 BuildDepends: fink-prebinding, libftw0, libiconv-dev, libgettext3-dev, gettext-tools
-Source: mirror:sourceforge:fink/%n_%v.tar.gz
+#Source: mirror:sourceforge:fink/%n_%v.tar.gz
+Source: http://debian.ethz.ch/debian/pool/main/a/%n/%n_%v.tar.gz
 Source-MD5: 7d607342ffce8ba8705ae7797cb1a15c
 SourceDirectory: %n-%v
 Source2: http://downloads.sleepycat.com/db-4.3.29.tar.gz
-Source2-MD5: 200b9f5d74175875fcb3ee54adbf0007
+Source2-MD5: 13585a20ce32f113b8e8cdb57f52e3bb
 Conflicts: apt-ftparchive
 Replaces: apt-ftparchive
 PatchScript: <<
 #!/bin/sh -ex
- DISTRIBUTION=`grep -i -E '^Distribution:' %p/etc/fink.conf | awk '{ print $2 }'`
- sed -e 's|@PREFIX@|%p|g' -e "s|@DIST@|${DISTRIBUTION}|g" <%a/%n.patch | patch -p1
- sh patch_flush
- for i in `grep -rl '#ifdef __GNUG__' .` ; do perl -pi.bak -e 's/#ifdef __GNUG__/#if defined(__GNUG__) && !defined(__APPLE_CC__)/' $i; done
+	DISTRIBUTION=`grep -i -E '^Distribution:' %p/etc/fink.conf | awk '{ print $2 }'`
+	sed -e 's|@PREFIX@|%p|g' -e "s|@DIST@|${DISTRIBUTION}|g" <%a/%n.patch | patch -p1
+	sh patch_flush
+	for i in `grep -rl '#ifdef __GNUG__' .` ; do perl -pi.bak -e 's/#ifdef __GNUG__/#if defined(__GNUG__) && !defined(__APPLE_CC__)/' $i; done
 <<
 NoSetCPPFLAGS: true
 SetLIBS: -L%p/lib -undefined dynamic_lookup
@@ -25,97 +26,95 @@ SetCXXFLAGS: -O2 -DEMULATE_MMAP -D__USE_MISC -fconstant-cfstrings -g
 CompileScript: <<
 #!/bin/sh -ex
 
- export DBDIR=`pwd`/../db-4.3.28
- pushd $DBDIR/build_unix
- LIBS="" LDFLAGS="" CFLAGS="" CXXFLAGS="" F77=no ../dist/configure --enable-static=yes --enable-shared=no
- make libdb.a
- popd
+	export DBDIR=`pwd`/../db-4.3.29
+	pushd $DBDIR/build_unix
+	LIBS="" LDFLAGS="" CFLAGS="" CXXFLAGS="" F77=no ../dist/configure --enable-static=yes --enable-shared=no
+	make libdb.a
+	popd
 
- export CPPFLAGS="-I$DBDIR/build_unix -I%p/include/ftw"
- export LDFLAGS="-L$DBDIR/build_unix"
- ./configure %c
- make -f makefile.wrap NOISY=1 GLIBC_VER= LIBSTDCPP_VER= INTLLIBS="-L%p/lib -lintl" BDBLIB="$DBDIR/build_unix/libdb.a"
+	export CPPFLAGS="-I$DBDIR/build_unix -I%p/include/ftw"
+	export LDFLAGS="-L$DBDIR/build_unix"
+	./configure %c
+	make -f makefile.wrap NOISY=1 GLIBC_VER= LIBSTDCPP_VER= INTLLIBS="-L%p/lib -lintl" BDBLIB="$DBDIR/build_unix/libdb.a"
 <<
 InstallScript: <<
 #!/bin/sh -ex
 
- install -d -m 755 %i/bin
- install -d -m 755 %i/lib
- install -d -m 755 %i/lib/apt/methods
- install -d -m 755 %i/lib/dpkg/methods/apt
- install -d -m 755 %i/include/apt-pkg
- install -d -m 755 %i/share/man/man{1,5,8}
- install -d -m 755 %i/etc/apt/apt.conf.d
- install -d -m 755 %i/var/cache/apt/archives/partial
- install -d -m 755 %i/var/lib/apt/lists/partial
+	install -d -m 755 %i/bin
+	install -d -m 755 %i/lib
+	install -d -m 755 %i/lib/apt/methods
+	install -d -m 755 %i/lib/dpkg/methods/apt
+	install -d -m 755 %i/include/apt-pkg
+	install -d -m 755 %i/share/man/man{1,5,8}
+	install -d -m 755 %i/etc/apt/apt.conf.d
+	install -d -m 755 %i/var/cache/apt/archives/partial
+	install -d -m 755 %i/var/lib/apt/lists/partial
 
- install -c -m 644 ftparchive-conf %i/etc/apt/apt.conf.d/
+	# binaries
+	install -c -m 755 bin/apt-* %i/bin/
 
- for binfile in cache cdrom config extracttemplates ftparchive get sortpkgs; do
-   install -c -m 755 bin/apt-$binfile %i/bin/
- done
+	# libraries
+	install -c -m 644 bin/libapt-pkg.3.11.0.dylib %i/lib/
+	pushd %i/lib/ && ln -s libapt-pkg.3.11.0.dylib libapt-pkg.3.dylib && ln -s libapt-pkg.3.dylib libapt-pkg.dylib && popd
+	install -c -m 644 bin/libapt-inst.1.1.0.dylib %i/lib/
+	pushd %i/lib/ && ln -s libapt-inst.1.1.0.dylib libapt-inst.3.dylib && ln -s libapt-inst.1.dylib libapt-inst.dylib && popd
 
- install -c -m 644 bin/libapt-pkg.0.6.40.0.dylib %i/lib/
- pushd %i/lib/ && ln -s libapt-pkg.0.6.40.0.dylib libapt-pkg.0.6.40.dylib && ln -s libapt-pkg.0.6.40.0.dylib libapt-pkg.dylib && popd
- install -c -m 644 bin/libapt-inst.0.6.40.0.dylib %i/lib/
- pushd %i/lib/ && ln -s libapt-inst.0.6.40.0.dylib libapt-inst.0.6.40.dylib && ln -s libapt-inst.0.6.40.0.dylib libapt-inst.dylib && popd
+	# methods
+	install -c -m 755 bin/methods/* %i/lib/apt/methods/
+	install -c -m 755 scripts/dselect/* %i/lib/dpkg/methods/apt/
 
- for method in bin/methods/*; do
-  install -c -m 755 $method %i/lib/apt/methods/
- done
+	# man pages
+	for ext in 1 5 8; do
+		for file in doc/*.$ext docs/*.$ext; do
+			install -c -m 644 $file %i/share/man/man$ext/
+		done
+	done
 
- for method in scripts/dselect/*; do
-  install -c $method %i/lib/dpkg/methods/apt/
- done
+	# configuration files
+	install -c -m 644 ftparchive-conf %i/etc/apt/apt.conf.d/
 
- install -c -m 644 include/apt-pkg/*.h %i/include/apt-pkg/
-
- for ext in 1 5 8; do
-  for file in doc/*.$ext docs/*.$ext; do
-   cp -f $file %i/share/man/man$ext/
-  done
- done
-
+	# headers
+	install -c -m 644 include/apt-pkg/*.h %i/include/apt-pkg/
 <<
 SplitOff: <<
-  Package: apt0.6.40-shlibs
-  Depends: dpkg, fink (>= 0.20.6-1), libgettext3-shlibs
-  Replaces: apt-shlibs
-  Files: lib/lib*0.6.40*.dylib
-  Shlibs: <<
-    %p/lib/libapt-pkg.0.6.40.dylib 0.6.40 %n (>= 0.6.40.1-1)
-    %p/lib/libapt-inst.0.6.40.dylib 0.6.40 %n (>= 0.6.40.1-1)
-  <<
-  DocFiles: COPYING* AUTHORS
+	Package: libapt3-shlibs
+	Depends: dpkg, fink (>= 0.20.6-1), libgettext3-shlibs
+	Replaces: apt-shlibs
+	Files: lib/lib*.3*.dylib
+	Shlibs: <<
+		%p/lib/libapt-pkg.3.dylib 3.0.0 libapt3-shlibs (>= 0.6.40.1-1)
+		%p/lib/libapt-inst.3.dylib 3.0.0 libapt3-shlibs (>= 0.6.40.1-1)
+	<<
+	DocFiles: COPYING* AUTHORS
 <<
 SplitOff2: <<
-  Package: apt0.6.40-dev
-  Depends: apt0.6.40-shlibs (>= %v-%r)
-  BuildDependsOnly: true
-  Recommends: libiconv-dev, libgettext3-dev
-  Conflicts: apt-dev
-  Replaces: apt-dev
-  Files: lib/*.dylib include
-  DocFiles: COPYING* AUTHORS
+	Package: libapt3-dev
+	Depends: libapt3-shlibs (>= %v-%r)
+	BuildDependsOnly: true
+	Recommends: libiconv-dev, libgettext3-dev
+	Conflicts: apt-dev
+	Replaces: apt-dev
+	Files: lib/*.dylib include
+	DocFiles: COPYING* AUTHORS
 <<
 DocFiles: COPYING* AUTHORS
 PostInstScript: <<
 if [ ! -f %p/var/lib/dpkg/cmethopt ]; then
-  echo "apt apt" >%p/var/lib/dpkg/cmethopt
-  chmod 644 %p/var/lib/dpkg/cmethopt
+	echo "apt apt" >%p/var/lib/dpkg/cmethopt
+	chmod 644 %p/var/lib/dpkg/cmethopt
 else
-  read a b <%p/var/lib/dpkg/cmethopt
-  if [ "$a" != "apt" -o "$b" != "apt" ]; then
-    echo
-    echo "dselect is not set up to use apt as its access method. Downloading binary"
-    echo -n "package will likely not work. Do you want to use apt instead?"
-    read answer
-    answer=`echo $answer | sed 's/^[yY].*$/y/'`
-    if [ -z "$answer" -o "x$answer" = "xy" ]; then
-      echo "apt apt" >%p/var/lib/dpkg/cmethopt
-      chmod 644 %p/var/lib/dpkg/cmethopt
-    fi
-  fi
+	read a b <%p/var/lib/dpkg/cmethopt
+	if [ "$a" != "apt" -o "$b" != "apt" ]; then
+		echo
+		echo "dselect is not set up to use apt as its access method. Downloading binary"
+		echo -n "package will likely not work. Do you want to use apt instead?"
+		read answer
+		answer=`echo $answer | sed 's/^[yY].*$/y/'`
+		if [ -z "$answer" -o "x$answer" = "xy" ]; then
+			echo "apt apt" >%p/var/lib/dpkg/cmethopt
+			chmod 644 %p/var/lib/dpkg/cmethopt
+		fi
+	fi
 fi
 
 rm -f %p/var/cache/apt/pkgcache.bin %p/var/cache/apt/srcpkgcache.bin
