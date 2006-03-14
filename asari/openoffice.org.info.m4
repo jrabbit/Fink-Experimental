@@ -419,12 +419,7 @@ CompileScript: <<
   esac
 
   # Create a log file
-  tmpdir=`/sw/sbin/mktemp -d /tmp/fink-ooo.XXXXXX`
-  test -n "$tmpdir"
-  trap 'rm -rf "$tmpdir"' 0
-  /usr/bin/mkfifo "$tmpdir/log"
-  /usr/bin/tee -i %n-%v-%r.buildlog < "$tmpdir/log" &
-  exec 3>"$tmpdir/log"
+  exec 3> >(/usr/bin/tee -i %n-%v-%r.buildlog)
 
   # $X_LDFLAGS is needed to configure with X correctly.  
   export X_LDFLAGS=$LDFLAGS
