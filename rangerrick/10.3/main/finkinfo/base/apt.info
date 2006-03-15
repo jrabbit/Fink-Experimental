@@ -1,21 +1,17 @@
 Package: apt
 Version: 0.6.43.3
-Revision: 12
+Revision: 13
 Description: Advanced front-end for dpkg
 License: GPL
 Maintainer: Fink Core Group <fink-core@lists.sourceforge.net>
 
 Depends: libapt3-shlibs (>= %v-%r), gzip, libftw0-shlibs
 BuildDepends: fink-prebinding, libftw0, libiconv-dev, gettext-dev
-Conflicts: apt-ftparchive
-Replaces: apt-ftparchive
 GCC: 3.3
 
 Source: http://debian.ethz.ch/debian/pool/main/a/%n/%n_%v.tar.gz
-Source2: http://downloads.sleepycat.com/db-4.4.20.NC.tar.gz
 SourceDirectory: %n-%v
 Source-MD5: 7d607342ffce8ba8705ae7797cb1a15c
-Source2-MD5: afd9243ea353bbaa04421488d3b37900
 PatchScript: <<
 	#!/bin/sh -ex
 	DISTRIBUTION=`grep -i -E '^Distribution:' %p/etc/fink.conf | awk '{ print $2 }'`
@@ -31,16 +27,9 @@ NoSetLDFLAGS: true
 CompileScript: <<
 #!/bin/sh -ex
 
-	export DBDIR=`pwd`/../db-4.4.20.NC
-	pushd $DBDIR/build_unix
-	LIBS="" LDFLAGS="" CFLAGS="" CXXFLAGS="" F77=no ../dist/configure --enable-static=yes --enable-shared=no
-	make libdb.a
-	popd
-
-	export CPPFLAGS="-I$DBDIR/build_unix -I%p/include/ftw"
-	export LDFLAGS="-L$DBDIR/build_unix"
+	export CPPFLAGS="-I%p/include/ftw"
 	./configure %c
-	make -f makefile.wrap NOISY=1 GLIBC_VER= LIBSTDCPP_VER= INTLLIBS="-L%p/lib -lintl" BDBLIB="$DBDIR/build_unix/libdb.a"
+	make -f makefile.wrap NOISY=1 GLIBC_VER= LIBSTDCPP_VER= INTLLIBS="-L%p/lib -lintl"
 <<
 
 InstallScript: <<
@@ -75,9 +64,6 @@ InstallScript: <<
 			install -c -m 644 $file %i/share/man/man$ext/
 		done
 	done
-
-	# configuration files
-	install -c -m 644 ftparchive-conf %i/etc/apt/apt.conf.d/
 
 	# headers
 	install -c -m 644 include/apt-pkg/*.h %i/include/apt-pkg/
@@ -168,7 +154,6 @@ See: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=323716
 dmacks - Implemented "--ignore-breakage" cmdline flag to 'apt-get install'
 (first appears in: 10.2-gcc3.3/0.5.4-41, 10.3/0.5.4-51)
 
-rangerrick -- Updated everything to 0.6.41, including enabling
-ftparchive.  Be afraid!
+rangerrick -- Updated everything to 0.6.41
 <<
 
