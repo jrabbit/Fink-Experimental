@@ -27,7 +27,8 @@ my $translate = '(openexr|gst.*0.10.*|gstreamer|gst-plugins|kde|postgres|libpq|l
 
 my $package_lookup = {
 	'10.3' => {
-		'^libxine1(\S*)$'      => 'libxine$1',
+		'^libxine1$'           => 'libxine',
+		'^libxine1-shlibs$'    => 'libxine-shlibs',
 		'^fontconfig2-shlibs$' => undef,
 		'^libicu32-dev$'       => undef,
 	},
