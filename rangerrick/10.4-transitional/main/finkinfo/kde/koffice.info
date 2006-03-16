@@ -1,13 +1,12 @@
 Package: koffice
-Version: 1.4.2
-Revision: 23
+Version: 1.4.95
+Revision: 21
 Description: KDE - office suite
 License: GPL/LGPL
 Maintainer: Benjamin Reed <koffice@fink.racoonfink.com>
 
 Depends: karbon (>= %v-%r), kchart (>= %v-%r), kexi (>= %v-%r), kformula (>= %v-%r), kivio (>= %v-%r), kpresenter (>= %v-%r), krita (>= %v-%r), kspread (>= %v-%r), kugar (>= %v-%r), kword (>= %v-%r)
-BuildDepends: arts-dev (>= 1.4.3-21), aspell, aspell-dev, audiofile, autoconf2.5 (>= 2.59-1), automake1.7, cctools (>= 446-1) | cctools-single-module, esound, fink (>= 0.12.1-1), freetype219, libgettext3-dev, gettext-tools, glib2 (>= 2.2.1-4), glib2-dev (>= 2.2.1-4), imagemagick-dev | imagemagick-nox-dev, kdelibs3-unified-dev (>= 3.4.3-21), lcms, libart2, libgsf-dev, libiconv-dev, libidn, libjpeg, libogg, libpaper1-dev, libpng3 (>= 1.2.5-4), libpqxx2-dev, libtiff, libtool14, libvorbis0, libwpd-0.8-dev, libxml2 (>= 2.5.2-1), libxslt (>= 1.0.27-1), libmad, mysql14-dev, pcre, postgresql81-dev, python24, qt3 (>= 3.3.5-26), sqlite3-dev, wv2 (>= 0.2.1-1), x11-dev
-BuildConflicts: unsermake
+BuildDepends: arts-dev (>= 1.4.3-21), aspell, aspell-dev, audiofile, autoconf2.5 (>= 2.59-1), cctools (>= 446-1) | cctools-single-module, esound, fink (>= 0.12.1-1), freetype219, libgettext3-dev, gettext-tools, glib2 (>= 2.2.1-4), glib2-dev (>= 2.2.1-4), imagemagick-dev | imagemagick-nox-dev, kdelibs3-unified-dev (>= 3.4.3-21), lcms, libart2, libexif12, libgsf-dev, libiconv-dev, libidn, libjpeg, libogg, libpaper1-dev, libpng3 (>= 1.2.5-4), libpqxx2-dev, libtiff, libtool14, libvorbis0, libwpd-0.8-dev, libxml2 (>= 2.5.2-1), libxslt (>= 1.0.27-1), libmad, mysql14-dev, pcre, postgresql81-dev, python24, qt3 (>= 3.3.5-26), ruby18-dev, sqlite3-dev, wv2 (>= 0.2.1-1), x11-dev, unsermake (>= 0.4-0.20060312.1)
 Replaces: %N-common (<< %v-%r), %N-dev (<< %v-%r)
 GCC: 3.3
 
@@ -16,22 +15,20 @@ CustomMirror: <<
 	nam-US: http://astrange.ithinksw.net/~astrange/ranger-fink
 	nam-CA: http://www.southofheaven.net/befunk
 <<
-Source: mirror:kde:stable/%n-%v/src/%n-%v.tar.bz2
-Source2: mirror:custom:kde-admindir-3.5.1.tar.bz2
+Source: mirror:kde:unstable/%n-1.5-beta2/src/%n-%v.tar.bz2
+Source2: mirror:custom:kde-admindir-full-3.5.1-3.tar.bz2
 SourceDirectory: %n-%v
 Source2ExtractDir: %n-%v
-Source-MD5: 6b456fb7d54c84b11396b27a96ae0cf8
-Source2-MD5: b6115a7310f8e8533af91be02e225d0e
+Source-MD5: ddeca5c989e892baf4871a443fd2daea
+Source2-MD5: 84ea223bf500b68b3713d8744bd1567a
 PatchScript: <<
 	sed -e 's,@FINKPREFIX@,%p,g' %a/%n.patch | patch -p1 
 	perl -pi.bak -e 's,-O2,-Os,g; s,doc/HTML,doc/kde,g; s,/usr/share/doc/packages/qt3/html,%p/share/doc/qt3/html,g;' admin/*
 <<
 
-SetMAKEFLAGS: -j1
 NoSetCPPFLAGS: true
 NoSetLDFLAGS: true
-NoSetMAKEFLAGS: true
-ConfigureParams: --includedir=%p/include --libdir=%p/lib --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt --with-extra-libs=%p/lib --with-extra-includes=%p/include --enable-mt --with-pic --enable-rpath --enable-shared=yes --enable-static=no --mandir=%i/share/man --with-xinerama --with-pam --disable-final --enable-mysql --with-mysql-includes=%p/include/mysql --with-mysql-libraries=%p/lib --enable-pgsql --with-pgsqlincdir=%p/include/postgresql --with-pgsqllibdir=%p/lib --with-pqxxincdir=%p/include/postgresql --with-pqxxlibdir=%p/lib --with-distribution='Fink/Mac OS X' --disable-dependency-tracking
+ConfigureParams: --enable-mysql --enable-pgsql --with-pgsqlincdir=%p/include/postgresql --with-pgsqllibdir=%p/lib --with-pqxx-includes=%p/include --with-pqxx-libraries=%p/lib --with-distribution='Fink/Mac OS X'
 CompileScript: <<
 #!/bin/sh -e
 
@@ -42,9 +39,15 @@ CompileScript: <<
 
 	export CC=gcc-3.3 CXX=g++-3.3
 
+	CONFIGURE_PARAMS=`echo $CONFIGURE_PARAMS | sed -e 's,--disable-dependency-tracking,,'`
+
 	./build-helper.sh cvs       %N %v %r make -f admin/Makefile.common cvs
-	./build-helper.sh configure %N %v %r ./configure %c
-	./build-helper.sh make      %N %v %r make all all_libraries="$ALL_LIBRARIES" PQXX_INCDIR="%p/include/postgresql"
+	./build-helper.sh configure %N %v %r ./configure %c $CONFIGURE_PARAMS
+
+	# why does this work??
+	find . -name \*.h | xargs touch
+
+	./build-helper.sh make      %N %v %r unsermake USE_EXCEPTIONS="-fexceptions -fno-coalesce"
 <<
 
 InstallScript: <<
@@ -53,7 +56,7 @@ InstallScript: <<
 	export PREFIX="%p"
 	. ./environment-helper.sh
 
-	./build-helper.sh install %N %v %r make -j1 install DESTDIR=%d all_libraries="$ALL_LIBRARIES" PQXX_INCDIR="%p/include/postgresql"
+	./build-helper.sh install %N %v %r unsermake install DESTDIR="%d"
 
 	mkdir -p %i/share/doc/installed-packages
 	touch %i/share/doc/installed-packages/%N
@@ -253,7 +256,7 @@ remove all of the kdenetwork3 packages, run:
 SplitOff11: <<
 	Package: %N-shlibs
 	Description: KDE - shared libraries for KOffice
-	Depends: %N-base (>= %v-%r)
+	Depends: %N-base (>= %v-%r), ruby18-shlibs
 	Replaces: %N-common, karbon, kchart, kexi, kformula, kivio, kpresenter, krita, kspread, kugar, kword
 	Files: <<
 		lib/kde3
@@ -336,7 +339,6 @@ SplitOff12: <<
 		lib/libkexirelationsview.dylib
 		lib/libkexisql2.dylib
 		lib/libkexisql3.dylib
-		lib/libkformdesigner.dylib
 		lib/libkformulalib.dylib
 		lib/libkiviocommon.dylib
 		lib/libkochart.dylib
@@ -347,6 +349,7 @@ SplitOff12: <<
 		lib/libkotext.dylib
 		lib/libkowmf.dylib
 		lib/libkritacommon.dylib
+		lib/libkross.dylib
 		lib/libkspreadcommon.dylib
 		lib/libkstore.dylib
 		lib/libkugarlib.dylib
@@ -683,21 +686,15 @@ SplitOff3: <<
 	Replaces: %N-common (<< %v-%r)
 	Files: <<
 		bin/kexi*
-		bin/kformdesigner
 		bin/ksqlite*
-		lib/kde3/containers.*
 		lib/kde3/kexi.*
 		lib/kde3/kexidb*
 		lib/kde3/kexihandler*
 		lib/kde3/keximigrate*
-		lib/kde3/libkformdesigner*
 		lib/kde3/stdwidgets.*
 		lib/libkdeinit_kexi*
-		share/applications/kde/kformdesigner*
 		share/applications/kde/kexi.*
-		share/apps/kformdesigner_part
 		share/apps/kexi
-		share/apps/kformdesigner
 		share/apps/konqueror/servicemenus/kexi*
 		share/config/kexi*
 		share/config/magic/kexi*
@@ -711,7 +708,6 @@ SplitOff3: <<
 		share/icons/hicolor/scalable/apps/kexi*
 		share/mimelnk/application/x-kexiproject*
 		share/services/kexi*
-		share/services/kformdesigner*
 		share/servicetypes/kexi*
 		share/servicetypes/widgetfactory.*
 	<<
@@ -1070,7 +1066,7 @@ remove all of the kdenetwork3 packages, run:
 SplitOff7: <<
 	Package: krita
 	Description: KDE - a pixel-based image manipulation program
-	Depends: %N-common (>= %v-%r)
+	Depends: %N-common (>= %v-%r), libexif12-shlibs
 	Replaces: %N-common (<< %v-%r)
 	Files: <<
 		bin/krita
