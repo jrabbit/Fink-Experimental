@@ -168,8 +168,7 @@ END
 
 	cat <<END > %i/etc/profile.d/distcc.sh
 #### DO NOT EDIT BELOW HERE ####
-mkdir -p "%p/var/cache/distcc/\`id -u\`"
-DISTCC_DIR="%p/var/cache/distcc/\`id -u \`"
+mkdir -p "%p/var/cache/distcc/\`id -u\`" && export DISTCC_DIR="%p/var/cache/distcc/\`id -u \`"
 
 grep -q -E '^ *DISTCC_TRANS' %p/etc/distcc.conf    && export DISTCC_TRANS=\`grep DISTCC_TRANS %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\` || :
 grep -q -E '^ *DISTCC_DIR' %p/etc/distcc.conf      && export DISTCC_DIR=\`grep DISTCC_DIR %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\` || :
@@ -182,8 +181,7 @@ grep -q -E '^ *MAKEFLAGS' %p/etc/distcc.conf       && export MAKEFLAGS=\`grep MA
 END
 	cat <<END > %i/etc/profile.d/distcc.csh
 #### DO NOT EDIT BELOW HERE ####
-mkdir -p "%p/var/cache/distcc/\`id -u\`"
-setenv DISTCC_DIR "%p/var/cache/distcc/\`id -u\`"
+mkdir -p "%p/var/cache/distcc/\`id -u\`" && setenv DISTCC_DIR "%p/var/cache/distcc/\`id -u\`"
 
 grep -q -E '^ *DISTCC_TRANS' %p/etc/distcc.conf    && setenv DISTCC_TRANS \`grep DISTCC_TRANS %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\` || :
 grep -q -E '^ *DISTCC_DIR' %p/etc/distcc.conf      && setenv DISTCC_DIR \`grep DISTCC_DIR %p/etc/distcc.conf | grep -v '^ *#' | tr -d \'\" | cut -d= -f2\` || :
@@ -222,8 +220,8 @@ SplitOff: <<
 <<
 
 PostInstScript: <<
-	mkdir -p %p/var/cache/distcc
-	chmod 1777 %p/var/cache/distcc
+	mkdir -p %p/var/cache/distcc >/dev/null 2>&1 || :
+	chmod 1777 %p/var/cache/distcc >/dev/null 2>&1 || :
 <<
 ConfFiles: %p/etc/distcc.conf %p/etc/distccd.conf
 DaemonicFile: <<
