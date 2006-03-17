@@ -11,20 +11,20 @@ SourceDirectory: %n-%v
 PatchScript: <<
 #!/bin/sh -ex
 	DISTRIBUTION=`grep -i -E '^Distribution:' %p/etc/fink.conf | awk '{ print $2 }'`
-	sed -e 's|@PREFIX@|%p|g' -e "s|@DIST@|${DISTRIBUTION}|g" <%a/%n.patch | patch -p1
+	sed -e 's|@PREFIX@|%p|g' -e "s|@DIST@|${DISTRIBUTION}|g" <%a/%n.patch | patch -p0
 	sh patch_flush
 	for i in `grep -rl '#ifdef __GNUG__' .` ; do perl -pi.bak -e 's/#ifdef __GNUG__/#if defined(__GNUG__) && !defined(__APPLE_CC__)/' $i; done
+	find doc -type f | xargs perl -pi -e 's,/usr,%p,g; s,/var,%p/var,g; s,/etc/(?!fstab),\@PREFIX\@/etc/$1,g;'
 <<
-NoSetCPPFLAGS: true
-SetLIBS: -L%p/lib -undefined dynamic_lookup
-NoSetLDFLAGS: true
+SetLIBS: -undefined dynamic_lookup
 SetCXXFLAGS: -O2 -DEMULATE_MMAP -D__USE_MISC -fconstant-cfstrings -g
 CompileScript: <<
 #!/bin/sh -ex
 
-	export CPPFLAGS="-I%p/include/ftw"
+	export CPPFLAGS="-I%p/include/ftw -I%b/include $CPPFLAGS"
+	export LDFLAGS="-L%b/bin $LDFLAGS"
 	./configure %c
-	make -f makefile.wrap NOISY=1 GLIBC_VER= LIBSTDCPP_VER= INTLLIBS="-L%p/lib -lintl"
+	make -f makefile.wrap NOISY=1 GLIBC_VER= LIBSTDCPP_VER= INTLLIBS='-L%p/lib -lintl'
 <<
 InstallScript: <<
 #!/bin/sh -ex
