@@ -151,7 +151,7 @@ my $version_lookup = {
 		'^python24-socket-ssl$'                     => [ '2.4.2',        '1101' ],
 		'^qca(-shlibs)?$'                           => [ '1.0',          '1023' ],
 		'^qcad$'                                    => [ '2.0.1.3-1',    '1002' ],
-		'^qt3(-.+)?$'                               => [ '3.3.5',        '1026' ],
+		'^qt3(-.+)?$'                               => [ '3.3.6',        '1022' ],
 		'^qt3mac(-mysql|-postgresql)?$'             => [ '3.3.5',        '1001' ],
 		'^r-base$'                                  => [ '2.1.1',        '1001' ],
 		'^readline(-shlibs)?$'                      => [ '4.3',          '1028' ],
@@ -175,12 +175,12 @@ my $version_lookup = {
 	},
 	'10.4-transitional' => {
 		'^mjpegtools2?(-dev|-shlibs)?$'             => [ '1.6.2',        '3'    ],
-		'^qt3(-.+)?$'                               => [ '3.3.5',        '26'   ],
+		'^qt3(-.+)?$'                               => [ '3.3.6',        '22'   ],
 		'^macosx$'                                  => [ '10.4.3',       '1'    ],
 	},
 	'10.3' => {
 		'^mjpegtools2?(-dev|-shlibs)?$'             => [ '1.6.2',        '3'    ],
-		'^qt3(-.+)?$'                               => [ '3.3.5',        '16'   ],
+		'^qt3(-.+)?$'                               => [ '3.3.6',        '12'   ],
 		'^macosx$'                                  => [ '10.3.0',       '1'    ],
 	},
 	'all' => {
@@ -466,6 +466,8 @@ sub transform_patch {
 		$text =~ s/g(cc|\+\+)-3\.3/g$1-4.0/gi;
 	}
 
+	$text =~ s/(^|[\r\n]+)diff -uN[^\r\n]*//gs;
+
 	return $text;
 }
 
@@ -584,7 +586,7 @@ sub transform_gcc {
 sub transform_type {
 	my $tree = shift->{'Tree'};
 	my $type = shift;
-	if ($type =~ /^perl/i) {
+	if ($type =~ /^perl\s*\(/i) {
 		my @versions = qw(5.6.0 5.6.1 5.8.0 5.8.1 5.8.4 5.8.5 5.8.6);
 		if ($tree =~ /^10.3/) {
 			@versions = qw(5.6.0 5.8.0 5.8.1 5.8.4 5.8.6);
@@ -592,7 +594,7 @@ sub transform_type {
 			@versions = qw(5.8.1 5.8.4 5.8.6);
 		}
 		$type = "perl(@versions)";
-	} elsif ($type =~ /^python/i) {
+	} elsif ($type =~ /^python\s*\(/i) {
 		my @versions = qw(2.1 2.2 2.3 2.4);
 		if ($tree =~ /^10.3/) {
 			@versions = qw(2.1 2.2 2.3 2.4);
