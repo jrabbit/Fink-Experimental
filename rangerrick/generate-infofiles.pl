@@ -119,7 +119,7 @@ my $version_lookup = {
 		'^libsigc..12(-shlibs)?$'                   => [ '1.2.5',        '1002' ],
 		'^libsigc..2(-shlibs)?$'                    => [ '2.0.11',       '1003' ],
 		'^libtunepimp2(-shlibs)?$'                  => [ '0.3.0',        '1001' ],
-		'^libusb(-shlibs)?$'                        => [ '0.1.8',        '1014' ],
+		'^libusb(-shlibs)?$'                        => [ '0.1.8',        '1015' ],
 		'^libwpd-0.8(-shlibs)?$'                    => [ '0.8.2',        '1001' ],
 		'^libwpd1(-shlibs)?$'                       => [ '0.7.2',        '1011' ],
 		'^libxml..2(-shlibs)?$'                     => [ '2.10.0',       '1001' ],
@@ -174,11 +174,13 @@ my $version_lookup = {
 		'^macosx$'                                  => [ '10.4.3',       '1'    ],
 	},
 	'10.4-transitional' => {
+		'^libusb(-shlibs)?$'                        => [ '0.1.8',        '15'   ],
 		'^mjpegtools2?(-dev|-shlibs)?$'             => [ '1.6.2',        '3'    ],
 		'^qt3(-.+)?$'                               => [ '3.3.6',        '22'   ],
 		'^macosx$'                                  => [ '10.4.3',       '1'    ],
 	},
 	'10.3' => {
+		'^libusb(-shlibs)?$'                        => [ '0.1.8',        '15'   ],
 		'^mjpegtools2?(-dev|-shlibs)?$'             => [ '1.6.2',        '3'    ],
 		'^qt3(-.+)?$'                               => [ '3.3.6',        '12'   ],
 		'^macosx$'                                  => [ '10.3.0',       '1'    ],
