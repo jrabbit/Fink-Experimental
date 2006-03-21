@@ -187,6 +187,7 @@ my $version_lookup = {
 	},
 	'all' => {
 		'^arts(-dev|-shlibs)?$'                     => [ undef,          '+'    ],
+		'^gnokii2(-dev|-shlibs)?$'                  => [ '0.6.12',       '1'    ],
 		'^kde\S+(i18n|3|3-unified)(-dev|-shlibs)?$' => [ undef,          '+'    ],
 #		'^qt3(-.+)?$'                               => [ undef,          '+'    ],
 		'^postgresql\S+$'                           => [ undef,          '+'    ],
