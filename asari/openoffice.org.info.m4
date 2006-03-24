@@ -110,7 +110,6 @@ dnl ### Body ###
 Description: Integrated office productivity suite
 Version: ]FINKVERSION[
 Revision: ]REVISION[]REVISION_SUFFIX[
-Type: java(1.4)
 License: LGPL
 Maintainer: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>
 
@@ -327,7 +326,7 @@ ConfigureParams: <<
   --disable-epm \
   --with-lang=ALL \
   --with-x --x-includes=/usr/X11R6/include --x-libraries=/usr/X11R6/lib \
-  --with-jdk-home="$JAVA_HOME" --with-ant-home=%p/lib/ant \
+  --with-jdk-home=/Library/Java/Home --with-ant-home=%p/lib/ant \
   --disable-crashdump \
   --with-build-version="%v-%r; Built with Fink <http://fink.sourceforge.net>" \
   --enable-libart \
