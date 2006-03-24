@@ -1,0 +1,61 @@
+Package: glui
+Version: 2.2
+Revision: 1
+GCC: 4.0
+Maintainer: Benjamin Reed <glui@fink.racoonfink.com>
+Source: mirror:sourceforge:glui/glui_v2_2.tgz
+Source-MD5: 2f14c1aaf0b295b3370e10bc6fefbcf9
+Conflicts: glui-aqua
+Replaces: glui-aqua
+Depends: %N-shlibs (>= %v-%r)
+BuildDepends: glut (>= 3.7-1025)
+PatchScript: <<
+	sed 's|@prefix@|%p|g' <%a/%n.patch | patch -p1
+<<
+CompileScript: make
+InstallScript: <<
+#!/bin/sh -ev
+	mkdir -p %i/include
+	mkdir -p %i/lib
+	ranlib libglui.a
+	(c++ -dynamiclib -o libglui.2.2.dylib -install_name %p/lib/libglui.2.dylib -compatibility_version 2 -current_version 2.2 -all_load libglui.a -L%p/lib -lglut -L/usr/X11R6/lib -lGL -lGLU)
+	install -c libglui.a libglui.2.2.dylib %i/lib
+	install -c -m 644 glui.h %i/include
+	(cd %i/lib && ln -s libglui.2.2.dylib libglui.2.dylib && ln -s libglui.2.2.dylib libglui.dylib)
+
+	install -d -m 755 %i/lib/pkgconfig
+	cat <<END >%i/lib/pkgconfig/glui.pc
+prefix=%p
+exec_prefix=\${prefix}
+libdir=\${exec_prefix}/lib
+includedir=\${prefix}/include
+   
+Name: glui
+Description: an OpenGL UI toolkit
+Version: %v
+Libs: -L\${libdir} -L/usr/X11R6/lib -lglui -lGL -lGLU
+Cflags: -I\${includedir} -I/usr/X11R6/include
+END
+<<
+DocFiles: readme.txt
+BuildDependsOnly: True
+SplitOff: <<
+	Package: %N-shlibs
+	Depends: glut-shlibs (>= 3.7-1025)
+	Files: lib/libglui.2.2.dylib lib/libglui.2.dylib
+	Shlibs: %p/lib/libglui.2.dylib 2.1.0 %n (>= 2.1-16)
+	DocFiles: readme.txt
+<<
+Description: GLUT-based C++ interface library
+DescDetail: <<
+GLUI is a GLUT-based C++ user interface library which provides
+controls such as buttons, checkboxes, radio buttons, and spinners to
+OpenGL applications.  It is window-system independent, relying on GLUT
+to handle all system-dependent issues, such as window and mouse
+management.
+<<
+DescPackaging: <<
+	Originally packaged by Matt Stephenson.
+<<
+License: LGPL
+Homepage: http://glui.sourceforge.net/

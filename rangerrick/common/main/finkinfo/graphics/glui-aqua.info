@@ -1,0 +1,77 @@
+Package: glui-aqua
+Version: 2.2
+Revision: 1
+GCC: 4.0
+Maintainer: Benjamin Reed <glui-aqua@fink.racoonfink.com>
+Source: mirror:sourceforge:glui/glui_v2_2.tgz
+Source-MD5: 2f14c1aaf0b295b3370e10bc6fefbcf9
+Patch: %n.patch
+Conflicts: glui
+Replaces: glui
+Depends: %N-shlibs
+CompileScript: <<
+#!/bin/sh -ev
+	mkdir GL
+	ln -s /System/Library/Frameworks/OpenGL.framework/Headers/* GL/
+	ln -s /System/Library/Frameworks/GLUT.framework/Headers/* GL/
+	make lib/libglui.a
+	ranlib lib/libglui.a
+	c++ -dynamiclib -o libglui-aqua.2.2.dylib -install_name %p/lib/libglui-aqua.2.dylib \
+		-compatibility_version 2 -current_version 2.2 -all_load lib/libglui.a \
+		-Wl,-framework,OpenGL -Wl,-framework,GLUT
+<<
+InstallScript: <<
+#!/bin/sh -ev
+
+	install -d -m 755 %i/include
+	install -d -m 755 %i/lib
+
+	install -c -m 644 glui.h %i/include
+
+	install -c -m 644 lib/libglui.a %i/lib/libglui-aqua.a
+	install -c -m 644 libglui-aqua.2.2.dylib %i/lib
+	pushd %i/lib
+		ln -s libglui-aqua.2.2.dylib libglui-aqua.2.dylib
+		ln -s libglui-aqua.2.dylib libglui-aqua.dylib
+		ln -s libglui-aqua.dylib libglui.dylib
+		ln -s libglui-aqua.a libglui.a
+	popd
+
+	install -d -m 755 %i/lib/pkgconfig
+	cat <<END >%i/lib/pkgconfig/glui.pc
+prefix=%p
+exec_prefix=\${prefix}
+libdir=\${exec_prefix}/lib
+includedir=\${prefix}/include
+
+Name: glui
+Description: an OpenGL UI toolkit
+Version: %v
+Libs: -L\${libdir}  -lglui-aqua
+Cflags: -I\${includedir} 
+END
+<<
+
+SplitOff: <<
+	Package: %N-shlibs
+	Files: lib/libglui-aqua.*.dylib
+	Shlibs: <<
+		%p/lib/libglui-aqua.2.dylib 2.0.0 %n (>= 2.2-1)
+	<<
+<<
+
+DocFiles: readme.txt
+BuildDependsOnly: True
+Description: GLUT-based C++ interface library (Aqua Version)
+DescDetail: <<
+GLUI is a GLUT-based C++ user interface library which provides
+controls such as buttons, checkboxes, radio buttons, and spinners to
+OpenGL applications.  It is window-system independent, relying on GLUT
+to handle all system-dependent issues, such as window and mouse
+management.
+<<
+DescPackaging: <<
+ Originally packaged by Matt Stephenson.
+<<
+License: LGPL
+Homepage: http://glui.sourceforge.net/
