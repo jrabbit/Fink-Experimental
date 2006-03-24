@@ -594,7 +594,7 @@ sub transform_gcc {
 sub transform_type {
 	my $tree = shift->{'Tree'};
 	my $type = shift;
-	if ($type =~ /^perl\s*\(\s*\)/i) {
+	if ($type =~ /^perl-replace/i) {
 		my @versions = qw(5.6.0 5.6.1 5.8.0 5.8.1 5.8.4 5.8.5 5.8.6);
 		if ($tree =~ /^10.3/) {
 			@versions = qw(5.6.0 5.8.0 5.8.1 5.8.4 5.8.6);
@@ -602,7 +602,7 @@ sub transform_type {
 			@versions = qw(5.8.1 5.8.4 5.8.6);
 		}
 		$type = "perl(@versions)";
-	} elsif ($type =~ /^python\s*\(\s*\)/i) {
+	} elsif ($type =~ /^python-replace/i) {
 		my @versions = qw(2.1 2.2 2.3 2.4);
 		if ($tree =~ /^10.3/) {
 			@versions = qw(2.2 2.3 2.4);
