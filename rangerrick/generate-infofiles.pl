@@ -191,6 +191,7 @@ my $version_lookup = {
 	'all' => {
 		'^arts(-dev|-shlibs)?$'                     => [ undef,          '+'    ],
 		'^gnokii2(-dev|-shlibs)?$'                  => [ '0.6.12',       '1'    ],
+		'^gtk-doc$'                                 => [ '1.5',          '1'    ],
 		'^kde\S+(i18n|3|3-unified)(-dev|-shlibs)?$' => [ undef,          '+'    ],
 		'^libcdparanoia0-dev$'                      => [ '3a9.8',        '11'   ],
 #		'^qt3(-.+)?$'                               => [ undef,          '+'    ],
@@ -593,7 +594,7 @@ sub transform_gcc {
 sub transform_type {
 	my $tree = shift->{'Tree'};
 	my $type = shift;
-	if ($type =~ /^perl\s*\(/i) {
+	if ($type =~ /^perl\s*\(\s*\)/i) {
 		my @versions = qw(5.6.0 5.6.1 5.8.0 5.8.1 5.8.4 5.8.5 5.8.6);
 		if ($tree =~ /^10.3/) {
 			@versions = qw(5.6.0 5.8.0 5.8.1 5.8.4 5.8.6);
@@ -601,12 +602,12 @@ sub transform_type {
 			@versions = qw(5.8.1 5.8.4 5.8.6);
 		}
 		$type = "perl(@versions)";
-	} elsif ($type =~ /^python\s*\(/i) {
+	} elsif ($type =~ /^python\s*\(\s*\)/i) {
 		my @versions = qw(2.1 2.2 2.3 2.4);
 		if ($tree =~ /^10.3/) {
-			@versions = qw(2.1 2.2 2.3 2.4);
-		} elsif ($tree =~ /^10.4/) {
 			@versions = qw(2.2 2.3 2.4);
+		} elsif ($tree =~ /^10.4/) {
+			@versions = qw(2.3 2.4);
 		}
 		$type = "python(@versions)";
 	}
