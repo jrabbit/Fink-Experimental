@@ -73,24 +73,6 @@
  #else
  #  undef QT_MAKEDLL		/* ignore these for other platforms */
  #  undef QT_DLL
---- qt-x11-free-3.3.6/include/qprogressbar.h	2006-03-08 11:47:58.000000000 -0500
-+++ qt-x11-free-3.3.6-new/include/qprogressbar.h	2006-03-19 19:02:19.000000000 -0500
-@@ -61,6 +61,7 @@
- public:
-     QProgressBar( QWidget* parent=0, const char* name=0, WFlags f=0 );
-     QProgressBar( int totalSteps, QWidget* parent=0, const char* name=0, WFlags f=0 );
-+    virtual ~QProgressBar();
- 
-     int		totalSteps() const;
-     int		progress()   const;
-@@ -91,6 +92,7 @@
-     virtual bool setIndicator( QString & progress_str, int progress,
- 			       int totalSteps );
-     void styleChange( QStyle& );
-+    bool requireRepaint( int newProgress ) const;
- 
- private:
-     int		total_steps;
 --- qt-x11-free-3.3.6/mkspecs/darwin-g++/qmake.conf	2006-03-08 11:48:20.000000000 -0500
 +++ qt-x11-free-3.3.6-new/mkspecs/darwin-g++/qmake.conf	2006-03-20 10:03:17.000000000 -0500
 @@ -9,10 +9,10 @@
@@ -266,18 +248,6 @@
  			    arglistQ[0] = fileInfo.absFilePath().local8Bit();
  #else
  			    arglistQ[0] = fileInfo.filePath().local8Bit();
---- qt-x11-free-3.3.6/src/kernel/qwidget_x11.cpp	2006-03-08 11:47:47.000000000 -0500
-+++ qt-x11-free-3.3.6-new/src/kernel/qwidget_x11.cpp	2006-03-19 19:02:19.000000000 -0500
-@@ -2671,6 +2671,9 @@
- 
- void QWidget::createInputContext()
- {
-+    if( !isInputMethodEnabled() || QApplication::closingDown() )
-+	return;
-+
-     QWidget *tlw = topLevelWidget();
-     QTLWExtra *topdata = tlw->topData();
- 
 --- qt-x11-free-3.3.6/src/moc/moc.pro	2003-10-31 09:36:28.000000000 -0500
 +++ qt-x11-free-3.3.6-new/src/moc/moc.pro	2006-03-19 19:02:19.000000000 -0500
 @@ -48,6 +48,8 @@
@@ -459,55 +429,6 @@
  	unix:SOURCES += $$TOOLS_CPP/qlibrary_unix.cpp
  
  	SOURCES += $$TOOLS_CPP/qbitarray.cpp \
---- qt-x11-free-3.3.6/src/widgets/qprogressbar.cpp	2006-03-08 11:47:58.000000000 -0500
-+++ qt-x11-free-3.3.6-new/src/widgets/qprogressbar.cpp	2006-03-19 19:02:19.000000000 -0500
-@@ -105,7 +105,6 @@
-     initFrame();
- }
- 
--
- /*!
-     Constructs a progress bar.
- 
-@@ -136,6 +135,9 @@
-     initFrame();
- }
- 
-+QProgressBar::~QProgressBar()
-+{
-+}
- 
- /*!
-     Reset the progress bar. The progress bar "rewinds" and shows no
-@@ -318,6 +320,10 @@
-     QFrame::styleChange( old );
- }
- 
-+bool QProgressBar::requireRepaint( int newProgress ) const
-+{
-+    return false;
-+}
- 
- /*!
-     This method is called to generate the text displayed in the center
---- qt-x11-free-3.3.6/src/widgets/qprogressbar.h	2006-03-08 11:47:58.000000000 -0500
-+++ qt-x11-free-3.3.6-new/src/widgets/qprogressbar.h	2006-03-19 19:02:19.000000000 -0500
-@@ -61,6 +61,7 @@
- public:
-     QProgressBar( QWidget* parent=0, const char* name=0, WFlags f=0 );
-     QProgressBar( int totalSteps, QWidget* parent=0, const char* name=0, WFlags f=0 );
-+    virtual ~QProgressBar();
- 
-     int		totalSteps() const;
-     int		progress()   const;
-@@ -91,6 +92,7 @@
-     virtual bool setIndicator( QString & progress_str, int progress,
- 			       int totalSteps );
-     void styleChange( QStyle& );
-+    bool requireRepaint( int newProgress ) const;
- 
- private:
-     int		total_steps;
 --- qt-x11-free-3.3.6/tools/assistant/assistant.pro	2003-11-17 07:40:25.000000000 -0500
 +++ qt-x11-free-3.3.6-new/tools/assistant/assistant.pro	2006-03-19 19:02:19.000000000 -0500
 @@ -32,6 +32,8 @@
@@ -550,22 +471,6 @@
  CONFIG		-= dll
  HEADERS		= editor.h  \
  		  parenmatcher.h  \
---- qt-x11-free-3.3.6/tools/designer/uic/form.cpp	2005-08-31 06:13:47.000000000 -0400
-+++ qt-x11-free-3.3.6-new/tools/designer/uic/form.cpp	2006-03-19 19:02:19.000000000 -0500
-@@ -731,6 +731,13 @@
-             while ( !n2.isNull() ) {
-                 if ( n2.tagName() == "includehint" ) {
-                     QString file = n2.firstChild().toText().data();
-+                    int colons = file.find("::");
-+
-+                    if (colons != -1)
-+                    {
-+                        file = file.right(file.length() - colons - 2);
-+                    }
-+
-                     localIncludes += file;
-                 }
-                 n2 = n2.nextSibling().toElement();
 --- qt-x11-free-3.3.6/tools/designer/uic/uic.pro	2003-10-31 09:36:28.000000000 -0500
 +++ qt-x11-free-3.3.6-new/tools/designer/uic/uic.pro	2006-03-19 19:02:19.000000000 -0500
 @@ -40,3 +40,6 @@
