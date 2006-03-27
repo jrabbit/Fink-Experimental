@@ -1,6 +1,6 @@
 Package: qt3
 Version: 3.3.6
-Revision: 12
+Revision: 13
 Description: Cross-Platform GUI application framework
 License: GPL
 Maintainer: Benjamin Reed <qt3@fink.racoonfink.com>
@@ -136,7 +136,7 @@ CompileScript: <<
 		$LIBRESOLV -fast -buildkey qt3-jaguar \
 		-platform darwin-g++ -xplatform darwin-g++ \
 		-prefix '%p/lib/qt3' -docdir '%p/share/doc/%n' \
-		-headerdir '%p/include/qt' \
+		-headerdir '%p/include/qt' -libdir '%p/lib' \
 		-release -shared -no-exceptions -thread -cups -stl \
 		-qt-gif -plugin-imgfmt-png -plugin-imgfmt-jpeg -plugin-imgfmt-mng \
 		-system-libpng -system-libjpeg -system-zlib -largefile \
@@ -158,14 +158,6 @@ InstallScript: <<
 
 	make install INSTALL_ROOT=%d
 
-	#### CLEAN UP FILES ####
-
-	# fix the -L$(QTDIR) junk in the .la file
-	perl -pi -e 's,\$\(QTDIR\),%p/lib/qt3,g' %i/lib/qt3/lib/*.la
-
-	# remove the .prl files, we don't want them
-	rm -rf %i/lib/qt3/lib/*.prl
-
 	#### COMPATIBILITY WITH OLD QT3 PACKAGES ####
 
 	# set up symlinks for compatibility with some old packages
@@ -181,7 +173,9 @@ InstallScript: <<
 	ln -sf %p/include/qt %i/lib/qt3/include
 
 	# %p/lib
-	install -d -m 0755 %i/lib
+	install -d -m 0755 %i/lib/qt3/lib
+	mv %i/lib/*.* %i/lib/qt3/lib/
+
 	for file in `cd %i/lib/qt3/lib; ls`; do
 		[ "$file" != "pkgconfig" ] && ln -sf %p/lib/qt3/lib/$file %i/lib/$file
 	done
@@ -190,6 +184,14 @@ InstallScript: <<
 
 	# %p/lib/qt3/doc
 	ln -sf %p/share/doc/%N %i/lib/qt3/doc
+
+	#### CLEAN UP FILES ####
+
+	# fix the -L$(QTDIR) junk in the .la file
+	perl -pi -e 's,\$\(QTDIR\),%p/lib/qt3,g' %i/lib/qt3/lib/*.la
+
+	# remove the .prl files, we don't want them
+	rm -rf %i/lib/qt3/lib/*.prl
 
 	#### MAN PAGES ####
 
@@ -282,7 +284,6 @@ SplitOff2: <<
 		bin/designer
 		lib/libdesigner*
 		share/applnk/Development/designer.desktop
-		share/qt3/templates
 		lib/qt3/bin/designer
 		lib/qt3/lib/libdesigner*
 		lib/qt3/plugins/designer
@@ -297,7 +298,6 @@ SplitOff3: <<
 	Files: <<
 		bin/l*
 		bin/qm2ts
-		share/qt3/phrasebooks
 		share/man/man1/lrelease.1
 		share/man/man1/lupdate.1
 		share/applnk/Development/linguist.desktop
@@ -321,4 +321,14 @@ SplitOff5: <<
 PreInstScript: 	rm -rf %p/lib/qt3/mkspecs/default
 
 Homepage: http://www.trolltech.com/
+DescPackaging: <<
+	As of Qt 3.3.6-2, I've moved everything to %p/lib/qt3 instead of %p.
+	This lets me put the headers back into a "standard" location ($QTDIR/include)
+	and clean up a lot of stuff.  -install_name's are preserved as
+	%p/lib/libfoo.x.dylib, and symlinks exist to make sure things are still
+	available to software that expects things in the fink non-standard locations,
+	so the change should be transparent to existing software.
+
+	Also, "make install" actually works again.  Yay!
+<<
 
