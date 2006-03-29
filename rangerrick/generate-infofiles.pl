@@ -106,6 +106,7 @@ my $version_lookup = {
 		'^libhttpd-persistent$'                     => [ '1.3',          '1010' ],
 		'^libidl2(-shlibs)?$'                       => [ '0.8.5',        '1001' ],
 		'^libmath..(-dev)?$'                        => [ '0.0.4',        '1001' ],
+		'^libmp4v21(-dev|-shlibs)?$'                => [ '2.0.0',        '1013' ],
 		'^libmusicbrainz4(-shlibs)?$'               => [ '2.1.1',        '1001' ],
 		'^libnc-dap3(-shlibs)?$'                    => [ '3.5.2',        '1001' ],
 		'^(libncurses5(-shlibs)?|ncurses)$'         => [ '5.4-20041023', '1006' ],

@@ -1,16 +1,18 @@
 #!/usr/bin/perl
 
-my $KDEVERSION    = '3.5.2';
-my $KDEDIRECTORY  = 'stable/%v/src/';
-my $KDERELNUM     = 1;
-my $KDEI18NRELNUM = 2;
-my $KOVERSION     = '1.5';
-my $KODIRECTORY   = 'stable/koffice-1.5.0-rc1/src/koffice-l10n/';
-my $KORELNUM      = '1';
-my $KOI18NRELNUM  = 1;
-my $VERBOSE       = 0;
-my $DRYRUN        = 0;
-#my $KDERENAME     = '%n-%v.tar.bz2';
+my $KDEVERSION              = '3.5.2';
+my $KDEDIRECTORY            = 'stable/%v/src/';
+my $KDERELNUM               = 1;
+my $KDEI18NRELNUM           = 2;
+my $SOURCEDIRECTORYAPPEND   = "";
+my $KOVERSION               = '1.5';
+my $KODIRECTORY             = 'stable/koffice-1.5.0-rc1/src/koffice-l10n/';
+my $KORELNUM                = '1';
+my $KOI18NRELNUM            = 1;
+my $KOSOURCEDIRECTORYAPPEND = "-rc1";
+my $VERBOSE                 = 0;
+my $DRYRUN                  = 0;
+#my $KDERENAME               = '%n-%v.tar.bz2';
 
 my @kdepackages;
 my @kopackages;
@@ -59,7 +61,7 @@ for my $i18n (@KDEI18N) {
 Package: kde-i18n-${normalized}
 Source: mirror:kde:${KDEDIRECTORY}kde-i18n/${filename}
 $sourcerename
-SourceDirectory: kde-i18n-${shortname}-%v
+SourceDirectory: kde-i18n-${shortname}-%v${SOURCEDIRECTORYAPPEND}
 Description: KDE - language files for $MAPPINGS{$shortname}
 DescDetail: Language files for the K Desktop Environment: $MAPPINGS{$shortname}
 Source-MD5: $md5
@@ -106,7 +108,7 @@ for my $i18n (@KOI18N) {
 		my $contents = <<END;
 Package: koffice-i18n-${normalized}
 Source: mirror:kde:${KODIRECTORY}${filename}
-SourceDirectory: koffice-l10n-${shortname}-%v
+SourceDirectory: koffice-l10n-${shortname}-%v${KOSOURCEDIRECTORYAPPEND}
 Description: KDE - KOffice language files for $MAPPINGS{$shortname}
 DescDetail: Language files for the KDE office suite: $MAPPINGS{$shortname}
 Source-MD5: $md5
