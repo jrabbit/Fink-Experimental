@@ -6,7 +6,7 @@ License: GPL
 Maintainer: ASARI Takashi <asari@users.sourceforge.net>
 
 BuildDepends: libncurses5, x11-dev, libpng3
-Depends: libncurses5-shlibs, libpng3-shlibs
+Depends: libncurses5-shlibs, libpng3-shlibs, sazanami
 
 Source: ftp://ftp.dungeoncrawl.org/dev/4.0.x/src/dc400b26-src.tbz2
 SourceRename: dc400b26-src.tar.bz2
@@ -22,6 +22,7 @@ Source4: http://crawlj.sourceforge.jp/dc_j070_051224_wt_osx.tar
 Source4-MD5: 5f523de9e17c3c59702cd46bd7867343
 
 PatchScript: <<
+#!/bin/sh -ev
   /usr/bin/sed -i.bak "s|/opt/crawl/lib|%p/var/%n|" source/AppHdr.h
 #  /usr/bin/sed -i.bak "s|\r||g" source/makefile.bor
 #  /usr/bin/sed -i.bak "s|\r||g" source/mon-data.h
@@ -40,6 +41,17 @@ echo "winclass.o : winclass.h" >> source/makefile.osx
 echo "winclass-x11.o : winclass.h defines.h debug.h" >> source/makefile.osx
 awk 'NR == 4 {print "#include <locale.h>"} {print}' source/winclass-x11.cc > tmp
 mv tmp source/winclass-x11.cc
+cat <<PATCHEOF | patch -lu source/winclass-x11.cc
+@@ -97,7 +97,7 @@
+             printf("\t%%s\n", missing_list[missing_count]);
+         }
+         XFreeStringList(missing_list);
+-        exit(1);
++//        exit(1);
+     }
+ 
+     n_fonts = XFontsOfFontSet(font, &fontinfo, &fontname);
+PATCHEOF
 <<
 
 GCC: 4.0
@@ -54,13 +66,18 @@ mkdir -p %i/bin/
 cp  source/crawl %i/bin/
 mkdir -p %i/var/%n/
 cp -r ../dc_j070_051224_wt/* %i/var/%n/
-#cp ../dc_j070_051224_wt/init.txt ~/.crawlrc
+chmod 777 %i/var/%n/
+chmod +t %i/var/%n/
+echo > scores
+chmod 777 scores
+iconv -f SJIS -t UTF-8 %i/var/%n/init.txt > %i/var/%n/.crawlrc
+rm %i/var/%n/init.txt
 <<
 
 RuntimeVars: <<
-CRAWL_X11_FONT_CRT: -misc-fixed-medium-r-normal--0-*
-CRAWL_X11_FONT_STAT:-misc-fixed-medium-r-normal--0-*
-CRAWL_X11_FONT_MSG: -misc-fixed-medium-r-normal--0-*
+CRAWL_X11_FONT_CRT: -misc-sazanami mincho-medium-r-normal--0-*
+CRAWL_X11_FONT_STAT:-misc-sazanami gothic-medium-r-normal--0-*
+CRAWL_X11_FONT_MSG: -misc-sazanami mincho-medium-r-normal--0-*
 <<
 
 Homepage: http://crawlj.sourceforge.jp/
