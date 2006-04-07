@@ -233,6 +233,7 @@ my $version_lookup = {
 	},
 	'all' => {
 		'^arts(-dev|-shlibs)?$'                     => [ undef,          '+'    ],
+		'^fink$'                                    => [ '0.24',         '1'    ],
 		'^glib2(-dev|-shlibs)?$'                    => [ '2.8.6',        '122'  ],
 		'^gnokii2(-dev|-shlibs)?$'                  => [ '0.6.12',       '1'    ],
 		'^gtk-doc$'                                 => [ '1.5',          '1'    ],
