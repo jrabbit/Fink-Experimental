@@ -221,7 +221,10 @@ while test "$#" -gt 0; do
 	-d|--debug) set -x ;;
 	-h|--help) showhelp; exit ;;
 	-*) badarg "$1"; exit ;;
-	*=*) eval "$1" ;;
+	*=*)
+        var=`expr "$1" : '\\([^=]*\\)'`
+        value=`expr "$1" : '[^=]*=\\(.*\\)'`
+        eval $var'=$value';;
 	*) mode="$1"; shift; break ;;
     esac
     shift
