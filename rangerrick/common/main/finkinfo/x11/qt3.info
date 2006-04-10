@@ -1,6 +1,6 @@
 Package: qt3
 Version: 3.3.6
-Revision: 3
+Revision: 4
 GCC: 3.3
 CustomMirror: <<
 	Primary: ftp://ftp.trolltech.com/qt/source
@@ -271,6 +271,19 @@ SplitOff: <<
 	<<
 	PostInstScript: <<
 		/usr/X11R6/bin/fc-cache >/dev/null 2>&1 || :
+		if [ -d %p/lib/qt3-plugins ] && [ ! -L %p/lib/qt3-plugins ]; then
+			if rsync -arL %p/lib/qt3-plugins/ %p/lib/qt3/plugins/; then
+				rm -rf %p/lib/qt3-plugins
+				ln -sf %p/lib/qt3/plugins %p/lib/qt3-plugins
+			else
+				cat <<END;
+WARNING: I was unable to copy your plugins from the (deprecated)
+%p/lib/qt3-plugins directory into %p/lib/qt3/plugins.
+
+Some Qt applications may not work as expected.
+END
+			fi
+		fi
 	<<
 <<
 SplitOff2: <<

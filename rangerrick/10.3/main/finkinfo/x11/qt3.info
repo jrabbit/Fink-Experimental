@@ -1,6 +1,6 @@
 Package: qt3
 Version: 3.3.6
-Revision: 13
+Revision: 14
 Description: Cross-Platform GUI application framework
 License: GPL
 Maintainer: Benjamin Reed <qt3@fink.racoonfink.com>
@@ -272,7 +272,22 @@ SplitOff: <<
 		%p/lib/qt3/lib/libqt-mt.3*.dylib 3.0.0 %n (>= 3.3.6-2)
 		%p/lib/qt3/lib/libqui.1*.dylib 1.0.0 %n (>= 3.3.6-2)
 	<<
-	PostInstScript: /usr/X11R6/bin/fc-cache >/dev/null 2>&1 || :
+	PostInstScript: <<
+/usr/X11R6/bin/fc-cache >/dev/null 2>&1 || :
+if [ -d %p/lib/qt3-plugins ] && [ ! -L %p/lib/qt3-plugins ]; then
+	if rsync -arL %p/lib/qt3-plugins/ %p/lib/qt3/plugins/; then
+		rm -rf %p/lib/qt3-plugins
+		ln -sf %p/lib/qt3/plugins %p/lib/qt3-plugins
+	else
+		cat <<END;
+WARNING: I was unable to copy your plugins from the (deprecated)
+%p/lib/qt3-plugins directory into %p/lib/qt3/plugins.
+
+Some Qt applications may not work as expected.
+END
+	fi
+fi
+	<<
 <<
 SplitOff2: <<
 	Package: %N-designer
