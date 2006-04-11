@@ -1,28 +1,32 @@
 Package: evolution-exchange
-Version: 2.4.1
+Version: 2.6.0
 Revision: 1
-Source-MD5: be61e4e8cfc64650c214525c5a615ed6
-Source: mirror:gnome:sources/%n/2.4/%n-%v.tar.bz2
-BuildDepends: atk1, audiofile, cyrus-sasl2-dev, db43-ssl, esound, evolution-data-server-dev, evolution-dev, gail17-dev, gconf2-dev, glib2-dev, gnome-keyring-dev, gnome-vfs2-ssl-dev, gnutls, gstreamer-dev, gtk+2-dev, gtkhtml3.8.15-dev, libart2, libbonobo2-dev, libbonoboui2-dev, libgcrypt, libgettext3-dev, libglade2, libgnome2-dev, libgnomecanvas2-dev, libgnomeprint2.2-dev, libgnomeprintui2.2-dev, libgnomeui2-dev, libgpg-error, libhowl-dev, libiconv-dev, libjpeg, libsoup2.2.8-ssl, libtasn1, libxml2, mozilla-dev, openldap-ssl-dev, openssl097-dev, orbit2-dev, pango1-xft2-dev, popt, pth2-dev, x11-dev, gettext-tools, scrollkeeper, pkgconfig, intltool, gtk-doc
-Depends: evolution
+Source-MD5: f83177e571fdac31e6d32904a46a2029
+Source: mirror:gnome:sources/%n/2.6/%n-%v.tar.bz2
+BuildDepends: atk1, audiofile, cyrus-sasl2-dev, db43-ssl, esound, evolution-data-server-dev (>= 1.6.0-1), evolution-dev (>= 2.6.0-1), gail17-dev, gconf2-dev, glib2-dev, gnome-keyring-dev, gnome-vfs2-ssl-dev, gnutls12, gtk+2-dev, gtkhtml3.8.15-dev, libart2, libbonobo2-dev, libbonoboui2-dev, libgcrypt, libgettext3-dev, libglade2, libgnome2-dev, libgnomecanvas2-dev, libgnomeprint2.2-dev, libgnomeprintui2.2-dev, libgnomeui2-dev, libgpg-error, libhowl-dev, libiconv-dev, libjpeg, libsoup2.2.8-ssl, libtasn1, libxml2, mozilla-dev, openldap23-dev, openssl097-dev, orbit2-dev, pango1-xft2-dev, popt, pth2-dev, x11-dev, gettext-tools, scrollkeeper, pkgconfig, intltool, gtk-doc
+Depends: evolution (>= 2.6.0-1)
 Conflicts: ximian-connector
 Replaces: ximian-connector
+NoSetLDFLAGS: true
+SetLIBRARY_PATH: %p/lib
 NoSetCPPFLAGS: true
 SetCPPFLAGS: -no-cpp-precomp
-SetCFLAGS: -O3 -funroll-loops -fstrict-aliasing
+SetCFLAGS: -O3 -funroll-loops -fstrict-aliasing -DLDAP_DEPRECATED=1
 NoSetMAKEFLAGS: true
 SetMAKEFLAGS: -j1
 PatchScript: <<
   perl -pi.bak -e 's,libdir\)/locale,datadir)/locale,' po/Makefile.in.in
   perl -pi -e 's/hardcode_direct=yes/hardcode_direct=no/g' configure
   perl -pi.bak -e 's,unistd.h>,$&\n\#include <string.h>,' mail/mail-stub-listener.c
+  perl -pi.bak -e 's,session.h>,$&\n\#include "camel/camel-exchange-summary.h",' camel/camel-exchange-store.c
 <<
 ConfigureParams: --enable-static=yes --enable-gtk-doc --mandir=%p/share/man --with-openldap=yes --with-krb5=/usr --enable-maintainer-mode
 CompileScript: <<
 #!/bin/sh -ev
   export CPATH=%p/include
   ./configure %c
-  perl -pi -e 's,\-I%p/include\s,,' config.status
+#  perl -pi -e 's,\-L(/usr|%p)/lib([^/]),\2,g; s,\-I(/usr|%p)/include([^/]),\2,g' config.status
+  perl -pi -e 's,\-L/usr/lib([^/]),\2,g; s,\-I(/usr|%p)/include([^/]),\2,g' config.status
   make
 <<
 DocFiles: AUTHORS COPYING NEWS README
