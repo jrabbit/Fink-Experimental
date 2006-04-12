@@ -1,6 +1,6 @@
 Package: seamonkey
 Version: 1.0
-Revision: 1
+Revision: 2
 Source-MD5: e4f2edc5b2248d090303c70f5b28f210
 Source: mirror:custom:mozilla.org/%N/releases/%v/%N-%v.source.tar.bz2
 CustomMirror: <<
@@ -10,7 +10,9 @@ CustomMirror: <<
   asi-JP: http://www.t.ring.gr.jp/pub/net/www/mozilla/
 <<
 SourceDirectory: mozilla
-Depends: %N-psm (>= %v-%r), %N-mailnews (>= %v-%r), %N-chatzilla (>= %v-%r), %N-js-debugger (>= %v-%r), %N-dom-inspector (>= %v-%r)
+Conflicts: %N-bin, %N-browser, %N-calendar, %N-chatzilla, %N-dom-inspector, %N-js-debugger, %N-mailnews, %N-psm
+Replaces: %N-bin, %N-browser, %N-calendar, %N-chatzilla, %N-dom-inspector, %N-js-debugger, %N-mailnews, %N-psm
+Depends: %N-shlibs (>= %v-%r), cairo-shlibs, gnome-vfs2-ssl-shlibs | gnome-vfs2-shlibs, gtk+2
 BuildDepends: cairo, atk1, gconf2-dev, glib2-dev, gnome-vfs2-ssl-dev | gnome-vfs2-dev, gtk+2-dev, libbonobo2-dev, libgettext3-dev, libiconv-dev, libidl2, libjpeg, libpng3, orbit2-dev, pango1-xft2-dev, xft2-dev, x11-dev, pkgconfig
 NoSetLDFLAGS: true
 SetLIBRARY_PATH: %p/lib
@@ -19,18 +21,18 @@ PatchScript: <<
  #!/bin/sh -ev
  sed 's|@PREFIX@|%p|g' <%a/%n.patch | patch -p1
  perl -pi.bak -e 's,\@executable_path,%p/lib/%N,; s,install_names.*,install_names,' security/coreconf/Darwin.mk
-# The norwegian letter 'circled a' causes "unterminated comment" errors in javascripts and css files
-#  _ at least with "Encoding=UTF-8" in the .desktop files (cf patch) _; for safety, getting rid of all
-#   'non-printable' chars in the comments of such files :
- find mailnews/base security/manager/pki/resources/content -name *.js|xargs perl -pi -e 's,H.kan,Haakan,g; s,Sch.nheit,Schoenheit,g'
- find themes toolkit/themes -name *.css|xargs perl -pi -e 's,H.kan,Haakan,g'
- perl -pi -e 's,J.rgensen,Jorgensen,' xpfe/components/prefwindow/resources/content/pref-scripts.js
- perl -pi -e 's,D.*sterloh,Dusterloh,' xpfe/global/resources/content/printProgress.js
- perl -pi -e 's,(netscape\.com\)).*,\1,' toolkit/themes/qute/global/dialog.css
- mv extensions/reporter/resources/content/prefs/reporter.js extensions/reporter/resources/content/prefs/reporter.js.bak
- tr -d '\r' < extensions/reporter/resources/content/prefs/reporter.js.bak > extensions/reporter/resources/content/prefs/reporter.js
- mv embedding/qa/jstests/bridge.js embedding/qa/jstests/bridge.js.bak
- tr -d '\r' < embedding/qa/jstests/bridge.js.bak > embedding/qa/jstests/bridge.js
+## The norwegian letter 'circled a' causes "unterminated comment" errors in javascripts and css files
+##  _ at least with "Encoding=UTF-8" in the .desktop files (cf patch) _; for safety, getting rid of all
+##   'non-printable' chars in the comments of such files :
+# find mailnews/base security/manager/pki/resources/content -name *.js|xargs
+#	perl -pi -e 's,H.kan,Haakan,g; s,Sch.nheit,Schoenheit,g'
+# find themes toolkit/themes -name *.css|xargs perl -pi -e 's,H.kan,Haakan,g'
+# perl -pi -e 's,J.rgensen,Jorgensen,' xpfe/components/prefwindow/resources/content/pref-scripts.js
+# perl -pi -e 's,D.*sterloh,Dusterloh,' xpfe/global/resources/content/printProgress.js
+# perl -pi -e 's,(netscape\.com\)).*,\1,' toolkit/themes/qute/global/dialog.css
+# perl -pi -e 's,\r$,,' embedding/qa/jstests/bridge.js \
+#	extensions/reporter/resources/content/prefs/reporter.js \
+#	layout/style/xbl-marquee/xbl-marquee.css
 #### MISSING INCLUDES
  perl -pi.bak -e 's,\#ifndef NSS,#include "pki1t.h"\n$&,' security/nss/lib/pki1/oiddata.h
 ## All the following are "for safety" : to avoid "implicit declaration" warnings :
@@ -41,10 +43,10 @@ PatchScript: <<
 # for NSSRWLock_LockWrite, NSSRWLock_UnlockWrite, NSSRWLock_LockRead, and NSSRWLock_UnlockRead :
  perl -pi.bak -e 's,secmod.h"$,$&\n\#include "nssrwlk.h",' security/nss/lib/pki/pki3hack.c
 #### MISC
-## To enable "native-uconv" :
- perl -pi.bak -e 's,\|darwin\*\|,\|,' configure
- perl -pi.bak -e 's;ifeq;ifeq (\$(OS_ARCH), Darwin)\nCPPSRCS\t= nsNativeUConvService.cpp\nendif\n$&;' intl/uconv/native/Makefile.in
- perl -pi.bak -e 's,\((char *\*\*\)\&(z|aSrc)),\(const \1,' intl/uconv/native/nsNativeUConvService.cpp
+## To enable "native-uconv" : (commented out next 3 lines for testing w/o --enable-native-uconv)
+# perl -pi.bak -e 's,\|darwin\*\|,\|,' configure
+# perl -pi.bak -e 's;ifeq;ifeq (\$(OS_ARCH), Darwin)\nCPPSRCS\t= nsNativeUConvService.cpp\nendif\n$&;' intl/uconv/native/Makefile.in
+# perl -pi.bak -e 's,\((char *\*\*\)\&(z|aSrc)),\(const \1,' intl/uconv/native/nsNativeUConvService.cpp
 ## configure fails to detect libresolv (hence the 'env' before ./configure),
 ## and even if it would detect it, it forgets to add -lresolv to LIBS
 ## We put it as far as possible in the link line _ and just for the link that needs it, in order not to get
@@ -67,7 +69,8 @@ PatchScript: <<
 ## builds also with --enable-componentlib (but had to add the "-m" flag to the ld command there), but leads to launch problems
 # (appparently not dyld related...).
 # Some more work ahead for this.
-ConfigureParams: --enable-xft --disable-freetype2 --enable-calendar --enable-optimize="-O3 -fstrict-aliasing" --disable-debug --enable-application=suite --enable-macos-target=10.4 --enable-prebinding --enable-default-toolkit=gtk2 --with-pthreads --with-default-mozilla-five-home=%p/lib/%N --mandir=%p/share/man --enable-strip --enable-extensions=all --enable-image-decoders=all --enable-ldap-experimental --enable-xpctools --enable-necko-protocols=all --enable-efence --enable-native-uconv --enable-ctl --enable-xinerama --with-system-mng --with-system-jpeg --with-system-png --with-system-zlib --enable-postscript --enable-ipv6 --enable-tests --with-x --enable-canvas --with-qtdir=%p --enable-pango --enable-svg --enable-update-packaging --enable-storage --enable-system-cairo --enable-profilesharing
+# ConfigureParams: --enable-xft --disable-freetype2 --enable-calendar --enable-optimize="-O3 -fstrict-aliasing" --disable-debug --enable-application=suite --enable-macos-target=10.4 --enable-prebinding --enable-default-toolkit=gtk2 --with-pthreads --with-default-mozilla-five-home=%p/lib/%N --mandir=%p/share/man --enable-strip --enable-extensions=all --enable-image-decoders=all --enable-ldap-experimental --enable-xpctools --enable-necko-protocols=all --enable-efence --enable-native-uconv --enable-ctl --enable-xinerama --with-system-mng --with-system-jpeg --with-system-png --with-system-zlib --enable-postscript --enable-ipv6 --enable-tests --with-x --enable-canvas --with-qtdir=%p --enable-pango --enable-svg --enable-update-packaging --enable-storage --enable-system-cairo --enable-profilesharing
+ConfigureParams: --enable-xft --disable-freetype2 --enable-calendar --enable-optimize="-O3 -fstrict-aliasing" --disable-debug --enable-application=suite --enable-macos-target=10.4 --enable-prebinding --enable-default-toolkit=gtk2 --with-pthreads --with-default-mozilla-five-home=%p/lib/%N --mandir=%p/share/man --enable-strip --enable-extensions=all --enable-image-decoders=all --enable-ldap-experimental --enable-xpctools --enable-necko-protocols=all --enable-efence --enable-ctl --enable-xinerama --with-system-mng --with-system-jpeg --with-system-png --with-system-zlib --enable-postscript --enable-ipv6 --enable-tests --with-x --enable-canvas --with-qtdir=%p --enable-pango --enable-svg --enable-update-packaging --enable-storage --enable-system-cairo --enable-profilesharing
 ## "Cannot enable XFT and FREETYPE2 at the same time".
 # Thus temporarily rm " --enable-freetype2 --with-ft-prefix=/usr/X11R6"
 CompileScript: <<
@@ -75,16 +78,6 @@ CompileScript: <<
 export CPATH=%p/include/cairo:%p/include
 env ac_cv_func_res_ninit=yes ./configure %c
 make -w
-# Divide installed-chrome.txt for each split-off.
-sed -e '/pipnss/d' -e '/pippki/d' -e '/messenger/d' -e '/chatzilla/d' \
-  -e '/venkman/d' -e '/inspector/d' -e '/calendar/d' \
-  dist/bin/chrome/installed-chrome.txt >fink/chrome.d/00browser
-egrep 'pip(nss|pki)' dist/bin/chrome/installed-chrome.txt >fink/chrome.d/00psm
-grep 'messenger' dist/bin/chrome/installed-chrome.txt >fink/chrome.d/00mailnews
-grep 'chatzilla' dist/bin/chrome/installed-chrome.txt >fink/chrome.d/00chatzilla
-grep 'venkman' dist/bin/chrome/installed-chrome.txt >fink/chrome.d/00js-debugger
-grep 'inspector' dist/bin/chrome/installed-chrome.txt >fink/chrome.d/00dom-inspector
-grep 'calendar' dist/bin/chrome/installed-chrome.txt >fink/chrome.d/00calendar || true
 <<
 InstallScript: <<
 #!/bin/sh -ev
@@ -102,14 +95,15 @@ fi
 /bin/cp -R -L dist/public/nss %i/include/%N/nss
 
 # These files are redundant.
-for f in %i/lib/%N/chrome/*.jar; do
-  rm -rf ${f/.jar/}
-done
+# comment out to see..
+#for f in %i/lib/%N/chrome/*.jar; do
+#  rm -rf ${f/.jar/}
+#done
 
 # These files are created dynamically.
-rm -rf %i/lib/%N/chrome/overlayinfo
+#rm -rf %i/lib/%N/chrome/overlayinfo
 rm -f %i/lib/%N/chrome/*.rdf
-rm -f %i/lib/%N/component.reg
+#rm -f %i/lib/%N/component.reg
 rm -f %i/lib/%N/components/*.dat
 
 # Multi user setting.
@@ -117,7 +111,8 @@ touch %i/lib/%N/chrome/user-skins.rdf
 touch %i/lib/%N/chrome/user-locales.rdf
 
 # Empty installed-chrome.txt.
-rm %i/lib/%N/chrome/installed-chrome.txt
+mkdir -p %i/var/lib/%N/chrome.d
+mv %i/lib/%N/chrome/installed-chrome.txt %i/var/lib/%N/chrome.d
 touch %i/lib/%N/chrome/installed-chrome.txt
 
 # Install fink specific files.
@@ -151,172 +146,32 @@ install -c -m 644 dist/bin/chrome/icons/default/calendar-window.xpm %i/share/pix
 
 # Install a symlink to the docfiles
 mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
+
+# Apparently lxpcom_core must be added on the link line (sometimes) when lxpcom is there..
+perl -pi -e 's,lxpcom,$& -lxpcom_core,' %i/lib/pkgconfig/%N-xpcom.pc %i/bin/%N-config
 <<
+ConfFiles: %p/etc/%N/prefs.js
+PostInstScript: <<
+# Those 2 empty files are not installed by dpkg
+    touch %p/lib/%N/chrome/user-skins.rdf
+    touch %p/lib/%N/chrome/user-locales.rdf
+
+    if [ configure = "$1" ]; then
+        update-%N-chrome
+    fi
+<<
+PostRmScript: <<
+  case "$1" in
+    purge)
+      rm -rf %p/lib/%N/chrome/overlayinfo
+      rm -f %p/lib/%N/chrome/*.rdf
+      rm -f %p/lib/%N/component.reg
+      rm -f %p/lib/%N/components/*.dat
+      ;;
+  esac
+<<
+
 SplitOff: <<
-  Package: %N-psm
-  Depends: %N-browser (>= %v-%r)
-  Description: Seamonkey - personal security manager
-  InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
-  PostInstScript: <<
-    if [ configure = "$1" ]; then
-        update-%N-chrome
-    fi
-  <<
-  PostRmScript: <<
-    if [ upgrade != "$1" ]; then
-        update-%N-chrome
-    fi
-  <<
-  Files: <<
-    lib/%N/chrome/pipnss.jar
-    lib/%N/chrome/pippki.jar
-    lib/%N/components/pipboot.xpt
-    lib/%N/components/pipnss.xpt
-    lib/%N/components/pippki.xpt
-    var/lib/%N/chrome.d/00psm
-  <<
-<<
-SplitOff2: <<
-  Package: %N-mailnews
-  Depends: %N-browser (>= %v-%r)
-  Description: Seamonkey - mail and news support
-  InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
-  PostInstScript: <<
-    if [ configure = "$1" ]; then
-        update-%N-chrome
-    fi
-  <<
-  PostRmScript: <<
-    if [ upgrade != "$1" ]; then
-        update-%N-chrome
-    fi
-  <<
-  Files: <<
-    lib/%N/chrome/messenger.jar
-    lib/%N/components/addrbook.xpt
-    lib/%N/components/impComm4xMail.xpt
-    lib/%N/components/import.xpt
-    lib/%N/components/mailnews.xpt
-    lib/%N/components/mailview.xpt
-    lib/%N/components/mdn-service.js
-    lib/%N/components/mime.xpt
-    lib/%N/components/msgbase.xpt
-    lib/%N/components/msgcompose.xpt
-    lib/%N/components/msgdb.xpt
-    lib/%N/components/msgimap.xpt
-    lib/%N/components/msglocal.xpt
-    lib/%N/components/msgnews.xpt
-    lib/%N/components/msgsearch.xpt
-    lib/%N/components/msgsmime.xpt
-    lib/%N/components/nsLDAPPrefsService.js
-    lib/%N/components/smime-service.js
-    lib/%N/defaults/pref/mailnews.js
-    lib/%N/defaults/pref/mdn.js
-    lib/%N/defaults/pref/smime.js
-    share/applications/Seamonkey-mail-composer.desktop
-    share/applications/Seamonkey-mail.desktop
-    share/applications/Seamonkey-news.desktop
-    share/pixmaps/%N-mail-composer.xpm
-    share/pixmaps/%N-mailnews.xpm
-    var/lib/%N/chrome.d/00mailnews
-  <<
-<<
-SplitOff3: <<
-  Package: %N-chatzilla
-  Depends: %N-browser (>= %v-%r)
-  Description: Seamonkey - irc client
-  InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
-  PostInstScript: <<
-    if [ configure = "$1" ]; then
-        update-%N-chrome
-    fi
-  <<
-  PostRmScript: <<
-    if [ upgrade != "$1" ]; then
-        update-%N-chrome
-    fi
-  <<
-  Files: <<
-    lib/%N/chrome/chatzilla.jar
-    lib/%N/chrome/icons/default/chatzilla*
-    lib/%N/components/chatzilla-service.js
-    share/applications/Seamonkey-chatzilla.desktop
-    var/lib/%N/chrome.d/00chatzilla
-  <<
-<<
-SplitOff4: <<
-  Package: %N-js-debugger
-  Depends: %N-browser (>= %v-%r)
-  Description: Seamonkey - java script debugger
-  InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
-  PostInstScript: <<
-    if [ configure = "$1" ]; then
-        update-%N-chrome
-    fi
-  <<
-  PostRmScript: <<
-    if [ upgrade != "$1" ]; then
-        update-%N-chrome
-    fi
-  <<
-  Files: <<
-    lib/%N/chrome/venkman.jar
-    lib/%N/chrome/icons/default/venkman*
-    lib/%N/components/venkman-service.js
-    var/lib/%N/chrome.d/00js-debugger
-  <<
-<<
-SplitOff5: <<
-  Package: %N-dom-inspector
-  Depends: %N-browser (>= %v-%r)
-  Description: Seamonkey - DOM inspector
-  InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
-  PostInstScript: <<
-    if [ configure = "$1" ]; then
-        update-%N-chrome
-    fi
-  <<
-  PostRmScript: <<
-    if [ upgrade != "$1" ]; then
-        update-%N-chrome
-    fi
-  <<
-  Files: <<
-    lib/%N/chrome/inspector.jar
-    lib/%N/components/inspector.xpt
-    lib/%N/components/libinspector.dylib
-    lib/%N/defaults/pref/inspector.js
-    var/lib/%N/chrome.d/00dom-inspector
-  <<
-# Where did this one go ??
-#    lib/%N/res/inspector
-<<
-SplitOff6: <<
-  Package: %N-calendar
-  Depends: %N-browser (>= %v-%r)
-  Description: Seamonkey - Calendar
-  InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
-  PostInstScript: <<
-    if [ configure = "$1" ]; then
-        update-%N-chrome
-    fi
-  <<
-  PostRmScript: <<
-    if [ upgrade != "$1" ]; then
-        update-%N-chrome
-    fi
-  <<
-  Files: <<
-    lib/%N/chrome/calendar*
-    lib/%N/components/cal*
-    lib/%N/init.d/S80calendar_fix_permissions_bug_230617
-    lib/%N/chrome/icons/default/calendar-window*.xpm
-    share/applications/Seamonkey-calendar.desktop
-    share/pixmaps/%N-calendar.xpm
-    var/lib/%N/chrome.d/00calendar
-  <<
-<<
-SplitOff7: <<
   Package: %N-shlibs
   Depends: gtk+2-shlibs
   DocFiles: LEGAL LICENSE
@@ -372,56 +227,17 @@ SplitOff7: <<
   <<
 #    %p/lib/%N/libxlibrgb.dylib 1.0.0 %n (>= 1.7.11-1)  seems to have disaappeared .. ?
 <<
-SplitOff8: <<
-  Package: %N-bin
-  Depends: libidl2-shlibs, %N-shlibs (= %v-%r)
-  Description: Seamonkey - extra binaries
-  InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
-  Files: lib/%N/xp*
-<<
-SplitOff9: <<
+SplitOff2: <<
   Package: %N-dev
   Depends: %N-shlibs (= %v-%r), pkgconfig
 # The following is for %p/share/aclocal/nspr.m4 _ not sure the replaces
 # is really warranted, and the Conflicts not, but convenience is worth something..
-#  Conflicts: mozilla-dev
-  Replaces: mozilla-dev
+#  Conflicts: mozilla-dev, firefox-dev
+  Replaces: mozilla-dev, firefox-dev
   BuildDependsOnly: true
   Description: Seamonkey - development headers and libraries
   InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
   Files: bin/%N-config include lib/pkgconfig  share/aclocal share/idl
-<<
-SplitOff10: <<
-  Package: %N-browser
-## The following might no longer be true (some errors at least have been corrected...) :
-# At least when launched under KDE, I see (under ps) gnome-terminal coming up; clearly also when launched under gnome.
-# Don't know yet what happens when launched from an xterm; if confirmed, gnome-terminal should be added
-# to Depends instead of gtk+2 and gnome-vfs2-ssl-shlibs | gnome-vfs2-shlibs.
-  Recommends: gnome-terminal
-  Depends: %N-shlibs (>= %v-%r), cairo-shlibs, gnome-vfs2-ssl-shlibs | gnome-vfs2-shlibs, gtk+2
-  ConfFiles: %p/etc/%N/prefs.js
-  Description: Seamonkey - web browser
-  InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
-  PostInstScript: <<
-# Those 2 empty files are not installed by dpkg
-    touch %p/lib/%N/chrome/user-skins.rdf
-    touch %p/lib/%N/chrome/user-locales.rdf
-
-    if [ configure = "$1" ]; then
-        update-%N-chrome
-    fi
-  <<
-  PostRmScript: <<
-  case "$1" in
-    purge)
-      rm -rf %p/lib/%N/chrome/overlayinfo
-      rm -f %p/lib/%N/chrome/*.rdf 
-      rm -f %p/lib/%N/component.reg   
-      rm -f %p/lib/%N/components/*.dat
-      ;;
-  esac
-  <<
-  Files: bin etc lib sbin share/applications share/man share/pixmaps var
 <<
 Description: WWW, chat, mail, news, calendar, a-book, etc
 DescDetail: <<
@@ -438,7 +254,7 @@ Added in the patch -x flag to the regxpcom command in update-%N-chrome, to get c
 (and use there same DYLD_LIBRARY_PATH as in %p/bin/%N).
 <<
 DescPackaging: <<
- Wouldn't it be better to have just %N, %N-dev and %N-shlibs ?
+ Simpler _ even for user _ to have just %N, %N-dev and %N-shlibs
 <<
 License: OSI-Approved
 Maintainer: The Gnome Core Team <fink-gnome-core@lists.sourceforge.net>
