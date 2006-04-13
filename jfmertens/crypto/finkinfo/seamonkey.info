@@ -10,8 +10,8 @@ CustomMirror: <<
   asi-JP: http://www.t.ring.gr.jp/pub/net/www/mozilla/
 <<
 SourceDirectory: mozilla
-Conflicts: %N-bin, %N-browser, %N-calendar, %N-chatzilla, %N-dom-inspector, %N-js-debugger, %N-mailnews, %N-psm
-Replaces: %N-bin, %N-browser, %N-calendar, %N-chatzilla, %N-dom-inspector, %N-js-debugger, %N-mailnews, %N-psm
+#Conflicts: %N-bin, %N-browser, %N-calendar, %N-chatzilla, %N-dom-inspector, %N-js-debugger, %N-mailnews, %N-psm
+#Replaces: %N-bin, %N-browser, %N-calendar, %N-chatzilla, %N-dom-inspector, %N-js-debugger, %N-mailnews, %N-psm
 Depends: %N-shlibs (>= %v-%r), cairo-shlibs, gnome-vfs2-ssl-shlibs | gnome-vfs2-shlibs, gtk+2
 BuildDepends: cairo, atk1, gconf2-dev, glib2-dev, gnome-vfs2-ssl-dev | gnome-vfs2-dev, gtk+2-dev, libbonobo2-dev, libgettext3-dev, libiconv-dev, libidl2, libjpeg, libpng3, orbit2-dev, pango1-xft2-dev, xft2-dev, x11-dev, pkgconfig
 NoSetLDFLAGS: true
@@ -21,18 +21,8 @@ PatchScript: <<
  #!/bin/sh -ev
  sed 's|@PREFIX@|%p|g' <%a/%n.patch | patch -p1
  perl -pi.bak -e 's,\@executable_path,%p/lib/%N,; s,install_names.*,install_names,' security/coreconf/Darwin.mk
-## The norwegian letter 'circled a' causes "unterminated comment" errors in javascripts and css files
-##  _ at least with "Encoding=UTF-8" in the .desktop files (cf patch) _; for safety, getting rid of all
-##   'non-printable' chars in the comments of such files :
-# find mailnews/base security/manager/pki/resources/content -name *.js|xargs
-#	perl -pi -e 's,H.kan,Haakan,g; s,Sch.nheit,Schoenheit,g'
-# find themes toolkit/themes -name *.css|xargs perl -pi -e 's,H.kan,Haakan,g'
-# perl -pi -e 's,J.rgensen,Jorgensen,' xpfe/components/prefwindow/resources/content/pref-scripts.js
-# perl -pi -e 's,D.*sterloh,Dusterloh,' xpfe/global/resources/content/printProgress.js
-# perl -pi -e 's,(netscape\.com\)).*,\1,' toolkit/themes/qute/global/dialog.css
-# perl -pi -e 's,\r$,,' embedding/qa/jstests/bridge.js \
-#	extensions/reporter/resources/content/prefs/reporter.js \
-#	layout/style/xbl-marquee/xbl-marquee.css
+### The next appears needed eg when building yelp...
+ perl -pi.bak -e 's,lxpcom,$& -lxpcom_core,' build/unix/mozilla-{config,xpcom.pc}.in
 #### MISSING INCLUDES
  perl -pi.bak -e 's,\#ifndef NSS,#include "pki1t.h"\n$&,' security/nss/lib/pki1/oiddata.h
 ## All the following are "for safety" : to avoid "implicit declaration" warnings :
@@ -43,21 +33,11 @@ PatchScript: <<
 # for NSSRWLock_LockWrite, NSSRWLock_UnlockWrite, NSSRWLock_LockRead, and NSSRWLock_UnlockRead :
  perl -pi.bak -e 's,secmod.h"$,$&\n\#include "nssrwlk.h",' security/nss/lib/pki/pki3hack.c
 #### MISC
-## To enable "native-uconv" : (commented out next 3 lines for testing w/o --enable-native-uconv)
-# perl -pi.bak -e 's,\|darwin\*\|,\|,' configure
-# perl -pi.bak -e 's;ifeq;ifeq (\$(OS_ARCH), Darwin)\nCPPSRCS\t= nsNativeUConvService.cpp\nendif\n$&;' intl/uconv/native/Makefile.in
-# perl -pi.bak -e 's,\((char *\*\*\)\&(z|aSrc)),\(const \1,' intl/uconv/native/nsNativeUConvService.cpp
 ## configure fails to detect libresolv (hence the 'env' before ./configure),
-## and even if it would detect it, it forgets to add -lresolv to LIBS
+## and even if it would detect it, it forgets to add -lresolv to LIBS  (Still true with seamonkey ??)
 ## We put it as far as possible in the link line _ and just for the link that needs it, in order not to get
 ## libresolv in the LOAD_COMMANDS everywhere :
  perl -pi.bak -e 's,^MODULE\s,OS_LIBS += -lresolv\n$&,' netwerk/build/Makefile.in
-## For the componentlib (avoiding hard-coded version numbers) (cf above for -lresolv):
- lstdc="`ls -1 /usr/lib/libstdc++.*dylib|tail -n1|sed -e 's,/usr/lib/lib,l,' -e 's,\.dylib$,,'`"
- lgcc="`ls -1 /usr/lib/libgcc_s.*dylib|tail -n1|sed -e 's,/usr/lib/lib,l,' -e 's,\.dylib$,,'`"
- perl -pi.bak -e "s,^\#EXTRA,EXTRA,; s,t exported_symbols$,$& -x -dead_strip -single_module -search_paths_first -m -lresolv,; s,lstdc\+\+,${lstdc},; s,lgcc,${lgcc},; s,\\\$\(EXTRA_DSO_LIBS\),\\\$\(FT2_LIBS\) \\\\\n\t\$&," embedding/componentlib/Makefile.in
-# not better with the following (also, the problem does not seem to lie with the several --enables) :
-# perl -pi.bak -e "s,^\#EXTRA,EXTRA,; s,\-exported_symbols_list exported_symbols$,-search_paths_first -m -lresolv,; s,lstdc\+\+,${lstdc},; s,lgcc,${lgcc},; s,\\\$\(EXTRA_DSO_LIBS\),\\\$\(FT2_LIBS\) \\\\\n\t\$&," embedding/componentlib/Makefile.in
 ## Experiment _ why is it not enabled for Darwin while it is for all unix platforms ?
  perl -pi -e 's,Darwin"; then$,$&\n  MOZ_MOVEMAIL=1,' configure
 ####
@@ -66,13 +46,7 @@ PatchScript: <<
  perl -pi -e "s;rules.mk;$&\nEXTRA_DSO_LDOPTS := \\\$\(subst install_name \\\$\(mozappdir\)/,install_name \\\$\(mozappdir\)/plugins/,\\\$\(EXTRA_DSO_LDOPTS\)\);" modules/plugin/samples/{default/unix,unixprinting}/Makefile.in
 <<
 ##########
-## builds also with --enable-componentlib (but had to add the "-m" flag to the ld command there), but leads to launch problems
-# (appparently not dyld related...).
-# Some more work ahead for this.
-# ConfigureParams: --enable-xft --disable-freetype2 --enable-calendar --enable-optimize="-O3 -fstrict-aliasing" --disable-debug --enable-application=suite --enable-macos-target=10.4 --enable-prebinding --enable-default-toolkit=gtk2 --with-pthreads --with-default-mozilla-five-home=%p/lib/%N --mandir=%p/share/man --enable-strip --enable-extensions=all --enable-image-decoders=all --enable-ldap-experimental --enable-xpctools --enable-necko-protocols=all --enable-efence --enable-native-uconv --enable-ctl --enable-xinerama --with-system-mng --with-system-jpeg --with-system-png --with-system-zlib --enable-postscript --enable-ipv6 --enable-tests --with-x --enable-canvas --with-qtdir=%p --enable-pango --enable-svg --enable-update-packaging --enable-storage --enable-system-cairo --enable-profilesharing
 ConfigureParams: --enable-xft --disable-freetype2 --enable-calendar --enable-optimize="-O3 -fstrict-aliasing" --disable-debug --enable-application=suite --enable-macos-target=10.4 --enable-prebinding --enable-default-toolkit=gtk2 --with-pthreads --with-default-mozilla-five-home=%p/lib/%N --mandir=%p/share/man --enable-strip --enable-extensions=all --enable-image-decoders=all --enable-ldap-experimental --enable-xpctools --enable-necko-protocols=all --enable-efence --enable-ctl --enable-xinerama --with-system-mng --with-system-jpeg --with-system-png --with-system-zlib --enable-postscript --enable-ipv6 --enable-tests --with-x --enable-canvas --with-qtdir=%p --enable-pango --enable-svg --enable-update-packaging --enable-storage --enable-system-cairo --enable-profilesharing
-## "Cannot enable XFT and FREETYPE2 at the same time".
-# Thus temporarily rm " --enable-freetype2 --with-ft-prefix=/usr/X11R6"
 CompileScript: <<
 #!/bin/sh -ev
 export CPATH=%p/include/cairo:%p/include
@@ -146,9 +120,6 @@ install -c -m 644 dist/bin/chrome/icons/default/calendar-window.xpm %i/share/pix
 
 # Install a symlink to the docfiles
 mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
-
-# Apparently lxpcom_core must be added on the link line (sometimes) when lxpcom is there..
-perl -pi -e 's,lxpcom,$& -lxpcom_core,' %i/lib/pkgconfig/%N-xpcom.pc %i/bin/%N-config
 <<
 ConfFiles: %p/etc/%N/prefs.js
 PostInstScript: <<
