@@ -1,7 +1,7 @@
 Package: seamonkey
-Version: 1.0
-Revision: 2
-Source-MD5: e4f2edc5b2248d090303c70f5b28f210
+Version: 1.0.1
+Revision: 1
+Source-MD5: 6921464b5251cafd529c04c2b9f98d5f
 Source: mirror:custom:mozilla.org/%N/releases/%v/%N-%v.source.tar.bz2
 CustomMirror: <<
   Primary: http://ftp.mozilla.org/pub/
@@ -17,6 +17,7 @@ BuildDepends: cairo, atk1, gconf2-dev, glib2-dev, gnome-vfs2-ssl-dev | gnome-vfs
 NoSetLDFLAGS: true
 SetLIBRARY_PATH: %p/lib
 NoSetCPPFLAGS: true
+SetCPPFLAGS: -I/%p/include/cairo
 PatchScript: <<
  #!/bin/sh -ev
  sed 's|@PREFIX@|%p|g' <%a/%n.patch | patch -p1
@@ -44,12 +45,21 @@ PatchScript: <<
 ### Finally, ad-hoc correction of some install_names :
  perl -pi -e "s;rules.mk;$&\nEXTRA_DSO_LDOPTS := \\\$\(subst install_name \\\$\(mozappdir\)/,install_name \\\$\(mozappdir\)/ipc/modules/,\\\$\(EXTRA_DSO_LDOPTS\)\);" ipc/ipcd/{extensions/{lock/src,transmngr},test}/module/Makefile.in
  perl -pi -e "s;rules.mk;$&\nEXTRA_DSO_LDOPTS := \\\$\(subst install_name \\\$\(mozappdir\)/,install_name \\\$\(mozappdir\)/plugins/,\\\$\(EXTRA_DSO_LDOPTS\)\);" modules/plugin/samples/{default/unix,unixprinting}/Makefile.in
+### New with 1.0.1 :
+# 1) till this version, the zapping of '-DXP_MACCOSX' in the patch file (this goes back to the first versions of mozilla!)
+# ensured that no frameworks were needed on the link line... What is going on ?
+  perl -pi.bak -e 's,endif \# WINNT,$&\nEXTRA_DSO_LDOPTS += -F/System/Library/Frameworks -framework CoreFoundation,' xpcom/build/Makefile.in
+# 2) Non-portable use of sed (not even useable with GNU sed !)
+  perl -pi.bak -e 's,sed \-E,/usr/bin/$&,' xpcom/typelib/xpidl/Makefile.in
 <<
 ##########
+#  --enable-default-toolkit=cairo-gtk2 not useable (also w/o --enable-system-cairo) :
+# "nsCairoRenderingContext.cpp:99: error: 'cairo_set_target_surface_DEPRECATED_BY_cairo_create' was not declared in this scope"
+# : files in src refer (not always!) to a deprecated version cairo...
 ConfigureParams: --enable-xft --disable-freetype2 --enable-calendar --enable-optimize="-O3 -fstrict-aliasing" --disable-debug --enable-application=suite --enable-macos-target=10.4 --enable-prebinding --enable-default-toolkit=gtk2 --with-pthreads --with-default-mozilla-five-home=%p/lib/%N --mandir=%p/share/man --enable-strip --enable-extensions=all --enable-image-decoders=all --enable-ldap-experimental --enable-xpctools --enable-necko-protocols=all --enable-efence --enable-ctl --enable-xinerama --with-system-mng --with-system-jpeg --with-system-png --with-system-zlib --enable-postscript --enable-ipv6 --enable-tests --with-x --enable-canvas --with-qtdir=%p --enable-pango --enable-svg --enable-update-packaging --enable-storage --enable-system-cairo --enable-profilesharing
 CompileScript: <<
 #!/bin/sh -ev
-export CPATH=%p/include/cairo:%p/include
+export CPATH=%p/include
 env ac_cv_func_res_ninit=yes ./configure %c
 make -w
 <<
@@ -196,7 +206,7 @@ SplitOff: <<
     %p/lib/%N/ipc/modules/libtransmgr.dylib 1.0.0 %n (>= 1.0-1)
     %p/lib/%N/ipc/modules/libtestmodule.dylib 1.0.0 %n (>= 1.0-1)
   <<
-#    %p/lib/%N/libxlibrgb.dylib 1.0.0 %n (>= 1.7.11-1)  seems to have disaappeared .. ?
+#    %p/lib/%N/libxlibrgb.dylib 1.0.0 %n (>= 1.7.11-1)  seems to have disappeared .. ?
 <<
 SplitOff2: <<
   Package: %N-dev
@@ -223,6 +233,25 @@ And then /usr/X11R6/lib between the latter 2, to make sure libfreetype.6.dylib c
 
 Added in the patch -x flag to the regxpcom command in update-%N-chrome, to get correct PostInstScripts. 
 (and use there same DYLD_LIBRARY_PATH as in %p/bin/%N).
+
+## A bunch of warnings I should still look at:
+warning: invalid access to non-static data member '...' of NULL object
+for:
+js/src/liveconnect/nsCLiveconnect.cpp
+layout/style/nsCSSPropList.h
+layout/style/nsCSSStyleRule.cpp
+layout/style/nsStyleStructList.h
+mailnews/base/src/nsMsgDBView.cpp
+modules/oji/src/nsJVMAuthTools.cpp
+modules/oji/src/nsJVMManager.cpp
+modules/oji/src/nsJVMPluginTagInfo.cpp
+modules/oji/src/scd.cpp
+netwerk/base/src/nsAsyncStreamListener.cpp
+netwerk/base/src/nsLoadGroup.cpp
+netwerk/base/src/nsRequestObserverProxy.h
+netwerk/base/src/nsSimpleURI.cpp
+rdf/base/src/nsInMemoryDataSource.cpp
+xpcom/ds/nsProperties.cpp
 <<
 DescPackaging: <<
  Simpler _ even for user _ to have just %N, %N-dev and %N-shlibs
