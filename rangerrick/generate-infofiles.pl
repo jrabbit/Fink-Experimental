@@ -3,7 +3,6 @@
 use strict;
 
 use lib '/sw/lib/perl5';
-use lib '/Users/ranger/cvs.build/fink/perlmod';
 use lib '/Users/ranger/cvs/fink/perlmod';
 
 use Clone qw(clone);
@@ -27,16 +26,22 @@ my $translate = '(openexr|gst.*0.10.*|gstreamer|gst-plugins|kde|postgres|libpq|l
 
 my $package_lookup = {
 	'10.3' => {
+		'^libgettext3-dev'     => 'gettext-dev',
+		'^libgettext3-shlibs'  => 'gettext',
 		'^libxine1$'           => 'libxine',
 		'^libxine1-shlibs$'    => 'libxine-shlibs',
 		'^fontconfig2-shlibs$' => undef,
 		'^libicu32-dev$'       => undef,
 	},
 	'10.4-transitional' => {
+		'^libgettext3-dev'     => 'gettext-dev',
+		'^libgettext3-shlibs'  => 'gettext',
 		'^libicu31-dev$'       => undef,
 		'^gcc3.1$'             => undef,
 	},
 	'10.4' => {
+		'^libgettext3-dev'     => 'gettext-dev',
+		'^libgettext3-shlibs'  => 'gettext',
 		'^libicu31-dev$'       => undef,
 		'^gcc3.1$'             => undef,
 		'^gcc3.3$'             => undef,

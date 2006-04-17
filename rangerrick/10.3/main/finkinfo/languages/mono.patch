@@ -20,28 +20,6 @@
  am_libmonoruntime_la_OBJECTS = reflection.lo object.lo icall.lo \
  	decimal.lo boehm-gc.lo null-gc.lo gc.lo marshal.lo monitor.lo \
  	threads.lo threadpool.lo file-io.lo socket-io.lo exception.lo \
---- mono-1.1.13/mono/metadata/loader.c	2005-12-15 08:13:11.000000000 -0500
-+++ mono-1.1.13-new/mono/metadata/loader.c	2006-01-11 07:53:19.000000000 -0500
-@@ -940,6 +940,19 @@
- 		}
- 
- 		if (!gmodule) {
-+			full_name = g_module_build_path ("@FINKPREFIX@/lib", file_name);
-+			mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_DLLIMPORT,
-+					"DllImport loading location: '%s'.", full_name);
-+			gmodule = g_module_open (full_name, G_MODULE_BIND_LAZY);
-+			if (!gmodule) {
-+				mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_DLLIMPORT,
-+						"DllImport error loading library: '%s'.",
-+						g_module_error ());
-+			}
-+			g_free (full_name);
-+		}
-+
-+		if (!gmodule) {
- 			full_name = g_module_build_path (".", file_name);
- 			mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_DLLIMPORT,
- 					"DllImport loading library: '%s'.", full_name);
 --- mono-1.1.13.6/data/config.in	2006-03-24 13:00:15.000000000 -0500
 +++ mono-1.1.13.6-new/data/config.in	2006-03-28 22:47:43.000000000 -0500
 @@ -12,5 +12,5 @@
