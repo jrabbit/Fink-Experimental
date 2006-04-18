@@ -246,6 +246,7 @@ my $version_lookup = {
 		'^libcdparanoia0-dev$'                      => [ '3a9.8',        '11'   ],
 #		'^qt3(-.+)?$'                               => [ undef,          '+'    ],
 		'^postgresql\S+$'                           => [ undef,          '+'    ],
+		'^unsermake$'                               => [ '0.4',          '0.20060316.1' ],
 	},
 };
 
