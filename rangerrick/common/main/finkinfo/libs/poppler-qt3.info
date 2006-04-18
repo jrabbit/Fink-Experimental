@@ -1,22 +1,22 @@
 Package: poppler-qt3
-Version: 0.5.0
+Version: 0.5.1
 Revision: 1
 Description: PDF rendering library (Qt Interface)
 License: GPL
 Maintainer: Benjamin Reed <poppler-qt3@fink.racoonfink.com>
 Depends: %N-shlibs (>= %v-%r)
 BuildDepends: <<
-	fontconfig2-dev
+	fontconfig2-dev,
 	libjpeg,
 	pkgconfig,
-	poppler (>= %v-1),
+	poppler1 (>= %v-1),
 	qt3 (>= 3.3-1),
 	x11-dev
 <<
 BuildDependsOnly: True
 Source: http://poppler.freedesktop.org/poppler-%v.tar.gz
-Source-MD5: c84c1be19f43e4a84872ff08234c1960
-ConfigureParams: --mandir=%p/share/man --disable-cairo-output SYSTEM_XPDFRC=%p/etc/xpdfrc.poppler --disable-dependency-tracking --enable-zlib --disable-poppler-glib --disable-poppler-qt4
+Source-MD5: a136cd731892f4570933034ba97c8704
+ConfigureParams: --mandir=%p/share/man SYSTEM_XPDFRC=%p/etc/xpdfrc.poppler1 --disable-dependency-tracking --enable-zlib --disable-poppler-glib --disable-poppler-qt4
 PatchScript: sed 's|@PREFIX@|%p|g' <%a/%n.patch | patch -p1 --fuzz=4
 GCC: 3.3
 CompileScript: <<
@@ -29,6 +29,7 @@ CompileScript: <<
 	pushd qt
 	make
 	popd
+	make poppler-qt.pc
 <<
 InstallScript: <<
 #!/bin/sh -e
@@ -36,22 +37,22 @@ InstallScript: <<
 	pushd qt
 	make install DESTDIR=%d
 	popd
+	install -d -m 755 %i/lib/pkgconfig
+	install -c -m 644 poppler-qt.pc %i/lib/pkgconfig/
 <<
 DocFiles: AUTHORS COPYING ChangeLog NEWS README README-XPDF TODO
 SplitOff: <<
 	Package: %n-shlibs
 	Depends: <<
-		libjpeg-shlibs,
-		poppler-shlibs (>= %v-1),
-		qt3-shlibs (>= 3.3-1),
-		x11-shlibs
+		poppler1-shlibs (>= %v-1),
+		qt3-shlibs (>= 3.3-1)
 	<<
 	Files: <<
 		lib/libpoppler-qt.*.dylib
 	<<
 	DocFiles: AUTHORS COPYING ChangeLog NEWS README README-XPDF TODO
 	Shlibs: <<
-		%p/lib/poppler-qt.0.dylib 1.0.0 poppler-qt3-shlibs (>= 0.4.2-1)
+		%p/lib/poppler-qt.0.dylib 1.0.0 poppler-qt3-shlibs (>= 0.5.1-1)
 	<<
 <<
 Homepage: http://poppler.freedesktop.org/
