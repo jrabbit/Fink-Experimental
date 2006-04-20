@@ -235,7 +235,7 @@ my $version_lookup = {
 		'^nant$'                                    => [ '0.85',         '22'   ],
 		'^qt3(-.+)?$'                               => [ '3.3.6',        '14'   ],
 		'^sane-backends(-dev|-shlibs)?$'            => [ '1.0.15',       '4'    ],
-		'^macosx$'                                  => [ '10.3.0',       '1'    ],
+		'^macosx$'                                  => [ '10.3.9',       '1'    ],
 	},
 	'all' => {
 		'^arts(-dev|-shlibs)?$'                     => [ undef,          '+'    ],
