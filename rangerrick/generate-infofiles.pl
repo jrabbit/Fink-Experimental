@@ -221,6 +221,7 @@ my $version_lookup = {
 		'^cocoa-sharp$'                             => [ '0.9.1',        '12'   ],
 		'^ecj$'                                     => [ '3.1.2',        '11'   ],
 		'^gecko-sharp$'                             => [ '2.0',          '19'   ],
+		'^glib2(-dev|-shlibs)?$'                    => [ '2.8.6',        '1'    ],
 		'^gtk-sharp$'                               => [ '1.0.10',       '14'   ],
 		'^gtk-sharp(2|-monodoc)$'                   => [ '2.4.2',        '12'   ],
 		'^gtksourceview-sharp$'                     => [ '2.0',          '15'   ],
