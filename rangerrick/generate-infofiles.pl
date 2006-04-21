@@ -524,6 +524,7 @@ sub transform_patch {
 
 	if ($tree eq "10.4") {
 		$text =~ s/g(cc|\+\+)-3\.3/g$1-4.0/gi;
+		$text =~ s/-fno-coalesce//gs;
 	}
 
 	$text =~ s/(^|[\r\n]+)diff -uN[^\r\n]*//gs;
