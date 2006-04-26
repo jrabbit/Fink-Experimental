@@ -1,6 +1,6 @@
 Package: gtk-sharp
 Version: 1.0.10
-Revision: 4
+Revision: 5
 Source: http://go-mono.org/sources/%n/%n-%v.tar.gz
 Source-MD5: e21fb3c5a39374f86ba70b926311a6d0
 Patch: %n.patch
@@ -51,7 +51,7 @@ BuildDepends: <<
 	libjpeg,
 	librsvg2,
 	libtool14 (>= 1.5-1),
-	mono-dev (>= 1.1.11-1),
+	mono-dev (>= 1.1.15-1),
 	orbit2-dev (>= 2.8.3-4),
 	pango1-xft2-ft219-dev,
 	pkgconfig,
@@ -78,7 +78,7 @@ Depends: <<
 	libgnomeui2-shlibs,
 	libiconv,
 	libxml2-shlibs,
-	mono (>= 1.1.11-1),
+	mono (>= 1.1.15-1),
 	orbit2-shlibs (>= 2.8.3-4),
 	pango1-xft2-ft219-shlibs,
 	popt-shlibs,
@@ -89,21 +89,16 @@ ConfigureParams: --mandir=%p/share/man --disable-static --disable-dependency-tra
 CompileScript: <<
 #!/bin/sh -ex
 
-  export lt_cv_sys_max_cmd_len=65536 CPPFLAGS="-I%p/lib/freetype219/include $CPPFLAGS" PKG_CONFIG_PATH="%p/lib/freetype219/lib/pkgconfig:$PKG_CONFIG_PATH" PATH="%p/lib/freetype219/bin:$PATH"
-#  glibtoolize --copy --force
-#  aclocal
-#  autoheader
-#  automake --add-missing --gnu --force --copy
-#  autoconf --force
-  ./configure %c
-  make
+	export lt_cv_sys_max_cmd_len=65536 CPPFLAGS="-I%p/lib/freetype219/include $CPPFLAGS" PKG_CONFIG_PATH="%p/lib/freetype219/lib/pkgconfig:$PKG_CONFIG_PATH" PATH="%p/lib/freetype219/bin:$PATH"
+	./configure %c
+	make
 <<
 InstallScript: <<
 #!/bin/sh -ex
-  export DYLD_FALLBACK_LIBRARY_PATH="%i/lib:/usr/lib"
-  make install DESTDIR=%d GACUTIL_FLAGS='/package $(PACKAGE) /root $(DESTDIR)$(libdir)'
-  install -d -m 755 %i/share/%n/sample
-  cp -R sample/* %i/share/%n/sample/
+	export MONO_PATH="%i/lib:$MONO_PATH"
+	make install DESTDIR=%d GACUTIL_FLAGS='/package $(PACKAGE) /root $(DESTDIR)$(libdir)'
+	install -d -m 755 %i/share/%n/sample
+	cp -R sample/* %i/share/%n/sample/
 <<
 
 DocFiles: AUTHORS COPYING ChangeLog* INSTALL NEWS README*

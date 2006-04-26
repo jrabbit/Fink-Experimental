@@ -1,6 +1,7 @@
---- mono-1.1.13/configure	2006-01-06 14:26:30.000000000 -0500
-+++ mono-1.1.13-new/configure	2006-01-11 07:53:18.000000000 -0500
-@@ -35519,7 +35519,7 @@
+diff -uNr mono-1.1.15/configure mono-1.1.15-new/configure
+--- mono-1.1.15/configure	2006-04-14 13:53:35.000000000 -0400
++++ mono-1.1.15-new/configure	2006-04-26 10:55:49.000000000 -0400
+@@ -35951,7 +35951,7 @@
  	INTL="libintl.dylib"
  	SQLITE="libsqlite.0.dylib"
  	SQLITE3="libsqlite3.0.dylib"
@@ -9,9 +10,44 @@
  	;;
       *-*-*netbsd*)
  	LIBC="libc.so.12"
---- mono-1.1.13/mono/metadata/Makefile.in	2006-01-06 14:26:24.000000000 -0500
-+++ mono-1.1.13-new/mono/metadata/Makefile.in	2006-01-11 07:53:19.000000000 -0500
-@@ -68,7 +68,7 @@
+diff -uNr mono-1.1.15/data/config.in mono-1.1.15-new/data/config.in
+--- mono-1.1.15/data/config.in	2006-04-14 13:47:09.000000000 -0400
++++ mono-1.1.15-new/data/config.in	2006-04-26 10:55:49.000000000 -0400
+@@ -1,16 +1,16 @@
+ <configuration>
+-	<dllmap dll="cygwin1.dll" target="@LIBC@" />
+-	<dllmap dll="libc" target="@LIBC@" />
+-	<dllmap dll="intl" target="@INTL@" />
+-	<dllmap dll="libxslt.dll" target="libxslt@libsuffix@" />
+-	<dllmap dll="libmySQL.dll" target="libmysqlclient@libsuffix@" />
+-	<dllmap dll="odbc32.dll" target="libodbc@libsuffix@" />
+-	<dllmap dll="oci" target="libclntsh@libsuffix@" />
+-	<dllmap dll="db2cli" target="libdb2_36@libsuffix@"/>
+-	<dllmap dll="msvcrt" target="@LIBC@"/>
+-	<dllmap dll="MonoPosixHelper" target="libMonoPosixHelper@libsuffix@"/>
+-	<dllmap dll="sqlite" target="@SQLITE@"/>
+-	<dllmap dll="sqlite3" target="@SQLITE3@"/>
+-	<dllmap dll="libX11" target="@X11@"/>
+-	<dllmap dll="libcairo-2.dll" target="libcairo.so.2"/>
++	<dllmap dll="cygwin1.dll" target="/usr/lib/@LIBC@" />
++	<dllmap dll="libc" target="/usr/lib/libSystem.dylib" />
++	<dllmap dll="intl" target="@FINKPREFIX@/lib/libintl.3.dylib" />
++	<dllmap dll="libxslt.dll" target="@FINKPREFIX@/lib/libxslt.1.dylib" />
++	<dllmap dll="libmySQL.dll" target="@FINKPREFIX@/lib/libmysqlclient@libsuffix@" />
++	<dllmap dll="odbc32.dll" target="@FINKPREFIX@/lib/libodbc@libsuffix@" />
++	<dllmap dll="oci" target="@FINKPREFIX@/lib/libclntsh@libsuffix@" />
++	<dllmap dll="db2cli" target="@FINKPREFIX@/lib/libdb2_36@libsuffix@"/>
++	<dllmap dll="msvcrt" target="/usr/lib/libSystem.dylib"/>
++	<dllmap dll="MonoPosixHelper" target="@FINKPREFIX@/lib/libMonoPosixHelper@libsuffix@"/>
++	<dllmap dll="sqlite" target="@FINKPREFIX@/lib/@SQLITE@"/>
++	<dllmap dll="sqlite3" target="@FINKPREFIX@/lib/@SQLITE3@"/>
++	<dllmap dll="libX11" target="/usr/X11R6/lib/@X11@"/>
++	<dllmap dll="libcairo-2.dll" target="@FINKPREFIX@/lib/libcairo.2@libsuffix@"/>
+ </configuration>
+diff -uNr mono-1.1.15/mono/metadata/Makefile.in mono-1.1.15-new/mono/metadata/Makefile.in
+--- mono-1.1.15/mono/metadata/Makefile.in	2006-04-14 13:53:24.000000000 -0400
++++ mono-1.1.15-new/mono/metadata/Makefile.in	2006-04-26 10:55:49.000000000 -0400
+@@ -67,7 +67,7 @@
  am_libmonoruntime_static_la_OBJECTS = $(am__objects_1)
  libmonoruntime_static_la_OBJECTS =  \
  	$(am_libmonoruntime_static_la_OBJECTS)
@@ -20,1292 +56,113 @@
  am_libmonoruntime_la_OBJECTS = reflection.lo object.lo icall.lo \
  	decimal.lo boehm-gc.lo null-gc.lo gc.lo marshal.lo monitor.lo \
  	threads.lo threadpool.lo file-io.lo socket-io.lo exception.lo \
---- mono-1.1.13.6/data/config.in	2006-03-24 13:00:15.000000000 -0500
-+++ mono-1.1.13.6-new/data/config.in	2006-03-28 22:47:43.000000000 -0500
-@@ -12,5 +12,5 @@
- 	<dllmap dll="sqlite" target="@SQLITE@"/>
- 	<dllmap dll="sqlite3" target="@SQLITE3@"/>
- 	<dllmap dll="libX11" target="@X11@"/>
--	<dllmap dll="libcairo-2.dll" target="libcairo.so.2"/>
-+	<dllmap dll="libcairo-2.dll" target="libcairo@libsuffix@"/>
- </configuration>
---- mono/scripts/mono-service.in	(.../tags/mono-1-1-15/mono)	(revision 59760)
-+++ mono/scripts/mono-service.in	(.../trunk/mono)	(revision 59760)
-@@ -12,10 +12,10 @@
- if test x$assembly = x; then
- 	echo You must specify at least the assembly name
- 	echo 
--	echo 'Usage is: $0 [options] service'
-+	echo "Usage is: $0 [options] service"
- 	echo 
- 	echo '    -d:<directory>         Working directory'
--	echo '    -l:<lock file>         Lock file (default is /tmp/<service>.log)'
-+	echo '    -l:<lock file>         Lock file (default is /tmp/<service>.lock)'
- 	echo '    -m:<syslog name>       Name to show in syslog'
- 	echo '    -n:<service name>      Name of service to start (default is first defined)'
- 	echo 
---- mono/mono/metadata/assembly.c	(.../tags/mono-1-1-15/mono)	(revision 59760)
-+++ mono/mono/metadata/assembly.c	(.../trunk/mono)	(revision 59760)
-@@ -1250,9 +1250,11 @@
- 		return NULL;
- 	}
- 
--	if (image->assembly)
-+	if (image->assembly) {
- 		/* Already loaded by another appdomain */
-+		mono_assembly_invoke_load_hook (image->assembly);
- 		return image->assembly;
-+	}
- 
- 	ass = mono_assembly_load_from_full (image, fname, status, refonly);
- 
---- mono/mono/metadata/image.c	(.../tags/mono-1-1-15/mono)	(revision 59760)
-+++ mono/mono/metadata/image.c	(.../trunk/mono)	(revision 59760)
-@@ -38,6 +38,9 @@
- static GHashTable *loaded_images_guid_hash;
- static GHashTable *loaded_images_refonly_hash;
- static GHashTable *loaded_images_refonly_guid_hash;
-+
-+static gboolean debug_assembly_unload = FALSE;
-+
- #define mono_images_lock() EnterCriticalSection (&images_mutex)
- #define mono_images_unlock() LeaveCriticalSection (&images_mutex)
- static CRITICAL_SECTION images_mutex;
-@@ -140,6 +143,8 @@
- 	loaded_images_guid_hash = g_hash_table_new (g_str_hash, g_str_equal);
- 	loaded_images_refonly_hash = g_hash_table_new (g_str_hash, g_str_equal);
- 	loaded_images_refonly_guid_hash = g_hash_table_new (g_str_hash, g_str_equal);
-+
-+	debug_assembly_unload = getenv ("MONO_DEBUG_ASSEMBLY_UNLOAD") != NULL;
+diff -uNr mono-1.1.15/mono/metadata/loader.c mono-1.1.15-new/mono/metadata/loader.c
+--- mono-1.1.15/mono/metadata/loader.c	2006-04-14 13:46:58.000000000 -0400
++++ mono-1.1.15-new/mono/metadata/loader.c	2006-04-26 11:08:12.000000000 -0400
+@@ -877,6 +877,39 @@
+ 	mono_loader_unlock ();
  }
  
- /**
-@@ -1090,11 +1095,16 @@
- 
- 		g_free (image->raw_data);
- 	}
--	g_free (image->name);
--	g_free (image->guid);
--	g_free (image->version);
--	g_free (image->files);
- 
-+	if (debug_assembly_unload) {
-+		image->name = g_strdup_printf ("%s - UNLOADED", image->name);
-+	} else {
-+		g_free (image->name);
-+		g_free (image->guid);
-+		g_free (image->version);
-+		g_free (image->files);
-+	}
-+
- 	g_hash_table_destroy (image->method_cache);
- 	g_hash_table_destroy (image->class_cache);
- 	g_hash_table_destroy (image->field_cache);
-@@ -1139,8 +1149,12 @@
- 	}
- 	/*g_print ("destroy image %p (dynamic: %d)\n", image, image->dynamic);*/
- 	if (!image->dynamic) {
--		mono_mempool_destroy (image->mempool);
--		g_free (image);
-+		if (debug_assembly_unload)
-+			mono_mempool_invalidate (image->mempool);
-+		else {
-+			mono_mempool_destroy (image->mempool);
-+			g_free (image);
-+		}
- 	} else {
- 		/* Dynamic images are GC_MALLOCed */
- 		struct _MonoDynamicImage *di = (struct _MonoDynamicImage*)image;
---- mono/mono/metadata/metadata.c	(.../tags/mono-1-1-15/mono)	(revision 59760)
-+++ mono/mono/metadata/metadata.c	(.../trunk/mono)	(revision 59760)
-@@ -1347,6 +1347,8 @@
-  * this MonoGenericContainer.
-  * This is a Mono runtime internal function.
-  *
-+ * LOCKING: Assumes the loader lock is held.
-+ *
-  * Returns: a #MonoType structure representing the decoded type.
-  */
- MonoType*
-@@ -1393,7 +1395,7 @@
- 	}
- 
- 	if (count) {
--		type = g_malloc0 (sizeof (MonoType) + ((gint32)count - MONO_ZERO_LEN_ARRAY) * sizeof (MonoCustomMod));
-+		type = mono_mempool_alloc0 (m->mempool, sizeof (MonoType) + ((gint32)count - MONO_ZERO_LEN_ARRAY) * sizeof (MonoCustomMod));
- 		type->num_mods = count;
- 		if (count > 64)
- 			g_warning ("got more than 64 modifiers in type");
-@@ -1471,11 +1473,16 @@
- 	
- 	/* printf ("%x %x %c %s\n", type->attrs, type->num_mods, type->pinned ? 'p' : ' ', mono_type_full_name (type)); */
- 	
--	if (type == &stype)
--		type = g_memdup (&stype, sizeof (MonoType));
-+	if (type == &stype) {
-+		type = mono_mempool_alloc (m->mempool, sizeof (MonoType));
-+		memcpy (type, &stype, sizeof (MonoType));
-+	}
- 	return type;
- }
- 
-+/*
-+ * LOCKING: Assumes the loader lock is held.
-+ */
- MonoType*
- mono_metadata_parse_type (MonoImage *m, MonoParseTypeMode mode, short opt_attrs,
- 			  const char *ptr, const char **rptr)
-@@ -2081,7 +2088,8 @@
-  * mono_metadata_free_type:
-  * @type: type to free
-  *
-- * Free the memory allocated for type @type.
-+ * Free the memory allocated for type @type which is assumed to be created by
-+ * mono_metadata_parse_type ().
-  */
- void
- mono_metadata_free_type (MonoType *type)
-@@ -2110,7 +2118,8 @@
- 		mono_metadata_free_array (type->data.array);
- 		break;
- 	}
--	g_free (type);
-+
-+	/* Allocated from a mempool, no need to free it */
- }
- 
- #if 0
---- mono/mono/metadata/marshal.c	(.../tags/mono-1-1-15/mono)	(revision 59760)
-+++ mono/mono/metadata/marshal.c	(.../trunk/mono)	(revision 59760)
-@@ -1048,6 +1048,117 @@
- 	mono_mb_emit_stloc (mb, local); 
- }
- 
-+guint
-+mono_type_to_ldind (MonoType *type)
++static gchar* _mono_module_build_path (const gchar *directory, const gchar *module_name, const gchar *module_suffix)
 +{
-+	if (type->byref)
-+		return CEE_LDIND_I;
-+
-+handle_enum:
-+	switch (type->type) {
-+	case MONO_TYPE_I1:
-+		return CEE_LDIND_I1;
-+	case MONO_TYPE_U1:
-+	case MONO_TYPE_BOOLEAN:
-+		return CEE_LDIND_U1;
-+	case MONO_TYPE_I2:
-+		return CEE_LDIND_I2;
-+	case MONO_TYPE_U2:
-+	case MONO_TYPE_CHAR:
-+		return CEE_LDIND_U2;
-+	case MONO_TYPE_I4:
-+		return CEE_LDIND_I4;
-+	case MONO_TYPE_U4:
-+		return CEE_LDIND_U4;
-+	case MONO_TYPE_I:
-+	case MONO_TYPE_U:
-+	case MONO_TYPE_PTR:
-+	case MONO_TYPE_FNPTR:
-+		return CEE_LDIND_I;
-+	case MONO_TYPE_CLASS:
-+	case MONO_TYPE_STRING:
-+	case MONO_TYPE_OBJECT:
-+	case MONO_TYPE_SZARRAY:
-+	case MONO_TYPE_ARRAY:    
-+		return CEE_LDIND_REF;
-+	case MONO_TYPE_I8:
-+	case MONO_TYPE_U8:
-+		return CEE_LDIND_I8;
-+	case MONO_TYPE_R4:
-+		return CEE_LDIND_R4;
-+	case MONO_TYPE_R8:
-+		return CEE_LDIND_R8;
-+	case MONO_TYPE_VALUETYPE:
-+		if (type->data.klass->enumtype) {
-+			type = type->data.klass->enum_basetype;
-+			goto handle_enum;
++	if (directory && *directory)
++		{
++			if (strncmp (module_name, "lib", 3) == 0)
++				return g_strconcat (directory, "/", module_name, NULL);
++			else if (module_suffix && *module_suffix)
++				return g_strconcat (directory, "/lib", module_name, module_suffix, NULL);
++			else
++				return g_strconcat (directory, "/lib", module_name, NULL);
 +		}
-+		return CEE_LDOBJ;
-+	case MONO_TYPE_TYPEDBYREF:
-+		return CEE_LDOBJ;
-+	case MONO_TYPE_GENERICINST:
-+		type = &type->data.generic_class->container_class->byval_arg;
-+		goto handle_enum;
-+	default:
-+		g_error ("unknown type 0x%02x in type_to_ldind", type->type);
-+	}
-+	return -1;
++	else if (strncmp (module_name, "lib", 3) == 0)
++		return g_strdup (module_name);
++	else if (module_suffix && *module_suffix)
++		return g_strconcat ("lib", module_name, module_suffix, NULL);
++	else
++		return g_strconcat ("lib", module_name, NULL);
 +}
 +
-+guint
-+mono_type_to_stind (MonoType *type)
++static GModule* _mono_try_load_module (const char *directory_name, const char *file_name, const char *module_suffix)
 +{
-+	if (type->byref)
-+		return CEE_STIND_I;
-+
-+handle_enum:
-+	switch (type->type) {
-+	case MONO_TYPE_I1:
-+	case MONO_TYPE_U1:
-+	case MONO_TYPE_BOOLEAN:
-+		return CEE_STIND_I1;
-+	case MONO_TYPE_I2:
-+	case MONO_TYPE_U2:
-+	case MONO_TYPE_CHAR:
-+		return CEE_STIND_I2;
-+	case MONO_TYPE_I4:
-+	case MONO_TYPE_U4:
-+		return CEE_STIND_I4;
-+	case MONO_TYPE_I:
-+	case MONO_TYPE_U:
-+	case MONO_TYPE_PTR:
-+	case MONO_TYPE_FNPTR:
-+		return CEE_STIND_I;
-+	case MONO_TYPE_CLASS:
-+	case MONO_TYPE_STRING:
-+	case MONO_TYPE_OBJECT:
-+	case MONO_TYPE_SZARRAY:
-+	case MONO_TYPE_ARRAY:    
-+		return CEE_STIND_REF;
-+	case MONO_TYPE_I8:
-+	case MONO_TYPE_U8:
-+		return CEE_STIND_I8;
-+	case MONO_TYPE_R4:
-+		return CEE_STIND_R4;
-+	case MONO_TYPE_R8:
-+		return CEE_STIND_R8;
-+	case MONO_TYPE_VALUETYPE:
-+		if (type->data.klass->enumtype) {
-+			type = type->data.klass->enum_basetype;
-+			goto handle_enum;
-+		}
-+		return CEE_STOBJ;
-+	case MONO_TYPE_TYPEDBYREF:
-+		return CEE_STOBJ;
-+	case MONO_TYPE_GENERICINST:
-+		type = &type->data.generic_class->container_class->byval_arg;
-+		goto handle_enum;
-+	default:
-+		g_error ("unknown type 0x%02x in type_to_stind", type->type);
++	GModule *gmodule = NULL;
++	char *full_name;
++	full_name = _mono_module_build_path (directory_name, file_name, module_suffix);
++	mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_DLLIMPORT, "DllImport loading location: '%s'.", full_name);
++	gmodule = g_module_open (full_name, G_MODULE_BIND_LAZY);
++	if (!gmodule) {
++		mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_DLLIMPORT, "DllImport error loading library: '%s'.", g_module_error ());
 +	}
-+	return -1;
++	g_free (full_name);
++	return gmodule;
 +}
 +
- static void
- emit_ptr_to_object_conv (MonoMethodBuilder *mb, MonoType *type, MonoMarshalConv conv, MonoMarshalSpec *mspec)
+ gpointer
+ mono_lookup_pinvoke_call (MonoMethod *method, const char **exc_class, const char **exc_arg)
  {
-@@ -1508,62 +1619,32 @@
- 				break;
- 			}
+@@ -890,7 +923,7 @@
+ 	const char *import = NULL;
+ 	const char *orig_scope;
+ 	const char *new_scope;
+-	char *full_name, *file_name;
++	char *file_name;
+ 	int i;
+ 	GModule *gmodule = NULL;
  
--			t = ftype->type;
- 		handle_enum:
-+			t = ftype->type;
- 			switch (t) {
- 			case MONO_TYPE_I4:
- 			case MONO_TYPE_U4:
--#if SIZEOF_VOID_P == 4
--			case MONO_TYPE_PTR:
--#endif
--				mono_mb_emit_ldloc (mb, 1);
--				mono_mb_emit_ldloc (mb, 0);
--				mono_mb_emit_byte (mb, CEE_LDIND_I4);
--				mono_mb_emit_byte (mb, CEE_STIND_I4);
--				break;
- 			case MONO_TYPE_I1:
- 			case MONO_TYPE_U1:
- 			case MONO_TYPE_BOOLEAN:
--				mono_mb_emit_ldloc (mb, 1);
--				mono_mb_emit_ldloc (mb, 0);
--				mono_mb_emit_byte (mb, CEE_LDIND_I1);
--				mono_mb_emit_byte (mb, CEE_STIND_I1);
--				break;
- 			case MONO_TYPE_I2:
- 			case MONO_TYPE_U2:
- 			case MONO_TYPE_CHAR:
--				mono_mb_emit_ldloc (mb, 1);
--				mono_mb_emit_ldloc (mb, 0);
--				mono_mb_emit_byte (mb, CEE_LDIND_I2);
--				mono_mb_emit_byte (mb, CEE_STIND_I2);
--				break;
- 			case MONO_TYPE_I8:
- 			case MONO_TYPE_U8:
--#if SIZEOF_VOID_P == 8
- 			case MONO_TYPE_PTR:
--#endif
--				mono_mb_emit_ldloc (mb, 1);
--				mono_mb_emit_ldloc (mb, 0);
--				mono_mb_emit_byte (mb, CEE_LDIND_I8);
--				mono_mb_emit_byte (mb, CEE_STIND_I8);
--				break;
- 			case MONO_TYPE_R4:
--				mono_mb_emit_ldloc (mb, 1);
--				mono_mb_emit_ldloc (mb, 0);
--				mono_mb_emit_byte (mb, CEE_LDIND_R4);
--				mono_mb_emit_byte (mb, CEE_STIND_R4);
--				break;
- 			case MONO_TYPE_R8:
- 				mono_mb_emit_ldloc (mb, 1);
- 				mono_mb_emit_ldloc (mb, 0);
--				mono_mb_emit_byte (mb, CEE_LDIND_R8);
--				mono_mb_emit_byte (mb, CEE_STIND_R8);
-+				mono_mb_emit_byte (mb, mono_type_to_ldind (ftype));
-+				mono_mb_emit_byte (mb, mono_type_to_stind (ftype));
- 				break;
- 			case MONO_TYPE_VALUETYPE: {
- 				int src_var, dst_var;
+@@ -976,32 +1009,6 @@
+ 		}
  
- 				if (ftype->data.klass->enumtype) {
--					t = ftype->data.klass->enum_basetype->type;
-+					ftype = ftype->data.klass->enum_basetype;
- 					goto handle_enum;
- 				}
- 
-@@ -2165,57 +2246,21 @@
- 		break;
- 	case MONO_TYPE_U1:
- 	case MONO_TYPE_BOOLEAN:
--		mono_mb_emit_byte (mb, CEE_UNBOX);
--		mono_mb_emit_i4 (mb, mono_mb_add_data (mb, mono_class_from_mono_type (return_type)));
--		mono_mb_emit_byte (mb, CEE_LDIND_U1);
--		break;
- 	case MONO_TYPE_I1:
--		mono_mb_emit_byte (mb, CEE_UNBOX);
--		mono_mb_emit_i4 (mb, mono_mb_add_data (mb, mono_class_from_mono_type (return_type)));
--		mono_mb_emit_byte (mb, CEE_LDIND_I1);
--		break;
- 	case MONO_TYPE_U2:
- 	case MONO_TYPE_CHAR:
--		mono_mb_emit_byte (mb, CEE_UNBOX);
--		mono_mb_emit_i4 (mb, mono_mb_add_data (mb, mono_class_from_mono_type (return_type)));
--		mono_mb_emit_byte (mb, CEE_LDIND_U2);
--		break;
- 	case MONO_TYPE_I2:
--		mono_mb_emit_byte (mb, CEE_UNBOX);
--		mono_mb_emit_i4 (mb, mono_mb_add_data (mb, mono_class_from_mono_type (return_type)));
--		mono_mb_emit_byte (mb, CEE_LDIND_I2);
--		break;
- 	case MONO_TYPE_I:
- 	case MONO_TYPE_U:
--		mono_mb_emit_byte (mb, CEE_UNBOX);
--		mono_mb_emit_i4 (mb, mono_mb_add_data (mb, mono_class_from_mono_type (return_type)));
--		mono_mb_emit_byte (mb, CEE_LDIND_I);
--		break;
- 	case MONO_TYPE_I4:
--		mono_mb_emit_byte (mb, CEE_UNBOX);
--		mono_mb_emit_i4 (mb, mono_mb_add_data (mb, mono_class_from_mono_type (return_type)));
--		mono_mb_emit_byte (mb, CEE_LDIND_I4);
--		break;
- 	case MONO_TYPE_U4:
--		mono_mb_emit_byte (mb, CEE_UNBOX);
--		mono_mb_emit_i4 (mb, mono_mb_add_data (mb, mono_class_from_mono_type (return_type)));
--		mono_mb_emit_byte (mb, CEE_LDIND_U4);
--		break;
- 	case MONO_TYPE_U8:
- 	case MONO_TYPE_I8:
--		mono_mb_emit_byte (mb, CEE_UNBOX);
--		mono_mb_emit_i4 (mb, mono_mb_add_data (mb, mono_class_from_mono_type (return_type)));
--		mono_mb_emit_byte (mb, CEE_LDIND_I8);
--		break;
- 	case MONO_TYPE_R4:
--		mono_mb_emit_byte (mb, CEE_UNBOX);
--		mono_mb_emit_i4 (mb, mono_mb_add_data (mb, mono_class_from_mono_type (return_type)));
--		mono_mb_emit_byte (mb, CEE_LDIND_R4);
--		break;
- 	case MONO_TYPE_R8:
- 		mono_mb_emit_byte (mb, CEE_UNBOX);
- 		mono_mb_emit_i4 (mb, mono_mb_add_data (mb, mono_class_from_mono_type (return_type)));
--		mono_mb_emit_byte (mb, CEE_LDIND_R8);
-+		mono_mb_emit_byte (mb, mono_type_to_ldind (return_type));
- 		break;
- 	case MONO_TYPE_GENERICINST:
- 		if (!mono_type_generic_inst_is_valuetype (return_type))
-@@ -3544,38 +3589,20 @@
- handle_enum:
- 		switch (type) {
- 		case MONO_TYPE_I1:
--			mono_mb_emit_byte (mb, CEE_LDIND_I1);
--			break;
- 		case MONO_TYPE_BOOLEAN:
- 		case MONO_TYPE_U1:
--			mono_mb_emit_byte (mb, CEE_LDIND_U1);
--			break;
- 		case MONO_TYPE_I2:
--			mono_mb_emit_byte (mb, CEE_LDIND_I2);
--			break;
- 		case MONO_TYPE_U2:
- 		case MONO_TYPE_CHAR:
--			mono_mb_emit_byte (mb, CEE_LDIND_U2);
--			break;
- 		case MONO_TYPE_I:
- 		case MONO_TYPE_U:
--			mono_mb_emit_byte (mb, CEE_LDIND_I);
--			break;
- 		case MONO_TYPE_I4:
--			mono_mb_emit_byte (mb, CEE_LDIND_I4);
--			break;
- 		case MONO_TYPE_U4:
--			mono_mb_emit_byte (mb, CEE_LDIND_U4);
--			break;
- 		case MONO_TYPE_R4:
--			mono_mb_emit_byte (mb, CEE_LDIND_R4);
--			break;
- 		case MONO_TYPE_R8:
--			mono_mb_emit_byte (mb, CEE_LDIND_R8);
--			break;
- 		case MONO_TYPE_I8:
- 		case MONO_TYPE_U8:
--			mono_mb_emit_byte (mb, CEE_LDIND_I8);
-+			mono_mb_emit_byte (mb, mono_type_to_ldind (sig->params [i]));
- 			break;
- 		case MONO_TYPE_STRING:
- 		case MONO_TYPE_CLASS:  
-@@ -3919,39 +3946,25 @@
- 	case MONO_TYPE_I1:
- 	case MONO_TYPE_U1:
- 	case MONO_TYPE_BOOLEAN:
--		mono_mb_emit_byte (mb, CEE_LDIND_I1);
--		break;
- 	case MONO_TYPE_CHAR:
- 	case MONO_TYPE_I2:
- 	case MONO_TYPE_U2:
--		mono_mb_emit_byte (mb, CEE_LDIND_I2);
--		break;
- 	case MONO_TYPE_I4:
- 	case MONO_TYPE_U4:
--		mono_mb_emit_byte (mb, CEE_LDIND_I4);
--		break;
- 	case MONO_TYPE_I8:
- 	case MONO_TYPE_U8:
--		mono_mb_emit_byte (mb, CEE_LDIND_I8);
--		break;
- 	case MONO_TYPE_R4:
--		mono_mb_emit_byte (mb, CEE_LDIND_R4);
--		break;
- 	case MONO_TYPE_R8:
--		mono_mb_emit_byte (mb, CEE_LDIND_R8);
--		break;
- 	case MONO_TYPE_ARRAY:
- 	case MONO_TYPE_SZARRAY:
- 	case MONO_TYPE_OBJECT:
- 	case MONO_TYPE_CLASS:
- 	case MONO_TYPE_STRING:
--		mono_mb_emit_byte (mb, CEE_LDIND_REF);
--		break;
- 	case MONO_TYPE_I:
- 	case MONO_TYPE_U:
- 	case MONO_TYPE_PTR:
- 	case MONO_TYPE_FNPTR:
--		mono_mb_emit_byte (mb, CEE_LDIND_I);
-+		mono_mb_emit_byte (mb, mono_type_to_ldind (type));
- 		break;
- 	case MONO_TYPE_VALUETYPE:
- 		g_assert (!klass->enumtype);
-@@ -4223,39 +4236,25 @@
- 	case MONO_TYPE_I1:
- 	case MONO_TYPE_U1:
- 	case MONO_TYPE_BOOLEAN:
--		mono_mb_emit_byte (mb, CEE_STIND_I1);
--		break;
- 	case MONO_TYPE_CHAR:
- 	case MONO_TYPE_I2:
- 	case MONO_TYPE_U2:
--		mono_mb_emit_byte (mb, CEE_STIND_I2);
--		break;
- 	case MONO_TYPE_I4:
- 	case MONO_TYPE_U4:
--		mono_mb_emit_byte (mb, CEE_STIND_I4);
--		break;
- 	case MONO_TYPE_I8:
- 	case MONO_TYPE_U8:
--		mono_mb_emit_byte (mb, CEE_STIND_I8);
--		break;
- 	case MONO_TYPE_R4:
--		mono_mb_emit_byte (mb, CEE_STIND_R4);
--		break;
- 	case MONO_TYPE_R8:
--		mono_mb_emit_byte (mb, CEE_STIND_R8);
--		break;
- 	case MONO_TYPE_ARRAY:
- 	case MONO_TYPE_SZARRAY:
- 	case MONO_TYPE_OBJECT:
- 	case MONO_TYPE_CLASS:
- 	case MONO_TYPE_STRING:
--		mono_mb_emit_byte (mb, CEE_STIND_REF);
--		break;
- 	case MONO_TYPE_I:
- 	case MONO_TYPE_U:
- 	case MONO_TYPE_PTR:
- 	case MONO_TYPE_FNPTR:
--		mono_mb_emit_byte (mb, CEE_STIND_I);
-+		mono_mb_emit_byte (mb, mono_type_to_stind (type));
- 		break;
- 	case MONO_TYPE_VALUETYPE:
- 		g_assert (!klass->enumtype);
---- mono/mono/metadata/marshal.h	(.../tags/mono-1-1-15/mono)	(revision 59760)
-+++ mono/mono/metadata/marshal.h	(.../trunk/mono)	(revision 59760)
-@@ -158,6 +158,12 @@
- void
- mono_mb_emit_ldstr (MonoMethodBuilder *mb, char *str);
- 
-+guint
-+mono_type_to_ldind (MonoType *type);
-+
-+guint
-+mono_type_to_stind (MonoType *type);
-+
- /* functions to create various architecture independent helper functions */
- 
- MonoMethod *
---- mono/mono/metadata/icall.c	(.../tags/mono-1-1-15/mono)	(revision 59760)
-+++ mono/mono/metadata/icall.c	(.../trunk/mono)	(revision 59760)
-@@ -2868,9 +2868,10 @@
- 	enumc = mono_class_from_mono_type (type->type);
- 	objc = obj->vtable->klass;
- 
--	MONO_CHECK_ARG (obj, enumc->enumtype == TRUE);
--	MONO_CHECK_ARG (obj, (objc->enumtype) || (objc->byval_arg.type >= MONO_TYPE_I1 &&
--						  objc->byval_arg.type <= MONO_TYPE_U8));
-+	if (!enumc->enumtype)
-+		mono_raise_exception (mono_get_exception_argument ("enumType", "Type provided must be an Enum."));
-+	if (!((objc->enumtype) || (objc->byval_arg.type >= MONO_TYPE_I1 && objc->byval_arg.type <= MONO_TYPE_U8)))
-+		mono_raise_exception (mono_get_exception_argument ("value", "The value passed in must be an enum base or an underlying type for an enum, such as an Int32."));
- 
- 	res = mono_object_new (domain, enumc);
- 	val = read_enum_value ((char *)obj + sizeof (MonoObject), objc->enumtype? objc->enum_basetype->type: objc->byval_arg.type);
---- mono/mono/mini/mini.c	(.../tags/mono-1-1-15/mono)	(revision 59760)
-+++ mono/mono/mini/mini.c	(.../trunk/mono)	(revision 59760)
-@@ -66,6 +66,10 @@
- 
- #define BRANCH_COST 100
- #define INLINE_LENGTH_LIMIT 20
-+#define INLINE_FAILURE do {\
-+		if ((cfg->method != method) && (method->wrapper_type == MONO_WRAPPER_NONE))\
-+			goto inline_failure;\
-+	} while (0)
- 
- /* 
-  * this is used to determine when some branch optimizations are possible: we exclude FP compares
-@@ -1066,117 +1070,6 @@
- 	return opcode;
- }
- 
--guint
--mono_type_to_ldind (MonoType *type)
--{
--	if (type->byref)
--		return CEE_LDIND_I;
--
--handle_enum:
--	switch (type->type) {
--	case MONO_TYPE_I1:
--		return CEE_LDIND_I1;
--	case MONO_TYPE_U1:
--	case MONO_TYPE_BOOLEAN:
--		return CEE_LDIND_U1;
--	case MONO_TYPE_I2:
--		return CEE_LDIND_I2;
--	case MONO_TYPE_U2:
--	case MONO_TYPE_CHAR:
--		return CEE_LDIND_U2;
--	case MONO_TYPE_I4:
--		return CEE_LDIND_I4;
--	case MONO_TYPE_U4:
--		return CEE_LDIND_U4;
--	case MONO_TYPE_I:
--	case MONO_TYPE_U:
--	case MONO_TYPE_PTR:
--	case MONO_TYPE_FNPTR:
--		return CEE_LDIND_I;
--	case MONO_TYPE_CLASS:
--	case MONO_TYPE_STRING:
--	case MONO_TYPE_OBJECT:
--	case MONO_TYPE_SZARRAY:
--	case MONO_TYPE_ARRAY:    
--		return CEE_LDIND_REF;
--	case MONO_TYPE_I8:
--	case MONO_TYPE_U8:
--		return CEE_LDIND_I8;
--	case MONO_TYPE_R4:
--		return CEE_LDIND_R4;
--	case MONO_TYPE_R8:
--		return CEE_LDIND_R8;
--	case MONO_TYPE_VALUETYPE:
--		if (type->data.klass->enumtype) {
--			type = type->data.klass->enum_basetype;
--			goto handle_enum;
+ 		if (!gmodule) {
+-			full_name = g_module_build_path (NULL, file_name);
+-			mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_DLLIMPORT,
+-					"DllImport loading location: '%s'.", full_name);
+-			gmodule = g_module_open (full_name, G_MODULE_BIND_LAZY);
+-			if (!gmodule) {
+-				mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_DLLIMPORT,
+-						"DllImport error loading library: '%s'.",
+-						g_module_error ());
+-			}
+-			g_free (full_name);
 -		}
--		return CEE_LDOBJ;
--	case MONO_TYPE_TYPEDBYREF:
--		return CEE_LDOBJ;
--	case MONO_TYPE_GENERICINST:
--		type = &type->data.generic_class->container_class->byval_arg;
--		goto handle_enum;
--	default:
--		g_error ("unknown type 0x%02x in type_to_ldind", type->type);
--	}
--	return -1;
--}
 -
--guint
--mono_type_to_stind (MonoType *type)
--{
--	if (type->byref)
--		return CEE_STIND_I;
--
--handle_enum:
--	switch (type->type) {
--	case MONO_TYPE_I1:
--	case MONO_TYPE_U1:
--	case MONO_TYPE_BOOLEAN:
--		return CEE_STIND_I1;
--	case MONO_TYPE_I2:
--	case MONO_TYPE_U2:
--	case MONO_TYPE_CHAR:
--		return CEE_STIND_I2;
--	case MONO_TYPE_I4:
--	case MONO_TYPE_U4:
--		return CEE_STIND_I4;
--	case MONO_TYPE_I:
--	case MONO_TYPE_U:
--	case MONO_TYPE_PTR:
--	case MONO_TYPE_FNPTR:
--		return CEE_STIND_I;
--	case MONO_TYPE_CLASS:
--	case MONO_TYPE_STRING:
--	case MONO_TYPE_OBJECT:
--	case MONO_TYPE_SZARRAY:
--	case MONO_TYPE_ARRAY:    
--		return CEE_STIND_REF;
--	case MONO_TYPE_I8:
--	case MONO_TYPE_U8:
--		return CEE_STIND_I8;
--	case MONO_TYPE_R4:
--		return CEE_STIND_R4;
--	case MONO_TYPE_R8:
--		return CEE_STIND_R8;
--	case MONO_TYPE_VALUETYPE:
--		if (type->data.klass->enumtype) {
--			type = type->data.klass->enum_basetype;
--			goto handle_enum;
+-		if (!gmodule) {
+-			full_name = g_module_build_path (".", file_name);
+-			mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_DLLIMPORT,
+-					"DllImport loading library: '%s'.", full_name);
+-			gmodule = g_module_open (full_name, G_MODULE_BIND_LAZY);
+-			if (!gmodule) {
+-				mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_DLLIMPORT,
+-						"DllImport error loading library '%s'.",
+-						g_module_error ());
+-			}
+-			g_free (full_name);
 -		}
--		return CEE_STOBJ;
--	case MONO_TYPE_TYPEDBYREF:
--		return CEE_STOBJ;
--	case MONO_TYPE_GENERICINST:
--		type = &type->data.generic_class->container_class->byval_arg;
--		goto handle_enum;
--	default:
--		g_error ("unknown type 0x%02x in type_to_stind", type->type);
--	}
--	return -1;
--}
 -
- /*
-  * Returns the type used in the eval stack when @type is loaded.
-  * FIXME: return a MonoType/MonoClass for the byref and VALUETYPE cases.
-@@ -4413,6 +4306,8 @@
- 				MonoInst *iargs [3];
- 
- 				g_assert (mono_method_signature (cmethod)->is_inflated);
-+				/* Prevent inlining of methods that contain indirect calls */
-+				INLINE_FAILURE;
- 
- 				this_temp = mono_compile_create_var (cfg, type_from_stack_type (sp [0]), OP_LOCAL);
- 				this_temp->cil_code = ip;
-@@ -4441,6 +4336,8 @@
- 			if ((ins_flag & MONO_INST_TAILCALL) && cmethod && (*ip == CEE_CALL) &&
- 				 (mono_metadata_signature_equal (mono_method_signature (method), mono_method_signature (cmethod)))) {
- 				int i;
-+				/* Prevent inlining of methods with tail calls (the call stack would be altered) */
-+				INLINE_FAILURE;
- 				/* FIXME: This assumes the two methods has the same number and type of arguments */
- 				for (i = 0; i < n; ++i) {
- 					/* Check if argument is the same */
-@@ -4498,6 +4395,8 @@
- 
- 				if ((cmethod->iflags & METHOD_IMPL_ATTRIBUTE_INTERNAL_CALL) ||
- 					(cmethod->flags & METHOD_ATTRIBUTE_PINVOKE_IMPL)) {
-+					/* Prevent inlining of methods that call wrappers */
-+					INLINE_FAILURE;
- 					cmethod = mono_marshal_get_native_wrapper (cmethod);
- 					allways = TRUE;
- 				}
-@@ -4529,6 +4428,8 @@
- 				gboolean has_vtargs = FALSE;
- 				int i;
- 				
-+				/* Prevent inlining of methods with tail calls (the call stack would be altered) */
-+				INLINE_FAILURE;
- 				/* keep it simple */
- 				for (i =  fsig->param_count - 1; i >= 0; i--) {
- 					if (MONO_TYPE_ISSTRUCT (mono_method_signature (cmethod)->params [i])) 
-@@ -4560,12 +4461,12 @@
+-		if (!gmodule) {
+ 			mono_trace (G_LOG_LEVEL_INFO, MONO_TRACE_DLLIMPORT,
+ 					"DllImport loading: '%s'.", file_name);
+ 			gmodule=g_module_open (file_name, G_MODULE_BIND_LAZY);
+@@ -1012,6 +1019,24 @@
  			}
+ 		}
  
- 			if (*ip == CEE_CALLI) {
--
-+				/* Prevent inlining of methods with indirect calls */
-+				INLINE_FAILURE;
- 				if ((temp = mono_emit_calli (cfg, bblock, fsig, sp, addr, ip)) != -1) {
- 					NEW_TEMPLOAD (cfg, *sp, temp);
- 					sp++;
--				}
--	      				
-+				}	      				
- 			} else if (array_rank) {
- 				MonoInst *addr;
- 
-@@ -4623,6 +4524,8 @@
- 				}
- 
- 			} else {
-+				/* Prevent inlining of methods which call other methods */
-+				INLINE_FAILURE;
- 				if (ip_in_bb (cfg, bblock, ip + 5) 
- 				    && (!MONO_TYPE_ISSTRUCT (fsig->ret))
- 				    && (!MONO_TYPE_IS_VOID (fsig->ret) || cmethod->string_ctor)
-@@ -5290,9 +5193,13 @@
- 						break;
- 						
- 					} else {
-+						/* Prevent inlining of methods which call other methods */
-+						INLINE_FAILURE;
- 						mono_emit_method_call_spilled (cfg, bblock, cmethod, fsig, sp, ip, callvirt_this_arg);
- 					}
- 				} else {
-+					/* Prevent inlining of methods which call other methods */
-+					INLINE_FAILURE;
- 					/* now call the actual ctor */
- 					mono_emit_method_call_spilled (cfg, bblock, cmethod, fsig, sp, ip, callvirt_this_arg);
- 				}
-@@ -10357,13 +10264,25 @@
- 
- 	ji = mono_jit_info_table_find (mono_domain_get (), mono_arch_ip_from_context(ctx));
- 	if (!ji) {
--		mono_handle_native_sigsegv (ctx);
-+		mono_handle_native_sigsegv (SIGSEGV, ctx);
- 	}
- 			
- 	mono_arch_handle_exception (ctx, exc, FALSE);
- }
- 
- static void
-+SIG_HANDLER_SIGNATURE (sigabrt_signal_handler)
-+{
-+	MonoJitInfo *ji;
-+	GET_CONTEXT;
++		if (!gmodule) { gmodule = _mono_try_load_module("@FINKPREFIX@/lib", file_name, ".so"); }
++		if (!gmodule) { gmodule = _mono_try_load_module("@FINKPREFIX@/lib", file_name, ".dylib"); }
++		if (!gmodule) { gmodule = _mono_try_load_module(NULL, file_name, ".so"); }
++		if (!gmodule) { gmodule = _mono_try_load_module(NULL, file_name, ".dylib"); }
++		if (!gmodule) { gmodule = _mono_try_load_module(".", file_name, ".so"); }
++		if (!gmodule) { gmodule = _mono_try_load_module(".", file_name, ".dylib"); }
++		if (!gmodule) { gmodule = _mono_try_load_module("/usr/X11R6/lib", file_name, ".so"); }
++		if (!gmodule) { gmodule = _mono_try_load_module("/usr/X11R6/lib", file_name, ".dylib"); }
 +
-+	ji = mono_jit_info_table_find (mono_domain_get (), mono_arch_ip_from_context(ctx));
-+	if (!ji) {
-+		mono_handle_native_sigsegv (SIGABRT, ctx);
-+	}
-+}
++		if (!gmodule) { gmodule = _mono_try_load_module("@FINKPREFIX@/lib", file_name, NULL); }
++		if (!gmodule) { gmodule = _mono_try_load_module("@FINKPREFIX@/lib", file_name, ".bundle"); }
++		if (!gmodule) { gmodule = _mono_try_load_module(NULL, file_name, NULL); }
++		if (!gmodule) { gmodule = _mono_try_load_module(NULL, file_name, ".bundle"); }
++		if (!gmodule) { gmodule = _mono_try_load_module(".", file_name, NULL); }
++		if (!gmodule) { gmodule = _mono_try_load_module(".", file_name, ".bundle"); }
++		if (!gmodule) { gmodule = _mono_try_load_module("/usr/X11R6/lib", file_name, NULL); }
++		if (!gmodule) { gmodule = _mono_try_load_module("/usr/X11R6/lib", file_name, ".bundle"); }
 +
-+static void
- SIG_HANDLER_SIGNATURE (sigusr1_signal_handler)
- {
- 	gboolean running_managed;
-@@ -10493,6 +10412,8 @@
- 	add_signal_handler (mono_thread_get_abort_signal (), sigusr1_signal_handler);
- 	signal (SIGPIPE, SIG_IGN);
+ 		g_free (file_name);
  
-+	add_signal_handler (SIGABRT, sigabrt_signal_handler);
-+
- 	/* catch SIGSEGV */
- #ifdef MONO_ARCH_SIGSEGV_ON_ALTSTACK
- 	sa.sa_sigaction = sigsegv_signal_handler;
-@@ -10502,7 +10423,6 @@
- #else
- 	add_signal_handler (SIGSEGV, sigsegv_signal_handler);
- #endif
--
- #endif /* PLATFORM_WIN32 */
- }
- 
---- mono/mono/mini/mini.h	(.../tags/mono-1-1-15/mono)	(revision 59760)
-+++ mono/mono/mini/mini.h	(.../trunk/mono)	(revision 59760)
-@@ -834,8 +834,6 @@
- const char* mono_inst_name                  (int op);
- void      mono_inst_foreach                 (MonoInst *tree, MonoInstFunc func, gpointer data);
- void      mono_disassemble_code             (MonoCompile *cfg, guint8 *code, int size, char *id);
--guint     mono_type_to_ldind                (MonoType *t);
--guint     mono_type_to_stind                (MonoType *t);
- void      mono_add_patch_info               (MonoCompile *cfg, int ip, MonoJumpInfoType type, gconstpointer target);
- void      mono_remove_patch_info            (MonoCompile *cfg, int ip);
- gpointer  mono_resolve_patch_target         (MonoMethod *method, MonoDomain *domain, guint8 *code, MonoJumpInfo *patch_info, gboolean run_cctors);
-@@ -980,7 +978,7 @@
- /* Exception handling */
- gboolean mono_handle_exception                  (MonoContext *ctx, gpointer obj,
- 						 gpointer original_ip, gboolean test_only);
--void     mono_handle_native_sigsegv             (void *sigctx);
-+void     mono_handle_native_sigsegv             (int signal, void *sigctx);
- void     mono_print_thread_dump                 (void *sigctx);
- void     mono_jit_walk_stack                    (MonoStackWalk func, gboolean do_il_offset, gpointer user_data);
- void     mono_jit_walk_stack_from_ctx           (MonoStackWalk func, MonoContext *ctx, gboolean do_il_offset, gpointer user_data);
---- mono/mono/mini/mini-exceptions.c	(.../tags/mono-1-1-15/mono)	(revision 59760)
-+++ mono/mono/mini/mini-exceptions.c	(.../trunk/mono)	(revision 59760)
-@@ -982,8 +982,14 @@
-  * information and aborting.
-  */
- void
--mono_handle_native_sigsegv (void *ctx)
-+mono_handle_native_sigsegv (int signal, void *ctx)
- {
-+#ifndef PLATFORM_WIN32
-+	struct sigaction sa;
-+#endif
-+	const char *signal_str = (signal == SIGSEGV) ? "SIGSEGV" : "SIGABRT";
-+
-+
- 	/*
- 	 * A SIGSEGV indicates something went very wrong so we can no longer depend
- 	 * on anything working. So try to print out lots of diagnostics, starting 
-@@ -992,11 +998,11 @@
- 	fprintf (stderr,
- 			 "\n"
- 			 "=================================================================\n"
--			 "Got a SIGSEGV while executing native code. This usually indicates\n"
-+			 "Got a %s while executing native code. This usually indicates\n"
- 			 "a fatal error in the mono runtime or one of the native libraries \n"
- 			 "used by your application.\n"
- 			 "=================================================================\n"
--			 "\n");
-+			 "\n", signal_str);
- 
- 	fprintf (stderr, "Stacktrace:\n\n");
- 
-@@ -1023,6 +1029,17 @@
- 	fflush (stderr);
- #endif
- 
-+#ifndef PLATFORM_WIN32
-+
-+	/* Remove our SIGABRT handler */
-+	sa.sa_handler = SIG_DFL;
-+	sigemptyset (&sa.sa_mask);
-+	sa.sa_flags = 0;
-+
-+	g_assert (sigaction (SIGABRT, &sa, NULL) != -1);
-+
-+#endif
-+
- 	abort ();
- }
- 
---- mono/mono/mini/driver.c	(.../tags/mono-1-1-15/mono)	(revision 59760)
-+++ mono/mono/mini/driver.c	(.../trunk/mono)	(revision 59760)
-@@ -99,6 +99,11 @@
- #define DEFAULT_OPTIMIZATIONS (	\
- 	MONO_OPT_PEEPHOLE |	\
- 	MONO_OPT_CFOLD |	\
-+	MONO_OPT_INLINE |	\
-+	MONO_OPT_CONSPROP |	\
-+	MONO_OPT_COPYPROP |	\
-+	MONO_OPT_TREEPROP |	\
-+	MONO_OPT_DEADCE |	\
- 	MONO_OPT_BRANCH |	\
- 	MONO_OPT_LINEARS |	\
- 	MONO_OPT_INTRINS |  \
---- mono/mono/mini/mini-ppc.c	(.../tags/mono-1-1-15/mono)	(revision 59760)
-+++ mono/mono/mini/mini-ppc.c	(.../trunk/mono)	(revision 59760)
-@@ -3821,8 +3821,13 @@
- 		pos++;
- 	}
- 
-+	if (method->wrapper_type == MONO_WRAPPER_NATIVE_TO_MANAGED) {
-+		ppc_load (code, ppc_r3, cfg->domain);
-+		mono_add_patch_info (cfg, code - cfg->native_code, MONO_PATCH_INFO_INTERNAL_METHOD, (gpointer)"mono_jit_thread_attach");
-+		ppc_bl (code, 0);
-+	}
-+
- 	if (method->save_lmf) {
--
- 		if (lmf_pthread_key != -1) {
- 			emit_tls_access (code, ppc_r3, lmf_pthread_key);
- 			if (G_STRUCT_OFFSET (MonoJitTlsData, lmf))
---- mono/mono/tests/Makefile.am	(.../tags/mono-1-1-15/mono)	(revision 59760)
-+++ mono/mono/tests/Makefile.am	(.../trunk/mono)	(revision 59760)
-@@ -275,9 +275,9 @@
- 
- # mkbundle works on ppc, but the pkg-config POC doesn't when run with make test
- if POWERPC
--test:	testjit test-type-load
-+test:	testjit test-type-load test-inline-call-stack
- else
--test:	testjit testbundle test-type-load
-+test:	testjit testbundle test-type-load test-inline-call-stack
- endif
- 
- TestDriver.dll:
-@@ -438,6 +438,13 @@
- 	$(MCS) -t:library -out:t.dll $(srcdir)/t-missing.cs
- 	$(RUNTIME) load-exceptions.exe
- 
-+test-inline-call-stack-library.dll: TestDriver.dll $(srcdir)/test-inline-call-stack-library.cs
-+	$(MCS) -t:library -out:test-inline-call-stack-library.dll $(srcdir)/test-inline-call-stack-library.cs
-+test-inline-call-stack.exe: TestDriver.dll test-inline-call-stack-library.dll $(srcdir)/test-inline-call-stack.cs
-+	$(MCS) -r:TestDriver.dll -r:test-inline-call-stack-library.dll -out:test-inline-call-stack.exe $(srcdir)/test-inline-call-stack.cs
-+test-inline-call-stack: TestDriver.dll test-inline-call-stack-library.dll test-inline-call-stack.exe
-+	$(RUNTIME) test-inline-call-stack.exe
-+
- # Useful if mono is compiled with --enable-shared=no
- patch-libtool:
- 	cp "../../libtool" .
---- mono/mono/tests/test-inline-call-stack.cs	(.../tags/mono-1-1-15/mono)	(revision 0)
-+++ mono/mono/tests/test-inline-call-stack.cs	(.../trunk/mono)	(revision 59760)
-@@ -0,0 +1,75 @@
-+using System;
-+using System.Diagnostics;
-+using System.Reflection;
-+using Library;
-+
-+
-+namespace Program {
-+	public class Test {
-+		public static string TestPassed (bool value) {
-+			return value ? "PASSED" : "FAILED";
-+		}
-+		public static string TestFailed (bool value) {
-+			return TestPassed (! value);
-+		}
-+		
-+		public static int Main () {
-+			MethodBase myMethodBase = MethodBase.GetCurrentMethod ();
-+			MethodBase inlinedMethodBase = InlinedMethods.GetCurrentMethod ();
-+			
-+			Assembly myExecutingAssembly = Assembly.GetExecutingAssembly ();
-+			Assembly inlinedExecutingAssembly = InlinedMethods.GetExecutingAssembly ();
-+			
-+			Assembly myCallingAssembly = Assembly.GetCallingAssembly ();
-+			Assembly inlinedCallingAssembly = InlinedMethods.CallCallingAssembly ();
-+			
-+			StackFrame myStackFrame = new StackFrame ();
-+			StackFrame inlinedStackFrame = InlinedMethods.GetStackFrame ();
-+			
-+			string myConstructorCalledFrom = new CallingAssemblyDependant ().CalledFrom;
-+			string inlinedConstructorCalledFrom = CallingAssemblyDependant.CalledFromLibrary ();
-+			
-+			StaticFlag.Flag = true;
-+			bool strictFlag = ResourceStrictFieldInit.Single.Flag;
-+			bool relaxedFlag = ResourceRelaxedFieldInit.Single.Flag;
-+			
-+			Console.WriteLine ("[{0}]CurrentMethod: my {1}, inlined {2}, equals {3}",
-+					TestFailed (myMethodBase == inlinedMethodBase),
-+					myMethodBase.Name, inlinedMethodBase.Name,
-+					myMethodBase == inlinedMethodBase);
-+			
-+			Console.WriteLine ("[{0}]ExecutingAssembly: my {1}, inlined {2}, equals {3}",
-+					TestFailed (myExecutingAssembly == inlinedExecutingAssembly),
-+					myExecutingAssembly.GetName ().Name, inlinedExecutingAssembly.GetName ().Name,
-+					myExecutingAssembly == inlinedExecutingAssembly);
-+			
-+			Console.WriteLine ("[{0}]CallingAssembly: my {1}, inlined {2}, equals {3}",
-+					TestFailed (myCallingAssembly == inlinedCallingAssembly),
-+					myCallingAssembly.GetName ().Name, inlinedCallingAssembly.GetName ().Name,
-+					myCallingAssembly == inlinedCallingAssembly);
-+			
-+			Console.WriteLine ("[{0}]StackFrame.GetMethod: my {1}, inlined {2}, equals {3}",
-+					TestFailed (myStackFrame.GetMethod ().Name == inlinedStackFrame.GetMethod ().Name),
-+					myStackFrame.GetMethod ().Name, inlinedStackFrame.GetMethod ().Name,
-+					myStackFrame.GetMethod ().Name == inlinedStackFrame.GetMethod ().Name);
-+			
-+			Console.WriteLine ("[{0}]ConstructorCalledFrom: my {1}, inlined {2}, equals {3}",
-+					TestFailed (myConstructorCalledFrom == inlinedConstructorCalledFrom),
-+					myConstructorCalledFrom, inlinedConstructorCalledFrom,
-+					myConstructorCalledFrom == inlinedConstructorCalledFrom);
-+			
-+			Console.WriteLine ("strictFlag: {0}, relaxedFlag: {1}",
-+					strictFlag, relaxedFlag);
-+			if ((myMethodBase != inlinedMethodBase) &&
-+					(myExecutingAssembly != inlinedExecutingAssembly) &&
-+					(myCallingAssembly != inlinedCallingAssembly) &&
-+					(myStackFrame.GetMethod ().Name != inlinedStackFrame.GetMethod ().Name) &&
-+					(myConstructorCalledFrom != inlinedConstructorCalledFrom)) {
-+				return 0;
-+			} else {
-+				return 1;
-+			}
-+		}
-+	}
-+}
-+
---- mono/mono/tests/test-inline-call-stack-library.cs	(.../tags/mono-1-1-15/mono)	(revision 0)
-+++ mono/mono/tests/test-inline-call-stack-library.cs	(.../trunk/mono)	(revision 59760)
-@@ -0,0 +1,102 @@
-+using System;
-+using System.Diagnostics;
-+using System.Reflection;
-+
-+namespace Library {
-+	public class StaticFlag {
-+		private static bool _flag = false;
-+		public static bool Flag {
-+			get {
-+				return _flag;
-+			}
-+			set {
-+				_flag = value;
-+			}
-+		}
-+		
-+	}
-+	
-+	public class CallingAssemblyDependant {
-+		private string _calledFrom;
-+		public string CalledFrom {
-+			get {
-+				return _calledFrom;
-+			}
-+		}
-+		
-+		public CallingAssemblyDependant () {
-+			_calledFrom = Assembly.GetCallingAssembly ().GetName ().Name;
-+		}
-+		
-+		public static string CalledFromLibrary () {
-+			return new CallingAssemblyDependant ().CalledFrom;
-+		}
-+	}
-+	
-+	public class ResourceRelaxedFieldInit {		
-+		private static ResourceRelaxedFieldInit _singleResource = new ResourceRelaxedFieldInit ();
-+		public static ResourceRelaxedFieldInit Single {
-+			get {
-+				return _singleResource;
-+			}
-+		}
-+		
-+		private bool _flag;
-+		public bool Flag {
-+			get {
-+				return _flag;
-+			}
-+		}
-+		
-+		public ResourceRelaxedFieldInit () {
-+			_flag = StaticFlag.Flag;
-+		}
-+	}
-+	
-+	public class ResourceStrictFieldInit {		
-+		private static ResourceStrictFieldInit _singleResource = new ResourceStrictFieldInit ();
-+		public static ResourceStrictFieldInit Single {
-+			get {
-+				return _singleResource;
-+			}
-+		}
-+		
-+		private bool _flag;
-+		public bool Flag {
-+			get {
-+				return _flag;
-+			}
-+		}
-+		
-+		public ResourceStrictFieldInit () {
-+			_flag = StaticFlag.Flag;
-+		}
-+		
-+		static ResourceStrictFieldInit () {
-+		}
-+	}
-+	
-+	public class InlinedMethods {
-+		public static MethodBase GetCurrentMethod () {
-+			return MethodBase.GetCurrentMethod ();
-+		}
-+		public static Assembly GetExecutingAssembly () {
-+			return Assembly.GetExecutingAssembly ();
-+		}
-+		public static Assembly GetCallingAssembly () {
-+			return Assembly.GetCallingAssembly ();
-+		}
-+		public static Assembly CallCallingAssembly () {
-+			return GetCallingAssembly ();
-+		}
-+		public static StackFrame GetStackFrame () {
-+			return new StackFrame ();
-+		}
-+		public static ResourceRelaxedFieldInit GetResourceRelaxedFieldInit () {
-+			return ResourceRelaxedFieldInit.Single;
-+		}
-+		public static ResourceStrictFieldInit GetResourceStrictFieldInit () {
-+			return ResourceStrictFieldInit.Single;
-+		}
-+	}
-+}
---- mono/mono/arch/Makefile.am	(.../tags/mono-1-1-15/mono)	(revision 59760)
-+++ mono/mono/arch/Makefile.am	(.../trunk/mono)	(revision 59760)
-@@ -2,15 +2,17 @@
- 
- INCLUDES = $(GLIB_CFLAGS) -I$(top_srcdir)
- 
-+# arm needs to build some stuff even in JIT mode
-+SUBDIRS = $(arch_target)
-+
- if INTERP_SUPPORTED
- 
--SUBDIRS = $(arch_target)
--
- noinst_LTLIBRARIES = libmonoarch.la
- 
- libmonoarch_la_SOURCES = unknown.c
- 
- libmonoarch_la_LIBADD = $(arch_target)/libmonoarch-$(arch_target).la
-+
- endif
- 
- EXTRA_DIST = ChangeLog
---- mono/support/serial.c	(.../tags/mono-1-1-15/mono)	(revision 59760)
-+++ mono/support/serial.c	(.../trunk/mono)	(revision 59760)
-@@ -41,11 +41,12 @@
- 
- /* This is a copy of System.IO.Ports.SerialSignal */
- typedef enum {
--	Cd = 0, /* Carrier detect */
--	Cts = 1, /* Clear to send */
--	Dsr = 2, /* Data set ready */
--	Dtr = 3, /* Data terminal ready */
--	Rts = 4  /* Request to send */
-+	NoneSignal,
-+	Cd = 1, /* Carrier detect */
-+	Cts = 2, /* Clear to send */
-+	Dsr = 4, /* Data set ready */
-+	Dtr = 8, /* Data terminal ready */
-+	Rts = 16  /* Request to send */
- } MonoSerialSignal;
- 
- int
-@@ -67,8 +68,6 @@
- 	tcflush(fd, TCIOFLUSH);
- 	tcsetattr(fd,TCSANOW,&newtio);
- 
--	fcntl (fd, F_SETFL, O_NONBLOCK);
--
- 	return fd;
- }
- 
-@@ -79,19 +78,9 @@
- }
- 
- guint32
--read_serial (int fd, guchar *buffer, int offset, int count, int timeout)
-+read_serial (int fd, guchar *buffer, int offset, int count)
- {
- 	guint32 n;
--	struct pollfd ufd;
--
--	ufd.fd = fd;
--	ufd.events = POLLHUP | POLLIN | POLLERR;
--
--	poll (&ufd, 1, timeout);
--
--	if ((ufd.revents & POLLIN) != POLLIN) {
--		return -1;
--	}
-  
- 	n = read (fd, buffer + offset, count);
- 
-@@ -123,6 +112,20 @@
- 	tcflush(fd, input ? TCIFLUSH : TCOFLUSH);
- }
- 
-+gint32
-+get_bytes_in_buffer (int fd, gboolean input, gint32 *error)
-+{
-+	gint32 retval;
-+
-+	*error = 0;
-+	if (ioctl (fd, input ? FIONREAD : TIOCOUTQ, &retval) == -1) {
-+		*error = -1;
-+		return -1;
-+	}
-+
-+	return retval;
-+}
-+
- gboolean
- set_attributes (int fd, int baud_rate, MonoParity parity, int dataBits, MonoStopBits stopBits, MonoHandshake handshake)
- {
-@@ -249,22 +252,46 @@
- 			return TIOCM_DTR;
- 		case Rts:
- 			return TIOCM_RTS;
-+		default:
-+			return 0;
- 	}
- 
- 	/* Not reached */
- 	return 0;
- }
- 
--gint32
--get_signal (int fd, MonoSerialSignal signal)
-+static MonoSerialSignal
-+get_mono_signal_codes (int signals)
- {
--	int signals, expected;
-+	MonoSerialSignal retval = NoneSignal;
- 
--	expected = get_signal_code (signal);
--	if (ioctl (fd, TIOCMGET, &signals) == -1)
--		return -1;
-+	if ((signals & TIOCM_CAR) != 0)
-+		retval |= Cd;
-+	if ((signals & TIOCM_CTS) != 0)
-+		retval |= Cts;
-+	if ((signals & TIOCM_DSR) != 0)
-+		retval |= Dsr;
-+	if ((signals & TIOCM_DTR) != 0)
-+		retval |= Dtr;
-+	if ((signals & TIOCM_RTS) != 0)
-+		retval |= Rts;
-+
-+	return retval;
-+}
-+
-+MonoSerialSignal
-+get_signals (int fd, gint32 *error)
-+{
-+	int signals;
-+
-+	*error = 0;
- 	
--	return (expected & signals) != 0;
-+	if (ioctl (fd, TIOCMGET, &signals) == -1) {
-+		*error = -1;
-+		return NoneSignal;
-+	}
-+	
-+	return get_mono_signal_codes (signals);
- }
- 
- gint32
-@@ -291,6 +318,25 @@
- 	return 1;
- }
- 
-+gboolean
-+poll_serial (int fd, gint32 *error)
-+{
-+	struct pollfd pinfo;
-+	
-+	*error = 0;
-+	
-+	pinfo.fd = fd;
-+	pinfo.events = POLLIN;
-+	pinfo.revents = 0;
-+
-+	if (poll (&pinfo, 1, 0) == -1) {
-+		*error = -1;
-+		return FALSE;
-+	}
-+
-+	return (pinfo.revents & POLLIN) != 0 ? 1 : 0;
-+}
-+
- /*
-  * mono internals should not be used here.
-  * this serial stuff needs to be implemented with icalls.
+ 		if (gmodule)

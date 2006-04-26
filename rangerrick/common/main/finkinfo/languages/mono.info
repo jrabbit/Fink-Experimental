@@ -57,21 +57,17 @@ CompileScript: <<
 #!/bin/sh -ex
 
   ulimit -n unlimited
-  export DYLD_FALLBACK_LIBRARY_PATH="%i/lib:/usr/lib"
   export lt_cv_sys_max_cmd_len=65536
-  perl -pi.bak -e 's/hardcode_direct=yes/hardcode_direct=no/g' configure
+  perl -pi -e 's/hardcode_direct=yes/hardcode_direct=no/g' configure
   ./configure %c --with-jdk=$JAVA_HOME
-#  export DYLD_LIBRARY_PATH="%i/lib:$DYLD_LIBRARY_PATH"
   make
 <<
 InstallScript: <<
 #!/bin/sh -ex
 
   ulimit -n unlimited
-  export DYLD_FALLBACK_LIBRARY_PATH="%i/lib:/usr/lib"
   export MAKEFLAGS=-j1
-  make install DESTDIR="%d" || :
-  make install DESTDIR="%d"
+  make install DESTDIR="%d" || make install DESTDIR="%d"
 <<
 SplitOff: <<
  Package: %N-dev
@@ -90,6 +86,7 @@ SplitOff: <<
  <<
 <<
 
+RuntimeVars: MONO_PATH: "%p/lib:/usr/lib"
 DescDetail: <<
 The Mono runtime implements a JIT engine for the CIL virtual machine
 (as well as a byte code interpreter, this is to quickly port it to

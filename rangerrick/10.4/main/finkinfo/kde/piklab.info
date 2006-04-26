@@ -1,12 +1,12 @@
 Package: piklab
-Version: 0.3.2
+Version: 0.7.0
 Revision: 1021
 Description: KDE - PIC microcontroller IDE
 License: GPL
 Maintainer: Benjamin Reed <piklab@fink.racoonfink.com>
 
-Depends: kdelibs3-unified-shlibs, gputils, libusb-shlibs (>= 0.1.8-1015)
-BuildDepends: arts-dev (>= 1.5.1-1021), autoconf2.5, cctools-single-module, fink (>= 0.24-1), fontconfig2-dev, freetype219, kdelibs3-unified-dev (>= 3.5.1-1021), libart2, libidn, libpng3 (>= 1.2.5-4), libusb (>= 0.1.8-1015), qt3 (>= 3.3.6-1024), x11-dev
+Depends: kdelibs3-unified-shlibs (>= 3.5.1-1021), gputils, libusb-shlibs (>= 0.1.8-1015)
+BuildDepends: arts-dev (>= 1.5.1-1021), autoconf2.5, automake1.7, cctools-single-module, fink (>= 0.24-1), fontconfig2-dev, freetype219, kdelibs3-unified-dev (>= 3.5.1-1021), libart2, libidn, libpng3 (>= 1.2.5-4), libusb (>= 0.1.8-1015), qt3 (>= 3.3.6-1024), x11-dev
 BuildConflicts: unsermake
 GCC: 4.0
 
@@ -18,7 +18,7 @@ CustomMirror: <<
 Source: mirror:sourceforge:%n/%n-%v.tar.bz2
 Source2: mirror:custom:kde-admindir-full-3.5.2-2.tar.bz2
 Source2ExtractDir: %n-%v
-Source-MD5: 1a5b39393da1f29babbe90efbfbdfb51
+Source-MD5: 78667fe1befc432b914ac9c008e659bb
 Source2-MD5: b2afdafba2c416555105667c17046e32
 
 NoSetCPPFLAGS: true
@@ -27,20 +27,18 @@ ConfigureParams: --prefix=%p --with-qt-dir=%p --with-qt-includes=%p/include/qt -
 CompileScript: <<
 #!/bin/sh -e
 
-	export HOME=/tmp
-	export EH_PREFIX="%p"
-	export PREFIX="%p" UNSERMAKE=1
+	export HOME=/tmp EH_PREFIX="%p" PREFIX="%p"
 	. ./environment-helper.sh
 
 	./build-helper.sh cvs       %N %v %r make -f admin/Makefile.common cvs
 	./build-helper.sh configure %N %v %r ./configure %c
-	./build-helper.sh make      %N %v %r make all all_libraries="$ALL_LIBRARIES"
+	./build-helper.sh make      %N %v %r make
 <<
 
 InstallScript: <<
 #!/bin/sh -e
 
-	export PREFIX="%p" UNSERMAKE=1
+	export PREFIX="%p" EH_PREFIX="%p"
 	. ./environment-helper.sh
 
 	./build-helper.sh install %N %v %r make -j1 install DESTDIR=%d
@@ -48,6 +46,7 @@ InstallScript: <<
 	mkdir -p %i/share/doc/installed-packages
 	touch %i/share/doc/installed-packages/%N
 
+	install -d -m 755 %i/share/doc/%N
 	mv docs/lplab %i/share/doc/%N/
 <<
 DocFiles: COPYING ChangeLog README TODO docs/*.txt

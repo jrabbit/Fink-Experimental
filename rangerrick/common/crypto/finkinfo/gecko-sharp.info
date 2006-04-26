@@ -1,6 +1,6 @@
 Package: gecko-sharp
 Version: 2.0
-Revision: 9
+Revision: 10
 Source: http://go-mono.com/sources/%n-%v/%n-%v-0.11.tar.gz
 Source-MD5: 7362d710b7fe6a8b5f68a614279147de
 Patch: %n.patch
@@ -37,20 +37,20 @@ ConfigureParams: --mandir=%p/share/man --with-mozilla-headers=%p/include/firefox
 CompileScript: <<
 #!/bin/sh -ex
 
-  export lt_cv_sys_max_cmd_len=65536
-  perl -pi.bak -e 's/hardcode_direct=yes/hardcode_direct=no/g' configure
-  export MONODOC=%p/bin/monodocer
-  ./configure %c
-  make
+	export lt_cv_sys_max_cmd_len=65536
+	perl -pi -e 's/hardcode_direct=yes/hardcode_direct=no/g' configure
+	export MONODOC=%p/bin/monodocer
+	./configure %c
+	make
 <<
 InstallScript: <<
 #!/bin/sh -ex
 
-  export DYLD_FALLBACK_LIBRARY_PATH="%i/lib:/usr/lib"
-  MAKEFLAGS=-j1 make install DESTDIR=%d
+	export MONO_PATH="%i/lib:$MONO_PATH"
+	MAKEFLAGS=-j1 make install DESTDIR=%d
 <<
 PostInstScript: <<
-  [ -x "%p/bin/monodoc" ] && [ -d "%p/lib/monodoc" ] && "%p/bin/monodoc" --make-index >/dev/null 2>&1 || :
+	[ -x "%p/bin/monodoc" ] && [ -d "%p/lib/monodoc" ] && "%p/bin/monodoc" --make-index >/dev/null 2>&1 || :
 <<
 
 DescDetail: <<
