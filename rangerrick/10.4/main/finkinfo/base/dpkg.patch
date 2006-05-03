@@ -1,34 +1,35 @@
-Index: dpkg-deb/Makefile.in
+Index: Makefile.in
 ===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/dpkg-deb/Makefile.in,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- dpkg-deb/Makefile.in	17 Mar 2006 01:54:10 -0000	1.1.1.1
-+++ dpkg-deb/Makefile.in	17 Mar 2006 02:29:33 -0000	1.2
-@@ -232,7 +232,7 @@
- 	main.c
- 
- dpkg_deb_LDADD = \
--	$(LIBINTL) ../lib/libdpkg.a $(ZLIB_LIBS) $(BZ2_LIBS) $(SELINUX_LIBS)
-+	$(LIBINTL) ../lib/libdpkg.a ../getopt/libopt.a $(ZLIB_LIBS) $(BZ2_LIBS) $(SELINUX_LIBS)
- 
- all: all-am
- 
+RCS file: /cvsroot/fink/3rdparty/dpkg/Makefile.in,v
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -r1.1.1.2 -r1.3
+--- Makefile.in	2 May 2006 17:55:47 -0000	1.1.1.2
++++ Makefile.in	2 May 2006 17:58:43 -0000	1.3
+@@ -238,7 +238,6 @@
+ @WITH_DSELECT_TRUE@MAYBE_DSELECT = dselect
+ SUBDIRS = \
+ 	intl \
+-	getopt \
+ 	lib \
+ 	src \
+ 	$(MAYBE_DSELECT) \
 Index: dpkg-deb/build.c
 ===================================================================
 RCS file: /cvsroot/fink/3rdparty/dpkg/dpkg-deb/build.c,v
 retrieving revision 1.1.1.1
-retrieving revision 1.3
-diff -u -r1.1.1.1 -r1.3
+retrieving revision 1.5
+diff -u -r1.1.1.1 -r1.5
 --- dpkg-deb/build.c	17 Mar 2006 01:54:10 -0000	1.1.1.1
-+++ dpkg-deb/build.c	17 Mar 2006 02:31:52 -0000	1.3
-@@ -221,9 +221,11 @@
++++ dpkg-deb/build.c	20 Mar 2006 05:00:33 -0000	1.5
+@@ -221,9 +221,13 @@
        warns++;
      }
      for (field= checkedinfo->available.arbs; field; field= field->next) {
 -      fprintf(stderr, _("warning, `%s' contains user-defined field `%s'\n"),
-+      if (strncmp("BuildDependsOnly",field->name,16)) {
++      /* Don't warn for fink-owned fields */
++      if (strncmp("BuildDependsOnly",field->name,16) != 0 &&
++          strncmp("Fink-",field->name,5) != 0) {
 +        fprintf(stderr, _("warning, `%s' contains user-defined field `%s'\n"),
                controlfile, field->name);
 -      warns++;
@@ -37,317 +38,25 @@ diff -u -r1.1.1.1 -r1.3
      }
      checkversion(checkedinfo->available.version.version,"(upstream) version",&errs);
      checkversion(checkedinfo->available.version.revision,"Debian revision",&errs);
-Index: dpkg-split/Makefile.in
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/dpkg-split/Makefile.in,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- dpkg-split/Makefile.in	17 Mar 2006 01:54:11 -0000	1.1.1.1
-+++ dpkg-split/Makefile.in	17 Mar 2006 02:29:33 -0000	1.2
-@@ -236,7 +236,7 @@
- 	queue.c \
- 	split.c
- 
--dpkg_split_LDADD = $(LIBINTL) ../lib/libdpkg.a
-+dpkg_split_LDADD = $(LIBINTL) ../lib/libdpkg.a ../getopt/libopt.a
- pkglib_SCRIPTS = mksplit
- EXTRA_DIST = mksplit.pl
- CLEANFILES = $(pkglib_SCRIPTS)
-Index: dselect/Makefile.in
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/dselect/Makefile.in,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- dselect/Makefile.in	17 Mar 2006 01:54:11 -0000	1.1.1.1
-+++ dselect/Makefile.in	17 Mar 2006 02:29:33 -0000	1.2
-@@ -273,7 +273,7 @@
- 	pkgsublist.cc \
- 	pkgtop.cc
- 
--dselect_LDADD = $(LIBINTL) ../lib/libdpkg.a $(CURSES_LIBS)
-+dselect_LDADD = $(LIBINTL) ../lib/libdpkg.a ../getopt/libopt.a $(CURSES_LIBS)
- EXTRA_DIST = keyoverride mkcurkeys.pl
- CLEANFILES = curkeys.h
- all: all-recursive
-Index: dselect/main.cc
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/dselect/main.cc,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- dselect/main.cc	17 Mar 2006 01:54:11 -0000	1.1.1.1
-+++ dselect/main.cc	17 Mar 2006 02:29:33 -0000	1.2
-@@ -42,6 +42,11 @@
- #include <dpkg.h>
- #include <dpkg-db.h>
- #include <myopt.h>
-+/* FINK LOCAL begin */
-+#include <sys/utsname.h>
-+#include <CoreFoundation/CoreFoundation.h>
-+static void finkinit();
-+/* FINK LOCAL end */
- }
- #include "dselect.h"
- #include "bindings.h"
-@@ -477,6 +482,155 @@
-   return urqr_quitmenu;
-   /* fixme: check packages OK */
- }
-+/* FINK LOCAL begin */
-+extern "C" {
-+struct FinkVirtualPkgs {
-+  struct FinkVirtualPkgs *next;
-+  char *pkgname;
-+  struct versionrevision version;
-+};
-+
-+struct FinkVirtualPkgs *fink_virt_pkg = NULL;
-+}
-+static void finkinit()
-+{
-+	FILE *virt_pkg_stream = NULL;
-+	struct stat sb;
-+	struct FinkVirtualPkgs *pkg;
-+	char name[256];
-+	char version[256];
-+	char revision[256];
-+	unsigned long  epoch;
-+    Boolean status;
-+    SInt32 errorCode;
-+    CFURLRef fileURL = NULL;
-+    CFDataRef resourceData = NULL;
-+    CFPropertyListRef propertyList = NULL;
-+    CFStringRef string;
-+    static char buffer[256];	// This is static, to ensure the buffer stays around
-+
-+    static struct utsname ver;	// This is static, to ensure the buffer stays around
-+	if (0 == stat("@PREFIX@/bin/fink-virtual-pkgs", &sb))
-+	{
-+	  virt_pkg_stream =popen("@PREFIX@/bin/fink-virtual-pkgs --dpkg","r");
-+  	  if (virt_pkg_stream)
-+	  {
-+	    while (fscanf(virt_pkg_stream,"%s\t%u\t%s\t%s\n",name,&epoch,version, revision) == 4)
-+	    {
-+	      pkg = (struct FinkVirtualPkgs *)malloc(sizeof(struct FinkVirtualPkgs));
-+	      if (pkg)
-+	      {
-+			  pkg->next = fink_virt_pkg;
-+			  pkg->pkgname = strdup(name);
-+			  pkg->version.epoch = epoch;
-+			  pkg->version.version = strdup(version);
-+			  pkg->version.revision = strdup(revision);
-+			  /* Quick and simple sanity check */
-+			  if ((NULL != pkg->pkgname) && (0 != strlen(pkg->pkgname)) &&
-+			      (NULL != pkg->version.version) && (0 != strlen(pkg->version.version)) &&
-+			      (NULL != pkg->version.revision) && (0 != strlen(pkg->version.revision)))
-+			  {
-+			  	/* We are leaking here if something fails the sanity check above */
-+			  	fink_virt_pkg = pkg;
-+			  }
-+	      }
-+	    }
-+	    if (pclose(virt_pkg_stream))
-+	    {
-+	    	/* The fink-virtual-pkgs script returned a non zero exit status *
-+	    	 * clean up and try the old way.                                */
-+	    	while(NULL != fink_virt_pkg)
-+	    	{
-+	    		pkg = fink_virt_pkg;
-+	    		if (NULL != pkg->pkgname) free(pkg->pkgname);
-+	    		if (NULL != pkg->version.version) free((void*)pkg->version.version);
-+	    		if (NULL != pkg->version.revision) free((void*)pkg->version.revision);
-+	    		fink_virt_pkg = pkg->next;
-+	    		free(pkg);
-+	    	}
-+	    }
-+	  }
-+	} 
-+	if (NULL == fink_virt_pkg)
-+	{
-+	  /* Determine system version */
-+	  /* TODO - should maybe check if this is really Darwin? */
-+	  if (!uname(&ver)) {
-+	      pkg = (struct FinkVirtualPkgs *)malloc(sizeof(struct FinkVirtualPkgs));
-+	      if (pkg) {
-+			  pkg->next = fink_virt_pkg;
-+			  pkg->pkgname = strdup("darwin");
-+			  pkg->version.epoch = 0;
-+			  pkg->version.version = ver.release;
-+			  pkg->version.revision = NULL;
-+			  fink_virt_pkg = pkg;
-+	      }  
-+	  }
-+	
-+	  /* Check whether this is Mac OS X, and which version of it */
-+
-+	  fileURL = CFURLCreateWithFileSystemPath( NULL, 	
-+			CFSTR("/System/Library/CoreServices/SystemVersion.plist"),
-+			kCFURLPOSIXPathStyle,				
-+			false );
-+	  if (!fileURL)
-+		goto BAIL;
-+	  
-+	  /* Read the XML */
-+	  status = CFURLCreateDataAndPropertiesFromResource(
-+			NULL,
-+			fileURL,
-+			&resourceData,
-+			NULL,		
-+			NULL,
-+			&errorCode);
-+	  if (!status || errorCode != 0)
-+		goto BAIL;
-+	  
-+	  /* Reconstitute the dictionary using the XML data. */
-+	  propertyList = CFPropertyListCreateFromXMLData( NULL,
-+			resourceData,
-+			kCFPropertyListImmutable,
-+			&string);
-+	  if (!propertyList)
-+		goto BAIL;
-+	  
-+	  /* Try to read the system version from it. */
-+	  status = CFDictionaryGetValueIfPresent( 
-+			(CFDictionaryRef)propertyList,
-+			(const void*)CFSTR("ProductVersion"),
-+			(const void**)&string);
-+	  if (!status)
-+		goto BAIL;
-+	  
-+	  /* Convert into a C string */
-+	  status = CFStringGetCString( string,
-+			buffer,
-+			sizeof(buffer),
-+			kCFStringEncodingISOLatin1);
-+	  if (!status)
-+		goto BAIL;
-+	  pkg = (struct FinkVirtualPkgs *)malloc(sizeof(struct FinkVirtualPkgs));
-+	  if (pkg)
-+	  {
-+		  pkg->next = fink_virt_pkg;
-+		  pkg->pkgname = strdup("macosx");
-+		  pkg->version.epoch = 0;
-+		  pkg->version.version = buffer;
-+		  pkg->version.revision = NULL;
-+		  fink_virt_pkg = pkg;
-+	  }
-+	BAIL:
-+	  // Release all of the CF objects we're responsible for.
-+	  if (fileURL)
-+		CFRelease(fileURL);
-+	  if (resourceData)
-+		CFRelease(resourceData);
-+	  if (propertyList)
-+		CFRelease(propertyList);
-+	}
-+}
-+/* FINK LOCAL end */
- 
- int main(int, const char *const *argv) {
-   jmp_buf ejbuf;
-@@ -484,7 +638,9 @@
-   setlocale(LC_ALL, "");
-   bindtextdomain(DSELECT, LOCALEDIR);
-   textdomain(DSELECT);
--
-+  /* FINK LOCAL begin */
-+  finkinit();
-+  /* FINK LOCAL end */
-   if (setjmp(ejbuf)) { /* expect warning about possible clobbering of argv */
-     cursesoff();
-     error_unwind(ehflag_bombout); exit(2);
-Index: dselect/pkgdepcon.cc
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/dselect/pkgdepcon.cc,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- dselect/pkgdepcon.cc	17 Mar 2006 01:54:12 -0000	1.1.1.1
-+++ dselect/pkgdepcon.cc	17 Mar 2006 02:29:33 -0000	1.2
-@@ -198,12 +198,20 @@
- 
-   return 2;
- }
--
-+/* FINK LOCAL begin */
-+extern "C" {
-+struct FinkVirtualPkgs {
-+  struct FinkVirtualPkgs *next;
-+  char *pkgname;
-+  struct versionrevision version;
-+};
-+extern struct FinkVirtualPkgs *fink_virt_pkg;
-+}
-+/* FINK LOCAL end */
- int packagelist::resolvedepcon(dependency *depends) {
-   perpackagestate *best, *fixbyupgrade;
-   deppossi *possi, *provider;
-   int r, foundany;
--
-   if (depdebug && debug) {
-     fprintf(debug,"packagelist[%p]::resolvedepcon([%p] %s --%s-->",
-           this,depends,depends->up->name,gettext(relatestrings[depends->type]));
-@@ -214,7 +222,7 @@
-             ? gettext(wantstrings[depends->up->clientdata->suggested])
-             : _("(no clientdata)"));
-   }
--  
-+
-   if (!depends->up->clientdata) return 0;
- 
-   switch (depends->type) {
-@@ -354,7 +362,28 @@
- int packagelist::deppossatisfied(deppossi *possi, perpackagestate **fixbyupgrade) {
-   int would;
-   pkginfo::pkgwant want= pkginfo::want_purge;
--  
-+/* FINK LOCAL begin */
-+  {
-+      int interestingwarnings;
-+      struct varbuf oemsgs;
-+      struct FinkVirtualPkgs *virt_pkg = NULL; 
-+      varbufinit(&oemsgs);
-+      interestingwarnings= 0;
-+      virt_pkg = fink_virt_pkg;
-+      while (virt_pkg)
-+      {
-+            if (0==strcmp(possi->ed->name,virt_pkg->pkgname)) {
-+            if (depdebug && debug)
-+                fprintf(debug,"Found package : %s from VirtPackages.pm, depended by %s\n",virt_pkg->pkgname, possi->up->up->name);
-+            if (versionsatisfied3(&virt_pkg->version,&possi->version,possi->verrel))
-+            {
-+                return 1;
-+            }
-+            }
-+        virt_pkg = virt_pkg->next;
-+      }
-+  }    
-+// FINK_LOCAL_END      
-   if (possi->ed->clientdata) {
-     want= possi->ed->clientdata->selected;
-     would= would_like_to_install(want,possi->ed);
-@@ -413,5 +442,6 @@
-         *fixbyupgrade= provider->up->up->clientdata;
-     }
-   }
-+
-   return 0;
- }
 Index: fink/dpkg.info
 ===================================================================
 RCS file: fink/dpkg.info
 diff -N fink/dpkg.info
 --- /dev/null	1 Jan 1970 00:00:00 -0000
-+++ fink/dpkg.info	18 Mar 2006 20:04:41 -0000	1.3
-@@ -0,0 +1,90 @@
++++ fink/dpkg.info	2 May 2006 18:04:58 -0000
+@@ -0,0 +1,110 @@
 +Package: dpkg
 +Version: 1.13.16
-+Revision: 4
-+GCC: 3.3
-+BuildDepends: gettext-dev, gettext-tools, libiconv-dev, libncurses5
-+Depends: gettext, libiconv, gzip, tar, libncurses5-shlibs
++Revision: 1024
++GCC: 4.0
++# NOTE: Dpkg does *NOT* always build properly in unstable. It is essential, yet
++# it BuildDepends on gettext-tools which is not essential in unstable.
++# 
++# This applies to the current dpkg as well, and will only be remedied if we
++# either include gettext-tools 0.10.x in unstable, or make gettext-tools 0.14.x
++# and all its deps essential.
++BuildDepends: gettext-dev, gettext-tools, libiconv-dev
++Depends: gettext, libiconv, gzip, tar
 +Essential: yes
 +Maintainer: Fink Core Group <fink-core@lists.sourceforge.net>
 +#Source: mirror:sourceforge:fink/dpkg_%v.tar.gz
@@ -356,9 +65,14 @@ diff -N fink/dpkg.info
 +Source-MD5: bf16c7c5efe5025320c73c862ffeb1d3
 +Source2: http://alioth.debian.org/download.php/1496/po4a-0.24.tar.gz
 +Source2-MD5: 8f3edbc9df9a7f960d123c3dd5aa13c7
-+PatchScript: sed 's|@PREFIX@|%p|g' <%a/dpkg.patch | patch -p0
++PatchScript: <<
++	#!/bin/sh -ev
++	sed 's|@PREFIX@|%p|g' <%a/dpkg.patch | patch -p0
++	find man -type f | xargs perl -pi -e 's,/usr,%p,g; s,/var,%p/var,g; s,/etc,%p/etc,g;'
++	ls scripts/*.pl* scripts/*.sh | xargs perl -i -pe 's,([\047`"])/(etc|var),$1%p/$2,g; s,([\047`"])/usr,$1/%p,g; s,([\047`"])(dpkg[\w-]*|822-date|md5sum|gpg)([\s\047`"]),$1%p/bin/$2$3,g'
++<<
 +SetCPPFLAGS: -fconstant-cfstrings
-+SetCFLAGS: -no-cpp-precomp -I%p/include
++SetCFLAGS: -I%p/include
 +SetLDFLAGS: -Wl,-framework,CoreFoundation
 +CompileScript: <<
 +#!/bin/sh -ev
@@ -366,10 +80,11 @@ diff -N fink/dpkg.info
 +	export PERL5LIB=`pwd`/../po4a-0.24/lib:"$PERL5LIB"
 +	export PATH=`pwd`/../po4a-0.24:"$PATH"
 +	chmod a+x ../po4a-0.24/po4a*
++	mv getopt/obstack.* lib/
 +	PERL=/usr/bin/perl ./configure --build=%m-apple-darwin %c
 +	make
 +<<
-+ConfigureParams: --without-start-stop-daemon --without-sgml-doc --with-admindir=%p/var/lib/dpkg --mandir=%p/share/man --infodir=%p/share/info --srcdir=%b --disable-linker-optimisations
++ConfigureParams: --without-start-stop-daemon --without-sgml-doc --with-admindir=%p/var/lib/dpkg --mandir=%p/share/man --infodir=%p/share/info --srcdir=%b --disable-linker-optimisations --without-dselect
 +InstallScript: <<
 +#!/bin/sh -ev
 +
@@ -382,6 +97,7 @@ diff -N fink/dpkg.info
 +		install -d -m 755 %i/share/man/$lang/man1
 +		install -c -m 644 man/$lang/md5sum.1 %i/share/man/$lang/man1/
 +	done
++	install -d -m 755 %i/var/backups
 +	rm -rf %i/lib/dpkg/methods/*
 +<<
 +Description: The Debian package manager
@@ -391,8 +107,15 @@ diff -N fink/dpkg.info
 +dselect, a full-screen console frontend to dpkg.
 +<<
 +DescPort: <<
++1.13.18
++- forward-ported changes to 1.13.18
++
 +1.13.16
 +- forward-ported changes to 1.13.16
++- remove dselect and curses dependency (will be split into another pkg)
++- remove the getopt stuff (except for obstack, move that to lib)
++- ignore Fink-owned fields
++- use search-and-replace for scripts and man prefix patching
 +
 +1.13.11
 +- forward-ported changes to 1.13.11
@@ -432,23 +155,151 @@ diff -N fink/dpkg.info
 +<<
 +License: GPL
 +Homepage: http://packages.qa.debian.org/d/dpkg.html
+Index: fink/md5sum
+===================================================================
+RCS file: fink/md5sum
+diff -N fink/md5sum
+--- /dev/null	1 Jan 1970 00:00:00 -0000
++++ fink/md5sum	19 Mar 2006 01:17:16 -0000	1.2
+@@ -0,0 +1,121 @@
++#!/usr/bin/perl
++
++$|++;
++
++use strict;
++use Getopt::Long;
++use IO::Handle;
++
++Getopt::Long::Configure qw(bundling);
++my ($binary, $check, $help, $verbose);
++my $result = GetOptions(
++	'b'	=> \$binary,
++	'c' => \$check,
++	'h' => \$help,
++	'v' => \$verbose,
++);
++usage() if $help;
++$binary = $binary ? '*' : ' ';
++
++if ($check) {
++	usage() if scalar(@ARGV) != 1;
++	$check = shift;
++
++	my (@items, %file_checksums);
++	open my $input, $check or die "$check: $!\n";
++	while (my $line = <$input>) {
++		chomp $line;
++		if ($line =~ /^(.{32}) (?:\*| )(.*)$/) {
++			$file_checksums{$2} = $1;
++			push @items, { file => $2 };
++		} else {
++			push @items, { err => "$0: unrecognized line\n" };
++		}
++	}
++	close($input);
++
++	my $checksums = md5sum_files(keys %file_checksums);
++	my ($failed, $tot) = (0, 0);
++	for my $item (@items) {
++		if ($item->{err}) {
++			print $item->{err};
++			next;
++		} else {
++			$tot++;
++			my $file = $item->{file};
++			if (exists $checksums->{$file}
++					&& lc $checksums->{$file} eq lc $file_checksums{$file}) {
++				printf STDERR "%-14s OK\n", $file if $verbose;
++			} else {
++				$failed++;
++				if ($verbose) {
++					printf STDERR "%-14s FAILED\n", $file;
++				} else {
++					print STDERR "$0: MD5 check failed for '$file'\n";
++				}
++			}
++		}
++	}
++	if ($failed) {
++		printf STDERR "$0: %d of %d file(s) failed MD5 check\n", $failed, $tot
++			if $verbose;
++		exit 1;
++	}
++	unless ($tot) {
++		print STDERR "$0: no files checked\n";
++		exit 3;
++	}
++} elsif (not @ARGV) {
++	my $checksum = md5sum_stdin();
++	print_checksum($checksum, '-');
++} else {
++	my $checksums = md5sum_files(@ARGV);
++	for my $file (@ARGV) {
++		# Errors were already output by md5sum_files to stderr
++		print_checksum($checksums->{$file}, $file) if (exists $checksums->{$file});
++	}
++}
++
++exit 0;
++
++sub usage {
++	print <<END;
++usage: md5sum [-bv] [-c [file]] | [file...]
++Generates or checks MD5 Message Digests
++    -c  check message digests (default is generate)
++    -v  verbose, print file names when checking
++    -b  read files in binary mode
++The input for -c should be the list of message digests and file names
++that is printed on stdout by this program when it generates digests.
++END
++	exit 2;
++}
++
++sub print_checksum {
++	my ($checksum, $file) = @_;
++
++	print $checksum, " ", $binary, $file, "\n";
++}
++
++sub md5sum_stdin {
++	open my $reader, '-|', '/sbin/md5'
++		or die "Can't run /sbin/md5 on standard input: $!\n";
++	chomp(my $checksum = <$reader>);
++	close $reader;
++	return $checksum;
++}
++
++sub md5sum_files {
++	my @files = @_;
++	my %return;
++
++	open my $reader, '-|', '/sbin/md5', @files
++		or die "Can't run /sbin/md5 @files: $!\n";
++	while (my $line = <$reader>) {
++		$line =~ /^MD5\s*\(([^\)]+)\)\s*=\s*(\S+)\s*$/
++			or die "Can't interpret /sbin/md5 output:\n$line\n";
++		$return{$1} = $2;
++	}
++	close $reader;
++	return \%return;
++}
 Index: lib/Makefile.in
 ===================================================================
 RCS file: /cvsroot/fink/3rdparty/dpkg/lib/Makefile.in,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- lib/Makefile.in	17 Mar 2006 01:54:27 -0000	1.1.1.1
-+++ lib/Makefile.in	17 Mar 2006 02:29:33 -0000	1.2
-@@ -79,7 +79,7 @@
+retrieving revision 1.1.1.2
+retrieving revision 1.4
+diff -u -r1.1.1.2 -r1.4
+--- lib/Makefile.in	2 May 2006 17:55:50 -0000	1.1.1.2
++++ lib/Makefile.in	2 May 2006 17:58:44 -0000	1.4
+@@ -75,7 +75,7 @@
+ 	md5.$(OBJEXT) mlib.$(OBJEXT) myopt.$(OBJEXT) \
+ 	nfmalloc.$(OBJEXT) parse.$(OBJEXT) parsehelp.$(OBJEXT) \
  	showcright.$(OBJEXT) showpkg.$(OBJEXT) tarfn.$(OBJEXT) \
- 	utils.$(OBJEXT) varbuf.$(OBJEXT) vercmp.$(OBJEXT)
+-	utils.$(OBJEXT) varbuf.$(OBJEXT) vercmp.$(OBJEXT)
++	utils.$(OBJEXT) varbuf.$(OBJEXT) vercmp.$(OBJEXT) obstack.$(OBJEXT)
  libdpkg_a_OBJECTS = $(am_libdpkg_a_OBJECTS)
--DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
-+DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir) -I../getopt
+ DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
  depcomp = $(SHELL) $(top_srcdir)/config/depcomp
- am__depfiles_maybe = depfiles
- @AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/compat.Po \
 Index: lib/dpkg.h
 ===================================================================
 RCS file: /cvsroot/fink/3rdparty/dpkg/lib/dpkg.h,v
@@ -506,585 +357,23 @@ Index: lib/tarfn.c
 ===================================================================
 RCS file: /cvsroot/fink/3rdparty/dpkg/lib/tarfn.c,v
 retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
+retrieving revision 1.3
+diff -u -r1.1.1.1 -r1.3
 --- lib/tarfn.c	17 Mar 2006 01:54:28 -0000	1.1.1.1
-+++ lib/tarfn.c	17 Mar 2006 02:29:33 -0000	1.2
-@@ -59,8 +59,12 @@
++++ lib/tarfn.c	19 Mar 2006 02:53:57 -0000	1.3
+@@ -58,9 +58,9 @@
+ StoC(const char *s, int size)
  {
  	int	len;
- 	char *	str;
+-	char *	str;
 -
 -	len = strnlen(s, size);
-+	char * cpystr;
-+	cpystr = malloc(size +1);
-+	memcpy(cpystr, s, size);
-+	cpystr[size] = 0;
-+	len = strlen(cpystr);
-+	free(cpystr);
++	char *	str, *p;
++	for (p = s; p < s + size && *p; ++p) ;
++	len = p - s;
  	str = malloc(len + 1);
  	memcpy(str, s, len);
  	str[len] = 0;
-Index: man/C/cleanup-info.8
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/man/C/cleanup-info.8,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- man/C/cleanup-info.8	17 Mar 2006 01:54:28 -0000	1.1.1.1
-+++ man/C/cleanup-info.8	17 Mar 2006 02:29:34 -0000	1.2
-@@ -34,7 +34,7 @@
- Output version and exit successfully.
- .SH FILES
- .TP
--.I "/usr/info/dir or <dirname>/dir"
-+.I "@PREFIX@/share/info/dir or <dirname>/dir"
- The info directory file. The lock file is named the same, with ".lock" suffix.
- .SH BUGS
- Probably many.
-@@ -43,6 +43,7 @@
- .BR info (1).
- .SH AUTHOR
- Copyright (C) 1996 Kim-Minh Kaplan.
-+Paths modified by Carsten Klapp to reflect fink distribution, December 2002.
- .sp
- This is free software; see the GNU General Public Licence
- version 2 or later for copying conditions.  There is NO warranty.
-Index: man/C/dpkg-deb.1
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/man/C/dpkg-deb.1,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- man/C/dpkg-deb.1	17 Mar 2006 01:54:29 -0000	1.1.1.1
-+++ man/C/dpkg-deb.1	17 Mar 2006 02:29:34 -0000	1.2
-@@ -264,7 +264,7 @@
- Copyright (C)1995-1996
- by him and released under the GNU General Public Licence; there is NO
- WARRANTY.  See
--.B /usr/share/doc/dpkg/copyright
-+.B @PREFIX@/share/doc/dpkg/copyright
- and
--.B /usr/share/common\-licenses/GPL
-+.B @PREFIX@/share/common\-licenses/GPL
- for details.
-Index: man/C/dpkg-divert.8
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/man/C/dpkg-divert.8,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- man/C/dpkg-divert.8	17 Mar 2006 01:54:29 -0000	1.1.1.1
-+++ man/C/dpkg-divert.8	17 Mar 2006 02:29:34 -0000	1.2
-@@ -37,7 +37,7 @@
- .SH OPTIONS
- .TP
- .I \-\-admindir <directory>
--Set the dpkg data directory to <directory> (default: /var/lib/dpkg).
-+Set the dpkg data directory to <directory> (default: @PREFIX@/var/lib/dpkg).
- .TP
- .I \-\-divert <divert-to>
- <divert-to> is the name used by other packages' versions.
-@@ -95,7 +95,7 @@
- dpkg-divert --package wibble --rename --remove /usr/bin/example
- .SH FILES
- .TP
--.I /var/lib/dpkg/diversions
-+.I @PREFIX@/var/lib/dpkg/diversions
- File which contains the current list of diversions of the system. It is
- located in the dpkg administration directory, along with other files
- important to dpkg, such as `status' or `available'.
-@@ -106,6 +106,7 @@
- .BR dpkg (1).
- .SH AUTHOR
- Copyright (C) 1995 Ian Jackson.
-+Paths modified by Carsten Klapp to reflect fink distribution, December 2002.
- .sp
- This is free software; see the GNU General Public Licence
- version 2 or later for copying conditions.  There is NO warranty.
-Index: man/C/dpkg-query.1
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/man/C/dpkg-query.1,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- man/C/dpkg-query.1	17 Mar 2006 01:54:29 -0000	1.1.1.1
-+++ man/C/dpkg-query.1	17 Mar 2006 02:29:34 -0000	1.2
-@@ -41,7 +41,7 @@
- .TP
- \fB\-l\fP | \fB\-\-list\fP \fIpackage-name-pattern\fP ...
- List packages matching given pattern. If no \fIpackage-name-pattern\fP
--is given, list all packages in \fI/var/lib/dpkg/status\fP.  Normal
-+is given, list all packages in \fI@PREFIX@/var/lib/dpkg/status\fP.  Normal
- shell wildchars are allowed in \fIpackage-name-pattern\fP. Please note
- you will probably have to quote \fIpackage-name-pattern\fP to prevent
- the shell from performing filename expansion. For example this will
-@@ -81,7 +81,7 @@
- .TP
- \fB\-p\fP |\fB\-\-print\-avail\fP \fIpackage-name\fP
- Display details about \fIpackage-name\fP, as found in
--\fI/var/lib/dpkg/available\fP.
-+\fI@PREFIX@/var/lib/dpkg/available\fP.
- .TP
- \fB\-\-licence\fP | \fB\-\-license\fP
- Display licence and copyright information.
-@@ -93,7 +93,7 @@
- .TP
- \fB\-\-admindir=\fIdir\fP
- Change the location of the \fBdpkg\fR database. The default location is
--\fI/var/lib/dpkg\fP.
-+\fI@PREFIX@/var/lib/dpkg\fP.
- .TP
- \fB-f\fP | \fB\-\-showformat=\fP\fIformat\fR
- This option is used to specify the format of the output \fB\-\-show\fP
-@@ -171,6 +171,7 @@
- .UR mailto:wakkerma@debian.org
- <wakkerma@debian.org>
- .UE
-+Paths modified by Carsten Klapp to reflect fink distribution, December 2002.
- .sp
- This is free software; see the GNU General Public Licence version 2 or
- later for copying conditions.  There is NO warranty.
-Index: man/C/dpkg-source.1
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/man/C/dpkg-source.1,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- man/C/dpkg-source.1	17 Mar 2006 01:54:29 -0000	1.1.1.1
-+++ man/C/dpkg-source.1	17 Mar 2006 02:29:34 -0000	1.2
-@@ -54,13 +54,13 @@
- .B dpkg\-shlibdeps
- will read shared library dependency information from
- .BR debian/shlibs.local ,
--.BR /etc/dpkg/shlibs.override ,
-+.BR @PREFIX@/etc/dpkg/shlibs.override ,
- the
- .B shlibs
- control area file of the package containing the file which
- .B objdump
- reports as satisfying the library dependency, or
--.BR /etc/dpkg/shlibs.default .
-+.BR @PREFIX@/etc/dpkg/shlibs.default .
- The first match will be used.  See
- .BR dpkg-shlibdeps 1
- for details of the format of shared library dependency files.
-@@ -796,10 +796,10 @@
- .B debian/shlibs.local
- Package-local overriding shared library dependency information.
- .TP
--.B /etc/dpkg/shlibs.override
-+.B @PREFIX@/etc/dpkg/shlibs.override
- Per-system overriding shared library dependency information.
- .TP
--.B /etc/dpkg/shlibs.default
-+.B @PREFIX@/etc/dpkg/shlibs.default
- Per-system default shared library dependency information.
- .SH BUGS
- The point at which field overriding occurs compared to certain
-@@ -823,6 +823,7 @@
- .BR pgp (1).
- .SH AUTHOR
- The utilities and this manpage were written by Ian Jackson.
-+Paths modified by Carsten Klapp to reflect fink distribution, December 2002.
- .SH COPYRIGHT
- Copyright (C) 1995-1996 Ian Jackson
- .br
-@@ -830,7 +831,7 @@
- .br
- This is free software; see the GNU General Public Licence version 2 or later
- for copying conditions. There is NO WARRANTY.  See
--.B /usr/share/doc/dpkg/copyright
-+.B @PREFIX@/share/doc/dpkg/copyright
- and
--.B /usr/share/common\-licenses/GPL
-+.B @PREFIX@/share/common\-licenses/GPL
- for details.
-Index: man/C/dpkg-split.1
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/man/C/dpkg-split.1,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- man/C/dpkg-split.1	17 Mar 2006 01:54:29 -0000	1.1.1.1
-+++ man/C/dpkg-split.1	17 Mar 2006 02:29:34 -0000	1.2
-@@ -162,7 +162,7 @@
- .BI \-\-depotdir " directory"
- Specifies an alternative directory for the queue of parts awaiting
- automatic reassembly.  The default is
--.BR /var/lib/dpkg .
-+.BR @PREFIX@/var/lib/dpkg .
- .TP
- .BI \-\-partsize\fR|\fB\-S " kbytes"
- Specifies the maximum part size when splitting, in kilobytes (1024
-@@ -234,7 +234,7 @@
- is not present in the filenames generated.
- .SH FILES
- .TP
--.B /var/lib/dpkg/parts
-+.B @PREFIX@/var/lib/dpkg/parts
- The default queue directory for part files awaiting automatic
- reassembly.
- 
-@@ -253,7 +253,7 @@
- Copyright (C) 1995-1996
- by him and released under the GNU General Public Licence; there is NO
- WARRANTY.  See
--.B /usr/share/dpkg/copyright
-+.B @PREFIX@/share/dpkg/copyright
- and
--.B /usr/share/common\-licenses/GPL
-+.B @PREFIX@/share/common\-licenses/GPL
- for details.
-Index: man/C/dpkg-statoverride.8
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/man/C/dpkg-statoverride.8,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- man/C/dpkg-statoverride.8	17 Mar 2006 01:54:29 -0000	1.1.1.1
-+++ man/C/dpkg-statoverride.8	17 Mar 2006 02:29:34 -0000	1.2
-@@ -55,10 +55,10 @@
- .TP
- .I \-\-admindir
- Change the directory of the dpkg database where the statoverride file is
--also stored. Defaults to /var/lib/dpkg.
-+also stored. Defaults to @PREFIX@/var/lib/dpkg.
- .SH FILES
- .TP
--.I /var/lib/dpkg/statoverride
-+.I @PREFIX@/var/lib/dpkg/statoverride
- File which contains the current list of stat overrides of the system. It
- is located in the dpkg administration directory, along with other files
- important to dpkg, such as `status' or `available'.
-@@ -72,6 +72,7 @@
- .UR mailto:wakkerma@debian.org
- <wakkerma@debian.org>
- .UE
-+Paths modified by Carsten Klapp to reflect fink distribution, December 2002.
- .sp
- This is free software; see the GNU General Public Licence version 2 or
- later for copying conditions.  There is NO warranty.
-Index: man/C/dpkg.1
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/man/C/dpkg.1,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- man/C/dpkg.1	17 Mar 2006 01:54:29 -0000	1.1.1.1
-+++ man/C/dpkg.1	17 Mar 2006 02:29:34 -0000	1.2
-@@ -150,7 +150,7 @@
- file).  \fB\-P\fP or \fB\-\-purge\fP removes everything, including configuration
- files.  If \fB\-a\fP or \fB\-\-pending\fP is given instead of a package
- name, then all packages unpacked, but marked to be removed or purged
--in file \fI/var/lib/dpkg/status\fP, are removed or purged,
-+in file \fI@PREFIX@/var/lib/dpkg/status\fP, are removed or purged,
- respectively.
- 
- Removing of a package consists of the following steps:
-@@ -172,7 +172,7 @@
- \fB\-\-update\-avail\fP, old information is replaced with the information
- in the \fIPackages-file\fP.  The \fIPackages-file\fP distributed with
- Debian is simply named \fIPackages\fP.  \fBdpkg\fP keeps its
--record of available packages in \fI/var/lib/dpkg/available\fP.
-+record of available packages in \fI@PREFIX@/var/lib/dpkg/available\fP.
- 
- A simpler one-shot command to retrieve and update the \fIavailable\fR
- file is \fBdselect update\fR.
-@@ -281,14 +281,14 @@
- \fBdpkg \-S\fP | \fB\-\-search\fP \fIfilename-search-pattern\fP ...
-     Search for a filename from installed packages.
- \fBdpkg \-p\fP | \fB\-\-print\-avail\fP \fIpackage\fP
--    Display details about \fIpackage\fP, as found in \fI/var/lib/dpkg/available\fP.
-+    Display details about \fIpackage\fP, as found in \fI@PREFIX@/var/lib/dpkg/available\fP.
- .fi
- 
- 
- 
- .SH OPTIONS
- All options can be specified both on the command line and in the \fBdpkg\fP
--configuration file \fI/etc/dpkg/dpkg.cfg\fP. Each line in the configuration
-+configuration file \fI@PREFIX@/etc/dpkg/dpkg.cfg\fP. Each line in the configuration
- file is either an option (exactly the same as the command line option but
- without leading dashes) or a comment (if it starts with a \fB#\fR).
- .br
-@@ -451,14 +451,14 @@
- .TP
- \fB\-\-root=\fP\fIdir\fP | \fB\-\-admindir=\fP\fIdir\fP | \fB\-\-instdir=\fP\fIdir\fP
- Change default directories.  \fBadmindir\fP defaults to
--\fI/var/lib/dpkg\fP and contains many files that give information
-+\fI@PREFIX@/var/lib/dpkg\fP and contains many files that give information
- about status of installed or uninstalled packages, etc.  \fBinstdir\fP
- defaults to \fI/\fP and refers to the directory where packages are to
- be installed.  \fBinstdir\fP is also the directory passed to
- \fBchroot\fP(2) before running \fIpackage\fP's installation scripts, which
- means that the scripts see \fBinstdir\fP as a root directory.
- Changing \fBroot\fP changes \fBinstdir\fP to \fIdir\fP and
--\fBadmindir\fP to \fIdir\fP\fB/var/lib/dpkg\fP.
-+\fBadmindir\fP to \fIdir\fP\fB@PREFIX@/var/lib/dpkg\fP.
- .TP
- \fB\-O\fP | \fB\-\-selected\-only\fP
- Only process the packages that are selected for installation. The
-@@ -479,7 +479,7 @@
- .TP
- \fB\-\-log=\fP\fIfilename\fP
- Log status change updates and actions to \fIfilename\fP, instead of
--the default \fI/var/log/dpkg.log\fP. If this option is given multiple
-+the default \fI@PREFIX@/var/log/dpkg.log\fP. If this option is given multiple
- times, the last filename is used. Log messages are of the form
- `YYYY-MM-DD HH:MM:SS status
- <state> <pkg> <installed-version>' for status change updates;
-@@ -493,20 +493,20 @@
- Do not try to verify package signatures.
- .SH FILES
- .TP
--.I /etc/dpkg/dpkg.cfg
-+.I @PREFIX@/etc/dpkg/dpkg.cfg
- Configuration file with default options.
- .TP
--.I /var/log/dpkg.log
--Default log file (see \fI/etc/dpkg/dpkg.cfg\fP(5) and option
-+.I @PREFIX@/var/log/dpkg.log
-+Default log file (see \fI@PREFIX@/etc/dpkg/dpkg.cfg\fP(5) and option
- \fB\-\-log\fP).
- .P
- The other files listed below are in their default directories, see option
- \fB\-\-admindir\fP to see how to change locations of these files.
- .TP
--.I /var/lib/dpkg/available
-+.I @PREFIX@/var/lib/dpkg/available
- List of available packages.
- .TP
--.I /var/lib/dpkg/status
-+.I @PREFIX@/var/lib/dpkg/status
- Statuses of available packages. This file contains information about
- whether a package is marked for removing or not, whether it is
- installed or not, etc. See section \fBINFORMATION ABOUT PACKAGES\fP
-@@ -556,14 +556,14 @@
- \fB     dpkg \-l \(aq*vi*\(aq\fP
- .br
- 
--To see the entries in \fI/var/lib/dpkg/available\fP on two packages:
-+To see the entries in \fI@PREFIX@/var/lib/dpkg/available\fP on two packages:
- .br
- \fB     dpkg \-\-print\-avail elvis vim | less\fP
- .br
- 
- To search the listing of packages yourself:
- .br
--\fB     less /var/lib/dpkg/available\fP
-+\fB     less @PREFIX@/var/lib/dpkg/available\fP
- .br
- 
- To remove an installed elvis package:
-@@ -616,6 +616,6 @@
- 
- .SH AUTHORS
- .nf
--See \fB/usr/share/doc/dpkg/THANKS.gz\fP for the list of people who have
-+See \fB@PREFIX@/share/doc/dpkg/THANKS.gz\fP for the list of people who have
- contributed to \fBdpkg\fP .
- .fi
-Index: man/C/dpkg.cfg.5
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/man/C/dpkg.cfg.5,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- man/C/dpkg.cfg.5	17 Mar 2006 01:54:29 -0000	1.1.1.1
-+++ man/C/dpkg.cfg.5	17 Mar 2006 02:29:34 -0000	1.2
-@@ -8,10 +8,11 @@
- here. Comments are allowed by starting a line with a hash sign
- ("\fB#\fR").
- .SH FILES
--.I /etc/dpkg/dpkg.cfg
-+.I @PREFIX@/etc/dpkg/dpkg.cfg
- ~/.dpkg.cfg
- .SH AUTHOR
--See \fB/usr/share/doc/dpkg/THANKS\fP for the list of people who have
-+See \fB@PREFIX@/share/doc/dpkg/THANKS\fP for the list of people who have
- contributed to \fBdpkg\fP .
-+Paths modified by Carsten Klapp to reflect fink distribution, December 2002.
- .SH SEE ALSO
- .BR dpkg (1)
-Index: man/C/dselect.1
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/man/C/dselect.1,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- man/C/dselect.1	17 Mar 2006 01:54:30 -0000	1.1.1.1
-+++ man/C/dselect.1	17 Mar 2006 02:29:34 -0000	1.2
-@@ -34,7 +34,7 @@
- of \fBdselect\fP or show additional information about the program.
- .SH OPTIONS 
- All options can be specified both on the commandline and in the \fBdselect\fP 
--configuration file \fI/etc/dpkg/dselect.cfg\fP. Each line in the 
-+configuration file \fI@PREFIX@/etc/dpkg/dselect.cfg\fP. Each line in the 
- configuration file is either an option (exactly the same as the
- commandline option but without leading dashes) or a comment (if it starts
- with a \fB#\fR).
-@@ -42,7 +42,7 @@
- .TP
- .B --admindir <directory>
- Changes the directory where the dpkg `status', `available' and similar
--files are located. This defaults to \fI/var/lib/dpkg\fP
-+files are located. This defaults to \fI@PREFIX@/var/lib/dpkg\fP
- and normally there shouldn't be any need to change it.
- .TP
- .B --debug <file> | -D<file>
-Index: man/C/dselect.cfg.5
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/man/C/dselect.cfg.5,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- man/C/dselect.cfg.5	17 Mar 2006 01:54:30 -0000	1.1.1.1
-+++ man/C/dselect.cfg.5	17 Mar 2006 02:29:34 -0000	1.2
-@@ -8,10 +8,11 @@
- here. Comments are allowed by starting a line with a hash sign
- ("\fB#\fR").
- .SH FILES
--.I /etc/dpkg/dselect.cfg
-+.I @PREFIX@/etc/dpkg/dselect.cfg
- ~/.dselect.cfg
- .SH AUTHOR
--See \fB/usr/share/doc/dpkg/THANKS\fP for the list of people who have
-+See \fB@PREFIX@/share/doc/dpkg/THANKS\fP for the list of people who have
- contributed to \fBdselect\fP .
-+Paths modified by Carsten Klapp to reflect fink distribution, December 2002.
- .SH SEE ALSO
- .BR dselect (1)
-Index: man/C/install-info.8
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/man/C/install-info.8,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- man/C/install-info.8	17 Mar 2006 01:54:30 -0000	1.1.1.1
-+++ man/C/install-info.8	17 Mar 2006 02:29:34 -0000	1.2
-@@ -156,7 +156,7 @@
- be located in
- .IR infodir .
- The default is
--.BR /usr/info .
-+.BR @PREFIX@/share/info .
- .TP
- .BI \-\-align= nnn " [deprecated]"
- Specifies that the first line of the description should be indented at
-@@ -266,6 +266,8 @@
- processing steps are shown.
- .SH "SEE ALSO"
- emacs(1), info(1), gzip(1)
-+.SH AUTHOR
-+Paths modified by Carsten Klapp to reflect fink distribution, December 2002.
- .SH COPYRIGHT
- Copyright 1994, Ian Jackson.
- .B install\-info
-Index: man/C/update-alternatives.8
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/man/C/update-alternatives.8,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- man/C/update-alternatives.8	17 Mar 2006 01:54:30 -0000	1.1.1.1
-+++ man/C/update-alternatives.8	17 Mar 2006 02:29:34 -0000	1.2
-@@ -4,7 +4,7 @@
- .\" it under the terms of the GNU General Public License as published
- .\" by the Free Software Foundation; either version 2 of the License, or
- .\" (at your option) any later version.  There is NO WARRANTY.  You can
--.\" find the GNU GPL in /usr/share/common-licenses/GPL on any Debian system.
-+.\" find the GNU GPL in @PREFIX@/share/common-licenses/GPL on any Debian system.
- .TH UPDATE\-ALTERNATIVES 8 "19 January 1998" "Debian Project" "dpkg utilities"
- .SH NAME
- update\-alternatives - maintain symbolic links determining default commands
-@@ -79,13 +79,13 @@
- .BR nvi (1)
- are both installed on the system, the alternatives system will cause
- the generic name
--.I /usr/bin/editor
-+.I @PREFIX@/bin/editor
- to refer to
--.I /usr/bin/nvi
-+.I @PREFIX@/bin/nvi
- by default.  The system administrator can override this and cause
- it
- to refer to
--.I /usr/bin/ed
-+.I @PREFIX@/bin/ed
- instead,
- and the alternatives system will not alter this setting until explicitly
- requested to do so.
-@@ -97,7 +97,7 @@
- which in turn is a symbolic link to the actual file referenced.
- This is done so that the system administrator's changes can be confined
- within the
--.I /etc
-+.I @PREFIX@/etc
- directory: the FHS (q.v.) gives reasons why this is a Good Thing.
- .PP
- When each package
-@@ -117,9 +117,9 @@
- of the
- .BR vi (1)
- editor are installed, the man page referenced by
--.I /usr/share/man/man1/vi.1
-+.I @PREFIX@/share/man/man1/vi.1
- should correspond to the executable referenced by
--.IR /usr/bin/vi .
-+.IR @PREFIX@/bin/vi .
- .B update\-alternatives
- handles this by means of
- .I master
-@@ -183,7 +183,7 @@
- .TP
- generic name
- A name, like
--.IR /usr/bin/editor ,
-+.IR @PREFIX@/bin/editor ,
- which refers, via the alternatives system, to one of a number of
- files of similar function.
- .TP
-@@ -198,12 +198,12 @@
- .TP
- alternatives directory
- A directory, by default
--.IR /etc/alternatives ,
-+.IR @PREFIX@/etc/alternatives ,
- containing the symlinks.
- .TP
- administrative directory
- A directory, by default
--.IR /var/lib/dpkg/alternatives ,
-+.IR @PREFIX@/var/lib/dpkg/alternatives ,
- containing
- .BR update\-alternatives '
- state information.
-@@ -400,13 +400,13 @@
- mode.
- .SH FILES
- .TP
--.I /etc/alternatives/
-+.I @PREFIX@/etc/alternatives/
- The default alternatives directory.
- Can be overridden by the
- .B \-\-altdir
- option.
- .TP
--.I /var/lib/dpkg/alternatives/
-+.I @PREFIX@/var/lib/dpkg/alternatives/
- The default administration directory.
- Can be overridden by the
- .B \-\-admindir
-@@ -443,7 +443,7 @@
- This is free documentation; see the GNU General Public Licence
- version 2 or later for copying conditions.  There is NO WARRANTY.
- .PP
--You can find the GNU GPL in /usr/share/common\-licenses/GPL on any Debian system.
-+You can find the GNU GPL in @PREFIX@/share/common\-licenses/GPL on any Debian system.
- .SH "SEE ALSO"
- .BR ln (1),
- FHS, the Filesystem Hierarchy Standard.
 Index: man/de/md5sum.1
 ===================================================================
 RCS file: man/de/md5sum.1
@@ -1437,12 +726,12 @@ diff -N man/sv/md5sum.1
 Index: origins/Makefile.in
 ===================================================================
 RCS file: /cvsroot/fink/3rdparty/dpkg/origins/Makefile.in,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- origins/Makefile.in	17 Mar 2006 01:54:43 -0000	1.1.1.1
-+++ origins/Makefile.in	17 Mar 2006 03:44:02 -0000	1.2
-@@ -202,7 +202,7 @@
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -r1.1.1.2 -r1.3
+--- origins/Makefile.in	2 May 2006 17:55:53 -0000	1.1.1.2
++++ origins/Makefile.in	2 May 2006 17:58:44 -0000	1.3
+@@ -210,7 +210,7 @@
  target_vendor = @target_vendor@
  pkgconfdir = $(sysconfdir)/@PACKAGE@
  originsdir = $(pkgconfdir)/origins
@@ -1461,364 +750,6 @@ diff -N origins/fink
 +Vendor: Fink
 +Vendor-URL: http://fink.sourceforge.net/
 +Bugs: http://fink.sourceforge.net/
-Index: scripts/controllib.pl.in
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/scripts/controllib.pl.in,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- scripts/controllib.pl.in	17 Mar 2006 01:55:07 -0000	1.1.1.1
-+++ scripts/controllib.pl.in	17 Mar 2006 02:29:34 -0000	1.2
-@@ -13,7 +13,7 @@
- 
- $pkgdatadir=".";
- 
--$parsechangelog= 'dpkg-parsechangelog';
-+$parsechangelog= '@PREFIX@/bin/dpkg-parsechangelog';
- 
- @pkg_dep_fields = qw(Replaces Provides Depends Pre-Depends Recommends Suggests
-                      Conflicts Enhances);
-@@ -72,8 +72,8 @@
- }
- 
- sub findarch {
--    $arch=`dpkg-architecture -qDEB_HOST_ARCH`;
--    $? && &subprocerr("dpkg-architecture -qDEB_HOST_ARCH");
-+    $arch=`@PREFIX@/bin/dpkg-architecture -qDEB_HOST_ARCH`;
-+    $? && &subprocerr("@PREFIX@/bin/dpkg-architecture -qDEB_HOST_ARCH");
-     chomp $arch;
-     $substvar{'Arch'}= $arch;
- }
-@@ -278,7 +278,7 @@
-     my ($dep_line, $use_arch, $reduce_arch) = @_;
-     my @dep_list;
-     if (!$host_arch) {
--        $host_arch = `dpkg-architecture -qDEB_HOST_ARCH`;
-+        $host_arch = `@PREFIX@/bin/dpkg-architecture -qDEB_HOST_ARCH`;
-         chomp $host_arch;
-     }
-     foreach my $dep_and (split(/,\s*/m, $dep_line)) {
-Index: scripts/dpkg-architecture.pl
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/scripts/dpkg-architecture.pl,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- scripts/dpkg-architecture.pl	17 Mar 2006 01:55:07 -0000	1.1.1.1
-+++ scripts/dpkg-architecture.pl	17 Mar 2006 02:29:34 -0000	1.2
-@@ -22,7 +22,7 @@
- $version="1.0.0"; # This line modified by Makefile
- $0 = `basename $0`; chomp $0;
- 
--$dpkglibdir="/usr/lib/dpkg";
-+$dpkglibdir="@PREFIX@/lib/dpkg";
- push(@INC,$dpkglibdir);
- require 'controllib.pl';
- 
-@@ -113,7 +113,7 @@
- 
- # Set default values:
- 
--chomp ($deb_build_arch = `dpkg --print-architecture`);
-+chomp ($deb_build_arch = `@PREFIX@/bin/dpkg --print-architecture`);
- &syserr("dpkg --print-architecture failed") if $?>>8;
- $deb_build_gnu_type = &debian_to_gnu($deb_build_arch);
- 
-Index: scripts/dpkg-buildpackage.sh
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/scripts/dpkg-buildpackage.sh,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- scripts/dpkg-buildpackage.sh	17 Mar 2006 01:55:07 -0000	1.1.1.1
-+++ scripts/dpkg-buildpackage.sh	17 Mar 2006 02:29:34 -0000	1.2
-@@ -141,15 +141,15 @@
- 
- curd="`pwd`"
- dirn="`basename \"$curd\"`"
--mustsetvar package "`dpkg-parsechangelog | sed -n 's/^Source: //p'`" "source package is"
--mustsetvar version "`dpkg-parsechangelog | sed -n 's/^Version: //p'`" "source version is"
-+mustsetvar package "`@PREFIX@/bin/dpkg-parsechangelog | sed -n 's/^Source: //p'`" "source package is"
-+mustsetvar version "`@PREFIX@/bin/dpkg-parsechangelog | sed -n 's/^Version: //p'`" "source version is"
- if [ -n "$changedby" ]; then maintainer="$changedby";
- elif [ -n "$maint" ]; then maintainer="$maint";
--else mustsetvar maintainer "`dpkg-parsechangelog | sed -n 's/^Maintainer: //p'`" "source changed by"; fi
--eval `dpkg-architecture -a${targetarch} -t${targetgnusystem} -s -f`
-+else mustsetvar maintainer "`@PREFIX@/bin/dpkg-parsechangelog | sed -n 's/^Maintainer: //p'`" "source changed by"; fi
-+eval `@PREFIX@/bin/dpkg-architecture -a${targetarch} -t${targetgnusystem} -s -f`
- 
- if [ x$sourceonly = x ]; then
--	mustsetvar arch "`dpkg-architecture -a${targetarch} -t${targetgnusystem} -qDEB_HOST_ARCH`" "host architecture"
-+	mustsetvar arch "`@PREFIX@/bin/dpkg-architecture -a${targetarch} -t${targetgnusystem} -qDEB_HOST_ARCH`" "host architecture"
- else
- 	arch=source
- fi
-Index: scripts/dpkg-checkbuilddeps.pl
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/scripts/dpkg-checkbuilddeps.pl,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- scripts/dpkg-checkbuilddeps.pl	17 Mar 2006 01:55:07 -0000	1.1.1.1
-+++ scripts/dpkg-checkbuilddeps.pl	17 Mar 2006 02:29:34 -0000	1.2
-@@ -133,7 +133,7 @@
- 	my $dep_list=shift;
- 	my %version=%{shift()};
- 	my %providers=%{shift()};
--	my $host_arch=shift || `dpkg-architecture -qDEB_HOST_ARCH`;
-+	my $host_arch=shift || `@PREFIX@/bin/dpkg-architecture -qDEB_HOST_ARCH`;
- 	chomp $host_arch;
- 
- 	my @unmet=();
-@@ -160,7 +160,7 @@
- 				else {
- 					# Compare installed and needed
- 					# version number.
--					system("dpkg", "--compare-versions",
-+					system("@PREFIX@/bin/dpkg", "--compare-versions",
- 						$version{$package}, $relation,
- 						 $version);
- 					if (($? >> 8) != 0) {
-Index: scripts/dpkg-genchanges.pl
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/scripts/dpkg-genchanges.pl,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- scripts/dpkg-genchanges.pl	17 Mar 2006 01:55:07 -0000	1.1.1.1
-+++ scripts/dpkg-genchanges.pl	17 Mar 2006 02:29:34 -0000	1.2
-@@ -307,7 +307,7 @@
- $f{'Format'}= $substvar{'Format'};
- 
- if (!length($f{'Date'})) {
--    chop($date822=`822-date`); $? && subprocerr("822-date");
-+    chop($date822=`@PREFIX@/bin/822-date`); $? && subprocerr("822-date");
-     $f{'Date'}= $date822;
- }
- 
-@@ -326,7 +326,7 @@
-     open(STDIN,"< $uf") || &syserr("cannot open upload file $uf for reading");
-     (@s=stat(STDIN)) || &syserr("cannot fstat upload file $uf");
-     $size= $s[7]; $size || &warn("upload file $uf is empty");
--    $md5sum=`md5sum`; $? && subprocerr("md5sum upload file $uf");
-+    $md5sum=`@PREFIX@/bin/md5sum`; $? && subprocerr("md5sum upload file $uf");
-     $md5sum =~ m/^([0-9a-f]{32})\s*-?\s*$/i ||
-         &failure("md5sum upload file $uf gave strange output \`$md5sum'");
-     $md5sum= $1;
-Index: scripts/dpkg-name.sh
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/scripts/dpkg-name.sh,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- scripts/dpkg-name.sh	17 Mar 2006 01:55:08 -0000	1.1.1.1
-+++ scripts/dpkg-name.sh	17 Mar 2006 02:29:34 -0000	1.2
-@@ -10,6 +10,7 @@
- license () {
- echo "# ${prog} ${version} -- ${purpose}
- # Copyright (C) 1995,1996 Erick Branderhorst <branderh@debian.org>.
-+# Paths modified by Carsten Klapp to reflect fink distribution, December 2002.
- 
- # This is free software; you can redistribute it and/or modify it
- # under the terms of the GNU General Public License as published by the
-@@ -19,7 +20,7 @@
- # This is distributed in the hope that it will be useful, but
- # WITHOUT ANY WARRANTY; without even the implied warranty of
- # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
--# /usr/share/common-licenses/GPL for more details."
-+# @PREFIX@/share/common-licenses/GPL for more details."
- }
- 
- stderr () {
-@@ -54,13 +55,13 @@
- }
- 
- getname () {
--	if p=`dpkg-deb -f -- "$1" package`;
-+	if p=`@PREFIX@/bin/dpkg-deb -f -- "$1" package`;
- 	then
--		v=`dpkg-deb -f -- "$1" version | sed s,.*:,,`;
--		r=`dpkg-deb -f -- "$1" revision`;
-+		v=`@PREFIX@/bin/dpkg-deb -f -- "$1" version | sed s,.*:,,`;
-+		r=`@PREFIX@/bin/dpkg-deb -f -- "$1" revision`;
- 		if [ -z "$r" ];
- 		then
--			r=`dpkg-deb -f -- "$1" package_revision`;
-+			r=`@PREFIX@/bin/dpkg-deb -f -- "$1" package_revision`;
- 		fi
- 
- 		if [ -n "$r" ];
-@@ -68,11 +69,11 @@
- 			v=$v-$r;
- 		fi
- 
--		a=`dpkg-deb -f -- "$1" architecture`;
-+		a=`@PREFIX@/bin/dpkg-deb -f -- "$1" architecture`;
- 		a=`echo $a|sed -e 's/ *//g'`;
- 		if [ -z "$a" ] && [ -n "$noarchitecture" ]; # arch field empty, or ignored
- 		then
--			a=`dpkg --print-architecture`;
-+			a=`@PREFIX@/bin/dpkg --print-architecture`;
- 			stderr "assuming architecture \`"$a"' for \`"$1"'";
- 		fi
- 		if [ -z "$noarchitecture" ];
-@@ -97,7 +98,7 @@
- 		dir=`dirname "$1"`;
- 		if [ -n "$subdir" ];
- 		then
--			s=`dpkg-deb -f -- "$1" section`;
-+			s=`@PREFIX@/bin/dpkg-deb -f -- "$1" section`;
- 			if [ -z "$s" ];
- 			then
- 				s="no-section";
-Index: scripts/dpkg-scanpackages.pl
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/scripts/dpkg-scanpackages.pl,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- scripts/dpkg-scanpackages.pl	17 Mar 2006 01:55:08 -0000	1.1.1.1
-+++ scripts/dpkg-scanpackages.pl	17 Mar 2006 02:29:34 -0000	1.2
-@@ -86,7 +86,7 @@
- sub vercmp {
-      my ($a,$b)=@_;
-      return $vercache{$a}{$b} if exists $vercache{$a}{$b};
--     system('dpkg','--compare-versions',$a,'le',$b);
-+     system('@PREFIX@/bin/dpkg','--compare-versions',$a,'le',$b);
-      $vercache{$a}{$b}=$?;
-      return $?;
- }
-@@ -99,7 +99,7 @@
-     while (<$find_h>) {
- 	chomp;
- 	my $fn = $_;
--	my $control = `dpkg-deb -I $fn control`;
-+	my $control = `@PREFIX@/bin/dpkg-deb -I $fn control`;
- 	if ($control eq "") {
- 	    warn "Couldn't call dpkg-deb on $fn: $!, skipping package\n";
- 	    next;
-Index: scripts/dpkg-scansources.pl
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/scripts/dpkg-scansources.pl,v
-retrieving revision 1.1.1.1
-retrieving revision 1.3
-diff -u -r1.1.1.1 -r1.3
---- scripts/dpkg-scansources.pl	17 Mar 2006 01:55:08 -0000	1.1.1.1
-+++ scripts/dpkg-scansources.pl	18 Mar 2006 20:04:41 -0000	1.3
-@@ -283,7 +283,7 @@
-     if (!$pid) {
-     	open STDIN, '<&FILE'	or xdie "can't dup $file:";
- 	seek STDIN, 0, 0	or xdie "can't rewind $file:";
--	exec 'md5sum'		or xdie "can't exec md5sum:";
-+	exec '@PREFIX@/bin/md5sum'		or xdie "can't exec md5sum:";
-     }
-     chomp($md5 = join '', <MD5>);
-     unless (close MD5) {
-Index: scripts/dpkg-shlibdeps.pl
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/scripts/dpkg-shlibdeps.pl,v
-retrieving revision 1.1.1.1
-retrieving revision 1.3
-diff -u -r1.1.1.1 -r1.3
---- scripts/dpkg-shlibdeps.pl	17 Mar 2006 01:55:08 -0000	1.1.1.1
-+++ scripts/dpkg-shlibdeps.pl	18 Mar 2006 20:04:41 -0000	1.3
-@@ -231,7 +231,7 @@
- 	close STDERR; # we don't need to see dpkg's errors
- 	open STDERR, "> /dev/null";
- 	$ENV{LC_ALL} = "C";
--	exec("dpkg","--search","--",@libfiles);
-+	exec("@PREFIX@/bin/dpkg","--search","--",@libfiles);
- 	syserr("cannot exec dpkg");
-     }
-     while (<P>) {
-Index: scripts/dpkg-source.pl
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/scripts/dpkg-source.pl,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- scripts/dpkg-source.pl	17 Mar 2006 01:55:08 -0000	1.1.1.1
-+++ scripts/dpkg-source.pl	17 Mar 2006 02:29:34 -0000	1.2
-@@ -580,8 +580,8 @@
-     close(DSC);
- 
-     if ($is_signed) {
--	if (-x '/usr/bin/gpg') {
--	    my $gpg_command = 'gpg -q --verify '.quotemeta($dsc).' 2>&1';
-+	if (-x '@PREFIX@/bin/gpg') {
-+	    my $gpg_command = '@PREFIX@/bin/gpg -q --verify '.quotemeta($dsc).' 2>&1';
- 	    my @gpg_output = `$gpg_command`;
- 	    my $gpg_status = $? >> 8;
- 	    if ($gpg_status) {
-@@ -868,7 +868,7 @@
-     open(STDIN,"< $dscdir/$f") || &syserr("cannot read $dscdir/$f");
-     (@s= stat(STDIN)) || &syserr("cannot fstat $dscdir/$f");
-     $s[7] == $size{$f} || &error("file $f has size $s[7] instead of expected $size{$f}");
--    $m= `md5sum`; $? && subprocerr("md5sum $f"); $m =~ s/\n$//;
-+    $m= `@PREFIX@/bin/md5sum`; $? && subprocerr("md5sum $f"); $m =~ s/\n$//;
-     $m = readmd5sum( $m );
-     $m eq $md5sum{$f} || &error("file $f has md5sum $m instead of expected $md5sum{$f}");
-     open(STDIN,"</dev/null") || &syserr("reopen stdin from /dev/null");
-@@ -1281,7 +1281,7 @@
- 	&internerr( "tried to add file `$filename' twice" );
-     stat($filename) || &syserr("could not stat output file `$filename'");
-     $size= (stat _)[7];
--    my $md5sum= `md5sum <$filename`;
-+    my $md5sum= `@PREFIX@/bin/md5sum <$filename`;
-     $? && &subprocerr("md5sum $filename");
-     $md5sum = readmd5sum( $md5sum );
-     $f{'Files'}.= "\n $md5sum $size $filename";
-Index: scripts/update-alternatives.pl
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/scripts/update-alternatives.pl,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- scripts/update-alternatives.pl	17 Mar 2006 01:55:08 -0000	1.1.1.1
-+++ scripts/update-alternatives.pl	17 Mar 2006 02:29:34 -0000	1.2
-@@ -59,7 +59,7 @@
- sub quit { print STDERR "update-alternatives: @_\n"; exit(2); }
- sub badusage { print STDERR "update-alternatives: @_\n\n"; &usageversion; exit(2); }
- 
--$altdir= '/etc/alternatives';
-+$altdir= '@PREFIX@/etc/alternatives';
- $admindir= $admindir . '/alternatives';
- $testmode= 0;
- $verbosemode= 0;
-Index: src/Makefile.in
-===================================================================
-RCS file: /cvsroot/fink/3rdparty/dpkg/src/Makefile.in,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- src/Makefile.in	17 Mar 2006 01:55:10 -0000	1.1.1.1
-+++ src/Makefile.in	17 Mar 2006 02:29:34 -0000	1.2
-@@ -84,7 +84,7 @@
- 	query.$(OBJEXT)
- dpkg_query_OBJECTS = $(am_dpkg_query_OBJECTS)
- dpkg_query_DEPENDENCIES = $(am__DEPENDENCIES_1) ../lib/libdpkg.a
--DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
-+DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir) -I../getopt
- depcomp = $(SHELL) $(top_srcdir)/config/depcomp
- am__depfiles_maybe = depfiles
- @AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/archives.Po ./$(DEPDIR)/cleanup.Po \
-@@ -256,14 +256,14 @@
- 	update.c
- 
- dpkg_LDADD = \
--	$(LIBINTL) ../lib/libdpkg.a $(ZLIB_LIBS) $(BZ2_LIBS) $(SELINUX_LIBS)
-+	$(LIBINTL) ../lib/libdpkg.a ../getopt/libopt.a $(ZLIB_LIBS) $(BZ2_LIBS) $(SELINUX_LIBS)
- 
- dpkg_query_SOURCES = \
- 	errors.c \
- 	filesdb.c filesdb.h \
- 	query.c
- 
--dpkg_query_LDADD = $(LIBINTL) ../lib/libdpkg.a
-+dpkg_query_LDADD = $(LIBINTL) ../lib/libdpkg.a ../getopt/libopt.a
- all: all-am
- 
- .SUFFIXES:
 Index: src/archives.c
 ===================================================================
 RCS file: /cvsroot/fink/3rdparty/dpkg/src/archives.c,v
@@ -1953,11 +884,11 @@ diff -u -r1.1.1.1 -r1.2
 Index: src/main.c
 ===================================================================
 RCS file: /cvsroot/fink/3rdparty/dpkg/src/main.c,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- src/main.c	17 Mar 2006 01:55:10 -0000	1.1.1.1
-+++ src/main.c	17 Mar 2006 02:29:34 -0000	1.2
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -r1.1.1.2 -r1.3
+--- src/main.c	2 May 2006 17:55:57 -0000	1.1.1.2
++++ src/main.c	2 May 2006 17:58:44 -0000	1.3
 @@ -38,6 +38,12 @@
  #include <dpkg-db.h>
  #include <myopt.h>
@@ -1971,7 +902,7 @@ diff -u -r1.1.1.1 -r1.2
  #include "main.h"
  
  static void printversion(void) {
-@@ -549,6 +555,153 @@
+@@ -594,6 +600,153 @@
    }
  }
  
@@ -2125,7 +1056,7 @@ diff -u -r1.1.1.1 -r1.2
  
  int main(int argc, const char *const *argv) {
    jmp_buf ejbuf;
-@@ -559,7 +712,9 @@
+@@ -604,7 +757,9 @@
  
    setvbuf(stdout,0,_IONBF,0);
    filesdbinit();
@@ -2139,12 +1070,12 @@ diff -u -r1.1.1.1 -r1.2
 Index: src/main.h
 ===================================================================
 RCS file: /cvsroot/fink/3rdparty/dpkg/src/main.h,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- src/main.h	17 Mar 2006 01:55:10 -0000	1.1.1.1
-+++ src/main.h	17 Mar 2006 02:29:34 -0000	1.2
-@@ -95,6 +95,11 @@
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -r1.1.1.2 -r1.3
+--- src/main.h	2 May 2006 17:55:57 -0000	1.1.1.2
++++ src/main.h	2 May 2006 17:58:44 -0000	1.3
+@@ -96,6 +96,11 @@
  extern const char *instdir;
  extern struct packageinlist *ignoredependss;
  extern const char architecture[];
@@ -2237,21 +1168,12 @@ diff -u -r1.1.1.1 -r1.2
 Index: utils/Makefile.in
 ===================================================================
 RCS file: /cvsroot/fink/3rdparty/dpkg/utils/Makefile.in,v
-retrieving revision 1.1.1.1
-retrieving revision 1.2
-diff -u -r1.1.1.1 -r1.2
---- utils/Makefile.in	17 Mar 2006 01:55:11 -0000	1.1.1.1
-+++ utils/Makefile.in	17 Mar 2006 02:29:34 -0000	1.2
-@@ -14,7 +14,7 @@
- 
- @SET_MAKE@
- 
--SOURCES = $(enoent_SOURCES) $(start_stop_daemon_SOURCES)
-+SOURCES = $(enoent_SOURCES) $(start_stop_daemon_SOURCES) $(md5sum_SOURCES)
- 
- srcdir = @srcdir@
- top_srcdir = @top_srcdir@
-@@ -42,6 +42,7 @@
+retrieving revision 1.1.1.2
+retrieving revision 1.3
+diff -u -r1.1.1.2 -r1.3
+--- utils/Makefile.in	2 May 2006 17:55:57 -0000	1.1.1.2
++++ utils/Makefile.in	2 May 2006 17:58:44 -0000	1.3
+@@ -40,6 +40,7 @@
  @WITH_START_STOP_DAEMON_TRUE@sbin_PROGRAMS =  \
  @WITH_START_STOP_DAEMON_TRUE@	start-stop-daemon$(EXEEXT)
  pkglib_PROGRAMS = enoent$(EXEEXT)
@@ -2259,7 +1181,7 @@ diff -u -r1.1.1.1 -r1.2
  subdir = utils
  DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
  ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-@@ -69,10 +70,14 @@
+@@ -67,10 +68,14 @@
  mkinstalldirs = $(SHELL) $(top_srcdir)/config/mkinstalldirs
  CONFIG_HEADER = $(top_builddir)/config.h
  CONFIG_CLEAN_FILES =
@@ -2276,7 +1198,7 @@ diff -u -r1.1.1.1 -r1.2
  am_enoent_OBJECTS = enoent.$(OBJEXT)
  enoent_OBJECTS = $(am_enoent_OBJECTS)
  enoent_LDADD = $(LDADD)
-@@ -93,8 +98,8 @@
+@@ -89,8 +94,8 @@
  	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
  CCLD = $(CC)
  LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -2287,7 +1209,7 @@ diff -u -r1.1.1.1 -r1.2
  ETAGS = etags
  CTAGS = ctags
  DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
-@@ -239,6 +244,8 @@
+@@ -237,6 +242,8 @@
  @WITH_START_STOP_DAEMON_TRUE@start_stop_daemon_LDADD = ../getopt/libopt.a $(SSD_LIBS)
  enoent_SOURCES = \
  	enoent.c
@@ -2296,7 +1218,7 @@ diff -u -r1.1.1.1 -r1.2
  
  all: all-am
  
-@@ -296,6 +303,20 @@
+@@ -294,6 +301,20 @@
  
  clean-pkglibPROGRAMS:
  	-test -z "$(pkglib_PROGRAMS)" || rm -f $(pkglib_PROGRAMS)
@@ -2317,7 +1239,7 @@ diff -u -r1.1.1.1 -r1.2
  install-sbinPROGRAMS: $(sbin_PROGRAMS)
  	@$(NORMAL_INSTALL)
  	test -z "$(sbindir)" || $(mkdir_p) "$(DESTDIR)$(sbindir)"
-@@ -309,6 +330,14 @@
+@@ -307,6 +328,14 @@
  	  else :; fi; \
  	done
  
@@ -2332,7 +1254,7 @@ diff -u -r1.1.1.1 -r1.2
  uninstall-sbinPROGRAMS:
  	@$(NORMAL_UNINSTALL)
  	@list='$(sbin_PROGRAMS)'; for p in $$list; do \
-@@ -317,8 +346,16 @@
+@@ -315,8 +344,16 @@
  	  rm -f "$(DESTDIR)$(sbindir)/$$f"; \
  	done
  
@@ -2349,7 +1271,7 @@ diff -u -r1.1.1.1 -r1.2
  enoent$(EXEEXT): $(enoent_OBJECTS) $(enoent_DEPENDENCIES) 
  	@rm -f enoent$(EXEEXT)
  	$(LINK) $(enoent_LDFLAGS) $(enoent_OBJECTS) $(enoent_LDADD) $(LIBS)
-@@ -332,6 +369,7 @@
+@@ -330,6 +367,7 @@
  distclean-compile:
  	-rm -f *.tab.c
  
@@ -2357,7 +1279,7 @@ diff -u -r1.1.1.1 -r1.2
  @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/enoent.Po@am__quote@
  @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/start-stop-daemon.Po@am__quote@
  
-@@ -431,7 +469,7 @@
+@@ -427,7 +465,7 @@
  check: check-am
  all-am: Makefile $(PROGRAMS)
  installdirs:
@@ -2366,7 +1288,7 @@ diff -u -r1.1.1.1 -r1.2
  	  test -z "$$dir" || $(mkdir_p) "$$dir"; \
  	done
  install: install-am
-@@ -460,7 +498,7 @@
+@@ -456,7 +494,7 @@
  	@echo "it deletes files that may require special tools to rebuild."
  clean: clean-am
  
@@ -2375,7 +1297,7 @@ diff -u -r1.1.1.1 -r1.2
  	mostlyclean-am
  
  distclean: distclean-am
-@@ -481,7 +519,7 @@
+@@ -477,7 +515,7 @@
  
  install-data-am:
  
@@ -2384,7 +1306,7 @@ diff -u -r1.1.1.1 -r1.2
  
  install-info: install-info-am
  
-@@ -507,20 +545,20 @@
+@@ -503,20 +541,20 @@
  ps-am:
  
  uninstall-am: uninstall-info-am uninstall-pkglibPROGRAMS \
