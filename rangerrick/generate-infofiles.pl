@@ -22,7 +22,7 @@ my $path = abs_path(dirname($0));
 my @files = @ARGV;
 my %files;
 
-my $translate = '(openexr|gst.*0.10.*|gstreamer|gst-plugins|kde|postgres|libpq|libpg|wv2|icecream|qt3|qca|kgpg|xfree86|xorg|\\/mono\\.|libgdiplus|monodevelop|cocoa-sharp|perlmods|libsmoke|fung-calc|.*-pm.info$|libagg|doxygen1.3|piklab|poppler|distcc|gtk-sharp|gecko-sharp|gtksourceview-sharp|ikvm|ekg|gconfmm2|gnomoradio|libmusicbrainz4|libtunepimp|^taglib|dbus|libmath|glibmm|gconfmm|gtkmm|libxml\\\+\\\+|qca|libxine|imlib|libcapsi|libwpd|libpostproc|ffmpeg|enblend|gemrb|apt|dpkg|ecj|monodoc|mono-tools|nant|boo\\.)';
+my $translate = '(openexr|gst.*0.10.*|gstreamer|gst-plugins|kde|postgres|libpq|libpg|wv2|icecream|qt3|qca|kgpg|xfree86|xorg|\\/mono\\.|libgdiplus|monodevelop|cocoa-sharp|perlmods|libsmoke|fung-calc|.*-pm.info$|libagg|doxygen1.3|piklab|poppler|distcc|gtk-sharp|gecko-sharp|gtksourceview-sharp|ikvm|ekg|gconfmm2|gnomoradio|libmusicbrainz4|libtunepimp|taglib|dbus|libmath|glibmm|gconfmm|gtkmm|libxml\\\+\\\+|qca|libxine|imlib|libcapsi|libwpd|libpostproc|ffmpeg|enblend|gemrb|apt|dpkg|ecj|monodoc|mono-tools|nant|boo\\.)';
 
 my $package_lookup = {
 	'10.3' => {
