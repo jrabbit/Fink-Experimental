@@ -1,14 +1,45 @@
 Package: gq
 Version: 1.0.0
 Revision: 1
-BuildDepends: glib2-dev, gtk+2-dev, libgettext3-dev, libiconv-dev, libxml2, openldap23-dev, pkgconfig, system-openssl-dev
-Depends: glib2-shlibs, gtk+2-shlibs, libgettext3-shlibs, libiconv, libxml2-shlibs, openldap23-shlibs
+BuildDepends: <<
+	atk1,
+	bison,
+	fontconfig2-dev,
+	freetype219,
+	glib2-dev,
+	gtk+2-dev,
+	libgettext3-dev,
+	libiconv-dev,
+	libxml2,
+	openldap23-dev,
+	pango1-xft2-ft219-dev,
+	pkgconfig,
+	system-openssl-dev
+<<
+Depends: <<
+	fontconfig2-shlibs,
+	freetype219-shlibs,
+	glib2-shlibs,
+	gtk+2-shlibs,
+	libgettext3-shlibs,
+	libiconv,
+	libxml2-shlibs,
+	openldap23-shlibs,
+	pango1-xft2-ft219-shlibs
+<<
 Source: mirror:sourceforge:gqclient/%n-%v.tar.gz
 Source-MD5: f7bb3218fdcc70e446d44734b4ec2b5e
-SetCPPFLAGS: -I%p/lib/system-openssl/include
-SetLDFLAGS: -L%p/lib/system-openssl/lib
+SetCPPFLAGS: -I%p/lib/system-openssl/include -I%p/lib/pango-ft219/include -I%p/lib/freetype219/include -I%p/lib/freetype219/include/freetype2 -I%p/lib/fontconfig2/include
+SetLDFLAGS: -L%p/lib/system-openssl/lib -L%p/lib/pango-ft219/lib -L%p/lib/freetype219/lib -L%p/lib/fontconfig2/lib
 UpdateConfigGuess: true
-ConfigureParams: --enable-browser-dnd --enable-cache  --mandir="${prefix}/share/man" --disable-dependency-tracking
+ConfigureParams: --enable-browser-dnd --enable-cache  --mandir="${prefix}/share/man" --disable-dependency-tracking --with-kerberos-prefix=/usr
+CompileScript: <<
+#!/bin/sh -ev
+
+	export PKG_CONFIG_PATH="%p/lib/pango-ft219/lib/pkgconfig:%p/lib/freetype219/lib/pkgconfig:%p/lib/fontconfig2/lib/pkgconfig:$PKG_CONFIG_PATH"
+	./configure %c
+	make
+<<
 InstallScript: <<
 	make install DESTDIR=%d
 <<
