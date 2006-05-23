@@ -1,0 +1,171 @@
+configure: Add libSystem as "libc".
+doc/Makefile.in: removed po4a, since it is currently unavailable in fink.
+scripts/fakeroot.in: Use libfakeroot-0.dylib as LIB, use DYLD_LIBRARY_PATH
+  instead of LD_LIBRARY_PATH, use DYLD_INSERT_LIBRARIES instead of LD_PRELOAD.
+test/Makefile.in: Use libfakeroot-0.dylib instead of libfakeroot-0.so.
+test/tartest, tartest.tar.gz.uue: Use daemon:wheel instead of daemon:root (no
+  such group on OS X)
+---
+ configure               |    3 +++
+ doc/Makefile.in         |    4 ++--
+ scripts/fakeroot.in     |   16 ++++++++--------
+ test/Makefile.in        |    2 +-
+ test/tartest            |    2 +-
+ test/tartest.tar.gz.uue |   42 ++++++++++++++++++++----------------------
+ 6 files changed, 35 insertions(+), 34 deletions(-)
+
+Index: fakeroot-1.5.8/scripts/fakeroot.in
+===================================================================
+--- fakeroot-1.5.8.orig/scripts/fakeroot.in	2005-11-06 17:51:40.000000000 -0800
++++ fakeroot-1.5.8/scripts/fakeroot.in	2006-05-22 21:19:08.000000000 -0700
+@@ -18,8 +18,8 @@ EOF
+ PREFIX=@prefix@
+ BINDIR=@bindir@
+     
+-LIB=lib@fakeroot_transformed@.so
+-PATHS=@libdir@:${PREFIX}/lib64/libfakeroot:${PREFIX}/lib32/libfakeroot
++LIB=@libdir@/lib@fakeroot_transformed@-0.dylib
++PATHS=
+ FAKED=${BINDIR}/@faked_transformed@
+ 
+ FAKED_MODE="unknown-is-root"
+@@ -133,21 +133,21 @@ if test -z "$FAKEROOTKEY" || test -z "$P
+ fi
+ 
+ # Keep other library paths
+-if test -n "$LD_LIBRARY_PATH"; then
+-  PATHS="$PATHS:$LD_LIBRARY_PATH"
++if test -n "$DYLD_LIBRARY_PATH"; then
++  PATHS="$PATHS:$DYLD_LIBRARY_PATH"
+ fi
+ # ...and preloaded libs
+-if test -n "$LD_PRELOAD"; then
+-  LIB="$LIB $LD_PRELOAD"
++if test -n "$DYLD_INSERT_LIBRARIES"; then
++  LIB="$LIB $DYLD_INSERT_LIBRARIES"
+ fi
+ 
+ export FAKEROOT_FD_BASE
+ 
+ if test -z "$*"; then
+-  FAKEROOTKEY=$FAKEROOTKEY LD_LIBRARY_PATH="$PATHS" LD_PRELOAD="$LIB" ${SHELL:-/bin/sh}
++  FAKEROOTKEY=$FAKEROOTKEY DYLD_LIBRARY_PATH="$PATHS" DYLD_INSERT_LIBRARIES="$LIB" ${SHELL:-/bin/sh}
+   RESULT=$?
+ else
+-  FAKEROOTKEY=$FAKEROOTKEY LD_LIBRARY_PATH="$PATHS" LD_PRELOAD="$LIB" "$@"
++  FAKEROOTKEY=$FAKEROOTKEY DYLD_LIBRARY_PATH="$PATHS" DYLD_INSERT_LIBRARIES="$LIB" "$@"
+   RESULT=$?
+ fi
+ 
+Index: fakeroot-1.5.8/test/tartest
+===================================================================
+--- fakeroot-1.5.8.orig/test/tartest	2005-06-29 08:07:32.000000000 -0700
++++ fakeroot-1.5.8/test/tartest	2006-05-22 20:30:04.000000000 -0700
+@@ -47,7 +47,7 @@ for f in $LIST; do
+ done
+ 
+ chown -R daemon:sys 2
+-chown -R daemon:root 3 4 
++chown -R daemon:wheel 3 4
+ chmod -R u+xs 2
+ chmod u+s  5
+ 
+Index: fakeroot-1.5.8/test/tartest.tar.gz.uue
+===================================================================
+--- fakeroot-1.5.8.orig/test/tartest.tar.gz.uue	2004-06-21 16:35:16.000000000 -0700
++++ fakeroot-1.5.8/test/tartest.tar.gz.uue	2006-05-22 20:19:02.000000000 -0700
+@@ -1,25 +1,23 @@
+ begin 644 tartest.tar.gz
+-M'XL(`'1PUT```^V=ZT[;0!"%\[M/D2<(>YG=I8^#!*B7E$B$5NK;UW9J;$PQ
+-MC)LY7>KS(9%(("#Y]GB\5QZN[B\VQKB&DE+WV#!][)Y[YW+*Q?DL&^=]=F6S
+-M3=9_6,OWX\/5_7:[N3\<'N:^[[6O3U_<.Z%Y\1<_[G91=CG)?K>[_;R_.??O
+-M:-^/+*+P+ZYI+EO(FTC_%SY<?C01_QN]_^C$TS^"UO_ME^/U5\,&L,!_BH7^
+-M$;3^LV7X-TO\A^PB_2-H_:<:_0?Z1]#ZEQK]L_Y#:/W'&OT[^D?0^@_U^4^%
+-M]W\0NOY?C?XS_2-H_7^ZV>\/AJ.`+WB?O?X7S_$_!(/_[K/)[W@U_SY/^_\E
+-M<OP/0I.U*,T;?_FQ>?;A7_\U!,V0_]$LP)EK@?[Z+]$[7O\1_-G_>>\']?=_
+-MR6?V_R$,_MM9()N;0'W^8RC"_".8^#?I".KS+UYX_P=A\-_-`II<`!;DOY3`
+-M_".8^J]D_4<6SO]!&/QGLQ&@!?EW,3/_",;^K4:!]?F/Q7'\'\+@/]65_\3\
+-M(QC[KRK_G/^!,/B7NO+/_C^$L?^J\L_^/X3!?ZPK_Y'Y1S#V7U7^A?E',/@/
+-M=>6?XW\0QOZKRC_'_R",YG_JRC_7?T$8^Z\J_]S_`6&R_]=L_D^W_SN&P/%_
+-M"%/_%FU![U^R</P7PIS_<]4#_?4_2>'X#X0Y_^-S(?YFCX`^_R5F7O\A].<_
+-M6!X"H_<?@F?_'\*C?\-&L,!_]JS_$)[ZM^D!ZNM_%*[_Q/#4?W<2T-FW`^KS
+-M+TT'D/E'\'C^C_'^3^7UOW#_#X;!O^WZ;V7^G>?X+X2I_VK6?W/_%X1G_KNS
+-MX,Y["Z#/?PZ>Z[\@=.>_&9\`J_?O2Z)_""?_MBU`[S\T'_2/H/=O>0*0OOZ'
+-MDEC_(?3^\_F[_8_H\Q]C8?\/0G?^IWW]%W7]Y_GO$$[^;5O`DOKOZ1]"[[^V
+-M^B_<_PFA]Y\JJ_^9\W\0NO.?H?U__Z;Y?_C^G^NKFV^'NY>_[[_V;]L"%OB/
+-M!;W^9^7^<?7_+?Y/ZW^A]7_E_@56_]_DOSO_A_FWISO_O\;ZCU[_L6K_MBU@
+-M4?U'S_^LW']U]1^]_WOE_F-M]1\]_K]B_W8[_T^X)^/_O?\X=_UWI;;[O^//
+-MX^S/>=?^;5O``O\!?O[3ROT;UW\IS^K_G/_H,GK]_\K]!]OZK\Q_E(*>_UNQ
+-M?[N3/TZT[X=V_E\X_POAY-^V!>C]!^_H'T+OO[;Y?_[_;PR]?U_9_'_B^E]"
+-:""&$$$(((8000@@AA!!"U/P":4*MA`"@````
++M'XL(".2'<4,"`W1A<G1E<W0N=&%R`.V=W6[:0!"%?=VGX`GL_9G931X'*8[2
++ME@8):*N^?0VJ2A6UB'69XQ$YYP)0Y)OP^>P<S_YP6.^&SEAA4E4]O4]Z^W[Z
++M'$,H6FJ(1;H0@]30K;0#Z.O^L-ZM5MUNNSU<NN[[RSANNKO3],\/<7#'OV3R
++M!_*WO0-F\*_T/Y9_[%_&S68[^."?4D[DC^3__'$S6OJ_B#3PCR5-_@_DC^'?
++M6]*?Q5^TDC^,?WIXM`P`[>/_%``RQW\H?\.;8`9_J87\\?R/+[</@NW\<PKT
++M_P+\;7)`>_V?XG]A_4?RMXR`,_)?38G\4?R3??]/SN-__/6>+_?_T./_TWK\
++MLGW]]W7['_NNNU?^:7#&OU8A?R3_9-O_:^2?4J[DC^1OW/^3^KO^7\,_EJ3@
++M^O^>^3OL_Q7V?V'\,W3^-U[#/T9O^>^N^>?!&?\T74[^0/X9-O][#?^D*9(_
++MDC]N_O<J_C%XRW_WS-]C_HO,?RC^XC'_"<=_''_QE_\J^2/YB[?\1_]#^;O+
++M?Y7Y#\;?8_[C_"^,OT+G?Z_;_R%<_P_DK\[V?\3CG\@?R%^=[?\0KO^$\O>V
++M_R-S_@_'WV/^R^2/XE\\[O]5CO\X_L5?_N/^3RC_XBS_:21_)']W^8_]'QQ_
++MC_E/R!_%__G3_NGS8,N_L?YKY?@/YF]W%\RH_Z4R_RW"WZ(2M(__6;G_;R'^
++MQ]<;/PNT^U^GZ^E_*'_###AC_[?P_!\<?[LG_S/_OW"_F/^4]1_,W^X,P!G\
++M:R1_.'^K"C!C_%?._\#YFQT`U>[_%)7Y;PG^)D/`C.>_P/-_T/R3K_K/\[_@
++M_%W5?_;_P?RS+_\+_8_F[\K_2O]C^8LO_S/_P_F[\C_S/YB_^O(_U__#^;OR
++M/\__!_,OOOQ?Z7\T?T_^KYS_!?.W7?_5V/\ORO[?(OS=K/]B_P_,__1J5O\O
++M\I_"_EO_1S[_073\K0V9OOB'Q^G3AXYZ9SK[_]MKGZ4O*IM^N+W_V^I_CES_
++MOR3_VZ:`]OHO0;C^&\;?SOEG_HW[/T[G?]'_>/X6]\*,WW_3Q/[OXOQO505F
++MC/]9F?\7Y__'Y__:$=3N_Y*$X_\2_'L?_9]4,_U/411%411%411%411%411%
++/411%4<WZ">?3$X``H```
+ `
+ end
+Index: fakeroot-1.5.8/configure
+===================================================================
+--- fakeroot-1.5.8.orig/configure	2006-03-16 15:24:13.000000000 -0800
++++ fakeroot-1.5.8/configure	2006-05-22 20:31:09.000000000 -0700
+@@ -11375,6 +11375,9 @@ case $target_cpu:$target_os in
+ 	(*:solaris*)
+ 		libcpath="/lib/libc.so.1"
+ 		;;
++	(*:darwin*)
++		libcpath="/usr/lib/libSystem.B.dylib"
++		;;
+ 	(*)
+ 		{ echo "$as_me:$LINENO: WARNING: don't know where libc is for $target_os on
+ 			     $target_cpu, setting to /lib/libc.so" >&5
+Index: fakeroot-1.5.8/doc/Makefile.in
+===================================================================
+--- fakeroot-1.5.8.orig/doc/Makefile.in	2006-05-22 20:36:42.000000000 -0700
++++ fakeroot-1.5.8/doc/Makefile.in	2006-05-22 20:42:23.000000000 -0700
+@@ -164,7 +164,7 @@ target_cpu = @target_cpu@
+ target_os = @target_os@
+ target_vendor = @target_vendor@
+ AUTOMAKE_OPTIONS = foreign
+-SUBDIRS = es fr sv
++SUBDIRS = #es fr sv
+ man_MANS = faked.1 fakeroot.1
+ 
+ #another automake bug workaround
+@@ -529,7 +529,7 @@ uninstall-man: uninstall-man1
+ 	uninstall-man uninstall-man1
+ 
+ 
+-all-recursive: po4a
++all-recursive: #po4a
+ 
+ po4a:
+ 	@$(NORMAL_INSTALL)
+Index: fakeroot-1.5.8/test/Makefile.in
+===================================================================
+--- fakeroot-1.5.8.orig/test/Makefile.in	2006-03-16 15:24:47.000000000 -0800
++++ fakeroot-1.5.8/test/Makefile.in	2006-05-22 21:02:00.000000000 -0700
+@@ -155,7 +155,7 @@ TESTS = t.echoarg t.mknod t.tar t.truere
+ 	t.touchinstall
+ 
+ suffix = 
+-TESTS_ENVIRONMENT = libfakeroot=libfakeroot-0.so suffix=$(suffix) posixshell=$(SHELL)
++TESTS_ENVIRONMENT = libfakeroot=libfakeroot-0.dylib suffix=$(suffix) posixshell=$(SHELL)
+ CLEANFILES = tmp* tartest.tar.gz hda3
+ check_SCRIPTS = $(TESTS) echo_arg tartest compare-tar
+ EXTRA_DIST = $(check_SCRIPTS) tartest.tar.gz.uue
