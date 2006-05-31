@@ -1,0 +1,168 @@
+diff -ruN -x CVS mplayer/configure mplayer.new/configure
+--- mplayer/configure	2006-04-27 22:59:28.000000000 -0400
++++ mplayer.new/configure	2006-04-28 15:54:21.000000000 -0400
+@@ -354,6 +354,7 @@
+ 
+ Miscellaneous options:
+   --enable-runtime-cpudetection    Enable runtime CPU detection [disable]
++  --disable-cpu-optimization       Disable gcc CPU build optimization [enable]
+   --enable-cross-compile Enable cross-compilation [autodetect]
+   --cc=COMPILER          use this C compiler to build MPlayer [gcc]
+   --host-cc=COMPILER     use this C compiler to build apps needed for the build process [gcc]
+@@ -458,6 +459,7 @@
+ test "$CC" && _cc="$CC"
+ _as=auto
+ _runtime_cpudetection=no
++_cpu_optimization=yes
+ _cross_compile=auto
+ for ac_option do
+   case "$ac_option" in
+@@ -500,6 +502,12 @@
+   --disable-runtime-cpudetection)
+     _runtime_cpudetection=no
+     ;;
++  --disable-cpu-optimization)
++    _cpu_optimization=no
++    ;;
++  --enable-cpu-optimization)
++    _cpu_optimization=yes
++    ;;
+   --enable-cross-compile)
+     _cross_compile=yes
+     ;;
+@@ -1238,6 +1246,7 @@
+ 
+     echocheck "GCC & CPU optimization abilities"
+ 
++    if test "$_cpu_optimization" = yes; then
+     if test -n "$proc"; then
+         case "$proc" in
+ 	    601) _march='-mcpu=601' _mcpu='-mtune=601' ;;
+@@ -1282,6 +1291,7 @@
+ 	    esac
+ 	fi
+     fi
++    fi
+ 
+     if test -n "$_mcpu"; then
+         _optimizing=`echo $_mcpu | cut -c 8-`
+@@ -1678,6 +1688,8 @@
+   --with-extralibdir=*) ;;
+   --enable-runtime-cpudetection) ;;
+   --disable-runtime-cpudetection) ;;
++  --enable-cpu-optimization) ;;
++  --disable-cpu-optimization) ;;
+   --enable-cross-compile) ;;
+   --disable-cross-compile) ;;
+   --install-path=*) ;;
+diff -ruN -x CVS mplayer/debian/config mplayer.new/debian/config
+--- mplayer/debian/config	2006-02-27 08:35:13.000000000 -0500
++++ mplayer.new/debian/config	2006-04-28 16:06:18.000000000 -0400
+@@ -1,11 +1,11 @@
+ #!/bin/sh
+ 
+-CONFIGFILE=/etc/mplayer/mplayer.conf
++CONFIGFILE=@FINKPREFIX@/etc/mplayer/mplayer.conf
+ 
+ set -e
+ 
+ # Source debconf library.
+-. /usr/share/debconf/confmodule
++. @FINKPREFIX@/share/debconf/confmodule
+ 
+ if test -r $CONFIGFILE && ! grep -q '### mplayer DEBCONF AREA' $CONFIGFILE
+ then
+@@ -19,11 +19,11 @@
+ 
+ ########################################## find fonts
+ #default font (if available)
+-BESTFONT=/usr/share/fonts/truetype/Arial.ttf
+-[ -r $BESTFONT ] || BESTFONT=/usr/share/fonts/truetype/freefont/FreeSans.ttf
++BESTFONT=@FINKPREFIX@/lib/X11/fonts/applettf/Arial.ttf
++[ -r $BESTFONT ] || BESTFONT=@FINKPREFIX@/share/fonts/truetype/freefont/FreeSans.ttf
+ 
+ t=$(tempfile -p fonts )
+-find /usr/share/fonts/ /?/?in*/?ont* -type f -iname '*.ttf' -maxdepth 3 2> /dev/null  > $t  || true
++find @FINKPREFIX@/share/fonts/ @FINKPREFIX@/lib/X11/fonts /?/?in*/?ont* -type f -iname '*.ttf' -maxdepth 3 2> /dev/null  > $t  || true
+ 
+ if test -s $t
+ then
+diff -ruN -x CVS mplayer/debian/menu mplayer.new/debian/menu
+--- mplayer/debian/menu	2006-04-27 22:59:47.000000000 -0400
++++ mplayer.new/debian/menu	2006-04-28 15:57:41.000000000 -0400
+@@ -2,5 +2,5 @@
+   needs="X11"\
+   section="Apps/Viewers"\
+   title="MPlayer"\
+-  command="/usr/bin/gmplayer"\
+-  icon="/usr/share/pixmaps/mplayer.xpm"
++  command="@FINKPREFIX@/bin/gmplayer"\
++  icon="@FINKPREFIX@/share/pixmaps/mplayer.xpm"
+diff -ruN -x CVS mplayer/debian/postinst mplayer.new/debian/postinst
+--- mplayer/debian/postinst	2006-02-27 08:35:13.000000000 -0500
++++ mplayer.new/debian/postinst	2006-04-28 16:02:59.000000000 -0400
+@@ -12,7 +12,7 @@
+ 
+ dealwithupgrades();
+ 
+-my $mcfg = new ConfHelper('mplayer', "/etc/mplayer/mplayer.conf");
++my $mcfg = new ConfHelper('mplayer', "@FINKPREFIX@/mplayer/mplayer.conf");
+ 
+ 
+ 
+@@ -24,17 +24,17 @@
+ 
+ 
+ sub dealwithupgrades {
+-  open(OLDCONF, "</etc/mplayer/mplayer.conf") || return 1;
++  open(OLDCONF, "<@FINKPREFIX@/mplayer/mplayer.conf") || return 1;
+   close OLDCONF;
+ 
+-  my $mconf = new ConfHelper("mplayer", "/etc/mplayer/mplayer.conf");
++  my $mconf = new ConfHelper("mplayer", "@FINKPREFIX@/mplayer/mplayer.conf");
+   return 1 if ($mconf->hasconfarea());
+   undef $mconf;
+ 
+   if ((get('mplayer/replace-existing-files') eq 'true') &&
+       (fget('mplayer/replace-existing-files', 'isdefault') eq 'false')) {
+     $didupgrade = 1;
+-    for my $file ("/etc/mplayer/mplayer.conf"    ) {
++    for my $file ("@FINKPREFIX@/mplayer/mplayer.conf"    ) {
+       debug("Moving away $file");
+       rename($file,$file . ".old");
+     }
+diff -ruN -x CVS mplayer/debian/postrm mplayer.new/debian/postrm
+--- mplayer/debian/postrm	2003-01-12 09:20:37.000000000 -0500
++++ mplayer.new/debian/postrm	2006-04-28 16:04:57.000000000 -0400
+@@ -3,15 +3,15 @@
+ set -e
+ 
+ if [ "$1" = "purge" ]; then
+-	if [ -e /usr/share/debconf/confmodule ]; then
++	if [ -e @FINKPREFIX@/share/debconf/confmodule ]; then
+ 		# Source debconf library.
+-		. /usr/share/debconf/confmodule
++		. @FINKPREFIX@/share/debconf/confmodule
+ 		# Remove my changes to the db.
+ 		db_purge
+ 	fi
+ 
+-	if [ -d /etc/mplayer/ ]; then
+-		rm -rf /etc/mplayer/
++	if [ -d @FINKPREFIX@/etc/mplayer/ ]; then
++		rm -rf @FINKPREFIX@/etc/mplayer/
+ 	fi
+ fi
+ 
+diff -ruN -x CVS mplayer/debian/templates mplayer.new/debian/templates
+--- mplayer/debian/templates	2006-02-27 08:35:13.000000000 -0500
++++ mplayer.new/debian/templates	2006-04-28 16:07:19.000000000 -0400
+@@ -4,7 +4,7 @@
+ Description: Upgrade existing system?
+  It looks like you've configured MPlayer already. If you'd like to
+  configure it with this program, I'll have to delete the old
+- configuration /etc/mplayer/mplayer.conf.  Do you want to continue
++ configuration @FINKPREFIX@/etc/mplayer/mplayer.conf.  Do you want to continue
+  configuration with this program?  If you say "Yes", I'll go ahead and
+  delete your old configuration and you can create it anew with this
+  program.  If you say "No" I'm going to exit now since you don't want
