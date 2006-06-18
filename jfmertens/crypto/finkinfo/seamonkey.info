@@ -1,7 +1,7 @@
 Package: seamonkey
-Version: 1.0.1
+Version: 1.0.2
 Revision: 1
-Source-MD5: 6921464b5251cafd529c04c2b9f98d5f
+Source-MD5: 967e0441183492b0ade4ab2a394deb71
 Source: mirror:custom:mozilla.org/%N/releases/%v/%N-%v.source.tar.bz2
 CustomMirror: <<
   Primary: http://ftp.mozilla.org/pub/
@@ -51,13 +51,16 @@ PatchScript: <<
   perl -pi.bak -e 's,endif \# WINNT,$&\nEXTRA_DSO_LDOPTS += -F/System/Library/Frameworks -framework CoreFoundation,' xpcom/build/Makefile.in
 # 2) Non-portable use of sed (not even useable with GNU sed !)
   perl -pi.bak -e 's,sed \-E,/usr/bin/$&,' xpcom/typelib/xpidl/Makefile.in
+## To fix EXC_BAD_INSTRUCTION on macintel (XP_MACOSX is zapped in the patch file):
+  perl -pi.bak -e 's,XP_MACOSX,__APPLE__,' xpcom/reflect/xptcall/src/md/unix/xptc{stubs_unixish_x86.cpp,_platforms_unixish_x86.h}
 <<
 ##########
 #  --enable-default-toolkit=cairo-gtk2 not useable (also w/o --enable-system-cairo) :
 # "nsCairoRenderingContext.cpp:99: error: 'cairo_set_target_surface_DEPRECATED_BY_cairo_create' was not declared in this scope"
 # : files in src refer (not always!) to a deprecated version cairo...
 # https://bugzilla.mozilla.org/show_bug.cgi?id=334250
-ConfigureParams: --enable-xft --disable-freetype2 --enable-calendar --enable-optimize="-O3 -fstrict-aliasing" --disable-debug --enable-application=suite --enable-macos-target=10.4 --enable-prebinding --enable-default-toolkit=gtk2 --with-pthreads --with-default-mozilla-five-home=%p/lib/%N --mandir=%p/share/man --enable-strip --enable-extensions=all --enable-image-decoders=all --enable-ldap-experimental --enable-xpctools --enable-necko-protocols=all --enable-efence --enable-ctl --enable-xinerama --with-system-mng --with-system-jpeg --with-system-png --with-system-zlib --enable-postscript --enable-ipv6 --enable-tests --with-x --enable-canvas --with-qtdir=%p --enable-pango --enable-svg --enable-update-packaging --enable-storage --enable-system-cairo --enable-profilesharing
+ConfigureParams: --enable-xft --disable-freetype2 --enable-calendar --enable-optimize="-O3 -fstrict-aliasing" --disable-debug --enable-application=suite --enable-macos-target=10.4 --enable-default-toolkit=gtk2 --with-pthreads --with-default-mozilla-five-home=%p/lib/%N --mandir=%p/share/man --enable-strip --enable-extensions=all --enable-image-decoders=all --enable-ldap-experimental --enable-xpctools --enable-necko-protocols=all --enable-ctl --enable-xinerama --with-system-mng --with-system-jpeg --with-system-png --with-system-zlib --enable-postscript --enable-ipv6 --enable-tests --with-x --enable-canvas --with-qtdir=%p --enable-pango --enable-svg --enable-update-packaging --enable-storage --enable-system-cairo --enable-profilesharing
+# drop "--enable-xpctools" ? Add --enable-javaxpcom --enable-svg-renderer=cairo --enable-boehm ?
 CompileScript: <<
 #!/bin/sh -ev
 export CPATH=%p/include
