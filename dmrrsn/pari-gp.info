@@ -1,0 +1,92 @@
+Info2: <<
+Package: pari-gp%type_pkg[-nox]
+Type: -nox (. -nox -xemacs)
+Version: 2.3.0
+Revision: 1001
+Depends: <<
+ readline5-shlibs (>= 5.0-1004), 
+ libncurses5-shlibs (>= 5.4-20041023-1006),
+ gmp-shlibs,
+ (%type_raw[-nox] != -xemacs) emacsen-common, 
+ (%type_raw[-nox] != -nox) x11-shlibs
+<<
+BuildDepends: <<
+ tetex-base, 
+ readline5 (>= 5.0-1004), 
+ libncurses5 (>= 5.4-20041023-1006),
+ gmp,
+ (%type_raw[-nox] = -xemacs) xemacs,
+ (%type_raw[-nox] != -nox) x11, 
+ (%type_raw[-nox] != -nox) x11-dev
+<<
+Conflicts: pari-gp, pari-gp-nox, pari-gp-xemacs
+Replaces: pari-gp, pari-gp-nox, pari-gp-xemacs
+Source: http://pari.math.u-bordeaux.fr/pub/pari/unix/pari-%v.tar.gz
+Source-MD5: ea685da18e015a4365965e82e6e2a2dd
+Source2: http://pari.math.u-bordeaux.fr/pub/pari/packages/galdata.tgz
+Source2-MD5: 4b5203e36ddd9e1786cd761e78fdc4f0
+Source2ExtractDir: pari-%v
+Source3: http://pari.math.u-bordeaux.fr/pub/pari/packages/elldata.tgz
+Source3-MD5: f7798ba3587c3d51432f4abf5c69c885
+Source3ExtractDir: pari-%v
+PatchScript: <<
+ sed 's|@FINK@|%p|g' < %a/%{ni}.patch | patch -p1
+<<
+CompileScript: <<
+#!/bin/bash -ev
+ if [ "%type_raw[-nox]" != "-nox" ]; then
+  ./Configure  --prefix=%p --with-readline=%p --with-gmp=%p
+#  perl -pi -e "s|-O3|-O|g" Odarwin-ppc/Makefile
+ fi
+ if [ "%type_raw[-nox]" == "-nox" ]; then
+  ./Configure --prefix=%p --with-readline=%p --with-gmp=%p --graphic=none
+ fi
+ sed s+\\\\\\\\\ read\ \"lib/gpalias\"+read\ \"%p/etc/gpalias\"+ < misc/gprc.dft >misc/gprc
+ make all
+#make gp.dbg
+ make bench
+<<
+InstallScript: <<
+#!/bin/bash -ev
+ make install DESTDIR=%d
+ mkdir -p %i/etc
+ install -m644 misc/gprc %i/etc
+ install -m644 misc/gpalias %i/etc
+if [ "%type_raw[-nox]" != "-xemacs" ]; then
+ rm %i/share/emacs/site-lisp/pari/*.elc
+ mkdir -p %i/lib/emacsen-common/packages/install
+ mkdir -p %i/lib/emacsen-common/packages/remove
+ install -m 755 emacsen-install %i/lib/emacsen-common/packages/install/%n
+ install -m 755 emacsen-remove %i/lib/emacsen-common/packages/remove/%n
+fi
+<<
+PostInstScript: <<
+if [ "%type_raw[-nox]" != "-xemacs" ]; then
+ %p/lib/emacsen-common/emacs-package-install %n
+fi
+<<
+PreRmScript: <<
+if [ "%type_raw[-nox]" != "-xemacs" ]; then
+ %p/lib/emacsen-common/emacs-package-remove %n
+fi
+<<
+DocFiles: AUTHORS Announce.2.1 CHANGES COMPAT COPYING CVS.txt MACHINES NEW README TODO 
+ConfFiles: %p/etc/gprc %p/etc/gpalias
+License: GPL
+Description: Computer-aided number theory (calculator and C-library)
+DescPort: <<
+ * Had to move some files around after installation.  
+ * Edited gp.c so that %p/etc/gprc is recognized in addition to /etc/gprc. 
+ * No longer makes or installs the pdf doc files.
+ * Patches for gcc 4.0 compatibility thanks to Matt Sachs.  (No longer needed.)
+ * More patches to help it find fink's readline
+<<
+DescPackaging: <<
+ Depends on tetex during building, which is used to make the documentation.
+ Depends on emacsen-common for proper handling of pari.el file, except for
+ the -xemacs variant.
+<<
+Homepage: http://pari.math.u-bordeaux.fr/
+Maintainer: Dave Morrison <dmrrsn@users.sourceforge.net>
+#end of Info2
+<<
