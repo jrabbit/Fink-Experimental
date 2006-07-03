@@ -25,22 +25,15 @@ PatchScript: <<
 ### The next appears needed eg when building yelp...
  perl -pi.bak -e 's,lxpcom,$& -lxpcom_core,' build/unix/mozilla-{config,xpcom.pc}.in
 #### MISSING INCLUDES
- perl -pi.bak -e 's,\#ifndef NSS,#include "pki1t.h"\n$&,' security/nss/lib/pki1/oiddata.h
-## All the following are "for safety" : to avoid "implicit declaration" warnings :
- perl -pi.bak -e 's,\#include,\#include <unistd.h>\n$&,' directory/c-sdk/ldap/libraries/liblber/io.c
- perl -pi.bak -e 's,\#if 0,\#include <unistd.h>\n$&,' directory/c-sdk/ldap/libraries/libldap/os-ip.c
-# for strcpy :
- perl -pi.bak -e 's,gtk/gtk.h>,$&\n\#include <string.h>,' gfx/src/gtk/nsPrintdGTK.c
-# for NSSRWLock_LockWrite, NSSRWLock_UnlockWrite, NSSRWLock_LockRead, and NSSRWLock_UnlockRead :
- perl -pi.bak -e 's,secmod.h"$,$&\n\#include "nssrwlk.h",' security/nss/lib/pki/pki3hack.c
+ perl -pi.bak -e 's,NSSP,P,; s,nss,,' security/nss/lib/pki1/oiddata.h
+## The following is "for safety" : to avoid "implicit declaration" warnings :
+ perl -pi.bak -e 's,\(XP_OS2\) \&\& \!defined\(DARWIN\)$,\(XP_OS2\),' directory/c-sdk/ldap/libraries/liblber/lber-int.h
 #### MISC
 ## configure fails to detect libresolv (hence the 'env' before ./configure),
 ## and even if it would detect it, it forgets to add -lresolv to LIBS  (Still true with seamonkey ??)
 ## We put it as far as possible in the link line _ and just for the link that needs it, in order not to get
 ## libresolv in the LOAD_COMMANDS everywhere :
  perl -pi.bak -e 's,^MODULE\s,OS_LIBS += -lresolv\n$&,' netwerk/build/Makefile.in
-## Experiment _ why is it not enabled for Darwin while it is for all unix platforms ?
- perl -pi -e 's,Darwin"; then$,$&\n  MOZ_MOVEMAIL=1,' configure
 ####
 ### Finally, ad-hoc correction of some install_names :
  perl -pi -e "s;rules.mk;$&\nEXTRA_DSO_LDOPTS := \\\$\(subst install_name \\\$\(mozappdir\)/,install_name \\\$\(mozappdir\)/ipc/modules/,\\\$\(EXTRA_DSO_LDOPTS\)\);" ipc/ipcd/{extensions/{lock/src,transmngr},test}/module/Makefile.in
@@ -53,18 +46,27 @@ PatchScript: <<
   perl -pi.bak -e 's,sed \-E,/usr/bin/$&,' xpcom/typelib/xpidl/Makefile.in
 ## To fix EXC_BAD_INSTRUCTION on macintel (XP_MACOSX is zapped in the patch file):
   perl -pi.bak -e 's,XP_MACOSX,__APPLE__,' xpcom/reflect/xptcall/src/md/unix/xptc{stubs_unixish_x86.cpp,_platforms_unixish_x86.h}
+## linking nspr with g++ when using --enable-cplus
+  perl -pi -e 's,cplus$,$&\n\tMKSHLIB = \$(CCC) \$(DSO_LDOPTS) -o \$@,' nsprpub/pr/src/Makefile.in
 <<
 ##########
 #  --enable-default-toolkit=cairo-gtk2 not useable (also w/o --enable-system-cairo) :
 # "nsCairoRenderingContext.cpp:99: error: 'cairo_set_target_surface_DEPRECATED_BY_cairo_create' was not declared in this scope"
 # : files in src refer (not always!) to a deprecated version cairo...
 # https://bugzilla.mozilla.org/show_bug.cgi?id=334250
-ConfigureParams: --enable-xft --disable-freetype2 --enable-calendar --enable-optimize="-O3 -fstrict-aliasing" --disable-debug --enable-application=suite --enable-macos-target=10.4 --enable-default-toolkit=gtk2 --with-pthreads --with-default-mozilla-five-home=%p/lib/%N --mandir=%p/share/man --enable-strip --enable-extensions=all --enable-image-decoders=all --enable-ldap-experimental --enable-xpctools --enable-necko-protocols=all --enable-ctl --enable-xinerama --with-system-mng --with-system-jpeg --with-system-png --with-system-zlib --enable-postscript --enable-ipv6 --enable-tests --with-x --enable-canvas --with-qtdir=%p --enable-pango --enable-svg --enable-update-packaging --enable-storage --enable-system-cairo --enable-profilesharing
-# drop "--enable-xpctools" ? Add --enable-javaxpcom --enable-svg-renderer=cairo --enable-boehm ?
+## can't enable static : "configure: error: Only one of --enable-shared or --enable-static must be specified."
+ConfigureParams: --enable-xft --disable-freetype2 --enable-calendar --enable-optimize="-O3 -fstrict-aliasing" --disable-debug --enable-application=suite --enable-macos-target=10.4 --enable-default-toolkit=gtk2 --with-pthreads --with-default-mozilla-five-home=%p/lib/%N --mandir=%p/share/man --enable-strip --enable-extensions=all --enable-image-decoders=all --enable-ldap-experimental --enable-necko-protocols=all --enable-ctl --enable-xinerama --with-system-mng --with-system-jpeg --with-system-png --with-system-zlib --enable-postscript --enable-ipv6 --enable-tests --with-x --enable-canvas --with-qtdir=%p --enable-pango --enable-svg --enable-update-packaging --enable-storage --enable-system-cairo --enable-profilesharing --enable-svg-renderer=cairo --enable-cplus
+# dropped "--enable-xpctools" . Add --enable-javaxpcom (needs xulrunner ?); --with-nss ?
+# Also "--enable-boehm" leads to trouble...; probably not important (for a 'production' pkg): according to
+# http://www.hpl.hp.com/personal/Hans_Boehm/gc/ , it is only used as a leak detector.
 CompileScript: <<
 #!/bin/sh -ev
 export CPATH=%p/include
 env ac_cv_func_res_ninit=yes ./configure %c
+## next is needed for extensions/java/xpcom/nsJavaInterfaces.cpp, when using "--enable-javaxpcom"
+# not sufficient : trouble at link time then (for same symbols) _ make should be run in toolkit/xre
+# (cf above comment "--enable-javaxpcom (needs xulrunner ?)")
+#ln -s ../../../../toolkit/xre/nsXULAppAPI.h extensions/java/xpcom/src
 make -w
 <<
 InstallScript: <<
@@ -215,10 +217,10 @@ SplitOff: <<
 SplitOff2: <<
   Package: %N-dev
   Depends: %N-shlibs (= %v-%r), pkgconfig
-# The following is for %p/share/aclocal/nspr.m4 _ not sure the replaces
-# is really warranted, and the Conflicts not, but convenience is worth something..
-#  Conflicts: mozilla-dev, firefox-dev
+# The following is for %p/share/aclocal/nspr.m4
+  Conflicts: mozilla-dev, firefox-dev
   Replaces: mozilla-dev, firefox-dev
+  Provides: mozilla-dev, firefox-dev
   BuildDependsOnly: true
   Description: Seamonkey - development headers and libraries
   InstallScript: mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
