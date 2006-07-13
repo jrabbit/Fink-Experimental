@@ -1,13 +1,25 @@
---- /dev/null	Fri Mar 25 04:38:52 2005
-+++ ./platex.in	Fri Mar 25 04:41:11 2005
-@@ -0,0 +1,96 @@
+--- /dev/null	2006-07-13 11:19:04.000000000 +0000
++++ platex.in	2006-07-13 11:43:55.000000000 +0000
+@@ -0,0 +1,128 @@
 +#! /bin/bash
++# vim: set shiftwidth=8 tabstop=8 softtabstop=8 noexpandtab:
 +#
 +# p(La)TeX wrapper script for ECC
 +#
-+#  written by nodakai
++#  written by nodakai and shinra
 +#
 +prefix="@PREFIX@"
++myname=${0/*\//}
++trap 'test -z "$tempdir" || rm -rf "$tempdir"' 0
++
++make_tempdir() {
++	tempdir=`$prefix/sbin/mktemp -d /var/tmp/TeXtmp.XXXXXX`
++	if test -z "$tempdir"; then
++		echo "ECCS ${myname} wrapper: Error detected while making the temp dir." >&2
++		echo "Try once more." >&2 ;
++		exit 10
++	fi
++}
 +
 +# Assuming GNU getopt (1)
 +getopt_result=`$prefix/bin/getopt --alternative --options hv \
@@ -15,85 +27,105 @@
 +	--longoptions kpathsea-debug:,mktex:,no-mktex:,mltex,output-comment: \
 +	--longoptions parse-first-line,progname:,recorder,shell-escape,src-specials:: \
 +	--longoptions translate-file:,help,version,kanji: \
-+	-n '${0/*\//}' -- "$@"`
++	-n "${myname}" -- "$@"`
 +# Return value of getopt(1) is saved to $? (see bash.info)
 +if [ $? != 0 ] ; then
-+	echo "ECCS ${0/*\//} wrapper: Error detected in arguments." >&2 ;
-+	exit 1 ;
++	echo "ECCS ${myname} wrapper: Error detected in arguments." >&2
++	exit 10
 +fi
 +
 +# Modifing arguments of this script
 +eval set -- "${getopt_result}"
-+other_args=""
-+while true ; do
-+	case "$1" in
++state=first-option
++for arg in "$@"; do
++	case $state in
++		first-option) set --;;
++		option) ;;
++		ignore-optarg) state=option; continue;;
++		optarg)
++		set -- "$@" "$curopt=$arg"
++		state=option
++		continue;;
++		maybe-optarg)
++		set -- "$@" "$curopt${arg:+'='}$arg"
++		state=option
++		continue;;
++		non-option)
++		case $arg in
++			'&'*) ;;
++			'\input') state=input-command;;
++			'\'*) state=command;;
++			*)
++			make_tempdir
++			infile=${arg%.tex}.tex
++			tmpfile=$tempdir/${infile/*\//}
++			set -- "$@" "$tmpfile"
++			break;; # Rest arguments are ignored
++		esac
++		set -- "$@" "$arg"
++		continue;;
++		command)
++		case $arg in
++			'\input') state=input-command;;
++		esac
++		set -- "$@" "$arg"
++		continue;;
++		input-command)
++		# This is necessary for a2ps.
++		if test x${infile+set} = xset; then
++			echo "ECCS ${myname} wrapper: This wrapper cannot handle multiple \input's." >&2
++			exit 10
++		fi
++		make_tempdir
++		infile=${arg%.tex}.tex
++		tmpfile=$tempdir/${infile/*\//}
++		set -- "$@" "$tmpfile"
++		state=command
++		continue;;
++	esac
++	# Handle "option" case
++	case $arg in
 +		--file-line-error-style|--ini|--mltex|--parse-first-line|\
 +		--recorder|--shell-escape|-h|--help|-v|--version)
 +		# Options which doesn't take an argument
-+		other_args="$1 ${other_args}" ; shift ;;
++		set -- "$@" "$arg"
++		state=option;;
 +		--fmt|--interaction|--kpathsea-debug|--mktex|--no-mktex|--output-command|\
 +		--progname|--translate-file)
 +		# Options which takes an argument
-+		other_args="$1=$2 ${other_args}" ; shift 2 ;;
-+		--jobname) echo "ECCS ${0/*\//} wrapper: Specifying --jobname is ignored." >&2 ;
++		curopt=$arg
++		state=optarg;;
++		--jobname) echo "ECCS ${myname} wrapper: Specifying --jobname is ignored." >&2 ;
 +		echo "If you don't like this behavior," >&2 ;
-+		echo "execute ${0/*\//} directly with its full path." >&2 ;
-+		echo "(Possibly \`$prefix/bin/${0/*\//}' )" >&2 ;
-+		shift 2 ;;
++		echo "execute ${myname} directly with its full path." >&2 ;
++		echo "(Possibly \`$prefix/bin/${myname}' )" >&2 ;
++		state=ignore-optarg;;
 +		--src-specials)
 +		# This option has an optional argument.
 +		# As we are in quoted mode, an empty parameter will be generated
 +		# if its optional argument is not found.
-+		case "$2" in
-+			"") other_args="--src-specials ${other_args}" ; shift 2 ;;
-+			*)  other_args="--src-specials=$2 ${other_args}" ; shift 2 ;;
-+		esac ;;
-+		--kanji) echo "${0/*\//} wrapper: Specifying --kanji is ignored." >&2 ;
++		curopt=$arg
++		state=maybe-optarg;;
++		--kanji) echo "${myname} wrapper: Specifying --kanji is ignored." >&2 ;
 +		echo "If you don't like this behavior," >&2 ;
-+		echo "execute ${0/*\//} directly with its full path." >&2 ;
-+		echo "(Possibly \`$prefix/bin/${0/*\//}' )" >&2 ;
-+		shift 2 ;;
-+		--) shift ; break ;;
-+		*) echo "ECCS ${0/*\//} wrapper: Error detected in arguments: $*" >&2 ; exit 1 ;;
++		echo "execute ${myname} directly with its full path." >&2 ;
++		echo "(Possibly \`$prefix/bin/${myname}' )" >&2 ;
++		state=ignore-optarg;;
++		--) state=non-option;;
++		*) echo "ECCS ${myname} wrapper: Error detected in arguments: $*" >&2 ; exit 10 ;;
 +	esac
 +done
 +
-+# Create it with permission drwx. The mkdir command is atomic.
-+tempdir=/var/tmp/TeXtmp.${UID}.$$
-+if mkdir -m 700 $tempdir; then :; else
-+	echo "ECCS ${0/*\//} wrapper: Error detected while making the temp dir." >&2 ;
-+	echo "Try once more." >&2 ;
-+	exit 1
++if test x${infile+set} = xset; then
++	if test ! -r "$infile"; then
++		echo "ECCS ${myname} wrapper: There's no source named \`$infile'." >&2
++		exit 10
++	fi
++	# Create temp tex file which is encoded in EUC-JP
++	$prefix/bin/nkf -e "$infile" > "$tmpfile" || exit $?
++	# Feed it to p[La]TeX (note specifying --jobname)
++	jobname=`basename "$infile" .tex`
++	set -- --jobname="$jobname" "$@"
 +fi
-+trap 'rm -rf "$tempdir"' 0
-+
-+# Ugly hack for a2ps
-+case "x$1 $2" in
-+	'x\nonstopmode \input')
-+	other_args="$other_args "'\nonstopmode \input'
-+	shift 2;;
-+	*) ;;
-+esac
-+
-+# Poor kpathsearch
-+if [[ -a "$1.tex" ]]; then
-+	infile=$1.tex
-+	tmpfile=$tempdir/${1/*\//}.tex
-+	jobname=${1/*\//}
-+elif [[ -a "$1" ]]; then
-+	infile=$1
-+	tmpfile=$tempdir/${1/*\//}
-+	jobname=`basename "$1" .tex`
-+#elif [[ -z "$1" ]]; then
-+#	infile=-
-+#	tmpfile=$tempdir/stdin.tex
-+#	jobname="stdin"
-+else
-+	echo "ECCS ${0/*\//} wrapper: There's no source named \`$1'." >&2
-+	exit 1
-+fi
-+# Create temp tex file which is encoded in EUC-JP
-+$prefix/bin/nkf -e "$infile" > "$tmpfile" || exit 1
-+# Feed it to p[La]TeX (note specifying --jobname)
-+$prefix/bin/${0/*\//} --jobname="$jobname" --kanji=euc $other_args "$tmpfile" \
-+	| $prefix/bin/nkf -E -u -w -m0
++$prefix/bin/${myname} --kanji=euc "$@" | $prefix/bin/nkf -E -u -w -m0
++exit ${PIPESTATUS[0]}
