@@ -1,0 +1,88 @@
+Package: macaulay2
+Version: future
+Revision: 1001
+GCC: 4.0
+#Source: http://www.math.uiuc.edu/Macaulay2/ftp-site/Macaulay2-%v-src.tar.gz
+Source-MD5: b7805ee4f08f80940d8ed9ed233020d0
+Source2: http://www.mathematik.uni-kl.de/ftp/pub/Math/Singular/src/3-0-0/Singular-3-0-0-9.tar.gz
+Source2-MD5: 9bf62fa84f318361ac3e556eb52f68dd
+Depends: readline5-shlibs, libncurses5-shlibs, gdbm3-shlibs, gmp-shlibs (>= 4.2.1-1), libmpfr1-shlibs, gc-shlibs (>= 6.7-1)
+BuildDepends: readline5, libncurses5, gdbm3, gmp (>= 4.2.1-1), libmpfr1, gc (>= 6.7-1), ntl (>= 5.4-1001), autoconf2.5
+BuildConflicts: broken-gcc, singular-factory, singular-libfac
+Suggests: emacs | xemacs
+SourceDirectory: Macaulay2-%v
+PatchScript: <<
+ sed "s|@PREFIX@|/sw|g" < %a/%n.patch | patch -p1
+ mv Macaulay2/README.MacOSX Macaulay2/README.MacOSX.orig
+ sed 's|/sw|%p|g' < Macaulay2/README.MacOSX.orig > Macaulay2/README.MacOSX
+ cd ../Singular-3-0-0; patch -p1 < %a/singular-factory.patch
+ cd ../Singular-3-0-0; patch -p1 < %a/singular-libfac.patch
+<<
+ConfigureParams: --with-veclib --enable-altivec --disable-encap
+SetLDFLAGS: -L%b/../install/lib -lmpfr
+SetCPPFLAGS: -I%b/../install/include
+CompileScript: <<
+ #!/bin/bash -ev
+ export CPU=""
+ if [ "%m" = "powerpc" ]; then
+  export CPU="-mcpu=7450"
+ fi
+ cd ..
+ mkdir build; mkdir install
+ cd Singular-3-0-0/factory
+ export CFLAGS="-mdynamic-no-pic -O3 -fschedule-insns -fschedule-insns2 -fsched-interblock -fstrict-aliasing \
+   -fregmove -freorder-blocks -fast $CPU --param max-gcse-passes=3 -ffast-math"
+ export CXXFLAGS="-mdynamic-no-pic -O3 -fschedule-insns -fschedule-insns2 -fsched-interblock -fstrict-aliasing \
+   -fregmove -freorder-blocks -fast $CPU --param max-gcse-passes=3 -ffast-math -fno-exceptions -fno-rtti -Wno-deprecated"
+ export CPATH=%p/include 
+ export CC="gcc" 
+ export CXX="g++" 
+ ./configure --prefix=%p --enable-NTL  --with-gmp ; make
+ make install prefix=%b/../install
+ cd ../libfac
+ export CPATH="%p/include %b/../install/include"
+CPPFLAGS="-I%p/include -I%b/../install/include -Wno-deprecated" ./configure --prefix=%p --enable-NTL
+ make DEFS=-DHAVE_SINGULAR_ERROR
+ make install prefix=%b/../install
+ ranlib %b/../install/lib/libfac.a
+ cd ../../Macaulay2-%v
+ export CXXFLAGS=""
+ export CFLAGS=""
+ make
+ cd ../build
+ ../Macaulay2-%v/configure %c 
+ (ulimit -s 16000; make)
+<<
+InstallScript: <<
+ cd ../build; make install prefix=%i IgnoreExampleErrors=true
+ (cd %i/bin; <M2-help sed "s|\${WWBROWSER:-firefox}|exec open|" >M2-help.tmp ; mv M2-help.tmp M2-help;  chmod 755 M2-help)
+ (cd %i/bin; rm M2-load-libs)
+<<
+DocFiles: <<
+ Macaulay2/CHANGES Macaulay2/COPYING Macaulay2/README
+<<
+License: GPL
+Description: Computer algebra system for algebraic geometry
+DescPackaging: <<
+ The former 'singular-factory' and 'singular-libfac' packages are now obsolete;
+ instead, this package compiles those libraries (statically, as before), and
+ then links them in to macaulay2.  The 'singular' package provides factory
+ and libfac libraries suitable for other uses.
+<<
+DescPort: <<
+ The options for building singular-factor and singular-libfac have been
+ retained as before; they match those used in an earlier version of the 
+ 'singular' package.
+
+ While compiling singular-factory and singular-libfac, we now use -fast 
+ instead of the obsolete -floop-transpose flag; however, on powerpc only we 
+ must add -mcpu=7450 or else the compiled object will only run on G5.
+<<
+DescUsage: <<
+ Users should put the following line in their .emacs files:
+   (load "/sw/lib/Macaulay2-0.9.2/emacs/M2-init.el")
+ If you experience segmentation faults with Macaulay2, you may need to
+ run the command "limit stacksize 5m" prior to the command "M2".
+<<
+Homepage: http://www.math.uiuc.edu/Macaulay2
+Maintainer: Dave Morrison <dmrrsn@users.sourceforge.net>
