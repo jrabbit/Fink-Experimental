@@ -1,13 +1,13 @@
 Package: macaulay2
-Version: future
-Revision: 1001
+Version: 0.9.20
+Revision: 1002
 GCC: 4.0
-#Source: http://www.math.uiuc.edu/Macaulay2/ftp-site/Macaulay2-%v-src.tar.gz
-Source-MD5: b7805ee4f08f80940d8ed9ed233020d0
+Source: http://www.math.uiuc.edu/Macaulay2/Downloads/Test-Versions/Macaulay2-%v-src.tar.gz
+Source-MD5: 1c7a1f9aa2879b90940687d7ab675b0d
 Source2: http://www.mathematik.uni-kl.de/ftp/pub/Math/Singular/src/3-0-0/Singular-3-0-0-9.tar.gz
 Source2-MD5: 9bf62fa84f318361ac3e556eb52f68dd
-Depends: readline5-shlibs, libncurses5-shlibs, gdbm3-shlibs, gmp-shlibs (>= 4.2.1-1), libmpfr1-shlibs, gc-shlibs (>= 6.7-1)
-BuildDepends: readline5, libncurses5, gdbm3, gmp (>= 4.2.1-1), libmpfr1, gc (>= 6.7-1), ntl (>= 5.4-1001), autoconf2.5
+Depends: readline5-shlibs, libncurses5-shlibs, gdbm3-shlibs, gc-shlibs (>= 6.7-1)
+BuildDepends: readline5, libncurses5, gdbm3, gc (>= 6.7-1), gmp (>= 4.2.1-1), libmpfr1, ntl (>= 5.4-1001), autoconf2.5
 BuildConflicts: broken-gcc, singular-factory, singular-libfac
 Suggests: emacs | xemacs
 SourceDirectory: Macaulay2-%v
@@ -18,8 +18,9 @@ PatchScript: <<
  cd ../Singular-3-0-0; patch -p1 < %a/singular-factory.patch
  cd ../Singular-3-0-0; patch -p1 < %a/singular-libfac.patch
 <<
-ConfigureParams: --with-veclib --enable-altivec --disable-encap
-SetLDFLAGS: -L%b/../install/lib -lmpfr
+#ConfigureParams: --with-veclib --enable-altivec --disable-encap --with-gmplib="%p/lib/libmpfr.a %p/lib/libgmp.a" --infodir='${prefix}/share/info'
+ConfigureParams: --with-veclib --enable-altivec --disable-encap --with-gmplib="%p/lib/libmpfr.a %p/lib/libgmp.a"
+SetLDFLAGS: -L%b/../install/lib
 SetCPPFLAGS: -I%b/../install/include
 CompileScript: <<
  #!/bin/bash -ev
@@ -55,12 +56,33 @@ CPPFLAGS="-I%p/include -I%b/../install/include -Wno-deprecated" ./configure --pr
 <<
 InstallScript: <<
  cd ../build; make install prefix=%i IgnoreExampleErrors=true
- (cd %i/bin; <M2-help sed "s|\${WWBROWSER:-firefox}|exec open|" >M2-help.tmp ; mv M2-help.tmp M2-help;  chmod 755 M2-help)
- (cd %i/bin; rm M2-load-libs)
+ mkdir -p %i/share
+ mv %i/info %i/share
+<<
+InfoDocs: <<
+ Classic.info
+ Dmodules.info
+ Elimination.info
+ FirstPackage.info
+ FourierMotzkin.info
+ GenericInitialIdeal.info
+ LLLBases.info
+ Macaulay2.info
+ Markov.info
+ PackageTemplate.info
+ Parsing.info
+ Points.info
+ PrimaryDecomposition.info
+ ReesAlgebra.info
+ SchurRings.info
+ SimplicialComplexes.info
+ Style.info
+ TangentCone.info
 <<
 DocFiles: <<
- Macaulay2/CHANGES Macaulay2/COPYING Macaulay2/README
+ Macaulay2/CHANGES Macaulay2/COPYING
 <<
+# Macaulay2/CHANGES Macaulay2/COPYING Macaulay2/README
 License: GPL
 Description: Computer algebra system for algebraic geometry
 DescPackaging: <<
@@ -77,12 +99,16 @@ DescPort: <<
  While compiling singular-factory and singular-libfac, we now use -fast 
  instead of the obsolete -floop-transpose flag; however, on powerpc only we 
  must add -mcpu=7450 or else the compiled object will only run on G5.
+
+ Note that libgmp and libmpfr are linked statically, so there is no need
+ to depend on the -shlibs splitoffs.
 <<
 DescUsage: <<
- Users should put the following line in their .emacs files:
-   (load "/sw/lib/Macaulay2-0.9.2/emacs/M2-init.el")
- If you experience segmentation faults with Macaulay2, you may need to
- run the command "limit stacksize 5m" prior to the command "M2".
+ Run Macaulay2 using the command "M2".  Users should, the first time they
+ run M2, call the setup function: 'setup()':
+   /sw/bin/M2 -e'setup();exit 0'
+ This will place Macaulay2 support for emacs into the user's ~/.emacs file, 
+ backing up the file, if it already existed.
 <<
 Homepage: http://www.math.uiuc.edu/Macaulay2
 Maintainer: Dave Morrison <dmrrsn@users.sourceforge.net>
