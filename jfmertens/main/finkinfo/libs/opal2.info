@@ -26,9 +26,17 @@ CompileScript: <<
   make test
 <<
 InstallScript: <<
+#!/bin/sh -ev
   make install DESTDIR=%d
   rm -f %i/lib/%n/lib/*.dylib.*
-  cd %i/lib/%n/lib; ln -s libopal_Darwin_x86_r.%v.dylib libopal_Darwin_x86_r.2.2.dylib; ln -s libopal_Darwin_x86_r.2.2.dylib libopal_Darwin_x86_r.2.dylib; ln -fs libopal_Darwin_x86_r.2.dylib libopal_Darwin_x86_r.dylib; ln -fs libopal_Darwin_x86_r.dylib libopal.dylib; rm *.so
+  if [ %m = i386 ] ; then abbr=x86 ; else abbr=ppc ; fi
+  cd %i/lib/%n/lib
+  ln -fs libopal_Darwin_${abbr}_r.%v.dylib libopal_Darwin_${abbr}_r.2.2.dylib
+  ln -fs libopal_Darwin_${abbr}_r.2.2.dylib libopal_Darwin_${abbr}_r.2.dylib
+  ln -fs libopal_Darwin_${abbr}_r.2.dylib libopal_Darwin_${abbr}_r.dylib
+  ln -fs libopal_Darwin_${abbr}_r.dylib libopal.dylib
+  rm *.so
+  cd -
   cp -pP version.h %i/lib/%n
 #  ranlib %i/lib/%n/lib/libopal_Darwin_*.a
   mkdir -p %i/share/doc/%n
