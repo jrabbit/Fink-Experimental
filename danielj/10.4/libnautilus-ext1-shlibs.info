@@ -1,6 +1,6 @@
 Package: libnautilus-ext1-shlibs
 Version: 2.14.1
-Revision: 1001
+Revision: 1002
 
 Depends: atk1-shlibs (>= 1.6.0-1), gconf2 (>= 2.6.0-1), libgettext3-shlibs, glib2 (>= 2.6.6-1111), dbus-shlibs (>= 0.60-1), libhowl-shlibs, gnome-vfs2-unified-shlibs (>= 2.15.3-16), gtk+2 (>= 2.4.0-1), libiconv, libxml2-shlibs (>= 2.6.7-1), orbit2 (>= 2.10.0-1), pango1-xft2 (>= 1.4.0-1), popt-shlibs, x11
 
@@ -9,12 +9,18 @@ BuildDepends: atk1 (>= 1.6.0-1), libexif-dev, eel2.2-dev (>= 2.14.1-1), audiofil
 Source: mirror:gnome:sources/nautilus/2.14/nautilus-%v.tar.bz2
 Source-MD5: d8bad8b9141bc823c612abb7d460b725
 
-InstallScript: GCONF_DISABLE_MAKEFILE_SCHEMA_INSTALL=1 make install DESTDIR=%d
+ConfigureParams: --libdir=%p/lib/%N
+
+InstallScript: <<
+	GCONF_DISABLE_MAKEFILE_SCHEMA_INSTALL=1 make install DESTDIR=%d
+	/bin/mv %i/lib/%N/bonobo %i/lib
+	/bin/mv %i/lib/%N/pkgconfig %i/lib
+<<
 
 DocFiles: HACKING TODO THANKS MAINTAINERS README COPYING* ChangeLog AUTHORS NEWS
 
 Shlibs: <<
-	%p/lib/libnautilus-extension.1.dylib 2.0.0 %n (>= 2.14.1-1001)
+	%p/lib/%N/libnautilus-extension.1.dylib 2.0.0 %n (>= 2.14.1-1002)
 << 
 
 SplitOff: <<
@@ -52,14 +58,17 @@ SplitOff: <<
 SplitOff2: <<
 	Package: libnautilus-ext1-dev
 	Depends: libnautilus-ext1-shlibs (= %v-%r)
+	Conflicts: nautilus-dev
+	Replaces: nautilus-dev
 	BuildDependsOnly: true
-	Files: lib/*[!.][!.][!.].[adl]* lib/pkgconfig include
+	Files: lib/%N/*[!.][!.][!.].[adl]* lib/pkgconfig include
 	DocFiles: HACKING TODO THANKS MAINTAINERS README COPYING* ChangeLog AUTHORS NEWS
 <<
 
 Description: Next-generation GNOME 2 file manager
 DescDetail: <<
 	%n is a modern replacement for nautilus-shlibs which is no longer used.
+	Shared library moved to %p/lib/%n to avoid conflict with nautilus-shlibs.
 <<
 
 License: GPL
