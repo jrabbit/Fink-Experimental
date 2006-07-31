@@ -1,0 +1,68 @@
+Package: lyx-qtmac
+Version: 1.4.2
+Revision: 4
+Source: ftp://ftp.lyx.org/pub/lyx/stable/lyx-%v.tar.gz
+Source-MD5: 766fc4aa53ecb3229fe04f45f1a9f742
+Depends: qt3mac-shlibs (>= 3.3.6-1), tetex-base, ispell | aspell, gv, imagemagick, boost1.33-shlibs
+BuildDepends: qt3mac (>= 3.3.6-1), gettext-dev, gettext-bin, gettext-tools, libiconv-dev, latex-xft-fonts, boost1.33
+BuildConflicts: qt3, qt3-dev
+#Conflicts: lyx
+#Replaces: lyx
+#Provides: lyx
+UpdatePoMakefile: true
+SetLDFLAGS: -framework Carbon -framework OpenGL -framework AGL -framework QuickTime
+#PatchScript: <<
+# sed 's|@PREFIX@|%p|g' < %a/%n.patch | patch -p1
+#<<
+ConfigureParams:  --prefix=%p/Applications/LyX.app --without-x --with-frontend=qt --with-qt-includes=%p/lib/qt3mac/include --with-qt-libraries=%p/lib/qt3mac/lib --disable-concept-checks --without-aiksaurus --with-packaging=macosx --disable-dependency-tracking
+CompileScript: <<
+ #!/bin/sh -e
+ unset QMAKESPEC
+ export QTDIR=%p/lib/qt3mac
+ export CCACHE_DISABLE=1
+ ./configure %c
+ # some bits don't compile with -O2.
+# perl -pi.bak -e "s/CXXFLAGS = -O2/CXXFLAGS = /" src/tex2lyx/Makefile
+ make
+<<
+InstallScript: <<
+ mkdir -p %i/Applications
+ /bin/cp -pR development/MacOSX/LyX.app %i/Applications/ 
+ make install prefix=%i/Applications/LyX.app
+# mv %i/Applications/LyX.app/bin/* %i/Applications/LyX.app/Contents/MacOS/
+# rmdir %i/Applications/LyX.app/bin
+# mv %i/Applications/LyX.app/share/* %i/Applications/LyX.app/Contents/Resources/
+# rmdir %i/Applications/LyX.app/share
+# mkdir -p %i/etc/texmf.local/tex/latex
+# cp -R %i/Applications/LyX.app/share/lyx/tex %i/etc/texmf.local/tex/latex/lyx
+ (cd %i/Applications/LyX.app/Contents/Resources/; ln -s lyxrc.example preferences)
+<<
+License: GPL
+DocFiles: INSTALL.MacOSX INSTALL COPYING ChangeLog NEWS README UPGRADING ANNOUNCE
+PostInstScript: <<
+ if ! test -e /Applications/Fink; then /usr/bin/install -d -m 755 /Applications/Fink; fi
+ ln -nfs %p/Applications/LyX.app /Applications/Fink/
+ echo "Configuring LyX for your system..."
+ (cd %p/Applications/LyX.app/Contents/Resources; ./configure.py)
+# if [ -f %p/bin/mktexlsr ]; then %p/bin/mktexlsr %p/etc/texmf.local; fi
+<<
+PostRmScript: <<
+ rm -f /Applications/Fink/LyX.app
+# if [ -f %p/bin/mktexlsr ]; then %p/bin/mktexlsr %p/etc/texmf.local; fi
+<<
+Description: Wordprocessor utilizing LaTeX (QT Aqua version)
+DescDetail: <<
+LyX is a modern approach of writing documents with a computer
+which breaks with the tradition of the obsolete typewriter
+concept.  It is designed for people who want a professional
+output with a minimum of time and effort, without becoming specia-
+lists in typesetting.  Compared to common word processors LyX
+will increase the productivity a lot, since most of the type-
+setting will be done by the computer, not the author.  With LyX
+the author can concentrate on the contents of his writing,
+since the computer will take care of the look.
+
+This version uses the QT GUI toolkit (instead of xforms).
+<<
+Homepage: http://www.lyx.org
+Maintainer: Jeffrey Whitaker <jswhit@fastmail.fm>
