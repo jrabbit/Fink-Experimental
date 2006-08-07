@@ -10,10 +10,8 @@ CustomMirror: <<
   asi-JP: http://www.t.ring.gr.jp/pub/net/www/mozilla/
 <<
 SourceDirectory: mozilla
-#Conflicts: %N-bin, %N-browser, %N-calendar, %N-chatzilla, %N-dom-inspector, %N-js-debugger, %N-mailnews, %N-psm
-#Replaces: %N-bin, %N-browser, %N-calendar, %N-chatzilla, %N-dom-inspector, %N-js-debugger, %N-mailnews, %N-psm
-Depends: %N-shlibs (>= %v-%r), cairo-shlibs, gnome-vfs2-shlibs, gtk+2
-BuildDepends: cairo, atk1, gconf2-dev, glib2-dev, gnome-vfs2-dev, gtk+2-dev, libbonobo2-dev, libgettext3-dev, libiconv-dev, libidl2, libjpeg, libpng3, orbit2-dev, pango1-xft2-dev, xft2-dev, x11-dev, pkgconfig
+Depends: %N-shlibs (>= %v-%r), gtk+2
+BuildDepends: cairo, atk1, gconf2-dev, glib2-dev, gnome-vfs2-unified-dev, gtk+2-dev, libbonobo2-dev, libgettext3-dev, libiconv-dev, libidl2, libjpeg, libpng3, orbit2-dev, pango1-xft2-dev, xft2-dev, x11-dev, pkgconfig
 NoSetLDFLAGS: true
 SetLIBRARY_PATH: %p/lib
 NoSetCPPFLAGS: true
@@ -56,7 +54,8 @@ PatchScript: <<
 # : files in src refer (not always!) to a deprecated version cairo...
 # https://bugzilla.mozilla.org/show_bug.cgi?id=334250
 ## can't enable static : "configure: error: Only one of --enable-shared or --enable-static must be specified."
-ConfigureParams: --enable-xft --disable-freetype2 --enable-calendar --enable-optimize="-O3 -fstrict-aliasing" --disable-debug --enable-application=suite --enable-macos-target=10.4 --enable-default-toolkit=gtk2 --with-pthreads --with-default-mozilla-five-home=%p/lib/%N --mandir=%p/share/man --enable-strip --enable-extensions=all --enable-image-decoders=all --enable-ldap-experimental --enable-necko-protocols=all --enable-ctl --enable-xinerama --with-system-mng --with-system-jpeg --with-system-png --with-system-zlib --enable-postscript --enable-ipv6 --enable-tests --with-x --enable-canvas --with-qtdir=%p --enable-pango --enable-svg --enable-update-packaging --enable-storage --enable-system-cairo --enable-profilesharing --enable-svg-renderer=cairo --enable-cplus
+ConfigureParams: --enable-xft --disable-freetype2 --enable-calendar --enable-optimize="-O3" --disable-debug --enable-application=suite --enable-macos-target=10.4 --enable-default-toolkit=gtk2 --with-pthreads --with-default-mozilla-five-home=%p/lib/%N --mandir=%p/share/man --enable-strip --enable-extensions=all --enable-image-decoders=all --enable-ldap-experimental --enable-necko-protocols=all --enable-ctl --enable-xinerama --with-system-mng --with-system-jpeg --with-system-png --with-system-zlib --enable-postscript --enable-ipv6 --enable-tests --with-x --enable-canvas --with-qtdir=%p --enable-pango --enable-svg --enable-update-packaging --enable-storage --enable-system-cairo --enable-profilesharing --enable-svg-renderer=cairo --enable-cplus
+# no -fstrict-aliasing in '--enable-optimize', else "dereferencing type-punned pointer will break strict-aliasing rules" warnings
 # dropped "--enable-xpctools" . Add --enable-javaxpcom (needs xulrunner ?); --with-nss ?
 # Also "--enable-boehm" leads to trouble...; probably not important (for a 'production' pkg): according to
 # http://www.hpl.hp.com/personal/Hans_Boehm/gc/ , it is only used as a leak detector.
@@ -161,23 +160,37 @@ PostRmScript: <<
 
 SplitOff: <<
   Package: %N-shlibs
-  Depends: gtk+2-shlibs
+  Depends: cairo-shlibs, gnome-vfs2-unified-shlibs, gtk+2-shlibs
   DocFiles: LEGAL LICENSE
   Description: Seamonkey - shared libraries
 # Many "dylib"'s under lib/%N are in fact bundles, hence don't belong here.
 # Further the exact sets, both dylibs and of bundles, vary with %c _ and from %v to %v,
 # so we don't want to hardcode them.
+#  InstallScript: <<
+#    #!/bin/sh -ev
+#    mkdir -p %i/lib/%N/plugins
+#    for dir in lib/%N lib/%N/plugins
+#	do
+#	   cd %I/$dir
+#	   for f in `ls -1 *.dylib|xargs file|grep dynamically|cut -f1 -d:`
+#		do mv $f %i/$dir
+#	   done
+#	   cd -
+#	done
+#    mv %I/lib/%N/ipc %i/lib/%N
+#  <<
+## but I see currently no reasonable way to list the bundles that can be linked from shlibs _ and those
+## should probably for sanity be added here. Have some evidence that many of them in fact can...
+## So, for the moment, put all of them here too...
   InstallScript: <<
     #!/bin/sh -ev
-    mkdir -p %i/lib/%N/plugins
-    for dir in lib/%N lib/%N/plugins
-	do
-	   cd %I/$dir
-	   for f in `ls -1 *.dylib|xargs file|grep dynamically|cut -f1 -d:`
-		do mv $f %i/$dir
-	   done
-	   cd -
-	done
+    mkdir -p %i/lib/%N/{plugins,components}
+    for dir in lib/%N{,/{plugins,components}}
+        do
+           cd %I/$dir
+	   mv *.dylib %i/$dir
+           cd -
+        done
     mv %I/lib/%N/ipc %i/lib/%N
   <<
 # The following depends strongly on %c. Adjust at the last minute.
@@ -218,9 +231,9 @@ SplitOff: <<
 SplitOff2: <<
   Package: %N-dev
   Depends: %N-shlibs (= %v-%r), pkgconfig
-# The following is for %p/share/aclocal/nspr.m4; the "provides" should probably go _ it is there for my own convenience,
-# and betting that the different nspr.m4 are substantially identical, (and hardly used within fink),
-# but then a single Replaces should do _ w/o either Conflicts or Provides..
+# The following is for %p/share/aclocal/nspr.m4;
+# betting that the different nspr.m4 are substantially identical, (and hardly used within fink),
+# a single Replaces should do
   Conflicts: mozilla-dev, firefox-dev, firefox1.5-dev
   Replaces: mozilla-dev, firefox-dev, firefox1.5-dev
   BuildDependsOnly: true
@@ -262,6 +275,7 @@ rdf/base/src/nsInMemoryDataSource.cpp
 xpcom/ds/nsProperties.cpp
 <<
 DescPackaging: <<
+ After original packaging and porting of mozilla by msek
  Simpler _ even for user _ to have just %N, %N-dev and %N-shlibs
 <<
 License: OSI-Approved

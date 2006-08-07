@@ -3,13 +3,13 @@ Version: 2.6.0
 Revision: 1
 Source-MD5: c779dcfc1db419f019abfcaafd6b8e4d
 Source: mirror:gnome:sources/%n/2.6/%n-%v.tar.bz2
-Depends: evolution (>= 2.6.1-1)
-BuildDepends: atk1, evolution-data-server-dev (>= 1.6.1-1), gconf2-dev, glib2-dev, gnome-keyring-dev, gnome-vfs2-dev, gnutls12, gtk+2-dev, libart2, libbonobo2-dev, libbonoboui2-dev, libgcrypt, libgettext3-dev, libgnome2-dev, libgnomecanvas2-dev, libgnomeui2-dev, libgpg-error, libiconv-dev, libsoup2.2.8-ssl, libtasn1, libxml2, orbit2-dev, pango1-xft2-dev, popt, x11-dev, gconf2, pkgconfig, intltool, gettext-tools
+Depends: evolution2
+BuildDepends: atk1, evolution-data-server1-dev, evolution2-dev, gconf2-dev, glib2-dev, gnome-keyring-dev, gnome-vfs2-unified-dev, gnutls12, gtk+2-dev, libart2, libbonobo2-dev, libbonoboui2-dev, libgcrypt, libgettext3-dev, libgnome2-dev, libgnomecanvas2-dev, libgnomeui2-dev, libgpg-error, libiconv-dev, libsoup2.2.8-ssl, libtasn1, libxml2, orbit2-dev, pango1-xft2-dev, popt, x11-dev, pkgconfig, intltool, gettext-tools
 NoSetLDFLAGS: true
 SetLIBRARY_PATH: %p/lib
 NoSetCPPFLAGS: true
 SetCPPFLAGS: -no-cpp-precomp
-SetCFLAGS: -O3 -funroll-loops -fstrict-aliasing
+SetCFLAGS: -O3 -fstrict-aliasing
 CompileScript: <<
 #!/bin/sh -ev
   export CPATH=%p/include
@@ -17,14 +17,22 @@ CompileScript: <<
   perl -pi -e 's,\-L(/usr|%p)/lib([^/]),\2,g; s,\-I(/usr|%p)/include([^/]),\2,g' config.status
   make
 <<
+InstallScript: make DESTDIR=%d install
 PostInstScript: <<       
   if [ configure = "$1" ]; then
-    export GCONF_CONFIG_SOURCE=`gconftool-2 --get-default-source`
-    gconftool-2 --makefile-install-rule %p/etc/gconf/schemas/evolution-webcal.schemas >/dev/null
+    GCONF_CONFIG_SOURCE=`gconftool-2 --get-default-source` gconftool-2 --makefile-install-rule \
+	%p/etc/gconf/schemas/evolution-webcal.schemas >/dev/null
   fi
 <<
-DocFiles: AUTHORS COPYING NEWS README
+PreRmScript: <<
+  if [ purge = "$1" ]; then
+    GCONF_CONFIG_SOURCE=`gconftool-2 --get-default-source` gconftool-2 --makefile-uninstall-rule \
+	%p/etc/gconf/schemas/evolution-webcal.schemas >/dev/null
+  fi
+<<
+ConfFiles: %p/etc/gconf/schemas/evolution-webcal.schemas
+DocFiles: AUTHORS COPYING ChangeLog TODO
 Description: Web Calendar plugin for evolution
-Homepage: http://www.novell.com/products/evolution/
+Homepage: http://gnome.org/projects/evolution/
 License: GPL
 Maintainer: The Gnome Core Team <fink-gnome-core@lists.sourceforge.net>
