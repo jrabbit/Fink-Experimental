@@ -1,0 +1,35 @@
+# !/bin/sh
+# Generate list of nonessential packages and remove them.  Then wait
+# for a user prompt and restore the packages.
+
+#if --no-delete is given as the argument, then skip the deletion step.
+#This lets one use the script to replenish .debs that are no longer accessible
+#(e.g. unstable from a prior distro)
+
+if [ "$1" = "--no-delete" ] ; then NODELETE=1;
+elif [ -n "$1" ] ; then 
+echo "Usage:  fink-swap-out [--no-delete]"
+echo "Set --no-delete to skip deleting packages" ;
+SKIPREST="yes";
+fi
+
+if [ -z "$SKIPREST" ]; then
+echo "Generating list of installed packages"
+./fink-display-installed > /tmp/foo
+
+if [ -z "$NODELETE" ]; then 
+echo "This script will delete all of your installed non-essential packages"
+echo "Press RETURN to continue, or Control-C to halt"
+read GOON
+echo "Deleting your Fink installation..."
+fink-remove-nonessential
+echo "You now have a clean Fink installation."
+echo "When you hit RETURN again your installation will be restored"
+read GOON2;
+fi
+
+echo "Restoring Fink packages"
+fink reinstall apt-shlibs apt
+./fink-restore /tmp/foo
+rm /tmp/foo;
+fi
