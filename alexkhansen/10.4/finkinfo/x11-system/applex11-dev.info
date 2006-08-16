@@ -1,0 +1,61 @@
+Package: applex11-dev
+Version: 10.4
+Revision: 1
+#Depends: applex11 ( ==%v-%r )
+Conflicts:  xorg, xfree86, system-xfree86
+Replaces: xorg, xfree86, system-xfree86
+Provides:  x11-dev, libgl-dev, xft2-dev, fontconfig1-dev
+Type: nosource
+CompileScript: <<
+#!/bin/sh -e
+
+	echo "===================================================================="
+	echo "You must have X11SDK.pkg somewhere in /Volumes or /Users to install"
+	echo "this package.  Please make sure you have the XCode Tools dmg or your"
+	echo "Tiger installation DVD mounted and press a key."
+	echo "(This message will self-destruct in 120 seconds.)"
+	echo "===================================================================="
+	read -t 120 -n 1 FOO || :
+<<
+InstallScript: <<
+#!/bin/sh -e
+
+	install -d -m 755 "%d"
+
+   echo -e "- searching for an X11 installer: \c"
+	find /Volumes /Users -type d -name X11SDK.pkg 2>/dev/null | grep -v Receipts | while read PACKAGE; do
+		if [ -f "$PACKAGE/Contents/Archive.pax.gz" ]; then
+			echo "found $PACKAGE"
+			pushd "%d"
+			gzip -dc "$PACKAGE/Contents/Archive.pax.gz" | pax -r '*'
+			popd
+			break
+		fi
+	done
+
+	if ! test -f "%d/usr/include/Xplugin.h"; then
+		cat <<END
+I was unable to find X11SDK.pkg on your hard drive.  Please download the
+Xcode Tools dmg (and open/mount it) from http://connect.apple.com or
+insert your Tiger installation DVD and try again.
+END
+		exit 1
+	fi
+	if ! ( grep 3.2 $PACKAGE/Contents/version.plist )  ; then
+		cat<<END
+I found a version of X11SDK.pkg that is incompatible with Tiger.  Move it out of the way
+and try again if you have a correct one available.
+END
+	exit 1
+	fi
+
+<<
+License: Restrictive
+Homepage: http://www.apple.com/macosx/x11/
+Maintainer: None <fink-devel@lists.sourceforge.net>
+Description: Install the X11SDK package from Apple's X11.
+DescDetail: <<
+This package will let you install Apple's X11SDK package, if you also have the 
+X11User package installed via the companion applex11 package.  To install
+this one, you must have X11SDK.pkg somewhere in /Volumes or /Users.
+<<
