@@ -22,33 +22,35 @@ InstallScript: <<
 
 	install -d -m 755 "%d"
 
-   echo -e "- searching for an X11 installer: \c"
+   echo -e "- searching for an X11SDK installer: \c"
 	find /Volumes /Users -type d -name X11SDK.pkg 2>/dev/null | grep -v Receipts | while read PACKAGE; do
 		if [ -f "$PACKAGE/Contents/Archive.pax.gz" ]; then
 			echo "found $PACKAGE"
-			pushd "%d"
-			gzip -dc "$PACKAGE/Contents/Archive.pax.gz" | pax -r '*'
-			popd
-			break
+				if [ -z $( grep 3.2 "$PACKAGE/Contents/version.plist" ) ] ; then
+				cat<<END
+This version of X11SDK.pkg is incompatible with Tiger.  
+END
+	    		else
+				cat<<END
+This is indeed a Tiger X11SDK installer.  Extracting files...
+END
+				pushd "%d"
+				gzip -dc "$PACKAGE/Contents/Archive.pax.gz" | pax -r '*'
+				popd
+				break
+			fi
 		fi
 	done
 
 	if ! test -f "%d/usr/include/Xplugin.h"; then
 		cat <<END
-I was unable to find X11SDK.pkg on your hard drive.  Please download the
-Xcode Tools dmg (and open/mount it) from http://connect.apple.com or
-insert your Tiger installation DVD and try again.
+I was unable to find a valid X11SDK.pkg .  Please find the file and put it 
+under /Volumes or /Users, download the Xcode Tools dmg from  
+http://connect.apple.com and mount it or insert your Tiger installation DVD 
+and try again.
 END
 		exit 1
 	fi
-	if ! ( grep 3.2 $PACKAGE/Contents/version.plist )  ; then
-		cat<<END
-I found a version of X11SDK.pkg that is incompatible with Tiger.  
-Move it out of the way and try again if you have a correct one available.
-END
-	exit 1
-	fi
-
 <<
 License: Restrictive
 Homepage: http://www.apple.com/macosx/x11/

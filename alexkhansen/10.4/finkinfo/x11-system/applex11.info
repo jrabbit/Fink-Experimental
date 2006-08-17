@@ -22,38 +22,39 @@ InstallScript: <<
 
 	install -d -m 755 "%d"
 
-   echo -e "- searching for an X11 installer: \c"
+   echo -e "- searching for an X11User installer: \c"
 	find /Volumes /Users -type d -name X11User.pkg 2>/dev/null | grep -v Receipts | while read PACKAGE; do
 		if [ -f "$PACKAGE/Contents/Archive.pax.gz" ]; then
 			echo "found $PACKAGE"
-			pushd "%d"
-			gzip -dc "$PACKAGE/Contents/Archive.pax.gz" | pax -r '*'
-			popd
-			break
+				if [ -z $( grep 10.4 "$PACKAGE/Contents/version.plist" ) ] ; then
+				cat<<END
+This version of X11User.pkg is incompatible with Tiger.  
+END
+	  		else
+				cat<<END
+This is indeed a Tiger X11User installer.  Extracting files...	
+END
+				pushd "%d"
+				gzip -dc "$PACKAGE/Contents/Archive.pax.gz" | pax -r '*'
+				popd
+				break
+			fi
 		fi
-	done
-	echo $PACKAGE	
+	done	
 	if ! test -f "%d/usr/bin/open-x11"; then
 		cat <<END
-I was unable to find X11USer.pkg on your hard drive.  Please find the file and
+I was unable to find a valid X11User.pkg .  Please find the file and
 put it under /Volumes or /Users or insert your Tiger installation DVD and try 
 again.
 END
 		exit 1
 	fi
-	if ! ( grep 10.4 "$PACKAGE/Contents/version.plist" )  ; then
-		cat<<END
-I found a version of X11User.pkg is that is incompatible with Tiger.  
-Move it out of the way and try again if you have a correct one available.
-END
-	exit 1
-	fi
 <<
 SplitOff: <<
 	Package: %N-shlibs
 	Provides: libgl-shlibs, x11-shlibs, xft1-shlibs, xft2-shlibs, fontconfig1-shlibs
-	Conflicts: xfree86-base-shlibs, xfree86-base-threaded-shlibs, xfree86-rootless-shlibs, xfree86-rootless-threaded-shlibs, system-xfree86, xfree86-shlibs
-	Replaces: xfree86-base-shlibs, xfree86-base-threaded-shlibs, xfree86-rootless-shlibs, xfree86-rootless-threaded-shlibs, system-xfree86, xfree86-shlibs
+	Conflicts: xfree86-base-shlibs, xfree86-base-threaded-shlibs, xfree86-rootless-shlibs, xfree86-rootless-threaded-shlibs, system-xfree86, xfree86-shlibs, xorg-shlibs
+	Replaces: xfree86-base-shlibs, xfree86-base-threaded-shlibs, xfree86-rootless-shlibs, xfree86-rootless-threaded-shlibs, system-xfree86, xfree86-shlibs, xorg-shlibs
 	Files: <<
 		/usr/X11R6/lib/libAppleWM.*.dylib
 		/usr/X11R6/lib/libFS.*.dylib
@@ -158,18 +159,39 @@ SplitOff: <<
 #;;
 #esac
 #	<<
-<<
-
+#<<
 PreInstScript: <<
-#echo "WARNING: if you compile X11 applications against this X.org release,"
-#echo "you will *not* be able to run them if you decide to revert to Apple's"
-#echo "X11 provided with the OS."
-
 case "$1" in
 	install)
-		echo "If you have previously build packages against XFree86 > 4.4 or 
-		echo "X.org, they will very likely no longer run."
+		cat <<END
+		Warning!  If you have previously build packages against 
+		XFree86 > 4.4 or X.org, they will very likely no longer run.
+		You will need to rebuild them."
+		END
+#		if [ -e /usr/X11R6/bin/xterm -o -e /usr/X11R6/bin/xrdb -o \
+#			-e /etc/X11 -o -L /etc/X11 ]; then
+#			echo
+#			echo "You have an existing X11 installation in /usr/X11R6 and/or /etc/X11."
+#			echo "This package refuses to overwrite these. Remove them, then tell Fink to"
+#			echo "install xfree86 again. (The package won't be recompiled.) If you want"
+#			echo "to keep your X11 installation, please see the FAQ entry at"
+#			echo "http://fink.sourceforge.net/faq/usage-packages.php#apple-x11-wants-xfree86"
+#			echo "for more information on how to configure your system."
+#			echo
+#			echo "Press Return to continue."
+#			read
+#			exit 1
+#		fi
 		;;
+	upgrade)
+
+		# deal with font listings (we no longer use xfont-base, font
+		#	packages install their fonts in the Fink directories)
+		for dir in 100dpi 75dpi CID cyrillic local misc Speedo Type1 ; do
+			rm -f /usr/X11R6/lib/X11/fonts/$dir/fonts.dir /usr/X11R6/lib/X11/fonts/$dir/fonts.scale /usr/X11R6/lib/X11/fonts/$dir/fonts.scale.bak
+		done
+		;;
+
 esac
 <<
 PostInstScript: <<
