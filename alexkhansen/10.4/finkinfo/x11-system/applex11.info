@@ -1,7 +1,7 @@
 Package: applex11
 Version: 10.4
 Revision: 1
-Depends: applex11-shlibs
+Depends: %N-shlibs ( >= %v-%r )
 Conflicts:  xorg, xfree86, applex11tools, quartz-wm, open-x11, x11-app, system-xfree86
 Replaces:  xorg, xfree86, applex11tools, quartz-wm, open-x11, x11-app, system-xfree86
 Provides:  xserver,  x11, rman, libgl, xft2, fontconfig1
@@ -141,56 +141,71 @@ SplitOff: <<
 		/usr/X11R6/lib/libxkbfile.1.dylib    1.0.0  applex11-shlibs (>= 10.4-1) | xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.4-1)    | system-xfree86 (>= 4.4-1) | system-xorg (>= 6.7.0-1)
 		/usr/X11R6/lib/libxkbui.1.dylib      1.0.0  applex11-shlibs (>= 10.4-1) | xorg-shlibs (>= 6.7.0-1) | xfree86-shlibs (>= 4.4-1)    | system-xfree86 (>= 4.4-1) | system-xorg (>= 6.7.0-1)
 	<<
-#	PreInstScript: <<
-#case "$1" in
-#install)
-#if [ -e /usr/X11R6/lib/libX11.6.dylib ]; then
-#  echo
-#  echo "You have an existing X11 installation in /usr/X11R6/lib."
-#  echo "This package refuses to overwrite these. Remove them, then tell Fink to"
-#  echo "install xfree86-shlibs again. (The package won't be recompiled.)"
-#  echo
-#  echo "Press Return to continue."
-#  read
-#  exit 1
-#fi
-#;;
-#upgrade)
-#;;
-#esac
-#	<<
+	PreInstScript: <<
+case "$1" in
+install)
+if [ -e /usr/X11R6/lib/libX11.6.dylib ]; then
+  echo
+  echo "You have an existing X11 installation in /usr/X11R6/lib."
+  echo "This package refuses to overwrite these. 
+  echo "If this is a manually installed package, then you'll wnat to clear"
+  echo "your X11 tree via:
+  echo
+  echo "sudo rm -rf /etc/X11 /usr/X11R6
+  echo 
+  echo "Then have Fink install applex11-shlibs again. (The package won't be recompiled.)"
+  echo
+  echo "If you currently have a Fink X11 package set installed, you'll have to
+  echo "remove them manually via"
+  echo "sudo dpkg -r --force-depends <xfree86|xorg> 
+  echo
+  echo "Press Return to continue."
+  read
+  exit 1
+fi
+;;
+upgrade)
+;;
+esac
+	<<
 <<
 PreInstScript: <<
 case "$1" in
 	install)
-		cat <<END
-		Warning!  If you have previously build packages against 
-		XFree86 > 4.4 or X.org, they will very likely no longer run.
-		You will need to rebuild them."
+echo
+echo
+	echo	"Warning!  If you have previously build packages against"
+	exho	"XFree86 > 4.4 or X.org, they will very likely no longer run."
+	exho	"You will need to rebuild them."
+	echo
 		END
-#		if [ -e /usr/X11R6/bin/xterm -o -e /usr/X11R6/bin/xrdb -o \
-#			-e /etc/X11 -o -L /etc/X11 ]; then
-#			echo
-#			echo "You have an existing X11 installation in /usr/X11R6 and/or /etc/X11."
-#			echo "This package refuses to overwrite these. Remove them, then tell Fink to"
-#			echo "install xfree86 again. (The package won't be recompiled.) If you want"
-#			echo "to keep your X11 installation, please see the FAQ entry at"
-#			echo "http://fink.sourceforge.net/faq/usage-packages.php#apple-x11-wants-xfree86"
-#			echo "for more information on how to configure your system."
-#			echo
-#			echo "Press Return to continue."
-#			read
-#			exit 1
-#		fi
+		if [ -e /usr/X11R6/bin/xterm -o -e /usr/X11R6/bin/xrdb -o \
+			-e /etc/X11 -o -L /etc/X11 ]; then
+			echo
+			echo "You have an existing X11 installation in /usr/X11R6 and/or /etc/X11."
+			echo "This package refuses to overwrite these. Remove them, then tell Fink to"
+			echo "install applex11 again. (The package won't be recompiled.) If you want"
+			echo "to keep your X11 installation, please see the FAQ entry at"
+			echo "http://fink.sourceforge.net/faq/usage-packages.php#apple-x11-wants-xfree86"
+			echo "for more information on how to configure your system."
+			echo
+  echo "If you currently have a Fink X11 package set installed, you'll have to
+  echo "remove them manually via"
+  echo "sudo dpkg -r --force-depends <xfree86|xorg> 
+			echo			
+			echo "Press Return to continue."
+		 	read
+			exit 1
+		fi
 		;;
-	upgrade)
-
+#	upgrade)
+#
 		# deal with font listings (we no longer use xfont-base, font
 		#	packages install their fonts in the Fink directories)
-		for dir in 100dpi 75dpi CID cyrillic local misc Speedo Type1 ; do
-			rm -f /usr/X11R6/lib/X11/fonts/$dir/fonts.dir /usr/X11R6/lib/X11/fonts/$dir/fonts.scale /usr/X11R6/lib/X11/fonts/$dir/fonts.scale.bak
-		done
-		;;
+#		for dir in 100dpi 75dpi CID cyrillic local misc Speedo Type1 ; do
+#			rm -f /usr/X11R6/lib/X11/fonts/$dir/fonts.dir /usr/X11R6/lib/X11/fonts/$dir/fonts.scale /usr/X11R6/lib/X11/fonts/$dir/fonts.scale.bak
+#		done
+#		;;
 
 esac
 <<
