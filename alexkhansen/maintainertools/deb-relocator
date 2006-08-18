@@ -1,0 +1,65 @@
+# !/bin/sh
+
+#echo usage information if no arguments
+if [ -z $1 ] || [ -z $2 ]; then
+	echo "usage:" 
+	echo "deb-relocator FILENAME OLDPREFIX NEWPREFIX"
+	echo " -or- "
+	echo "deb-relocator FILENAME NEWPREFIX"
+	echo "which assumes the old prefix is /sw"
+	echo "Unpacks a .deb file, converts OLDPREFIX to NEWPREFIX in all text files"
+	echo "and within Mach-O binaries, and then repacks it in the current working"
+	echo "directory"
+else	
+# extract the .deb file	
+if ! [ -e $1 ] ; then
+echo $1" not found"
+exit 1
+fi
+if [ -z $3 ]; then
+	OLDROOT=/sw
+	NEWROOT=$2
+else 
+	OLDROOT=$2
+	NEWROOT=$3
+fi	
+echo "Changing "$OLDROOT" --> "$NEWROOT
+echo "Extracting files"
+
+DEBFILE=$(basename $1 .deb)
+echo $DEBFILE
+
+rm -r /tmp/$DEBFILE
+mkdir -p /tmp/$DEBFILE
+
+dpkg -x $1 /tmp/$DEBFILE
+dpkg -e $1 /tmp/$DEBFILE/DEBIAN
+
+mv /tmp/$DEBFILE$OLDROOT /tmp/$DEBFILE$NEWROOT
+
+# locate the Mach-O stuff
+
+echo "Locating Mach-O binaries"
+
+find /tmp/$DEBFILE$NEWROOT * | xargs file | grep Mach-O | cut -d : -f 1 | while read FILE ; do
+	echo $FILE
+	echo "Converting references..."
+	otool -L $FILE | grep dylib | grep $OLDROOT/ | cut -d "(" -f 1 | while read OLDLIB; do
+		echo $OLDLIB "--->" $( echo $OLDLIB | sed -e 's|'$OLDROOT'\/|'$NEWROOT'\/|' ) 
+		install_name_tool -change $OLDLIB $( echo $OLDLIB | sed -e 's|'$OLDROOT'\/|'$NEWROOT'\/|' ) $FILE
+		done		
+done
+
+# convert text files
+
+echo "Modifying text files"
+
+grep -IRl "$OLDROOT/" /tmp/$DEBFILE
+grep -IRl "$OLDROOT/" /tmp/$DEBFILE | xargs sed -ie 's|'$OLDROOT'\/|'$NEWROOT'\/|'
+
+#Pack it up
+echo "Repackaging"
+dpkg -b /tmp/$DEBFILE $DEBFILE.deb
+echo "Cleaning up temporary files"
+rm -rf /tmp/$DEBFILE
+fi
