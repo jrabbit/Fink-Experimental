@@ -6,7 +6,8 @@ if [ -z $1 ] || [ -z $2 ]; then
 	echo "deb-relocator FILENAME OLDPREFIX NEWPREFIX"
 	echo " -or- "
 	echo "deb-relocator FILENAME NEWPREFIX"
-	echo "which assumes the old prefix is /sw"
+	echo "which assumes the old prefix is sw .  Specify prefixes without leading"
+	echo "or trailing slashes"
 	echo "Unpacks a .deb file, converts OLDPREFIX to NEWPREFIX in all text files"
 	echo "and within Mach-O binaries, and then repacks it in the current working"
 	echo "directory"
@@ -17,7 +18,7 @@ echo $1" not found"
 exit 1
 fi
 if [ -z $3 ]; then
-	OLDROOT=/sw
+	OLDROOT=sw
 	NEWROOT=$2
 else 
 	OLDROOT=$2
@@ -35,31 +36,34 @@ mkdir -p /tmp/$DEBFILE
 dpkg -x $1 /tmp/$DEBFILE
 dpkg -e $1 /tmp/$DEBFILE/DEBIAN
 
-mv /tmp/$DEBFILE$OLDROOT /tmp/$DEBFILE$NEWROOT
+mv /tmp/$DEBFILE/$OLDROOT /tmp/$DEBFILE/$NEWROOT
 
 # locate the Mach-O stuff
 
 echo "Locating Mach-O binaries"
 
-find /tmp/$DEBFILE$NEWROOT * | xargs file | grep Mach-O | cut -d : -f 1 | while read FILE ; do
+/usr/bin/find /tmp/$DEBFILE/$NEWROOT  | xargs /usr/bin/file | grep Mach-O | cut -d : -f 1 | while read FILE ; do
 	echo $FILE
 	echo "Converting references..."
-	otool -L $FILE | grep dylib | grep $OLDROOT/ | cut -d "(" -f 1 | while read OLDLIB; do
-		echo $OLDLIB "--->" $( echo $OLDLIB | sed -e 's|'$OLDROOT'\/|'$NEWROOT'\/|' ) 
-		install_name_tool -change $OLDLIB $( echo $OLDLIB | sed -e 's|'$OLDROOT'\/|'$NEWROOT'\/|' ) $FILE
+	otool -L $FILE | grep dylib | grep /$OLDROOT/ | cut -d "(" -f 1 | while read OLDLIB; do
+		echo $OLDLIB "--->" $( echo $OLDLIB | sed -e 's|\/'$OLDROOT'\/|\/'$NEWROOT'\/|' ) 
+		install_name_tool -change $OLDLIB $( echo $OLDLIB | sed -e 's|\/'$OLDROOT'\/|\/'$NEWROOT'\/|' ) $FILE
 		done		
 done
 
 # convert text files
 
 echo "Modifying text files"
-
-grep -IRl "$OLDROOT/" /tmp/$DEBFILE
-grep -IRl "$OLDROOT/" /tmp/$DEBFILE | xargs sed -ie 's|'$OLDROOT'\/|'$NEWROOT'\/|'
-
+#grep -IRl "/$OLDROOT/" /tmp/$DEBFILE
+grep -IRl "/$OLDROOT/" /tmp/$DEBFILE | while read FILETOCHANGE; do
+echo $FILETOCHANGE
+sed -i -e 's|\/'$OLDROOT'\/|\/'$NEWROOT'\/|g' $FILETOCHANGE 
+#
+done
 #Pack it up
 echo "Repackaging"
+rm $DEBFILE.deb
 dpkg -b /tmp/$DEBFILE $DEBFILE.deb
 echo "Cleaning up temporary files"
-rm -rf /tmp/$DEBFILE
+#rm -rf /tmp/$DEBFILE
 fi
