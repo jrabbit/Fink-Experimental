@@ -1,0 +1,25 @@
+# !/bin/sh
+
+if [ -z $1 ] || [ -z $2 ]   ; then
+echo "usage:  deb-binpathcheck DEBFILE DIR"
+echo "check a .deb file for the presence of any binary file that has DIR stored"
+echo "in it as a string.  Useful to check whether it's worth bothering to try"
+echo "to relocate a .deb, e.g. via the deb-relocator script.  Don't put slashes"
+echo "around DIR."
+exit 1
+fi 
+TEMPDIR=$(mktemp -d)
+dpkg -x $1 $TEMPDIR
+/usr/bin/find $TEMPDIR | xargs file | grep Mach-O | cut -d : -f 1 | while read FILE ; do
+#echo $FILE" :"
+	if ! [ -z $(strings $FILE | grep "/$2/") ] ; then
+#	STATUS="YES"
+	echo $FILE" :"
+	echo "---> "$(strings $FILE | grep "/$2/") 
+	fi
+done
+#if [ -n $STATUS ] ; then
+#	echo "YES"
+#fi
+rm -rf $TEMPDIR
+	
