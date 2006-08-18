@@ -28,21 +28,20 @@ echo "Changing "$OLDROOT" --> "$NEWROOT
 echo "Extracting files"
 
 DEBFILE=$(basename $1 .deb)
-echo $DEBFILE
 
-rm -r /tmp/$DEBFILE
-mkdir -p /tmp/$DEBFILE
+TMPDIR=$(mktemp -d)
+#echo $TMPDIR
 
-dpkg -x $1 /tmp/$DEBFILE
-dpkg -e $1 /tmp/$DEBFILE/DEBIAN
+dpkg -x $1 $TMPDIR
+dpkg -e $1 $TMPDIR/DEBIAN
 
-mv /tmp/$DEBFILE/$OLDROOT /tmp/$DEBFILE/$NEWROOT
+mv $TMPDIR/$OLDROOT $TMPDIR/$NEWROOT
 
 # locate the Mach-O stuff
 
 echo "Locating Mach-O binaries"
 
-/usr/bin/find /tmp/$DEBFILE/$NEWROOT  | xargs /usr/bin/file | grep Mach-O | cut -d : -f 1 | while read FILE ; do
+/usr/bin/find $TMPDIR/$NEWROOT  | xargs /usr/bin/file | grep Mach-O | cut -d : -f 1 | while read FILE ; do
 	echo $FILE
 	echo "Converting references..."
 	otool -L $FILE | grep dylib | grep /$OLDROOT/ | cut -d "(" -f 1 | while read OLDLIB; do
@@ -54,8 +53,8 @@ done
 # convert text files
 
 echo "Modifying text files"
-#grep -IRl "/$OLDROOT/" /tmp/$DEBFILE
-grep -IRl "/$OLDROOT/" /tmp/$DEBFILE | while read FILETOCHANGE; do
+#grep -IRl "/$OLDROOT/" $TMPDIR
+grep -IRl "/$OLDROOT/" $TMPDIR | while read FILETOCHANGE; do
 echo $FILETOCHANGE
 sed -i -e 's|\/'$OLDROOT'\/|\/'$NEWROOT'\/|g' $FILETOCHANGE 
 #
@@ -63,7 +62,7 @@ done
 #Pack it up
 echo "Repackaging"
 rm $DEBFILE.deb
-dpkg -b /tmp/$DEBFILE $DEBFILE.deb
+dpkg -b $TMPDIR $DEBFILE.deb
 echo "Cleaning up temporary files"
-#rm -rf /tmp/$DEBFILE
+rm -rf $TMPDIR
 fi
