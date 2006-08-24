@@ -18,23 +18,27 @@ PatchScript: <<
   perl -pi.bak -e 's,libdir\)/locale,datadir)/locale,' po/Makefile.in.in
   perl -pi.bak -e 's,unistd\.h>,$&\n#include <arpa/nameser_compat.h>,' servers/exchange/lib/e2k-autoconfig.c
 <<
-ConfigureParams: --libexecdir=%p/sbin --enable-static --enable-ipv6=yes --enable-nntp=yes --enable-gtk-doc --with-krb4=/usr --with-krb5=/usr --with-openldap=yes --enable-smime=yes --with-nspr-includes=%p/include/seamonkey/nspr --with-nss-includes=%p/include/seamonkey/nss --with-nspr-libs=%p/lib/seamonkey --with-nss-libs=%p/lib/seamonkey --enable-reentrant --enable-maintainer-mode
+ConfigureParams: --libexecdir=%p/sbin --enable-static --enable-ipv6=yes --enable-nntp=yes --enable-gtk-doc --enable-file-locking=fcntl --with-krb4=/usr --with-krb5=/usr --with-openldap=yes --enable-smime=yes --with-nspr-includes=%p/include/seamonkey/nspr --with-nss-includes=%p/include/seamonkey/nss --with-nspr-libs=%p/lib/seamonkey --with-nss-libs=%p/lib/seamonkey --enable-reentrant --enable-maintainer-mode --enable-compile-warnings=yes --enable-python --enable-rpc --enable-tcl --with-tcl=%p/lib --enable-test
 ## Using --libexecdir=%p/sbin (and hence same in all evo pkgs) for policy conformance (despite disagreeing:
 ## I think the standard dirs have each one their role, and blurring them serves no purpose _ only messes things up)
 CompileScript: <<
  #!/bin/sh -ev
  export CPATH=%p/include
  ./configure %c
- perl -pi -e 's,\-L/usr/lib([^/]),\2,g; s,\-I(/usr|%p)/include([^/]),\2,g' config.status
- make
+ perl -pi -e 's,\-L(/usr|%p)/lib([^/]),\2,g; s,\-I(/usr|%p)/include([^/]),\2,g' {,calendar/libical/,libdb/dist/}config.status
+ cd libdb/dist ; ./config.status ; cd -
+ make all
+ make -i check
 <<
 # Clean out '-L/usr/lib' (and maybe more ?) from the .la files _ else unsightly things in dep pkgs (eg, %N-exchange...)
 # No longer necessary _ just remains the clean out of %p/lib
+# Also, '-R' flags are (at least) redundant, since (at least with 2-level namespace), the full path is part of the desc. of a lib
 InstallScript: <<
  #!/bin/sh -ev
  export CPATH=%p/include
  make DESTDIR=%d install
- find %i/lib -name '*\.la'|xargs perl -pi -e 's, \-[LR]%p/lib([^/]),\1,g'
+ find %i/lib -name '*.la'|xargs perl -pi -e "s, \-R *[^ ']*,,g; s, \-L(%p|/usr)/lib([^/]),\2,g; s,//,/,g"
+ perl -pi -e 's, \-L\$\{libdir\},,' %i/lib/pkgconfig/*.pc
  mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
 <<
 SplitOff: <<

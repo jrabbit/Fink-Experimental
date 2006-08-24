@@ -28,19 +28,20 @@ PatchScript: <<
 ## a quick fix for a bad linking _ just to see what comes next
   perl -pi.bak -e 's;\$\(LINK\);$& -Wl,-m;' plugins/groupwise-features/Makefile.in
 <<
-ConfigureParams: --libexecdir=%p/sbin --disable-schemas-install --enable-static=yes --enable-ipv6=yes --enable-nntp=yes --enable-exchange=yes --enable-file-chooser --enable-plugins=all --with-openldap=yes --with-krb4=/usr --with-krb5=/usr --enable-gtk-doc --mandir=%p/share/man --enable-nss --with-nspr-includes=%p/include/seamonkey/nspr --with-nss-includes=%p/include/seamonkey/nss --with-nspr-libs=%p/lib/seamonkey --with-nss-libs=%p/lib/seamonkey --enable-maintainer-mode
+ConfigureParams: --libexecdir=%p/sbin --disable-schemas-install --enable-static=yes --enable-ipv6=yes --enable-nntp=yes --enable-exchange=yes --enable-file-chooser --enable-plugins=all --with-openldap=yes --with-krb4=/usr --with-krb5=/usr --enable-gtk-doc --mandir=%p/share/man --enable-nss --with-nspr-includes=%p/include/seamonkey/nspr --with-nss-includes=%p/include/seamonkey/nss --with-nspr-libs=%p/lib/seamonkey --with-nss-libs=%p/lib/seamonkey --enable-smime=yes --enable-maintainer-mode  --enable-compile-warnings=yes --enable-default-binary
+#  --enable-test-component=yes leads to compile errors ...
 CompileScript: <<
 #!/bin/sh -ev
   export CPATH=%p/include
   ./configure %c
-#  perl -pi -e 's,\-L(/usr|%p)/lib([^/]),\2,g; s,\-I(/usr|%p)/include([^/]),\2,g' config.status
-  perl -pi -e 's,\-L/usr/lib([^/]),\2,g; s,\-I(/usr|%p)/include([^/]),\2,g' config.status
-  make
+  perl -pi -e 's,\-L(/usr|%p)/lib([^/]),\2,g; s,\-I(/usr|%p)/include([^/]),\2,g' config.status
+  make all
+  make -i check
 <<
 InstallScript: <<
   make DESTDIR=%d install
   mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
-  find %i/lib -name '*\.la'|xargs perl -pi -e 's, \-[LR]%p/lib([^/]),\1,g'
+  find %i/lib -name '*.la'|xargs perl -pi -e "s, \-R *[^ ']*,,g; s, \-L(%p|/usr)/lib([^/]),\2,g; s,//,/,g"
 <<
 PostInstScript: <<
  if [ configure = "$1" ]; then
@@ -48,6 +49,7 @@ PostInstScript: <<
 	%p/etc/gconf/schemas/{evolution-mail,apps{-evolution-mail-prompts-checkdefault,_evolution_{addressbook,calendar,shell}}}-2.6.schemas
   scrollkeeper-update
  fi
+ %p/bin/update-mime-database %p/share/mime || true
 <<
 PreRmScript: <<
  if [ purge = "$1" ]; then
@@ -59,6 +61,7 @@ PostRmScript: <<
  if [ remove != "$1" ]; then
   scrollkeeper-update
  fi
+ %p/bin/update-mime-database %p/share/mime || true
 <<
 ConfFiles: <<
   %p/etc/gconf/schemas/apps-evolution-mail-prompts-checkdefault-2.6.schemas

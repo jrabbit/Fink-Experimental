@@ -57,10 +57,10 @@ CompileScript: <<
 # following _ to get correct LOAD_COMMANDS _ should be re-done by editing src/Makefile.in ..
 # also, should be checked, after eg sdl is enabled, to see if it deals correctly with frameworks
   cd src
-  ls=$(otool -L ekiga|fgrep -v "`otool -D ekiga`"|sed -r -e 's,^\t,,' -e 's, .*,,'|egrep -vx '/usr/lib/lib(System|gcc|stdc\+\+).*\.dylib'|fgrep "`nm -mfgu ekiga|fgrep ' (from '|sed -r -e 's,.* \(from ,/,' -e 's,\)$,,'|sort -u`")
+  ls=$(otool -L ekiga|fgrep -v "`otool -D ekiga`"|sed -r -e 's,^\t,,' -e 's, .*,,'|egrep -vx '/usr/lib/lib(System|gcc|stdc\+\+).*\.dylib'|fgrep "`nm -mfgu ekiga|fgrep ' (from '|sed -r -e 's,.* \(from ,/,' -e 's,\)$,,'|sort -u`"|sed -r -e 's,(.*)/([^/]+)\.framework/\2,-F\1 -framework \2,'|xargs)
   g++ -Wl,-x -exported_symbols_list %b/symlst -dead_strip -Wl,-bind_at_load -o ekiga `ls -1 *.o|fgrep -v 'dbus-helper.o'|xargs` \
 	../lib/.libs/libekiga.a $ls
-  ls=$(otool -L ekiga-helper|fgrep -v "`otool -D ekiga-helper`"|sed -r -e 's,^\t,,' -e 's, .*,,'|egrep -vx '/usr/lib/lib(System|gcc|stdc\+\+).*\.dylib'|fgrep "`nm -mfgu ekiga-helper|fgrep ' (from '|sed -r -e 's,.* \(from ,/,' -e 's,\)$,,'|sort -u`")
+  ls=$(otool -L ekiga-helper|fgrep -v "`otool -D ekiga-helper`"|sed -r -e 's,^\t,,' -e 's, .*,,'|egrep -vx '/usr/lib/lib(System|gcc|stdc\+\+).*\.dylib'|fgrep "`nm -mfgu ekiga-helper|fgrep ' (from '|sed -r -e 's,.* \(from ,/,' -e 's,\)$,,'|sort -u`"|sed -r -e 's,(.*)/([^/]+)\.framework/\2,-F\1 -framework \2,'|xargs)
   g++ -Wl,-x -exported_symbols_list %b/symlst -dead_strip -Wl,-bind_at_load -o ekiga-helper dbus-helper.o $ls
   cd -
   make -ik check
