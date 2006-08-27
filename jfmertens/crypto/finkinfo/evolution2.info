@@ -27,6 +27,8 @@ PatchScript: <<
 #  perl -pi.bak -e 's,\#define DAY_INDEX 3,\#include <libintl.h>\n$&,' filter/filter-datespec.c
 ## a quick fix for a bad linking _ just to see what comes next
   perl -pi.bak -e 's;\$\(LINK\);$& -Wl,-m;' plugins/groupwise-features/Makefile.in
+# cf e-d-s for next :
+  sed -ri.bak -e 's,(s%%/)(\[\^/\]\*\$%%%%),\1\\+\2,' `find . -name ltmain.sh`
 <<
 ConfigureParams: --libexecdir=%p/sbin --disable-schemas-install --enable-static=yes --enable-ipv6=yes --enable-nntp=yes --enable-exchange=yes --enable-file-chooser --enable-plugins=all --with-openldap=yes --with-krb4=/usr --with-krb5=/usr --enable-gtk-doc --mandir=%p/share/man --enable-nss --with-nspr-includes=%p/include/seamonkey/nspr --with-nss-includes=%p/include/seamonkey/nss --with-nspr-libs=%p/lib/seamonkey --with-nss-libs=%p/lib/seamonkey --enable-smime=yes --enable-maintainer-mode  --enable-compile-warnings=yes --enable-default-binary
 #  --enable-test-component=yes leads to compile errors ...
@@ -39,10 +41,11 @@ CompileScript: <<
   make -i check
 <<
 InstallScript: <<
+#!/bin/sh -ev
   make DESTDIR=%d install
   mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
-  find %i/lib -name '*.la'|xargs perl -pi -e "s, \-R *[^ ']*,,g; s, \-L(%p|/usr)/lib([^/]),\2,g; s,//,/,g"
-<<
+  perl -pi -e "s, \-R *[^ ']*,,g; s, \-L(%p|/usr)/lib([^/]),\2,g" `find %i/lib -name '*.la'` 
+ <<
 PostInstScript: <<
  if [ configure = "$1" ]; then
   GCONF_CONFIG_SOURCE=`gconftool-2 --get-default-source` gconftool-2 --makefile-install-rule \
