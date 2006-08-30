@@ -16,6 +16,7 @@ SetCFLAGS: -O3 -DLDAP_DEPRECATED=1
 NoSetMAKEFLAGS: true
 SetMAKEFLAGS: -j1
 PatchScript: <<
+#!/bin/sh -ev
   perl -pi.bak -e 's/hardcode_direct=yes/hardcode_direct=no/g' configure && perl -pi.bak -e "s/-scrollkeeper-update/#-scrollkeeper-update/g" help/C/Makefile.in
   perl -pi.bak -e 's,libdir\)/locale,datadir)/locale,' po/Makefile.in.in
 ## The following are 'for safety' : to avoid "implicit declararation" warnings (still check the ngettext thing in filter-datespec.c.)
@@ -28,7 +29,11 @@ PatchScript: <<
 ## a quick fix for a bad linking _ just to see what comes next
   perl -pi.bak -e 's;\$\(LINK\);$& -Wl,-m;' plugins/groupwise-features/Makefile.in
 # cf e-d-s for next :
-  sed -ri.bak -e 's,(s%%/)(\[\^/\]\*\$%%%%),\1\\+\2,' `find . -name ltmain.sh`
+  for f in `find . -name ltmain.sh` ; do sed -ri.bak -e 's,(s%%/)(\[\^/\]\*\$%%%%),\1\\+\2,' $f ; done
+  for f in `find . -name configure` ; do sed -ri.bak -e '/(host_os ld.so|Apple)/,+3{
+/sys_lib_search_path_spec.*\/usr\/local\/lib/c\
+sys_lib_search_path_spec=$(echo -n $(for f in `$CC -print-search-dirs|egrep "^libraries:"|sed -e "s,.*=,," -e "s,$PATH_SEPARATOR, ,g" -e "s,$, /lib /usr/lib /usr/local/lib,"`; do cd $f 2>/dev/null && pwd || : ; done|uniq))
+}' $f ; done
 <<
 ConfigureParams: --libexecdir=%p/sbin --disable-schemas-install --enable-static=yes --enable-ipv6=yes --enable-nntp=yes --enable-exchange=yes --enable-file-chooser --enable-plugins=all --with-openldap=yes --with-krb4=/usr --with-krb5=/usr --enable-gtk-doc --mandir=%p/share/man --enable-nss --with-nspr-includes=%p/include/seamonkey/nspr --with-nss-includes=%p/include/seamonkey/nss --with-nspr-libs=%p/lib/seamonkey --with-nss-libs=%p/lib/seamonkey --enable-smime=yes --enable-maintainer-mode  --enable-compile-warnings=yes --enable-default-binary
 #  --enable-test-component=yes leads to compile errors ...

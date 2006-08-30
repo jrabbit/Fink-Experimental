@@ -26,6 +26,7 @@ Depends: evolution-exchange, gconf-editor, gettext-bin, opal2-shlibs, openh323-1
 Source: mirror:gnome:sources/%n/2.0/%n-%v.tar.bz2
 Source-MD5: d593da6ac49dce495ef4c6ada06b54b6
 PatchScript: <<
+#!/bin/sh -ev
 # to strip binaries (cf LDFLAGS):
  echo '__mh_execute_header' > symlst
 # allow enabling sdl on macosx: doesn't work because of undefined symbol _SDL_main (persists despite aggressive dead-stripping...)
@@ -36,6 +37,12 @@ PatchScript: <<
  sed -ri -e '/darwin\* \)/,+2{ s, \-DSTATIC_LIBS_USED,, ; s,-lh323_Darwin_ppc_r_s -lpt_Darwin_ppc_r_s,-lpt -lopal, }' configure
 # this check fails (others too, so comment out, and just use -ik for check):
 # sed -ri.bak -e '/^check\-doc\-docs: /,+11{ /^[[:space:]]/d }' help/Makefile.in
+# cf e-d-s for next :
+  for f in `find . -name ltmain.sh` ; do sed -ri.bak -e 's,(s%%/)(\[\^/\]\*\$%%%%),\1\\+\2,' $f ; done
+  for f in `find . -name configure` ; do sed -ri.bak -e '/(host_os ld.so|Apple)/,+3{
+/sys_lib_search_path_spec.*\/usr\/local\/lib/c\
+sys_lib_search_path_spec=$(echo -n $(for f in `$CC -print-search-dirs|egrep "^libraries:"|sed -e "s,.*=,," -e "s,$PATH_SEPARATOR, ,g" -e "s,$, /lib /usr/lib /usr/local/lib,"`; do cd $f 2>/dev/null && pwd || : ; done|uniq))
+}' $f ; done
 <<
 NoSetLDFLAGS: true
 SetLDFLAGS: -Wl,-x -exported_symbols_list %b/symlst -dead_strip

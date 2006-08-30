@@ -10,6 +10,15 @@ SetLIBRARY_PATH: %p/lib
 NoSetCPPFLAGS: true
 SetCPPFLAGS: -no-cpp-precomp
 SetCFLAGS: -O3 -fstrict-aliasing
+PatchScript: <<
+#!/bin/sh -ev
+# cf e-d-s for next :
+  for f in `find . -name ltmain.sh` ; do sed -ri.bak -e 's,(s%%/)(\[\^/\]\*\$%%%%),\1\\+\2,' $f ; done
+  for f in `find . -name configure` ; do sed -ri.bak -e '/(host_os ld.so|Apple)/,+3{
+/sys_lib_search_path_spec.*\/usr\/local\/lib/c\
+sys_lib_search_path_spec=$(echo -n $(for f in `$CC -print-search-dirs|egrep "^libraries:"|sed -e "s,.*=,," -e "s,$PATH_SEPARATOR, ,g" -e "s,$, /lib /usr/lib /usr/local/lib,"`; do cd $f 2>/dev/null && pwd || : ; done|uniq))
+}' $f ; done
+<<
 ConfigureParams: --libexecdir=%p/sbin
 CompileScript: <<
 #!/bin/sh -ev
