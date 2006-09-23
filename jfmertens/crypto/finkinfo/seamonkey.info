@@ -1,7 +1,7 @@
 Package: seamonkey
-Version: 1.0.4
+Version: 1.0.5
 Revision: 1
-Source-MD5: 973a762329b951d93eac3c158bbb1416
+Source-MD5: a1b98cd4d2d0f71d50406f8cd3885a5e
 Source: mirror:custom:mozilla.org/%N/releases/%v/%N-%v.source.tar.bz2
 CustomMirror: <<
   Primary: http://ftp.mozilla.org/pub/
@@ -11,10 +11,6 @@ CustomMirror: <<
 <<
 SourceDirectory: mozilla
 Depends: %N-shlibs (>= %v-%r), gtk+2
-# I see also uim coming up (in `env DYLD_BIND_AT_LAUNCH=1 DYLD_PRINT_LIBRARIES=1 DYLD_PRINT_LIBRARIES_POST_LAUNCH=1 seamonkey`),
-# as /sw/lib/gtk-2.0/2.4.0/immodules/im-uim.so. Probably a forgotten dep in one of the gnome pkgs (gtk+2 ?).
-# Straightening out is not immediate, since otool shows uim to depend on gnome-panel (-shlibs anyway), so no way to add
-# a dep in eg. gtk+2..  one might settle for a Recommends..
 BuildDepends: cairo, atk1, gconf2-dev, glib2-dev, gnome-vfs2-unified-dev, gtk+2-dev, libbonobo2-dev, libgettext3-dev, libiconv-dev, libidl2, libjpeg, libpng3, orbit2-dev, pango1-xft2-dev, xft2-dev, x11-dev, pkgconfig
 GCC: 4.0
 NoSetLDFLAGS: true
@@ -24,7 +20,7 @@ SetCPPFLAGS: -I%p/include/cairo
 PatchScript: <<
  #!/bin/sh -ev
  sed 's|@PREFIX@|%p|g' <%a/%n.patch | patch -p1
- perl -pi.bak -e 's,\@executable_path,%p/lib/%N,; s,install_names.*,install_names,' security/coreconf/Darwin.mk
+ perl -pi.bak -e 's,\@executable_path,%p/lib/%N,' security/coreconf/Darwin.mk
  perl -pi.bak -e 's/(AC_DEFUN\()([^[,]+)(,)/\1\[\2]\3/' {{build,directory/c-sdk/config}/autoconf,nsprpub/config}/nspr.m4
 ### The next appears needed eg when building yelp...
  perl -pi.bak -e 's,lxpcom,$& -lxpcom_core,' build/unix/mozilla-{config,xpcom.pc}.in
@@ -32,6 +28,8 @@ PatchScript: <<
  perl -pi.bak -e 's,NSSP,P,; s,nss,,' security/nss/lib/pki1/oiddata.h
 ## The following is "for safety" : to avoid "implicit declaration" warnings :
  perl -pi.bak -e 's,\(XP_OS2\) \&\& \!defined\(DARWIN\)$,\(XP_OS2\),' directory/c-sdk/ldap/libraries/liblber/lber-int.h
+ sed -i.bak -e '/sqliteInt\.h/i
+#include "os.h"' db/sqlite3/src/experimental.c
 #### MISC
 ## configure fails to detect libresolv (hence the 'env' before ./configure),
 ## and even if it would detect it, it forgets to add -lresolv to LIBS  (Still true with seamonkey ??)
@@ -56,12 +54,12 @@ PatchScript: <<
 ##########
 #  --enable-default-toolkit=cairo-gtk2 not useable (also w/o --enable-system-cairo) :
 # "nsCairoRenderingContext.cpp:99: error: 'cairo_set_target_surface_DEPRECATED_BY_cairo_create' was not declared in this scope"
-# : files in src refer (not always!) to a deprecated version cairo...
+# : files in src refer (not always!) to a deprecated version of cairo...
 # https://bugzilla.mozilla.org/show_bug.cgi?id=334250
 ## can't enable static : "configure: error: Only one of --enable-shared or --enable-static must be specified."
 ConfigureParams: --enable-xft --disable-freetype2 --enable-calendar --enable-optimize="-O3" --disable-debug --enable-application=suite --enable-macos-target=10.4 --enable-default-toolkit=gtk2 --with-pthreads --with-default-mozilla-five-home=%p/lib/%N --mandir=%p/share/man --enable-strip --enable-extensions=all --enable-image-decoders=all --enable-ldap-experimental --enable-necko-protocols=all --enable-ctl --enable-xinerama --with-system-mng --with-system-jpeg --with-system-png --with-system-zlib --enable-postscript --enable-ipv6 --enable-tests --with-x --enable-canvas --with-qtdir=%p --enable-pango --enable-svg --enable-update-packaging --enable-storage --enable-system-cairo --enable-profilesharing --enable-svg-renderer=cairo --enable-cplus
 # no -fstrict-aliasing in '--enable-optimize', else "dereferencing type-punned pointer will break strict-aliasing rules" warnings
-# dropped "--enable-xpctools" . Add --enable-javaxpcom (needs xulrunner ?); --with-nss ?
+# dropped "--enable-xpctools" . Add --enable-javaxpcom (needs xulrunner ?)
 # Also "--enable-boehm" leads to trouble...; probably not important (for a 'production' pkg): according to
 # http://www.hpl.hp.com/personal/Hans_Boehm/gc/ , it is only used as a leak detector.
 CompileScript: <<
@@ -244,6 +242,9 @@ DescDetail: <<
 compliance, performance and portability.
 <<
 DescPort: <<
+The whole shlibs stuff is gratuitous: anyway the src doesn' version shared libs for darwin...
+Have no time now to patch that (it is not a single place to fix...)
+
 Adding (in patch) %p/lib/%N/components to DYLD_LIBRARY_PATH _ else links with qt3's libeditor...
 (then added also plugins and ipc/modules, by analogy).
 And then %p/lib, to make sure eg libcrypto comes from %p and not from /usr.
