@@ -1,26 +1,34 @@
 Package: seamonkey
-Version: 1.0.5
+Version: 1.1
 Revision: 1
-Source-MD5: a1b98cd4d2d0f71d50406f8cd3885a5e
-Source: mirror:custom:mozilla.org/%N/releases/%v/%N-%v.source.tar.bz2
+Source-MD5: 1a8e8c097bf5ef11d6b6626f21c8d5ec
+Source: mirror:custom:mozilla.org/%N/releases/%va/%N-%va.source.tar.bz2
 CustomMirror: <<
   Primary: http://ftp.mozilla.org/pub/
   nam-US: ftp://ftp.tux.org/pub/net/mozilla/
-  eur-DE: ftp://ftp.fh-wolfenbuettel.de/pub/www/mozilla/
+#  eur-DE: ftp://ftp.fh-wolfenbuettel.de/pub/www/mozilla/
   asi-JP: http://www.t.ring.gr.jp/pub/net/www/mozilla/
 <<
 SourceDirectory: mozilla
+
 Depends: %N-shlibs (>= %v-%r), libgnomeui2
-BuildDepends: atk1, cairo, gconf2-dev, glib2-dev, gnome-vfs2-unified-dev, gtk+2-dev, libbonobo2-dev, libgettext3-dev, libgnome2-dev, libgnomeui2-dev, libiconv-dev, libidl2, libjpeg, libpng3, orbit2-dev, pango1-xft2-dev, xft2-dev, x11-dev, pkgconfig
+BuildDepends: <<
+ atk1, cairo, gconf2-dev, glib2-dev, gnome-vfs2-unified-dev, gtk+2-dev,
+ libbonobo2-dev, libgettext3-dev, libgnome2-dev, libgnomeui2-dev, libiconv-dev,
+ libidl2, libjpeg, libpng3, orbit2-dev, pango1-xft2-dev, xft2-dev, x11-dev, pkgconfig
+<<
+
 GCC: 4.0
 NoSetLDFLAGS: true
 SetLIBRARY_PATH: %p/lib
 NoSetCPPFLAGS: true
 SetCPPFLAGS: -I%p/include/cairo
+
 PatchScript: <<
  #!/bin/sh -ev
  sed 's|@PREFIX@|%p|g' <%a/%n.patch | patch -p1
  perl -pi.bak -e 's,\@executable_path,%p/lib/%N,' security/coreconf/Darwin.mk
+### fix for automake1.9 stricter parsing.  Remove when moving to gecko1.9 (seamonkey1.5) or higher
  perl -pi.bak -e 's/(AC_DEFUN\()([^[,]+)(,)/\1\[\2]\3/' {{build,directory/c-sdk/config}/autoconf,nsprpub/config}/nspr.m4
 ### The next appears needed eg when building yelp...
  perl -pi.bak -e 's,lxpcom,$& -lxpcom_core,' build/unix/mozilla-{config,xpcom.pc}.in
@@ -44,36 +52,52 @@ PatchScript: <<
 # 1) till this version, the zapping of '-DXP_MACCOSX' in the patch file (this goes back to the first versions of mozilla!)
 # ensured that no frameworks were needed on the link line... What is going on ?
   perl -pi.bak -e 's,endif \# WINNT,$&\nEXTRA_DSO_LDOPTS += -F/System/Library/Frameworks -framework CoreFoundation,' xpcom/build/Makefile.in
-# 2) Non-portable use of sed (not even useable with GNU sed !)
+# 2) Non-portable use of sed (not even usable with GNU sed !)
   perl -pi.bak -e 's,sed \-E,/usr/bin/$&,' xpcom/typelib/xpidl/Makefile.in
 ## To fix EXC_BAD_INSTRUCTION on macintel (XP_MACOSX is zapped in the patch file):
   perl -pi.bak -e 's,XP_MACOSX,__APPLE__,' xpcom/reflect/xptcall/src/md/unix/xptc{stubs_unixish_x86.cpp,_platforms_unixish_x86.h}
 ## linking nspr with g++ when using --enable-cplus
   perl -pi -e 's,cplus$,$&\n\tMKSHLIB = \$(CCC) \$(DSO_LDOPTS) -o \$@,' nsprpub/pr/src/Makefile.in
+### With 1.1a :
+# else will try linking libgfx_gtk.dylib against X11's libxprintutil, given the order of the -L flags,
+# with resulting undefined symbols (https://bugzilla.mozilla.org/show_bug.cgi?id=354004):
+  perl -pi -e 's,\-lxprintutil,\$(DIST)/lib/\$(LIB_PREFIX)xprintutil.\$(LIB_SUFFIX),' gfx/src/gtk/Makefile.in
 ## Uncomment to check builddeps:
 #  perl -pi -e 's,CPPFLAGS%%,CPPFLAGS -H%%,' configure
 <<
-##########
-#  --enable-default-toolkit=cairo-gtk2 not useable (also w/o --enable-system-cairo) :
+
+#  --enable-default-toolkit=cairo-gtk2 not usable (also w/o --enable-system-cairo) :
 # "nsCairoRenderingContext.cpp:99: error: 'cairo_set_target_surface_DEPRECATED_BY_cairo_create' was not declared in this scope"
 # : files in src refer (not always!) to a deprecated version of cairo...
 # https://bugzilla.mozilla.org/show_bug.cgi?id=334250
 ## can't enable static : "configure: error: Only one of --enable-shared or --enable-static must be specified."
-ConfigureParams: --enable-xft --disable-freetype2 --enable-calendar --enable-optimize="-O3" --disable-debug --enable-application=suite --enable-macos-target=10.4 --enable-default-toolkit=gtk2 --with-pthreads --with-default-mozilla-five-home=%p/lib/%N --mandir=%p/share/man --enable-strip --enable-extensions=all --enable-image-decoders=all --enable-ldap-experimental --enable-necko-protocols=all --enable-ctl --enable-xinerama --with-system-mng --with-system-jpeg --with-system-png --with-system-zlib --enable-postscript --enable-ipv6 --enable-tests --with-x --enable-xprint --enable-canvas --with-qtdir=%p --enable-pango --enable-update-packaging --enable-storage --enable-profilesharing --enable-svg --enable-system-cairo --enable-svg-renderer=cairo --enable-cplus
-# no -fstrict-aliasing in '--enable-optimize', else "dereferencing type-punned pointer will break strict-aliasing rules" warnings
-# dropped "--enable-xpctools" . Add --enable-javaxpcom (needs xulrunner ?)
+# --enable-calendar no longer supported in 1.1a (http://www.mozilla.org/projects/calendar)
+# also --enable-places ... (https://bugzilla.mozilla.org/show_bug.cgi?id=355040)
+# Adding --enable-javaxpcom doesn't work ; needs xulrunner ? _ but error msg :
+# "--enable-libxul is only compatible with toolkit XUL applications"
+# cf : https://bugzilla.mozilla.org/show_bug.cgi?id=354004
 # Also "--enable-boehm" leads to trouble...; probably not important (for a 'production' pkg): according to
 # http://www.hpl.hp.com/personal/Hans_Boehm/gc/ , it is only used as a leak detector.
+ConfigureParams: <<
+ --enable-macos-target=10.4 --enable-optimize="-O3" --disable-debug --enable-strip --enable-tests --with-pthreads \
+ --with-default-mozilla-five-home=%p/lib/%N --mandir=%p/share/man --with-qtdir=%p \
+ --enable-application=suite --enable-default-toolkit=gtk2 --enable-cplus \
+ --enable-extensions=all --enable-image-decoders=all --enable-necko-protocols=all \
+ --enable-ctl --enable-canvas --enable-update-packaging --enable-storage --enable-single-profile --enable-profilesharing \
+ --enable-url-classifier --enable-xpctools --enable-ipv6 --enable-ldap-experimental \
+ --with-x --enable-xprint  --enable-pango --enable-xinerama --enable-xft --disable-freetype2 --enable-postscript \
+ --enable-svg --enable-svg-renderer=cairo --enable-system-cairo \
+ --with-system-mng --with-system-jpeg --with-system-png --with-system-zlib
+<<
+# no "-fstrict-aliasing" in '--enable-optimize', else "dereferencing type-punned pointer will break strict-aliasing rules" warnings
+
 CompileScript: <<
 #!/bin/sh -ev
 export CPATH=%p/include
 env ac_cv_func_res_ninit=yes MOZ_ENABLE_COREXFONTS=1 ./configure %c
-## next is needed for extensions/java/xpcom/nsJavaInterfaces.cpp, when using "--enable-javaxpcom"
-# not sufficient : trouble at link time then (for same symbols) _ make should be run in toolkit/xre
-# (cf above comment "--enable-javaxpcom (needs xulrunner ?)")
-#ln -s ../../../../toolkit/xre/nsXULAppAPI.h extensions/java/xpcom/src
 make -w
 <<
+
 InstallScript: <<
 #!/bin/sh -ev
 
@@ -96,9 +120,7 @@ fi
 #done
 
 # These files are created dynamically.
-#rm -rf %i/lib/%N/chrome/overlayinfo
 rm -f %i/lib/%N/chrome/*.rdf
-#rm -f %i/lib/%N/component.reg
 rm -f %i/lib/%N/components/*.dat
 
 # Multi user setting.
@@ -127,6 +149,7 @@ ln -sf %p/etc/%N/prefs.js %i/lib/%N/defaults/pref/fink.js
 install -d -m 755 %i/share/applications
 install -c -m 644 fink/applications/* %i/share/applications/
 
+# Install desktop pixmaps
 install -d -m 755 %i/share/pixmaps
 install -c -m 644 dist/bin/chrome/icons/default/main-window.xpm %i/share/pixmaps/%N.xpm
 install -c -m 644 dist/bin/chrome/icons/default/addressbookWindow.xpm %i/share/pixmaps/%N-addressbook.xpm
@@ -134,7 +157,7 @@ install -c -m 644 dist/bin/chrome/icons/default/chatzilla-window.xpm %i/share/pi
 install -c -m 644 dist/bin/chrome/icons/default/editorWindow.xpm %i/share/pixmaps/%N-editor.xpm
 install -c -m 644 dist/bin/chrome/icons/default/msgcomposeWindow.xpm %i/share/pixmaps/%N-mail-composer.xpm
 install -c -m 644 dist/bin/chrome/icons/default/messengerWindow.xpm %i/share/pixmaps/%N-mailnews.xpm
-install -c -m 644 dist/bin/chrome/icons/default/calendar-window.xpm %i/share/pixmaps/%N-calendar.xpm
+#install -c -m 644 dist/bin/chrome/icons/default/calendar-window.xpm %i/share/pixmaps/%N-calendar.xpm
 ### And all others remain in ???
 # ls -l %p/bld/mozilla-1.7.11-5/mozilla/dist/bin/chrome/icons/default
 # total 140
@@ -144,7 +167,7 @@ mkdir -p %i/share/doc; ln -s %N-shlibs %i/share/doc/%n
 <<
 ConfFiles: %p/etc/%N/prefs.js
 PostInstScript: <<
-# Those 2 empty files are not installed by dpkg
+# Those 2 empty files are not installed by dpkg (H. N. says current dpkg handles empty files correctly _ check (in particular on UFS)
     touch %p/lib/%N/chrome/user-skins.rdf
     touch %p/lib/%N/chrome/user-locales.rdf
 
@@ -152,15 +175,9 @@ PostInstScript: <<
         update-%N-chrome
     fi
 <<
-PostRmScript: <<
-  case "$1" in
-    purge)
-      rm -rf %p/lib/%N/chrome/overlayinfo
+PreRmScript: <<
       rm -f %p/lib/%N/chrome/*.rdf
-      rm -f %p/lib/%N/component.reg
       rm -f %p/lib/%N/components/*.dat
-      ;;
-  esac
 <<
 
 SplitOff: <<
@@ -192,7 +209,6 @@ SplitOff: <<
 # The following depends strongly on %c. Adjust at the last minute.
 # Here all shared libs are listed. One could probably consider those in plugins and ipc as meant to be internal, and omit them.
   Shlibs: <<
-    %p/lib/%N/libDebugRobot.dylib 1.0.0 %n (>= 1.0-1)
     %p/lib/%N/libgfxpsshar.dylib 1.0.0 %n (>= 1.0-1)
     %p/lib/%N/libgkgfx.dylib 1.0.0 %n (>= 1.0-1)
     %p/lib/%N/libgtkembedmoz.dylib 1.0.0 %n (>= 1.0-1)
@@ -204,7 +220,6 @@ SplitOff: <<
     %p/lib/%N/libmozpango-thaix.dylib 1.0.0 %n (>= 1.0-1)
     %p/lib/%N/libmozpango.dylib 1.0.0 %n (>= 1.0-1)
     %p/lib/%N/libmsgbaseutil.dylib 1.0.0 %n (>= 1.0-1)
-    %p/lib/%N/libnpsimple.dylib 1.0.0 %n (>= 1.0-1)
     %p/lib/%N/libnspr4.dylib 1.0.0 %n (>= 1.0-1)
     %p/lib/%N/libnss3.dylib 1.0.0 %n (>= 1.0-1)
     %p/lib/%N/libplc4.dylib 1.0.0 %n (>= 1.0-1)
@@ -221,16 +236,19 @@ SplitOff: <<
     %p/lib/%N/plugins/libunixprintplugin.dylib 1.0.0 %n (>= 1.0-1)
     %p/lib/%N/ipc/modules/liblockmodule.dylib 1.0.0 %n (>= 1.0-1)
     %p/lib/%N/ipc/modules/libtransmgr.dylib 1.0.0 %n (>= 1.0-1)
-    %p/lib/%N/ipc/modules/libtestmodule.dylib 1.0.0 %n (>= 1.0-1)
   <<
-#    %p/lib/%N/libxlibrgb.dylib 1.0.0 %n (>= 1.7.11-1)  seems to have disappeared .. ?
+### list of dylibs that have disappeared at some point because of changes in %c 0r %v
+#    %p/lib/%N/libDebugRobot.dylib 1.0.0 %n (>= 1.0-1)
+#    %p/lib/%N/libnpsimple.dylib 1.0.0 %n (>= 1.0-1)
+#    %p/lib/%N/libxlibrgb.dylib 1.0.0 %n (>= 1.7.11-1)
+#    %p/lib/%N/ipc/modules/libtestmodule.dylib 1.0.0 %n (>= 1.0-1)
 <<
 SplitOff2: <<
   Package: %N-dev
   Depends: %N-shlibs (= %v-%r), pkgconfig
 # The following is for %p/share/aclocal/nspr.m4 (the only common file);
 # since the different nspr.m4 are identical, (and hardly or not used within fink),
-# a Conflicts is not required _ and would be excessive prudence just for hypothetical cases.
+# a Conflicts is not required _ and would at the moment be excessive prudence just for hypothetical cases.
 #  Conflicts: mozilla-dev, firefox-dev, firefox1.5-dev
   Replaces: mozilla-dev, firefox-dev, firefox1.5-dev
   BuildDependsOnly: true
@@ -244,35 +262,20 @@ DescDetail: <<
 compliance, performance and portability.
 <<
 DescPort: <<
-The whole shlibs stuff is gratuitous: anyway the src doesn' version shared libs for darwin...
+GTK+2 build of the SeaMonkey browser for Mac OS X/X11.  Compiled 
+with built-in support for GNOME VFS2, including app launcher buttons.
+
+The whole shlibs stuff is gratuitous: anyway the src doesn't version shared libs for darwin...
 Have no time now to patch that (it is not a single place to fix...)
 
-Adding (in patch) %p/lib/%N/components to DYLD_LIBRARY_PATH _ else links with qt3's libeditor...
+Adding (in patchfile) %p/lib/%N/components to DYLD_LIBRARY_PATH _ else links with qt3's libeditor...
 (then added also plugins and ipc/modules, by analogy).
 And then %p/lib, to make sure eg libcrypto comes from %p and not from /usr.
 And then /usr/X11R6/lib between the latter 2, to make sure libfreetype.6.dylib comes from there..
+Use same path in update-%N-chrome.
 
-Added in the patch -x flag to the regxpcom command in update-%N-chrome, to get correct PostInstScripts. 
-(and use there same DYLD_LIBRARY_PATH as in %p/bin/%N).
-
-## A bunch of warnings I should still look at:
+A bunch of warnings still to look at:
 warning: invalid access to non-static data member '...' of NULL object
-for:
-js/src/liveconnect/nsCLiveconnect.cpp
-layout/style/nsCSSPropList.h
-layout/style/nsCSSStyleRule.cpp
-layout/style/nsStyleStructList.h
-mailnews/base/src/nsMsgDBView.cpp
-modules/oji/src/nsJVMAuthTools.cpp
-modules/oji/src/nsJVMManager.cpp
-modules/oji/src/nsJVMPluginTagInfo.cpp
-modules/oji/src/scd.cpp
-netwerk/base/src/nsAsyncStreamListener.cpp
-netwerk/base/src/nsLoadGroup.cpp
-netwerk/base/src/nsRequestObserverProxy.h
-netwerk/base/src/nsSimpleURI.cpp
-rdf/base/src/nsInMemoryDataSource.cpp
-xpcom/ds/nsProperties.cpp
 <<
 DescPackaging: <<
  After original packaging and porting of mozilla by msek
