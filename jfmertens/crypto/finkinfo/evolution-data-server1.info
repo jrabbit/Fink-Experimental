@@ -1,11 +1,13 @@
 Package: evolution-data-server1
 # ! the tests show several errors _ any help appreciated !
-Version: 1.8.0
+Version: 1.8.1
 Revision: 1
-Source-MD5: 53f0885731440cb9cf0ca0601dd2105f
+Source-MD5: 8c2fe35bcdc457e09728ed213e915d01
 Source: mirror:gnome:sources/evolution-data-server/1.8/evolution-data-server-%v.tar.bz2
-BuildDepends: atk1, audiofile, cyrus-sasl2-dev, db44-aes, dbus-dev, esound, gconf2-dev, glib2-dev, gnome-vfs2-unified-dev, gnutls12, gtk+2-dev, libart2, libbonobo2-dev, libgcrypt, libgettext3-dev, libglade2, libgnome2-dev, libgpg-error, libhowl-dev, libiconv-dev, libsoup2.2.8-ssl, libxml2, seamonkey-dev, openldap23-dev, openssl097-dev, orbit2-dev, pango1-xft2-dev, popt, pth2-dev, x11-dev, gettext-tools, scrollkeeper, pkgconfig, intltool, gtk-doc, orbit2, libbonoboui2-dev
-# gnome-keyring ? libjpeg ? libgnomecanvas2-dev ? libgnomeui2-dev ?
+BuildDepends: atk1, audiofile, cyrus-sasl2-dev, db44-aes, dbus-dev, esound, gconf2-dev, glib2-dev, gnome-keyring-dev, gnome-vfs2-unified-dev, gnutls12, gtk+2-dev, libbonobo2-dev, libgcrypt, libgettext3-dev, libglade2, libgnome2-dev, libgpg-error, libhowl-dev, libiconv-dev, libsoup2.2.8-ssl, libxml2, seamonkey-dev, openldap23-dev, openssl097-dev, orbit2-dev, pango1-xft2-dev, popt, pth2-dev, x11-dev, gettext-tools, scrollkeeper, pkgconfig, intltool, gtk-doc, orbit2
+# libbonoboui2-dev ? libjpeg ? libgnomecanvas2-dev ? libgnomeui2-dev ?
+# libbonoboui2: I see when launching evo with DYLD_PRINT_LIBRARIES /sw/lib/libglade/2.0/libbonobo.so coming up
+# _ where exactly is the dependency, if any ?
 Depends: %N-shlibs (>= %v-%r), dbus (>= 0.92-1)
 NoSetCPPFLAGS: true
 SetCPPFLAGS: -no-cpp-precomp
@@ -19,8 +21,13 @@ PatchScript: <<
 #!/bin/sh -ev
   perl -pi.bak -e 's,libdir\)/locale,datadir)/locale,' po/Makefile.in.in
   perl -pi.bak -e 's,unistd\.h>,$&\n#include <arpa/nameser_compat.h>,' servers/exchange/lib/e2k-autoconfig.c
+## "--with-bdb4=yes --with-bdb4-dir=%p" doesn't work (ie, more work needed to enable db4 (preferably 44) in calendar/libical) :
+# "/usr/bin/ld: Undefined symbols: _icalrecur_iterator_decrement_count"
+# next doesn't work either; calendar/libical really wants db40 ..
+# help configure in calendar/libical to use db44 _ like the main configure ... (why are the .la files of db4x in the shlibs spiltoff ??)
+#  perl -pi.ori -e 's,libdb\-4\.0\.la,libdb-4.4.la,' calendar/libical/configure
   # avoid implicit declarations
-  sed -i.bak -e '/1/i
+  sed -i.bak -e '1i \
 #include "folders.h"' camel/tests/folder/test7.c
   # Next line doesn't seem to help ( eg, to rm -L%p/lib flags from the .la files). 
 #  perl -pi.bak -e 's,^( *(sys_lib_dlsearch_path_spec)=)["'"'"']\/.*,$&\n$1"%p/lib \$$2",' `find . -name configure`
@@ -36,15 +43,18 @@ PatchScript: <<
 sys_lib_search_path_spec=$(echo $(for f in `$CC -print-search-dirs|egrep "^libraries:"|sed -e "s,.*=,," -e "s,$PATH_SEPARATOR, ,g" -e "s,$, /lib /usr/lib /usr/local/lib,"`; do cd $f 2>/dev/null && pwd || : ; done|uniq))
 }' $f ; done
 <<
-ConfigureParams: --libexecdir=%p/sbin --enable-static --enable-ipv6=yes --enable-nntp=yes --enable-gtk-doc --enable-file-locking=fcntl --with-krb4=/usr --with-krb5=/usr --with-openldap=yes --enable-smime=yes --with-nspr-includes=%p/include/seamonkey/nspr --with-nss-includes=%p/include/seamonkey/nss --with-nspr-libs=%p/lib/seamonkey --with-nss-libs=%p/lib/seamonkey --enable-reentrant --enable-maintainer-mode --enable-compile-warnings=yes --enable-python --enable-rpc --enable-tcl --with-tcl=%p/lib --enable-test
+ConfigureParams: --libexecdir=%p/sbin --enable-static --enable-ipv6=yes --enable-nntp=yes --enable-gtk-doc --enable-file-locking=fcntl --with-krb4=/usr --with-krb5=/usr --with-openldap=yes --with-libdb=%p --enable-gnome-keyring=yes --enable-smime=yes --with-nspr-includes=%p/include/seamonkey/nspr --with-nss-includes=%p/include/seamonkey/nss --with-nspr-libs=%p/lib/seamonkey --with-nss-libs=%p/lib/seamonkey --enable-reentrant --enable-maintainer-mode --enable-compile-warnings=yes --enable-python --enable-rpc --enable-tcl --with-tcl=%p/lib --enable-test
 ## Using --libexecdir=%p/sbin (and hence same in all evo pkgs) for policy conformance (despite disagreeing:
 ## I think the standard dirs have each one their role, and blurring them serves no purpose _ only messes things up)
 CompileScript: <<
  #!/bin/sh -ev
- export CPATH=%p/include
+ export CPATH=%p/include/db4:%p/include
  ./configure %c
  perl -pi -e 's,\-L(/usr|%p)/lib([^/]),\2,g; s,\-I(/usr|%p)/include([^/]),\2,g' {,calendar/libical/,libdb/dist/}config.status
  cd libdb/dist ; ./config.status ; cd -
+# next 2 lines needed only if trying to enable db40 in calendar/libical
+ cd calendar/libical; make all; cd -
+ fink -y install db44-aes
  make all
  make -i check
 <<
@@ -70,9 +80,8 @@ InstallScript: <<
 <<
 SplitOff: <<
   Package: %N-shlibs
-  Depends: libglade2-shlibs, libgnome2-shlibs, libsoup2.2.8-ssl-shlibs, openldap23-shlibs, openssl097-shlibs, pth2-shlibs, seamonkey-shlibs, libbonoboui2
-# libbonoboui2: I see when launching evo with DYLD_PRINT_LIBRARIES /sw/lib/libglade/2.0/libbonobo.so coming up.
-# So putting a dep here in the meantime, to be safe...
+  Depends: db44-aes-shlibs, gnome-keyring, libbonobo2, libglade2-shlibs, libgnome2-shlibs, libsoup2.2.8-ssl-shlibs, openldap23-shlibs, openssl097-shlibs, pth2-shlibs, seamonkey-shlibs
+# otool shows only gnome-keyring-shlibs, gnome-keyring for safety.. Similarly for libbonobo2
   Files: lib/libe*-1.2.*.dylib lib/libca*-1.2.*.dylib
   Shlibs: <<
     %p/lib/libcamel-1.2.0.dylib 1.0.0 %n (>= 1.6.0-1)
