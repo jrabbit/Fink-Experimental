@@ -1,0 +1,33 @@
+Info2: <<
+Package: perlmagick-pm%type_pkg[perl]
+Version: 6.2.8
+Revision: 1
+Description: Perl interface to ImageMagick
+Type: perl (5.6.0 5.6.1 5.8.0 5.8.1 5.8.4 5.8.5 5.8.6)
+License: BSD
+Maintainer: Jeffrey Whitaker <jswhit@fastmail.fm>
+
+Depends: x11-shlibs, imagemagick10-shlibs (>= %v-1), libjpeg-shlibs, libpng3-shlibs, libtiff-shlibs, libxml2-shlibs, lcms-shlibs, bzip2-shlibs, graphviz, perl%type_pkg[perl]-core
+BuildDepends: x11-dev, imagemagick10-dev (>= %v-1), libjpeg, libpng3, libtiff, libxml2, lcms, bzip2-dev
+Conflicts: perlmagick-pm (<= 5.5.4-1)
+Replaces: perlmagick-pm (<= 5.5.4-1), perlmagick-pm560, perlmagick-pm580
+
+Source: mirror:sourceforge:imagemagick/ImageMagick-%v-7.tar.gz
+Source-MD5: e4ff32bd17333e78f895379f2e564035
+SourceDirectory: ImageMagick-%v/PerlMagick
+SourceRename: ImageMagick-%v.tar.gz
+
+PatchScript: <<
+#!/bin/sh -ev
+  sed -i.bak -e '/LDFLAGS/a \
+   "LD"		=>  "cc",' -e 's,/usr/include/freetype2,/usr/X11R6/include/freetype2,' \
+  -e 's,/usr/include/libxml2,%p/include/libxml2,' -e 's,L/usr/lib,L%p/lib,g' -e 's,/usr/bin,%p/bin,' Makefile.PL
+  sed -i.bak -e 's,#define HasGS 1,#undef HasGS,' ../magick/magick-config.h
+<<
+SetLIBRARY_PATH: %p/lib:/usr/X11R6/lib
+
+UpdatePOD: true
+DocFiles: MANIFEST README.txt ../LICENSE
+
+Homepage: http://www.imagemagick.org/www/perl.html
+<<
