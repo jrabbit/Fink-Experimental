@@ -16,7 +16,8 @@ Source-MD5: f0c5fef69fccfb12ef6c8598f484ed0e
 
 # Patch Phase:
 PatchFile: svn-ssl.patch
-PatchFile-MD5: 30d38627bc0d448a0fd0d6703ce9a05a
+PatchFile-MD5: 78a6c8f6362fa505a3079fcd5f8e660c
+PatchScript: sed 's|@FINKPREFIX@|%p|g' < %{PatchFile} | patch -p1
 
 # Compile Phase:
 ConfigureParams: --libexecdir='${prefix}/lib/svn' --mandir='${prefix}/share/man' --infodir='${prefix}/share/info' --with-neon=%p --with-apr=%p --with-apr-util=%p --enable-shared --with-apxs=%p/sbin/apxs --without-apache --disable-mod-activation --without-jdk --disable-javahl --with-jikes=no --disable-swig-bindings --without-swig --without-python --without-perl --without-ruby --with-berkeley-db=%p/include/db4:%p/lib --disable-dependency-tracking --disable-keychain
@@ -158,9 +159,36 @@ DescUsage: <<
  
  You then need to add the following lines to your %p/etc/apache2/httpd.conf
  file:
+
  <Location /svn/yourrepos>
    DAV svn
    SVNPath %p/var/svn/yourrepos
+ 
+   # The following allows for basic http authentication.  Basic authentication
+   # should not be considered secure for any particularly rigorous definition of
+   # secure.
+ 
+   # to create a passwd file
+   # # rm -f %p/etc/apache2/dav_svn.passwd 
+   # # htpasswd2 -c %p/etc/apache2/dav_svn.passwd dwhedon
+   # New password: 
+   # Re-type new password: 
+   # Adding password for user dwhedon
+   # #
+ 
+   # Uncomment the following 3 lines to enable Basic Authentication
+   # AuthType Basic
+   # AuthName "Subversion Repository"
+   # AuthUserFile %p/etc/apache2/dav_svn.passwd
+ 
+   # Uncomment the following line to enable Authz Authentication
+   # AuthzSVNAccessFile %p/etc/apache2/dav_svn.authz
+ 
+   # The following three lines allow anonymous read, but make
+   # committers authenticate themselves.
+   # <LimitExcept GET PROPFIND OPTIONS REPORT>
+   #   Require valid-user
+   # </LimitExcept> 
  </Location>
  
  Your repository should show up at <http://localhost/svn/yourrepos>. If it 

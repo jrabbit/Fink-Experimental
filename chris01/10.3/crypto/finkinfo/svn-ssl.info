@@ -17,7 +17,8 @@ Source-MD5: f0c5fef69fccfb12ef6c8598f484ed0e
 
 # Patch Phase:
 PatchFile: %n.patch
-PatchFile-MD5: 30d38627bc0d448a0fd0d6703ce9a05a
+PatchFile-MD5: 78a6c8f6362fa505a3079fcd5f8e660c
+PatchScript: sed -e 's|@FINKBUILD@|%b|g' -e 's|@FINKPREFIX@|%p|g' < %{PatchFile} | patch -p1
 
 # Compile Phase:
 ConfigureParams: --libexecdir='${prefix}/lib/svn' --mandir='${prefix}/share/man' --infodir='${prefix}/share/info' --with-neon=%p --with-apr=%p --with-apr-util=%p --enable-shared --without-apxs --without-apache --disable-mod-activation --without-jdk --disable-javahl --with-jikes=no --disable-swig-bindings --without-swig --without-python --without-perl --without-ruby --with-berkeley-db=%p/include/db4:%p/lib --disable-dependency-tracking --disable-keychain
@@ -46,7 +47,7 @@ CompileScript: <<
 # killall -v -u `whoami` svnserve || true
 # echo "Running tests over ra_svn using BDB..."
 # ./subversion/svnserve/svnserve -d -r `pwd`/subversion/tests/cmdline
-# make svncheck CLEANUP=true FS_TYPE=bdb
+# make check CLEANUP=true BASE_URL=svn://localhost FS_TYPE=bdb
 # killall -v -u `whoami` svnserve || true
 
  ### Run tests over ra_svn using fs_fs:
@@ -55,11 +56,21 @@ CompileScript: <<
 # make check CLEANUP=true BASE_URL=svn://localhost FS_TYPE=fsfs
 # killall -v -u `whoami` svnserve || true
 
- ### Run tests over ra_dav:
- # NOTE: The update_tests.py fails if tested against 1.0.x server
+ ### Run tests over ra_dav using BDB:
  # See DescPackaging on how to set up for tests over ra_dav
-# echo "Running tests over ra_dav..."
-# make check BASE_URL=http://localhost
+# echo "Running tests over ra_dav using BDB..."
+# /usr/bin/install -d %b/fink/apache2
+# %p/sbin/apachectl -f %b/fink/httpd.conf -k start
+# make check CLEANUP=true BASE_URL=http://localhost:52080 FS_TYPE=bdb
+# %p/sbin/apachectl -f %b/fink/httpd.conf -k stop
+
+ ### Run tests over ra_dav using fs_fs:
+ # See DescPackaging on how to set up for tests over ra_dav
+# echo "Running tests over ra_dav using fs_fs..."
+# /usr/bin/install -d %b/fink/apache2
+# %p/sbin/apachectl -f %b/fink/httpd.conf -k start
+# make check CLEANUP=true BASE_URL=http://localhost:52080 FS_TYPE=fsfs
+# %p/sbin/apachectl -f %b/fink/httpd.conf -k stop
 <<
 
 # Install Phase:
@@ -369,32 +380,8 @@ DescUsage: <<
    fink info svnadmin-db42
 <<
 DescPackaging: <<
- To run the tests over ra_dav apache2 must be running with (an older) 
- fink 'libapache2-ssl-mod-svn' already installed. You need to add the
- following to your '/sw/etc/apache2/httpd.conf' file:
- 
-<Location /svn-test-work/repositories>
-  DAV svn
-  SVNParentPath /sw/src/fink.build/svn-ssl-%v-%r/subversion-%v/subversion/tests/cmdline/svn-test-work/repositories
-  AuthzSVNAccessFile /sw/src/fink.build/svn-ssl-%v-%r/subversion-%v/subversion/tests/cmdline/svn-test-work/authz
-  AuthType Basic
-  AuthName "Subversion Repository"
-  AuthUserFile /sw/src/fink.build/users
-  Require valid-user
-</Location>
-  
-<Location /svn-test-work/local_tmp/repos>
-  DAV svn
-  SVNPath /sw/src/fink.build/svn-ssl-%v-%r/subversion-%v/subversion/tests/cmdline/svn-test-work/local_tmp/repos
-  AuthzSVNAccessFile /sw/src/fink.build/svn-ssl-%v-%r/subversion-%v/subversion/tests/cmdline/svn-test-work/authz
-  AuthType Basic
-  AuthName "Subversion Repository"
-  AuthUserFile /sw/src/fink.build/users
-  Require valid-user
-</Location>
- 
- where %v and %r are replaced with the correct versions. Then do
- 'sudo /sw/sbin/apachectl graceful' to enable the mod_svn support.
+ To run the tests over ra_dav 'libapache2-mod-svn' needs to be already built.
+ The ra_dav tests only work with --build-as-nobody.  
 
  The "Replaces: svn-ssl (<= 1.1.1-11)" is needed since svnlook was 
  (incorrectly) in the svn-client-ssl package < 1.1.1 and was 
@@ -410,14 +397,6 @@ having -ldb-4.1 or libdb-4.1.la in there, so that libtool ignores
 these.
 
 Many thanks to Peter O'Gorman for the help with the libtool patch.
-
-Prebinding cannot be enabled at this time since apr is not built 
-prebound.
-Once this is fixed, one could try to enable building two_level by doing:
-perl -pi.bak -e 's,-flat_namespace -undefined suppress,,g' configure
-If that fails, maybe try to add '-lfoo' to Makefile.in
-Or, if that fails too,  change '-undefined suppress -flat_namespace' 
-to '-undefined dynamic_lookup'
 
 Many thanks to Ben Reser for fixing the perl bindings. The patch is
 alredy included in the upstream development tree.
