@@ -1,7 +1,56 @@
-Package: libtiff-bin
+Info2: <<
+Package: libtiff-bin%type_pkg[-nox]
+Type: -nox (-nox -opengl)
 Version: 3.8.2
-Revision: 1003
-Type: Bundle
-Depends: libtiff-bin-nox (>= %v-%r) | libtiff-bin-opengl (>= %v-%r)
-Maintainer: Dave Morrison <drm@finkproject.org>
-Description: Executables for libtiff package
+Revision: 1004
+BuildDepends: libjpeg (>= 6b-3), fink (>= 0.9.9), (%type_raw[-nox] = -opengl) glut, (%type_raw[-nox] = -opengl) x11-dev
+Depends: libjpeg-shlibs (>= 1.1.3-6), libtiff-shlibs (>= 3.8.2-1002), (%type_raw[-nox] = -opengl) glut-shlibs, (%type_raw[-nox] = -opengl) x11-shlibs
+Conflicts: libtiff-bin-nox, libtiff-bin-opengl
+Replaces: libtiff (<< 3.5.7-5), libtiff-bin (<= 3.8.2-1002), libtiff-bin-nox, libtiff-bin-opengl
+Source: ftp://ftp.remotesensing.org/libtiff/tiff-%v.tar.gz
+Source-MD5: fbb6f446ea4ed18955e2714934e5b698
+Patch: libtiff.patch
+NoSetMAKEFLAGS: true
+SetMAKEFLAGS: -j1
+ConfigureParams: --mandir='${prefix}/share/man' --disable-dependency-tracking --without-apple-opengl-framework
+GCC: 4.0
+CompileScript: <<
+ #!/bin/sh -e
+ if [ "%type_raw[-nox]" == "-nox" ]; then
+ ax_cv_check_gl_libgl=no ./configure %c
+ fi
+ if [ "%type_raw[-nox]" == "-opengl" ]; then
+ ./configure %c
+ fi
+ make
+<<
+InstallScript: <<
+ mkdir -p %i/share/man
+ (export DESTDIR=%d; make install)
+ rm -R %i/lib
+ rm -R %i/include
+ rm -R %i/share/man/man3
+ rm -R %i/share/doc
+<<
+DocFiles: COPYRIGHT README
+Description: Executables for libtiff package, with OpenGL support
+DescPort: <<
+DESTDIR support has been added upstream, so the previous gyrations 
+to get this to install are no longer necessary.
+
+A previous version compiled with -O3 at the suggestion of Blair Zajac,
+but the trick for enabling this no longer works with the new build system.
+
+Had to patch libtiff/Makefile.in to work around a problem with a missing
+symbol in the new build system.
+
+The --without-apple-opengl-framework and ax_cv_check_gl_libgl=no were added
+to ensure that libtiff does not accidentally link against OpenGL.
+
+Previous versions by Christoph Pfisterer.
+<<
+License: BSD
+Homepage: http://remotesensing.org/libtiff/
+Maintainer:  Dave Morrison <drm@finkproject.org>
+#end of Info2
+<<
