@@ -1,0 +1,285 @@
+diff -ruN -x '*~' gildas-src-nov06a/admin/Makefile gildas-src-nov06a.patched/admin/Makefile
+--- gildas-src-nov06a/admin/Makefile	2004-10-19 10:04:03.000000000 -0400
++++ gildas-src-nov06a.patched/admin/Makefile	2006-11-11 16:45:28.000000000 -0500
+@@ -42,6 +42,5 @@
+ 	@(echo "Bye." >> final-message.txt)
+ 	@(echo "***************************************************************************" >> final-message.txt)
+ 	@(echo >> final-message.txt)
+-	-(cat final-message.txt)
+ 
+ ###########################################################################
+diff -ruN -x '*~' gildas-src-nov06a/admin/Makefile.def gildas-src-nov06a.patched/admin/Makefile.def
+--- gildas-src-nov06a/admin/Makefile.def	2006-10-11 12:06:29.000000000 -0400
++++ gildas-src-nov06a.patched/admin/Makefile.def	2006-11-14 12:13:11.000000000 -0500
+@@ -356,7 +356,7 @@
+   CC = gcc
+   GLOBAL_CFLAGS = $(GAG_INC_FLAGS) -c -O -pipe -Ddarwin -Dunderscore
+   FC = g95
+-  GLOBAL_FFLAGS = -I$(incdir) -O -pipe -no-cpp -fno-backslash -fno-second-underscore
++  GLOBAL_FFLAGS = -I$(incdir) -O -pipe -no-cpp -fno-backslash -fno-second-underscore -Wno=101,155
+   LIB_EXT = a
+   LINEAR = lapack
+ endif
+@@ -368,7 +368,7 @@
+   CC = gcc
+   GLOBAL_CFLAGS = $(GAG_INC_FLAGS) -c -O -pipe -Ddarwin -Dunderscore
+   FC = g95
+-  GLOBAL_FFLAGS = -I$(incdir) -O -pipe -no-cpp -fno-backslash -fno-second-underscore -m32 -malign-double
++  GLOBAL_FFLAGS = -I$(incdir) -O -pipe -no-cpp -fno-backslash -fno-second-underscore -m32 -malign-double -Wno=101,155
+   OPTION_FFLAGS = -fimplicit-none
+   LIB_EXT = a
+   LINEAR = lapack
+@@ -400,7 +400,7 @@
+   # Needs to get the correct values of what to add here through
+   # >>> import distutils.sysconfig
+   # >>> print distutils.sysconfig.get_config_var('LINKFORSHARED')
+-  GLOBAL_FLDFLAGS += -Xlinker -export-dynamic
++  #GLOBAL_FLDFLAGS += -Xlinker -export-dynamic
+ endif
+ 
+ ifeq ($(PNG_PRESENT),yes)
+@@ -428,7 +428,7 @@
+   ADD_LIBS += -lpng -lz
+ endif
+ ifeq ($(FFTW3_PRESENT),yes)
+-  ADD_LIBS += -lfftw3
++  ADD_LIBS += -lfftw3f
+ endif
+ ifeq ($(PYTHON_PRESENT),yes)
+   ADD_LIBS += -lpython$(PY_VERS)
+diff -ruN -x '*~' gildas-src-nov06a/admin/gildas-env.sh gildas-src-nov06a.patched/admin/gildas-env.sh
+--- gildas-src-nov06a/admin/gildas-env.sh	2006-10-11 12:29:05.000000000 -0400
++++ gildas-src-nov06a.patched/admin/gildas-env.sh	2006-11-16 00:35:44.000000000 -0500
+@@ -353,14 +353,14 @@
+ 	    NEWATM_PRESENT=yes
+ 	    NEWATM_LIB_DIR=$DIR
+ 	fi
+-	if file_present "liblapack." "${DIR}"; then
+-	    LAPACK_PRESENT=yes
+-	    LAPACK_LIB_DIR=$DIR
+-	fi
+-	if file_present "libblas." "${DIR}"; then
+-	    BLAS_PRESENT=yes
+-	    BLAS_LIB_DIR=$DIR
+-	fi
++	#if file_present "liblapack." "${DIR}"; then
++	#    LAPACK_PRESENT=yes
++	#    LAPACK_LIB_DIR=$DIR
++	#fi
++	#if file_present "libblas." "${DIR}"; then
++	#    BLAS_PRESENT=yes
++	#    BLAS_LIB_DIR=$DIR
++	#fi
+ 	if file_present "libslatec." "${DIR}"; then
+ 	    SLATEC_PRESENT=yes
+ 	    SLATEC_LIB_DIR=$DIR
+@@ -416,10 +416,10 @@
+ 	    PNG_INC=yes
+ 	    PNG_INC_DIR=$DIR
+ 	fi
+-        if file_present "Python.h" "${DIR}/python${PY_VERS}"; then
+-            PYTHON_INC=yes
+-            PYTHON_INC_DIR=$DIR/python$PY_VERS
+-        fi
++        #if file_present "Python.h" "${DIR}/python${PY_VERS}"; then
++        #    PYTHON_INC=yes
++        #    PYTHON_INC_DIR=$DIR/python$PY_VERS
++        #fi
+     done
+     for DIR in $LIB_PATH; do
+ 	if file_present "libX11." "${DIR}"; then
+@@ -438,10 +438,10 @@
+ 	    PNG_LIB=yes
+ 	    PNG_LIB_DIR=$DIR
+ 	fi
+-        if file_present "libpython" "${DIR}/python${PY_VERS}/config"; then
+-            PYTHON_LIB=yes
+-            PYTHON_LIB_DIR=$DIR/python$PY_VERS/config
+-        fi
++        #if file_present "libpython" "${DIR}/python${PY_VERS}/config"; then
++        #    PYTHON_LIB=yes
++        #    PYTHON_LIB_DIR=$DIR/python$PY_VERS/config
++        #fi
+ 	if [ "$SDM_PRESENT" = "yes" ]; then
+ 	    if file_present "libstdc++." "${DIR}"; then
+ 		STDCpp_LIB=yes
+diff -ruN -x '*~' gildas-src-nov06a/kernel/main/Makefile gildas-src-nov06a.patched/kernel/main/Makefile
+--- gildas-src-nov06a/kernel/main/Makefile	2006-03-17 07:53:34.000000000 -0500
++++ gildas-src-nov06a.patched/kernel/main/Makefile	2006-11-14 11:53:16.000000000 -0500
+@@ -12,7 +12,7 @@
+ 
+ EXECUTABLES = sic.exe bldfil.exe chartest.exe hershey.exe gtv.exe greg.exe
+ 
+-LOAD_LIBS   = -lgreg -lgtv -lgcont -lgchar -lsic -lslatec -lblas -lgio -lgsys -lX11 $(ADD_LIBS)
++LOAD_LIBS   = -lgreg -lgtv -lgcont -lgchar -lsic -lslatec  ../../legacy/blas/libblas.a -lgio -lgsys -lX11 $(ADD_LIBS)
+ 
+ LOCAL_FFLAGS = -I$(gagsrcdir)/kernel/lib/gchar/
+ vpath %.inc $(gagsrcdir)/kernel/lib/gchar/
+diff -ruN -x '*~' gildas-src-nov06a/packages/astro/main/Makefile gildas-src-nov06a.patched/packages/astro/main/Makefile
+--- gildas-src-nov06a/packages/astro/main/Makefile	2006-03-17 07:55:30.000000000 -0500
++++ gildas-src-nov06a.patched/packages/astro/main/Makefile	2006-11-14 11:38:52.000000000 -0500
+@@ -10,7 +10,7 @@
+ 
+ ###########################################################################
+ 
+-LOAD_LIBS = -lastro -latm -lgreg -lgtv -lgcont -lgchar -lsic -lslatec -lblas \
++LOAD_LIBS = -lastro -latm -lgreg -lgtv -lgcont -lgchar -lsic -lslatec ../../../legacy/blas/libblas.a \
+         -lgio -lgsys -lX11 $(ADD_LIBS)
+ 
+ EXECUTABLES = astro.exe build-vsop87.exe
+diff -ruN -x '*~' gildas-src-nov06a/packages/class/main/Makefile gildas-src-nov06a.patched/packages/class/main/Makefile
+--- gildas-src-nov06a/packages/class/main/Makefile	2006-03-17 07:54:16.000000000 -0500
++++ gildas-src-nov06a.patched/packages/class/main/Makefile	2006-11-14 12:30:03.000000000 -0500
+@@ -13,7 +13,7 @@
+ EXECUTABLES = class.exe
+ 
+ LOAD_LIBS = -lclass -lastro -latm -lgreg -lgtv -lgcont -lgchar -lsic \
+-	-lslatec -lblas -lgio -lgsys -lX11 $(ADD_LIBS)
++	-lslatec ../../../legacy/blas/libblas.a -lgio -lgsys -lX11 $(ADD_LIBS)
+ 
+ ###########################################################################
+ 
+diff -ruN -x '*~' gildas-src-nov06a/packages/class90/main/Makefile gildas-src-nov06a.patched/packages/class90/main/Makefile
+--- gildas-src-nov06a/packages/class90/main/Makefile	2006-10-13 13:57:10.000000000 -0400
++++ gildas-src-nov06a.patched/packages/class90/main/Makefile	2006-11-14 12:30:16.000000000 -0500
+@@ -13,7 +13,7 @@
+ EXECUTABLES = class90.exe iram-planet.exe
+ 
+ LOAD_LIBS = -lclass90 -lastro -latm -lgreg -lgtv -lgcont -lgchar -lsic \
+-	-lslatec -lblas -lgio -lgsys -lX11 $(ADD_LIBS)
++	-lslatec ../../../legacy/blas/libblas.a -lgio -lgsys -lX11 $(ADD_LIBS)
+ 
+ ###########################################################################
+ 
+diff -ruN -x '*~' gildas-src-nov06a/packages/clic/main/Makefile gildas-src-nov06a.patched/packages/clic/main/Makefile
+--- gildas-src-nov06a/packages/clic/main/Makefile	2006-09-21 07:30:17.000000000 -0400
++++ gildas-src-nov06a.patched/packages/clic/main/Makefile	2006-11-12 22:32:08.000000000 -0500
+@@ -26,7 +26,7 @@
+ endif	
+ 
+ LOAD_LIBS = -lclic -lastro -latm -lgreg -lgtv -lgcont -lgchar -lsic \
+-	-lgio -lgsys -lX11 -lslatec -llapack -lblas $(CFITSIO_LIB) $(SDM_LIB) $(ADD_LIBS) 
++	-lgio -lgsys -lX11 -lslatec ../../../legacy/lapack/liblapack.a ../../../legacy/blas/libblas.a $(CFITSIO_LIB) $(SDM_LIB) $(ADD_LIBS) 
+ 
+ EXECUTABLES = clic.exe
+ 
+diff -ruN -x '*~' gildas-src-nov06a/packages/flux/main/Makefile gildas-src-nov06a.patched/packages/flux/main/Makefile
+--- gildas-src-nov06a/packages/flux/main/Makefile	2006-03-17 07:55:53.000000000 -0500
++++ gildas-src-nov06a.patched/packages/flux/main/Makefile	2006-11-14 12:32:03.000000000 -0500
+@@ -13,7 +13,7 @@
+ EXECUTABLES = flux.exe
+ 
+ LOAD_LIBS = -lflux -lastro -latm -lgreg -lgtv -lgcont -lgchar -lsic \
+-	-lslatec -lblas -lgio -lgsys -lX11 $(ADD_LIBS)
++	-lslatec ../../../legacy/blas/libblas.a -lgio -lgsys -lX11 $(ADD_LIBS)
+ 
+ ###########################################################################
+ 
+diff -ruN -x '*~' gildas-src-nov06a/packages/map/main/Makefile gildas-src-nov06a.patched/packages/map/main/Makefile
+--- gildas-src-nov06a/packages/map/main/Makefile	2006-03-17 07:56:15.000000000 -0500
++++ gildas-src-nov06a.patched/packages/map/main/Makefile	2006-11-14 12:30:58.000000000 -0500
+@@ -11,7 +11,7 @@
+ ###########################################################################
+ 
+ LOAD_LIBS   = -lmap -lgreg -lgtv -lgcont -lgchar -lsic \
+-	-lslatec -lblas -lgio -lgsys -lX11 $(ADD_LIBS)
++	-lslatec ../../../legacy/blas/libblas.a -lgio -lgsys -lX11 $(ADD_LIBS)
+ EXECUTABLES = mapping.exe graphic.exe
+ 
+ ###########################################################################
+diff -ruN -x '*~' gildas-src-nov06a/packages/map/tasks/Makefile gildas-src-nov06a.patched/packages/map/tasks/Makefile
+--- gildas-src-nov06a/packages/map/tasks/Makefile	2006-01-25 09:45:33.000000000 -0500
++++ gildas-src-nov06a.patched/packages/map/tasks/Makefile	2006-11-14 11:49:38.000000000 -0500
+@@ -34,7 +34,7 @@
+ endif
+ 
+ LOAD_LIBS = -lmaptasks -lastro -lgcont -lgchar -lgwcs	\
+-	-lgio -lgsys -lslatec -llapack -lblas  $(ADD_LIBS)
++	-lgio -lgsys -lslatec ../../../legacy/lapack/liblapack.a ../../../legacy/blas/libblas.a  $(ADD_LIBS)
+ 
+ LOCAL_FFLAGS = -Ilib
+ 
+diff -ruN -x '*~' gildas-src-nov06a/packages/mira/main/Makefile gildas-src-nov06a.patched/packages/mira/main/Makefile
+--- gildas-src-nov06a/packages/mira/main/Makefile	2005-03-29 05:30:33.000000000 -0500
++++ gildas-src-nov06a.patched/packages/mira/main/Makefile	2006-11-14 12:32:23.000000000 -0500
+@@ -14,7 +14,7 @@
+                -I $(gagsrcdir)/packages/telcal/main \
+ 
+ LOAD_LIBS   = -lmira -lclass90 -lastro -ltelcal -latm -lgreg -lgtv -lgcont \
+-	-lgchar -lsic -lgio -lgsys -lslatec -lblas -llapack -lX11 -lcfitsio $(ADD_LIBS)
++	-lgchar -lsic -lgio -lgsys -lslatec ../../../legacy/blas/libblas.a ../../../legacy/lapack/liblapack.a -llapack -lX11 -lcfitsio $(ADD_LIBS)
+ EXECUTABLES = mira.exe
+ 
+ ###########################################################################
+diff -ruN -x '*~' gildas-src-nov06a/packages/mis/tasks/Makefile gildas-src-nov06a.patched/packages/mis/tasks/Makefile
+--- gildas-src-nov06a/packages/mis/tasks/Makefile	2005-06-10 11:11:37.000000000 -0400
++++ gildas-src-nov06a.patched/packages/mis/tasks/Makefile	2006-11-14 11:50:11.000000000 -0500
+@@ -22,7 +22,7 @@
+ uv_sinusphase.exe uv_solve.exe uv_timeaverage.exe uv_timebase.exe	\
+ uv_hybrid.exe uv_fidelity.exe uv_plugc.exe
+ 
+-LOAD_LIBS = -lclic -llapack -lblas -lgio -lgsys $(ADD_LIBS) 
++LOAD_LIBS = -lclic ../../../legacy/lapack/liblapack.a ../../../legacy/blas/libblas.a -lgio -lgsys $(ADD_LIBS) 
+ 
+ ###########################################################################
+ 
+diff -ruN -x '*~' gildas-src-nov06a/packages/nic/main/Makefile gildas-src-nov06a.patched/packages/nic/main/Makefile
+--- gildas-src-nov06a/packages/nic/main/Makefile	2004-03-23 13:12:02.000000000 -0500
++++ gildas-src-nov06a.patched/packages/nic/main/Makefile	2006-11-14 11:42:08.000000000 -0500
+@@ -13,7 +13,7 @@
+ EXECUTABLES = nic.exe
+ 
+ LOAD_LIBS = -lnic -lgreg -lgtv -lgcont -lgchar -lsic -lgio \
+-	-lgsys -lX11 -lslatec -llapack -lblas $(ADD_LIBS)
++	-lgsys -lX11 -lslatec ../../../legacy/lapack/liblapack.a ../../../legacy/blas/libblas.a $(ADD_LIBS)
+ 
+ # Needed just because there is not a good separation between the lib and 
+ # the calling language. Should change.
+diff -ruN -x '*~' gildas-src-nov06a/packages/nic/tasks/Makefile gildas-src-nov06a.patched/packages/nic/tasks/Makefile
+--- gildas-src-nov06a/packages/nic/tasks/Makefile	2005-05-24 13:43:08.000000000 -0400
++++ gildas-src-nov06a.patched/packages/nic/tasks/Makefile	2006-11-14 11:50:42.000000000 -0500
+@@ -15,7 +15,7 @@
+ TASKS = convert.exe makplan.exe onoff.exe onoff_sum.exe restore.exe \
+ 	shift_and_add.exe 
+ 
+-LOAD_LIBS = -lnictasks -lnic -lgio -lgsys -llapack -lblas $(ADD_LIBS)
++LOAD_LIBS = -lnictasks -lnic -lgio -lgsys ../../../legacy/lapack/liblapack.a ../../../legacy/blas/libblas.a $(ADD_LIBS)
+ 
+ LOCAL_FFLAGS = -Ilib
+ 
+diff -ruN -x '*~' gildas-src-nov06a/packages/otfcal/main/Makefile gildas-src-nov06a.patched/packages/otfcal/main/Makefile
+--- gildas-src-nov06a/packages/otfcal/main/Makefile	2006-03-17 07:55:04.000000000 -0500
++++ gildas-src-nov06a.patched/packages/otfcal/main/Makefile	2006-11-14 11:42:46.000000000 -0500
+@@ -11,7 +11,7 @@
+ ###########################################################################
+ 
+ LOAD_LIBS   = -lotfcal -lclass -latm -lgreg -lgtv -lgcont -lgchar -lsic \
+-	-lslatec -lblas -lgio -lgsys -lX11 $(ADD_LIBS)
++	-lslatec ../../../legacy/blas/libblas.a -lgio -lgsys -lX11 $(ADD_LIBS)
+ EXECUTABLES = otfcal.exe otfcal-version.exe
+ 
+ ###########################################################################
+diff -ruN -x '*~' gildas-src-nov06a/packages/point/main/Makefile gildas-src-nov06a.patched/packages/point/main/Makefile
+--- gildas-src-nov06a/packages/point/main/Makefile	2006-03-17 07:56:34.000000000 -0500
++++ gildas-src-nov06a.patched/packages/point/main/Makefile	2006-11-14 11:43:21.000000000 -0500
+@@ -13,7 +13,7 @@
+ EXECUTABLES = point.exe
+ 
+ LOAD_LIBS = -lpoint -lastro -latm -lgreg -lgtv -lgcont -lgchar -lsic \
+-	-lslatec -lblas -lgio -lgsys -lX11 $(ADD_LIBS)
++	-lslatec ../../../legacy/blas/libblas.a -lgio -lgsys -lX11 $(ADD_LIBS)
+ 
+ ###########################################################################
+ 
+diff -ruN -x '*~' gildas-src-nov06a/packages/telcal/main/Makefile gildas-src-nov06a.patched/packages/telcal/main/Makefile
+--- gildas-src-nov06a/packages/telcal/main/Makefile	2006-04-13 05:21:25.000000000 -0400
++++ gildas-src-nov06a.patched/packages/telcal/main/Makefile	2006-11-14 11:43:47.000000000 -0500
+@@ -13,7 +13,7 @@
+ EXECUTABLES = telcal.exe
+ 
+ LOAD_LIBS   = -ltelcal -lclic -latm -lgreg -lgtv -lgcont -lgchar -lsic -lgio -lgsys \
+-	-lslatec -lblas -llapack -lX11 $(ADD_LIBS)
++	-lslatec ../../../legacy/lapack/liblapack.a ../../../legacy/blas/libblas.a -lX11 $(ADD_LIBS)
+ 
+ LOCAL_FFLAGS = -I../lib
+ 
