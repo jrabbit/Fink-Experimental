@@ -272,7 +272,7 @@
 (defun fink-visit-devel-wiki ()
   "Visit Fink Developers Wiki"
   (require 'browse-url)
-  (browse-url  "http://wiki.opendarwin.org/index.php/Fink"))
+  (browse-url  "http://wiki.finkproject.org/index.php/Fink"))
 
 (easy-menu-define
   fink-mode-menu fink-mode-map "Fink Mode Menu"
