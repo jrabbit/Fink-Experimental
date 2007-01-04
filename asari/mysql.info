@@ -193,7 +193,14 @@ ConfigureParams: <<
 GCC: 4.0
 
 InfoTest: <<
-  TestScript: make test || exit 2
+  TestScript: <<
+    # testing trigger fails when root, Bug #23125
+    if [[ "$UID" -eq 0 ]]; do
+      sudo -u nobody make test || exit 2
+    else
+      make test || exit 2
+    done
+  <<
 <<
 
 # Install Phase:
@@ -235,8 +242,8 @@ SplitOff2: <<
    lib/mysql/libmysqlclient_r.15.dylib
   <<
   Shlibs: <<
-   %p/lib/mysql/libmysqlclient.15.dylib 16.0.0 %n (>= 4.1.7-11)
-   %p/lib/mysql/libmysqlclient_r.15.dylib 16.0.0 %n (>= 4.1.7-11)
+   %p/lib/mysql/libmysqlclient.15.dylib 16.0.0 %n (>= 5.0.15-1)
+   %p/lib/mysql/libmysqlclient_r.15.dylib 16.0.0 %n (>= 5.0.15-1)
   <<
   DocFiles: README COPYING
 <<
