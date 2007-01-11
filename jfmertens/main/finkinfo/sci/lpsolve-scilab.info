@@ -1,0 +1,91 @@
+Info2: <<
+Package: lpsolve-scilab
+Version: 0.0
+Revision: 1
+# rev-up and change next line at every new version of scilab or lpsolve
+Type: scilab (4.1), maj (5.5), full (5.5.0.9)
+
+BuildDepends: lpsolve%type_raw[maj]-dev (>= %type_raw[full]-3), libxslt-bin, scilab-atlas (>= %type_raw[scilab]-1) | scilab (>= %type_raw[scilab]-1), sed | ssed
+Depends: lpsolve%type_raw[maj]-shlibs (>= %type_raw[maj].0.0-1), scilab-atlas (>= %type_raw[scilab]-1) | scilab (>= %type_raw[scilab]-1)
+
+Source: mirror:sourceforge:lpsolve/lp_solve_%type_raw[full]_scilab_source.tar.gz
+Source-MD5: fc5a56bd011e45d24d7c9045ed079175
+SourceDirectory: lp_solve_%type_raw[maj]
+
+PatchScript: <<
+  # adapt paths
+  perl -pi -e 's,/usr/lib/liblpsolve%type_pkg[maj]\.so,%p/lib/liblpsolve.dylib,' extra/scilab/lpsolve/builder.sce
+  perl -pi -e 's,c:/scilab\-2\.7,%p/lib/scilab-%type_raw[scilab],; s,z:/lp_solve_%type_raw[maj],%p/include/lpsolve,; s,\$.*\),%b,' extra/scilab/lpsolve/Path.incl
+  # add trailing / to Mpath, and handle the 'loading' of man-pages and macros self, but using formatman(.,"xml")
+  sed -ri -e "s:/[']+\+p,end([']*):&\n  \1p=p+\1'/'\1\1:" -e "s,^(  )',\1&," -e "/genlib|\/man/d" \
+	-e "s:(formatman(\(.*))\):\1,'xml'):" -e "s,-1,0," extra/scilab/lpsolve/builder.sce
+  # missing "endfunction"
+  for f in extra/scilab/lpsolve/macros/*.sci; do echo endfunction >> $f ; done
+  # buglet in man files (another one will be fixed in the InstallScript)
+  sed -ri -e "/dual problem|lp created/,/TP 10/{ /.TP 10/d }" extra/scilab/lpsolve/man/lp*.man
+  # useless files, which may further prevent regeneration of some of them
+  rm extra/scilab/lpsolve/{macros/*.bin,man/*.cat,libs/*.dll}
+<<
+CompileScript: echo ''
+InstallScript: <<
+#!/bin/sh -ev
+  mkdir -p %i/share/doc/%N/examples %i/share/%N %i/lib/scilab-%type_raw[scilab]/man/eng %i/share/doc/lpsolve%type_raw[maj]-shlibs
+  ln -s ../%n %i/share/doc/lpsolve%type_raw[maj]-shlibs
+  cd extra/scilab/lpsolve
+  # next doesn't work.. Try the same with '-f'
+  # scilab -nb -nwni -e "exec builder.sce;exit"
+  cat > cmd <<-'EOF'
+	exec builder.sce
+	exit
+	EOF
+  scilab -nb -nwni -f cmd
+  cp -pPR libs macros loader.sce src/lpmex*.o %i/share/%N
+  cp -pPR man %i/lib/scilab-%type_raw[scilab]/man/eng/lpsolve
+  rm %i/lib/scilab-%type_raw[scilab]/man/eng/lpsolve/{whatis,*.man,*.htm}
+  # another buglet, easier to fix here than in the .man file
+  sed -ri -e '/""/d' %i/lib/scilab-%type_raw[scilab]/man/eng/lpsolve/sclpsolve.xml
+  cp -p {ex,lpd}*.sce %i/share/doc/%N/examples
+<<
+DocFiles: <<
+  */*/*/man/*.htm
+  */*/*/README.txt:README
+<<
+PostInstScript: <<
+  cat > /tmp/lpsolve_sci_cmd <<-'EOF'
+	%%helps = [%%helps; '%p/lib/scilab-%type_raw[scilab]/man/eng/lpsolve'	'Mixed Integer Linear Programming'];
+	xmltohtml('%p/lib/scilab-%type_raw[scilab]/man/eng/lpsolve','Mixed Integer Linear Programming')
+	add_help_chapter('Mixed Integer Linear Programming','%p/lib/scilab-%type_raw[scilab]/man/eng/lpsolve')
+	genlib("lpsolvelib",'%p/share/%N/macros')
+	lpsollvelib=lib('%p/share/%N/macros/')
+	exit
+	EOF
+# the "cd" next line is because contents.htm and index.htm end up in the current directory...
+# (and are relative only to %p/lib/scilab-%type_raw[scilab]/man/eng/lpsolve
+# _ are NOT an update of %p/lib/scilab-%type_raw[scilab]/man/eng{contents,index}.htm :
+# further sed work is needed to update the latter from the former..
+  cd /%p/lib/scilab-%type_raw[scilab]/man/eng/lpsolve
+  scilab -nb -nwni -f /tmp/lpsolve_sci_cmd
+  sed -ri -e "/^<\/body>/i \
+$(fgrep lpsolve contents.htm|sed -r -e 's,/dd>,&\\,' -e '$s,\\$,,')" ../contents.htm
+  sed -ri -e "/<\/dl>/i \
+`fgrep lpsolve index.htm`" ../index.htm
+  rm -f /tmp/lpsolve_sci_cmd *.xml {contents,index}.htm
+  echo "%%helps = [%%helps; '%p/lib/scilab-%type_raw[scilab]/man/eng/lpsolve' 'Mixed Integer Linear Programming']" >> %p/lib/scilab-%type_raw[scilab]/scilab.star
+  echo "lpsollvelib=lib('%p/share/%N/macros/')" >> %p/lib/scilab-%type_raw[scilab]/scilab.star
+<<
+PreRmScript: <<
+  rm -f %p/lib/scilab-%type_raw[scilab]/man/eng/lpsolve/*.htm
+  sed -ri -e "/lpsolve/d" %p/lib/scilab-%type_raw[scilab]/{scilab.star,man/eng/{contents,index}.htm}
+<<
+
+Description: Scilab interface to the mixed LP pkg lpsolve
+DescPackaging: <<
+<<
+DescUsage: <<
+For doc on lpsolve, cf http://lpsolve.sourceforge.net/%type_raw[maj]/
+For doc on this interface from Scilab, cf %p/share/doc/%n/scilab.htm
+<<
+License: LGPL
+HomePage: http://sourceforge.net/projects/lpsolve/
+Maintainer: JF Mertens <jfmertens@users.sourceforge.net>
+<<
