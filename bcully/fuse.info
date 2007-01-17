@@ -12,8 +12,8 @@ Shlibs: <<
 <<
 
 PatchScript: <<
-sed -i.bak -e 's,/System/,%p/,' fusefs/load/load_fusefs.c
-sed -i.bak -e 's,/System/,%p/,' libfuse/fuse-2.6.1-macosx.patch
+sed -i.bak -e 's,/System/Library/Extensions/,%p/lib/%n/,' fusefs/load/load_fusefs.c
+sed -i.bak -e 's,/System/Library/Extensions/,%p/lib/%n/,' libfuse/fuse-2.6.1-macosx.patch
 cd ../fuse-2.6.1 && patch -p1 < ../macfuse-%v/libfuse/fuse-2.6.1-macosx.patch
 <<
 CompileScript: <<
@@ -27,9 +27,9 @@ CFLAGS="-D__FreeBSD__=10 -O -g" ./configure --prefix=%p --disable-dependency-tra
 make
 <<
 InstallScript: <<
-mkdir -p %i/Library/Extensions
-cp -R fusefs/build/Release/fusefs.kext %i/Library/Extensions/
-cp fusefs/build/Release/load_fusefs %i/Library/Extensions/fusefs.kext/Contents/Resources/
+mkdir -p %i/lib/%n
+cp -R fusefs/build/Release/fusefs.kext %i/lib/%n
+cp fusefs/build/Release/load_fusefs %i/lib/%n/fusefs.kext/Contents/Resources/
 # TODO: figure out where else we can put this
 cp fusefs/build/Release/mount_fusefs fusefs/fusefs.fs/
 mkdir -p %i/sbin
@@ -39,9 +39,9 @@ cp -R fusefs/fusefs.fs %d/System/Library/Filesystems/
 cd ../fuse-2.6.1 && make install DESTDIR=%d
 <<
 PostInstScript: <<
-chown -R root:wheel %p/Library/Extensions/fusefs.kext
+chown -R root:wheel %p/lib/%n/fusefs.kext
 chown -R root:wheel /System/Library/Filesystems/fusefs.fs
-chmod u+s %p/Library/Extensions/fusefs.kext/Contents/Resources/load_fusefs
+chmod u+s %p/lib/%n/fusefs.kext/Contents/Resources/load_fusefs
 <<
 DocFiles: COPYING HOWTO
 
