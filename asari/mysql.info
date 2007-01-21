@@ -7,7 +7,7 @@ Maintainer: ASARI Takashi <asari@users.sourceforge.net>
 
 # Dependencies:
 Depends: %N15-shlibs (= %v-%r), %N-client (= %v-%r), daemonic (>= 20010902-1), passwd
-BuildDepends: readline5 (>= 5.0-1004), fink (>= 0.24.12)
+BuildDepends: readline5 (>= 5.0-1004), system-openssl-dev, fink (>= 0.24.12)
 
 # Unpack Phase:
 Source: mirror:custom:Downloads/MySQL-5.0/%n-%v.tar.gz
@@ -166,8 +166,8 @@ PatchScript: /usr/bin/sed "s|@PREFIX@|%p|g" %{PatchFile} | /usr/bin/patch -p1
 # See BUILD/compile-ppc-max
 SetCFLAGS: -Wimplicit -Wreturn-type -Wswitch -Wtrigraphs -Wcomment -W -Wchar-subscripts -Wformat -Wparentheses -Wsign-compare -Wwrite-strings -Wunused  -O3 -fno-omit-frame-pointer  -g
 SetCXXFLAGS: -Wimplicit -Wreturn-type -Wswitch -Wtrigraphs -Wcomment -W -Wchar-subscripts -Wformat -Wparentheses -Wsign-compare -Wwrite-strings -Woverloaded-virtual -Wsign-promo -Wreorder -Wctor-dtor-privacy -Wnon-virtual-dtor -felide-constructors -fno-exceptions -fno-rtti  -O3 -fno-omit-frame-pointer  -g
-#SetCPPFLAGS: -I%p/lib/system-openssl/include
-#SetLDFLAGS: -L%p/lib/system-openssl/lib
+SetCPPFLAGS: -I%p/lib/system-openssl/include
+SetLDFLAGS: -L%p/lib/system-openssl/lib
 SetMAKEFLAGS: -j1 
 ConfigureParams: <<
   --enable-assembler \
@@ -175,19 +175,18 @@ ConfigureParams: <<
   --enable-thread-safe-client \
   --with-big-tables \
   --with-innodb \
-  --with-ndbcluster \
   --with-archive-storage-engine \
   --with-big-tables \
   --with-blackhole-storage-engine \
   --with-federated-storage-engine \
   --with-csv-storage-engine \
-  --with-yassl \
   --with-embedded-server \
   --enable-local-infile \
   \
   --without-readline \
   --disable-dependency-tracking \
   --with-mysqld-user=mysql \
+  --with-openssl \
   \
   --mandir=%p/share/man \
   --infodir=%p/share/info \
@@ -195,11 +194,12 @@ ConfigureParams: <<
   --libexecdir=%p/sbin \
   --sysconfdir=%p/etc
 <<
-#  --with-readline \
+#  --with-ndbcluster \
+#  --with-yassl \
 GCC: 4.0
 
 InfoTest: <<
-  TestScript: make test-force || exit 2
+  TestScript: [[ "$UID" -eq 0 ]] && { chown -R nobody. ./mysql-test && /usr/bin/sudo -u nobody make test-force || exit 2; } || { make test-force || exit 2; }
 <<
 
 # Install Phase:
@@ -350,5 +350,15 @@ problem on MacOS X/Darwin platform.
 
 The 'without-readline' configure flag needs to be there to use the 
 readline from fink instead of the bundled copy.
+
+Known problem:
+
+"make test-force" script reports fails on testing with some SSL-
+related test cases. It doesn't seem to have such failure when
+compiled with --with-yassl. If you face problem with SSL feature,
+please try recompile with --with-yassl and see if it helps.
+
+(Of cource, you can download MySQL AB's official binary which is 
+compiled with statically linked yaSSL.)
 <<
 Homepage: http://www.mysql.com/
