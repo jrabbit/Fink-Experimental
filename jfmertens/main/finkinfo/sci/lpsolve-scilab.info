@@ -13,18 +13,26 @@ Source-MD5: e885927a3b9ce0d8374bb3d272a84818
 SourceDirectory: lp_solve_%type_raw[maj]
 
 PatchScript: <<
+#!/bin/sh -ev
   # adapt paths
-  perl -pi -e 's,/usr/lib/liblpsolve%type_pkg[maj]\.so,%p/lib/liblpsolve.dylib,' extra/scilab/lpsolve/builder.sce
-  perl -pi -e 's,c:/scilab\-2\.7,%p/lib/scilab-%type_raw[scilab],; s,z:/lp_solve_%type_raw[maj],%p/include/lpsolve,; s,\$.*\),%b,' extra/scilab/lpsolve/Path.incl
+  perl -pi.bak -e 's,/usr/lib/liblpsolve%type_pkg[maj]\.so,%p/lib/liblpsolve.dylib,' extra/scilab/lpsolve/builder.sce
+  perl -pi.bak -e 's,c:/scilab\-2\.7,%p/lib/scilab-%type_raw[scilab],; s,z:/lp_solve_%type_raw[maj],%p/include/lpsolve,; s,\$.*\),%b,' extra/scilab/lpsolve/Path.incl
   # add trailing / to Mpath, and handle the 'loading' of man-pages and macros self, but using formatman(.,"xml")
   sed -ri -e "s:/[']+\+p,end([']*):&\n  \1p=p+\1'/'\1\1:" -e "s,^(  )',\1&," -e "/genlib|\/man/d" \
 	-e "s:(formatman(\(.*))\):\1,'xml'):" -e "s,-1,0," extra/scilab/lpsolve/builder.sce
   # missing "endfunction"
   for f in extra/scilab/lpsolve/macros/*.sci; do echo endfunction >> $f ; done
   # buglet in man files (another one will be fixed in the InstallScript)
-  sed -ri -e "/dual problem|lp created/,/TP 10/{ /.TP 10/d }" extra/scilab/lpsolve/man/lp*.man
+  sed -ri.bak -e "/dual problem|lp created/,/TP 10/{ /.TP 10/d }" extra/scilab/lpsolve/man/lp*.man
   # useless files, which may further prevent regeneration of some of them
   rm extra/scilab/lpsolve/{macros/*.bin,man/*.cat,libs/*.dll}
+  # add hash.c to the needed sources :
+  sed -ri.bak -e '/^files=/,/^end/{
+	/MSDOS/d
+	/^end/d
+	}' extra/scilab/lpsolve/src/builder.sce
+  # and fix hash.c :
+  sed -ri.bak -e 's,malloc.h,stdlib.h,' extra/scilab/lpsolve/src/hash.c
 <<
 CompileScript: echo ''
 InstallScript: <<
@@ -79,6 +87,21 @@ PreRmScript: <<
 <<
 
 Description: Scilab interface to the mixed LP pkg lpsolve
+DescPort: <<
+pkg still broken; executing in scilab the command 'exec loader.sce' leads to :
+> ld returned bad status: 100
+> addinter(liblpmex,'lpmex_gateway','sclpsolve')
+> --error 236
+> link: the shared archive was not loaded at line 19 of exec file called by : exec loader.sce
+Yet if I try manually a link like addinter should try :
+> cc -bundle src/lpmex_gateway.o libs/sclpsolve.a /sw/lib/liblpsolve.dylib -o test.so \
+>	-bundle_loader /sw/lib/scilab-4.1/bin/scilex -Wl,-x -dead-strip
+everything goes like clockwork
+Note that the -bundle_loader flag is needed here, to avoid undefined symbols errors.
+And grep doesn't find such a string in the whole /sw/lib/scilab-4.1 ...
+I just don't know where to put and how to name the resulting test.so for scilab to use it..
+(nor how to add flags to an addinter command).
+<<
 DescPackaging: <<
 <<
 DescUsage: <<
