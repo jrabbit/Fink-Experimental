@@ -37,16 +37,19 @@ PatchScript: <<
 CompileScript: echo ''
 InstallScript: <<
 #!/bin/sh -ev
-  mkdir -p %i/share/doc/%N/examples %i/share/%N %i/lib/scilab-%type_raw[scilab]/man/eng %i/share/doc/lpsolve%type_raw[maj]-shlibs
+  mkdir -p %i/share/doc/%N/examples %i/lib/scilab-%type_raw[scilab]/contrib %i/share/%N %i/lib/scilab-%type_raw[scilab]/man/eng %i/share/doc/lpsolve%type_raw[maj]-shlibs
   ln -s ../%n %i/share/doc/lpsolve%type_raw[maj]-shlibs
   cd extra/scilab/lpsolve
   # next doesn't work.. Try the same with '-f'
-  # scilab -nb -nwni -e "exec builder.sce;exit"
+#  scilab -nb -nwni -e "exec builder.sce;quit;"
   cat > cmd <<-'EOF'
 	exec builder.sce
 	exit
 	EOF
   scilab -nb -nwni -f cmd
+  cc -bundle src/lpmex_gateway.o libs/sclpsolve.a %p/lib/liblpsolve.dylib -o liblpmex.so \
+	-bundle_loader %p/lib/scilab-%type_raw[scilab]/bin/scilex -Wl,-x -dead-strip
+  cp -pPR liblpmex.so %i/lib/scilab-%type_raw[scilab]/contrib
   cp -pPR libs macros loader.sce src/lpmex*.o %i/share/%N
   cp -pPR man %i/lib/scilab-%type_raw[scilab]/man/eng/lpsolve
   rm %i/lib/scilab-%type_raw[scilab]/man/eng/lpsolve/{whatis,*.man,*.htm}
@@ -80,6 +83,7 @@ $(fgrep lpsolve contents.htm|sed -r -e 's,/dd>,&\\,' -e '$s,\\$,,')" ../contents
   rm -f /tmp/lpsolve_sci_cmd *.xml {contents,index}.htm
   echo "%%helps = [%%helps; '%p/lib/scilab-%type_raw[scilab]/man/eng/lpsolve' 'Mixed Integer Linear Programming']" >> %p/lib/scilab-%type_raw[scilab]/scilab.star
   echo "lpsollvelib=lib('%p/share/%N/macros/')" >> %p/lib/scilab-%type_raw[scilab]/scilab.star
+  echo "addinter('%p/lib/scilab-%type_raw[scilab]/contrib/liblpmex.so','lpmex_gateway','sclpsolve')" >> %p/lib/scilab-%type_raw[scilab]/scilab.star
 <<
 PreRmScript: <<
   rm -f %p/lib/scilab-%type_raw[scilab]/man/eng/lpsolve/*.htm
