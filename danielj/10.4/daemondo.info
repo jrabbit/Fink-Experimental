@@ -1,0 +1,112 @@
+Package: daemondo
+Version: 1.0d2
+Revision: 1
+Description: Daemon wrapper program
+DescDetail: <<
+	daemondo is a wrapper program that runs daemons. It starts the specified
+	daemon on launch, stops it when given SIGTERM, and restarts it on SIGHUP.
+	It can also watch for transitions in system state, such as a change in
+	network availability or system power state, and restart the daemon on such
+	an event.
+	
+	daemondo works well as an adapter between darwin 8's launchd, and daemons
+	that are normally started via traditional rc.d style scripts or parameters.
+<<
+DescUsage: <<
+usage: daemondo [-hv] [--version]
+                     --start-cmd prog args... ;
+                     [--stop-cmd prog arg... ;]
+                     [--restart-cmd prog arg... ;]
+                     [--restart-wakeup]
+                     [--restart-netchange]
+
+Parameters:
+
+-h, --help                      Provide this help.
+-v                              Increase verbosity.
+    --verbosity=n               Set verbosity to n.
+-V, --version                   Display program version information.
+-l, --label=desc                Label used to describe the daemon.
+
+-s, --start-cmd args... ;       Required: command that will start the daemon.
+-k, --stop-cmd args... ;        Command that will stop the daemon.
+-r, --restart-cmd args... ;     Command that will restart the daemon.
+    --restart-config regex... ; SC patterns on which to restart the daemon.
+    --restart-dist-notify names... ;
+                                Distributed Notification Center notifications
+                                on which to restart the daemon.
+    --restart-darwin-notify names... ;
+                                Darwin Notification Center notifications
+                                on which to restart the daemon.
+    --restart-config regex... ; SC patterns on which to restart the daemon.
+    --restart-wakeup            Restart daemon on wake from sleep.
+    --restart-netchange         Restart daemon on a network change.
+    --pid=none      - no pid is available; we start/stop only through the
+      commands, and have no real knowledge of whether the process is running
+    --pid=exec      - we track the pid we receive from exec of the start cmd
+    --pid=fileauto  - we track the pid available in first word of pidfile
+    --pid=fileclean - we track the pid available in first word of pidfile,
+                        and clean it up when the process dies
+
+    --pidfile=name  - the name of the pidfile to use
+
+daemondo responds to SIGHUP by restarting the daemon, and to SIGTERM by
+stopping it. daemondo exits on receipt of SIGTERM, or when it detects
+that the daemon process has died.
+
+The arguments start-cmd, stop-cmd, restart-cmd, restart-config,
+restart-dist-notify, and restart-darwin-notify, if present,
+must each be followed by arguments terminated by a ';'. You may need to
+escape or quote the ';' to protect it from special handling by your shell.
+
+daemondo runs in one of two modes: (1) If no stop-cmd is given, daemondo
+executes start-cmd asyncronously, and tracks the process id; that process id
+is used to signal the daemon for later stop and/or restart. (2) If stop-cmd
+is given, then both start-cmd and stop-cmd are issued syncronously, and are
+assumed to do all the work of controlling the daemon. In such cases there is
+no process id to track. In either mode, restart-cmd, if present, is used to
+restart the daemon. If in mode 1, restart-cmd must not disrupt the process id.
+If restart-cmd is not provided, the daemon is restarted via a stop/start
+sequence.
+
+The argument restart-config specifies a set of regex patterns corresponding
+to system configuration keys, on notification of change for which the daemon
+will be restarted
+
+The arguments restart-dist-notify and restart-darwin-notify specify a set of
+notification names from the distributed and darwin notification centers,
+respectively, on receipt of which the daemon will be restarted.
+
+The argument restart-wakeup will cause the daemon to be restarted when the
+computer wakes from sleep.
+
+The argument restart-netchange will cause the daemon to be restarted when
+the network configuration changes. This is a shortcut for the more
+verbose --restart-darwin-notify com.apple.system.config.network_change.
+
+In mode 1 only, daemondo will exit when it detects that the daemon being
+monitored has exited.
+<<
+Source: http://svn.macports.org/repository/macports/downloads/DarwinPorts-1.3.2/DarwinPorts-1.3.2.tar.bz2
+Source-MD5: 6b36189fbb5d5e3a4c58c94e031e1b11
+CompileScript: <<
+	#!/bin/sh -ev
+	
+	cd src/programs/daemondo
+	
+	gcc -framework CoreFoundation -framework SystemConfiguration -framework IOKit main.c -o daemondo	
+<<
+InstallScript: <<
+	#!/bin/sh -ev
+	
+	cd src/programs/daemondo
+	
+	/bin/mkdir -p %i/bin
+	/bin/cp daemondo %i/bin
+	
+	/bin/mkdir -p %i/share/doc/%n
+	/usr/bin/head -n 29 main.c >%i/share/doc/%n/LICENSE
+<<
+License: OSI-Approved
+Maintainer: Daniel Johnson <daniel@daniel-johnson.org>
+Homepage: http://www.macports.org/
