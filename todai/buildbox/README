@@ -1,0 +1,99 @@
+* Overview
+
+This set of scripts is intend to make all Fink packages, with Macs in Todai
+Fink Team's lab ("Sodan room"). They are rough and inefficient -- they may or
+may not work on your Macs :)
+
+buildbox.sh creates a chroot environment, called buildbox. It is to protect
+build environment from your casual use of Fink, or from accidental Apple's
+software updates.
+
+Thanks to buildbox, you can stop compile-time (maybe illegal) use of
+/usr/bin/emacs. This behavor can be controled by editing
+@BUILDBOX_ROOT@/buildbox.conf, where @BUILDBOX_ROOT@ is e.g. /buildbox .
+
+Some software won't seem to work in chroot buildbox, like /Developer/Tools/Rez,
+and /usr/bin/osacompile. buildbox.sh replaces them with some wrapper scripts.
+
+
+* See also buildfink
+
+There is more simple and clean set of scripts, called buildfink, written by
+Matthew Sachs, a.k.a. msachs in #Fink. You can obtain it from Fink CVS. See:
+http://fink.cvs.sourceforge.net/fink/scripts/buildfink/
+
+
+* How to use
+
+You may want /sw/bin/rsync installed.
+
+To create buildbox:
+  ./buildbox.sh create /path/to/buildbox
+
+First you may want to install Fink into buildbox:
+  ./buildbox.sh finkbootstrap /path/to/buildbox
+
+To update buildbox (probablly after cvs update):
+  ./buildbox.sh update /path/to/buildbox
+
+Before you start build, you have to mount some partition such as /dev:
+  ./buildbox.sh mount /path/to/buildbox
+
+To enter buildbox:
+  ./buildbox.sh chroot /path/to/buildbox
+or just execute chroot:
+  chroot /path/to/buildbox
+
+Inside buildbox, you can start fink-build-forever script:
+  /usr/local/admin/fink-build-forever.bash [-skipto pkg]
+
+If you forget everything, just execute it to get help:
+  ./buildbox.sh
+
+
+* How they are actually set up
+
+seri: Mac with Apache web server, mod_proxy_reverse enabled
+nadeshiko: 10.4 PPC Mac, behind firewall
+kikyo: 10.4 Intel Mac, behind firewall
+nazuna: 10.3 PPC Mac, behind firewall
+
+seri's httpd.conf have such statements like these:
+
+  # Reverse proxy for build reports
+  ProxyPass "/build-10.3" "http://nazuna/build"
+  ProxyPass "/build-10.4-powerpc" "http://nadeshiko/build"
+  ProxyPass "/build-10.4-i386" "http://kikyo/build"
+  ProxyPassReverse "/build-10.3" "http://nazuna/build"
+  ProxyPassReverse "/build-10.4-powerpc" "http://nadeshiko/build"
+  ProxyPassReverse "/build-10.4-i386" "http://kikyo/build"
+  
+  # Reverse proxy for actual files
+  ProxyPass "/apt/10.3/dists" "http://nazuna/10.3"
+  ProxyPass "/apt/10.4/dists/unstable/main/binary-darwin-powerpc" "http://nadeshiko/10.4/unstable/main/binary-darwin-powerpc"
+  ProxyPass "/apt/10.4/dists/ecc/main/binary-darwin-powerpc" "http://nadeshiko/10.4/ecc/main/binary-darwin-powerpc"
+  ProxyPass "/apt/10.4/dists/unstable/crypto/binary-darwin-powerpc" "http://nadeshiko/10.4/unstable/crypto/binary-darwin-powerpc"
+  ProxyPass "/apt/10.4/dists/ecc/crypto/binary-darwin-powerpc" "http://nadeshiko/10.4/ecc/crypto/binary-darwin-powerpc"
+  ProxyPass "/apt/10.4/dists/eccprivate/main/binary-darwin-powerpc" "http://nadeshiko/10.4/eccprivate/min/binary-darwin-powerpc"
+  ProxyPass "/apt/10.4/dists/unstable/main/binary-darwin-i386" "http://kikyo/10.4/unstable/main/binary-darwin-i386"
+  ProxyPass "/apt/10.4/dists/ecc/main/binary-darwin-i386" "http://kikyo/10.4/ecc/main/binary-darwin-i386"
+  ProxyPass "/apt/10.4/dists/unstable/crypto/binary-darwin-i386" "http://kikyo/10.4/unstable/crypto/binary-darwin-i386"
+  ProxyPass "/apt/10.4/dists/ecc/crypto/binary-darwin-i386" "http://kikyo/10.4/ecc/crypto/binary-darwin-i386"
+  ProxyPass "/apt/10.4/dists/eccprivate/main/binary-darwin-i386" "http://kikyo/10.4/eccprivate/main/binary-darwin-i386"
+  
+seri has also NFS, configured by /etc/exports:
+  /Volumes/pub -ro -maproot=nobody -network=192.168.1.0 -mask=255.255.255.0
+
+nadeshiko, kikyo and nazuna have also Apache running, with
+/etc/httpd/httpd.conf having these lines:
+
+  Alias "/build" "/buildbox/var/log/fink-build-forever"
+  <Directory "/buildbox/var/log/fink-build-forever">
+      Options All +Indexes -ExecCGI
+      ForceType text/plain
+  </Directory>
+
+  # nadeshiko and kikyo have 10.4 distribution
+  Alias "/10.4" "/buildbox/sw/fink/10.4"
+  # nazuna has 10.3 distribution
+  Alias "/10.3" "/buildbox/sw/fink/10.3"
