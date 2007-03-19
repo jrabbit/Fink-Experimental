@@ -6,9 +6,9 @@ dnl Usage: m4 -DTREE=xxx [-DMODE=Normal|DumpMirrors|DumpSnapshotMirrors] openoff
 dnl ### Configurations ###
 ifdef([MODE],,
  [define([MODE], [Normal])])
-define([BASEVERSION], [[2.0.2]])
-dnl define([SNAPSHOT], [[156]])
-define([SOURCE_MD5], [[1b50c8c4c1002edbc4993060ca05ca8f]])
+define([BASEVERSION], [[2.1]])
+define([SNAPSHOT], [[m5]])
+define([SOURCE_MD5], [[c95bd80c5cc46e1f88e7f3069c370585]])
 define([REVISION_10_3], 1)
 define([REVISION_10_4_TRANSITIONAL], 101)
 define([REVISION_10_4], 1001)
@@ -20,8 +20,9 @@ ifdef([USE_FIREFOX],,
 ifdef([USE_CRYPTO],,
  [define([USE_CRYPTO], 1)])
 define([RELEASE_SOURCE], [[stable/%v/OOo_%v_src.tar.gz]])
-define([SNAPSHOT_SOURCE], [[OOo_2.0.]SNAPSHOT[_src.tar.gz]])
-define([SOURCE_DIRECTORY], [[OOB680_m5]])
+define([SNAPSHOT_SOURCE], [[OOo_OOF680_m5_source.tar.bz2]])
+dnl define([SNAPSHOT_SOURCE], [[OOo_2.0.]SNAPSHOT[_src.tar.gz]])
+define([SOURCE_DIRECTORY], [[OOF680_m5]])
 
 dnl ### Macro Library ###
 dnl Replace uppercases of $1 to lowercases.
@@ -46,7 +47,7 @@ ifdef([__line__],
 
 dnl ### Other Macros ###
 ifdef([SNAPSHOT],
- [define([FINKVERSION], [BASEVERSION+m[]SNAPSHOT])
+ [define([FINKVERSION], [BASEVERSION+SNAPSHOT])
   define([SOURCE], [SNAPSHOT_SOURCE])],
  [define([FINKVERSION], [BASEVERSION])
   define([SOURCE], [RELEASE_SOURCE])])
@@ -119,11 +120,11 @@ Replaces: openoffice.org, openoffice.org-firefox, openoffice.org-nocrypto
 Provides: openoffice.org-generation2
 BuildConflicts: libicu32-dev
 BuildDepends: <<
-  x11-dev, ant, bison, fileutils, system-java14-dev,
+  x11-dev, ant, bison, coreutils, system-java14-dev,
   archive-zip-pm]PERLVERSION[,
   libjpeg, expat, freetype219, libxml2,
   sane-backends-dev, libcurl3-unified, libsndfile1-dev,
-  portaudio (>= 18.1-1), neon24-ssl | neon24,
+  portaudio (>= 18.1-1), neon26,
   libart2, startup-notification-dev, libgettext3-dev,
   atk1, gtk+2-dev, orbit2-dev, pango1-xft2-dev,
   libiconv-dev, openldap23-dev,]
@@ -149,7 +150,7 @@ Depends: <<
   x11, system-java14, system-perl,
   libjpeg-shlibs, expat-shlibs, freetype219-shlibs, libxml2-shlibs,
   sane-backends-shlibs, libcurl3-unified-shlibs, libsndfile1-shlibs,
-  portaudio-shlibs (>= 18.1-1), neon24-ssl-shlibs | neon24-shlibs,
+  portaudio-shlibs (>= 18.1-1), neon26-shlibs,
   libart2-shlibs, startup-notification-shlibs,
   atk1-shlibs, gtk+2-shlibs, libgettext3-shlibs, pango1-xft2-shlibs,
   libiconv, openldap23-shlibs,]
@@ -306,22 +307,27 @@ ifelse(MODE, [Normal], [divert(0)], [divert(-1)])dnl
 Source: mirror:custom:]SOURCE[
 Source-MD5: ]SOURCE_MD5[
 SourceDirectory: ]SOURCE_DIRECTORY[
+Source2: ftp://ooopackages.good-day.net/pub/OpenOffice.org/MacOSX/OOF680_m5/buildscript.OOF680_m5.MacOSXIntel.tar.gz
+Source2-MD5: 3f34cc231e128b3a33af7f5cfd1906d9
 
 PatchScript: <<
   /usr/bin/patch -p0 < %a/openoffice.org.patch
+#  for patch in ../patches/patch-i?????; do /usr/bin/patch -p0 < $patch; done
+  /bin/ln ../patches/unowinreg.dll external/unowinreg
   chmod a+x languagepack-splitoff
 <<
 
 GCC: ]IF_10_4(4.0, 3.3)[
 SetCPPFLAGS: -I%p/include/db4 -I%p/include/boost
 ConfigureParams: <<
-  --with-gnu-cp=%p/bin/cp \
+  --with-gnu-cp=%p/lib/coreutils/bin/cp \
   --disable-epm \
   --with-lang=ALL \
+  --disable-systray \
   --with-x --x-includes=/usr/X11R6/include --x-libraries=/usr/X11R6/lib \
   --with-jdk-home="$JAVA_HOME" --with-ant-home=%p/lib/ant \
   --disable-crashdump \
-  --with-build-version="%v-%r; Built with Fink <http://fink.sourceforge.net>" \
+  --with-build-version="%v-%r; Built with Fink <http://finkproject.org>" \
   --enable-libart \
   --enable-pasf \
   --with-system-db \
