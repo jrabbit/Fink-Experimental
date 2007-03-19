@@ -6,7 +6,7 @@ License: GPL
 Maintainer: ASARI Takashi <asari@users.sourceforge.net>
 
 BuildDepends: libncurses5, x11-dev, libpng3
-Depends: libncurses5-shlibs, libpng3-shlibs, sazanami
+Depends: libncurses5-shlibs, libpng3-shlibs, sazanami, x11
 
 Source: ftp://ftp.dungeoncrawl.org/dev/4.0.x/src/dc400b26-src.tbz2
 SourceRename: dc400b26-src.tar.bz2
@@ -35,7 +35,7 @@ PatchScript: <<
   /usr/bin/sed -i.bak "s|\\\\0\"|\"|" source/output.cc
   /usr/bin/sed -i.bak "s|-alias-|-misc-|" source/libx11.cc
   /usr/bin/sed -i.bak "s|static void load_ghost|void load_ghost|" source/files.cc
-  /usr/bin/gzip -dc ../%n-%v-makefile.osx.gz | /usr/bin/sed -e "s|-I/usr/include/ncurses|-I/sw/include|" -e "s|-DWIZARD|-DV_FIX|" -e "s|{INCLUDE}|{INCLUDES}|" -e "s|-Wmissing-declarations||g" -e "s|-Wstrict-prototypes||" -e "s|-Wmissing-prototypes||" -e "s|^# LDFLAGS.*$|LDFLAGS = -L/usr/lib -L/sw/lib|" -e "s|^OBJECTS += .*$|OBJECTS += tiles.o libx11.o libx11_png.o libtile.o winclass.o winclass-x11.o|" > source/makefile.osx
+  /usr/bin/gzip -dc ../%n-%v-makefile.osx.gz | /usr/bin/sed -e "s|-I/usr/include/ncurses|-I%p/include|" -e "s|-DWIZARD|-DV_FIX|" -e "s|{INCLUDE}|{INCLUDES}|" -e "s|-Wmissing-declarations||g" -e "s|-Wstrict-prototypes||" -e "s|-Wmissing-prototypes||" -e "s|^# LDFLAGS.*$|LDFLAGS = -L/usr/lib -L%p/lib|" -e "s|^OBJECTS += .*$|OBJECTS += tiles.o libx11.o libx11_png.o libtile.o winclass.o winclass-x11.o|" > source/makefile.osx
 echo "libtile.o : defines.h externs.h stuff.h tiles.h tiledef.h tiledef-p.h tiledef-qv.h winclass.h" >> source/makefile.osx
 echo "winclass.o : winclass.h" >> source/makefile.osx
 echo "winclass-x11.o : winclass.h defines.h debug.h" >> source/makefile.osx
@@ -65,11 +65,13 @@ chmod 755 source/crawl
 mkdir -p %i/bin/
 cp  source/crawl %i/bin/
 mkdir -p %i/var/%n/
-cp -r ../dc_j070_051224_wt/* %i/var/%n/
-chmod 777 %i/var/%n/
-chmod +t %i/var/%n/
+cp -R ../dc_j070_051224_wt/* %i/var/%n/
+install -d -m 1777 %i/var/%n
 echo > scores
 chmod 777 scores
+echo > morgue.txt
+chmod 777 morgue.txt
+chmod 777 macro.txt
 iconv -f SJIS -t UTF-8 %i/var/%n/init.txt > %i/var/%n/.crawlrc
 rm %i/var/%n/init.txt
 <<
@@ -99,6 +101,4 @@ Solaris, MacOS (both Classic and OS X), OS/2, and AmigaOS.
 <<
 
 DescUsage:<<
-The rules of the game are included in the distribution
-in the file '/sw/share/doc/gnushogi/shogi.rules.'
 <<
