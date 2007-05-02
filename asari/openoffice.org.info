@@ -172,11 +172,19 @@ Source2-MD5: e3a0b76dcd876f3d721ee7183729153d
 SourceDirectory: OOF680_m15
 
 PatchFile: %n.patch
-PatchFile-MD5: cc7deb1dd045606728b8b3b86c4a508b
+PatchFile-MD5: 378e343f9fb366d233a06863da7770d1
 PatchScript: <<
+  #!/bin/bash -ev
   /usr/bin/patch -p0 < %{PatchFile}
   chmod a+x languagepack-splitoff
   /bin/mv ../unowinreg.dll ./external/unowinreg/
+
+  if ! osacompile -o test desktop/macosx/source/main.applescript >/dev/null 2>&1; then
+    if ! /usr/libexec/StartupItemContext /usr/bin/osacompile -o test desktop/macosx/source/main.applescript >/dev/null 2>&1; then
+      echo "osacompile failed. this is typically for you don't have StartupItemContext."
+      false
+    fi
+  fi
 <<
 
 GCC: 4.0

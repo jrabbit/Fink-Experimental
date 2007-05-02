@@ -113,16 +113,30 @@
  .ENDIF
  .IF "$(COMNAME)"=="sunpro5"
 
-### Temporarily disabling checkdll!
---- OOF680_m15/solenv/bin/checkdll.sh	2007-05-02 03:38:03.000000000 +0900
-+++ OOF680_m15.fink/solenv/bin/checkdll.sh	2007-05-02 03:25:39.000000000 +0900
-@@ -42,7 +42,8 @@
-     exit 1
- }
- 
--checkdll="$SOLARVERSION/$INPATH/bin$UPDMINOREXT/checkdll"
-+#checkdll="$SOLARVERSION/$INPATH/bin$UPDMINOREXT/checkdll"
-+checkdll=/usr/bin/true
+--- checkdll.sh	2007-05-02 03:38:03.000000000 +0900
++++ checkdll.sh.fink	2007-05-02 12:14:15.000000000 +0900
+@@ -45,15 +45,21 @@
+ checkdll="$SOLARVERSION/$INPATH/bin$UPDMINOREXT/checkdll"
  
  if [ -x $checkdll ]; then
++    uname_s=`uname -s`
      while :
+     do
+ 	case $1 in
+ 	    -L) shift; option=$1;;
+ 	    --) break;;
+ 	esac
+-	case "${libpath+X}" in
+-	    X) libpath=$libpath:$option;;
+-	    *) libpath=$option;;
++	case $uname_s-$option in
++	    Darwin-${FINK_PREFIX-/sw}/lib) skip=true;;
++	    *) skip=false;;
++	esac
++	case "$skip-${libpath+X}" in
++	    true-*) ;;
++	    false-X) libpath=$libpath:$option;;
++	    false-*) libpath=$option;;
+ 	esac
+ 	shift
+     done
