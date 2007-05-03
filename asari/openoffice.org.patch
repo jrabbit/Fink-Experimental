@@ -113,8 +113,10 @@
  .ENDIF
  .IF "$(COMNAME)"=="sunpro5"
 
---- checkdll.sh	2007-05-02 03:38:03.000000000 +0900
-+++ checkdll.sh.fink	2007-05-02 12:14:15.000000000 +0900
+### Avoid adding /sw/lib into DYLD_LIBRARY_PATH on checking libraries,
+### which confises "libjpeg" and "libJPEG" etc.
+--- solenv/bin/checkdll.sh.orig	2007-05-02 03:38:03.000000000 +0900
++++ solenv/bin/checkdll.sh	2007-05-02 12:14:15.000000000 +0900
 @@ -45,15 +45,21 @@
  checkdll="$SOLARVERSION/$INPATH/bin$UPDMINOREXT/checkdll"
  
@@ -140,3 +142,95 @@
  	esac
  	shift
      done
+
+### Force to link against /sw/lib/libpython.so
+--- config_office/configure.in.orig	2007-01-19 21:55:19.000000000 +0900
++++ config_office/configure.in	2007-05-03 09:32:33.000000000 +0900
+@@ -2937,11 +2937,7 @@
+    python_version=`$PYTHON -c "import distutils.sysconfig; print distutils.sysconfig.get_config_var('VERSION');"`
+    PYTHON_CFLAGS="-I$python_include"
+ 
+-   if test "$_os" = "Darwin"; then
+-      PYTHON_LIBS="-framework Python"
+-   else
+-      PYTHON_LIBS="-lpython$python_version"
+-   fi
++   PYTHON_LIBS=`python2.5-config --ldflags`
+    
+    dnl check if the headers really work:
+    save_CPPFLAGS="$CPPFLAGS"
+
+--- config_office/configure.orig	2007-01-19 22:01:19.000000000 +0900
++++ config_office/configure	2007-05-03 09:31:06.000000000 +0900
+@@ -11561,11 +11561,7 @@
+    python_version=`$PYTHON -c "import distutils.sysconfig; print distutils.sysconfig.get_config_var('VERSION');"`
+    PYTHON_CFLAGS="-I$python_include"
+ 
+-   if test "$_os" = "Darwin"; then
+-      PYTHON_LIBS="-framework Python"
+-   else
+-      PYTHON_LIBS="-lpython$python_version"
+-   fi
++   PYTHON_LIBS=`python2.5-config --ldflags`
+ 
+       save_CPPFLAGS="$CPPFLAGS"
+    CPPFLAGS="$CPPFLAGS $PYTHON_CFLAGS"
+
+### link mozilla bits to seamonkey; IZ 73440
+--- config_office/configure.in.orig	2007-01-13 14:18:26.000000000 +0100
++++ config_office/configure.in	2007-01-13 14:20:11.000000000 +0100
+@@ -58,6 +58,10 @@
+ [  --with-firefox          Use Firefox instead of Mozilla Suite for building.
+                           Only honoured with --with-system-mozilla
+ ],,)
++AC_ARG_WITH(seamonkey,
++[  --with-seamonkey        Use Seamonkey instead of Mozilla Suite for building.
++                          Only honoured with --with-system-mozilla
++],,)
+ AC_ARG_WITH(xulrunner,
+ [  --with-xulrunner        Use XULRunner instead of Mozilla Suite for building.
+                           Only honoured with --with-system-mozilla
+@@ -3714,6 +3718,8 @@
+     AC_MSG_CHECKING([which Mozilla flavour to use])
+     if test -n "$with_firefox" && test "$with_firefox" != "no"; then
+       MOZ_FLAVOUR=firefox
++    elif test -n "$with_seamonkey" && test "$with_seamonkey" != "no"; then
++      MOZ_FLAVOUR=seamonkey
+     elif test -n "$with_xulrunner" && test "$with_xulrunner" != "no"; then
+       MOZ_FLAVOUR=xulrunner
+     else
+
+--- config_office/configure.orig	2007-01-19 22:01:19.000000000 +0900
++++ config_office/configure	2007-05-03 11:33:06.000000000 +0900
+@@ -1029,6 +1029,9 @@
+   --with-firefox          Use Firefox instead of Mozilla Suite for building.
+                           Only honoured with --with-system-mozilla
+ 
++  --with-seamonkey        Use Seamonkey instead of Mozilla Suite for building.
++                          Only honoured with --with-system-mozilla
++
+   --with-xulrunner        Use XULRunner instead of Mozilla Suite for building.
+                           Only honoured with --with-system-mozilla
+ 
+@@ -1843,6 +1846,12 @@
+ 
+ fi;
+ 
++# Check whether --with-seamonkey or --without-seamonkey was given.
++if test "${with_seamonkey+set}" = set; then
++  withval="$with_seamonkey"
++
++fi;
++
+ # Check whether --with-xulrunner or --without-xulrunner was given.
+ if test "${with_xulrunner+set}" = set; then
+   withval="$with_xulrunner"
+@@ -13577,6 +13586,8 @@
+ echo $ECHO_N "checking which Mozilla flavour to use... $ECHO_C" >&6
+     if test -n "$with_firefox" && test "$with_firefox" != "no"; then
+       MOZ_FLAVOUR=firefox
++    elif test -n "$with_seamonkey" && test "$with_seamonkey" != "no"; then
++      MOZ_FLAVOUR=seamonkey
+     elif test -n "$with_xulrunner" && test "$with_xulrunner" != "no"; then
+       MOZ_FLAVOUR=xulrunner
+     else

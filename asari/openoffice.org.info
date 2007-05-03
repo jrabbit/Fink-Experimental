@@ -2,7 +2,7 @@ Package: openoffice.org
 Description: Integrated office productivity suite
 Version: 2.2.0m15
 Revision: 1001
-Type: java(1.4)
+Type: java(1.5)
 License: LGPL
 Maintainer: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>
 
@@ -11,7 +11,7 @@ Replaces: openoffice.org, openoffice.org-firefox, openoffice.org-nocrypto
 Provides: openoffice.org-generation2
 BuildConflicts: libicu32-dev
 BuildDepends: <<
-  x11-dev, ant, bison, coreutils, system-java14-dev,
+  x11-dev, ant, bison, coreutils, system-java15-dev,
   archive-zip-pm586,
   libjpeg, expat, freetype219, libxml2,
   sane-backends-dev, libcurl3-unified, libsndfile1-dev,
@@ -23,13 +23,12 @@ BuildDepends: <<
   db42-ssl (>= 4.2.52-1017) | db42 (>= 4.2.52-1017),
   libsablot-dev (>= 0.98-1024), libsablot (>= 0.98-1024),
   unixodbc2-nox (>= 2.2.11-1010) | unixodbc2 (>= 2.2.11-1010),
-  mozilla-dev (>= 1.7.5-1102),
-  boost1.32-py24 (>= 1.32.0-1002), python24 (>= 1:2.4.2-1004),
-  pkgconfig, popt, autoconf2.5, fink (>= 0.24.12)
+  seamonkey-dev, python25 (>= 1:2.4.2-1004),
+  pkgconfig, popt, fink (>= 0.24.12)
 <<
 
 Depends: <<
-  x11, system-java14, system-perl,
+  x11, system-java15, system-perl,
   libjpeg-shlibs, expat-shlibs, freetype219-shlibs, libxml2-shlibs,
   sane-backends-shlibs, libcurl3-unified-shlibs, libsndfile1-shlibs,
   portaudio-shlibs (>= 18.1-1), neon24-ssl-shlibs | neon24-shlibs,
@@ -41,8 +40,7 @@ Depends: <<
   db42-ssl-java (>= 4.2.52-1012) | db42-java (>= 4.2.52-1012),
   libsablot-shlibs (>= 0.98-1024),
   unixodbc2-nox-shlibs (>= 2.2.11-1010) | unixodbc2-shlibs (>= 2.2.11-1010),
-  mozilla-shlibs (>= 1.7.5-1102), mozilla-mailnews (>= 1.7.5-1102),
-  python24-shlibs (>= 1:2.4.2-1004),
+  seamonkey-shlibs, python25-shlibs,
   fondu
 <<
 
@@ -172,23 +170,25 @@ Source2-MD5: e3a0b76dcd876f3d721ee7183729153d
 SourceDirectory: OOF680_m15
 
 PatchFile: %n.patch
-PatchFile-MD5: 378e343f9fb366d233a06863da7770d1
+PatchFile-MD5: 4af7292d3ec668a7186d9df94036f7f3
 PatchScript: <<
   #!/bin/bash -ev
   /usr/bin/patch -p0 < %{PatchFile}
   chmod a+x languagepack-splitoff
   /bin/mv ../unowinreg.dll ./external/unowinreg/
 
-  if ! osacompile -o test desktop/macosx/source/main.applescript >/dev/null 2>&1; then
-    if ! /usr/libexec/StartupItemContext /usr/bin/osacompile -o test desktop/macosx/source/main.applescript >/dev/null 2>&1; then
-      echo "osacompile failed. this is typically for you don't have StartupItemContext."
-      false
-    fi
+  if osacompile -o test desktop/macosx/source/main.applescript >/dev/null 2>&1; then
+    :
+  elif /usr/libexec/StartupItemContext /usr/bin/osacompile -o test desktop/macosx/source/main.applescript >/dev/null 2>&1; then
+    /usr/bin/sed -i.bak "s|osacomiple|/usr/libexec/StartupItemContext /usr/bin/osacompile|g" desktop/macosx/source/makefile.mk
+  else
+    echo "osacompile failed. This is typically for you don't have root access."
+    false
   fi
 <<
 
 GCC: 4.0
-SetCPPFLAGS: -I%p/include/db4 -I%p/include/boost
+SetCPPFLAGS: -I%p/include/db4
 ConfigureParams: <<
   --with-gnu-cp=%p/lib/coreutils/bin/cp \
   --disable-epm \
@@ -215,14 +215,15 @@ ConfigureParams: <<
   --with-system-jpeg \
   --with-system-expat \
   --enable-gtk \
+  --disable-systray \
   --disable-kde \
   --with-system-freetype \
-  --with-system-boost \
   --without-nas \
   --with-system-libxml \
   --with-system-python \
   --with-python-libs="-L%p/lib/python2.4/config -lpython2.4" \
   --with-system-mozilla \
+  --with-seamonkey \
   --enable-openldap \
   --enable-libsn
 <<
@@ -230,49 +231,44 @@ ConfigureParams: <<
 CompileScript: <<
   #!/bin/bash -ev
 
-
   if ${CXX:-"g++"} --version | /usr/bin/grep -q 'build 5250'; then
     echo "Xcode 2.2.1 is buggy." >&2
     exit 2
   fi
 
-  echo "[ Message from OpenOffice.org package maintainer ] ================="
-  echo
-  echo "Welcome to OpenOffice.org build script!"
-  echo
-  echo "Notice for builders:"
-  echo
-  echo "1. This building process may take a couple of day or more,"
-  echo "   and often fails with errors."
-  echo "2. This building process may consume much of your disk space,"
-  echo "   possibly up to 10GB."
-  echo "3. This building process needs your own WindowServer process."
-  echo "   i.e, it is not possible to build through simple SSH connection."
-  echo "   This is because the building process uses /usr/bin/osacompile ."
-  echo "   (This limitation would be removed in the future release.)"
-  echo
-  echo "If you faced a building problem, feel free to mail the maintainer,"
-  echo "preferably with your environment (gcc's version, etc.) and"
-  echo "the build log."
-  echo "You can find the logs here:"
-  echo "   %b/%n-%v-%r.buildlog"
-  echo
-  echo "The mail address is: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>"
-  echo
-  echo "Please understand this Fink package is still unstable."
-  echo
-  echo "===================================================================="
-  echo
-  echo "If you are ready, press RETURN/ENTER to proceed..."
+: "[ Message from OpenOffice.org package maintainer ] ================="
+:
+: "Welcome to OpenOffice.org build script!"
+:
+: "Notice for builders:"
+:
+: "1. This building process may take a couple of day or more,"
+: "   and often fails with errors."
+: "2. This building process may consume much of your disk space,"
+: "   possibly up to 10GB."
+: "3. This building process needs your own WindowServer process."
+: "   i.e, it is not possible to build through simple SSH connection."
+: "   This is because the building process uses /usr/bin/osacompile ."
+: "   (This limitation would be removed in the future release.)"
+:
+: "If you faced a building problem, feel free to mail the maintainer,"
+: "preferably with your environment (gcc's version, etc.) and"
+: "the build log."
+: "You can find the logs here:"
+: "   %b/%n-%v-%r.buildlog"
+:
+: "The mail address is: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>"
+:
+: "Please understand this Fink package is still unstable."
+:
+: "===================================================================="
+:
+: "If you are ready, press RETURN/ENTER to proceed..."
 
   read -t 60 || true
 
-  echo
-
   # Record the time
   STARTTIME=`/bin/date +"%%F %%T %%Z(%%z)"`
-
-  set -v
 
   # Check the architecture
   case %m in
@@ -289,10 +285,6 @@ CompileScript: <<
 
   # $PKG_CONFIG_PATH is needed to configure with freetype219
   export PKG_CONFIG_PATH=%p/lib/freetype219/lib/pkgconfig
-
-  # $PYTHON is needed to configure with python24
-  export PYTHON=%p/bin/python2.4
-
 
   /usr/bin/printf "[ Phase 1: Configure ]\n\n" >&3
   (cd config_office && ./configure %c) >&3 2>&3 || exit
@@ -318,19 +310,19 @@ CompileScript: <<
     . ./MacOSX${machine}Env.Set.sh
     dmake >&3 2>&3 && break
 
-    echo
-    echo "[ Message from OpenOffice.org package maintainer ] ================="
-    echo
-    echo "Building OpenOffice.org faild with an error."
-    echo "Now you can get rid of the cause by hand, or call for help."
-    echo "The build directory is:"
-    echo "  %b"
-    echo "and the full log file is available here:"
-    echo "  %b/%n-%v-%r.buildlog"
-    echo
-    echo "===================================================================="
-    echo
-    echo "Press RETURN/ENTER to exit or input any key to restart dmake..."
+: "[ Message from OpenOffice.org package maintainer ] ================="
+:
+: "Building OpenOffice.org faild with an error."
+: "Now you can get rid of the cause by hand, or call for help."
+: "The build directory is:"
+: "  %b"
+: "and the full log file is available here:"
+: "  %b/%n-%v-%r.buildlog"
+:
+: "===================================================================="
+:
+: "Press RETURN/ENTER to exit or input any key to restart dmake..."
+
     read input
     [ -n "$input" ] || false
   done
@@ -338,11 +330,14 @@ CompileScript: <<
   set +v
 
   /usr/bin/printf "\n\n[ Phase 4: Statistics ]\n\n" >&3
-  echo
-  echo "[ Message from OpenOffice.org package maintainer ] ================="
-  echo
-  echo "Congratulations!"
-  echo "The building process of OpenOffice.org has completed!"
+
+: "[ Message from OpenOffice.org package maintainer ] ================="
+:
+: "Congratulations!"
+: "The building process of OpenOffice.org has completed!"
+:
+: "===================================================================="
+
   echo "   Started:   $STARTTIME" >&3
 
   ENDTIME=`/bin/date +"%%F %%T %%Z(%%z)"`
@@ -352,8 +347,6 @@ CompileScript: <<
   DISKUSAGE=`/usr/bin/du -sh %b | /usr/bin/cut -f1`
 
   echo "   $DISKUSAGE is used for this building process (not including tarball)." >&3
-  echo
-  echo "===================================================================="
 <<
 
 InstallScript: <<
@@ -450,7 +443,7 @@ InstallScript: <<
   # End of Install Phase. Proceeding to install language packs...
 
 <<
-#AppBundles: instsetoo_native/unxmacxp.pro/OpenOffice/install/en-US_temp/OpenOffice.org*.app
+
 PostInstScript: <<
   %p/sbin/update-ooo-fonts
   [ ! -e /Applications/Fink ] && /usr/bin/install -d -m 755 /Applications/Fink
@@ -495,12 +488,6 @@ This script tries to make a symlink of it in %p/lib/%n/programs.
 DescPackaging: <<
 This finkinfo is maintained by m4. See experimental/asari/openoffice.org.info.m4.
 
-To Do 1: Report build failures on building nas (Network Audio System)
-  ( --without-nas or --with-system-nas )
-with internal nas, build fails on Panther. 
-
-"boost" is required on compile time, but not needed on runtime.
-
 These --with-system flags are not used because they are not in Fink:
    --with-system-mspack
    --with-system-myspell
@@ -508,8 +495,6 @@ These --with-system flags are not used because they are not in Fink:
    --with-system-altlinuxhyph
    --enable-evolution2
 
-Some comments about configure logs:
-# checking whether to enable fontconfig support... no
 Using fontconfig is not supported on Mac OS X.
 <<
 DescUsage: <<
