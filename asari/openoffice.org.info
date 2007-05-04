@@ -359,18 +359,22 @@ InstallScript: <<
   esac
 
   # Variables needed to execute make_installer.pl
+  export GNUCOPY="/bin/ln"
   export OUT="../$INPATH"
   export LOCAL_OUT="$OUT"
   export LOCAL_COMMON_OUT="$OUT"
-  solarlibdir=$SOLARVER/$UPD/$INPATH/lib
+  solarlibdir=$SOLARVER/$INPATH/lib
   export PYTHONPATH=$SRC_ROOT/instsetoo_native/$INPATH/bin:$solarlibdir:$solarlibdir/python:$solarlibdir/python/lib-dynload
   build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
   # Some dirty hacks to reduce disk consumption
 
   # Force make_installer.pl to use ln instead of cp
-  /usr/bin/sed -i .bak 's|cp -af|/bin/ln -f|' \
+  /usr/bin/sed -i .bak "s|'-af'|'-f'|" \
     $SOLARENV/bin/modules/installer/worker.pm
+  /usr/bin/sed -i .bak \
+    's/installer::systemactions::copy_one_file/installer::systemactions::hardlink_one_file/' \
+    $SOLARENV/bin/modules/installer/archivefiles.pm
   # Disable making download installation set  
   /usr/bin/sed -i .bak 's/$makedownload = .;/$makedownload = 0;/' \
     $SOLARENV/bin/modules/installer/globals.pm
@@ -384,18 +388,14 @@ InstallScript: <<
     -f openoffice.lst -l en-US -p OpenOffice \
     -packagelist ../inc_openoffice/unix/packagelist.txt \
     -buildid $build -destdir %d \
-    -simple %p/lib/%n
+    -simple %p/Applications
   popd
 
   # Some dirty hacks to reduce disk consumption -- again
 
-  # Don't recurse in symlinks on cleaning
-  /usr/bin/sed -i .bak 's/-f $item/( -l $item ) || ( -f $item )/' \
-    $SOLARENV/bin/modules/installer/systemactions.pm
   # Surpress further unzipping from now on
-  /usr/bin/sed -i .bak \
-    -e 's|\(.installer::globals::unzippath -o -q[^"]*\)|if [ -d %b/instsetoo_native/util/OpenOffice/zipfiles/en-US/00/$onefilename ]; then /bin/rmdir $unzipdir; /bin/ln -s %b/instsetoo_native/util/OpenOffice/zipfiles/en-US/00/$onefilename `/usr/bin/dirname ${unzipdir}foo`; elif [ -d %b/instsetoo_native/util/OpenOffice/zipfiles/en-US/en-US/$onefilename ]; then /bin/rmdir $unzipdir; /bin/ln -s %b/instsetoo_native/util/OpenOffice/zipfiles/en-US/en-US/$onefilename `/usr/bin/dirname ${unzipdir}foo`; else \1; fi|' \
-    -e 's/installer::systemactions::copy_one_file/installer::systemactions::hardlink_one_file/' \
+  /usr/bin/sed -i .bak2 \
+    's|\(.installer::globals::unzippath -o -q[^"]*\)|if [ -d %b/instsetoo_native/util/OpenOffice/zip/en-US/00/$onefilename ]; then /bin/rmdir $unzipdir; /bin/ln -s %b/instsetoo_native/util/OpenOffice/zip/en-US/00/$onefilename `/usr/bin/dirname ${unzipdir}foo`; elif [ -d %b/instsetoo_native/util/OpenOffice/zip/en-US/en-US/$onefilename ]; then /bin/rmdir $unzipdir; /bin/ln -s %b/instsetoo_native/util/OpenOffice/zip/en-US/en-US/$onefilename `/usr/bin/dirname ${unzipdir}foo`; else \1; fi|' \
     $SOLARENV/bin/modules/installer/archivefiles.pm
 
   # Remove the list files
@@ -404,12 +404,11 @@ InstallScript: <<
   # Convenience symlinks
   /usr/bin/install -m 755 -d %i/bin
   for bin in base calc draw impress math writer; do
-    /bin/ln -s ../lib/%n/program/s${bin} %i/bin
-    /bin/ln -s s${bin} %i/bin/oo${bin}
+    /bin/ln -s "../Applications/OpenOffice.org 2.2.app/Contents/MacOS/program/s${bin}" %i/bin
+    /bin/ln -s "../Applications/OpenOffice.org 2.2.app/Contents/MacOS/program/s${bin}" %i/bin/oo${bin}
   done
-  /bin/ln -s ../lib/%n/program/soffice %i/bin
-  /usr/bin/sed -e "s/ -calc//" %i/lib/%n/program/scalc > %i/bin/ooffice
-  /bin/chmod 755 %i/bin/ooffice
+  /bin/ln -s "../Applications/OpenOffice.org 2.2.app/Contents/MacOS/program/soffice" %i/bin
+  /bin/ln -s "../Applications/OpenOffice.org 2.2.app/Contents/MacOS/program/soffice" %i/bin/ooffice
 
   # Symlink libdb_java-4.2.jnilib so that Java can find it
   /bin/ln -s %p/lib/libdb_java-4.2.jnilib %i/lib/%n/program
@@ -421,15 +420,10 @@ InstallScript: <<
 
   # Install DocFiles
   /usr/bin/install -m 755 -d %i/share/doc/%n
-  /bin/ln -s %i/lib/%n/LICENSE %i/share/doc/%n/LICENSE
+  /bin/mv %i/Applications/{LICENSEs,READMEs} %i/share/doc/%n
 
   # Currently, Fink cannot handle "OpenOffice.org 2.0.app"
   # (which contains space character) with AppBundles field.
-  /usr/bin/install -d -m 755 %i/Applications
-  /usr/bin/tar -xf $STAR_RESOURCEPATH/OpenOffice.org.app.tar -C %i/Applications
-  /bin/mv %i/Applications/OpenOffice.org.app "%i/Applications/OpenOffice.org 2.0.app"
-  /bin/ln -s %p/lib/%n "%i/Applications/OpenOffice.org 2.0.app/Contents/openoffice.org"
-  /bin/chmod -R o-w '%i/Applications/'
   [ -x /Developer/Tools/SplitForks ] && /Developer/Tools/SplitForks '%i/Applications/'
 
   # End of Install Phase. Proceeding to install language packs...
@@ -439,10 +433,10 @@ InstallScript: <<
 PostInstScript: <<
   %p/sbin/update-ooo-fonts
   [ ! -e /Applications/Fink ] && /usr/bin/install -d -m 755 /Applications/Fink
-  /bin/ln -s '%p/Applications/OpenOffice.org 2.0.app' /Applications/Fink/
+  /bin/ln -s '%p/Applications/OpenOffice.org 2.2.app' /Applications/Fink/
 <<
 PreRmScript: %p/sbin/update-ooo-fonts --clean
-PostRmScript: /bin/rm -f '/Applications/Fink/OpenOffice.org 2.0.app'
+PostRmScript: /bin/rm -f '/Applications/Fink/OpenOffice.org 2.2.app'
 
 Homepage: http://www.openoffice.org/
 
