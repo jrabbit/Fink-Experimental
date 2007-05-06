@@ -6,7 +6,7 @@ dnl Usage: m4 -DTREE=xxx [-DMODE=Normal|DumpMirrors|DumpSnapshotMirrors] openoff
 dnl ### Configurations ###
 ifdef([MODE],,
  [define([MODE], [Normal])])
-define([BASEVERSION], [[2.2]])
+define([BASEVERSION], [[2.2.0]])
 define([SNAPSHOT], [[m15]])
 define([SOURCE_MD5], [[994606c18a48ab073e2394b373e228a8]])
 define([REVISION_10_3], 1)
@@ -354,20 +354,17 @@ ConfigureParams: <<
   --disable-systray \
   --disable-kde \
   --with-system-freetype \
-  --with-system-boost \
   --without-nas \
   --with-system-libxml \
-  --with-system-python \
-]
+  --with-system-python \]
 ifelse(USE_FINK_PYTHON, 1,
   IF_10_4(
-[[  --with-python-libs="-L%p/lib/python2.4/config -lpython2.4"]],
-[[  --with-python-libs="$(%p/bin/python2.5-config --ldflags)"]])
-[[ \
-]])dnl
+[[  --with-python-libs="$(%p/bin/python2.5-config --ldflags)" \]],
+[[  --with-python-libs="-L%p/lib/python2.4/config -lpython2.4" \]])
+)dnl
 IF_CRYPTO(
-[  IF_10_4([[--with-seamonkey \]])
-   IF_FIREFOX([[--with-firefox ]])[--with-system-mozilla \]],
+[  [--with-system-mozilla \]]
+IF_10_4([[  --with-seamonkey]])IF_FIREFOX([[  --with-firefox]])[[ \]],
 [[  --disable-mozilla --enable-openldap \]])
 [  --enable-libsn
 <<
@@ -429,18 +426,16 @@ CompileScript: <<
 
   # $PKG_CONFIG_PATH is needed to configure with freetype219, pango1-xft2-xft219
   export PKG_CONFIG_PATH=%p/lib/freetype219/lib/pkgconfig:%p/lib/pango-xft219/lib/pkgconfig
-
 ]
 ifelse(USE_FINK_PYTHON, 1,
 [IF_10_4(
 [[  # $PYTHON is needed to configure with python25
   export PYTHON=%p/bin/python2.5]],
 [[  # $PYTHON is needed to configure with python24
-  export PYTHON=%p/bin/python2.4]]),
+  export PYTHON=%p/bin/python2.4]])],
 [[  # $PYTHON is needed to configure with the Darwin's python
   export PYTHON=/usr/bin/python]])
 [
-
   /usr/bin/printf "[ Phase 1: Configure ]\n\n" >&3
   (cd config_office && ./configure %c) >&3 2>&3 || exit
 
@@ -574,7 +569,6 @@ ifelse(USE_FINK_PYTHON, 0,
 ifelse(eval(USE_FIREFOX || !USE_CRYPTO), 1,
 [[  /bin/ln -s %n %i/lib/openoffice.org
 ]])dnl
-
 [  # Symlink libdb_java-4.2.jnilib so that Java can find it
   /bin/ln -s %p/lib/libdb_java-4.2.jnilib "%i/Applications/OpenOffice.org 2.2.app/Contents/MacOS/program"
 
