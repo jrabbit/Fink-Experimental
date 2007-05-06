@@ -6,11 +6,10 @@ dnl Usage: m4 -DTREE=xxx [-DMODE=Normal|DumpMirrors|DumpSnapshotMirrors] openoff
 dnl ### Configurations ###
 ifdef([MODE],,
  [define([MODE], [Normal])])
-define([BASEVERSION], [[2.1]])
-define([SNAPSHOT], [[m5]])
-define([SOURCE_MD5], [[c95bd80c5cc46e1f88e7f3069c370585]])
+define([BASEVERSION], [[2.2]])
+define([SNAPSHOT], [[m15]])
+define([SOURCE_MD5], [[994606c18a48ab073e2394b373e228a8]])
 define([REVISION_10_3], 1)
-define([REVISION_10_4_TRANSITIONAL], 101)
 define([REVISION_10_4], 1001)
 define([REVISION_SUFFIX],[])
 ifdef([USE_FINK_PYTHON],,
@@ -20,9 +19,8 @@ ifdef([USE_FIREFOX],,
 ifdef([USE_CRYPTO],,
  [define([USE_CRYPTO], 1)])
 define([RELEASE_SOURCE], [[stable/%v/OOo_%v_src.tar.gz]])
-define([SNAPSHOT_SOURCE], [[OOo_OOF680_m5_source.tar.bz2]])
-dnl define([SNAPSHOT_SOURCE], [[OOo_2.0.]SNAPSHOT[_src.tar.gz]])
-define([SOURCE_DIRECTORY], [[OOF680_m5]])
+define([SNAPSHOT_SOURCE], [[OOo_OOF680_m15_source.tar.bz2]])
+define([SOURCE_DIRECTORY], [[OOF680_m15]])
 
 dnl ### Macro Library ###
 dnl Replace uppercases of $1 to lowercases.
@@ -54,19 +52,15 @@ ifdef([SNAPSHOT],
 
 ifelse(MODE, [Normal],
  [ifdef([TREE],
-   [ifelse(TREE, [10.3],
-     [define([REVISION], [REVISION_10_3])],
-     TREE, [10.4-transitional],
-     [define([REVISION], [REVISION_10_4_TRANSITIONAL])],
-     TREE, [10.4],
+   [ifelse(TREE, [10.4],
      [define([REVISION], [REVISION_10_4])],
      [ERREXIT([Wrong TREE])])],
    [ERREXIT([You must define the TREE])])])
 
 dnl Usage: IF_10_4([Action if 10.4 or higher])
-dnl        IF_10_4([Action if 10.4 or higher], [Action if 10.4-transitional or 10.3])
+dnl        IF_10_4([Action if 10.4 or higher], [Action if 10.3])
 ifelse(MODE, [Normal],
- [ifelse(eval(STR_EQ(TREE, [10.3]) || STR_EQ(TREE, [10.4-transitional])), 1,
+ [ifelse(eval(STR_EQ(TREE, [10.3])), 1,
    [define([IF_10_4], [$2])],
    [define([IF_10_4], [$1])])])
 
@@ -122,12 +116,12 @@ BuildConflicts: libicu32-dev
 BuildDepends: <<
   x11-dev, ant, bison, coreutils, system-java14-dev,
   archive-zip-pm]PERLVERSION[,
-  libjpeg, expat, freetype219, libxml2,
-  sane-backends-dev, libcurl3-unified, libsndfile1-dev,
-  portaudio (>= 18.1-1), neon26,
+  libjpeg, expat1, freetype219, libxml2,
+  sane-backends-dev, libcurl4, libsndfile1-dev,
+  portaudio (>= 18.1-1), neon25,
   libart2, startup-notification-dev, libgettext3-dev,
-  atk1, gtk+2-dev, orbit2-dev, pango1-xft2-dev,
-  libiconv-dev, openldap23-dev,]
+  atk1, gtk+2-dev, orbit2-dev, pango1-xft2-ft219-dev,
+  fontconfig2-dev, libiconv-dev, openldap23-dev,]
 IF_10_4(
 [[  libwpd-0.8-dev (>= 0.8.2-1001), glib2-dev (>= 2.6.6-1111),
   db42-ssl (>= 4.2.52-1017) | db42 (>= 4.2.52-1017),
@@ -138,22 +132,23 @@ IF_10_4(
 IF_CRYPTO(
  [IF_FIREFOX(
    [[  firefox-dev]IF_10_4([[ (>= 1.0.7-1007)]]),],
-   [[  mozilla-dev]IF_10_4([[ (>= 1.7.5-1102)]]),])
+   [[  seamonkey-dev],])
 ])dnl
 ifelse(USE_FINK_PYTHON, 1,
-[[  boost1.32-py24]IF_10_4([[ (>= 1.32.0-1002)]])[, python24]IF_10_4([[ (>= 1:2.4.2-1004)]]),],
-[[  boost1.32-py23]IF_10_4([[ (>= 1.32.0-1002)]])[ | boost1.32-py24]IF_10_4([[ (>= 1.32.0-1002)]]),])
-[  pkgconfig, popt, autoconf2.5
+  [IF_10_4(
+    [[  python25],],
+    [[  python24],])])
+[  pkgconfig, popt, fink (>= 0.24.12)
 <<
 
 Depends: <<
   x11, system-java14, system-perl,
-  libjpeg-shlibs, expat-shlibs, freetype219-shlibs, libxml2-shlibs,
-  sane-backends-shlibs, libcurl3-unified-shlibs, libsndfile1-shlibs,
-  portaudio-shlibs (>= 18.1-1), neon26-shlibs,
+  libjpeg-shlibs, expat1-shlibs, freetype219-shlibs, libxml2-shlibs,
+  sane-backends-shlibs, libcurl4-shlibs, libsndfile1-shlibs,
+  portaudio-shlibs (>= 18.1-1), neon25-shlibs,
   libart2-shlibs, startup-notification-shlibs,
-  atk1-shlibs, gtk+2-shlibs, libgettext3-shlibs, pango1-xft2-shlibs,
-  libiconv, openldap23-shlibs,]
+  atk1-shlibs, gtk+2-shlibs, libgettext3-shlibs, pango1-xft2-ft219-shlibs,
+  fontconfig2-shlibs, libiconv, openldap23-shlibs,]
 IF_10_4(
 [[  libwpd-0.8-shlibs (>= 0.8.2-1001), glib2-shlibs (>= 2.6.6-1111),
   db42-ssl-shlibs (>= 4.2.52-1017) | db42-shlibs (>= 4.2.52-1017),
@@ -167,11 +162,13 @@ IF_CRYPTO(
  [IF_FIREFOX(
    [[  firefox-shlibs]IF_10_4([[ (>= 1.0.7-1007)]]),],
    [IF_10_4(
-     [[  mozilla-shlibs (>= 1.7.5-1102), mozilla-mailnews (>= 1.7.5-1102),]],
+     [[  seamonkey-shlibs,]],
      [[  mozilla-shlibs, mozilla-mailnews,]])])
 ])dnl
 ifelse(USE_FINK_PYTHON, 1,
-[[  python24-shlibs]IF_10_4([[ (>= 1:2.4.2-1004)]]),
+ [IF_10_4(
+    [[  python25-shlibs,]],
+    [[  python24-shlibs,]])
 ])dnl
 [  fondu
 <<
@@ -299,31 +296,39 @@ MIRROR(1, [nam-US], [http://openoffice.mirrors.tds.net/pub/openoffice/])
 ifelse(eval((STR_EQ(MODE, [Normal]) && DEFINED([SNAPSHOT])) ||
              STR_EQ(MODE, [DumpSnapshotMirrors])),
   1, [divert(0)], [divert(-1)])dnl
-MIRROR(1, [asi-JP], [http://www.sodan.ecc.u-tokyo.ac.jp/~shinra/distfiles/])
-MIRROR(1, [asi-JP], [http://www.j10n.org/files/])
 MIRROR(1, [Primary], [ftp://ooopackages.good-day.net/pub/OpenOffice.org/sources/])
 ifelse(MODE, [Normal], [divert(0)], [divert(-1)])dnl
 [<<
 Source: mirror:custom:]SOURCE[
 Source-MD5: ]SOURCE_MD5[
 SourceDirectory: ]SOURCE_DIRECTORY[
-Source2: ftp://ooopackages.good-day.net/pub/OpenOffice.org/MacOSX/OOF680_m5/buildscript.OOF680_m5.MacOSXIntel.tar.gz
-Source2-MD5: 3f34cc231e128b3a33af7f5cfd1906d9
+Source2: http://tools.openoffice.org/unowinreg_prebuild/680/unowinreg.dll
+Source2-MD5: e3a0b76dcd876f3d721ee7183729153d
 
+PatchFile: %n.patch
+PatchFile-MD5: ad374fb2df0ca5d05cd205c02518ba4b
 PatchScript: <<
-  /usr/bin/patch -p0 < %a/openoffice.org.patch
-#  for patch in ../patches/patch-i?????; do /usr/bin/patch -p0 < $patch; done
-  /bin/ln ../patches/unowinreg.dll external/unowinreg
+  #!/bin/bash -ev
+  /usr/bin/sed 's|@PREFIX@|%p|g;s|@PKGNAME@|%n|g' %{PatchFile} | /usr/bin/patch -p0
   chmod a+x languagepack-splitoff
+  /bin/ln ../unowinreg.dll ./external/unowinreg/
+
+  if osacompile -o test ./desktop/macosx/source/main.applescript >/dev/null 2>&1; then
+    :
+  elif /usr/libexec/StartupItemContext /usr/bin/osacompile -o test ./desktop/macosx/source/main.applescript >/dev/null 2>&1; then
+    /usr/bin/sed -i.bak "s|osacompile|/usr/libexec/StartupItemContext /usr/bin/osacompile|g" ./desktop/macosx/source/makefile.mk
+  else
+    echo "osacompile failed. This is typically for you don't have root access."
+    false
+  fi
 <<
 
 GCC: ]IF_10_4(4.0, 3.3)[
-SetCPPFLAGS: -I%p/include/db4 -I%p/include/boost
+SetCPPFLAGS: -I%p/include/db4
 ConfigureParams: <<
   --with-gnu-cp=%p/lib/coreutils/bin/cp \
   --disable-epm \
   --with-lang=ALL \
-  --disable-systray \
   --with-x --x-includes=/usr/X11R6/include --x-libraries=/usr/X11R6/lib \
   --with-jdk-home="$JAVA_HOME" --with-ant-home=%p/lib/ant \
   --disable-crashdump \
@@ -346,69 +351,68 @@ ConfigureParams: <<
   --with-system-jpeg \
   --with-system-expat \
   --enable-gtk \
+  --disable-systray \
   --disable-kde \
   --with-system-freetype \
   --with-system-boost \
   --without-nas \
   --with-system-libxml \
-  --with-system-python \]
+  --with-system-python \
+]
 ifelse(USE_FINK_PYTHON, 1,
-[[  --with-python-libs="-L%p/lib/python2.4/config -lpython2.4" \
+  IF_10_4(
+[[  --with-python-libs="-L%p/lib/python2.4/config -lpython2.4"]],
+[[  --with-python-libs="$(%p/bin/python2.5-config --ldflags)"]])
+[[ \
 ]])dnl
 IF_CRYPTO(
-[  IF_FIREFOX([[--with-firefox ]])[--with-system-mozilla \]],
-[[  --disable-mozilla \]])
-[  --enable-openldap \
-  --enable-libsn
+[  IF_10_4([[--with-seamonkey \]])
+   IF_FIREFOX([[--with-firefox ]])[--with-system-mozilla \]],
+[[  --disable-mozilla --enable-openldap \]])
+[  --enable-libsn
 <<
 
 CompileScript: <<
-  #!/bin/bash
-
-  set -e
+  #!/bin/bash -ev
 
   if ${CXX:-"g++"} --version | /usr/bin/grep -q 'build 5250'; then
     echo "Xcode 2.2.1 is buggy." >&2
     exit 2
   fi
 
-  echo "[ Message from OpenOffice.org package maintainer ] ================="
-  echo
-  echo "Welcome to OpenOffice.org build script!"
-  echo
-  echo "Notice for builders:"
-  echo
-  echo "1. This building process may take a couple of day or more,"
-  echo "   and often fails with errors."
-  echo "2. This building process may consume much of your disk space,"
-  echo "   possibly up to 10GB."
-  echo "3. This building process needs your own WindowServer process."
-  echo "   i.e, it is not possible to build through simple SSH connection."
-  echo "   This is because the building process uses /usr/bin/osacompile ."
-  echo "   (This limitation would be removed in the future release.)"
-  echo
-  echo "If you faced a building problem, feel free to mail the maintainer,"
-  echo "preferably with your environment (gcc's version, etc.) and"
-  echo "the build log."
-  echo "You can find the logs here:"
-  echo "   %b/%n-%v-%r.buildlog"
-  echo
-  echo "The mail address is: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>"
-  echo
-  echo "Please understand this Fink package is still unstable."
-  echo
-  echo "===================================================================="
-  echo
-  echo "If you are ready, press RETURN/ENTER to proceed..."
+: "[ Message from OpenOffice.org package maintainer ] ================="
+:
+: "Welcome to OpenOffice.org build script!"
+:
+: "Notice for builders:"
+:
+: "1. This building process may take a couple of day or more,"
+: "   and often fails with errors."
+: "2. This building process may consume much of your disk space,"
+: "   possibly up to 10GB."
+: "3. This building process needs your own WindowServer process."
+: "   i.e, it is not possible to build through simple SSH connection."
+: "   This is because the building process uses /usr/bin/osacompile ."
+: "   /usr/libexec/StartupItemContext will be used if you are root."
+:
+: "If you faced a building problem, feel free to mail the maintainer,"
+: "preferably with your environment (gcc's version, etc.) and"
+: "the build log."
+: "You can find the logs here:"
+: "   %b/%n-%v-%r.buildlog"
+:
+: "The mail address is: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>"
+:
+: "Please understand this Fink package is still unstable."
+:
+: "===================================================================="
+:
+: "If you are ready, press RETURN/ENTER to proceed..."
 
   read -t 60 || true
 
-  echo
-
   # Record the time
   STARTTIME=`/bin/date +"%%F %%T %%Z(%%z)"`
-
-  set -v
 
   # Check the architecture
   case %m in
@@ -423,18 +427,22 @@ CompileScript: <<
   # $X_LDFLAGS is needed to configure with X correctly.  
   export X_LDFLAGS=$LDFLAGS
 
-  # $PKG_CONFIG_PATH is needed to configure with freetype219
-  export PKG_CONFIG_PATH=%p/lib/freetype219/lib/pkgconfig
+  # $PKG_CONFIG_PATH is needed to configure with freetype219, pango1-xft2-xft219
+  export PKG_CONFIG_PATH=%p/lib/freetype219/lib/pkgconfig:%p/lib/pango-xft219/lib/pkgconfig
+
 ]
 ifelse(USE_FINK_PYTHON, 1,
+[IF_10_4(
+[[  # $PYTHON is needed to configure with python25
+  export PYTHON=%p/bin/python2.5]],
 [[  # $PYTHON is needed to configure with python24
-  export PYTHON=%p/bin/python2.4]],
+  export PYTHON=%p/bin/python2.4]]),
 [[  # $PYTHON is needed to configure with the Darwin's python
   export PYTHON=/usr/bin/python]])
 [
 
   /usr/bin/printf "[ Phase 1: Configure ]\n\n" >&3
-  (cd config_office && autoconf && ./configure %c) >&3 2>&3 || exit
+  (cd config_office && ./configure %c) >&3 2>&3 || exit
 
   /usr/bin/printf "\n\n[ Phase 2: Bootstrap ]\n\n" >&3
   ./bootstrap >&3 2>&3
@@ -449,44 +457,34 @@ ifelse(USE_FINK_PYTHON, 1,
     MacOSX${machine}Env.Set MacOSX${machine}Env.Set.sh
 
   /bin/mkdir FINKLIBS
-  /bin/ln -s %p/lib/libdb_java-4.2.jnilib FINKLIBS]
-ifelse(TREE, [10.4-transitional],
-[[  # Xcode >= 2.2 has /usr/lib/libsupc++.a, which follows GCC 4.0 ABI.
-  # Unfortunately, g++-3.3 finds libsupc++.a at /usr/lib if -L/usr/lib is given.
-  /bin/ln -s /usr/lib/gcc/darwin/3.3/libsupc++.a FINKLIBS
-]])dnl
-[
+  /bin/ln -s %p/lib/libdb_java-4.2.jnilib FINKLIBS
+
   # Retry forever to build OOo until success!
   while :; do
     /usr/bin/printf "\n\n[ Phase 3: Make ]\n\n" >&3
     . ./MacOSX${machine}Env.Set.sh
     dmake >&3 2>&3 && break
 
-    echo
-    echo "[ Message from OpenOffice.org package maintainer ] ================="
-    echo
-    echo "Building OpenOffice.org faild with an error."
-    echo "Now you can get rid of the cause by hand, or call for help."
-    echo "The build directory is:"
-    echo "  %b"
-    echo "and the full log file is available here:"
-    echo "  %b/%n-%v-%r.buildlog"
-    echo
-    echo "===================================================================="
-    echo
-    echo "Press RETURN/ENTER to exit or input any key to restart dmake..."
+    echo 'begin-base64 644 /dev/stdout
+H4sIAEZ6OUYAA51QvW6EMAze/RTfA/Rye6VKqBJjuQrRqeoQwIGIkCAT7srb11y361ZLlpzvx479
+iTdeVzswnKQZl4XjxTnfsUkyYLHddHCz9TFrsuALL49B9Lr50Ps4PPqdVRw3n0fYCBZJYqhKN+xp
+Q6fQwBnieySHPLJC28pod4w29k9IokgIcFqMHBZDjYraYxh6L9zlJDv8+kxA0ZJ67l3cpp6QdLwP
+rDTsVf9hW32MLPyrPhfxVFxPhZh7P5UT/dnsH0H0LnpR1GXzUVfnsmrKGjmBv30+FvJx2bJeY8fE
++0GoOlvJ6Gc7sTGG6AdmMhLhlAEAAA==
+====' | uudecode | gzip -dc | sed 's|@b|%b|g;s|@n|%n|g;s|@v|%v|g;s|@r|%r|g'
+
     read input
     [ -n "$input" ] || false
   done
 
-  set +v
-
   /usr/bin/printf "\n\n[ Phase 4: Statistics ]\n\n" >&3
-  echo
-  echo "[ Message from OpenOffice.org package maintainer ] ================="
-  echo
-  echo "Congratulations!"
-  echo "The building process of OpenOffice.org has completed!"
+: "[ Message from OpenOffice.org package maintainer ] ================="
+:
+: "Congratulations!"
+: "The building process of OpenOffice.org has completed!"
+:
+: "===================================================================="
+
   echo "   Started:   $STARTTIME" >&3
 
   ENDTIME=`/bin/date +"%%F %%T %%Z(%%z)"`
@@ -496,14 +494,10 @@ ifelse(TREE, [10.4-transitional],
   DISKUSAGE=`/usr/bin/du -sh %b | /usr/bin/cut -f1`
 
   echo "   $DISKUSAGE is used for this building process (not including tarball)." >&3
-  echo
-  echo "===================================================================="
 <<
 
 InstallScript: <<
-  #!/bin/bash
-
-  set  -e
+  #!/bin/bash -ev
 
   # Mainly, this InstallScript is derived from
   # "ooinstall" in ooo-build and instsetoo_native/util/makefile.mk
@@ -517,21 +511,23 @@ InstallScript: <<
     *) echo 'Unknown architecture'; exit 1;;
   esac
 
-  set -v
-
   # Variables needed to execute make_installer.pl
+  export GNUCOPY="/bin/ln"
   export OUT="../$INPATH"
   export LOCAL_OUT="$OUT"
   export LOCAL_COMMON_OUT="$OUT"
-  solarlibdir=$SOLARVER/$UPD/$INPATH/lib
+  solarlibdir=$SOLARVER/$INPATH/lib
   export PYTHONPATH=$SRC_ROOT/instsetoo_native/$INPATH/bin:$solarlibdir:$solarlibdir/python:$solarlibdir/python/lib-dynload
   build=`sed -n 's/^BUILD=\(.*\)$/\1/p' $SOLARENVINC/minor.mk`
 
   # Some dirty hacks to reduce disk consumption
 
   # Force make_installer.pl to use ln instead of cp
-  /usr/bin/sed -i .bak 's|cp -af|/bin/ln -f|' \
+  /usr/bin/sed -i .bak "s|'-af'|'-f'|" \
     $SOLARENV/bin/modules/installer/worker.pm
+  /usr/bin/sed -i .bak \
+    's/installer::systemactions::copy_one_file/installer::systemactions::hardlink_one_file/' \
+    $SOLARENV/bin/modules/installer/archivefiles.pm
   # Disable making download installation set  
   /usr/bin/sed -i .bak 's/$makedownload = .;/$makedownload = 0;/' \
     $SOLARENV/bin/modules/installer/globals.pm
@@ -545,18 +541,14 @@ InstallScript: <<
     -f openoffice.lst -l en-US -p OpenOffice \
     -packagelist ../inc_openoffice/unix/packagelist.txt \
     -buildid $build -destdir %d \
-    -simple %p/lib/%n
+    -simple %p/Applications
   popd
 
   # Some dirty hacks to reduce disk consumption -- again
 
-  # Don't recurse in symlinks on cleaning
-  /usr/bin/sed -i .bak 's/-f $item/( -l $item ) || ( -f $item )/' \
-    $SOLARENV/bin/modules/installer/systemactions.pm
   # Surpress further unzipping from now on
-  /usr/bin/sed -i .bak \
-    -e 's|\(.installer::globals::unzippath -o -q[^"]*\)|if [ -d %b/instsetoo_native/util/OpenOffice/zipfiles/en-US/00/$onefilename ]; then /bin/rmdir $unzipdir; /bin/ln -s %b/instsetoo_native/util/OpenOffice/zipfiles/en-US/00/$onefilename `/usr/bin/dirname ${unzipdir}foo`; elif [ -d %b/instsetoo_native/util/OpenOffice/zipfiles/en-US/en-US/$onefilename ]; then /bin/rmdir $unzipdir; /bin/ln -s %b/instsetoo_native/util/OpenOffice/zipfiles/en-US/en-US/$onefilename `/usr/bin/dirname ${unzipdir}foo`; else \1; fi|' \
-    -e 's/installer::systemactions::copy_one_file/installer::systemactions::hardlink_one_file/' \
+  /usr/bin/sed -i .bak2 \
+    's|\(.installer::globals::unzippath -o -q[^"]*\)|if [ -d %b/instsetoo_native/util/OpenOffice/zip/en-US/00/$onefilename ]; then /bin/rmdir $unzipdir; /bin/ln -s %b/instsetoo_native/util/OpenOffice/zip/en-US/00/$onefilename `/usr/bin/dirname ${unzipdir}foo`; elif [ -d %b/instsetoo_native/util/OpenOffice/zip/en-US/en-US/$onefilename ]; then /bin/rmdir $unzipdir; /bin/ln -s %b/instsetoo_native/util/OpenOffice/zip/en-US/en-US/$onefilename `/usr/bin/dirname ${unzipdir}foo`; else \1; fi|' \
     $SOLARENV/bin/modules/installer/archivefiles.pm
 
   # Remove the list files
@@ -573,48 +565,42 @@ ifelse(USE_FINK_PYTHON, 0,
 [  # Convenience symlinks
   /usr/bin/install -m 755 -d %i/bin
   for bin in base calc draw impress math writer; do
-    /bin/ln -s ../lib/%n/program/s${bin} %i/bin
-    /bin/ln -s s${bin} %i/bin/oo${bin}
+    /bin/ln -s "../Applications/OpenOffice.org 2.2.app/Contents/MacOS/program/s${bin}" %i/bin
+    /bin/ln -s "../Applications/OpenOffice.org 2.2.app/Contents/MacOS/program/s${bin}" %i/bin/oo${bin}
   done
-  /bin/ln -s ../lib/%n/program/soffice %i/bin
-  /usr/bin/sed -e "s/ -calc//" %i/lib/%n/program/scalc > %i/bin/ooffice
-  /bin/chmod 755 %i/bin/ooffice]
+  /bin/ln -s "../Applications/OpenOffice.org 2.2.app/Contents/MacOS/program/soffice" %i/bin
+  /bin/ln -s "../Applications/OpenOffice.org 2.2.app/Contents/MacOS/program/soffice" %i/bin/ooffice]
+
 ifelse(eval(USE_FIREFOX || !USE_CRYPTO), 1,
 [[  /bin/ln -s %n %i/lib/openoffice.org
 ]])dnl
 
 [  # Symlink libdb_java-4.2.jnilib so that Java can find it
-  /bin/ln -s %p/lib/libdb_java-4.2.jnilib %i/lib/%n/program
+  /bin/ln -s %p/lib/libdb_java-4.2.jnilib "%i/Applications/OpenOffice.org 2.2.app/Contents/MacOS/program"
 
   # Install update-ooo-fonts
   /usr/bin/install -m 755 -d %i/sbin
-  sed 's|@PREFIX@|%p|g;s|@PKGNAME@|%n|g' update-ooo-fonts.in > %i/sbin/update-ooo-fonts
-  /bin/chmod 755 %i/sbin/update-ooo-fonts
+  /usr/bin/install -m 755 update-ooo-fonts %i/sbin/update-ooo-fonts
 
   # Install DocFiles
   /usr/bin/install -m 755 -d %i/share/doc/%n
-  /bin/ln -s %i/lib/%n/LICENSE %i/share/doc/%n/LICENSE
+  /bin/mv %i/Applications/{LICENSEs,READMEs} %i/share/doc/%n
 
-  # Currently, Fink cannot handle "OpenOffice.org 2.0.app"
+  # Currently, Fink cannot handle "OpenOffice.org 2.2.app"
   # (which contains space character) with AppBundles field.
-  /usr/bin/install -d -m 755 %i/Applications
-  /usr/bin/tar -xf $STAR_RESOURCEPATH/OpenOffice.org.app.tar -C %i/Applications
-  /bin/mv %i/Applications/OpenOffice.org.app "%i/Applications/OpenOffice.org 2.0.app"
-  /bin/ln -s %p/lib/%n "%i/Applications/OpenOffice.org 2.0.app/Contents/openoffice.org"
-  /bin/chmod -R o-w '%i/Applications/'
   [ -x /Developer/Tools/SplitForks ] && /Developer/Tools/SplitForks '%i/Applications/'
 
   # End of Install Phase. Proceeding to install language packs...
 
 <<
-#AppBundles: instsetoo_native/unxmacxp.pro/OpenOffice/install/en-US_temp/OpenOffice.org*.app
+
 PostInstScript: <<
   %p/sbin/update-ooo-fonts
   [ ! -e /Applications/Fink ] && /usr/bin/install -d -m 755 /Applications/Fink
-  /bin/ln -s '%p/Applications/OpenOffice.org 2.0.app' /Applications/Fink/
+  /bin/ln -s '%p/Applications/OpenOffice.org 2.2.app' /Applications/Fink/
 <<
 PreRmScript: %p/sbin/update-ooo-fonts --clean
-PostRmScript: /bin/rm -f '/Applications/Fink/OpenOffice.org 2.0.app'
+PostRmScript: /bin/rm -f '/Applications/Fink/OpenOffice.org 2.2.app'
 
 Homepage: http://www.openoffice.org/
 
@@ -640,7 +626,7 @@ And furthermore, much advice from _rene_, ericb2, paveljanik, pmladek, shres
 and ssa @ irc://irc.freenode.net/OpenOffice.org . Thanks to all OOo persons!
 
 You can join discussions on porting here:
-http://porting.openoffice.org/servlets/SummarizeList?listName=dev
+http://porting.openoffice.org/servlets/SummarizeList?listName=mac
 
 It is reported that:
   * Mac OS X SDK (which comes with Xcode) is needed.
@@ -652,12 +638,6 @@ This script tries to make a symlink of it in %p/lib/%n/programs.
 DescPackaging: <<
 This finkinfo is maintained by m4. See experimental/asari/openoffice.org.info.m4.
 
-To Do 1: Report build failures on building nas (Network Audio System)
-  ( --without-nas or --with-system-nas )
-with internal nas, build fails on Panther. 
-
-"boost" is required on compile time, but not needed on runtime.
-
 These --with-system flags are not used because they are not in Fink:
    --with-system-mspack
    --with-system-myspell
@@ -665,13 +645,11 @@ These --with-system flags are not used because they are not in Fink:
    --with-system-altlinuxhyph
    --enable-evolution2
 
-Some comments about configure logs:
-# checking whether to enable fontconfig support... no
 Using fontconfig is not supported on Mac OS X.
 <<
 DescUsage: <<
 To start OpenOffice.org, type "soffice" on your terminal,
-or double-click "OpenOffice.org 2.0.app" icon located at /Applications/Fink .
+or double-click "OpenOffice.org 2.2.app" icon located at /Applications/Fink .
 
 To use GTK+ look and feel,
 set SAL_USE_VCLPLUGIN environmental variable to "gtk".
@@ -681,6 +659,7 @@ To update fonts, execute %p/sbin/update-ooo-fonts.
 <<]
 LANGUAGE([af])
 LANGUAGE([ar])
+LANGUAGE([as-IN])
 LANGUAGE([be-BY])
 LANGUAGE([bg])
 LANGUAGE([bn])
@@ -693,6 +672,7 @@ LANGUAGE([cs])
 LANGUAGE([cy])
 LANGUAGE([da])
 LANGUAGE([de])
+LANGUAGE([dz])
 LANGUAGE([el])
 LANGUAGE([en-GB])
 LANGUAGE([en-ZA])
@@ -715,10 +695,13 @@ LANGUAGE([ja])
 LANGUAGE([km])
 LANGUAGE([kn-IN])
 LANGUAGE([ko])
+LANGUAGE([ku])
 LANGUAGE([lo])
 LANGUAGE([lt])
 LANGUAGE([lv])
 LANGUAGE([mk])
+LANGUAGE([ml-IN])
+LANGUAGE([mr-IN])
 LANGUAGE([ms])
 LANGUAGE([nb])
 LANGUAGE([ne])
@@ -726,6 +709,7 @@ LANGUAGE([nl])
 LANGUAGE([nn])
 LANGUAGE([nr])
 LANGUAGE([ns])
+LANGUAGE([or-IN])
 LANGUAGE([pa-IN])
 LANGUAGE([pl])
 LANGUAGE([pt])
@@ -743,10 +727,15 @@ LANGUAGE([sw])
 LANGUAGE([sw-TZ])
 LANGUAGE([sx])
 LANGUAGE([ta-IN])
+LANGUAGE([te-IN])
+LANGUAGE([tg])
 LANGUAGE([th])
+LANGUAGE([ti-ER])
 LANGUAGE([tn])
 LANGUAGE([tr])
 LANGUAGE([ts])
+LANGUAGE([uk])
+LANGUAGE([ur-IN])
 LANGUAGE([ve])
 LANGUAGE([vi])
 LANGUAGE([xh])
