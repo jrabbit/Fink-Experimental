@@ -23,7 +23,7 @@ BuildDepends: <<
   db42-ssl (>= 4.2.52-1017) | db42 (>= 4.2.52-1017),
   libsablot-dev (>= 0.98-1024), libsablot (>= 0.98-1024),
   unixodbc2-nox (>= 2.2.11-1010) | unixodbc2 (>= 2.2.11-1010),
-  seamonkey-dev, python25 (>= 1:2.4.2-1004),
+  seamonkey-dev, python25,
   pkgconfig, popt, fink (>= 0.24.12)
 <<
 
@@ -170,17 +170,17 @@ Source2-MD5: e3a0b76dcd876f3d721ee7183729153d
 SourceDirectory: OOF680_m15
 
 PatchFile: %n.patch
-PatchFile-MD5: 15ab16df8f376dc7d13da0f6297f17a0
+PatchFile-MD5: ad374fb2df0ca5d05cd205c02518ba4b
 PatchScript: <<
   #!/bin/bash -ev
-  /usr/bin/patch -p0 < %{PatchFile}
+  /usr/bin/sed 's|@PREFIX@|%p|g;s|@PKGNAME@|%n|g' %{PatchFile} | /usr/bin/patch -p0
   chmod a+x languagepack-splitoff
-  /bin/mv ../unowinreg.dll ./external/unowinreg/
+  /bin/ln ../unowinreg.dll ./external/unowinreg/
 
-  if osacompile -o test desktop/macosx/source/main.applescript >/dev/null 2>&1; then
+  if osacompile -o test ./desktop/macosx/source/main.applescript >/dev/null 2>&1; then
     :
-  elif /usr/libexec/StartupItemContext /usr/bin/osacompile -o test desktop/macosx/source/main.applescript >/dev/null 2>&1; then
-    /usr/bin/sed -i.bak "s|osacompile|/usr/libexec/StartupItemContext /usr/bin/osacompile|g" desktop/macosx/source/makefile.mk
+  elif /usr/libexec/StartupItemContext /usr/bin/osacompile -o test ./desktop/macosx/source/main.applescript >/dev/null 2>&1; then
+    /usr/bin/sed -i.bak "s|osacompile|/usr/libexec/StartupItemContext /usr/bin/osacompile|g" ./desktop/macosx/source/makefile.mk
   else
     echo "osacompile failed. This is typically for you don't have root access."
     false
@@ -221,10 +221,9 @@ ConfigureParams: <<
   --without-nas \
   --with-system-libxml \
   --with-system-python \
-  --with-python-libs="-L%p/lib/python2.4/config -lpython2.4" \
+  --with-python-libs="$(%p/bin/python2.5-config --ldflags)" \
   --with-system-mozilla \
   --with-seamonkey \
-  --enable-openldap \
   --enable-libsn
 <<
 
@@ -249,7 +248,7 @@ CompileScript: <<
 : "3. This building process needs your own WindowServer process."
 : "   i.e, it is not possible to build through simple SSH connection."
 : "   This is because the building process uses /usr/bin/osacompile ."
-: "   (This limitation would be removed in the future release.)"
+: "   /usr/libexec/StartupItemContext will be used if you are root."
 :
 : "If you faced a building problem, feel free to mail the maintainer,"
 : "preferably with your environment (gcc's version, etc.) and"
@@ -303,7 +302,6 @@ CompileScript: <<
 
   /bin/mkdir FINKLIBS
   /bin/ln -s %p/lib/libdb_java-4.2.jnilib FINKLIBS
-  /bin/ln -s %p/lib/libiconv.2.dylib FINKLIBS
 
   # Retry forever to build OOo until success!
   while :; do
@@ -415,14 +413,13 @@ InstallScript: <<
 
   # Install update-ooo-fonts
   /usr/bin/install -m 755 -d %i/sbin
-  sed 's|@PREFIX@|%p|g;s|@PKGNAME@|%n|g' update-ooo-fonts.in > %i/sbin/update-ooo-fonts
-  /bin/chmod 755 %i/sbin/update-ooo-fonts
+  /usr/bin/install -m 755 update-ooo-fonts %i/sbin/update-ooo-fonts
 
   # Install DocFiles
   /usr/bin/install -m 755 -d %i/share/doc/%n
   /bin/mv %i/Applications/{LICENSEs,READMEs} %i/share/doc/%n
 
-  # Currently, Fink cannot handle "OpenOffice.org 2.0.app"
+  # Currently, Fink cannot handle "OpenOffice.org 2.2.app"
   # (which contains space character) with AppBundles field.
   [ -x /Developer/Tools/SplitForks ] && /Developer/Tools/SplitForks '%i/Applications/'
 
@@ -462,7 +459,7 @@ And furthermore, much advice from _rene_, ericb2, paveljanik, pmladek, shres
 and ssa @ irc://irc.freenode.net/OpenOffice.org . Thanks to all OOo persons!
 
 You can join discussions on porting here:
-http://porting.openoffice.org/servlets/SummarizeList?listName=dev
+http://porting.openoffice.org/servlets/SummarizeList?listName=mac
 
 It is reported that:
   * Mac OS X SDK (which comes with Xcode) is needed.
@@ -485,7 +482,7 @@ Using fontconfig is not supported on Mac OS X.
 <<
 DescUsage: <<
 To start OpenOffice.org, type "soffice" on your terminal,
-or double-click "OpenOffice.org 2.0.app" icon located at /Applications/Fink .
+or double-click "OpenOffice.org 2.2.app" icon located at /Applications/Fink .
 
 To use GTK+ look and feel,
 set SAL_USE_VCLPLUGIN environmental variable to "gtk".

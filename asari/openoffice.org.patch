@@ -45,9 +45,10 @@
 +
 +/usr/bin/install -m 755 -d $fink_i/share/doc/$fink_N-$lang1
 +/bin/mv $fink_i/Applications/{LICENSEs,READMEs} $fink_i/share/doc/$fink_N-$lang1
+
 ### Script to convert Mac OS X fonts to truetype fonts
 --- /dev/null	Tue Feb  7 11:38:20 2006
-+++ update-ooo-fonts.in	Tue Feb  7 11:37:47 2006
++++ update-ooo-fonts	Tue Feb  7 11:37:47 2006
 @@ -0,0 +1,52 @@
 +#!/bin/sh
 +set -e
@@ -101,6 +102,8 @@
 +  /bin/ln -sf "../fondu/$font" "truetype/$font"
 +done < fondu/fondu-ttf.tmp
 +/usr/bin/touch truetype/.fondudone
+
+### Avoid random failure on compiling Python on Panther
 ### No-op if --with-system-python
 --- python/makefile.mk	2005-12-29 01:57:47.000000000 +0900
 +++ python/makefile.mk.fink	2006-01-15 20:59:52.000000000 +0900
@@ -146,10 +149,27 @@
  	shift
      done
 
-### Force to link against /sw/lib/libpython.so
---- config_office/configure.in.orig	2007-01-19 21:55:19.000000000 +0900
-+++ config_office/configure.in	2007-05-03 09:32:33.000000000 +0900
-@@ -2937,11 +2937,7 @@
+### Add configure option to link against Fink's Python
+--- configure.in.orig	2007-05-07 05:09:11.000000000 +0900
++++ configure.in	2007-05-07 05:08:30.000000000 +0900
+@@ -286,6 +286,16 @@
+ AC_ARG_WITH(system-python,
+ [  --with-system-python    Use python already on system
+ ],,)
++AC_ARG_WITH(python-libs,
++[[  --with-python-libs[=auto|LIBS|none]
++                          Specify linker options to link the python library. [default=auto]
++                          This option does nothing without --with-system-python.
++]],[
++case $withval in
++   yes) with_python_libs=auto;;
++   no|"") with_python_libs=none;;
++esac
++],with_python_libs=auto)
+ AC_ARG_WITH(system-icu,
+ [  --with-system-icu       Use icu already on system
+ ],,)
+@@ -2937,11 +2947,16 @@
     python_version=`$PYTHON -c "import distutils.sysconfig; print distutils.sysconfig.get_config_var('VERSION');"`
     PYTHON_CFLAGS="-I$python_include"
  
@@ -158,14 +178,54 @@
 -   else
 -      PYTHON_LIBS="-lpython$python_version"
 -   fi
-+   PYTHON_LIBS=`python2.5-config --ldflags`
++   case $with_python_libs in
++      auto)
++      case $_os:$python_include in
++         Darwin:/System/*) PYTHON_LIBS="-framework Python" ;;
++         *) PYTHON_LIBS="-lpython$python_version" ;;
++      esac
++      ;;
++      none) PYTHON_LIBS= ;;
++      *) PYTHON_LIBS=$with_python_libs ;;
++   esac
     
     dnl check if the headers really work:
     save_CPPFLAGS="$CPPFLAGS"
 
---- config_office/configure.orig	2007-01-19 22:01:19.000000000 +0900
-+++ config_office/configure	2007-05-03 09:31:06.000000000 +0900
-@@ -11561,11 +11561,7 @@
+--- configure.orig	2007-05-07 05:09:20.000000000 +0900
++++ configure	2007-05-07 05:11:31.000000000 +0900
+@@ -1733,6 +1733,10 @@
+ 
+   --with-system-python    Use python already on system
+ 
++  --with-python-libs[=auto|LIBS|none]
++                          Specify linker options to link the python library. [default=auto]
++                          This option does nothing without --with-system-python.
++
+   --with-system-icu       Use icu already on system
+ 
+   --with-system-db        Use berkeley db already on system
+@@ -2788,6 +2792,19 @@
+ fi
+ 
+ 
++# Check whether --with-python-libs was given.
++if test "${with_python_libs+set}" = set; then
++  withval=$with_python_libs;
++case $withval in
++   yes) with_python_libs=auto;;
++   no|"") with_python_libs=none;;
++esac
++
++else
++  with_python_libs=auto
++fi
++
++
+ # Check whether --with-system-icu was given.
+ if test "${with_system_icu+set}" = set; then
+   withval=$with_system_icu;
+@@ -13061,11 +13078,16 @@
     python_version=`$PYTHON -c "import distutils.sysconfig; print distutils.sysconfig.get_config_var('VERSION');"`
     PYTHON_CFLAGS="-I$python_include"
  
@@ -174,7 +234,16 @@
 -   else
 -      PYTHON_LIBS="-lpython$python_version"
 -   fi
-+   PYTHON_LIBS=`python2.5-config --ldflags`
++   case $with_python_libs in
++      auto)
++      case $_os:$python_include in
++         Darwin:/System/*) PYTHON_LIBS="-framework Python" ;;
++         *) PYTHON_LIBS="-lpython$python_version" ;;
++      esac
++      ;;
++      none) PYTHON_LIBS= ;;
++      *) PYTHON_LIBS=$with_python_libs ;;
++   esac
  
        save_CPPFLAGS="$CPPFLAGS"
     CPPFLAGS="$CPPFLAGS $PYTHON_CFLAGS"
