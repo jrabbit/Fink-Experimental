@@ -357,11 +357,6 @@ ConfigureParams: <<
   --without-nas \
   --with-system-libxml \
   --with-system-python \]
-ifelse(USE_FINK_PYTHON, 1,
-  IF_10_4(
-[[  --with-python-libs="$(%p/bin/python2.5-config --ldflags)" \]],
-[[  --with-python-libs="-L%p/lib/python2.4/config -lpython2.4" \]])
-)dnl
 IF_CRYPTO(
 [  [--with-system-mozilla \]]
 IF_10_4([[  --with-seamonkey]])IF_FIREFOX([[  --with-firefox]])[[ \]],
@@ -437,7 +432,11 @@ ifelse(USE_FINK_PYTHON, 1,
   export PYTHON=/usr/bin/python]])
 [
   /usr/bin/printf "[ Phase 1: Configure ]\n\n" >&3
-  (cd config_office && ./configure %c) >&3 2>&3 || exit
+  (cd config_office && ./configure %c ] ifelse(USE_FINK_PYTHON, 1,
+  IF_10_4(
+[[--with-python-libs="$(%p/bin/python2.5-config --ldflags)"]],
+[[--with-python-libs="-L%p/lib/python2.4/config -lpython2.4"]])
+)[ ) >&3 2>&3 || exit
 
   /usr/bin/printf "\n\n[ Phase 2: Bootstrap ]\n\n" >&3
   ./bootstrap >&3 2>&3
