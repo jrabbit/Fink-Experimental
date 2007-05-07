@@ -306,7 +306,7 @@ Source2: http://tools.openoffice.org/unowinreg_prebuild/680/unowinreg.dll
 Source2-MD5: e3a0b76dcd876f3d721ee7183729153d
 
 PatchFile: %n.patch
-PatchFile-MD5: ad374fb2df0ca5d05cd205c02518ba4b
+PatchFile-MD5: 91f3a422c41b0bc0d3ef62d276174e71
 PatchScript: <<
   #!/bin/bash -ev
   /usr/bin/sed 's|@PREFIX@|%p|g;s|@PKGNAME@|%n|g' %{PatchFile} | /usr/bin/patch -p0
@@ -420,7 +420,7 @@ CompileScript: <<
   export X_LDFLAGS=$LDFLAGS
 
   # $PKG_CONFIG_PATH is needed to configure with freetype219, pango1-xft2-xft219
-  export PKG_CONFIG_PATH=%p/lib/freetype219/lib/pkgconfig:%p/lib/pango-xft219/lib/pkgconfig
+  export PKG_CONFIG_PATH=%p/lib/freetype219/lib/pkgconfig:%p/lib/pango-ft219/lib/pkgconfig
 ]
 ifelse(USE_FINK_PYTHON, 1,
 [IF_10_4(
