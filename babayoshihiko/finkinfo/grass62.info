@@ -24,7 +24,7 @@ Depends: <<
 <<
 BuildDepends: <<
 	gettext-tools (>= 0.14.5),
-	libiconv-dev, readline (>= 4.3-1028) | readline5 (>= 5.0-1004), libgettext3-dev, gettext-tools,
+	libiconv-dev, readline (>= 4.3-1028) | readline5 (>= 5.0-1004), libgettext3-dev,
 	fftw | fftw-mpi | fftw-absoft, 
 	gdal-dev (>= 1.3.1-1001), 
 	libjpeg, libpng3, libtiff, lesstif, 
@@ -60,10 +60,7 @@ Source-MD5: cbe14d34503a75e8102d2f56c7b527a7
 #SetLDFLAGS: -L%p/lib/grass62
 ConfigureParams: --with-includes='%p/include /usr/X11R6/include' --with-cxx --with-readline --with-dbm --with-odbc --with-postgres-includes=%p/include/postgresql --with-glw --with-freetype --with-freetype-includes=/usr/X11R6/include/freetype2 --with-freetype-libs=/usr/X11R6/lib --with-motif --with-glw-includes=/usr/X11R6/include --with-nls --with-proj --with-proj-includes=%p/include --with-proj-libs=%p/lib --with-gdal=%p/bin/gdal-config
 CompileScript: <<
-	./configure %c
-	
-	# perl -pi -e 's,msgfmt --statistics --tcl,echo msgfmt --statistics --tcl,g' locale/Makefile
-	
+	./configure %c	
 	make INST_DIR=%p/lib/grass-6.2
 <<
 
@@ -74,17 +71,13 @@ InstallScript: <<
   # Installing grass60
   make install INST_DIR=%i/lib/grass-6.2 BINDIR=%i/bin
   
-  # make symlink
-  pushd %i/lib
-  ln -s grass-6.2 grass
-  popd
-  
   # Fixing GISBASE path
   pushd %i/bin
   perl -pi -e 's,GISBASE=,GISBASE=%p/lib/grass-6.2 #,g' grass62
   popd
   
 <<
+
 DocFiles: AUTHORS CHANGES COPYING GPL.TXT INSTALL README REQUIREMENTS.html SUBMITTING TODO
 
 # Additional Phase.
@@ -151,6 +144,9 @@ SplitOff2: <<
            %p/lib/grass-6.2/lib/libgrass_vask.6.2.1.dylib         6.2.0 grass62 (>=6.2.1-1001)
            %p/lib/grass-6.2/lib/libgrass_vect.6.2.1.dylib         6.2.0 grass62 (>=6.2.1-1001)
   <<
+  PostInstScript: update-alternatives --install %p/lib/grass grass %p/lib/grass-6.2 62
+
+ PostRmScript: update-alternatives --remove grass %p/lib/grass-6.2
   DocFiles: COPYING GPL.TXT
 <<
 
