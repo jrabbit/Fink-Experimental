@@ -56,8 +56,6 @@ Source-MD5: e31887f84ff1f0c830c2b2e8760bbde7
 PatchScript: sed 's|@PREFIX@|%p|g' <%a/grass60.patch | patch -p1
 
 # Compile Phase.
-SetCPPFLAGS: -I%p/include/grass60
-SetLDFLAGS: -L%p/lib/grass60
 ConfigureParams: --with-includes='%p/include /usr/X11R6/include' --with-cxx --with-readline --with-dbm --with-odbc (%type_raw[-nopgsql] = -nopgsql) --without-postgres (%type_raw[-nopgsql] = .) --with-postgres (%type_raw[-nopgsql] = .) --with-postgres-includes=%p/include/postgresql --with-glw --with-freetype --with-freetype-includes=/usr/X11R6/include/freetype2 --with-freetype-libs=/usr/X11R6/lib --with-motif --with-glw-includes=/usr/X11R6/include --with-nls --with-proj --with-proj-includes=%p/include --with-proj-libs=%p/lib --with-gdal=%p/bin/gdal-config
 CompileScript: <<
 	./configure %c	
@@ -77,6 +75,10 @@ InstallScript: <<
   popd
   
 <<
+
+PostInstScript: update-alternatives --install %p/bin/grass grass %p/bin/grass60 60
+PostRmScript: update-alternatives --remove grass %p/bin/grass60
+
 DocFiles: AUTHORS CHANGES COPYING GPL.TXT INSTALL README REQUIREMENTS.html SUBMITTING TODO
 
 # Additional Phase.
@@ -143,9 +145,8 @@ SplitOff2: <<
            %p/lib/grass-6.0/lib/libgrass_vask.6.0.2.dylib         6.0.0 grass60 (>=6.0.1-1)
            %p/lib/grass-6.0/lib/libgrass_vect.6.0.2.dylib         6.0.0 grass60 (>=6.0.1-1)
   <<
-  PostInstScript: update-alternatives --install %p/lib/grass grass %p/lib/grass-6.0 60
-
- PostRmScript: update-alternatives --remove grass %p/lib/grass-6.0
+  PostInstScript: update-alternatives --install %p/lib/grass libgrass %p/lib/grass-6.0 60
+  PostRmScript: update-alternatives --remove libgrass %p/lib/grass-6.0
   DocFiles: COPYING GPL.TXT
 <<
 
