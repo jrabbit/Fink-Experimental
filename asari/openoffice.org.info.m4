@@ -306,7 +306,7 @@ Source2: http://tools.openoffice.org/unowinreg_prebuild/680/unowinreg.dll
 Source2-MD5: e3a0b76dcd876f3d721ee7183729153d
 
 PatchFile: %n.patch
-PatchFile-MD5: 78bd0acfe2105c0d551e1cad403c20ce
+PatchFile-MD5: a4ba8f8f3fddd338a6fb1a6ce6e2b216
 PatchScript: <<
   #!/bin/bash -ev
   /usr/bin/sed 's|@PREFIX@|%p|g;s|@PKGNAME@|%n|g' %{PatchFile} | /usr/bin/patch -p0
@@ -501,7 +501,7 @@ InstallScript: <<
   # Setting up environment
   case %m in
     powerpc) . ./MacOSXPPCEnv.Set.sh;;
-    i386) . ./MacOSXIntelEnv.Set.sh;;
+    i386) . ./MacOSXX86Env.Set.sh;;
     *) echo 'Unknown architecture'; exit 1;;
   esac
 
