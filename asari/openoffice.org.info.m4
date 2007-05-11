@@ -296,7 +296,8 @@ MIRROR(1, [nam-US], [http://openoffice.mirrors.tds.net/pub/openoffice/])
 ifelse(eval((STR_EQ(MODE, [Normal]) && DEFINED([SNAPSHOT])) ||
              STR_EQ(MODE, [DumpSnapshotMirrors])),
   1, [divert(0)], [divert(-1)])dnl
-MIRROR(1, [Primary], [ftp://ooopackages.good-day.net/pub/OpenOffice.org/sources/])
+MIRROR(1, [A], [http://fink.sodan.ecc.u-tokyo.ac.jp/pkgdists/])
+MIRROR(1, [B], [ftp://ooopackages.good-day.net/pub/OpenOffice.org/sources/])
 ifelse(MODE, [Normal], [divert(0)], [divert(-1)])dnl
 [<<
 Source: mirror:custom:]SOURCE[
