@@ -1,0 +1,158 @@
+Package: pidgin
+Version: 2.0.0
+Revision: 1001
+BuildDependsOnly: False
+Maintainer: Corey Halpin <chalpin@cs.wisc.edu>
+Conflicts: gaim, gaim-ssl
+Replaces: gaim, gaim-ssl
+BuildDepends: <<
+ graphviz,
+ doxygen,
+ system-openssl-dev,
+ aspell-dev (>= 0.50.5-1002),
+ atk1,
+ gstreamer-0.10-dev,
+ gettext-bin,
+ libgettext3-dev,
+ gettext-tools,
+ glib2-dev (>= 2.6.6-1111),
+ gtk+2-dev,
+ gtkspell2-dev (>= 2.0.4-1),
+ libao2,
+ libiconv-dev,
+ pango1-xft2-dev,
+ pkgconfig,
+ startup-notification-dev,
+ dbus-dev,
+ libgcrypt-dev,
+ gnutls12,
+ libgpg-error-dev,
+ libhowl-dev,
+ pth2-dev,
+ cyrus-sasl2-dev,
+ silc-toolkit,
+ sqlite3-dev
+<<
+Depends: <<
+ aspell-shlibs,
+ atk1-shlibs,
+ audiofile-shlibs,
+ libgettext3-shlibs,
+ glib2-shlibs,
+ gtk+2-shlibs,
+ gtkspell2-shlibs (>= 2.0.4-1),
+ gstreamer-0.10-shlibs,
+ libiconv,
+ pango1-xft2-shlibs,
+ startup-notification-shlibs,
+ dbus-shlibs,
+ libgcrypt-shlibs,
+ gnutls12-shlibs,
+ libgpg-error-shlibs,
+ libhowl-shlibs,
+ pth2-shlibs,
+ cyrus-sasl2-shlibs,
+ silc-toolkit-shlibs,
+ libpurple-shlibs,
+ sqlite3-shlibs
+<<
+Source: mirror:sourceforge:pidgin/%n-%v.tar.bz2
+Source-MD5: 132355d7e236d9c2820a2668621eef43
+Patch: %n.patch
+PatchScript: <<
+  perl -pi -e 's/__GG_LIBGADU_HAVE_OPENSSL/__GG_LIBGADU_HAVE_OPENSSL_BUT_I_DONT_CARE_PFFT/' configure
+  perl -pi -e 's/need_relink=yes/need_relink=no/' ltmain.sh
+#  patch -p0 < patches/perl_link_fix.patch
+<<
+ConfigureParams: <<
+ --mandir=%p/share/man \
+ --disable-dependency-tracking \
+ --enable-gnutls=yes \
+ --enable-nss=no \
+ --enable-cyrus-sasl \
+ --enable-cap=yes \
+ --with-x \
+ --disable-tcl \
+ --disable-tk  \
+ --disable-perl
+<<
+InstallScript: make install DESTDIR=%d
+SetCFLAGS: -Os -I%p/include/silc/
+SetSQLITE3_LIBS: -lsqlite3
+DocFiles: AUTHORS COPYING ChangeLog HACKING NEWS README
+SplitOff: <<
+  Package: libpurple
+  Description: Multi-protocol IM client library (dev files)
+  Depends: libpurple-shlibs
+  Files: <<
+    bin/purple-client-example
+    bin/purple-remote
+    bin/purple-send
+    bin/purple-send-async
+    bin/purple-url-handler
+    etc/gconf/schemas/purple.schemas
+    include/libpurple
+    lib/libpurple-client.dylib
+    lib/libpurple-client.la
+    lib/libpurple.dylib
+    lib/libpurple.la
+    lib/pkgconfig/purple.pc
+    share/aclocal/purple.m4
+    share/pixmaps/purple
+  <<
+<<
+SplitOff2: <<
+  Package: libpurple-shlibs
+  Description: Multi-protocol IM client library
+  Depends: <<
+   audiofile-shlibs,
+   libgettext3-shlibs,
+   glib2-shlibs,
+   libao2-shlibs,
+   libiconv,
+   startup-notification-shlibs,
+   dbus-shlibs,
+   libgcrypt-shlibs,
+   gnutls12-shlibs,
+   libgpg-error-shlibs,
+   libhowl-shlibs,
+   pth2-shlibs,
+   cyrus-sasl2-shlibs,
+   silc-toolkit-shlibs
+  <<
+  Files: <<
+    lib/libpurple-client.0.0.0.dylib
+    lib/libpurple-client.0.dylib
+    lib/libpurple.0.0.0.dylib
+    lib/libpurple.0.dylib
+    lib/purple-2
+  <<
+  Shlibs: <<
+    %p/lib/libpurple-client.0.0.0.dylib 14.0.0 %n (>= 1.4.4-1)
+    %p/lib/libpurple.0.0.0.dylib 14.0.0 %n (>= 1.4.4-1)
+  <<
+<<
+SplitOff3: <<
+  Package: finch
+  Depends: libpurple-shlibs
+  Description: Command-line IM client
+  Files: <<
+    bin/finch
+    include/finch
+    lib/finch
+    share/man/man1/finch.1
+  <<
+<<
+
+Description: Instant Messaging client
+DescDetail: <<
+Gaim is a clone of AOL's Instant Messenger client. It features
+nearly all of the functionality of the official AIM client while
+also being smaller and faster. Gaim also has plugins that let
+you use ICQ, Yahoo, MSN, IRC, Jabber, Napster, and Zephyr.
+<<
+DescPackaging: <<
+BuildDependsOnly is false because plugins may need the headers.
+<<
+Homepage: http://pidgin.im/
+License: GPL
