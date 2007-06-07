@@ -1,7 +1,6 @@
 Package: pidgin
 Version: 2.0.1
 Revision: 1001
-BuildDependsOnly: False
 Maintainer: Corey Halpin <chalpin@cs.wisc.edu>
 Conflicts: gaim, gaim-ssl
 Replaces: gaim, gaim-ssl
@@ -56,7 +55,6 @@ Source: mirror:sourceforge:pidgin/%n-%v.tar.bz2
 Source-MD5: 51062e232c1ba5429d8be43623983fdf
 Patch: %n.patch
 PatchScript: <<
-  perl -pi -e 's/__GG_LIBGADU_HAVE_OPENSSL/__GG_LIBGADU_HAVE_OPENSSL_BUT_I_DONT_CARE_PFFT/' configure
   perl -pi -e 's/need_relink=yes/need_relink=no/' ltmain.sh
 <<
 ConfigureParams: <<
@@ -71,11 +69,12 @@ ConfigureParams: <<
  --disable-perl \
  --disable-doxygen
 <<
-SetCFLAGS: -Os -I%p/include/silc/
+SetCFLAGS: -I%p/include/silc/
 InstallScript: make install DESTDIR=%d
 DocFiles: AUTHORS COPYING ChangeLog HACKING NEWS README
 SplitOff: <<
   Package: libpurple
+  BuildDependsOnly: true
   Description: Multi-protocol IM client library (dev files)
   Depends: libpurple-shlibs
   Files: <<
@@ -143,7 +142,6 @@ SplitOff3: <<
     share/man/man1/finch.1
   <<
 <<
-
 Description: Instant Messaging client
 DescDetail: <<
 Gaim is a clone of AOL's Instant Messenger client. It features
@@ -152,7 +150,16 @@ also being smaller and faster. Gaim also has plugins that let
 you use ICQ, Yahoo, MSN, IRC, Jabber, Napster, and Zephyr.
 <<
 DescPackaging: <<
-BuildDependsOnly is false because plugins may need the headers.
+ * libgnt is an ncurses display library.  Currently it lives in the finch
+   package.  If anything else ever starts to use it, I can move it into a
+   separate package.
+ * It's built with --disable-perl because I don't want to make separate pidgin
+   packages for each perl version out there.  If enough people want perl
+   scripting, I can be persuaded to change this.
+ * Documentation is not built, it can be found here:
+   http://www.pidgin.im/documentation.php/
+   Building the html docs would require doxygen and dot, and that's quite a bit
+   of build time.
 <<
 Homepage: http://pidgin.im/
 License: GPL
