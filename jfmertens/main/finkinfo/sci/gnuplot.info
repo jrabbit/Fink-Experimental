@@ -1,0 +1,87 @@
+Info2: <<
+Package: gnuplot%type_pkg[-nox]
+Version: 4.2.0
+Revision: 6
+Type: -nox (-nox . -max)
+Maintainer: Jeffrey Whitaker <jswhit@fastmail.fm>
+Conflicts: gnuplot, gnuplot-nox, gnuplot-max
+Replaces: gnuplot, gnuplot-nox, gnuplot-max
+Depends: <<
+  aquaterm, aquaterm-shlibs, (%type_raw[-nox] = -nox) freetype219-shlibs, (%type_raw[-nox] != -nox) gd2-shlibs,
+  (%type_raw[-nox] = -max) libggi2, libiconv, libjpeg-shlibs, libncurses5-shlibs,
+  libpng3-shlibs, ncurses, pdflib6-shlibs, (%type_raw[-nox] = -max)  plotutils-shlibs, readline5-shlibs, texinfo,
+  (%type_raw[-nox] = -max) tetex-base, (%type_raw[-nox] != -nox) x11
+<<
+BuildDepends: <<
+  aquaterm-dev, fink (>= 0.24.12), (%type_raw[-nox] = -nox) freetype219, (%type_raw[-nox] != -nox) gd2,
+  (%type_raw[-nox] = -nox) gd2-nox, (%type_raw[-nox] = -max) libggi2-dev, libiconv-dev, libjpeg, libncurses5,
+  libpng3, pdflib6, (%type_raw[-nox] = -max)  plotutils-dev, readline5, tetex-base, (%type_raw[-nox] != -nox) x11-dev
+<<
+# With pango-cairo, add "(%type_raw[-nox] = -max) wxgtk2.8," to builddeps
+GCC: 4.0
+Source: mirror:sourceforge:%{ni}/%{ni}-%v.tar.gz
+Source-MD5: f688a578ddb4c376fd7d91ce444a0745
+PatchFile: %{Ni}.patch
+PatchFile-MD5: d84f7111ef4c33b6331649247906bee9
+PatchScript:<<
+  perl -pi -e 's/\bClass\b/GP_Class/g' `find src -name \*.c -o -name \*.cpp -o -name \*.h`
+  sed -e 's,@FINKPREFIX@,%p,g' %{PatchFile} | patch -p1 
+<<
+NoSetLDFLAGS: true
+SetLIBRARY_PATH: %p/lib
+NoSetCPPFLAGS: true
+ConfigureParams: <<
+ --mandir='${prefix}/share/man' --libexecdir='${prefix}/lib' --infodir='${prefix}/share/info' \
+ --with-readline=gnu --disable-dependency-tracking \
+ --enable-history-file --enable-thin-splines --enable-rgip \
+ (%type_raw[-nox] = -nox) --without-x (%type_raw[-nox] != -nox) --with-x (%type_raw[-nox] != -max) --disable-wxwidgets \
+ (%type_raw[-nox] = -max) --with-kpsexpand (%type_raw[-nox] = -max) --with-plot=%p (%type_raw[-nox] = -max) --with-ggi=%p
+<<
+CompileScript: <<
+#!/bin/sh -ev
+ export CCACHE_DISABLE=1
+ export CPATH=%p/include
+ export PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:%p/lib/freetype219/lib/pkgconfig
+./configure %c
+ make 
+<<
+InstallScript: <<
+ #!/bin/sh -ev
+ make install DESTDIR=%d
+ mv %i/bin/gnuplot %i/bin/gnuplotx
+ echo '#!/bin/sh' > %i/bin/gnuplot
+ echo 'export AQUATERM_PATH=%p/Applications/AquaTerm.app' >> %i/bin/gnuplot
+ echo 'case ${DISPLAY-0} in' >> %i/bin/gnuplot
+ echo ' 0) export GNUTERM=aqua ;;'  >> %i/bin/gnuplot
+ echo 'esac'  >> %i/bin/gnuplot
+ echo '%p/bin/gnuplotx "$@"' >> %i/bin/gnuplot
+ chmod 755 %i/bin/gnuplot
+ cd tutorial
+ make pdf
+ cd ../docs
+ make pdf
+ cd ..
+ mkdir -p %i/share/doc/%n
+ cp -R demo %i/share/doc/%n
+ cp -R tutorial %i/share/doc/%n
+ cp docs/gnuplot.pdf %i/share/doc/%n
+ mkdir %i/share/doc/%n/psdoc
+ cp docs/psdoc/*ps %i/share/doc/%n/psdoc
+ rm -f %i/share/emacs/site-lisp/*.elc
+<<
+DocFiles: BUGS INSTALL FAQ README NEWS ChangeLog Copyright
+InfoDocs: gnuplot.info
+Description: Command-driven interactive plotting program
+DescDetail: <<
+It can be used to plot functions and data points in both two- and 
+three-dimensional plots in many different formats, and will accommodate
+many of the needs of today's scientists for graphic data representation.
+<<
+DescPort: <<
+Uses Per Persson's aqua terminal (installed via the aquaterm package).
+gnuplot is a shell script that sets environment variables and invokes
+gnuplot binary (renamed to gnuplotx).
+<<
+Homepage: http://www.gnuplot.info/
+License: Restrictive/Distributable
+<<
