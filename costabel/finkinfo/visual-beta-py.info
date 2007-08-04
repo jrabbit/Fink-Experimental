@@ -1,0 +1,59 @@
+Info2: <<
+Package: visual-beta-py%type_pkg[python]
+Version: 4.beta16
+Revision: 1001
+Distribution: (%type_pkg[python] = 23) 10.3, (%type_pkg[python] = 23) 10.4
+Type: python (2.3 2.4 2.5)
+Source: mirror:sourceforge:visualpython/visual-%v.tar.bz2
+Source-MD5: 562f9da52cae5dd77578a4315d7b1864
+SourceDirectory: visual-%v
+License: BSD
+GCC: 4.0i
+Depends: x11-shlibs, gtk+-shlibs, python%type_pkg[python], scipy-py%type_pkg[python], boost1.33-shlibs, libglademm2.4-shlibs, gtkglextmm-shlibs 
+BuildDepends: glib, x11-dev, pkgconfig, gtkglarea, libgettext3-dev, boost1.33, libglademm2.4, gtkglextmm
+Conflicts: visual-py%type_pkg[python]
+Replaces: visual-py%type_pkg[python]
+PatchScript: <<
+ sed -e 's|@N@|%n|g;s|@XY@|%type_raw[python]|g' %a/%{ni}.patch | patch -p1
+ perl -pi -e 's| \-lboost_python (\-lboost_thread)| %p/lib/libboost_python-d.a \1-d|g' src/Makefile.in
+<<
+SetCPPFLAGS: -Wno-long-double
+CompileScript: <<
+#!/bin/sh -ex
+ export PKG_CONFIG_PATH=%p/lib/fontconfig2/lib/pkgconfig:%p/lib/xft2/lib/pkgconfig:%p/lib/freetype219/lib/pkgconfig
+ export PYTHON=%p/bin/python%type_raw[python]
+ export CXXFLAGS="-O2 -g -finline-functions"
+ export CFLAGS='-O3 -g ' 
+ ./configure --prefix=%p --disable-dependency-tracking
+ make
+<<
+InstallScript: <<
+#!/bin/sh -ex
+ mkdir -p %i/bin
+ make install DESTDIR=%d 
+ mv %i/bin/vpython %i/bin/vpython%type_raw[python]
+ mkdir -p %i/share/doc/%n
+ mv %i/lib/python%type_raw[python]/site-packages/visual/docs/* %i/share/doc/%n
+ rmdir %i/lib/python%type_raw[python]/site-packages/visual/docs
+ cat > %i/share/doc/%n/config-main.cfg <<EOF
+# Copy this file to your ~/.idlerc directory if it is not yet there
+[HelpFiles]
+1 = Visual;%p/share/doc/%n/index.html
+
+[EditorWindow]
+font-size = 12 
+EOF
+<<
+Description: VPython - 3D Programming for Ordinary Mortals
+DescDetail: <<
+ VPython uses Python with the IDLE interactive development environment
+ It includes "Visual", a Python module that offers real-time 3D output, 
+ and is easily usable by novice programmers
+ It also uses "Numeric", a Python module for fast processing of arrays
+<<
+DescUsage: <<
+ Start X11 first, then run the "vpython%type_raw[python]" command.
+<<
+Maintainer: Martin Costabel <costabel@wanadoo.fr>
+Homepage: http://vpython.org/index.html
+<<
