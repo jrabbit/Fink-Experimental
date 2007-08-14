@@ -1,0 +1,156 @@
+#!/usr/bin/perl
+
+use warnings;
+use strict;
+
+use XML::Simple;
+use Text::ParseWords;
+
+our $prefix = "/sw";
+our $daemonDir = "$prefix/etc/daemons";
+our $launchdaemonsDir = "/Library/LaunchDaemons";
+
+our @daemons;
+our $daemon;
+
+our $tablevel = 0;
+
+sub makekey {
+	my $key = shift(@_);
+	my $bool = shift(@_) || "";
+	
+	my $string = "\t" x $tablevel . "<key>$key</key>\n";
+	$string .= "\t" x $tablevel . "<true/>\n" if $bool eq "true";
+	$string .= "\t" x $tablevel . "<false/>\n" if $bool eq "false";
+	return $string;
+}
+
+sub makestring {
+	my $string = shift(@_);
+	
+	return "\t" x $tablevel . "<string>$string</string>\n";
+}
+
+sub beginarray {	
+	return "\t" x $tablevel++ . "<array>\n";
+}
+
+sub endarray {
+	return "\t" x --$tablevel . "</array>\n";
+}
+
+sub begindict {	
+	return "\t" x $tablevel++ . "<dict>\n";
+}
+
+sub enddict {
+	return "\t" x --$tablevel . "</dict>\n";
+}
+
+sub cmdarray {
+	my $words = shift(@_);
+	my $arg = shift(@_) || undef;
+	my $string = '';
+	
+	if (defined $words) {
+		$string .= makestring($arg) if defined $arg;
+		foreach (&shellwords($words)) {
+			$string .= makestring("$_") unless $_ eq "";
+		}
+		$string .= makestring(';');
+	}
+	return $string;
+}
+
+sub readdaemon
+{
+	opendir(DAEMONDIR, $daemonDir) or die "couldn't open directory $daemonDir: $!";
+	@daemons = grep /\.xml$/, readdir DAEMONDIR;
+	closedir DAEMONDIR;
+	
+	foreach (@daemons) {
+		s/\.xml$//;
+		$daemon = $_ if ($ARGV[1] eq $_);
+	}
+	
+	die "daemon `$ARGV[1]' not found.\n" unless $daemon;
+	
+	return XMLin("$daemonDir/$daemon.xml", ForceContent => 1, SuppressEmpty => 1);
+}
+
+sub enabledaemon
+{
+	my $daemonXML = readdaemon();
+	#print Dumper($daemonXML);
+	
+	my $daemonname = "org.finkproject.daemonic.$daemonXML->{daemon}->{name}";
+	my $startcmd;
+	if (exists $daemonXML->{daemon}->{startcmd}->{content}) {
+		$startcmd = $daemonXML->{daemon}->{startcmd}->{content};
+	} else {
+		$startcmd = $daemonXML->{daemon}->{executable}->{content};
+		$startcmd .= $daemonXML->{daemon}->{parameters}->{content} if exists $daemonXML->{daemon}->{parameters}->{content};
+	}
+	my $stopcmd = $daemonXML->{daemon}->{stopcmd}->{content} || undef;
+	my $restartcmd = $daemonXML->{daemon}->{restartcmd}->{content} || undef;
+	my $pidfile = $daemonXML->{daemon}->{pidfile}->{content} || undef;
+	my $pidstyle = $daemonXML->{daemon}->{pidstyle}->{content} || undef;
+	my $username = $daemonXML->{daemon}->{username}->{content} || undef;
+	my $groupname = $daemonXML->{daemon}->{groupname}->{content} || undef;
+	my $description = $daemonXML->{description}->{content};
+	
+	open PLIST, ">$launchdaemonsDir/$daemonname.plist" or die "Can't open $launchdaemonsDir/$daemonname.plist: $!";
+	
+	print PLIST "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+	print PLIST "<!DOCTYPE plist PUBLIC -//Apple Computer//DTD PLIST 1.0//EN\n";
+	print PLIST "http://www.apple.com/DTDs/PropertyList-1.0.dtd >\n";
+	print PLIST "<plist version=\"1.0\">\n";
+	print PLIST begindict();
+	
+	print PLIST makekey('Label');
+	print PLIST makestring($daemonname);
+	
+	print PLIST makekey('ProgramArguments');
+	print PLIST beginarray();
+	print PLIST makestring("$prefix/bin/daemondo");
+	print PLIST makestring("--label=$daemonname");
+	print PLIST cmdarray($startcmd,'--start-cmd');
+	
+	print PLIST cmdarray($stopcmd,'--stop-cmd');
+	
+	print PLIST cmdarray($restartcmd,'--restart-cmd');
+	
+	if (! defined $stopcmd && defined $pidfile) {
+		print PLIST makestring('--pid=fileauto');
+		print PLIST makestring("--pidfile=$pidfile");
+	}
+	print PLIST endarray();
+	
+	print PLIST makekey('ServiceDescription');
+	print PLIST makestring($description);
+	
+	if (defined $username) {
+		print PLIST makekey('UserName');
+		print PLIST makestring($username);
+	}
+	
+	if (defined $groupname) {
+		print PLIST makekey('GroupName');
+		print PLIST makestring($groupname);
+	}
+	
+	print PLIST makekey('OnDemand','false');
+	
+	print PLIST makekey('RunAtLoad','true');
+	
+	print PLIST enddict();
+	print PLIST "</plist>\n";
+	
+	close PLIST;
+}
+
+if ($ARGV[0] eq "enable") {
+	enabledaemon();
+} else {
+	die "Unknown command `$ARGV[0]'";
+}
