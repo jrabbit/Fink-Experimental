@@ -1,9 +1,15 @@
 Package: ekiga
-Version: 2.0.3
+Version: 2.0.9
 Revision: 1
 Maintainer: None <fink-devel@users.sourceforge.net>
 GCC: 4.0
-BuildDepends: intltool, libxslt-bin, pkgconfig, sed, atk1, audiofile, dbus-dev, esound, evolution-data-server1-dev, gconf2-dev, glib2-dev, gnome-keyring-dev, gnome-vfs2-unified-dev, gtk+2-dev, libart2, libbonobo2-dev, libbonoboui2-dev, libgettext3-dev, libgnome2-dev, libgnomecanvas2-dev, libgnomeui2-dev, libhowl-dev, libiconv-dev, libjpeg, libxml2, opal2, orbit2-dev, pango1-xft2-dev, popt, pwlib1, x11-dev
+BuildDepends: <<
+ intltool, libxslt-bin, pkgconfig, sed, atk1, audiofile, dbus-dev, esound, evolution-data-server1-dev, 
+ gconf2-dev, glib2-dev, gnome-keyring-dev, gnome-vfs2-unified-dev, gtk+2-dev, libart2, libavahi1-dev,
+ libbonobo2-dev, libbonoboui2-dev, libgettext3-dev, libgnome2-dev, libgnomecanvas2-dev, libgnomeui2-dev,
+ libhowl-dev, libiconv-dev, libjpeg, libxml2, opal2 (>= 2.2.8), openh323-1 (>= 1.19.0-2), orbit2-dev, 
+ pango1-xft2-dev, popt, pwlib1 (>= 1.10.7), x11-dev
+<<
 # sed : because of the patchscript...
 # configure looks for: scrollkeeper, pkg-config, /sw/etc/gconf (-> probably depends: gconf2), XML::Parser, gnome-doc-utils, intltool
 # help uses yelp...
@@ -17,14 +23,17 @@ BuildDepends: intltool, libxslt-bin, pkgconfig, sed, atk1, audiofile, dbus-dev, 
 # (satisfied through gconf-editor -> libgnomeui2 -> gnome-vfs2-ssl | gnome-vfs2 ) _
 # probably forgotten dep in evolution-data-server, but from the PID's, they are called (all from '1') in the order :
 # /sw/sbin/gnome-vfs-daemon  /sw/libexec/evolution/2.6/evolution-exchange-storage /sw/libexec/evolution-data-server-1.6)
-Depends: evolution-exchange, gconf-editor, gettext-bin, opal2-shlibs, openh323-1-shlibs, yelp-viewer-seamonkey
+Depends: <<
+ evolution-exchange, gconf-editor, gettext-bin, libavahi1-shlibs, opal2-shlibs (>= 2.2.8),
+ openh323-1-shlibs (>= 1.19.0-2), scrollkeeper, yelp-viewer-seamonkey
+<<
 # yelp-viewer-seamonkey depends on seamonkey _ not only -shlibs (provisionally fixed in seamonkey.info).
 # Avoid for the moment a dep just on yelp, because :
 # 1) dependency EDS also depends on seamonkey , and none has been tested to build correctly (let alone identical debs..) with eg firefox
 # 2) additional risk (+ wasted footprint...) in having one of them depend on firefox and the other on seamonkey.. 
 ## validator doesn't know that depends are recursive... (re: scrollkeeper)
 Source: mirror:gnome:sources/%n/2.0/%n-%v.tar.bz2
-Source-MD5: 37c57468c7c15ff9bcea91e7fc32aea9
+Source-MD5: 6c7a01faef8203d6f0ba0dfe6188bb1a
 PatchScript: <<
 #!/bin/sh -ev
 # to strip binaries (cf LDFLAGS):
@@ -56,7 +65,7 @@ SetCXXFLAGS: -O3 -fstrict-aliasing -mdynamic-no-pic -fno-exceptions
 # -fno-rtti leads, in lib/gmcontacts/gmcontacts-ldap.cpp, and in src, to
 # "/sw/include/ptlib/pfactory.h: In static member function 'static PFactory<_Abstract_T, _Key_T>& PFactory<_Abstract_T, _Key_T>::GetInstance()':
 # /sw/include/ptlib/pfactory.h:338: error: cannot use typeid with -fno-rtti"
-ConfigureParams: --mandir=%p/share/man --disable-scrollkeeper --disable-schemas-install --with-pwlib-dir=%p --with-opal-dir=%p --enable-dbus --disable-avahi --disable-sdl
+ConfigureParams: --disable-scrollkeeper --disable-schemas-install --mandir=%p/share/man --with-pwlib-dir=%p --with-opal-dir=%p --enable-dbus --disable-sdl
 CompileScript: <<
 #!/bin/sh -ev
   export CPATH=%p/include
