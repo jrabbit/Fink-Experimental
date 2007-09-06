@@ -1,14 +1,14 @@
 Package: vflib3
-Version: 3.6.13
-Revision: 4
-Source: ftp://TypeHack.aial.hiroshima-u.ac.jp/pub/TypeHack/VFlib3-%v.tar.gz
-Source-MD5: 64aaa110c3e3d5474e0e7372269b5e8b
-BuildDepends: t1lib5, freetype, libkpathsea4, libgettext3-dev, gettext-bin, gettext-tools
-Depends: t1lib5-shlibs, tetex-base, libkpathsea4-shlibs, freetype-shlibs | freetype-hinting-shlibs, libgettext3-shlibs
+Version: 3.6.14
+Revision: 3
+Source: http://www-masu.ist.osaka-u.ac.jp/~kakugawa/download/TypeHack/VFlib3-%v.tar.gz
+Source-MD5: f95090401d79ca987bfcd1f08d77454f
+BuildDepends: t1lib5-nox, t1lib5-x11, freetype, libgettext3-dev, gettext-bin, gettext-tools, libkpathsea4, x11-dev
+Depends: t1lib5-nox-shlibs, t1lib5-x11-shlibs, tetex-base, libgettext3-shlibs, freetype-shlibs | freetype-hinting-shlibs, libkpathsea4-shlibs
 UpdateConfigGuess: true
 UpdateLibtool: true
 PatchScript: <<
-#!/bin/sh -e
+#!/bin/sh -ev
   sed 's|@FINKPREFIX@|%p|g' < %a/%n.patch | patch -p1
   grep -lr /usr/local . | xargs perl -pi.bak -e 's|/usr/local|%p|g'
   perl -pi.bak -e 's/Glocal/extern/g' src/texfonts.h 
@@ -16,22 +16,22 @@ PatchScript: <<
   perl -pi.bak -e 's|install-info\ |/usr/bin/install-info\ |g' doc/Makefile.in
   perl -pi.bak -e 's|makedefault\:\ default|makedefault\:\ all|;' Makefile.in
   perl -pi.bak -e 's|VFCFLAGS=|VFCFLAGS=\@LDFLAGS\@\ |;' make-sub.in
-# To enable building with gcc >= 3.3
-  perl -pi.bak -e 's,varargs.h,stdarg.h,' src/vfldisol.c
-# To enable building with t1lib5
-  perl -pi.bak -e 's,T1_Get_no_fonts,T1_GetNoFonts,' src/drv_t1.c
 <<
 
 DocFiles: ANNOUNCE* CHANGES COPYING* DISTRIB.txt INSTALL.txt
-NoSetCPPFLAGS: true
-NoSetLDFLAGS: true
-SetLIBRARY_PATH: %p/lib
-SetCFLAGS: -Wno-long-long -std=gnu99 -I%p/include -fno-common
-ConfigureParams: --mandir='${prefix}/share/man'  --infodir='${prefix}/share/info' --enable-static --enable-shared --with-freetype --with-freetype-includedir=%p/include/freetype --with-t1lib --with-kpathsea --with-texmf-root=%p --with-kpathsea-includedir=%p/include --with-t1lib-includedir=%p/include
-CompileScript: export CPATH=%p/include ; ./configure %c ; make
-Shlibs: <<
-%p/lib/libVFlib3.5.dylib	10.0.0	%n (>= 3.6.13-4)
+InfoDocs: VFlib-36.info VFlib-36.info-1  VFlib-36.info-2  VFlib-36.info-3 VFlib-36.info-4 VFlib-36.info-5
+NoSetCXXFLAGS: true
+SetCFLAGS: -Wno-long-long -std=gnu99 -I%p/include/freetype1 -I%p/include -fno-common
+SetCPPFLAGS: -I%p/include/freetype1
+ConfigureParams: --mandir='${prefix}/share/man' --infodir='${prefix}/share/info' --enable-static --enable-shared --with-freetype --with-freetype-includedir=%p/include/freetype1/freetype --with-t1lib --with-kpathsea --with-texmf-root=%p --with-kpathsea-includedir=%p/include --with-t1lib-includedir=%p/include
+InstallScript: <<
+#!/bin/sh -ev
+  %{default_script}
+  sed -i.bak -e '/texinfmt.el/a \
+    This file documents VFlib3.' %i/share/info/*
+  find %i -name '*.bak' -exec rm \{\} \;
 <<
+Shlibs: %p/lib/libVFlib3.5.dylib 10.0.0 %N (>= 3.6.14-1)
 Description: Versatile Font Library, runtime libs
 DescDetail: <<
 VFlib is a font library written in C language with several functions
@@ -49,9 +49,9 @@ needed to run programs using VFlib3.
 <<
 Splitoff: <<
   Package: %N-dev
-  Depends: vflib3 (=%v-%r)
+  Depends: %N (= %v-%r)
   BuildDependsOnly: true
-  Files: include bin/VFlib3-config lib/libVFlib3.a lib/libVFlib3.la lib/libVFlib3.dylib
+  Files: include bin/VFlib3-config lib/libVFlib3.{a,la,dylib}
   Description: Versatile Font Library, development files
   DescDetail: <<
   VFlib is a font library written in C language with several functions
@@ -70,7 +70,7 @@ Splitoff: <<
 <<
 Splitoff2: <<
   Package: %N-bin
-  Depends: %N
+  Depends: %N (>= %v-%r), x11-shlibs
   Files: bin
   Description: Versatile Font Library, binary apps
   DescDetail: <<
@@ -91,4 +91,4 @@ Splitoff2: <<
 <<
 License: LGPL
 Maintainer: Chris Zubrzycki <beren12@users.sourceforge.net>
-Homepage: http://TypeHack.aial.hiroshima-u.ac.jp/TeX-Guy/
+Homepage: http://www-masu.ist.osaka-u.ac.jp/~kakugawa/VFlib/
