@@ -3,8 +3,8 @@ Version: 3.6.14
 Revision: 3
 Source: http://www-masu.ist.osaka-u.ac.jp/~kakugawa/download/TypeHack/VFlib3-%v.tar.gz
 Source-MD5: f95090401d79ca987bfcd1f08d77454f
-BuildDepends: t1lib5-nox, t1lib5-x11, freetype, libgettext3-dev, gettext-bin, gettext-tools, libkpathsea4, x11-dev
-Depends: t1lib5-nox-shlibs, t1lib5-x11-shlibs, tetex-base, libgettext3-shlibs, freetype-shlibs | freetype-hinting-shlibs, libkpathsea4-shlibs
+BuildDepends: t1lib5-nox, freetype, libgettext3-dev, gettext-bin, gettext-tools, libkpathsea4, x11-dev
+Depends: t1lib5-nox-shlibs, tetex-base, libgettext3-shlibs, freetype-shlibs | freetype-hinting-shlibs, libkpathsea4-shlibs
 UpdateConfigGuess: true
 UpdateLibtool: true
 PatchScript: <<
@@ -16,6 +16,7 @@ PatchScript: <<
   perl -pi.bak -e 's|install-info\ |/usr/bin/install-info\ |g' doc/Makefile.in
   perl -pi.bak -e 's|makedefault\:\ default|makedefault\:\ all|;' Makefile.in
   perl -pi.bak -e 's|VFCFLAGS=|VFCFLAGS=\@LDFLAGS\@\ |;' make-sub.in
+  sed -i.bak -e 's,`$,XYZ`,' -e "s,XYZ,'," t1lib/mkt1enc.sh
 <<
 
 DocFiles: ANNOUNCE* CHANGES COPYING* DISTRIB.txt INSTALL.txt
@@ -30,6 +31,8 @@ InstallScript: <<
   sed -i.bak -e '/texinfmt.el/a \
     This file documents VFlib3.' %i/share/info/*
   find %i -name '*.bak' -exec rm \{\} \;
+  chmod a-x %i/lib/*
+  chmod a+x %i/share/vflib/3.6.14/t1lib/mkt1enc.sh
 <<
 Shlibs: %p/lib/libVFlib3.5.dylib 10.0.0 %N (>= 3.6.14-1)
 Description: Versatile Font Library, runtime libs
@@ -50,6 +53,7 @@ needed to run programs using VFlib3.
 Splitoff: <<
   Package: %N-dev
   Depends: %N (= %v-%r)
+  Replaces: %N (< 3.6.14-1)
   BuildDependsOnly: true
   Files: include bin/VFlib3-config lib/libVFlib3.{a,la,dylib}
   Description: Versatile Font Library, development files
