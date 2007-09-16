@@ -1,0 +1,46 @@
+Package: scilab
+Version: 4.1.1
+Revision: 1001
+Maintainer: Jeffrey Whitaker <jswhit@fastmail.fm>
+Depends: g95, tcltk,  xaw3d-shlibs
+BuildDepends: tcltk-dev, xaw3d, libncurses5 (>= 5.4-20041023-1006), ocaml, libsablot (>= 0.98-1024)
+Conflicts: scilab-atlas
+Replaces: scilab-atlas
+Source: http://www.scilab.org/download/%v/scilab-%v-src.tar.gz
+SourceDirectory: scilab-%v
+Source-MD5: 0b603c8e40334d0be97eb4ac104926bf
+Patch: %n.patch
+PatchScript: <<
+#!/bin/sh -ev
+ perl -pi -e 's,(head|tail) +\-([0-9]),\1 \-n\2,g' scripts/sc_cpp
+ perl -pi -e 's|[/]sw/|%p/|g' configure
+ perl -pi -e 's,\#ifdef B42UNIX,#define B42UNIX\n#ifdef B42UNIX,' routines/console/zzledt.c
+ perl -pi -e 's|.*setslatecjmp.*||g' routines/interf/matimp.f
+ /usr/bin/sed -i -e '21,42d' scripts/scilab.g.in
+# make the scipad editor not crash on startup
+ printf "function tklib=gettklib()\n  tklib='@GETLIBTK@'\nendfunction\n" > macros/util/gettklib.sci.in
+<<
+DescPackaging: Patch and patchscript contain /sw because upstream source does
+ConfigureParams: --without-pvm --with-tcl-include=%p/include --with-tcl-library=%p/lib --with-ocaml --without-java 
+CompileScript: <<
+ #!/bin/sh -ex
+ perl -pi -e 's|g77|g95|g' configure
+ ./configure %c
+# on intel, dlamc1 needs -ffloat-store, otherwise it produces an infinite loop
+# doesn't harm on ppc either
+ make FC_OPTIONS="-O2 -ffloat-store" routines/lapack/dlamch.o routines/lapack/slamch.o
+# remove annoying disclaimer from greeting message
+ make CFLAGS="-U__APPLE__" routines/system/banier.o
+ make all man
+<<
+InstallScript: <<
+#!/bin/sh -ex
+ make install PREFIX=%i DESTDIR=%p
+ ln -fs %p/lib/scilab-%v/bin/scilab %i/bin/scilab
+ ln -fs %p/lib/scilab-%v/bin/intersci %i/bin/intersci
+ ln -fs %p/lib/scilab-%v/bin/intersci-n %i/bin/intersci-n
+<<
+PostInstScript: (cd %p/lib/scilab-%v; make)
+Description: Software package for numerical computations
+License: OSI-Approved
+Homepage: http://www.scilab.org
