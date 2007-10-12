@@ -1,5 +1,5 @@
 Package: atlas
-Version: 3.7.37
+Version: 3.8.0
 Revision: 1
 Description: Portably optimal linear algebra software
 DescDetail: <<
@@ -9,11 +9,14 @@ with machine-specific tuned libraries.
 Installs also LAPACK's docs and manpages.
 Headers: cblas.h clapack.h, plus the atlas headers
 Libraries installed:
-liblapack.a	: The LAPACK routines provided by ATLAS, plus the rest of LAPACK from netlib.org.
+liblapack.a	: The LAPACK routines provided by ATLAS,
+		plus the rest of LAPACK from netlib.org.
 libcblas.a	: The ANSI C interface to the BLAS.
 libf77blas.a	: The Fortran77 interface to the BLAS.
-libatlas.a	: The main ATLAS library, providing low-level routines for all interface libs.
-Plus the threaded variants libptcblas.a and libptf77blas.a, and an all-encompassing libatlas.dylib
+libatlas.a	: The main ATLAS library,
+		providing low-level routines for all interface libs.
+Plus the threaded variants libptcblas.a and libptf77blas.a,
+		and an all-encompassing libatlas.dylib
 <<
 DescPort: <<
 The optimized subset of LAPACK provided by ATLAS is merged
@@ -24,20 +27,24 @@ Order is important when linking! Use:
 -L%p/lib -llapack -lcblas -lf77blas -latlas
 <<
 Source: mirror:sourceforge:math-atlas/%n%v.tar.bz2
-Source-MD5: 5c3fb9a4c74e8426105558a23b2215ff
+Source-MD5: fd42a00f36243bf4815d035b226ec305
 Source2: http://www.netlib.org/lapack/lapack-3.1.1.tgz
 Source2-MD5: 00b21551a899bcfbaa7b8443e1faeef9
 License: BSD
 # since we're experimenting with building a dylib :
 BuildDependsOnly: true
+BuildDepends: gcc42, fink (>= 0.27.99)
+Depends: gcc42-shlibs 
 PatchScript: <<
 #!/bin/sh -ev
-cd ..; ln -s lapack-3.1.1 LAPACK; cd -
-perl -pi -e 's|g77|gfortran|g' ../LAPACK/INSTALL/make.inc.LINUX
+cd ..; ln -s lapack-3.1.1 LAPACK
+cd LAPACK
+perl -pi -e 's|g77|gfortran|g' INSTALL/make.inc.LINUX
+sed -e "s;\(-funroll-all-loops\) -O3;\1 $flags;" -e 's,^TIMER,\#TIMER,' -e '/INT_ETIME/s,^\# *,,' \
+        < INSTALL/make.inc.LINUX > make.inc
 perl -pi -e 's,\.\./\.\./blas\$\(PLAT\)\.a,%b/../bld/lib/libptf77blas.a %b/../bld/lib/libptcblas.a %b/../bld/lib/libatlas.a,' \
-	../LAPACK/INSTALL/make.inc.LINUX
+        make.inc
 <<
-BuildDepends: gcc42
 SourceDirectory: ATLAS
 CompileScript: <<
 #!/bin/sh -ev
@@ -47,10 +54,11 @@ CompileScript: <<
  fi
  flags="-O3 -fomit-frame-pointer -fstrict-aliasing -freorder-blocks -fsched-interblock -fgcse-sm -fgcse-las -fgcse-after-reload $mflags"
  cd ../LAPACK
- sed -e "s;\(-funroll-all-loops\) -O3;\1 $flags;" -e 's,^TIMER,\#TIMER,' -e '/INT_ETIME/s,^\# *,,' \
-	< INSTALL/make.inc.LINUX > make.inc
  make lapacklib
- mkdir -p ../bld
+# atlas 'forgets' scabs1 (not dcabs1 !), so we get it here..
+ cd BLAS/SRC; make scabs1.o; cd -
+ mkdir -p ../bld/lib
+ ar cr ../bld/lib/libf77blas.a BLAS/SRC/scabs1.o; ar cr ../bld/lib/libptf77blas.a BLAS/SRC/scabs1.o
  cd ../bld
  ../ATLAS/configure --prefix=%p --with-netlib-lapack=%b/../LAPACK/lapack_LINUX.a --cflags="$flags"
  make
@@ -89,17 +97,18 @@ InstallScript: <<
  gfortran -dynamiclib -single_module -all_load -install_name %p/lib/libatlas.dylib -o libatlas.dylib \
 	liblapack.a libptf77blas.a libptcblas.a libatlas.a -Wl,-x -dead_strip -m
  # now try to make an exported symbols list, then re-link and strip (makes only a 5% gain in size ..)
- # not completely sure the symbols '^_[cf]atlas_' are not meant to be exported .. To be checked
- nm -m libatlas.dylib|egrep -v 'undefined.*\(from'|cut -f4 -d' '|egrep -v '^_(ATL|atl|[cf]atlas)_' > lst
+ # for the moment, let us make a list out of the external symbols of liblapack, libptcblas and libptf77blas
+ nm -mfg  liblapack.a libptf77blas.a libptcblas.a|fgrep ' (__TEXT,__text) external '|cut -f4 -d' ' > lst
  gfortran -dynamiclib -single_module -all_load -install_name %p/lib/libatlas.dylib -o libatlas.dylib \
 	liblapack.a libptf77blas.a libptcblas.a libatlas.a -Wl,-x -dead_strip -exported_symbols_list lst -m
  # lib still has %p/lib/gcc4.2/lib/libgcc_s.1.dylib unnecessarily among its load commands _
- # don't know how to remove that (except by issuing the ld command myself ..)
+ # don't know yet how to remove that cleanly (except by issuing the ld command myself ..)
  cd -
  make install DESTDIR=%i
  ranlib %i/lib/*.a
  cp -p lib/*.dylib %i/lib
  chmod -R a+rX %i/share
 <<
+Shlibs: !%p/lib/lib%n.dylib
 Homepage: http://math-atlas.sourceforge.net
 Maintainer: Jeffrey Whitaker <jswhit@fastmail.fm>
