@@ -1,0 +1,52 @@
+Package: system-emacs
+Version: 21.2.1
+Revision: 1
+Distribution: 10.4
+Type: nosource
+Description: Use /usr/bin/emacs within fink
+License: GPL
+Maintainer: Fink Core Group <fink-core@lists.sourceforge.net>
+Provides: emacsen
+Depends:  emacsen-common
+CompileScript: <<
+ echo "Copyright (c) 2007 The Fink Project" > license
+ echo "This helper package for using /usr/bin/emacs within fink is licensed" >> license
+ echo "under the Gnu Public License, version 2 or greater." >> license
+ ln -s %p/share/doc/fink/COPYING .
+ echo "#!/bin/sh" > system-emacs
+ echo "exec /usr/bin/emacs -L %p/share/system-emacs/site-lisp \"\$@\"" >> system-emacs
+ chmod 755 system-emacs
+<<
+DocFiles: license COPYING
+InstallScript: <<
+ mkdir %i/bin
+ cp system-emacs %i/bin
+ mkdir -p %i/share/man/man1
+ ln -s /usr/share/man/man1/emacs.1 %i/share/man/man1/emacs.1.system-emacs
+ mkdir -p %i/share/system-emacs/site-lisp
+ mkdir -p %i/etc/system-emacs/site-start.d
+<<
+#
+PostInstScript: <<
+  update-alternatives --install %p/bin/emacs emacs %p/bin/system-emacs 40           --slave %p/share/man/man1/emacs.1 emacs.1 %p/share/man/man1/emacs.1.system-emacs
+
+  # Register ourselves with emacsen-common
+  %p/lib/emacsen-common/emacs-install system-emacs
+<<
+PreRmScript: <<
+  if [ $1 != "upgrade" ]; then
+    update-alternatives --remove emacs %p/bin/system-emacs
+    %p/lib/emacsen-common/emacs-remove system-emacs
+  fi
+<<
+#
+<<
+DescPackaging: <<
+ update-alternatives is used for emacs to allow parallel installation
+ with fink emacs or xemacs packages.
+<<
+DescPort: << 
+ We still need a way to modify startup.el, the way the patchfile for emacs22
+ does.
+<<
+Homepage: http://www.gnu.org/software/emacs/
