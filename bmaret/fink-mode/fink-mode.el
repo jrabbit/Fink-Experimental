@@ -3,7 +3,7 @@
 ;; Author: Sebastien Maret <bmaret@users.sf.net>
 ;; Keywords: Fink major-mode
 
-;; Copyright (C) 2006 Sebastien Maret
+;; Copyright (C) 2006-2007 Sebastien Maret
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -119,12 +119,12 @@
 (defvar fink-font-lock-keywords fink-font-lock-keywords-2
   "Default highlighting level for Fink mode.")
 
-(defvar fink-mode-syntax-table
-  (let ((fink-mode-syntax-table (make-syntax-table)))
-    (modify-syntax-entry ?\# "<") fink-mode-syntax-table
-    (modify-syntax-entry ?\n ">#") fink-mode-syntax-table
-    fink-mode-syntax-table)
-  "Syntax table for Fink mode")
+;(defvar fink-mode-syntax-table
+;  (let ((fink-mode-syntax-table (make-syntax-table)))
+;    (modify-syntax-entry ?\# "<") fink-mode-syntax-table
+;    (modify-syntax-entry ?\n ">#") fink-mode-syntax-table
+;    fink-mode-syntax-table)
+;  "Syntax table for Fink mode")
 
 (defvar fink-indent-width 2
   "Default indent width for Fink mode.")
@@ -257,17 +257,17 @@
 (defun fink-read-users-guide ()
   "Read the Fink User's Guide"
   (require 'browse-url)
-  (browse-url  "http://fink.sourceforge.net/doc/users-guide/index.php"))
+  (browse-url  "http://finkproject.org/doc/users-guide/index.php"))
 
 (defun fink-read-packaging-tutorial ()
   "Read the Fink Packaging Tutorial"
   (require 'browse-url)
-  (browse-url  "http://fink.sourceforge.net/doc/quick-start-pkg/index.php"))
+  (browse-url  "http://finkproject.org/doc/quick-start-pkg/index.php"))
 
 (defun fink-read-packaging-manual ()
   "Read the Fink Packaging Manual"
   (require 'browse-url)
-  (browse-url  "http://fink.sourceforge.net/doc/packaging/index.php"))
+  (browse-url  "http://finkproject.org/doc/packaging/index.php"))
 
 (defun fink-visit-devel-wiki ()
   "Visit Fink Developers Wiki"
@@ -298,7 +298,7 @@
   (interactive)
   (kill-all-local-variables)
   (use-local-map fink-mode-map)
-  (set-syntax-table fink-mode-syntax-table)
+;;  (set-syntax-table fink-mode-syntax-table)
   (set (make-local-variable 'font-lock-defaults) '(fink-font-lock-keywords))
   (set (make-local-variable 'indent-line-function) 'fink-indent-line)
   (setq major-mode 'fink-mode)
