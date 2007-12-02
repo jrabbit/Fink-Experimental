@@ -76,12 +76,19 @@
     "NoSetLDFLAGS" "NoSetLIBRARY_PATH" "NoSetLIBS"
     "NoSetMACOSX_DEPLOYMENT_TARGET" "NoSetMAKE" "NoSetMFLAGS"
     "NoSetMAKEFLAGS" "ConfigureParams" "GCC" "CompileScript"
-    "NoPerlTests" "UpdatePOD" "InstallScript" "JarFiles" "AppBundles"
-    "DocFiles" "Shlibs" "RuntimeVars" "SplitOff" "SplitOff2"
-    "SplitOff2" "SplitOff4" "SplitOff5" "Files" "PreInstScript"
-    "PostInstScript" "PreRmScript" "PostRmScript" "ConfFiles"
-    "InfoDocs" "DaemonicFile" "DaemonicName" "Homepage" "DescDetail"
-    "DescUsage" "DescPackaging" "DescPort")
+    "NoPerlTests" "InfoTest" "TestScript" "TestConfigureParams"
+    "TestDepends" "TestConflicts" "TestSource" "TestSource2"
+    "TestSource3" "TestSourceDirectory" "TestNoSourceDirectory"
+    "TestSource2ExtractDir" "TestSource3ExtractDir" "TestSourceRename"
+    "TestSource2Rename" "TestSource3Rename" "TestSource-MD5"
+    "TestSource2-MD5" "TestSource3-MD5" "TestTarFilesRename"
+    "TestTar2FilesRename" "TestTar3FilesRename" "TestSuiteSize"
+    "UpdatePOD" "InstallScript" "JarFiles" "AppBundles" "DocFiles"
+    "Shlibs" "RuntimeVars" "SplitOff" "SplitOff2" "SplitOff2"
+    "SplitOff4" "SplitOff5" "Files" "PreInstScript" "PostInstScript"
+    "PreRmScript" "PostRmScript" "ConfFiles" "InfoDocs" "DaemonicFile"
+    "DaemonicName" "Homepage" "DescDetail" "DescUsage" "DescPackaging"
+    "DescPort")
   "List of Fink fields")
 
 (defconst fink-field-regexp
@@ -89,9 +96,9 @@
   "Regexp for Fink fields names.")
 
 (defconst fink-percent-expansions
-   '("%n" "%N" "%e" "%v" "%r" "%f" "%p" "%P" "%d" "%D" "%i" "%I" "%a"
-     "%b" "%c" "%m" "%%" "%type_raw" "%type_pkg" "%{ni}" "%{Ni}"
-     "%{default_script}" "%{PatchFile}")
+  '("%n" "%N" "%e" "%v" "%V" "%r" "%f" "%p" "%P" "%d" "%D" "%i" "%I"
+     "%a" "%b" "%c" "%m" "%%" "%type_raw" "%type_pkg" "%{ni}" "%{Ni}"
+     "%{default_script}" "%{PatchFile}" "%lib")
    "List of Fink percent expansions")
 
 (defconst fink-percent-expansion-regexp
