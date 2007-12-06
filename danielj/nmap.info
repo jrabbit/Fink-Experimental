@@ -1,10 +1,10 @@
 Info2: <<
 Package: nmap%type_pkg[-nox]
 Version: 4.23
-Revision: 0.rc3.1003
+Revision: 0.rc3.1004
 GCC: 4.0
 Maintainer: Daniel Johnson <daniel@daniel-johnson.org>
-Type: -nox (boolean)
+Type: -nox (boolean), python (2.5)
 
 BuildDepends: <<
 	fink (>= 0.24.12),
@@ -19,12 +19,13 @@ Depends: <<
 	libpcap-shlibs,
 	lua51-shlibs,
 	pcre-shlibs,
-	(%type_raw[-nox] = .) python25,
-	(%type_raw[-nox] = .) pygtk2-gtk-py25,
-	(%type_raw[-nox] = .) pysqlite2-py25
+	(%type_raw[-nox] = .) python%type_pkg[python],
+	(%type_raw[-nox] = .) pygtk2-gtk-py%type_pkg[python],
+	(%type_raw[-nox] = .) pysqlite2-py%type_pkg[python]
 <<
 Conflicts: nmap-nox, nmap, (%type_raw[-nox] = .) umit
 Replaces: nmap-nox, nmap, (%type_raw[-nox] = .) umit
+Recommends: (%type_raw[-nox] = .) psyco-py%type_pkg[python]
 
 Source: http://download.insecure.org/%{Ni}/dist/%{Ni}-%vRC3.tar.bz2
 Source-MD5: 5228f94afcec5a60e59c066a49d9fc15
@@ -49,27 +50,23 @@ ConfigureParams: <<
 	--with-openssl=%p/lib/system-openssl \
 	--with-libpcre=%p \
 	--with-libdnet=%p \
-	--with-liblua=yes \
-	--without-zenmap \
-	--without-nmapfe
+	--with-liblua=yes
 <<
 CompileScript: <<
 	#!/bin/bash -ev
-	./configure %c
+	if [ "%type_raw[-nox]" == "." ]; then
+		./configure %c --with-zenmap PYTHON=%p/bin/python%type_raw[python]
+	else
+		./configure %c --without-zenmap
+	fi
+	
 	# This hack is necessary to ensure that the system's openssl is always used.
 	make LDFLAGS='-L%p/lib/system-openssl/lib -L%p/lib -L%b/nbase -L%b/nsock/src/ $(STATIC)'
-	if [ "%type_raw[-nox]" == "." ]; then
-		cd zenmap
-		%p/bin/python2.5 setup.py build
-	fi
-
 <<
 InstallScript: <<
 	#!/bin/bash -ev
-	make install DESTDIR=%d
+	make install DESTDIR=%d DEFAULT_PYTHON_PATH='%p/bin/python%type_raw[python]'
 	if [ "%type_raw[-nox]" == "." ]; then
-		cd zenmap
-		%p/bin/python2.5 setup.py install --prefix=%p --root=%d
 		/bin/rm %i/bin/uninstall_zenmap
 	fi
 <<
@@ -82,6 +79,10 @@ DescDetail: <<
 	scanning, reverse-identd scanning and others.
 	
 	Version 3.46 thanks to Alex Barclay <prozac@utulsa.edu>.
+<<
+DescUsage: <<
+	On Intel Macs, installing psyco-py%type_pkg[python] will speed up the
+	zenmap front end.
 <<
 DescPackaging: <<
 	ConfigureParams installs manpages in correct directories and uses installed
