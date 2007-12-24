@@ -97,15 +97,15 @@ CompileScript: <<
  # We link 'manually', with ld, to avoid having unnecessary libs like lgcc_s among the load commands.
  # This way the libs can be safely used in linking with any compiler: they will not bring themselves
  # the wrong lgcc_s in the search list.
- ld="ld -dynamic -dylib -single_module -dead_strip -x -all_load -L. -L%p/lib/gcc4.2/lib -dylib_install_name"
- $ld %p/lib/libatlas.dylib libatlas.a -o libatlas.dylib -lSystem -ldylib1.o
- $ld %p/lib/libcblas.dylib libcblas.a -o libcblas.dylib -latlas -lSystem -ldylib1.o
- $ld %p/lib/libf77blas.dylib libf77blas.a -o libf77blas.dylib -lgfortran -latlas -lSystem -ldylib1.o
- $ld %p/lib/liblapack.dylib liblapack.a -o liblapack.dylib -lf77blas -lgfortran -lcblas -latlas -lSystem -ldylib1.o
+ ld="ld -dynamic -dylib -single_module -dead_strip -x -all_load -L. -L%p/lib/gcc4.2/lib -ldylib1.o -dylib_install_name"
+ $ld %p/lib/libatlas.dylib libatlas.a -o libatlas.dylib -lSystemStubs -lSystem
+ $ld %p/lib/libcblas.dylib libcblas.a -o libcblas.dylib -latlas -lSystemStubs -lSystem
+ $ld %p/lib/libf77blas.dylib libf77blas.a -o libf77blas.dylib -lgfortran -latlas -lSystemStubs -lSystem
+ $ld %p/lib/liblapack.dylib liblapack.a -o liblapack.dylib -lf77blas -lgfortran -lcblas -latlas -lSystemStubs -lSystem
  ## the next 4 lines are optional _ no idea of a correct exported symbols list for libatlas...
  ## probably to be removed for a commit _ it gains an enormous decrease in the # of symbols exported by the lib,
  ## but size goes down only from ~ 2.8M to 2.3M
- # nm -mfgu liblapack.dylib libcblas.dylib libf77blas.dylib|fgrep ' (from libatlas'|sed -e 's, (from .*,,' -e 's,.* ,,'|sort -u > l$
+ # nm -mfgu liblapack.dylib libcblas.dylib libf77blas.dylib|fgrep ' (from libatlas'|sed -e 's, (from .*,,' -e 's,.* ,,'|sort -u > lst
  # install_name_tool -id %p/lib/libatlas_full.dylib libatlas.dylib
  # mv libatlas.dylib libatlas_full.dylib
  # $ld %p/lib/libatlas.dylib libatlas.a -o libatlas.dylib -ldylib1.o -lSystem -exported_symbols_list lst
