@@ -1,0 +1,114 @@
+Info2: <<
+Package: flac1.1%type_pkg[-x11]
+Version: 1.1.1
+Revision: 1
+Type: -x11 (. -nox)
+Conflicts: flac (<< 1.1.1-2000), flac-nox (<< 1.1.1-2000)
+BuildDepends: <<
+libogg,
+libiconv-dev,
+(%type_raw[-x11] != -nox) xmms,
+(%type_raw[-x11] != -nox) popt, 
+(%type_raw[-x11] != -nox) libtool14 (>= 1.5-1), 
+(%type_raw[-x11] != -nox) readline (>= 4.3-1028),
+(%type_raw[-x11] != -nox) id3lib4-dev (>= 3.8.3-1014),
+(%type_raw[-x11] != -nox) glib,
+(%type_raw[-x11] != -nox) gtk+,
+(%type_raw[-x11] != -nox) libiconv-dev,
+(%type_raw[-x11] != -nox) gettext-dev,
+(%type_raw[-x11] != -nox) gettext-bin,
+(%type_raw[-x11] != -nox) gettext-tools
+<<
+Provides: flac
+Depends: %n-shlibs (= %v-%r)
+Source: mirror:sourceforge:flac/flac-%v.tar.gz
+Source-MD5: c6ccddccf8ad344065698047c2fc7280
+PatchScript: <<
+test -r %a/%{ni}.patch
+sed -e 's,@PREFIX@,%p,g' %a/%{ni}.patch | patch -p1
+perl -pi.bak -e 's/hardcode_direct=yes/hardcode_direct=no/g' configure
+perl -pi.bak -e 's/hardcode_direct_CXX=yes/hardcode_direct_CXX=no/g' configure
+<<
+NoSetCPPFLAGS: true
+SetCPPFLAGS: -I$(top_builddir) -I$(srcdir)/include -I$(top_srcdir)/include
+NoSetLDFLAGS: true
+#SetLDFLAGS: -L%b/src/libOggFLAC/.libs -L%b/src/libFLAC/.libs
+ConfigureParams: --mandir=%p/share/man 
+BuildDependsOnly: True
+GCC: 4.0
+CompileScript: <<
+#!/bin/sh -ex
+#mkdir -p %b/src/libOggFLAC/.libs 
+#mkdir -p %b/src/libFLAC/.libs 
+./configure %c
+make OBJ_FORMAT=macho
+<<
+InstallScript: <<
+make install DESTDIR=%d 
+mv %i/share/doc/flac-%v %i/share/doc/%n 
+<<
+SplitOff: <<
+  Package: %N-shlibs
+  Provides: flac-shlibs
+  Conflicts: flac-shlibs (<< 1.1.1-2000), flac-nox-shlibs (<< 1.1.1-2000)
+  Suggests: %N-bin
+  Files: lib/libFLAC.*.dylib lib/libFLAC++.*.dylib lib/libOggFLAC.*.dylib lib/libOggFLAC++.*.dylib
+  Shlibs: <<
+    %p/lib/libFLAC.6.dylib 7.0.0 %n (>= 1.1.1-10)
+    %p/lib/libFLAC++.4.dylib 5.0.0 %n (>= 1.1.1-10)
+    %p/lib/libOggFLAC.1.dylib 3.0.0 %n (>= 1.1.1-10)
+    %p/lib/libOggFLAC++.0.dylib 2.0.0 %n (>= 1.1.1-10)
+  <<
+  DocFiles: README COPYING.LGPL
+  Description: Free lossless audio codec - shared libs
+<<
+SplitOff2: <<
+  Package: %N-bin
+  Provides: flac-bin
+  Files: bin/flac bin/metaflac
+  Depends: libogg-shlibs, %N-shlibs (= %v-%r)
+  Conflicts: flac-bin (<< 1.1.1-2000), flac-nox-bin (<< 1.1.1-2000)
+  DocFiles: README COPYING.LGPL
+  Description: Free lossless audio codec - encoder/decoder
+<<
+SplitOff3: <<
+  Package: %N-xmms
+  Depends: <<
+  (%type_raw[-x11] != -nox) xmms-bin,
+  %N-shlibs (= %v-%r),
+  (%type_raw[-x11] != -nox) id3lib4-shlibs (>= 3.8.3-1014),
+  (%type_raw[-x11] != -nox) popt-shlibs
+  <<
+  Suggests: %N-bin
+  Files: (%type_raw[-x11] != -nox) lib/xmms/Input/libxmms*
+  DocFiles: README COPYING.LGPL
+  Description: Free lossless audio codec - xmms plugin
+<<
+DocFiles: README AUTHORS COPYING.FDL COPYING.GPL COPYING.LGPL
+Description: Free lossless audio codec
+DescDetail: <<
+FLAC stands for Free Lossless Audio Codec. Grossly oversimplified, FLAC
+is similar to MP3, but lossless. The FLAC project consists of:
+*  The stream format
+In the flac and flac-shlibs packages:
+*  libFLAC, a library encoders and decoders, and a metadata interface
+*  libFLAC++, an object wrapper around libFLAC
+In the flac-bin package:
+*  flac, a CLI wrapper around libFLAC to encode/decode .flac files
+*  metaflac, a command-line metadata editor for .flac files
+<<
+DescPackaging: <<
+Does not use pbxbuild method since we want dylibs, and
+the xmms plugin. Also the make/config method puts everything in
+the right place.
+libtool relink and bash versioning patches applied.
+patch to disable xmms plugin applied.
+patch to enable dynamic_lookup (for prebinding on 10.3) applied.
+
+Incorrect shlib major version corrected w/1.1.1. Next time, will 
+create flacN pkg.
+<<
+License: GPL
+Maintainer: Matthew Sachs <matthewg@zevils.com>
+Homepage: http://flac.sourceforge.net/
+<<
