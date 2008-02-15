@@ -67,11 +67,17 @@ case "$1" in
     ;;
 esac
 
-if defaults read com.apple.x11 apps_menu | grep -q '"Terminal(Japanese OK)"'; then :; else
-    go defaults write com.apple.x11 apps_menu -array-add "(\"Terminal(Japanese OK)\", \". $fink_prefix/bin/init.sh; mlterm -L\", \"\")"
+case "`uname -r`" in
+    7*|8*) X11NAME=com.apple.x11 ;;
+    9*)    X11NAME=org.x.X11
+    go defaults write $X11NAME app_to_run "" ;;
+esac
+if defaults read $X11NAME apps_menu | grep -q '"Terminal(Japanese OK)"'; then :; else
+    go defaults write $X11NAME apps_menu -array-add "(\"Terminal(Japanese OK)\", \". $fink_prefix/bin/init.sh; mlterm -L\", \"\")"
 fi
-go defaults write com.apple.x11 sync_keymap -bool false
-go defaults write com.apple.x11 done_xinit_check -bool false
+go defaults write $X11NAME sync_keymap -bool false
+go defaults write $X11NAME done_xinit_check -bool false
+go defaults write $X11NAME wm_click_through -bool true 
 go defaults write com.apple.Terminal DoubleColumnsForDoubleWide -string "YES"
 go defaults write com.apple.Terminal DoubleWideChars -string "YES"
 go defaults write com.apple.Terminal Meta -string "27"
