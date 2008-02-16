@@ -1,9 +1,9 @@
 # $Id$
-: ${xinitrc_apps_term_enable=YES}
-: ${xinitrc_apps_term_loginshell=NO}
 case "`/usr/bin/uname -r`" in
-    9*) xinitrc_apps_term_enable=NO ;;
+    7*|8*) : ${xinitrc_apps_term_enable=YES} ;;
+    9*)    : ${xinitrc_apps_term_enable=NO}  ;;
 esac
+: ${xinitrc_apps_term_loginshell=NO}
 
 case x"${xinitrc_apps_termcmd-unset}" in
     xunset)
@@ -13,6 +13,8 @@ case x"${xinitrc_apps_termcmd-unset}" in
 	xinitrc_apps__lsarg="-L"
     elif test -x "$fink_bindir/urxvt"; then
 	xinitrc_apps_termcmd="$fink_bindir/urxvt"
+    elif test -x "$fink_bindir/mrxvt"; then
+	xinitrc_apps_termcmd="$fink_bindir/mrxvt"
     elif test -x "$fink_bindir/rxvt"; then
 	xinitrc_apps_termcmd="$fink_bindir/rxvt"
     elif test -x "$x_bindir/uxterm"; then
