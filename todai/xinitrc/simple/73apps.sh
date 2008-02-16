@@ -8,7 +8,10 @@ esac
 case x"${xinitrc_apps_termcmd-unset}" in
     xunset)
     xinitrc_apps__lsarg="-ls"
-    if test -x "$fink_bindir/mlterm"; then
+    if test -x "$fink_bindir/gnome-terminal"; then
+	xinitrc_apps_termcmd="$fink_bindir/gnome-terminal"
+	xinitrc_apps__lsarg=""
+    elif test -x "$fink_bindir/mlterm"; then
 	xinitrc_apps_termcmd="$fink_bindir/mlterm"
 	xinitrc_apps__lsarg="-L"
     elif test -x "$fink_bindir/urxvt"; then
