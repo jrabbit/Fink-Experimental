@@ -119,6 +119,9 @@ doinstall() {
     go $installcmd -m 755 user-ja.sh "$destdir$fink_sysconfdir/profile.d/zz90user-ja.sh"
     go $installcmd -m 755 user-ja.csh "$destdir$fink_sysconfdir/profile.d/zz90user-ja.csh"
 
+    go $mkinstalldirscmd -m 755 "$destdir$fink_sysconfdir/app-defaults/ja_JP.eucJP"
+    go $installcmd -m 644 Tgif "$destdir$fink_sysconfdir/app-defaults/ja_JP.eucJP"
+
     go_cd "$firstpwd"
     go_cd "$srcdir/etcmlterm"
     go $mkinstalldirscmd -m 755 "$destdir$mydatadir/etcmlterm"
