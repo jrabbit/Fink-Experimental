@@ -151,7 +151,7 @@ doinstall() {
 }
 
 doclean() {
-    go rm -rf "$builddir" "$pkgname.info" "$pkgname.patch"
+    go rm -rf "$builddir" "$pkgname.info" "$pkgname.patch" "$pkgname-"*".tar.gz"
 }
 
 dodistclean() {
@@ -161,12 +161,13 @@ dodistclean() {
 
 dofink() {
     version=`cat $srcdir/version`
-    case "$1" in
-	-r|--release)
+    case "x$1" in
+	x-r|x--release)
 	cvsver=
 	fullver="$version"
+	sedargs="-e s/@TARDIST@//g -e s/@PATCHDIST@/#/g"
 	;;
-	"")
+	x)
 	#cvsver=`awk '\$1 ~ /Id:/ { print \$3}' $srcdir/ChangeLog`
 	idline=`tail -1 "$srcdir/ChangeLog"`
 	case "$idline" in
@@ -175,11 +176,13 @@ dofink() {
 	    *) echo "ChangeLog must contain RCSID at the last line" >&1; exit 1 ;;
 	esac
 	fullver="$version+cvs-$cvsver"
+	sedargs="-e s/@TARDIST@/#/g -e s/@PATCHDIST@//g"
 	;;
 	*) badarg "$1"; exit ;;
     esac
 
     files=".cvsignore ChangeLog build.sh doc/ etcmlterm/ $pkgname.info.in sedsrc/ simple/ version"
+    sedargs="$sedargs -e s/@FULLVERSION@/$fullver/g"
 
     workdir="$pkgname-$fullver"
     go rm -rf "$workdir" "$workdir.dummy"
@@ -188,16 +191,26 @@ dofink() {
     $show \( cd "$srcdir" \&\& tar cf - $files \) \| \( cd "$workdir" \&\& tar xf - \)
     ( cd "$srcdir" && $run tar cf - $files ) | ( $run cd "$workdir" && $run tar xf - )
     go_p 'xargs rm -r' find "$workdir" -name CVS -type d
-    set +e
-    go_r "$pkgname.patch" diff -Nru "$workdir.dummy" "$workdir"
-    set -e
 
-    go_r "$pkgname.info" sed -e '/\$''Id/ { s/\$ *//; s/ *\$//; }' -e "s/@FULLVERSION@/$fullver/g" "$srcdir/$pkgname.info.in"
+    case "x$cvsver" in
+	x)
+	go tar zcf "$pkgname-$fullver.tar.gz" "$workdir"
+	md5=`$run md5 -q "$pkgname-$fullver.tar.gz"`
+	sedargs="$sedargs -e s/@MD5@/$md5/g"
+	;;
+	*)
+	set +e
+	go_r "$pkgname.patch" diff -Nru "$workdir.dummy" "$workdir"
+	set -e
+	;;
+    esac
+
+    go_r "$pkgname.info" sed -e '/\$''Id/ { s/\$ *//; s/ *\$//; }' $sedargs "$srcdir/$pkgname.info.in"
 }
 
 myname=`basename "$0"`
-case "$myfullname" in
-    */*) mydir=`echo "$myfullname" | sed 's|/[^/]*$||'` ;;
+case "x$myfullname" in
+    x*/*) mydir=`echo "$myfullname" | sed 's|/[^/]*$||'` ;;
     *) mydir=. ;;
 esac
 pkgname="user-ja"
@@ -218,17 +231,17 @@ show="$echocmd"
 
 mode=
 while test "$#" -gt 0; do
-    case "$1" in
-	-n|--dry-run) run=: ;;
-	-q|--quiet) show=: ;;
-	-d|--debug) set -x ;;
-	-h|--help) showhelp; exit ;;
-	-*) badarg "$1"; exit ;;
-	*=*)
+    case "x$1" in
+	x-n|x--dry-run) run=: ;;
+	x-q|x--quiet) show=: ;;
+	x-d|x--debug) set -x ;;
+	x-h|x--help) showhelp; exit ;;
+	x-*) badarg "$1"; exit ;;
+	x*=*)
         var=`expr "$1" : '\\([^=]*\\)'`
         value=`expr "$1" : '[^=]*=\\(.*\\)'`
         eval $var'=$value';;
-	*) mode="$1"; shift; break ;;
+	x*) mode="$1"; shift; break ;;
     esac
     shift
 done
@@ -253,13 +266,13 @@ done
 : ${fink_prefix="/sw"}
 : ${fink_sysconfdir="$fink_prefix/etc"}
 
-case "$mode" in
-    ""|help) showhelp; exit ;;
-    build) dobuild "$@" ;;
-    install) doinstall "$@" ;;
-    clean) doclean "$@" ;;
-    distclean) dodistclean "$@" ;;
-    fink) dofink "$@" ;;
+case "x$mode" in
+    x|xhelp) showhelp; exit ;;
+    xbuild) dobuild "$@" ;;
+    xinstall) doinstall "$@" ;;
+    xclean) doclean "$@" ;;
+    xdistclean) dodistclean "$@" ;;
+    xfink) dofink "$@" ;;
     *) badarg "$mode"; exit ;;
 esac
 
