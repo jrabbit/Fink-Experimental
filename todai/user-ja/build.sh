@@ -146,8 +146,8 @@ doinstall() {
     go $installcmd -m 755 xmodmap-ja.sh "$destdir$sysconfdir/xinitrc.d/21xmodmap-ja.sh"
 
     go_cd "../doc"
-    go $mkinstalldirscmd -m 755 "$destdir$datadir/doc"
-    go $installcmd -m 644 *.txt "$destdir$datadir/doc"
+    go $mkinstalldirscmd -m 755 "$destdir$mydocdir"
+    go $installcmd -m 644 *.txt "$destdir$mydocdir"
 }
 
 doclean() {
@@ -260,7 +260,9 @@ done
 : ${oldincludedir="/usr/include"}
 : ${infodir="${prefix}/share/info"}
 : ${mandir="${prefix}/share/man"}
+: ${docdir="${prefix}/share/doc"}
 : ${mydatadir="${datadir}/$pkgname"}
+: ${mydocdir="${docdir}/$pkgname"}
 : ${sitelispdir="${datadir}/emacs/site-lisp"}
 
 : ${fink_prefix="/sw"}
