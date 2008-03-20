@@ -1,0 +1,68 @@
+Package: ca-certificates
+Version: 20070303
+Revision: 1
+Description: Common CA Certificates PEM files
+License: GPL
+Maintainer: Andreas Gockel <fink-ca-certificates@unixforge.de>
+Depends: system-pkgconfig-openssl | openssl | openssl097 debconf debconf-utils po-debconf
+Source: mirror:debian:pool/main/c/%n/%n_%v.tar.gz
+SourceRename: %n-%v.tar.gz
+Source-md5: e356066a02d257d23f8e0f4d48d08b1b
+PatchScript: sed -e 's,@FINKPREFIX@,%p,g' %a/%n.patch | patch -p1
+CompileScript: make all prefix=%p DESTDIR=%d
+InstallScript: <<
+ mkdir -p %i/{share/ca-certificates,sbin,etc/ssl/{private,certs}}
+ make install prefix=%p DESTDIR=%d
+<<
+PostInstScript: <<
+ cd %p/share/ca-certificates
+ mytmp=`mktemp "/tmp/%n.tmp.XXXXXX"`
+ find . -type f >$mytmp
+ sed s,./,, $mytmp >%p/etc/ca-certificates.conf
+ update-ca-certificates
+<<
+PostRmScript: <<
+ #!/bin/sh -e
+case "$1" in
+	remove)
+		echo -n "Removing hash symlinks in %p/etc/ssl/certs ..."
+		find %p/etc/ssl/certs -type l -print | while read h
+		do
+			test -f "$h" || rm -f "$h"
+		done
+		echo done.
+	;;
+	purge)
+		rm -f %p/etc/ssl/certs/ca-certificates.crt*
+		rm -f %p/etc/ca-certificates.conf*
+	;;
+	upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+	;;
+	*)
+		echo "postrm called with unknown argument \`$1'" >&2
+		exit 1
+	;;
+esac
+
+<<
+Homepage: http://alioth.debian.org/projects/ca-certs/
+DescDetail: <<
+ It includes the followings PEM files of CA certificates
+
+  * spi-inc.org certificate
+  * db.debian.org certificate
+  * debconf.org certificate
+  * Mozilla builtin CA certificates
+  * CACert.org certificates
+  * Brazilian Government Certificate
+  * Signet CA certificates
+  * QuoVadis CA certificates
+
+ This is useful for any openssl applications to verify
+ SSL connection.
+
+ Note that certificate authorities whose certificates are included in
+ this package are not in any way audited for trustworthiness and RFC
+ 3647 compliance, and that full responsibility to assess them rests
+ with the user.
+<<

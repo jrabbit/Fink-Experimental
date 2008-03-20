@@ -1,0 +1,53 @@
+diff -rauN ca-certificates-20070303/Makefile ca-certificates-20070303p1/Makefile
+--- ca-certificates-20070303/Makefile	2007-03-04 05:11:57.000000000 +0000
++++ ca-certificates-20070303p1/Makefile	2008-02-24 12:52:28.000000000 +0000
+@@ -2,7 +2,7 @@
+ # Makefile
+ #
+ 
+-CERTSDIR = /usr/share/ca-certificates
++CERTSDIR = $(prefix)/share/ca-certificates
+ SUBDIRS = spi-inc.org debconf.org mozilla \
+ 	cacert.org brasil.gov.br signet.pl quovadis.bm
+ 
+diff -rauN ca-certificates-20070303/sbin/Makefile ca-certificates-20070303p1/sbin/Makefile
+--- ca-certificates-20070303/sbin/Makefile	2007-02-02 06:23:19.000000000 +0000
++++ ca-certificates-20070303p1/sbin/Makefile	2008-02-24 12:53:25.000000000 +0000
+@@ -8,4 +8,4 @@
+ clean:
+ 
+ install:
+-	install -m755 update-ca-certificates $(DESTDIR)/usr/sbin/
++	install -m755 update-ca-certificates $(DESTDIR)/$(prefix)/sbin/
+diff -rauN ca-certificates-20070303/sbin/update-ca-certificates ca-certificates-20070303p1/sbin/update-ca-certificates
+--- ca-certificates-20070303/sbin/update-ca-certificates	2007-02-02 06:23:19.000000000 +0000
++++ ca-certificates-20070303p1/sbin/update-ca-certificates	2008-02-24 13:52:54.000000000 +0000
+@@ -35,12 +35,12 @@
+   shift
+ done
+ 
+-CERTSCONF=/etc/ca-certificates.conf
+-CERTSDIR=/usr/share/ca-certificates
++CERTSCONF=@FINKPREFIX@/etc/ca-certificates.conf
++CERTSDIR=@FINKPREFIX@/share/ca-certificates
+ CERTBUNDLE=ca-certificates.crt
+-cd /etc/ssl/certs
++cd @FINKPREFIX@/etc/ssl/certs
+ if [ "$fresh" = 1 ]; then
+-  echo -n "Clearing symlinks in /etc/ssl/certs..."
++  echo -n "Clearing symlinks in @FINKPREFIX@/etc/ssl/certs..."
+   find . -type l -print | while read symlink
+   do
+      case $(readlink $symlink) in
+@@ -53,9 +53,9 @@
+   done
+   echo "done."
+ fi
+-echo -n "Updating certificates in /etc/ssl/certs...."
++echo "Updating certificates in @FINKPREFIX@/etc/ssl/certs...."
+ 
+-bundletmp=`mktemp "${CERTBUNDLE}.tmp.XXXXXX"`
++bundletmp=`mktemp "/tmp/${CERTBUNDLE}.tmp.XXXXXX"`
+ sed -ne 's/^!//p' $CERTSCONF | while read crt
+ do
+  if test "$crt" = ""; then continue; fi
