@@ -1,0 +1,68 @@
+Package: xmkmf
+Version: 1.0.2
+Revision: 1
+Distribution: 10.5
+Description: X11 utilities missing from latest xorg
+License: BSD
+#Maintainer: Benjamin Reed <xorg@fink.racoonfink.com>
+
+Maintainer: Martin Costabel <costabel@wanadoo.fr>
+
+GCC: 4.0
+
+CustomMirror: <<
+	Primary: http://ftp.x.org/pub
+	nam-US: ftp://ftp.x.org/pub
+	nam-US: http://xorg.freedesktop.org/releases
+	nam-US: ftp://ftp.freedesktop.org/pub/xorg
+	nam-US: ftp://mirror.sg.depaul.edu/pub/x.org
+	nam-US: http://mirror.sg.depaul.edu/pub/x.org 
+        nam-US: http://x.paracoda.com/
+        nam-US: http://x.hostingzero.com/
+	asi-JP: http://ftp.yz.yamagata-u.ac.jp/pub/X11/x.org/
+	asi-CN: http://www.qtopia.org.cn/ftp/mirror/ftp.x.org/pub/
+	eur-BE: http://x.mirrors.skynet.be/pub/x.org
+	eur-DE: http://ftp.gwdg.de/pub/x11/x.org/pub
+	eur-DE: ftp://ftp.gwdg.de/pub/x11/x.org/pub/
+	eur-ES: ftp://ftp.cica.es/pub/X/pub/
+	eur-FR: http://miroir.cict.fr/x.org/pub
+	eur-GR: ftp://ftp.ntua.gr/pub/X11/X.org/
+	eur-RU: http://ftp.chg.ru/pub/X11/x.org/pub/
+	eur-UK: http://www.mirrorservice.org/sites/ftp.x.org/pub/
+<<
+Source:  mirror:custom:/X11R7.3/src/util/imake-%v.tar.bz2
+Source2: mirror:custom:/X11R7.3/src/util/xorg-cf-files-%v.tar.bz2
+Source-MD5:  02fea5a02ba2857c7d81820c8e8b8e6f
+Source2-MD5: 5f62dd5545b782c74f6e4e70d0e6552c 
+
+PatchScript: <<
+  perl -pi -e 's|/usr/local|/usr/X11|' ../xorg-cf-files-%v/site.def
+<<
+
+ConfigureParams: --mandir=%p/share/man
+
+CompileScript: <<
+#!/bin/sh -ev
+  ./configure %c
+  make 
+  cd ../xorg-cf-files-%v
+  ./configure %c 
+  perl -pi -e 's|%p|/usr/X11|' site.def 
+<<
+
+InstallScript: <<
+#!/bin/sh -ev
+  make install DESTDIR=%d
+  cd ../xorg-cf-files-%v
+  make install DESTDIR=%d
+<<
+
+DocFiles: COPYING ChangeLog README
+
+Homepage: http://xorg.freedesktop.org/
+DescDetail: <<
+ This package provides the xmkmf script and the imake executable
+ and their supporting config files that are no longer supplied
+ with the latest X11R7 release from x.org.
+<<
+

@@ -1,27 +1,34 @@
 Package: xfig
 Version: 3.2.5
-# package for 3.2.5 alpha 5
-Revision: 2.0
-BuildDepends: libjpeg (>= 6b-3), libpng3, libtiff, xaw3d (>= 1.5-5), x11-dev
-Depends: x11, xaw3d-shlibs (>= 1.5-5), libjpeg-bin, app-defaults, x-ghostscript-fonts, transfig (>= 3.2.5-2), libjpeg-shlibs, libpng3-shlibs, x11-shlibs
-#Source: http://www.xfig.org/xfigdist/%n.%v.full.tar.gz
-Source: http://www.xfig.org/alpha/%n.%v-alpha5.full.tar.gz
-Source-MD5: 7547b66232569e3c12e4a0639bd92629
-#SourceDirectory: %n.%v
-SourceDirectory: %n.%v-alpha5
-Patch: %n.patch
-PatchScript:<<
- perl -pi -e 's|(XCOMM )(.*XAW3D1_5E.*)|$2|g;s|lXaw3d15e|lXaw3d|g' Imakefile
+Revision: 1010
+BuildDepends: libjpeg (>= 6b-3), libpng3, libtiff, xaw3d (>= 1.5-11), x11-dev, fink (>= 0.24.12)
+Depends: x11, xaw3d-shlibs (>= 1.5-11), libjpeg-bin, app-defaults, x-ghostscript-fonts, transfig-graphicx (>= 3.2.5-1008) | transfig-epsfig (>= 3.2.5-1008), libjpeg-shlibs, libpng3-shlibs, x11-shlibs
+Source: http://www.xfig.org/software/%n/%v/%n.%v.full.tar.gz
+Source-MD5: fae0c67a3951bd41c057deb63b6aa47a
+SourceDirectory: %n.%v
+PatchFile: %n.patch
+PatchFile-MD5: 279b047efb39492345b5f0774bc02dca
+#PatchFile-MD5: a159861a49c3858ac480a842190a959a
+PatchScript: <<
+ rm -f Libraries/*/*.bak
+ patch -p1 < %{PatchFile}
+ chmod 644 CHANGES FIGAPPS LATEX.AND.XFIG README
 <<
 CompileScript: <<
  xmkmf
- make xfig CCOPTIONS=-no-cpp-precomp PREFIX=%p
+ make PREFIX=%p
 <<
 InstallScript: <<
- make install PREFIX=%p DESTDIR=%d
- make install.all PREFIX=%p DESTDIR=%d MANDIR=%p/share/man/man1 DOCDIR=%p/share/doc/xfig
+ make install PREFIX=%p DESTDIR=%d INSTALLFLAGS=-c
+ make install.all PREFIX=%p DESTDIR=%d MANDIR=%p/share/man/man1 DOCDIR=%p/share/doc/xfig INSTALLFLAGS=-c
  rm -Rf %d/usr
  rm -Rf %d/etc
+ chmod 644 %i/share/doc/xfig/html/*.* 
+ chmod 644 %i/share/doc/xfig/html/images/*.* 
+ chmod 644 %i/share/xfig/Libraries/*/README %i/share/xfig/Libraries/*/AUTHOR %i/share/xfig/Libraries/*/LICENSE %i/share/xfig/Libraries/*/*.*
+ chmod 644 %i/share/xfig/Libraries/*/*/README %i/share/xfig/Libraries/*/AUTHOR %i/share/xfig/Libraries/*/LICENSE %i/share/xfig/Libraries/*/*/*.*
+ chmod 644 %i/share/xfig/Libraries/*/*/*/README %i/share/xfig/Libraries/*/*/*/*.*
+ chmod 644 %i/share/xfig/Libraries/*/*/*/*/*.fig
 <<
 DocFiles: CHANGES FIGAPPS LATEX.AND.XFIG README
 License: BSD
@@ -29,6 +36,11 @@ Description: Menu-driven tool to create graphical objects
 DescPort: <<
  There have been reports that this package does not compile succesfully when
  xtools is intalled rather than xfree86.
+
+ Patched an 'install' command to fix installation of filenames
+ beginning with hyphens (may not be needed in future upstream
+ releases) and an internal system(gunzip) to be able to read the
+ installed files.
 <<
 DescPackaging: <<
  XFIGLIBDIR was set to %p/share/xfig.  Looks in /etc/printcap
@@ -45,7 +57,7 @@ DescUsage: <<
  compiled in. 
 <<
 Homepage: http://www.xfig.org/
-Maintainer: Dave Morrison <dmrrsn@users.sourceforge.net>
+Maintainer:  Dave Morrison <drm@finkproject.org>
 
 
 
