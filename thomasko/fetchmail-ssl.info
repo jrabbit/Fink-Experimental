@@ -1,19 +1,20 @@
 Package: fetchmail-ssl
-Version: 6.2.3
+Version: 6.3.8
 Revision: 1
 Maintainer: Eric Knauel <ek@macnews.de>
-Depends: openssl, openssl097-shlibs
-BuildDepends: bison, openssl097-dev
+Depends: openssl097, openssl097-shlibs, libgettext3-shlibs, libiconv
+BuildDepends: openssl097-dev, libgettext3-dev, gettext-bin, gettext-tools, libiconv-dev
 Conflicts: fetchmail
 Replaces: fetchmail
-Source: http://www.catb.org/~esr/fetchmail/fetchmail-%v.tar.gz
-Source-MD5: e131bdb6c3977fd47a3e122c43dcf19d
-SetCFLAGS: -I%p/include
+Source: http://download.berlios.de/fetchmail/fetchmail-%v.tar.bz2
+Source-MD5: 66b97500b0a1e3c0916b3b5314f597f5
+SetCFLAGS: -I%p/include -DBIND_8_COMPAT
 ConfigureParams: --mandir=%p/share/man --with-ssl=%p --enable-inet6
-PatchScript: <<
-sed 's|@l@||g' < intl/Makefile.in | sed 's|@GT_NO@||g' > tmp ; mv tmp intl/Makefile.in
-grep -v "@GT_YES@" < intl/Makefile.in > tmp ; mv tmp intl/Makefile.in
-<<
+#PatchScript: <<
+#perl -pi.bak -e 's|lock_release|fm_lock_release|g' fetchmail.c fetchmail.h lock.c
+#sed 's|@l@||g' < intl/Makefile.in | sed 's|@GT_NO@||g' > tmp ; mv tmp intl/Makefile.in
+#grep -v "@GT_YES@" < intl/Makefile.in > tmp ; mv tmp intl/Makefile.in
+#<<
 InstallScript: make install DESTDIR=%d
 DocFiles: COPYING FAQ FEATURES NEWS NOTES README* TODO
 Description: Fetch mail from POP3 and IMAP server
@@ -25,5 +26,9 @@ every remote-mail protocol now in use on the Internet: POP2, POP3,
 RPOP, APOP, KPOP, all flavors of IMAP, and ESMTP ETRN. It can even
 support IPv6 and IPSEC.
 <<
+DescPackaging: <<
+ Although this package has a GPL license, it is marked Restrictive since
+ it links to openssl.
+<<
 Homepage: http://www.catb.org/~esr/fetchmail/index.html
-License: GPL
+License: Restrictive

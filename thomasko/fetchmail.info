@@ -1,18 +1,20 @@
 Package: fetchmail
-Version: 6.2.3
+Version: 6.3.8
 Revision: 1
 Maintainer: Eric Knauel <ek@macnews.de>
-BuildDepends: bison
+BuildDepends: libgettext3-dev, gettext-bin, gettext-tools, libiconv-dev
+Depends: libgettext3-shlibs, libiconv
 Conflicts: fetchmail-ssl
 Replaces: fetchmail-ssl
-Source: http://www.catb.org/~esr/%n/%n-%v.tar.gz
-Source-MD5: e131bdb6c3977fd47a3e122c43dcf19d
-SetCFLAGS: -I%p/include
+Source: http://download.berlios.de/fetchmail/fetchmail-%v.tar.bz2
+Source-MD5: 66b97500b0a1e3c0916b3b5314f597f5
+SetCFLAGS: -I%p/include -DBIND_8_COMPAT
 ConfigureParams: --mandir=%p/share/man --without-ssl --enable-inet6
-PatchScript: <<
-sed 's|@l@||g' < intl/Makefile.in | sed 's|@GT_NO@||g' > tmp ; mv tmp intl/Makefile.in
-grep -v "@GT_YES@" < intl/Makefile.in > tmp ; mv tmp intl/Makefile.in
-<<
+#PatchScript: <<
+#perl -pi.bak -e 's|lock_release|fm_lock_release|g' fetchmail.c fetchmail.h lock.c
+#sed 's|@l@||g' < intl/Makefile.in | sed 's|@GT_NO@||g' > tmp ; mv tmp intl/Makefile.in
+#grep -v "@GT_YES@" < intl/Makefile.in > tmp ; mv tmp intl/Makefile.in
+#<<
 InstallScript: make install DESTDIR=%d
 DocFiles: COPYING FAQ FEATURES NEWS NOTES README* TODO
 Description: Fetch mail from POP3 and IMAP server
