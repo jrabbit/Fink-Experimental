@@ -1,0 +1,139 @@
+Package: apr1
+Version: 1.2.12
+Revision: 1
+Description: Apache Portable Runtime
+License: BSD
+Maintainer: Dustin Sias <dustin@coretechnologies.net>
+
+# Dependencies:
+Depends: libapr1-shlibs (= %v-%r), libaprutil1-shlibs (= %v-%r)
+BuildDepends: expat (>= 1.95.3-1), fink (>= 0.11.0-1), gdbm3, db44-aes, libiconv-dev, openldap23-dev (>= 2.3.24-10), cyrus-sasl2-dev (>= 2.1.21-1), system-openssl-dev
+Conflicts: svn-client (<< 0.14.3-1), apache2 (<< 2.0.47-1), libapr
+Replaces: libapr, apr-ssl, apr
+
+# Unpack Phase:
+Source: mirror:custom:httpd-2.2.8.tar.bz2
+Source-MD5: 76d2598a4797163d07cd50e5304aa7cd
+SourceDirectory: httpd-2.2.8/srclib
+CustomMirror: <<
+  Primary: http://www.apache.org/dist/httpd/
+  Secondary: http://www.apache.org/dist/httpd/old/
+<<
+
+##Source: mirror:custom:apr-%v.tar.bz2
+##Source-MD5: c5da94517e3918f0f2b2e0a05f56aa21
+##CustomMirror: <<
+##  Primary: http://www.apache.org/dist/apr/
+##  Secondary: http://www.apache.org/dist/apr/old/
+##<<
+
+# Patch Phase:
+PatchScript: <<
+  ### Force use of awk over gawk
+  perl -pi -e 's,gawk mawk nawk awk,awk mawk nawk gawk,g' apr/configure
+  ### Fix layout
+  perl -pi -e 's,/usr,,g' apr/config.layout
+  perl -pi -e 's,/usr,,g' apr-util/config.layout
+  perl -pi -e 's,libsuffix ,libsuffix: ,g' apr-util/config.layout
+<<
+
+# Compile Phase:
+ConfigureParams: --enable-layout=Debian --with-expat=%p --with-dbm=db44 --with-ldap --with-berkeley-db=%p --disable-dependency-tracking --without-sendfile
+NoSetLDFLAGS: true
+
+CompileScript: <<
+ cd apr; export ac_cv_func_poll=no; AWK=/usr/bin/awk SED=/usr/bin/sed ./configure %c
+ cd apr; make
+ cd apr-util; export ac_cv_func_poll=no; AWK=/usr/bin/awk SED=/usr/bin/sed ./configure %c --with-apr=%b/apr
+ ## Force system ssl for unified
+ cd apr-util; perl -pi -e 's,^LDFLAGS=.*,LDFLAGS=-L%p/lib/system-openssl/lib -lssl -lcrypto -L%p/lib,g' build/rules.mk
+ cd apr-util; make
+<<
+
+# Install Phase:
+DocFiles: ../ABOUT_APACHE ../LICENSE
+InstallScript: <<
+ cd apr; make install prefix=%i
+ cd apr-util; make install prefix=%i
+<<
+SplitOff: <<
+  Conflicts: svn-client (<< 0.14.3-1), apache2 (<< 2.0.47-1)
+  Package: libapr1-shlibs
+  Files: <<
+    lib/libapr-1.0.2.12.dylib
+    lib/libapr-1.0.dylib
+  <<
+  Shlibs: <<
+   %p/lib/libapr-1.0.dylib 10.0.0 libapr1-shlibs (>= 1.2.12-1)
+  <<
+  DocFiles: ../ABOUT_APACHE ../LICENSE apr/docs/*.html apr/CHANGES:CHANGES_apr.txt
+<<
+SplitOff2: <<
+  Depends: cyrus-sasl2-shlibs (>= 2.1.21-1), db44-aes-shlibs, expat-shlibs (>= 1.95.3-1), libapr1-shlibs (>= %v-%r), libiconv, openldap23-shlibs
+  Conflicts: svn-client (<< 0.14.3-1), apache2 (<< 2.0.47-1)
+  Package: libaprutil1-shlibs
+  Files: <<
+    lib/libaprutil-1.0.2.12.dylib
+    lib/libaprutil-1.0.dylib
+  <<
+  Shlibs: <<
+    %p/lib/libaprutil-1.0.dylib 10.0.0 libaprutil1-shlibs (>= 1.2.12-1)
+  <<
+  DocFiles: ../ABOUT_APACHE ../LICENSE apr-util/CHANGES:CHANGES_apr-util.txt
+<<
+SplitOff3: <<
+  Replaces: apr-common, apr-ssl-common, apr-dev
+  Package: apr1-dev
+  Depends: libapr1-shlibs (= %v-%r)
+  BuildDependsOnly: True
+  Files: <<
+    bin/apr-1-config
+    share/apr
+    include/apr-1/apr*
+    lib/apr.exp
+    lib/libapr-1.a
+    lib/libapr-1.la
+    lib/libapr-1.dylib
+  <<
+  DocFiles: ../ABOUT_APACHE ../LICENSE
+<<
+SplitOff4: <<
+  Replaces: apr-common, apr-ssl-common, aprutil-dev
+  Package: aprutil1-dev
+  Depends: libaprutil1-shlibs (= %v-%r), libapr1-shlibs (>= %v-%r)
+  BuildDependsOnly: True
+  Files: <<
+    bin/apu-1-config
+    include/apr-1/apu*
+    lib/aprutil.exp
+    lib/libaprutil-1.a
+    lib/libaprutil-1.la
+    lib/libaprutil-1.dylib
+  <<
+  DocFiles: ../ABOUT_APACHE ../LICENSE
+<<
+
+DescDetail: <<
+The mission of the Apache Portable Runtime (APR) is to provide a 
+free library of C data structures and routines, forming a system 
+portability layer to as many operating systems as possible, including 
+Unices, MS Win32, BeOS and OS/2.
+<<
+DescPackaging: <<
+Source taken from the apache2 source tarball since there is no 
+recent apr realease available at the moment.
+
+apr and apr-util are in one package since the building of apr-util needs
+files from the apr source directory (e.g. /sw/bin/build/rules.mk)
+<<
+DescPort: <<
+Patch needed to stop apr-util to relink a .dylib in the install path, 
+but hardcoding the /sw/lib path in the link command (i.e. %p) instead 
+of using %i (Thanks to Max Horn for fixing this)
+
+Also apr was looking for db-4.0 by default. Patched to use db-4.3.
+
+Since configure is looking for an installed sed, set it to 
+'/usr/bin/sed' so we don't have to depend on the fink sed package.
+<<
+Homepage: http://apr.apache.org/
