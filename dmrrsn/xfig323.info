@@ -1,27 +1,27 @@
-Package: xfig
-Version: 3.2.4
-Revision: 4
-BuildDepends: libjpeg (>= 6b-3), libpng3, libtiff, xaw3d (>= 1.5-11), x11-dev, fink (>= 0.24.12), xmkmf (>= 1.0.2-3)
-Depends: x11, xaw3d-shlibs (>= 1.5-11), libjpeg-bin, app-defaults, x-ghostscript-fonts, transfig (>= 3.2.4-5)
-Source: http://www.xfig.org/xfigdist/%n.%v.full.tar.gz
-Source-MD5: 1911fc0f733cb2f40336a8d0e82513de
-SourceDirectory: %n.%v
-# keeping this as %f.info so that a copy can be easily kept in unstable
-PatchFile: %f.patch
-PatchFile-MD5: 10df5d60e8a916395697b1fd8af49622
+Package: xfig323
+Version: 3.2.3d
+Revision: 3
+BuildDepends: libjpeg, libpng3, libtiff, xaw3d-static, x11-dev, fink (>= 0.24.12), xmkmf (>= 1.0.2-3)
+Depends: x11, app-defaults, x-ghostscript-fonts, transfig323 (>= 3.2.3d-4)
+Conflicts: xfig
+#Source: http://www.xfig.org/xfigdist/xfig.%v.full.tar.gz
+Source:  mirror:sourceforge:fink/direct_download/source/xfig.%v.full.tar.gz
+Source-MD5: c6321efc1e2796e111b250c58de2f2e0
+SourceDirectory: xfig.%v
+PatchFile: %n.patch
+PatchFile-MD5: fe38c7f227c3e63548d3b09b0a1cc9c6
 PatchScript: <<
  sed 's|@FINKPREFIX@|%p|g' < %{PatchFile} | patch -p1
 <<
-#PatchScript: <<
-# rm Doc/xfig._man
-# (cd Doc; ln -s xfig.man xfig._man)
-#<<
 CompileScript: <<
 #!/bin/sh -ev
  export PATH=%p/lib/xmkmf/bin:$PATH 
  export IMAKEINCLUDE=-I%p/lib/X11/config
  xmkmf
- make PREFIX=%p
+ make xfig PREFIX=%p
+ rm -f Doc/xfig._man
+ ln -s xfig.man Doc/xfig._man
+ make xfig.1.html PREFIX=%p
 <<
 InstallScript: <<
 #!/bin/sh -ev
@@ -29,15 +29,22 @@ InstallScript: <<
  export IMAKEINCLUDE=-I%p/lib/X11/config
  make install PREFIX=%p DESTDIR=%d
  make install.all PREFIX=%p DESTDIR=%d MANDIR=%p/share/man/man1 DOCDIR=%p/share/doc/xfig
+ mkdir -p %i/share/xfig/Examples
+ install -p -m644 Examples/*.* %i/share/xfig/Examples
+ mkdir -p %i/share/doc/xfig
+ install -p -m644 CHANGES FIGAPPS LATEX.AND.XFIG README %i/share/doc/xfig
  rm -Rf %d/usr
  rm -Rf %d/etc
 <<
-DocFiles: CHANGES FIGAPPS LATEX.AND.XFIG README
 License: BSD
-Description: Menu-driven tool to create graphical objects
+Description: Menu-driven tool to create graphical objects (old version)
 DescPort: <<
- Patch for the updated xaw3d library provided by the author of that update
- at http://www.visi.com/~hawkeyd/xaw3d.html
+ We don't need xpm since it is already in XFree86 4.1.  There is a
+ small problem with the makefile so one of the make targets is done by
+ hand in the compile script.
+
+ There have been reports that this package does not compile succesfully when
+ xtools is intalled rather than xfree86.
 <<
 DescPackaging: <<
  XFIGLIBDIR was set to %p/share/xfig.  Looks in /etc/printcap
