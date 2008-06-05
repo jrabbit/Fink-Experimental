@@ -1,0 +1,65 @@
+Package: minicom
+Version: 2.3
+Revision: 1
+Description: Friendly serial communication program
+License: GPL
+Maintainer: Andreas Gockel <gecko2@users.sourceforge.net>
+Depends: libgettext3-shlibs, libiconv, libncurses5-shlibs
+BuildDepends: <<
+ libgettext3-dev, gettext-bin, gettext-tools, libiconv-dev,
+ libncurses5, automake1.10
+<<
+Recommends: ckermit, lrzsz
+Source: mirror:debian:pool/main/m/%n/%n_%v.orig.tar.gz
+Source-MD5: 0ebe7a91898384ca906787cc4e2c3f25
+SourceDirectory: %n-%v
+PatchScript: <<
+ rm lib/getopt.h
+ sed -e 's,@FINKPREFIX@,%p,g' %a/%n.patch | patch -p1
+ ./autogen.sh
+<<
+ConfigureParams: <<
+ --enable-dfl-port=/dev/tty.modem --enable-lock-dir=%p/var/spool/%n\
+ --disable-dependency-tracking --enable-dfl-baud=57600 --disable-rpath\
+ --sysconfdir=%p/etc/%n
+<<
+InstallScript: <<
+ make -j1 install DESTDIR=%d
+ find %i/share/man -type f -print0 | xargs -0 gzip -q9
+ install -d -m 0755 %i/{etc/%n,share/doc/%n{,/examples,/intl,/tables,/term,/todo}}
+ install -d -m 1775 %i/var/spool/%n
+ install -m 0644 doc/%n.users doc/minirc.dfl %i/etc/%n
+ install -m 0644 doc/%n.users doc/minirc.dfl extras/*login\
+  %i/share/doc/%n/examples
+ install -m 0644 ABOUT-NLS doc/japanese doc/Locales doc/pl-translation.txt\
+  doc/portugues-brasil doc/suomeksi %i/share/doc/%n/intl
+ install -m 0644 extras/tables/mc.* %i/share/doc/%n/tables
+ install -m 0644 extras/termcap/README %i/share/doc/%n/term/README.termcap
+ install -m 0644 extras/termcap/termcap.* %i/share/doc/%n/term
+ install -m 0644 extras/terminfo/README %i/share/doc/%n/term/README.terminfo
+ install -m 0644 extras/terminfo/%n %i/share/doc/%n/term/terminfo
+ install -m 0644 TODO doc/TODO* doc/Todo* %i/share/doc/%n/todo
+<<
+DocFiles: <<
+ AUTHORS COPYING ChangeLog INSTALL NEWS README doc/ChangeLog.old 
+ doc/COMPATABILITY.lrzsz doc/fselector.txt doc/HistSearch doc/Macros
+ doc/minicom.FAQ doc/README.lrzsz
+<<
+PostRmScript: <<
+ if [ "$1" = "purge" ]; then
+  rm -rf %p/share/doc/%n
+ fi
+<<
+ConfFiles: %p/etc/%n/minirc.dfl %p/etc/%n/%n.users
+Homepage: http://alioth.debian.org/projects/minicom/
+DescDetail: <<
+ %n is a clone of the MS-DOS "Telix" communication program. It emulates
+ ANSI and VT102 terminals, has a dialing directory and auto zmodem download.
+<<
+DescPackaging: <<
+ * Avoid checking the existence of some locations so configure
+   will not override --enable flags with incorrect defaults.
+ * Removed getopt.h from lib to avoid mixing with system's getopt.
+ * Added error reporting, closes debianbug: #111060 et al.
+ * Fixed handling of white space in file names, closes debianbug: #199924.
+<<

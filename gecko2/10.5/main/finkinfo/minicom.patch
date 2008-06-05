@@ -1,0 +1,167 @@
+diff -rauN minicom-2.3/configure.in minicom-2.3p1/configure.in
+--- minicom-2.3/configure.in	2008-03-22 12:51:08.000000000 +0000
++++ minicom-2.3p1/configure.in	2008-03-22 14:37:52.000000000 +0000
+@@ -211,13 +211,8 @@
+ 
+ if test "x$UUCPLOCK" != x
+ then
+-	if test -d $UUCPLOCK
+-	then
+ 		AC_MSG_RESULT($UUCPLOCK)
+ 		AC_DEFINE_UNQUOTED(UUCPLOCK, "$UUCPLOCK", [Lock directory])
+-	else
+-		UUCPLOCK=""
+-	fi
+ fi
+ 
+ if test "x$UUCPLOCK" = x
+@@ -245,14 +240,9 @@
+ 
+ if test "x$DFL_PORT" != x
+ then
+-	if test -c $DFL_PORT
+-	then
+ 		AC_MSG_RESULT($DFL_PORT)
+ 		AC_DEFINE_UNQUOTED(DFL_PORT, "$DFL_PORT",
+ 		                   [Default /dev/... device])
+-	else
+-		DFL_PORT=""
+-	fi
+ fi
+ 
+ if test "x$DFL_PORT" = x
+diff -rauN minicom-2.3/lib/Makefile.am minicom-2.3p1/lib/Makefile.am
+--- minicom-2.3/lib/Makefile.am	2008-03-22 12:51:08.000000000 +0000
++++ minicom-2.3p1/lib/Makefile.am	2008-03-22 16:42:12.000000000 +0000
+@@ -1,5 +1,5 @@
+ noinst_LIBRARIES = libport.a
+-noinst_HEADERS = libport.h getopt.h
++noinst_HEADERS = libport.h
+ 
+ libport_a_SOURCES =
+ 
+diff -rauN minicom-2.3/lib/getopt.c minicom-2.3p1/lib/getopt.c
+--- minicom-2.3/lib/getopt.c	2008-03-22 12:51:08.000000000 +0000
++++ minicom-2.3p1/lib/getopt.c	2008-03-22 12:51:08.000000000 +0000
+@@ -110,7 +110,7 @@
+    GNU application programs can use a third alternative mode in which
+    they can distinguish the relative order of options and other arguments.  */
+ 
+-#include "getopt.h"
++#include <getopt.h>
+ 
+ /* For communication from `getopt' to the caller.
+    When `getopt' finds an option that takes an argument,
+diff -rauN minicom-2.3/lib/getopt_long.c minicom-2.3p1/lib/getopt_long.c
+--- minicom-2.3/lib/getopt_long.c	2008-03-22 12:51:08.000000000 +0000
++++ minicom-2.3p1/lib/getopt_long.c	2008-03-22 12:51:08.000000000 +0000
+@@ -23,7 +23,7 @@
+ #include <config.h>
+ #endif
+ 
+-#include "getopt.h"
++#include <getopt.h>
+ 
+ #if !defined (__STDC__) || !__STDC__
+ /* This is a separate conditional since some stdc systems
+diff -rauN minicom-2.3/src/file.c minicom-2.3p1/src/file.c
+--- minicom-2.3/src/file.c	2008-03-22 12:51:08.000000000 +0000
++++ minicom-2.3p1/src/file.c	2008-03-22 13:56:31.000000000 +0000
+@@ -535,6 +535,8 @@
+ {
+   GETSDIR_ENTRY *my_d;
+   int indxr, len;
++  int i;
++  char *j;
+ 
+   my_d = d;
+   for (indxr = nrents, len = 0; indxr; --indxr, ++my_d)
+@@ -554,8 +556,18 @@
+     for (indxr = nrents; indxr; --indxr, ++my_d)
+       if (my_d->cflags & FL_TAG) {
+         /* this could be *much* more efficient */
+-        strcat(ret_buf, my_d->fname);
+-        strcat(ret_buf, " ");
++        for (i = strlen(ret_buf), j = my_d->fname; *j; j++) {
++          if (*j == ' ') {
++            if ((ret_buf = (char*)realloc(ret_buf, ++len)) == NULL) {
++              file_tell(_("Too many files tagged - buffer would overflow"));
++              return(NULL);
++            }
++            ret_buf[i++] = '\\';
++          }
++          ret_buf[i++] = *j;
++        }
++        ret_buf[i++] = ' ';
++        ret_buf[i]   = '\0';
+       }
+ 
+     ret_buf[strlen(ret_buf) - 1] = (char)0;
+diff -rauN minicom-2.3/src/rwconf.c minicom-2.3p1/src/rwconf.c
+--- minicom-2.3/src/rwconf.c	2008-03-22 12:51:08.000000000 +0000
++++ minicom-2.3p1/src/rwconf.c	2008-03-22 12:51:08.000000000 +0000
+@@ -90,16 +90,16 @@
+   { "/usr/bin/kermit -i -l %l -r", 0, "pprog8" },
+ #else
+   /* Most sites have this in /usr/local, except Linux. */
+-  { "/usr/local/bin/sz -vv",	0,   "pprog1" },
+-  { "/usr/local/bin/sb -vv",	0,   "pprog2" },
+-  { "/usr/local/bin/sx -vv",	0,   "pprog3" },
+-  { "/usr/local/bin/rz -vv",	0,   "pprog4" },
+-  { "/usr/local/bin/rb -vv",	0,   "pprog5" },
+-  { "/usr/local/bin/rx -vv",	0,   "pprog6" },
+-  { "/usr/local/bin/kermit -i -l %l -s", 0, "pprog7" },
+-  { "/usr/local/bin/kermit -i -l %l -r", 0, "pprog8" },
++  { "@FINKPREFIX@/bin/lsz -vv",	0,   "pprog1" },
++  { "@FINKPREFIX@/bin/lsb -vv",	0,   "pprog2" },
++  { "@FINKPREFIX@/bin/lsx -vv",	0,   "pprog3" },
++  { "@FINKPREFIX@/bin/lrz -vv",	0,   "pprog4" },
++  { "@FINKPREFIX@/bin/lrb -vv",	0,   "pprog5" },
++  { "@FINKPREFIX@/bin/lrx -vv",	0,   "pprog6" },
++  { "@FINKPREFIX@/bin/ckermit -i -l %l -s", 0, "pprog7" },
++  { "@FINKPREFIX@/bin/ckermit -i -l %l -r", 0, "pprog8" },
+ #endif
+-  { "/usr/bin/ascii-xfr -dsv", 0,   "pprog9" },
++  { "@FINKPREFIX@/bin/ascii-xfr -dsv", 0,   "pprog9" },
+   { "",			0,   "pprog10" },
+   { "",			0,   "pprog11" },
+   { "",			0,   "pprog12" },
+diff -rauN minicom-2.3/src/updown.c minicom-2.3p1/src/updown.c
+--- minicom-2.3/src/updown.c	2008-03-22 12:51:08.000000000 +0000
++++ minicom-2.3p1/src/updown.c	2008-03-22 15:55:15.000000000 +0000
+@@ -355,6 +355,23 @@
+   mcd("");
+   timer_update();
+ 
++  /* return code == 1 if exeve failed, see #111060 et al */
++  if (win && status == 0x0001) {
++#if VC_MUSIC
++    if (P_SOUND[0] == 'Y') {
++      mc_wprintf(win, _("\n Failure executing protocol. Press any key to continue..."));
++      music();
++    } else
++      sleep(1);
++#else
++    /* MARK updated 02/17/94 - If there was no VC_MUSIC capability, */
++    /* then at least make some beeps! */
++    if (P_SOUND[0] == 'Y')
++      mc_wprintf(win, "\007\007\007");
++    sleep(1);
++#endif
++  } else
++
+   /* If we got interrupted, status != 0 */
+   if (win && (status & 0xFF00) == 0) {
+ #if VC_MUSIC
+diff -rauN minicom-2.3/src/util.c minicom-2.3p1/src/util.c
+--- minicom-2.3/src/util.c	2008-03-22 12:51:08.000000000 +0000
++++ minicom-2.3p1/src/util.c	2008-03-22 13:55:00.000000000 +0000
+@@ -120,7 +120,7 @@
+ 
+   /* Delete escape-characters ment for the shell */
+   p = cmd;
+-  while ((p = strchr(p, '\\')))
++  while ((p = strchr(p, '\\')) && *(p+1) != ' ')
+     memmove(p, p + 1, strlen(p+1));
+ 
+   /* Split line into words */
