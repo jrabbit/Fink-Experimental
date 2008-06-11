@@ -106,6 +106,14 @@ TestScript: <<
 #!/bin/sh -ev
  cd ../LAPACK
  mv lapack_LINUX.a lapack_LINUX.a~; ln -s ../bld/lib/liblapack.a lapack_LINUX.a
+ ## first getting around an internal compiler error with gcc4.3.1 :
+ mv make.inc make.inc~
+ sed 's, -ftree-loop-linear,,' < make.inc~ > make.inc
+ cd TESTING/EIG
+ make cget35.o zget35.o
+ cd -
+ mv make.inc~ make.inc
+ ##
  make -k lapack_testing blas_testing || :
  # to get timing uncluttered by compilation times, we'll repeat the tests at the end of the log:
  rm {BLAS,TESTING}/*.out
