@@ -43,12 +43,12 @@ BuildDepends: gcc43
 PatchScript: <<
 #!/bin/sh -ev
 #### tentative fix for G4 problems
-cd CONFIG/ARCHS
-tar -zxf PPCG432AltiVec.tgz
-rm PPCG432AltiVec/gemm/gcc/{c{u,}Clean,suClean{M,N}}*
-tar -czf PPCG432AltiVec.tgz PPCG432AltiVec
-rm -fR PPCG432AltiVec
-cd -
+#cd CONFIG/ARCHS
+#tar -zxf PPCG432AltiVec.tgz
+#rm PPCG432AltiVec/gemm/gcc/{c{u,}Clean,suClean{M,N}}*
+#tar -czf PPCG432AltiVec.tgz PPCG432AltiVec
+#rm -fR PPCG432AltiVec
+#cd -
 ####
 cd ..; ln -s lapack-3.1.1 LAPACK
 cd LAPACK
@@ -57,7 +57,14 @@ sed -e 's,\.\./\.\./blas\$(PLAT)\.a,%b/../bld/lib/libptf77blas.a %b/../bld/lib/l
 <<
 CompileScript: <<
 #!/bin/sh -ev
- if [ %m = 'i386' ]; then mflags="-mfpmath=sse -msse -msse2 -msse3 -m32"; iflags="-mfpmath=387"; else mflags=''; iflags=''; fi
+ cflags=''
+ if [ %m = 'i386' ]
+	then mflags="-mfpmath=sse -msse -msse2 -msse3 -m32"; iflags="-mfpmath=387"
+	else mflags=''; iflags=''
+		if [ `machine|sed -e 's,ppc,,' -e 's,([0-9]).*,\1,'` != 9 ]
+			then cflags='-D c -DATL_AVgcc'
+		fi
+ fi
  lflags="-fPIC -O3 -fomit-frame-pointer -fgcse-sm -fgcse-las -ftree-loop-linear $mflags"
  iflags="-fPIC -O3 -fomit-frame-pointer $iflags"
  cd ../LAPACK
@@ -71,7 +78,7 @@ CompileScript: <<
  ln -s %p/bin/gcc-4 gcc
  export PATH=`pwd`:$PATH
  cd bld
- ../ATLAS/configure -v 2 --prefix=%p --with-netlib-lapack=%b/../LAPACK/lapack_LINUX.a -b 32 -F ic "$iflags" -F if "$iflags"
+ ../ATLAS/configure -v 2 --prefix=%p --with-netlib-lapack=%b/../LAPACK/lapack_LINUX.a -b 32 -F ic "$iflags" -F if "$iflags" $cflags
  make
  cd lib
  # Apparently on some machines (=monoprocesors ?) the threaded libs are not made;
