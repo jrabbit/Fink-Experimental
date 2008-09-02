@@ -1,7 +1,7 @@
 Package: atlas
 Version: 3.9.3
-Revision: 1
-Description: Portably optimal linear algebra software
+Revision: 2
+Description: Portable optimal linear algebra software
 DescDetail: <<
 The current version provides a complete BLAS and LAPACK API.
 For many operations, ATLAS achieves performance on par
@@ -38,8 +38,12 @@ License: BSD
 # since we're experimenting with building a dylib :
 BuildDependsOnly: true
 BuildDepends: gcc43 (>= 4.3.2)
+# The whole patchscript will be in the srcs for %v 3.9.4
 PatchScript: <<
 #!/bin/sh -ev
+# bug #2083157
+sed -i.bak -e '/"ATL_FULL_LAPACK/s,(!,&cdefs || !,' CONFIG/src/config.c
+# get some more G4's recognized properly
 sed -i.bak -e '/PowerMac/,/PPCG4/s;c5,1"));c5,1")||strstr(res,"c4,2")||strstr(res,"c4,5"));' CONFIG/src/backend/archinfo_freebsd.c
 # get rid of (incompatible) implicit declarations :
 sed -i.bak -e '/1/i \
@@ -47,12 +51,12 @@ sed -i.bak -e '/1/i \
 sed -i.bak -e '/1/i \
 #include <stdio.h>' src/auxil/ATL_buildinfo.c
 cd ..; ln -s lapack-3.1.1 LAPACK
-cd LAPACK
-sed -e 's,\.\./\.\./blas\$(PLAT)\.a,%b/../bld/lib/libf77blas.a %b/../bld/lib/libcblas.a %b/../bld/lib/libatlas.a,' \
-    -e 's|g77|gfortran|g' -e 's,^TIMER,\#TIMER,' -e '/INT_ETIME/s,^\# *,,' < INSTALL/make.inc.LINUX > make.inc
+#cd LAPACK
+#sed -e 's,\.\./\.\./blas\$(PLAT)\.a,%b/../bld/lib/libf77blas.a %b/../bld/lib/libcblas.a %b/../bld/lib/libatlas.a,' \
+#    -e 's|g77|gfortran|g' -e 's,^TIMER,\#TIMER,' -e '/INT_ETIME/s,^\# *,,' < INSTALL/make.inc.LINUX > make.inc
 <<
 # --with-netlib-lapack=%b/../LAPACK/lapack_LINUX.a -Ss LAsrc %b/../LAPACK/SRC -Ss flapack %b/../LAPACK --incdir=%p/include --libdir=%p/lib
-ConfigureParams: -Si archdef 0 -v 2 -b 32 -Fa alg -fPIC -Si latune 1 -Ss flapack %b/../LAPACK --with-netlib-lapack=%b/../LAPACK/lapack_LINUX.a
+ConfigureParams: -Si archdef 0 -v 2 -b 32 -Fa alg -fPIC -Si latune 1 -Ss LAsrc %b/../LAPACK/SRC
 CompileScript: <<
 #!/bin/sh -ev
  cflags=''
@@ -65,19 +69,15 @@ CompileScript: <<
  fi
  lflags="-fPIC -O3 -fomit-frame-pointer -fgcse-sm -fgcse-las -ftree-loop-linear $mflags"
  iflags="-fPIC -O3 -fomit-frame-pointer $iflags"
- cd ../LAPACK
- sed -i.bak -e "s;\(-funroll-all-loops\) -O3;\1 $lflags;" make.inc
- make lapacklib
-# atlas 'forgets' scabs1 (not dcabs1 !), so we get it here..
-# cd BLAS/SRC; make scabs1.o; cd -
-# mkdir -p ../bld/lib
-# ar cr ../bld/lib/libf77blas.a BLAS/SRC/scabs1.o; ar cr ../bld/lib/libptf77blas.a BLAS/SRC/scabs1.o
+# cd ../LAPACK
+# sed -i.bak -e "s;\(-funroll-all-loops\) -O3;\1 $lflags;" make.inc
+# make lapacklib
  cd ..
  ln -s %p/bin/gcc-4 gcc
  export PATH=`pwd`:$PATH
  mkdir -p bld
  cd bld
- ../ATLAS/configure %c -F ic "$iflags" -F if "$iflags" $cflags
+ ../ATLAS/configure %c -F ic "$iflags" -F if "$lflags" $cflags
  make
  cd lib
  # Apparently on some machines (=monoprocessors ?) the threaded libs are not made;
@@ -109,20 +109,20 @@ CompileScript: <<
  # $ld %p/lib/libatlas.dylib libatlas.a -o libatlas.dylib -ldylib1.o -lSystem -exported_symbols_list lst
 <<
 InfoTest: <<
+TestSuiteSize: large
 TestScript: <<
 #!/bin/sh -ev
  cd ../LAPACK
- mv lapack_LINUX.a lapack_LINUX.a~; ln -s ../bld/lib/liblapack.a lapack_LINUX.a
+ ln -s ../bld/lib/liblapack.a lapack_LINUX.a
  make -k lapack_testing blas_testing
  # to get timing uncluttered by compilation times, we'll repeat the tests at the end of the log:
  rm {BLAS,TESTING}/*.out
  cd ../bld
  make -k full_test_nh
  if test -f lib/libptcblas.a
-	then make lapack_test_al_pt; tests="ptcheck"
-	else make lapack_test_al_ab; tests="check"
+	then make lapack_test_al_pt; make -k ptcheck time
+	else make lapack_test_al_ab; make -k check time
  fi
- make -k $tests time
  cd ../LAPACK
  time { make -k blas_testing; cd TESTING; make -k ; } ; cd -
  # here: real 3m10.903s; user 2m55.622s; sys 0m15.570s  (average of 3)
