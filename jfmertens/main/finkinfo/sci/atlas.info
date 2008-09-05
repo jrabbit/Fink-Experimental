@@ -51,11 +51,11 @@ sed -i.bak -e '/1/i \
 sed -i.bak -e '/1/i \
 #include <stdio.h>' src/auxil/ATL_buildinfo.c
 cd ..; ln -s lapack-3.1.1 LAPACK
-#cd LAPACK
-#sed -e 's,\.\./\.\./blas\$(PLAT)\.a,%b/../bld/lib/libf77blas.a %b/../bld/lib/libcblas.a %b/../bld/lib/libatlas.a,' \
-#    -e 's|g77|gfortran|g' -e 's,^TIMER,\#TIMER,' -e '/INT_ETIME/s,^\# *,,' < INSTALL/make.inc.LINUX > make.inc
+cd LAPACK
+sed -e 's,\.\./\.\./blas\$(PLAT)\.a,%b/../bld/lib/libf77blas.a %b/../bld/lib/libcblas.a %b/../bld/lib/libatlas.a,' \
+    -e 's|g77|gfortran|g' -e 's,^TIMER,\#TIMER,' -e '/INT_ETIME/s,^\# *,,' < INSTALL/make.inc.LINUX > make.inc
 <<
-# --with-netlib-lapack=%b/../LAPACK/lapack_LINUX.a -Ss LAsrc %b/../LAPACK/SRC -Ss flapack %b/../LAPACK --incdir=%p/include --libdir=%p/lib
+# -Si archdef 0
 ConfigureParams: -Si archdef 0 -v 2 -b 32 -Fa alg -fPIC -Si latune 1 -Ss LAsrc %b/../LAPACK/SRC
 CompileScript: <<
 #!/bin/sh -ev
@@ -69,8 +69,8 @@ CompileScript: <<
  fi
  lflags="-fPIC -O3 -fomit-frame-pointer -fgcse-sm -fgcse-las -ftree-loop-linear $mflags"
  iflags="-fPIC -O3 -fomit-frame-pointer $iflags"
-# cd ../LAPACK
-# sed -i.bak -e "s;\(-funroll-all-loops\) -O3;\1 $lflags;" make.inc
+ cd ../LAPACK
+ sed -i.bak -e "s;\(-funroll-all-loops\) -O3;\1 $lflags;" make.inc
 # make lapacklib
  cd ..
  ln -s %p/bin/gcc-4 gcc
@@ -80,6 +80,7 @@ CompileScript: <<
  ../ATLAS/configure %c -F ic "$iflags" -F if "$lflags" $cflags
  make
  cd lib
+ ranlib *.a
  # Apparently on some machines (=monoprocessors ?) the threaded libs are not made;
  # we first make atlas 'look the same' to all other pkgs, independently of the machine
  if test -f libptcblas.a
@@ -114,14 +115,14 @@ TestScript: <<
 #!/bin/sh -ev
  cd ../LAPACK
  ln -s ../bld/lib/liblapack.a lapack_LINUX.a
- make -k lapack_testing blas_testing
+ make -k lapack_testing blas_testing || :
  # to get timing uncluttered by compilation times, we'll repeat the tests at the end of the log:
  rm {BLAS,TESTING}/*.out
  cd ../bld
- make -k full_test_nh
+ make -k full_test_nh || :
  if test -f lib/libptcblas.a
-	then make lapack_test_al_pt; make -k ptcheck time
-	else make lapack_test_al_ab; make -k check time
+	then make -k lapack_test_al_pt || :; make -k ptcheck time || :
+	else make -k lapack_test_al_ab || :; make -k check time || :
  fi
  cd ../LAPACK
  time { make -k blas_testing; cd TESTING; make -k ; } ; cd -
