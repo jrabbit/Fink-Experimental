@@ -1,6 +1,6 @@
 Package: atlas
-Version: 3.9.3
-Revision: 2
+Version: 3.9.4
+Revision: 1
 Description: Portable optimal linear algebra software
 DescDetail: <<
 The current version provides a complete BLAS and LAPACK API.
@@ -30,7 +30,7 @@ Order is important when linking! Use:
 -L%p/lib -llapack -lcblas -lf77blas -latlas
 <<
 Source: mirror:sourceforge:math-atlas/%n%v.tar.bz2
-Source-MD5: 4142385ac64d3b2acc3abde4e352292c
+Source-MD5: 04c89e844be259b011ee786462817e3f
 Source2: http://www.netlib.org/lapack/lapack-3.1.1.tgz
 Source2-MD5: 00b21551a899bcfbaa7b8443e1faeef9
 SourceDirectory: ATLAS
@@ -41,18 +41,10 @@ BuildDepends: gcc43 (>= 4.3.2)
 # The whole patchscript will be in the srcs for %v 3.9.4
 PatchScript: <<
 #!/bin/sh -ev
-# bug #2083157
-sed -i.bak -e '/"ATL_FULL_LAPACK/s,(!,&cdefs || !,' CONFIG/src/config.c
-# get some more G4's recognized properly
-sed -i.bak -e '/PowerMac/,/PPCG4/s;c5,1"));c5,1")||strstr(res,"c4,2")||strstr(res,"c4,5"));' CONFIG/src/backend/archinfo_freebsd.c
-# get rid of (incompatible) implicit declarations :
-sed -i.bak -e '/1/i \
-#include <string.h>' include/contrib/ATL_gemv_ger_SSE.h tune/blas/{gemm/usercomb,gemv/{gemvtune,mvsearch},ger/{ger1tune,r1search}}.c
-sed -i.bak -e '/1/i \
-#include <stdio.h>' src/auxil/ATL_buildinfo.c
 cd ..; ln -s lapack-3.1.1 LAPACK
 cd LAPACK
 sed -e 's,\.\./\.\./blas\$(PLAT)\.a,%b/../bld/lib/libf77blas.a %b/../bld/lib/libcblas.a %b/../bld/lib/libatlas.a,' \
+    -e 's,lapack\$(PLAT)\.a,%b/../bld/lib/liblapack.a,' \
     -e 's|g77|gfortran|g' -e 's,^TIMER,\#TIMER,' -e '/INT_ETIME/s,^\# *,,' < INSTALL/make.inc.LINUX > make.inc
 <<
 # -Si archdef 0
@@ -114,8 +106,8 @@ TestSuiteSize: large
 TestScript: <<
 #!/bin/sh -ev
  cd ../LAPACK
- ln -s ../bld/lib/liblapack.a lapack_LINUX.a
- make -k lapack_testing blas_testing || :
+ make -k blas_testing || :
+ cd TESTING; make -k || :
  # to get timing uncluttered by compilation times, we'll repeat the tests at the end of the log:
  rm {BLAS,TESTING}/*.out
  cd ../bld
