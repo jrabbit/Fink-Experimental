@@ -1,5 +1,5 @@
 Info2: <<
-Package: vtk52
+Package: vtk52-cocoa
 Version: 5.2.0
 Revision: 1
 Source: http://www.vtk.org/files/release/5.2/vtk-%v.tar.gz
@@ -40,34 +40,27 @@ CompileScript: <<
  mkdir ../VTKBuild
  cd ../VTKBuild
  %p/bin/cmake -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
-       -DVTK_INSTALL_LIB_DIR:STRING="/lib/vtk52" \
+       -DCMAKE_BUILD_TYPE:STRING=Release \
+       -DVTK_INSTALL_LIB_DIR:STRING="/lib/%N" \
        -DCMAKE_INSTALL_PREFIX:PATH=%p \
        -DBUILD_SHARED_LIBS:BOOL=ON \
-       -DCMAKE_INSTALL_NAME_DIR:STRING=%p/lib/vtk52 \
+       -DCMAKE_INSTALL_NAME_DIR:STRING=%p/lib/%N \
        -DCMAKE_BUILD_WITH_INSTALL_RPATH:BOOL=ON \
        -DVTK_USE_RPATH=ON \
        -DVTK_USE_CARBON:BOOL=OFF \
-       -DVTK_USE_COCOA:BOOL=OFF \
-       -DVTK_USE_HYBRID:BOOL=ON \
-       -DVTK_USE_X:BOOL=ON \
-       -DCMAKE_X_LIBS:STRING="-lSM;-lICE;-lX11;-lXext" \
+       -DVTK_USE_COCOA:BOOL=ON \
+       -DVTK_USE_HYBRID:BOOL=OFF \
+       -DVTK_USE_X:BOOL=OFF \
        -DVTK_WRAP_TCL:BOOL=ON \
-       -DTCL_INCLUDE_PATH:PATH=%p/include \
-       -DTCL_LIBRARY:FILEPATH=%p/lib/libtcl.dylib \
-       -DTK_LIBRARY:FILEPATH=%p/lib/libtk.dylib \
-       -DTK_INCLUDE_PATH:PATH=%p/include \
+       -DTCL_TCLSH:FILEPATH=/usr/bin/tclsh \
        -DVTK_WRAP_JAVA:BOOL=ON \
        -DJAVA_HAVE_FRAMEWORK:BOOL=ON \
        -DVTK_WRAP_PYTHON:BOOL=ON \
-       -DPYTHON_EXECUTABLE:FILEPATH=%p/bin/python2.5 \
-       -DPYTHON_INCLUDE_PATH:PATH=%p/include/python2.5 \
-       -DPYTHON_LIBRARY:FILEPATH=%p/lib/python2.5/config/libpython2.5.dylib \
-       -DPYTHON_DEBUG_LIBRARY:FILEPATH=%p/lib/python2.5/config/libpython2.5.dylib \
-       -DVTK_PYTHON_SETUP_ARGS:STRING="--prefix=%p --root=%d" \
-       -DOPENGL_gl_LIBRARY:STRING="-L/usr/X11R6/lib -lGL -dylib_file /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib" \
-       -DOPENGL_glu_LIBRARY:STRING="-L/usr/X11R6/lib -lGLU" \
-       -DOPENGL_INCLUDE_DIR:PATH="/usr/X11R6/include" \
-       -DOPENGL_xmesa_INCLUDE_DIR:PATH=/usr/X11R6/include \
+       -DPYTHON_EXECUTABLE:FILEPATH=/usr/bin/python \
+       -DPYTHON_INCLUDE_PATH:PATH=/usr/include/python2.5 \
+       -DPYTHON_LIBRARY:FILEPATH=/usr/lib/libpython2.dylib \
+       -DPYTHON_DEBUG_LIBRARY:FILEPATH=/usr/lib/libpython2.dylib \
+       -DVTK_PYTHON_SETUP_ARGS:STRING="--prefix=%p --root=%d --install-purelib=%p/Library/Python/2.5/site-packages --install-platlib=%p/Library/Python/2.5/site-packages" \
        -DVTK_USE_SYSTEM_EXPAT:BOOL=ON \
        -DEXPAT_INCLUDE_DIR:PATH=%p/include \
        -DEXPAT_LIBRARY:FILEPATH=%p/lib/libexpat.dylib \
@@ -83,7 +76,7 @@ CompileScript: <<
        ../VTK
 # Hack for finding not-yet-installed dylibs during making.
 # If there exists such a mechanism in cmake, I haven't found it.
- export DYLD_FALLBACK_LIBRARY_PATH='.'
+ export DYLD_FALLBACK_LIBRARY_PATH=`pwd`/bin
 #
  make
 << 
@@ -96,7 +89,7 @@ InstallScript: <<
  /usr/bin/find -d %i/share/doc/%n/Examples -name CVS -exec rm -rf \{\} \;
 <<
 DocFiles: Copyright.txt README.html  
-Description: The Visualization ToolKit, X11 version
+Description: The Visualization ToolKit, cocoa version
 DescDetail: << 
 The Visualization ToolKit (VTK) is an open source, freely available software
 system for 3D computer graphics, image processing, and visualization used by
@@ -115,16 +108,19 @@ has been installed and tested on nearly every Unix-based platform, PCs
 (Windows 98/ME/NT/2000/XP), and Mac OSX Jaguar or later.
 <<
 DescUsage: <<
- This version uses X11 and Fink's Tcl/Tk and python25.
+ This version uses the Cocoa framework, and also the system framework
+ versions of TCL/TK and Python. 
+
+ Tcl/Tk windows currently don't accept input, python windows work
+ OK if started using pythonw and if rhe PYTHONHOME environment
+ variable is set to %p/Library/Python/2.5/site-packages/ 
+
  Examples are provided in the %p/share/doc/vtk-py/Examples folder.
- To run them, use "vtk Tutorial/Step1/Tcl/Cone.tcl", or
- "vtkpython Tutorial/Step5/Python/Cone5.py", for example.
- For some of them, you need the vtkdata package.
+ To run them, use "vtk Tutorial/Step1/Tcl/Cone1.tcl", or
+ "env %/Library/Python/2.5/site-packages/ pythonw 
+    Tutorial/Step5/Python/Cone5.py", for example.
+ For some of the examples, you need the vtkdata package.
  For documentation see the vtk web site. 
-<<
-DescPackaging: <<
- Having several -pyXX variants was not really popular, so we
- impose python25 now.
 <<
 DescPort: <<
  Compatibility with previous vtk packages is not a priority, because this is 
@@ -135,7 +131,7 @@ DescPort: <<
 <<
 SplitOff: <<
  Package: %N-shlibs
- Description: VTK shared libraries, X11 version
+ Description: VTK shared libraries, cocoa version
  DocFiles: Copyright.txt README.html
  Depends: <<
     expat-shlibs,
@@ -217,7 +213,7 @@ SplitOff2: <<
   Package: %N-dev
   Description: VTK headers and compile-time libraries
   BuildDependsOnly: True
-  Conflicts: vtk52-dev, vtk52-cocoa-dev, vtk52-carbon-dev         
+  Conflicts: vtk52-dev, vtk52-cocoa-dev, vtk52-carbon-dev
   Replaces: vtk52-dev, vtk52-cocoa-dev, vtk52-carbon-dev
   DocFiles: Copyright.txt README.html
   Files: <<
