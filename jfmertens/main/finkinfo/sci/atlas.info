@@ -38,17 +38,20 @@ License: BSD
 # since we're experimenting with building a dylib :
 BuildDependsOnly: true
 BuildDepends: gcc43 (>= 4.3.2)
-# The whole patchscript will be in the srcs for %v 3.9.4
+# The whole previous patchscript is in the srcs for %v 3.9.4
 PatchScript: <<
 #!/bin/sh -ev
+sed -i.bak -e 's,libtool -dynamic,\$(LIBTOOL) -dynamic,' -e 's,_version 3\.9\.4,_version \$(VER),g' \
+	-e '/f77blas\.dylib *:/,/lapack\.dylib *:/s, \$(LIBS),,' -e 's,=libtool,& -single_module -dead_strip -x,' \
+	-e '/lapack\.dylib *:/,/clapack\.dylib *:/s,\$(LIBS),-lgcc_s.1 &,' makes/Make.lib
 cd ..; ln -s lapack-3.1.1 LAPACK
 cd LAPACK
 sed -e 's,\.\./\.\./blas\$(PLAT)\.a,%b/../bld/lib/libf77blas.a %b/../bld/lib/libcblas.a %b/../bld/lib/libatlas.a,' \
-    -e 's,lapack\$(PLAT)\.a,%b/../bld/lib/liblapack.a,' \
+    -e 's,lapack\$(PLAT)\.a,../bld/lib/liblapack.a,' \
     -e 's|g77|gfortran|g' -e 's,^TIMER,\#TIMER,' -e '/INT_ETIME/s,^\# *,,' < INSTALL/make.inc.LINUX > make.inc
 <<
-# -Si archdef 0
-ConfigureParams: -Si archdef 0 -v 2 -b 32 -Fa alg -fPIC -Si latune 1 -Ss LAsrc %b/../LAPACK/SRC
+# -Si archdef 0 -Si latune 1
+ConfigureParams: -Si archdef 0 -v 2 -b 32 -Fa alg -fPIC -Si latune 0 -Ss LAsrc %b/../LAPACK/SRC
 CompileScript: <<
 #!/bin/sh -ev
  cflags=''
@@ -70,6 +73,11 @@ CompileScript: <<
  mkdir -p bld
  cd bld
  ../ATLAS/configure %c -F ic "$iflags" -F if "$lflags" $cflags
+ # first fix wrong F77SYSLIB
+ path=`gfortran -print-file-name=libgfortran.dylib|sed -e 's,/[^/]*$,,'`
+ path=`cd $path 2>/dev/null && pwd || :`
+ sed -i.bak -e "s,F77SYSLIB =.*,F77SYSLIB = -L$path -lgfortran," Make.inc
+ #
  make
  cd lib
  ranlib *.a
@@ -84,15 +92,17 @@ CompileScript: <<
 		ln -s lib${C}blas.a lib${C}blas_unthreaded.a
 	     done
  fi
+
+make dylib
  # We now make shared libs (experimental); easier to just write the commands here than to fix lib/Makefile ...
  # We link 'manually', with ld, to avoid having unnecessary libs like lgcc_s among the load commands.
  # This way the libs can be safely used in linking with any compiler: they will not bring themselves
  # the wrong lgcc_s in the search list.
- ld="ld -dynamic -dylib -single_module -dead_strip -x -all_load -L. -L%p/lib/gcc4.3/lib -ldylib1.o -dylib_install_name"
- $ld %p/lib/libatlas.dylib libatlas.a -o libatlas.dylib -lSystem
- $ld %p/lib/libcblas.dylib libcblas.a -o libcblas.dylib -latlas -lSystem
- $ld %p/lib/libf77blas.dylib libf77blas.a -o libf77blas.dylib -lgfortran -latlas -lSystem
- $ld %p/lib/liblapack.dylib liblapack.a -o liblapack.dylib -lf77blas -lgfortran -lcblas -latlas -lgcc_s.1 -lSystem
+# ld="ld -dynamic -dylib -single_module -dead_strip -x -all_load -L. -L%p/lib/gcc4.3/lib -ldylib1.o -dylib_install_name"
+# $ld %p/lib/libatlas.dylib libatlas.a -o libatlas.dylib -lSystem
+# $ld %p/lib/libcblas.dylib libcblas.a -o libcblas.dylib -latlas -lSystem
+# $ld %p/lib/libf77blas.dylib libf77blas.a -o libf77blas.dylib -lgfortran -latlas -lSystem
+# $ld %p/lib/liblapack.dylib liblapack.a -o liblapack.dylib -lf77blas -lgfortran -lcblas -latlas -lgcc_s.1 -lSystem
  ## the next 4 lines are optional _ no idea of a correct exported symbols list for libatlas...
  ## probably to be removed for a commit _ it gains an enormous decrease in the # of symbols exported by the lib,
  ## but size goes down only from ~ 2.8M to 2.3M
@@ -107,20 +117,19 @@ TestScript: <<
 #!/bin/sh -ev
  cd ../LAPACK
  make -k blas_testing || :
- cd TESTING; make -k || :
- # to get timing uncluttered by compilation times, we'll repeat the tests at the end of the log:
- rm {BLAS,TESTING}/*.out
+# to get timing uncluttered by compilation times, we'll repeat the tests at the end of the log:
+ rm BLAS/*.out
  cd ../bld
  make -k full_test_nh || :
  if test -f lib/libptcblas.a
 	then make -k lapack_test_al_pt || :; make -k ptcheck time || :
 	else make -k lapack_test_al_ab || :; make -k check time || :
  fi
- cd ../LAPACK
- time { make -k blas_testing; cd TESTING; make -k ; } ; cd -
+ cd ../LAPACK; time { make -k blas_testing || :; cd ../bld/bin/LAPACK_TEST; make -k all || : ; } ; cd -
  # here: real 3m10.903s; user 2m55.622s; sys 0m15.570s  (average of 3)
  # with 3.8.2: real 3m19.518s; user 3m2.366s; sys 0m18.272s
- egrep "fail|Error" {BLAS,TESTING}/*.out
+ egrep "fail|Error" BLAS/*.out
+ cat ../bld/bin/LAPACK_TEST/SUMMARY_al_*.txt
 <<
 <<
 InstallScript: <<
