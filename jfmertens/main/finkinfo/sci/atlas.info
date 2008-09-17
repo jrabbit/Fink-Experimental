@@ -42,8 +42,10 @@ BuildDepends: gcc43 (>= 4.3.2)
 PatchScript: <<
 #!/bin/sh -ev
 sed -i.bak -e 's,libtool -dynamic,\$(LIBTOOL) -dynamic,' -e 's,_version 3\.9\.4,_version \$(VER),g' \
-	-e '/f77blas\.dylib *:/,/lapack\.dylib *:/s, \$(LIBS),,' -e 's,=libtool,& -single_module -dead_strip -x,' \
+	-e 's,-compatibility_version \$(VER) ,,' \
+	-e '/f77blas\.dylib *:/,/lapack\.dylib *:/s, \$(LIBS),,' \
 	-e '/lapack\.dylib *:/,/clapack\.dylib *:/s,\$(LIBS),-lgcc_s.1 &,' makes/Make.lib
+sed -i.bak -e 's,LIBTOOL",LIBTOOL -single_module -dead_strip -x",' configure
 cd ..; ln -s lapack-3.1.1 LAPACK
 cd LAPACK
 sed -e 's,\.\./\.\./blas\$(PLAT)\.a,%b/../bld/lib/libf77blas.a %b/../bld/lib/libcblas.a %b/../bld/lib/libatlas.a,' \
@@ -51,7 +53,7 @@ sed -e 's,\.\./\.\./blas\$(PLAT)\.a,%b/../bld/lib/libf77blas.a %b/../bld/lib/lib
     -e 's|g77|gfortran|g' -e 's,^TIMER,\#TIMER,' -e '/INT_ETIME/s,^\# *,,' < INSTALL/make.inc.LINUX > make.inc
 <<
 # -Si archdef 0 -Si latune 1
-ConfigureParams: -Si archdef 0 -v 2 -b 32 -Fa alg -fPIC -Si latune 0 -Ss LAsrc %b/../LAPACK/SRC
+ConfigureParams: -Si archdef 0 -v 2 -b 32 -Fa alg -fPIC -Si latune 1 -Ss LAsrc %b/../LAPACK/SRC
 CompileScript: <<
 #!/bin/sh -ev
  cflags=''
