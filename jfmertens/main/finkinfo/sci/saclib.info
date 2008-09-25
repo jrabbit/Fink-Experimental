@@ -1,0 +1,75 @@
+Package: saclib
+Version: 2.2.0
+Revision: 1
+Source: http://www.cs.usna.edu/~qepcad/INSTALL/saclib2.2.0.tar.gz
+Source-MD5: a13ce148b1289bd284b692b9ba290e3d
+PatchScript: <<
+#!/bin/sh -ev
+    sed -e '/Get architecture type/,/else/s,else,elsif ($uname =~ /ppc|PPC|Powerpc/)\n{\n\t$ptype = "ppc";\n}\n&,' \
+	-e '/Get OS type/,/else/s,else,elsif ($uname =~ /Darwin/)\n{\n\t$ostype = "darwin";\n}\n&,' \
+	-e '$i \
+elsif ($ostype eq "darwin")\
+{\
+	if($ptype eq "x86")\
+	{\
+		print SYSDEP $littleEndian;\
+		print SYSDEP "#define _X86_DARWIN_\\n";\
+	}\
+	elsif ($ptype eq "ppc")\
+	{\
+		print SYSDEP $bigEndian;\
+		print SYSDEP "#define _PPC_DARWIN_\\n";\
+	}\
+	system("bash -c \\"pushd >/dev/null $ENV{XsaclibX}/sysdep/darwin ; ./install %b ; popd >/dev/null\\"");\
+}' < bin/mksysdep.pl~ > bin/mksysdep.pl 
+  sed -i'' -e "s,XsaclibX,'saclib'," bin/mksysdep.pl
+  sed -i'' -e '/"sysdep.h"/a\
+#ifdef __APPLE__\
+#include <machine/endian.h>\
+#ifdef LITTLE_ENDIAN\
+#define _LITTLE_ENDIAN_\
+#undef _BIG_ENDIAN_\
+#endif\
+#ifdef BIG_ENDIAN\
+#define _BIG_ENDIAN_\
+#undef _LITTLE_ENDIAN_\
+#endif /* __APPLE__ */\
+#endif' include/hfloats.h
+  cp -pPR sysdep/archive/generic sysdep/darwin
+  cp -p sysdep/linuxX86/GC.c sysdep/darwin/src
+  sed -i'' -e 's,generic,darwin,' sysdep/darwin/install
+#        -e "/mkproto/a \
+#        sed -i'' -e '/FAIL.*void/d' %b/include/sacproto.h" \
+  rm sysdep/darwin/src/FAIL_varargs.c
+  add_def="`grep -e BETA2 -e 'define LARGE' -e 'define SMALL' -e 'N[MLS]PRIME_' include/sacsys.h~|sed -e 's,$,\\\,'`"
+  sed -i'' -e "/BETA1/a\
+$add_def
+" sysdep/darwin/include/sacsys.h 
+  sed -i'' -e '/<malloc\.h>/d' src/IQR.c
+<<
+CompileScript: <<
+  #!/bin/sh -ev
+  export saclib=`pwd`
+  mkdir -p lib/obj
+  cd bin; ./sconf
+<<
+InstallScript: <<
+  #!/bin/sh -ev
+  mkdir -p %i/bin %i/lib %i/include %i/share/doc/%N %i/share/%N
+  cp -p lib/saclib.a %i/lib
+  cp -p include/*.h %i/include
+  cp -p doc/{,maint_guide/}*.dvi %i/share/doc/%N
+  cp -p bin/sdesc %i/bin
+  cp -p bin/{b2l,l2b}.awk doc/*.doc %i/share/%N
+  sed -i'' -e 's,[$]saclib/[bindoc]\{3\},%p/share/%N,' %i/bin/sdesc
+  chmod -R a+rX %i
+  sed -e '/INSTALLATION/,/done\./d' < README > HELP
+  sed -e '1,/Introduction/d' -e "/1\.2\./,/'mkmake'.$/d" -e '/^ *mk/d' < sysdep/darwin/README >> HELP
+  sed -i'' -e 's,COPYRIGHT ,LICENSE ,' -e '/^sman/d' -e 's,saclib/doc,%p/share/%N,' -e 's,saclib/bin,%p/bin,' \
+	-e 's,scripts,script,' -e 's,headers,header,' -e 's,these,this,' -e 's,their,its,' HELP
+<<
+DocFiles: HELP LICENSE
+Description: Computer algebra, specially on ordered fields
+License: OSI-Approved
+Homepage: http://www.cs.usna.edu/~qepcad/B/QEPCAD.html
+Maintainer: JF Mertens <jfmertens@users.sourceforge.net>
