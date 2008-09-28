@@ -7,23 +7,8 @@ PatchScript: <<
 #!/bin/sh -ev
     sed -e '/Get architecture type/,/else/s,else,elsif ($uname =~ /ppc|PPC|Powerpc/)\n{\n\t$ptype = "ppc";\n}\n&,' \
 	-e '/Get OS type/,/else/s,else,elsif ($uname =~ /Darwin/)\n{\n\t$ostype = "darwin";\n}\n&,' \
-	-e '$i \
-elsif ($ostype eq "darwin")\
-{\
-	if($ptype eq "x86")\
-	{\
-		print SYSDEP $littleEndian;\
-		print SYSDEP "#define _X86_DARWIN_\\n";\
-	}\
-	elsif ($ptype eq "ppc")\
-	{\
-		print SYSDEP $bigEndian;\
-		print SYSDEP "#define _PPC_DARWIN_\\n";\
-	}\
-	system("bash -c \\"pushd >/dev/null $ENV{XsaclibX}/sysdep/darwin ; ./install %b ; popd >/dev/null\\"");\
-}' < bin/mksysdep.pl~ > bin/mksysdep.pl 
-  sed -i'' -e "s,XsaclibX,'saclib'," bin/mksysdep.pl
-  sed -i'' -e '/"sysdep.h"/a\
+	-e '/Create sysdep.h$/a\
+	$Endian = "/* Created by $saclib/bin/mksysdep.pl */\
 #ifdef __APPLE__\
 #include <machine/endian.h>\
 #ifdef LITTLE_ENDIAN\
@@ -33,19 +18,34 @@ elsif ($ostype eq "darwin")\
 #ifdef BIG_ENDIAN\
 #define _BIG_ENDIAN_\
 #undef _LITTLE_ENDIAN_\
+#endif\
 #endif /* __APPLE__ */\
-#endif' include/hfloats.h
+";' \
+	-e '$i \
+elsif ($ostype eq "darwin")\
+{\
+	print SYSDEP $Endian;\
+	if($ptype eq "x86")\
+	{\
+		print SYSDEP "#define _X86_DARWIN_\\n";\
+	}\
+	elsif ($ptype eq "ppc")\
+	{\
+		print SYSDEP "#define _PPC_DARWIN_\\n";\
+	}\
+	system("bash -c \\"pushd >/dev/null $ENV{XsaclibX}/sysdep/darwin ; ./install %b ; popd >/dev/null\\"");\
+}' < bin/mksysdep.pl~ > bin/mksysdep.pl 
+  sed -i'' -e "s,XsaclibX,'saclib'," bin/mksysdep.pl
   cp -pPR sysdep/archive/generic sysdep/darwin
   cp -p sysdep/linuxX86/GC.c sysdep/darwin/src
   sed -i'' -e 's,generic,darwin,' sysdep/darwin/install
-#        -e "/mkproto/a \
-#        sed -i'' -e '/FAIL.*void/d' %b/include/sacproto.h" \
   rm sysdep/darwin/src/FAIL_varargs.c
   add_def="`grep -e BETA2 -e 'define LARGE' -e 'define SMALL' -e 'N[MLS]PRIME_' include/sacsys.h~|sed -e 's,$,\\\,'`"
   sed -i'' -e "/BETA1/a\
 $add_def
 " sysdep/darwin/include/sacsys.h 
   sed -i'' -e '/<malloc\.h>/d' src/IQR.c
+  sed -i'' -e 's,SACFLAG= ,"SACFLAG=-Os -fPIC" ,' sysdep/darwin/bin/mklib
 <<
 CompileScript: <<
   #!/bin/sh -ev
