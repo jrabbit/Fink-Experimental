@@ -38,6 +38,10 @@ elsif ($ostype eq "darwin")\
   sed -i'' -e "s,XsaclibX,'saclib'," bin/mksysdep.pl
   cp -pPR sysdep/archive/generic sysdep/darwin
   cp -p sysdep/linuxX86/GC.c sysdep/darwin/src
+## FPCATCH needed, and the following doesn't work ..
+#  cp -p sysdep/solarisSparc/FP{CATCH,HAND}.c sysdep/darwin/src
+#  sed -i'' -e '/saclib.h/a\
+##include <signal.h>' sysdep/darwin/src/FP{CATCH,HAND}.c
   sed -i'' -e 's,generic,darwin,' sysdep/darwin/install
   rm sysdep/darwin/src/FAIL_varargs.c
   add_def="`grep -e BETA2 -e 'define LARGE' -e 'define SMALL' -e 'N[MLS]PRIME_' include/sacsys.h~|sed -e 's,$,\\\,'`"
@@ -46,6 +50,7 @@ $add_def
 " sysdep/darwin/include/sacsys.h 
   sed -i'' -e '/<malloc\.h>/d' src/IQR.c
   sed -i'' -e 's,SACFLAG= ,"SACFLAG=-Os -fPIC" ,' sysdep/darwin/bin/mklib
+  sed -i'' -e 's,_X86_LINUX_,__APPLE__,' -e '/ieee754\.h/d' include/hfloats.h
 <<
 CompileScript: <<
   #!/bin/sh -ev

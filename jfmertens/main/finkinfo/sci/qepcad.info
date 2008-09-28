@@ -1,0 +1,46 @@
+Package: qepcad
+Version: 1.50
+Revision: 1
+Source: http://www.cs.usna.edu/~qepcad/INSTALL/%N-B.%v.tar.gz
+Source-MD5: bb0464e75bee90bbb7f737e281febc51
+SourceDirectory: qesource
+
+BuildDepends: freeglut, readline5, saclib, sed
+Depends: freeglut-shlibs, readline5-shlibs, singular
+
+PatchScript: <<
+#!/bin/sh -ev
+sed -i'' -e 's,gmake,make,' Makefile
+sed -i'' -e 's,saclibo,saclib,' -e 's,-lreadline,-L%p/lib &,' {cad2d,source}/Makefile
+sed -i'' -e 's,O4,O3 -fstrict-aliasing -Wall -mdynamic-no-pic,' {.,cad2d,plot2d,source}/Makefile extensions/adj2d/new_make
+sed -i'' -e 's,(EXE)\|(LIBS),& -undefined dynamic_lookup -s -dead_strip,' {cad2d,plot2d,source}/Makefile 
+sed -i'' -e 's,qepath [+],string("%p/share/%N") +,' {cad2d/src,source/main}/MAIN.c
+sed -i'' -e '$a\
+SINGULAR %p/bin' default.qepcadrc
+sed -i'' -e '/^GLBASE/s,/usr,&/X11R6,' -e '/^GLUTBASE/s,/usr,%p,' plot2d/Makefile
+sed -i'' -e 's,/bin/ADJ2D_plot,%p&,' extensions/rend/PLOT_2D_CAD.cc
+sed -i'' -e 's,qepcad.help,%p/share/%N/&,' source/userint/HELPFRD.c
+<<
+CompileScript: <<
+#!/bin/sh -ev
+export saclib=%p
+export qe=`pwd`
+make opt
+cd cad2d; make opt; cd -
+cd plot2d; make; cd -
+<<
+InstallScript: <<
+mkdir -p %i/include/%N %i/lib/%N %i/bin %i/share/%N
+cp -p --parents `find . -name '*.h'` %i/include/%N
+cp -p `find . -name '*.a'` %i/lib/%N
+ranlib %i/lib/%N/*.a
+cp -p source/%N cad2d/cad2d plot2d/ADJ2D_plot %i/bin
+cp -p default.qepcadrc source/qepcad.help %i/share/%N
+chmod -R a+rX %i
+<<
+DocFiles: LICENSE LOG README TODO
+Description: Tarski's Quantifier Elimination
+License: OSI-Approved
+Homepage: http://www.cs.usna.edu/~qepcad/B/QEPCAD.html
+Maintainer: JF Mertens <jfmertens@users.sourceforge.net>
+
