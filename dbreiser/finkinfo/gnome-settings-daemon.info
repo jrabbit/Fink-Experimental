@@ -1,0 +1,130 @@
+Package: gnome-settings-daemon
+Version: 2.22.1
+Revision: 0.9
+Depends: <<
+	atk1-shlibs (>= 1.20.0-1),
+	audiofile-shlibs (>= 0.2.5-1),
+	esound-shlibs (>= 0.2.38-1),
+	file-roller (>= 2.20.0-1),
+	gconf2 (>= 2.20.0-1),
+	glib2-shlibs (>= 2.14.0-1),
+	gnome-keyring (>= 0.8.1-1),
+	gnome-vfs2-unified (>= 1:2.20.0-1),
+	gtk+2 (>= 2.12.0-1),
+	libart2-shlibs (>= 2.3.16-1),
+	libbonobo2 (>= 2.20.0-1),
+	libbonoboui2 (>= 2.20.0-1),
+	libcroco3-shlibs,
+	libgettext3-shlibs,
+	libglade2-shlibs (>= 2.6.2-1),
+	libgnome2 (>= 2.20.0-1),
+	libgnomeui2 (>= 2.20.0-1),
+	libgnomecanvas2 (>= 2.20.0-1),
+	libgsf1.114-shlibs (>= 1.14.5-1),
+	libiconv,
+	libjpeg-shlibs,
+	librsvg2-shlibs (>= 2.18.0-1),
+	libxml2-shlibs (>= 2.6.30-1),
+	orbit2 (>= 2.14.9-1),
+	pango1-xft2-ft219 (>= 1.18.2-1),
+	passwd (>= 20051118-1),
+	popt-shlibs,
+	rarian-compat,
+	x11-shlibs
+<<
+BuildDepends: <<
+	atk1 (>= 1.20.0-1),
+	audiofile,
+	cairo (>= 1.2-1),
+	dbus-dev (>= 1.0-1),
+	esound (>= 0.2.38-1),
+	expat1,
+	fink (>= 0.24.12-1),
+	fontconfig2-dev (>= 2.4.1-1),
+	freetype219 (>= 2.3.5-1),
+	gconf2-dev (>= 2.20.0-1),
+	gettext-bin,
+	gettext-tools,
+	glib2-dev (>= 2.14.0-1),
+	glitz,
+	gnome-doc-utils (>= 0.12.0-1),
+	gnome-keyring-dev (>= 0.8.1-1),
+	gnome-vfs2-unified-dev (>= 1:2.20.0-1),
+	gtk+2-dev (>= 2.12.0-1),
+	intltool (>= 0.36.0-1),
+	libart2 (>= 2.3.16-1),
+	libbonobo2-dev (>= 2.20.0-1),
+	libbonoboui2-dev (>= 2.20.0-1),
+	libcroco3,
+	libgettext3-dev,
+	libglade2 (>= 2.6.2-1),
+	libgnome2-dev (>= 2.20.0-1),
+	libgnomeui2-dev (>= 2.20.0-1),
+	libgnomecanvas2-dev (>= 2.20.0-1),
+	libgsf1.114-dev (>= 1.14.5-1),
+	
+	libiconv-dev,
+	libjpeg,
+	libpng3,
+	librsvg2 (>= 2.18.0-1),
+	libxklavier12,
+	libxml2 (>= 2.6.30-1),
+	orbit2-dev (>= 2.14.9-1),
+	pango1-xft2-ft219-dev (>= 1.18.2-1),
+	pkgconfig (>= 0.21-1),
+	popt,
+	x11-dev,
+	xft2-dev
+<<
+Source: mirror:gnome:sources/%n/2.22/%n-%v.tar.bz2
+Source-MD5: 959d0d289ed81f950004fa64dbcff89d
+#PatchFile: %n.patch
+#PatchFile-MD5: dcbb5b6ca37e107a43d176435b3220ce
+PatchScript: <<
+  perl -pi -e 's/-no-undefined//' configure
+  <<
+ConfigureParams: <<
+    --disable-scrollkeeper \
+    --mandir=%p/share/man \
+    --libexecdir=%p/lib/%n \
+    --with-dbus-sys=%p/etc/dbus-1 \
+    --with-dbus-services=%p/share/dbus-1/services \
+    --disable-dependency-tracking  \
+    PKG_CONFIG_PATH="%p/lib/pango-ft219/lib/pkgconfig:%p/lib/fontconfig2/lib/pkgconfig:%p/lib/freetype219/lib/pkgconfig:$PKG_CONFIG_PATH" \
+    FREETYPE_CONFIG=%p/lib/freetype219/bin/freetype-config
+  <<
+InstallScript: make -j1 install DESTDIR=%d
+PostInstScript: <<
+	if [ configure = "$1" ]; then
+		scrollkeeper-update -q
+		export GCONF_CONFIG_SOURCE=`gconftool-2 --get-default-source`
+		for s in \
+			gnome-settings-daemon \
+			apps_gnome_settings_daemon_keybindings \
+			apps_gnome_settings_daemon_screensaver \
+			desktop_gnome_font_rendering \
+		; do
+			gconftool-2 --makefile-install-rule %p/etc/gconf/schemas/$s.schemas >/dev/null
+		done
+
+	fi
+<<
+PostRmScript: <<  
+	if [ remove != "$1" ]; then
+		scrollkeeper-update -q
+	fi
+<<
+ConfFiles: <<
+	%p/etc/gconf/schemas/gnome-settings-daemon.schemas
+	%p/etc/gconf/schemas/apps_gnome_settings_daemon_keybindings.schemas
+	%p/etc/gconf/schemas/apps_gnome_settings_daemon_screensaver.schemas
+	%p/etc/gconf/schemas/desktop_gnome_font_rendering.schemas
+<<
+DocFiles: AUTHORS COPYING ChangeLog po/ChangeLog NEWS README
+DescPort: <<
+	first attempt. GSD was split out of gnome-control-center
+<<
+Description: GNOME Settings Daemon
+License: GPL
+Homepage: http://www.gnome.org
+Maintainer: The Gnome Core Team <fink-gnome-core@lists.sourceforge.net>
