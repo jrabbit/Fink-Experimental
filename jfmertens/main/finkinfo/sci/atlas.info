@@ -46,6 +46,8 @@ sed -i.bak -e 's,libtool -dynamic,\$(LIBTOOL) -dynamic,' -e 's,_version 3\.9\.4,
 	-e '/f77blas\.dylib *:/,/lapack\.dylib *:/s, \$(LIBS),,' \
 	-e '/lapack\.dylib *:/,/clapack\.dylib *:/s,\$(LIBS),-lgcc_s.1 &,' makes/Make.lib
 sed -i.bak -e 's,LIBTOOL",LIBTOOL -single_module -dead_strip -x",' configure
+# bug 379482
+sed -i.bak -e '/^ATL_ilaenv.o/s,$, $(INCAdir)/atlas_sGetNB_geqrf.h $(INCAdir)/atlas_dGetNB_geqrf.h $(INCAdir)/atlas_cGetNB_geqrf.h $(INCAdir)/atlas_zGetNB_geqrf.h,' makes/Make.lpsrc
 cd ..; ln -s lapack-3.1.1 LAPACK
 cd LAPACK
 sed -e 's,\.\./\.\./blas\$(PLAT)\.a,%b/../bld/lib/libf77blas.a %b/../bld/lib/libcblas.a %b/../bld/lib/libatlas.a,' \
@@ -82,6 +84,7 @@ CompileScript: <<
  #
  make
  cd lib
+ ar -r ../../bld/src/lapack/ATL_ilaenv.o liblapack.a
  ranlib *.a
  # Apparently on some machines (=monoprocessors ?) the threaded libs are not made;
  # we first make atlas 'look the same' to all other pkgs, independently of the machine
