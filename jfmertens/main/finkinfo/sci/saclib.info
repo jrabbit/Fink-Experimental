@@ -1,11 +1,13 @@
 Package: saclib
 Version: 2.2.0
 Revision: 1
-Source: http://www.cs.usna.edu/~qepcad/INSTALL/saclib2.2.0.tar.gz
-Source-MD5: a13ce148b1289bd284b692b9ba290e3d
+#Source: http://www.cs.usna.edu/~qepcad/INSTALL/saclib2.2.0.tar.gz
+Source: http://www.cs.usna.edu/~wcbrown/saclib2.2.0.tar.gz
+Source-MD5: 6fd2489018a0d163338a9dcd42f72e48
 PatchScript: <<
 #!/bin/sh -ev
-    sed -e '/Get architecture type/,/else/s,else,elsif ($uname =~ /ppc|PPC|powerpc/)\n{\n\t$ptype = "ppc";\n}\n&,' \
+    cp -p %a/%n.patch bin/mksysdep.pl~
+    sed -e '/Get architecture type/,/else/s,else,elsif ($uname =~ /ppc|PPC|Powerpc/)\n{\n\t$ptype = "ppc";\n}\n&,' \
 	-e '/Get OS type/,/else/s,else,elsif ($uname =~ /Darwin/)\n{\n\t$ostype = "darwin";\n}\n&,' \
 	-e '/Create sysdep.h$/a\
 	$Endian = "/* Created by $saclib/bin/mksysdep.pl */\
@@ -38,10 +40,6 @@ elsif ($ostype eq "darwin")\
   sed -i'' -e "s,XsaclibX,'saclib'," bin/mksysdep.pl
   cp -pPR sysdep/archive/generic sysdep/darwin
   cp -p sysdep/linuxX86/GC.c sysdep/darwin/src
-## FPCATCH needed, and the following doesn't work ..
-#  cp -p sysdep/solarisSparc/FP{CATCH,HAND}.c sysdep/darwin/src
-#  sed -i'' -e '/saclib.h/a\
-##include <signal.h>' sysdep/darwin/src/FP{CATCH,HAND}.c
   sed -i'' -e 's,generic,darwin,' sysdep/darwin/install
   rm sysdep/darwin/src/FAIL_varargs.c
   add_def="`grep -e BETA2 -e 'define LARGE' -e 'define SMALL' -e 'N[MLS]PRIME_' include/sacsys.h~|sed -e 's,$,\\\,'`"
@@ -51,10 +49,13 @@ $add_def
   sed -i'' -e '/<malloc\.h>/d' src/IQR.c
   sed -i'' -e 's,SACFLAG= ,"SACFLAG=-O3 -fstrict-aliasing -Wall -mdynamic-no-pic" ,' sysdep/darwin/bin/mklib
   sed -i'' -e 's,_X86_LINUX_,__APPLE__,' -e '/ieee754\.h/d' include/hfloats.h
+## avoid "...will break strict-aliasing rules" warnings:
+  sed -i'' -e '\Xsaclib/lib/obj$Xa\
+make CC=$CC "SACFLAG=-O3 -Wall -mdynamic-no-pic" EXTENSION=  MMAPFS.o MMPDDF.o MMPFBL.o' sysdep/darwin/bin/mklib
 <<
 CompileScript: <<
   #!/bin/sh -ev
-  export saclib=%b
+  export saclib=`pwd`
   mkdir -p lib/obj
   cd bin; ./sconf
 <<
