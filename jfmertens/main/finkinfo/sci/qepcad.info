@@ -1,35 +1,37 @@
 Info2: <<
-Package: qepcad
+Package: qepcad%type_pkg[d]
 Version: 1.50
 Revision: 1
-#Source: http://www.cs.usna.edu/~qepcad/INSTALL/%N-B.%v.tar.gz
+#Source: http://www.cs.usna.edu/~qepcad/INSTALL/%{Ni}-B.%v.tar.gz
 Source: http://www.cs.usna.edu/~wcbrown/qesource.tar.gz
 Source-MD5: 517f5a8c49a8a89ecbae37897288f522
 SourceDirectory: qesource
-Type: debug (false)
-
-BuildDepends: freeglut, readline5, saclib, sed
+Type: d (boolean)
+# type d for debug version
+BuildDepends: freeglut, readline5, saclib%type_pkg[d], sed
 Depends: freeglut-shlibs, readline5-shlibs, singular
+Conflicts: %{Ni}, %{Ni}d
+Replaces: %{Ni}, %{Ni}d
 
 PatchScript: <<
 #!/bin/sh -ev
 find . -name '*.o' -exec rm -f \{\} \;
-# to strip binaries (cf LDFLAGS):
+# to strip binaries :
 echo '__mh_execute_header' > symlst
-if [ %type_raw[debug] = "false" ]
-   then
+if [ "%type_pkg[d]" == "d" ]
+   then sed -i'' -e 's,O4,g,' {.,cad2d,plot2d,source}/Makefile extensions/adj2d/new_make
+   else
 	sed -i'' -e 's;(EXE)\|(LIBS);& -Wl,-x -exported_symbols_list %b/symlst -dead_strip;' \
 		{cad2d,plot2d,source}/Makefile
 	sed -i'' -e 's,O4,O3 -fstrict-aliasing -Wall -mdynamic-no-pic,' \
 		{.,cad2d,plot2d,source}/Makefile extensions/adj2d/new_make
-   else sed -i'' -e 's,O4,g,' {.,cad2d,plot2d,source}/Makefile extensions/adj2d/new_make
 fi
 sed -i'' -e 's,gmake,make,' Makefile
 sed -i'' -e 's,saclibo,saclib,' -e 's,-lreadline,-L%p/lib &,' {cad2d,source}/Makefile
 sed -i'' -e '/^GLBASE/s,/usr,&/X11R6,' -e '/^GLUTBASE/s,/usr,%p,' plot2d/Makefile
 sed -i'' -e 's,/bin/ADJ2D_plot,%p&,' extensions/rend/PLOT_2D_CAD.cc
-sed -i'' -e 's,qepath [+],string("%p/share/%N") +,' {cad2d/src,source/main}/MAIN.c
-sed -i'' -e 's,qepcad.help,%p/share/%N/&,' -e 's,/bin/%p,,' source/userint/HELPFRD.c
+sed -i'' -e 's,qepath [+],string("%p/share/%{Ni}") +,' {cad2d/src,source/main}/MAIN.c
+sed -i'' -e 's,qepcad.help,%p/share/%{Ni}/&,' -e 's,/bin/%p,,' source/userint/HELPFRD.c
 sed -i'' -e 's,getenv("qe"),"%p",' {cad2d/src,source/main}/MAIN.c extensions/rend/PLOT_2D_CAD.cc source/userint/HELPFRD.c
 sed -i'' -e '$a\
 SINGULAR %p/bin' default.qepcadrc
@@ -43,12 +45,12 @@ cd cad2d; make opt; cd -
 cd plot2d; make; cd -
 <<
 InstallScript: <<
-mkdir -p %i/include/%N %i/lib/%N %i/bin %i/share/%N
-cp -p --parents `find . -name '*.h'` %i/include/%N
-cp -p `find . -name '*.a'` %i/lib/%N
-ranlib %i/lib/%N/*.a
-cp -p source/%N cad2d/cad2d plot2d/ADJ2D_plot %i/bin
-cp -p default.qepcadrc source/qepcad.help %i/share/%N
+mkdir -p %i/include/%{Ni} %i/lib/%{Ni} %i/bin %i/share/%{Ni}
+cp -p --parents `find . -name '*.h'` %i/include/%{Ni}
+cp -p `find . -name '*.a'` %i/lib/%{Ni}
+ranlib %i/lib/%{Ni}/*.a
+cp -p source/%{Ni} cad2d/cad2d plot2d/ADJ2D_plot %i/bin
+cp -p default.qepcadrc source/qepcad.help %i/share/%{Ni}
 chmod -R a+rX %i
 <<
 DocFiles: LICENSE LOG README TODO

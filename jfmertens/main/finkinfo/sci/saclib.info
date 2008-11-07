@@ -1,15 +1,17 @@
 Info2: <<
-Package: saclib
+Package: saclib%type_pkg[d]
 Version: 2.2.0
 Revision: 1
-#Source: http://www.cs.usna.edu/~qepcad/INSTALL/saclib2.2.0.tar.gz
-Source: http://www.cs.usna.edu/~wcbrown/saclib2.2.0.tar.gz
+#Source: http://www.cs.usna.edu/~qepcad/INSTALL/%{Ni}%v.tar.gz
+Source: http://www.cs.usna.edu/~wcbrown/%{Ni}%v.tar.gz
 Source-MD5: 6fd2489018a0d163338a9dcd42f72e48
-Type: debug (false)
+Type: d (boolean)
+Conflicts: %{Ni}, %{Ni}d
+Replaces: %{Ni}, %{Ni}d
+
 PatchScript: <<
 #!/bin/sh -ev
     rm -fR RCS
-    cp -p %a/%n.patch bin/mksysdep.pl~
     sed -e '/Get architecture type/,/else/s,else,elsif ($uname =~ /Power|powerpc/)\n{\n\t$ptype = "ppc";\n}\n&,' \
 	-e '/Get OS type/,/else/s,else,elsif ($uname =~ /Darwin/)\n{\n\t$ostype = "darwin";\n}\n&,' \
 	-e '/Create sysdep.h$/a\
@@ -38,9 +40,9 @@ elsif ($ostype eq "darwin")\
 	{\
 		print SYSDEP "#define _PPC_DARWIN_\\n";\
 	}\
-	system("bash -c \\"pushd >/dev/null $ENV{XsaclibX}/sysdep/darwin ; ./install %b ; popd >/dev/null\\"");\
-}' < bin/mksysdep.pl~ > bin/mksysdep.pl 
-  sed -i'' -e "s,XsaclibX,'saclib'," bin/mksysdep.pl
+	system("bash -c \\"pushd >/dev/null $ENV{X%{Ni}X}/sysdep/darwin ; ./install %b ; popd >/dev/null\\"");\
+}' < %a/%{Ni}.patch | sed -e "s,X%{Ni}X,'%{Ni}',"  > bin/mksysdep.pl 
+## %a/%{Ni}.patch is the file "bin/mksysdep.pl~" from the official distribution
   cp -pPR sysdep/archive/generic sysdep/darwin
   cp -p sysdep/linuxX86/GC.c sysdep/darwin/src
   sed -i'' -e 's,generic,darwin,' sysdep/darwin/install
@@ -50,34 +52,34 @@ elsif ($ostype eq "darwin")\
 $add_def
 " sysdep/darwin/include/sacsys.h 
   sed -i'' -e '/<malloc\.h>/d' src/IQR.c
-  if [ %type_raw[debug] = false ]
-     then
+  if [ "%type_pkg[d]" == "d" ]
+     then sed -i'' -e 's,SACFLAG= ,"SACFLAG=-g" ,' sysdep/darwin/bin/mklib
+     else
 	## avoid "...will break strict-aliasing rules" warnings:
-	sed -i'' -e 's;saclib/lib/obj$;&\nmake CC=$CC "SACFLAG=-O3 -Wall -mdynamic-no-pic" EXTENSION=  MMAPFS.o MMPDDF.o MMPFBL.o;' \
+	sed -i'' -e 's;%{Ni}/lib/obj$;&\nmake CC=$CC "SACFLAG=-O3 -Wall -mdynamic-no-pic" EXTENSION=  MMAPFS.o MMPDDF.o MMPFBL.o;' \
 		 -e 's,SACFLAG= ,"SACFLAG=-O3 -fstrict-aliasing -Wall -mdynamic-no-pic" ,' sysdep/darwin/bin/mklib
-     else sed -i'' -e 's,SACFLAG= ,"SACFLAG=-g" ,' sysdep/darwin/bin/mklib
   fi
   sed -i'' -e 's,_X86_LINUX_,__APPLE__,' -e '/ieee754\.h/d' include/hfloats.h
 <<
 CompileScript: <<
   #!/bin/sh -ev
-  export saclib=%b
+  export %{Ni}=%b
   mkdir -p lib/obj
   cd bin; ./sconf
 <<
 InstallScript: <<
   #!/bin/sh -ev
-  mkdir -p %i/bin %i/lib %i/include %i/share/doc/%N %i/share/%N
-  cp -p lib/saclib.a %i/lib
+  mkdir -p %i/bin %i/lib %i/include %i/share/doc/%{Ni} %i/share/%{Ni}
+  cp -p lib/%{Ni}.a %i/lib
   cp -p include/*.h %i/include
-  cp -p doc/{,maint_guide/}*.dvi %i/share/doc/%N
+  cp -p doc/{,maint_guide/}*.dvi %i/share/doc/%{Ni}
   cp -p bin/sdesc %i/bin
-  cp -p bin/{b2l,l2b}.awk doc/*.doc %i/share/%N
-  sed -i'' -e 's,[$]saclib/[bindoc]\{3\},%p/share/%N,' %i/bin/sdesc
+  cp -p bin/{b2l,l2b}.awk doc/*.doc %i/share/%{Ni}
+  sed -i'' -e 's,[$]%{Ni}/[bindoc]\{3\},%p/share/%{Ni},' %i/bin/sdesc
   chmod -R a+rX %i
   sed -e '/INSTALLATION/,/done\./d' < README > HELP
   sed -e '1,/Introduction/d' -e "/1\.2\./,/'mkmake'.$/d" -e '/^ *mk/d' < sysdep/darwin/README >> HELP
-  sed -i'' -e 's,COPYRIGHT ,LICENSE ,' -e '/^sman/d' -e 's,saclib/doc,%p/share/%N,' -e 's,saclib/bin,%p/bin,' \
+  sed -i'' -e 's,COPYRIGHT ,LICENSE ,' -e '/^sman/d' -e 's,%{Ni}/doc,%p/share/%{Ni},' -e 's,%{Ni}/bin,%p/bin,' \
 	-e 's,scripts,script,' -e 's,headers,header,' -e 's,these,this,' -e 's,their,its,' HELP
 <<
 DocFiles: HELP LICENSE
