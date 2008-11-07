@@ -1,11 +1,14 @@
+Info2: <<
 Package: saclib
 Version: 2.2.0
 Revision: 1
 #Source: http://www.cs.usna.edu/~qepcad/INSTALL/saclib2.2.0.tar.gz
 Source: http://www.cs.usna.edu/~wcbrown/saclib2.2.0.tar.gz
 Source-MD5: 6fd2489018a0d163338a9dcd42f72e48
+Type: debug (false)
 PatchScript: <<
 #!/bin/sh -ev
+    rm -fR RCS
     cp -p %a/%n.patch bin/mksysdep.pl~
     sed -e '/Get architecture type/,/else/s,else,elsif ($uname =~ /Power|powerpc/)\n{\n\t$ptype = "ppc";\n}\n&,' \
 	-e '/Get OS type/,/else/s,else,elsif ($uname =~ /Darwin/)\n{\n\t$ostype = "darwin";\n}\n&,' \
@@ -47,11 +50,14 @@ elsif ($ostype eq "darwin")\
 $add_def
 " sysdep/darwin/include/sacsys.h 
   sed -i'' -e '/<malloc\.h>/d' src/IQR.c
-  sed -i'' -e 's,SACFLAG= ,"SACFLAG=-O3 -fstrict-aliasing -Wall -mdynamic-no-pic" ,' sysdep/darwin/bin/mklib
+  if [ %type_raw[debug] = false ]
+     then
+	## avoid "...will break strict-aliasing rules" warnings:
+	sed -i'' -e 's;saclib/lib/obj$;&\nmake CC=$CC "SACFLAG=-O3 -Wall -mdynamic-no-pic" EXTENSION=  MMAPFS.o MMPDDF.o MMPFBL.o;' \
+		 -e 's,SACFLAG= ,"SACFLAG=-O3 -fstrict-aliasing -Wall -mdynamic-no-pic" ,' sysdep/darwin/bin/mklib
+     else sed -i'' -e 's,SACFLAG= ,"SACFLAG=-g" ,' sysdep/darwin/bin/mklib
+  fi
   sed -i'' -e 's,_X86_LINUX_,__APPLE__,' -e '/ieee754\.h/d' include/hfloats.h
-## avoid "...will break strict-aliasing rules" warnings:
-  sed -i'' -e '\Xsaclib/lib/obj$Xa\
-make CC=$CC "SACFLAG=-O3 -Wall -mdynamic-no-pic" EXTENSION=  MMAPFS.o MMPDDF.o MMPFBL.o' sysdep/darwin/bin/mklib
 <<
 CompileScript: <<
   #!/bin/sh -ev
@@ -79,3 +85,4 @@ Description: Computer algebra, specially on ordered fields
 License: OSI-Approved
 Homepage: http://www.cs.usna.edu/~qepcad/B/QEPCAD.html
 Maintainer: JF Mertens <jfmertens@users.sourceforge.net>
+<<
