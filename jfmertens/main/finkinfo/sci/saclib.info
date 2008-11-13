@@ -1,56 +1,45 @@
 Info2: <<
-Package: saclib%type_pkg[d]%type_pkg[-gcc4.3]
+Package: saclib%type_pkg[-gcc4.3]
 Version: 2.2.0
-Revision: 1
+Revision: 2
 #Source: http://www.cs.usna.edu/~qepcad/INSTALL/%{Ni}%v.tar.gz
 Source: http://www.cs.usna.edu/~wcbrown/%{Ni}%v.tar.gz
 Source-MD5: 6fd2489018a0d163338a9dcd42f72e48
-Type: d (boolean), -gcc4.3 (boolean)
-# type d for debug version
-Conflicts: %{Ni}, %{Ni}d, %{Ni}-gcc43, %{Ni}d-gcc43
-Replaces: %{Ni}, %{Ni}d, %{Ni}-gcc43, %{Ni}d-gcc43
+Type: -gcc4.3 (boolean)
+Conflicts: %{Ni}, %{Ni}-gcc43
+Replaces: %{Ni}, %{Ni}-gcc43
 
 PatchScript: <<
 #!/bin/sh -ev
-    rm -fR RCS
-    sed -e '/Get architecture type/,/else/s,else,elsif ($uname =~ /Power|powerpc/)\n{\n\t$ptype = "ppc";\n}\n&,' \
+rm -fR RCS
+echo "#ifdef __LITTLE_ENDIAN__
+#ifndef _LITTLE_ENDIAN_
+#define _LITTLE_ENDIAN_
+#endif
+#undef _BIG_ENDIAN_
+#endif
+#ifdef __BIG_ENDIAN__
+#ifndef _BIG_ENDIAN_
+#define _BIG_ENDIAN_
+#endif
+#undef _LITTLE_ENDIAN_
+#endif" > sysdep/linuxX86/sysdep.h
+sed -i'' -e '/Get architecture type/,/else/s,else,elsif ($uname =~ /Power|powerpc/)\n{\n\t$ptype = "ppc";\n}\n&,' \
 	-e '/Get OS type/,/else/s,else,elsif ($uname =~ /Darwin/)\n{\n\t$ostype = "darwin";\n}\n&,' \
-	-e '/Create sysdep.h$/a\
-	$Endian = "/* Created by $saclib/bin/mksysdep.pl */\
-#ifdef __LITTLE_ENDIAN__\
-#define _LITTLE_ENDIAN_\
-#endif\
-#ifdef __BIG_ENDIAN__\
-#define _BIG_ENDIAN_\
-#endif\
-";' \
-	-e '$i \
-elsif ($ostype eq "darwin")\
-{\
-	print SYSDEP $Endian;\
-	system("bash -c \\"pushd >/dev/null $ENV{X%{Ni}X}/sysdep/darwin ; ./install %b ; popd >/dev/null\\"");\
-}' < %a/%{Ni}.patch | sed -e "s,X%{Ni}X,'%{Ni}',"  > bin/mksysdep.pl 
-## %a/%{Ni}.patch is the file "bin/mksysdep.pl~" from the official distribution
-  cp -pPR sysdep/archive/generic sysdep/darwin
-  cp -p sysdep/linuxX86/GC.c sysdep/darwin/src
-  rm sysdep/darwin/src/FAIL_varargs.c
-  sed -i'' -e 's,generic,darwin,' sysdep/darwin/install
-  add_def="`grep -e BETA2 -e 'define LARGE' -e 'define SMALL' -e 'N[MLS]PRIME_' include/sacsys.h~|sed -e 's,$,\\\,'`"
-  sed -i'' -e "/BETA1/a\
-$add_def
-" sysdep/darwin/include/sacsys.h 
+	-e '/^ *elsif .*x86.*linux/{
+		s,[(],((,
+		s,[)]$,) || $ostype eq "darwin"),
+		}' bin/mksysdep.pl 
   sed -i'' -e '/<malloc\.h>/c\
 #ifndef __APPLE__\
 #include <malloc.h>\
 #endif' src/IQR.c
   if [ "%type_raw[-gcc4.3]" == "-gcc4.3" ] ; then nopic=''; else nopic="-mdynamic-no-pic"; fi
-  if [ "%type_pkg[d]" == "d" ]
-     then sed -i'' -e "s,SACFLAG= ,\"SACFLAG=-g $nopic -Wall -DNO_SACLIB_MACROS\" ," sysdep/darwin/bin/mklib
-     else
-	## avoid "...will break strict-aliasing rules" warnings:
-	sed -i'' -e 's;%{Ni}/lib/obj$;&\nmake CC=$CC "SACFLAG=-O3 $nopic -Wall" EXTENSION=  MMAPFS.o MMPDDF.o MMPFBL.o;' \
-		 -e 's,SACFLAG= ,"SACFLAG=-O3 -fstrict-aliasing $nopic -Wall" ,' sysdep/darwin/bin/mklib
-  fi
+  ## first line next is to avoid "...will break strict-aliasing rules" warnings:
+  sed -i'' \
+	-e "/Compiling/,\$s,%{Ni}/lib/objo$,&\n  make  CC=\$CC \"SACFLAG=-O3\" EXTENSION=o MMAPFS.o MMPDDF.o MMPFBL.o," \
+	-e 's,\(SACFLAG=\)",\1-O3 -fstrict-aliasing",' \
+	-e "s,SACFLAG=,&$nopic -Wall ," bin/mklib
   sed -i'' -e '/_X86_LINUX_/c\
 #if defined (_X86_LINUX_) || defined (__APPLE__)' \
 	-e '/ieee754\.h/c\
@@ -67,23 +56,20 @@ CompileScript: <<
   #!/bin/sh -ev
   if [ "%type_raw[-gcc4.3]" == "-gcc4.3" ]; then export PATH=%p/lib/gcc4.3/bin:$PATH CC=gcc; fi
   export %{Ni}=%b
-  mkdir -p lib/obj
-  cd bin; ./sconf
+  bin/sconf; bin/mkproto; bin/mkmake; bin/mklib all
 <<
 InstallScript: <<
   #!/bin/sh -ev
   mkdir -p %i/bin %i/lib %i/include %i/share/doc/%{Ni} %i/share/%{Ni}
-  cp -p lib/%{Ni}.a %i/lib
+  cp -p lib/*.a %i/lib
+  ln -s %{Ni}o.a %i/lib/%{Ni}.a
   cp -p include/*.h %i/include
   cp -p doc/{,maint_guide/}*.dvi %i/share/doc/%{Ni}
   cp -p bin/sdesc %i/bin
   cp -p bin/{b2l,l2b}.awk doc/*.doc %i/share/%{Ni}
   sed -i'' -e 's,[$]%{Ni}/[bindoc]\{3\},%p/share/%{Ni},' %i/bin/sdesc
   chmod -R a+rX %i
-  sed -e '/INSTALLATION/,/done\./d' < README > HELP
-  sed -e '1,/Introduction/d' -e "/1\.2\./,/'mkmake'.$/d" -e '/^ *mk/d' < sysdep/darwin/README >> HELP
-  sed -i'' -e 's,COPYRIGHT ,LICENSE ,' -e '/^sman/d' -e 's,%{Ni}/doc,%p/share/%{Ni},' -e 's,%{Ni}/bin,%p/bin,' \
-	-e 's,scripts,script,' -e 's,headers,header,' -e 's,these,this,' -e 's,their,its,' HELP
+  sed -e '/INSTALLATION/,/done\.$/d' -e 's,COPYRIGHT ,LICENSE ,' < README | uniq > HELP
 <<
 DocFiles: HELP LICENSE
 Description: Computer algebra, specially on ordered fields
