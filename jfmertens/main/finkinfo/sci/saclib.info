@@ -10,10 +10,12 @@ Conflicts: %{Ni}, %{Ni}-gcc43
 Replaces: %{Ni}, %{Ni}-gcc43
 
 PatchScript: <<
-#!/bin/sh -ev
-rm -fR RCS
-## __foo_ENDIAN__ is is predefined both by Apple's gcc and by GNU's (at least 4.3.2) [cf: `touch bar.h; cpp -dM bar.h`]
-echo "#ifdef __LITTLE_ENDIAN__
+  #!/bin/sh -ev
+  rm -fR RCS
+  chmod -R a+rX .	# else gdb can't find files when not working as root
+  ### adapting the linuxX86 build to apply also an darwin :
+  ## __foo_ENDIAN__ is predefined both by Apple's gcc and by GNU's (at least 4.3.2) [cf: `touch bar.h; cpp -dM bar.h`]
+  echo "#ifdef __LITTLE_ENDIAN__
 #ifndef _LITTLE_ENDIAN_
 #define _LITTLE_ENDIAN_
 #endif
@@ -25,37 +27,41 @@ echo "#ifdef __LITTLE_ENDIAN__
 #endif
 #undef _LITTLE_ENDIAN_
 #endif" > sysdep/linuxX86/sysdep.h
-sed -i'' -e '/Get architecture type/,/else/s,else,elsif ($uname =~ /Power|powerpc/)\n{\n\t$ptype = "ppc";\n}\n&,' \
-	-e '/Get OS type/,/else/s,else,elsif ($uname =~ /Darwin/)\n{\n\t$ostype = "darwin";\n}\n&,' \
-	-e '/^ *elsif .*x86.*linux/{
+  sed -i'' -e '/Get architecture type/,/else/s,else,elsif ($uname =~ /Power|powerpc/)\n{\n\t$ptype = "ppc";\n}\n&,' \
+	   -e '/Get OS type/,/else/s,else,elsif ($uname =~ /Darwin/)\n{\n\t$ostype = "darwin";\n}\n&,' \
+	   -e '/^ *elsif .*x86.*linux/{
 		s,[(],((,
 		s,[)]$,) || $ostype eq "darwin"),
 		}' bin/mksysdep.pl
-  ## for __Apple__ , same remark as for  __foo_ENDIAN__  above.
+  ## malloc.h and ieee754.h don't exist in darwin :
+  ## for __APPLE__ , same remark as for  __foo_ENDIAN__  above.
   sed -i'' -e '/<malloc\.h>/c\
 #ifndef __APPLE__\
 #include <malloc.h>\
 #endif' src/IQR.c
-  if [ "%type_raw[-gcc4.3]" == "-gcc4.3" ] ; then nopic=''; else nopic="-mdynamic-no-pic"; fi
-  ## first line next is to avoid "...will break strict-aliasing rules" warnings:
-  sed -i'' \
-	-e "/Compiling/,\$s,%{Ni}/lib/objo$,&\n  make  CC=\$CC \"SACFLAG=-O3\" EXTENSION=o MMAPFS.o MMPDDF.o MMPFBL.o," \
-	-e 's,\(SACFLAG=\)",\1-O3 -fstrict-aliasing",' \
-	-e "s,SACFLAG=,&$nopic -Wall ," bin/mklib
   sed -i'' -e '/_X86_LINUX_/c\
 #if defined (_X86_LINUX_) || defined (__APPLE__)' \
-	-e '/ieee754\.h/c\
+	   -e '/ieee754\.h/c\
 #ifdef _X86_LINUX_\
 #include <ieee754.h>\
 #endif' include/hfloats.h
+  ## __STDC__ is not an exhaustive test whether the compiler supports prototypes :
   sed -i'' -e 's,ifdef __STDC__,if defined (__STDC__) || defined (__APPLE__),' include/sacsys.h src/FAIL.c
 
-## Some "implicit declaration of function 'GCASET'" warnings (GCASET is also an apparenly equivalent  macro in sacmacros.h ...)
-# Could be cured by removing the strange "#ifdef NO_SACLIB_MACROS" under "Macros that are always defined"  in sacmacros.h...
-# or at least moving CGASET out of that list
-## Remain a couple of implicit declaration warnings for FPCATCH, NORMFCT and NORMLHS _ no .h file has such declarations..; too bad !
-## All fixed in the CompileScript.
+  ### Getting control over CFLAGS ...
+  if [ "%type_raw[-gcc4.3]" == "-gcc4.3" ] ; then nopic=''; else nopic="-mdynamic-no-pic"; fi
+  ## first line next is to avoid "...will break strict-aliasing rules" warnings:
+  sed -i'' \
+	-e "/Compiling/,\$s,%{Ni}/lib/objo$,&\n  make  CC=\$CC \"SACFLAG=-O3 -fno-strict-aliasing\" EXTENSION=o MMAPFS.o MMPDDF.o MMPFBL.o," \
+	-e 's,\(SACFLAG=\)",\1-O3 -fstrict-aliasing",' -e 's,=-g ,=-ggdb3 -gfull ,' \
+ 	-e "s,SACFLAG=,&$nopic -Wall -Wstrict-prototypes -Wstrict-aliasing=2 ," bin/mklib
+
+  ### Some "implicit declaration of function 'GCASET'" warnings (GCASET is also an apparenly equivalent  macro in sacmacros.h ...)
+  # Why the strange "#ifdef NO_SACLIB_MACROS" under "Macros that are always defined"  in sacmacros.h ?
+  # Could at least CGASET be moved out of that list ? ( If '#ifdef' is not a typo for '#ifndef' ...).
+  ## Remain a couple of implicit declaration warnings for FPCATCH, NORMFCT and NORMLHS; fixed in the CompileScript.
 <<
+
 CompileScript: <<
   #!/bin/sh -ev
   if [ "%type_raw[-gcc4.3]" == "-gcc4.3" ]; then export PATH=%p/lib/gcc4.3/bin:$PATH CC=gcc; fi
@@ -71,21 +77,36 @@ extern void NORMLHS	P__((Word q, Word Q, Word Qpp, Word Ab, Word Bb, Word Sb, Wo
   bin/mkmake
   bin/mklib all
 <<
+
 InstallScript: <<
   #!/bin/sh -ev
-  mkdir -p %i/bin %i/lib %i/include %i/share/doc/%{Ni} %i/share/%{Ni}
+  mkdir -p %i/bin %i/lib %i/include %i/share/doc/%N %i/share/%{Ni}
   cp -p lib/*.a %i/lib
   ln -s %{Ni}o.a %i/lib/%{Ni}.a
   cp -p include/*.h %i/include
-  cp -p doc/{,maint_guide/}*.dvi %i/share/doc/%{Ni}
-  cp -p bin/sdesc %i/bin
+  cp -p doc/{,maint_guide/}*.dvi %i/share/doc/%N
+  # pkg must remain usable if user doesn't keep build-dir, so rm the 'perl' line :
+  sed -e '/perl/d' -e 's,[$]%{Ni}/[bindoc]\{3\},%p/share/%{Ni},' < bin/sdesc > %i/bin/sdesc
+  chmod a+x %i/bin/sdesc
   cp -p bin/{b2l,l2b}.awk doc/*.doc %i/share/%{Ni}
-  sed -i'' -e 's,[$]%{Ni}/[bindoc]\{3\},%p/share/%{Ni},' %i/bin/sdesc
   chmod -R a+rX %i
   sed -e '/INSTALLATION/,/done\.$/d' -e 's,COPYRIGHT ,LICENSE ,' < README | uniq > HELP
 <<
+
 DocFiles: HELP LICENSE
+
 Description: Computer algebra, specially on ordered fields
+DescUsage: <<
+  To get the elementary equivalent of a man3 page,
+  use first "sdesc pattern" (with "pattern" eg "Algebraic number field"
+  _ or "FPCATCH" _ ; it is not case-sensitive) to see what you are looking for,
+  then grep that (those) items in %p/include/sacproto.h .
+<<
+DescPackaging: Installation "by hand"; there is no install target.
+DescPort: <<
+  Patching the linuxX86 build to apply also on darwin.
+  Take care of missing headers and missing declarations.
+<<
 License: OSI-Approved
 Homepage: http://www.cs.usna.edu/~qepcad/B/QEPCAD.html
 Maintainer: JF Mertens <jfmertens@users.sourceforge.net>
