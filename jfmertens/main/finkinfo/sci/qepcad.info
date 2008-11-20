@@ -9,6 +9,8 @@ SourceDirectory: qesource
 Type: -gcc4.3 (boolean)
 BuildDepends: freeglut, readline5, saclib%type_pkg[-gcc4.3], sed
 Depends: freeglut-shlibs, readline5-shlibs, singular
+Recommends: saclib%type_pkg[-gcc4.3]
+# Strictly speaking, the recommends would be a "depends" when using qepcapd under gdb 
 Conflicts: %{Ni}, %{Ni}-gcc43
 Replaces: %{Ni}, %{Ni}-gcc43
 
@@ -18,11 +20,12 @@ PatchScript: <<
   chmod -R a+rX	.	# else gdb can't find files when not working as root
   ## CFLAGS and LDFLAGS and the like :
   if [ "%type_raw[-gcc4.3]" == "-gcc4.3" ] ; then nopic=''; else nopic="-mdynamic-no-pic"; fi
+  cflags="$nopic -Wall -Wextra -Wstrict-aliasing=2 -I%p/include"
   # to strip binaries ( using "-s" would lead at launch to dyld error "lazy pointer not found" ):
   echo '__mh_execute_header' > symlst
   sed -i'' -e 's;(EXE)\|(LIBS);& -Wl,-x -exported_symbols_list %b/symlst -dead_strip;' \
-	   -e "s,O4,O3 -fstrict-aliasing $nopic -Wall -Wstrict-aliasing=2," \
-	   -e "s,= *-g,&gdb3 -gfull $nopic -Wall -Wstrict-aliasing=2 -DNO_SACLIB_MACROS," \
+	   -e "s,O4,O3 -fstrict-aliasing $cflags," \
+	   -e "s,= *-g,&gdb3 -gfull $cflags -DNO_SACLIB_MACROS," \
 	   {.,cad2d,plot2d,source}/Makefile extensions/adj2d/new_make
   sed -i'' -e 's,gmake,make,' Makefile
   sed -i'' -e 's,-lreadline,-L%p/lib &,' {cad2d,source}/Makefile
@@ -37,8 +40,11 @@ PatchScript: <<
   sed -i'' -e 's,#include <string>,#include <cstring>\n&,' extensions/rend/PLOT_2D_CAD.cc source/db/convenientstreams.h
   sed -i'' -e 's,#include <cstdlib>,#include <cstring>\n&,' source/db/unnamedpipe.h
 <<
+# We set ourselves the CPPFLAGS, else -I%p/include comes before -I.  (FIXME ! have to adapt def of INCLUDES in all Makefiles))
+NoSetCPPFLAGS: true
 CompileScript: <<
   #!/bin/sh -ev
+  export CCACHE_DISABLE=1
   if [ "%type_raw[-gcc4.3]" == "-gcc4.3" ] ; then export PATH=%p/lib/gcc4.3/bin:$PATH CC=gcc; fi
   export saclib=%p
   export qe=`pwd`
@@ -49,6 +55,7 @@ CompileScript: <<
 InstallScript: <<
   mkdir -p %i/include/%{Ni} %i/lib/%{Ni} %i/bin %i/share/%{Ni} %i/etc
   cp -p --parents `find . -name '*.h'` %i/include/%{Ni}
+  rm -fR %i/include/%{Ni}/extensions/sfext/{espcad,extlang}
   cp -p `find . -name '*.a'` %i/lib/%{Ni}
   ranlib %i/lib/%{Ni}/*.a
   cp -p source/%{Ni}{,d} cad2d/cad2d{,d} plot2d/ADJ2D_plot %i/bin

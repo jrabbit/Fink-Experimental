@@ -33,7 +33,19 @@ PatchScript: <<
 		s,[(],((,
 		s,[)]$,) || $ostype eq "darwin"),
 		}' bin/mksysdep.pl
-  ## malloc.h and ieee754.h don't exist in darwin :
+  ###  PPC has 32 registers (at least G5. G4 ? G3 ?)
+  sed -i'' -e '/register int/a\
+#ifdef __POWERPC__\
+	r(r1); r(r2); r(r3); r(r4); r(r5); r(r6); r(r7); r(r8);\
+	r(r9); r(r10); r(r11); r(r12); r(r13); r(r14); r(r15); r(r16);\
+	r(r17); r(r18); r(r19); r(r20); r(r21); r(r22); r(r23); r(r24);\
+	r(r25); r(r26); r(r27); r(r28); r(r29); r(r30); r(r31); r(r32);\
+	r1 = gc_dummy(r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16,r17,r18,r19,r20,r21,r22,r23,r24,r25,r26,r27,r28,r29,r30,r31,r32);\
+#else' \
+	-e '/gc_dummy.*r16);$/a\
+#endif' sysdep/linuxX86/GC.c
+###  
+## malloc.h and ieee754.h don't exist in darwin :
   ## for __APPLE__ , same remark as for  __foo_ENDIAN__  above.
   sed -i'' -e '/<malloc\.h>/c\
 #ifndef __APPLE__\
@@ -50,11 +62,16 @@ PatchScript: <<
 
   ### Getting control over CFLAGS ...
   if [ "%type_raw[-gcc4.3]" == "-gcc4.3" ] ; then nopic=''; else nopic="-mdynamic-no-pic"; fi
+  nopic="$nopic -Wall -Wextra -Wstrict-prototypes -Wstrict-aliasing=2"
   ## first line next is to avoid "...will break strict-aliasing rules" warnings:
   sed -i'' \
-	-e "/Compiling/,\$s,%{Ni}/lib/objo$,&\n  make  CC=\$CC \"SACFLAG=-O3 -fno-strict-aliasing\" EXTENSION=o MMAPFS.o MMPDDF.o MMPFBL.o," \
+	-e "/Compiling/,\${
+\X%{Ni}/lib/objo\$Xa\
+  make  CC=\$CC \"SACFLAG=$nopic -O3 -fno-strict-aliasing\" EXTENSION=o MMAPFS.o MMPDDF.o MMPFBL.o\\
+  make  CC=\$CC \"SACFLAG=$nopic\" EXTENSION=o GC.o
+	}" \
 	-e 's,\(SACFLAG=\)",\1-O3 -fstrict-aliasing",' -e 's,=-g ,=-ggdb3 -gfull ,' \
- 	-e "s,SACFLAG=,&$nopic -Wall -Wstrict-prototypes -Wstrict-aliasing=2 ," bin/mklib
+ 	-e "s,SACFLAG=,&$nopic ," bin/mklib
 
   ### Some "implicit declaration of function 'GCASET'" warnings (GCASET is also an apparenly equivalent  macro in sacmacros.h ...)
   # Why the strange "#ifdef NO_SACLIB_MACROS" under "Macros that are always defined"  in sacmacros.h ?
@@ -64,6 +81,7 @@ PatchScript: <<
 
 CompileScript: <<
   #!/bin/sh -ev
+  export CCACHE_DISABLE=1
   if [ "%type_raw[-gcc4.3]" == "-gcc4.3" ]; then export PATH=%p/lib/gcc4.3/bin:$PATH CC=gcc; fi
   export %{Ni}=%b
   bin/sconf
