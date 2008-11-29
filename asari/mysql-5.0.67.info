@@ -1,11 +1,11 @@
 Info2:<<
 Package: mysql%type_pkg[-ssl]
-Version: 5.1.30
+Version: 5.0.67
 Revision: 1001
 Description: Open Source SQL database
 License: GPL/LGPL
 Maintainer: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>
-Type: -ssl (.)
+Type: -ssl (. -ssl)
 
 # Dependencies:
 Depends: %N15-shlibs (= %v-%r), %N-client (= %v-%r), daemonic (>= 20010902-1)
@@ -14,8 +14,8 @@ Conflicts: %{Ni}, %{Ni}-ssl
 Replaces: %{Ni}, %{Ni}-ssl
 
 # Unpack Phase:
-Source: mirror:custom:Downloads/MySQL-5.1/%{ni}-%v.tar.gz
-Source-MD5: b658e58887a74dce65224ae0fc8ee06a 
+Source: mirror:custom:Downloads/MySQL-5.0/%{ni}-%v.tar.gz
+Source-MD5: 7164483a5ffb8f7aa59b761c13cdbd6e
 CustomMirror: <<
 # Some country codes not in /sw/lib/fink/mirror/_keys
  eur-BE: http://mysql.easynet.be/
@@ -155,8 +155,8 @@ CustomMirror: <<
  aus-NZ: ftp://mysql.inspire.net.nz/mysql/
 <<
 # Patch Phase
-PatchFile: %{ni}.patch
-PatchFile-MD5: 04f54e7d29e3d0a10ab57cbd7d4daa8b
+PatchFile: %n-%v.patch
+PatchFile-MD5: 11f81fb29a2ea5875db8584cc60e6934
 PatchScript: /usr/bin/sed "s|@PREFIX@|%p|g" %{PatchFile} | /usr/bin/patch -p1
 
 # Compile Phase:
@@ -183,7 +183,7 @@ ConfigureParams: <<
   --without-readline \
   --disable-dependency-tracking \
   --with-mysqld-user=mysql \
-  (%type_pkg[-ssl]) --with-ssl \
+  (%type_pkg[-ssl]) --with-yassl \
   \
   --mandir=%p/share/man \
   --infodir=%p/share/info \
@@ -303,8 +303,8 @@ PostInstScript: <<
 
  if [[ -e "$data_dir"/mysql || -e "$data_dir"/test ]]; then
    echo "$data_dir/mysql found. If you're upgrading from older version"
-   echo "of MySQL, you should run %p/bin/mysql_upgrade ."
-   echo "See: http://dev.mysql.com/doc/refman/5.1/en/upgrade.html"
+   echo "of MySQL, you should run %p/bin/mysql_upgrade_shell script."
+   echo "See: http://dev.mysql.com/doc/refman/5.0/en/upgrade.html"
  else
    # create initial database
    %p/bin/mysql_install_db --user=mysql
@@ -340,9 +340,9 @@ to set a MySQL root password using mysqladmin:
 'mysqladmin -u root password your-new-password' or
 'mysqladmin -u root -h localhost -p password your-new-password'
 #
-If you are upgrading from MySQL 5.0, you should update your tables using
-'mysql_upgrade' . For more information about upgrading,
-please read "2.11 Upgrading MySQL" in MySQL 5.1 Reference Manual.
+If you are upgrading from MySQL 4.1, you should update your tables using
+'mysql_upgrade_shell' script. For more information about upgrading,
+please read "2.4.16. Upgrading MySQL" in MySQL 5.0 Reference Manual.
 #
 You can start the MySQL server manually using 
 'mysqld_safe --user=mysql &'
