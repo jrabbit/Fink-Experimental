@@ -35,7 +35,7 @@ module='no'
 dlfiles=''
 dlprefiles=''
 
-find $usrX11lib -not -type l -name \*.dylib | grep -v "\..*\..*\." \
+find $usrX11lib -name \*.dylib | sed 's,\..*dylib,,g' | sort -u \
     | while read LIB
     do
 libname=$(basename $LIB)
