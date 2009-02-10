@@ -73,7 +73,8 @@ PatchScript: <<
  fi
  sed -e 's,@PREFIX@,%p,g' -e "s,/usr/X11R6,$Xdir," <%{PatchFile} | patch -p1
 ####
- mv .mozconfig .mozconfig.bak	# for documentation; prefer to see explicitly everything in %c
+ # for documentation; prefer to see explicitly everything in %c
+ mv .mozconfig .mozconfig.bak
  sed -i.bak -e \
  's,Carbon/Carbon.h,/System/Library/Frameworks/ApplicationServices.framework/Frameworks/CoreGraphics.framework/Headers/CGContext.h,' \
 	mozilla/gfx/thebes/public/gfxQuartzSurface.h
@@ -536,10 +537,13 @@ SplitOff2: <<
 	ln -fs %N-%type_raw[ver]/unstable %i/include/%N
 #	ln -fs %N-%type_raw[ver] %i/lib/%N	# This should come here, but needed in the -shlibs
 	# the following symlinks correspond to ones in the %N-devel dir, which got folded in the main one
-	ln -fs . %i/lib/%N-%type_raw[ver]/bin
-	ln -fs %p/share/idl/%N %i/lib/%N-%type_raw[ver]/idl
-	ln -fs %p/include/%N %i/lib/%N-%type_raw[ver]/include
-	ln -fs sdk/lib %i/lib/%N-%type_raw[ver]/lib
+	cd %i/lib/%N-%type_raw[ver]
+	rm -fR bin idl include lib
+	ln -fs . bin
+	ln -fs %p/share/idl/%N idl
+	ln -fs %p/include/%N include
+	ln -fs sdk/lib lib
+	cd -
 <<
 # no -config and no .pc files
 <<
