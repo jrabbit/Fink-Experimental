@@ -36,6 +36,7 @@ dlfiles=''
 dlprefiles=''
 
 find $usrX11lib -name \*.dylib | sed 's,\..*dylib,,g' | sort -u \
+    | egrep -v 'Xaw$|GL|OSMesa|glut' \
     | while read LIB
     do
 libname=$(basename $LIB)
