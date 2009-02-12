@@ -6,8 +6,6 @@ Version: 1.9.1b3pre
 Revision: 1
 ## parameters needed at several places :
 Type: sys_nspr (no), ver (2.0a2)
-## Conflicts (for all splitoffs!) explained below ..  FIX!
-Conflicts: %N-dev, %N-shlibs, librsvg2-%N, librsvg2-%N-dev
 Depends: %N2-shlibs (= %v-%r), bzip2-shlibs
 BuildDepends: <<
 	atk1 (>= 1.20.0-1),
@@ -72,9 +70,12 @@ PatchScript: <<
    exit 1
  fi
  sed -e 's,@PREFIX@,%p,g' -e "s,/usr/X11R6,$Xdir," <%{PatchFile} | patch -p1
-####
+#### Next is new for 2.0a
  # for documentation; prefer to see explicitly everything in %c
  mv .mozconfig .mozconfig.bak
+### CAIRO and gfx
+ # Including Carbon.h brings in so many headers that there are several name clashes with the X11 headers also brought in.
+ # And CGContext.h suffices
  sed -i.bak -e \
  's,Carbon/Carbon.h,/System/Library/Frameworks/ApplicationServices.framework/Frameworks/CoreGraphics.framework/Headers/CGContext.h,' \
 	mozilla/gfx/thebes/public/gfxQuartzSurface.h
@@ -91,29 +92,47 @@ PatchScript: <<
 	/gfxQuartzFontCache.mm/d
 	/endif/d }' \
 	 mozilla/gfx/thebes/src/Makefile.in
+ # fink's cairo-features.h gets included in gfx/thebes/src, and defines CAIRO_HAS_QUARTZ_FONT and CAIRO_HAS_QUARTZ_SURFACE
+ # w/o next, we get missing headers for gfxQuartzSurface.h and gfxQuartzImageSurface.h (to begin with ?)
+ sed -ri -e 's,mac cocoa,& gtk2,' mozilla/gfx/thebes/public/Makefile.in
+ # Use a non-existing macro to exclude the CAIRO_SURFACE_TYPE_QUARTZ_IMAGE case (still --disable-quartz-image ...)
  sed -i.bak -e '/ gfxQuartzSurface/,/else if/s,[}],&\n#endif\n#ifdef CAIRO_HAS_QUARTZ_IMAGE_SURFACE,' \
 	mozilla/gfx/thebes/src/gfxASurface.cpp
  sed -i.bak -e 's,Carbon\.h,Carbon/&,' mozilla/gfx/thebes/src/gfxQuartzFontCache.mm
  # The following for LCMS are because else ld looks for those symbols in %p/lib/libmozlcms.dylib
- # (which is non-existent, and not even where it should go). Those missing symbols come from the dylibs on the link line,
- # not from the objects being linked..(I think). !!!!  lib to be checked .. (but otool -L shows no anomalies ...!!!!
+ # (which is non-existent, and not even where it should go). Those missing symbols come partly from the dylibs on the link line,
+ # not from the objects being linked. libgkgfx.dylib itself takes no symbols from libmozlcms nor from -lxpcom_core..
  sed -i.bak -e '/MOZ_UNICHARUTIL_LIBS/a \
 	$(LCMS_LIBS) -lxpcom_core -lnspr4 -lplc4 \\' mozilla/gfx/src/Makefile.in
  sed -i.bak -e '/MOZ_UNICHARUTIL_LIBS/a \
 		$(LCMS_LIBS) \\' mozilla/{gfx/src/thebes,layout/build}/Makefile.in
  sed -i.bak -e '/MOZ_UNICHARUTIL_LIBS/a \
 		-framework AddressBook \\' mailnews/build/Makefile.in
+####
  ### since they subverted at many places XP_MACOSX to mean a toolkit to be used ("cocoa" rather than eg gtk or qt),
- ### (instead of an OS), it had to be zapped, and so even in places where it is used properly we have to replace it ..
+ ### (instead of an OS), it had to be zapped (both in patchfile and in a perl commnd below),
+ ### and so even in places where it is used properly we have to replace it ..
  sed -i.bak -e 's,XP_MACOSX,__APPLE__,' mozilla/toolkit/crashreporter/nsExceptionHandler.cpp mailnews/addrbook/public/nsAbBaseCID.h
+ # the need for -lcrypto comes from the symbols MD5_Init and MD5_Final, used in
+ # toolkit/crashreporter/google-breakpad/src/common/mac/{file,macho}_id.cc, and defined nowhere in the builddir...
+ #  -->  since it is only for that, SWITCH to system-openssl !
  sed -i.bak -e 's,EXTRA_DSO_LIBS),& -lcrypto,' mozilla/toolkit/library/Makefile.in
+ # Else expands to "./mozilla", leading to obvious breakage when autoconf.mk is sourced from elsewhere
  sed -i.bak -e 's,@MOZILLA_SRCDIR@,%b/mozilla,' config/autoconf.mk.in
+ # allow to do a "make install" even on Darwin !
  sed -i.bak -e 's, Darwin,,' mozilla/toolkit/mozapps/installer/packager.mk
 ####
 ### create configure scripts _ autoconf2.13 needed, and fink has no corresponding automake, so autoreconf can't be used..
  for f in `find . -name configure.in`; do cd `sed -e 's,/[^/]*$,,'<<<"$f$"`; autoconf; cd -; done
+# Else : "configure: error: Unrecognized extension provided to --enable-extensions: p3p." Same for datetime, finger...
+# Why not as "configure: warning: Cannot currently build sroaming without xpcom obsolete -- bug 249343. Removing sroaming from MOZ_EXTENSIONS."
+ sed -ri'' -e '/^MOZ_EXTENSIONS_ALL=/s, (p3p|datetime|finger|cview|tasks|sql|xforms|schema-validation),,g' mozilla/configure
+
 ## Most files meant by this patchscript lie in the subdir "mozilla" , we'll use "../" for the couple of others
  cd mozilla
+
+####  Following dates from previous versions (except the "install_name" para)
+
 ### formerly passed along by gtk's .pc :
  sed -i.bak -e '/MOZ_GTK2_LIBS=.*PKG_CONFIG/s,"$, -L/usr/X11R6/lib -lXrender -lX11",' configure
 ### The bulk of gnome deps (save for gnome-vfs and gtk2) would disappear w/o the following 10 lines; it is just in libimgicon.dylib
@@ -134,18 +153,37 @@ endif\
  perl -pi -e 's, \-DXP_MACOSX \-DNO_X11,,' ../configure{,.in}
  sed -i'' -e '/XP_MACOSX/d' nsprpub/configure{,.in}
  sed -i'' -e 's,defined(XP_MACOSX),true,' xpcom/base/nsStackWalk.cpp
- # there should be a better way to make @executable_path work correctly, but didn't look at it yet...
- perl -pi.bak -e 's,(install_name|dylib_file) +\@executable_path,\1 %p/lib/%N,' \
-	config/{config,rules}.mk {../directory/c-sdk,nsprpub}/configure{,.in} \
-	security/coreconf/Darwin.mk security/nss/{cmd/platlibs,lib/s{mime,sl}/config}.mk
- # remove obsolete flags:
+
+### Getting "reasonable" install_names (libs are not versioned! and their "install_name" would else just be
+### "@executable_path/libname" ...) . To be able to get minimal "shlibs-policy" compliance,
+### we'll replace all '@executable_path's in install_names by a 'real path' that includes a symlink containing "%N-%V"
+ V=`cut -f1 -d. <<<"%type_raw[ver]"`
+ sed -ri.bak -e "s,(install_name|dylib_file) +@executable_path,\1 %p/lib/%N-$V,g" \
+	{,../,js/src/}config/{config,rules}.mk {../directory/c-sdk,nsprpub}/configure{,.in} \
+	security/coreconf/Darwin.mk security/nss/{cmd/platlibs,lib/{freebl,smime,ssl}/config}.mk
+ perl -pi.bak -e \
+   "s;rules.mk;$&\nEXTRA_DSO_LDOPTS := \\\$\(subst install_name \\\$\(mozappdir\)/,install_name %p/lib/%N-$V/ipc/modules/,\\\$\(EXTRA_DSO_LDOPTS\)\);" \
+   ipc/ipcd/{extensions/{lock/src,transmngr},test}/module/Makefile.in
+ perl -pi.bak -e \
+   "s;rules.mk;$&\nEXTRA_DSO_LDOPTS := \\\$\(subst install_name \\\$\(mozappdir\)/,install_name %p/lib/%N-$V/plugins/,\\\$\(EXTRA_DSO_LDOPTS\)\);" \
+   modules/plugin/sdk/samples/unixprinting/Makefile.in
+ # and, just for consistency, remove the : "-Wl,-executable_path,$(LIBXUL_DIST)/bin" from the link commands
+ # (FIXME: this should go before running autoconf, but belongs logically here, so the whole block should be moved..) :
+ sed -ri -e "s,.*executable_path.*,    MOZ_FIX_LINK_PATHS=''," ../{,mozilla/{,js/src/}}configure{,.in}
+ # Finally, adding required "-l" flags .. (would be simpler to add -lxpcom_core to XPCOM_FROZEN_LDOPTS
+ # in top level configure.in, but that would apply to >> twice the number of linkings needed).
+ sed -i.bak -e 's,XPCOM_GLUE_LDOPTS),& -lxpcom_core,' \
+	{toolkit/system/{gnome,dbus},xpcom/{tests/external,reflect/xpt{info,call}/tests},\
+js/src/xpconnect/tools/src,storage/test,modules/libpr0n/decoders/icon,content/base/test,extensions/gnomevfs}/Makefile.in
+ sed -i.bak -e 's,XPCOM_FROZEN_LDOPTS),& -lxpcom_core,' xpcom/sample/Makefile.in
+
+
+### remove obsolete flags:
  perl -pi -e 's, \-fpascal\-strings,,; s, \-no\-cpp\-precomp,,' \
    {,../directory/c-sdk/,nsprpub/}configure{,.in} security/coreconf/Darwin.mk
  # if we were to use --enable-prebinding, then:
  perl -pi -e 's,LD_SEG_ADDR_TABLE=.*,LD_PREBIND_ALLOW_OVERLAP=1,' config/config.mk
-### fix for automake1.9 stricter parsing.  Remove when moving to gecko1.9 (seamonkey1.5) or higher
-# perl -pi.bak -e 's/(AC_DEFUN\()([^[,]+)(,)/\1\[\2]\3/' {{build,directory/c-sdk/config}/autoconf,nsprpub/config}/nspr.m4
-### The next appears needed eg when building yelp...
+### The next appears needed eg when building yelp... ( ~ difficulty above with -lxpcom_core)
 ### maybe also in mozilla/xulrunner/installer/libxul{-unstable,}.pc.in ?
  perl -pi.bak -e 's,lxpcom,$& -lxpcom_core,' build/unix/mozilla-config.in
 ### MISSING INCLUDES
@@ -165,14 +203,6 @@ endif\
  # We put it as far as possible in the link line _ and just for the link that needs it, in order not to get
  # libresolv in the LOAD_COMMANDS everywhere :
  perl -pi.bak -e 's,^MODULE\s,OS_LIBS += -lresolv\n$&,' netwerk/build/Makefile.in
-### ad-hoc correction of some install_names :
- perl -pi.bak -e \
-   "s;rules.mk;$&\nEXTRA_DSO_LDOPTS := \\\$\(subst install_name \\\$\(mozappdir\)/,install_name \\\$\(mozappdir\)/ipc/modules/,\\\$\(EXTRA_DSO_LDOPTS\)\);" \
-   ipc/ipcd/{extensions/{lock/src,transmngr},test}/module/Makefile.in
-# tentative _ files have moved, or disappeared ..:
- perl -pi.bak -e \
-   "s;rules.mk;$&\nEXTRA_DSO_LDOPTS := \\\$\(subst install_name \\\$\(mozappdir\)/,install_name \\\$\(mozappdir\)/plugins/,\\\$\(EXTRA_DSO_LDOPTS\)\);" \
-   modules/plugin/sdk/samples/unixprinting/Makefile.in
 ### Non-portable use of sed (not even usable with GNU sed !)
  perl -pi.bak -e 's,sed \-E,/usr/bin/$&,' xpcom/typelib/xpidl/Makefile.in
 ### To fix EXC_BAD_INSTRUCTION on macintel (XP_MACOSX is zapped in the beginning of the patchscript):
@@ -187,21 +217,10 @@ endif\
  # till 1.0.1, the zapping of '-DXP_MACCOSX' in the beginning of the  patchscript (this goes back to the first versions of mozilla!)
  # ensured that no frameworks were needed on the link line... What is going on ?
  perl -pi.bak -e 's,endif \# WINNT,$&\nEXTRA_DSO_LDOPTS += -F/System/Library/Frameworks -framework CoreFoundation,' xpcom/build/Makefile.in
-### With 1.1a : (seems to have disappeared..)
- # else will try linking libgfx_gtk.dylib against X11's libxprintutil, given the order of the -L flags,
- # with resulting undefined symbols (https://bugzilla.mozilla.org/show_bug.cgi?id=354004):
-# perl -pi.bak -e 's,\-lxprintutil,\$(DIST)/lib/\$(LIB_PREFIX)xprintutil.\$(LIB_SUFFIX),' gfx/src/gtk/Makefile.in
 ### With 1.1.7, under pangocairo: gfx/src/gtk/nsDeviceContextGTK.cpp uses symbols from -lpangox; so, cheapest:
  perl -pi -e 's,pangoft2,pangoxft,g' configure{,.in}
 ### Don't put the flags to /usr/X11 first in compile and link commands (CPATH and LIBRARY_PATH below put them anyway at the end):
  perl -pi -e 's,(MOZ_XFT_CFLAGS=)`.*,\1"",; s,`\$PKG_CONFIG --libs-only-L \\"xft\\"` ,,' configure
-### New with 2.0a :
-# Else : "configure: error: Unrecognized extension provided to --enable-extensions: p3p." Same for datetime, finger...
-# Why not as "configure: warning: Cannot currently build sroaming without xpcom obsolete -- bug 249343. Removing sroaming from MOZ_EXTENSIONS."
- sed -ri'' -e '/^MOZ_EXTENSIONS_ALL=/s, (p3p|datetime|finger|cview|tasks|sql|xforms|schema-validation),,g' configure
-# fink's cairo-features.h gets included in gfx/thebes/src, and defines CAIRO_HAS_QUARTZ_FONT and CAIRO_HAS_QUARTZ_SURFACE
-# w/o next, we get missing headers for gfxQuartzSurface.h and gfxQuartzImageSurface.h (to begin with ?)
- sed -ri -e 's,mac cocoa,& gtk2,' gfx/thebes/public/Makefile.in
 ### Uncomment to check builddeps:
  # perl -pi -e 's,CPPFLAGS%%,CPPFLAGS -H%%,' configure
 <<
@@ -289,15 +308,6 @@ export LIBRARY_PATH="%p/lib/pango-ft219/lib:%p/lib/fontconfig2/lib:%p/lib:$Xdir/
 
 make -j1 install DESTDIR=%d INSTALL_SDK=1
 
-## The following gets installed twice. To hedge our bets, put a symlink in one of the 2 places :
-#if test -f %i/lib/%N/ipc/modules/libtestmodule.dylib
-#   then if test -f %i/lib/%N/libtestmodule.dylib
-#           then rm -f %i/lib/%N/libtestmodule.dylib ; ln -s ipc/modules/libtestmodule.dylib %i/lib/%N
-#        fi
-#fi
-
-# Fix symlink in bin to main excutable
-ln -fs ../lib/%N-%type_raw[ver]/%N-bin %i/bin/%N
 
 # rm or link duplicate files
 pushd %i > /dev/null
@@ -312,34 +322,19 @@ ln -fs en-US/mailViews.dat lib/%N-%type_raw[ver]/defaults/messenger/mailViews.da
 ln -fs ../MainMenu.nib/classes.nib lib/%N-%type_raw[ver]/crashreporter.app/Contents/Resources/English.lproj/MainMenuRTL.nib
 popd > /dev/null
 
-## Fix install_names
-# (not sure the @executable_path thing is wrong, but safer to change it too to smthg I understand, and is like for all other libs)
-# Are still wrong after the fixes, in the sense that they all use the unversioned %p/lib/%N as path, which is correct
-# only because we add the unversioned symlinks (in the installscript of the -dev split _ should better be moved here somewhere).
-# But even with that the thing is completely wrong; since this symlink must remain in the shlibs splitoff (instead of -dev),
-# thus making coexistence of 2 different versions impossible.. Will have to write a script to change all those..
-pushd %i/lib/%N-%type_raw[ver] > /dev/null
-cd plugins
+## Fix install_names of plugins (were completely baroque, all in different ways)
+V=`cut -f1 -d. <<<"%type_raw[ver]"`
+cd %i/lib/%N-%type_raw[ver]/plugins
 for f in *.dylib; do
-	install_name_tool -id %p/lib/%N/plugins/$f $f
+	install_name_tool -id %p/lib/%N-$V/plugins/$f $f
 done
 cd -
-install_name_tool -id %p/lib/%N/libmozjs.dylib libmozjs.dylib
-for f in libjsj.dylib libxul.dylib seamonkey-bin TestXPC TestRect TestColorNames TestCSSPropertyLookup ParseCSS
-do
-	install_name_tool -change @executable_path/libmozjs.dylib %p/lib/%N/libmozjs.dylib $f
-done
-cd components
-for f in *.dylib; do
-	install_name_tool -change @executable_path/libmozjs.dylib %p/lib/%N/libmozjs.dylib $f
-done
-cd -
-popd> /dev/null
-# do this unversioned symlink:
-ln -fs %N-%type_raw[ver] %i/lib/%N
 
-## Install NSS headers.
-#/bin/cp -R -L dist/public/nss %i/include/%N/nss
+## Make unversioned symlinks (more in dev splitoff):
+ln -fs %N-%type_raw[ver] %i/lib/%N-$V
+
+# Fix symlink in bin to main excutable (target was %N instead of %N-bin)
+ln -fs ../lib/%N-$V/%N-bin %i/bin/%N
 
 ### FIXME : .pc files don't get built! (.pc.in are in mozilla/xulrunner/installer, + directory/c-sdk/mozldap.pc.in)
 # Link .pc file (the other .pc files Require the name 'nspr',
@@ -348,24 +343,9 @@ ln -fs %N-%type_raw[ver] %i/lib/%N
 #	then ln -s %N-nspr.pc %i/lib/pkgconfig/nspr.pc
 #fi
 
-# These files are redundant.
-# comment out to see..
-#for f in %i/lib/%N/chrome/*.jar; do
-#  rm -rf ${f/.jar/}
-#done
-
-# These files are created dynamically.
-#rm -f %i/lib/%N/chrome/*.rdf
-#rm -f %i/lib/%N/components/*.dat
-
 # Multi user setting ; needed ???
 touch %i/lib/%N-%type_raw[ver]/chrome/user-skins.rdf
 touch %i/lib/%N-%type_raw[ver]/chrome/user-locales.rdf
-
-# Empty installed-chrome.txt. _ no such file
-#mkdir -p %i/var/lib/%N/chrome.d
-#mv %i/lib/%N/chrome/installed-chrome.txt %i/var/lib/%N/chrome.d
-#touch %i/lib/%N/chrome/installed-chrome.txt
 
 # Install fink specific files. (commenting out the chrome.d stuff; scheme seems different now .)
 #install -d -m 755 %i/bin %i/sbin %i/var/lib/%N/chrome.d
@@ -405,23 +385,13 @@ if test -f %i/share/aclocal/nspr.m4
 fi
 
 # Install a symlink to the docfiles
-mkdir -p %i/share/doc; ln -s %N2-shlibs %i/share/doc/%n
+mkdir -p %i/share/doc/%N2-shlibs
+ln -s %N2-shlibs %i/share/doc/%n
+mv %i/lib/%N-%type_raw[ver]/README %i/share/doc/%N2-shlibs
+ln -fs %p/share/doc/%N2-shlibs/README %i/lib/%N-%type_raw[ver]
 <<
 
 ConfFiles: %p/etc/%N/prefs.js
-
-#PostInstScript: <<
-## Those 2 empty files are not installed by dpkg (H. N. says current dpkg handles empty files correctly; check (in particular on UFS)
-#    touch %p/lib/%N/chrome/user-skins.rdf
-#    touch %p/lib/%N/chrome/user-locales.rdf
-#    if [ configure = "$1" ]; then
-#        update-%N-chrome
-#    fi
-#<<
-#PreRmScript: <<
-#      rm -f %p/lib/%N/chrome/*.rdf
-#      rm -f %p/lib/%N/components/*.dat
-#<<
 
 SplitOff: <<
   Package: %N2-shlibs
@@ -433,26 +403,9 @@ SplitOff: <<
 	(%type_raw[sys_nspr] = .) nspr-shlibs,
 	openssl098-shlibs, orbit2-shlibs, pango1-xft2-ft219-shlibs (>= 1.18.4-4), popt-shlibs, x11-shlibs
   <<
-  Conflicts: %N-dev, %N-shlibs, librsvg2-%N, librsvg2-%N-dev, %N (<< 1.9.0-1)
   DocFiles: mozilla/LEGAL mozilla/LICENSE
   Description: Seamonkey - shared libraries
-# Many "dylib"'s under lib/%N are in fact bundles, hence don't belong here.
-# Further the exact sets, both dylibs and of bundles, vary with %c _ and from %v to %v,
-# so we don't want to hardcode them.
-#  InstallScript: <<
-#    #!/bin/sh -ev
-#    mkdir -p %i/lib/%N/plugins
-#    for dir in lib/%N lib/%N/plugins
-#	do
-#	   cd %I/$dir
-#	   for f in `ls -1 *.dylib|xargs file|grep dynamically|cut -f1 -d:`
-#		do mv $f %i/$dir
-#	   done
-#	   cd -
-#	done
-#    mv %I/lib/%N/ipc %i/lib/%N
-#  <<
-## but I see currently no reasonable way to list the bundles that can be linked from shlibs _ and those
+## I see currently no reasonable way to list the bundles that can be linked from shlibs _ and those
 ## should probably for sanity be added here. Have some evidence that many of them in fact can...
 ## So, for the moment, put all of them here too...
 ## And let us add, for files, the subdirs  lib/%N/chrome, lib/%N/greprefs and lib/%N/res _ trusting Hanspeter ...
@@ -463,53 +416,49 @@ SplitOff: <<
 	lib/%N-%type_raw[ver]/greprefs
 	lib/%N-%type_raw[ver]/plugins
 	lib/%N-%type_raw[ver]/res
-	lib/%N 
+	lib/%N-?
+	share/doc/%N2-shlibs
  <<
 # The following depends strongly on %c. Adjust at the last minute.
-# Here all shared libs are listed. One could probably consider those in plugins and ipc as meant to be internal, and omit them.
+# Here all shared libs are listed. One could probably consider those in plugins as meant to be internal
+# (or even all those not in %p/lib/%N-2/sdk/lib ?), and omit them.
   Shlibs: <<
-	%p/lib/%N/libDebugRobot.dylib 1.0.0 %n (>= 1.0-1)
-	%p/lib/%N/libfreebl3.dylib 1.0.0 %n (>= 1.1.2-1)
-	%p/lib/%N/libgfxpsshar.dylib 1.0.0 %n (>= 1.0-1)
-	%p/lib/%N/libgkgfx.dylib 1.0.0 %n (>= 1.0-1)
-	%p/lib/%N/libgtkembedmoz.dylib 1.0.0 %n (>= 1.0-1)
-	%p/lib/%N/libgtkxtbin.dylib 1.0.0 %n (>= 1.0-1)
-	%p/lib/%N/libjsj.dylib 1.0.0 %n (>= 1.0-1)
-	%p/lib/%N/libldap50.dylib 1.0.0 %n (>= 1.0-1)
-	%p/lib/%N/libmozjs.dylib 1.0.0 %n (>= 1.0-1)
-	%p/lib/%N/libmozpango-dvngx.dylib 1.0.0 %n (>= 1.0-1)
-	%p/lib/%N/libmozpango-thaix.dylib 1.0.0 %n (>= 1.0-1)
-	%p/lib/%N/libmozpango.dylib 1.0.0 %n (>= 1.0-1)
-	%p/lib/%N/libmsgbaseutil.dylib 1.0.0 %n (>= 1.0-1)
-	%p/lib/%N/libnpsimple.dylib 1.0.0 %n (>= 1.0-1)
-	(%type_raw[sys_nspr] = no) %p/lib/%N/libnspr4.dylib 1.0.0 %n (>= 1.0-1)
-	%p/lib/%N/libnss3.dylib 1.0.0 %n (>= 1.0-1)
-	(%type_raw[sys_nspr] = no) %p/lib/%N/libplc4.dylib 1.0.0 %n (>= 1.0-1)
-	(%type_raw[sys_nspr] = no) %p/lib/%N/libplds4.dylib 1.0.0 %n (>= 1.0-1)
-	%p/lib/%N/libprldap50.dylib 1.0.0 %n (>= 1.0-1)
-	%p/lib/%N/libsmime3.dylib 1.0.0 %n (>= 1.0-1)
-	%p/lib/%N/libsoftokn3.dylib 1.0.0 %n (>= 1.0-1)
-	%p/lib/%N/libssl3.dylib 1.0.0 %n (>= 1.0-1)
-	%p/lib/%N/libxlibrgb.dylib 1.0.0 %n (>= 1.0.6-1)
-	%p/lib/%N/libxpcom.dylib 1.0.0 %n (>= 1.0-1)
-	%p/lib/%N/libxpcom_compat.dylib 1.0.0 %n (>= 1.0-1)
-	%p/lib/%N/libxpcom_core.dylib 1.0.0 %n (>= 1.0-1)
-	%p/lib/%N/libxpistub.dylib 1.0.0 %n (>= 1.0-1)
-	%p/lib/%N/plugins/libnullplugin.dylib 1.0.0 %n (>= 1.0-1)
-	%p/lib/%N/plugins/libunixprintplugin.dylib 1.0.0 %n (>= 1.0-1)
-	%p/lib/%N/ipc/modules/liblockmodule.dylib 1.0.0 %n (>= 1.0-1)
-	%p/lib/%N/ipc/modules/libtransmgr.dylib 1.0.0 %n (>= 1.0-1)
-	%p/lib/%N/ipc/modules/libtestmodule.dylib 1.0.0 %n (>= 1.0-1)
+	%p/lib/%N-2/libfreebl3.dylib 1.0.0 %n (>= 1.0-1)
+	%p/lib/%N-2/libgfxpsshar.dylib 1.0.0 %n (>= 1.0-1)
+	%p/lib/%N-2/libgkgfx.dylib 1.0.0 %n (>= 1.0-1)
+	%p/lib/%N-2/libgtkxtbin.dylib 1.0.0 %n (>= 1.0-1)
+	%p/lib/%N-2/libjsj.dylib 1.0.0 %n (>= 1.0-1)
+	%p/lib/%N-2/libldap60.dylib 1.0.0 %n (>= 1.0-1)
+	%p/lib/%N-2/libldif60.dylib 1.0.0 %n (>= 1.0-1)
+	%p/lib/%N-2/libmozjs.dylib 1.0.0 %n (>= 1.0-1)
+	%p/lib/%N-2/libmozlcms.dylib 1.0.0 %n (>= 1.0-1)
+	(%type_raw[sys_nspr] = no) %p/lib/%N-2/libnspr4.dylib 1.0.0 %n (>= 1.0-1)
+	%p/lib/%N-2/libnss3.dylib 1.0.0 %n (>= 1.0-1)
+	%p/lib/%N-2/libnssdbm3.dylib 1.0.0 %n (>= 1.0-1)
+	%p/lib/seamonkey-2/libnssutil3.dylib 1.0.0 %n (>= 1.0-1)
+	(%type_raw[sys_nspr] = no) %p/lib/%N-2/libplc4.dylib 1.0.0 %n (>= 1.0-1)
+	(%type_raw[sys_nspr] = no) %p/lib/%N-2/libplds4.dylib 1.0.0 %n (>= 1.0-1)
+	%p/lib/%N-2/libprldap60.dylib 1.0.0 %n (>= 1.0-1)
+	%p/lib/%N-2/libsmime3.dylib 1.0.0 %n (>= 1.0-1)
+	%p/lib/%N-2/libsoftokn3.dylib 1.0.0 %n (>= 1.0-1)
+	%p/lib/%N-2/libsqlite3.dylib 1.0.0 %n (>= 1.0-1)
+	%p/lib/%N-2/libssl3.dylib 1.0.0 %n (>= 1.0-1)
+	%p/lib/%N-2/libthebes.dylib 1.0.0 %n (>= 1.0-1)
+	%p/lib/%N-2/libxpcom.dylib 1.0.0 %n (>= 1.0-1)
+	%p/lib/%N-2/libxpcom_core.dylib 1.0.0 %n (>= 1.0-1)
+	%p/lib/%N-2/libxul.dylib 1.0.0 %n (>= 1.0-1)
+	%p/lib/%N-2/plugins/libnptest.dylib 1.0.0 %n (>= 1.0-1)
+	%p/lib/%N-2/plugins/libnullplugin.dylib 1.0.0 %n (>= 1.0-1)
+	%p/lib/%N-2/plugins/libunixprintplugin.dylib 1.0.0 %n (>= 1.0-1)
   <<
-### list of dylibs that have disappeared at some point because of changes in %c 0r %v
-#	%p/lib/%N/libDebugRobot.dylib 1.0.0 %n (>= 1.0-1)
-#	%p/lib/%N/libnpsimple.dylib 1.0.0 %n (>= 1.0-1)
-#	%p/lib/%N/libxlibrgb.dylib 1.0.0 %n (>= 1.7.11-1)
-#	%p/lib/%N/ipc/modules/libtestmodule.dylib 1.0.0 %n (>= 1.0-1)
 <<
 
 SplitOff2: <<
   Package: %N2-dev
+## Currently have those conflicts, because of the symlink %p/lib/%N in this pkg.
+## Intend as an upgrade strategy to first put this out w/o this symlink,
+## and then, as soon as dependent pkgs have switched their deps, introduce the symlink
+## at the next new version.
   Conflicts: %N-dev, %N-shlibs, librsvg2-%N, librsvg2-%N-dev, %N (<< 1.9.0-1)
   Depends: %N2-shlibs (= %v-%r), pkgconfig (>= 0.21-1)
   BuildDependsOnly: true
@@ -517,12 +466,10 @@ SplitOff2: <<
   InstallScript: <<
 	#!/bin/sh -ev
 	mkdir -p %i/lib %i/share/doc ; ln -s %N-shlibs %i/share/doc/%n
-##  Put this here instead of the "Files", since the existence or not of the files
-##  depends on whether "--system-nspr" is enabled _ and the bulk of the info file
-##  should not have to change with variations in %c !
 	if test -d %I/share/aclocal
 	  then mv %I/share/aclocal %i/share
 	fi
+	V=`cut -f1 -d. <<<"%type_raw[ver]"`
  # bring the whole %N-devel dir here, folding it into the main on _ and keep its name as a symlink
 	mv %I/lib/%N-devel-%type_raw[ver] %i/lib/%N-%type_raw[ver]
 	ln -fs %N-%type_raw[ver] %i/lib/%N-devel-%type_raw[ver]
@@ -533,9 +480,11 @@ SplitOff2: <<
 	for f in *.dylib; do ln -fs ../../$f; done
 	for f in *.a; do mv $f ../..; ln -fs  ../../$f; done
  # make non-versioned symlinks
-	ln -fs %N-%type_raw[ver]/unstable %i/share/idl/%N
-	ln -fs %N-%type_raw[ver]/unstable %i/include/%N
-#	ln -fs %N-%type_raw[ver] %i/lib/%N	# This should come here, but needed in the -shlibs
+	ln -fs %N-$V %i/lib/%N
+	ln -fs %N-%type_raw[ver]/unstable %i/share/idl/%N-$V
+	ln -fs %N-$V %i/share/idl/%N
+	ln -fs %N-%type_raw[ver]/unstable %i/include/%N-$V
+	ln -fs %N-$V %i/include/%N
 	# the following symlinks correspond to ones in the %N-devel dir, which got folded in the main one
 	cd %i/lib/%N-%type_raw[ver]
 	rm -fR bin idl include lib
@@ -553,6 +502,11 @@ DescDetail: <<
 %N is an open-source web browser, designed for standards
 compliance, performance and portability.
 <<
+DescUsage: <<
+Dependent pkgs are probably assured of more stability w.r.t.
+versions of %N if using only the subset in %p/lib/%N/sdk .
+<<
+
 DescPort: <<
 GTK+2 build of the SeaMonkey browser for Mac OS X/X11.  Compiled
 with built-in support for GNOME VFS2, including app launcher buttons.
