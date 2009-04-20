@@ -1,5 +1,5 @@
 Package: atlas
-Version: 3.9.4
+Version: 3.9.11
 Revision: 1
 Description: Portable optimal linear algebra software
 DescDetail: <<
@@ -30,32 +30,27 @@ Order is important when linking! Use:
 -L%p/lib -llapack -lcblas -lf77blas -latlas
 <<
 Source: mirror:sourceforge:math-atlas/%n%v.tar.bz2
-Source-MD5: 04c89e844be259b011ee786462817e3f
+Source-MD5: fa95dfd4a69e5614db1061a740bc5265
+# src2 still needed for the manpages
 Source2: http://www.netlib.org/lapack/lapack-3.1.1.tgz
 Source2-MD5: 00b21551a899bcfbaa7b8443e1faeef9
+# this is version 3.2, to be used for the build:
+Source3: http://www.netlib.org/lapack/lapack.tgz
+Source3-MD5: db2e9b01bd157b65440f8306c0ba5446
 SourceDirectory: ATLAS
 License: BSD
-# since we're experimenting with building a dylib :
 BuildDependsOnly: true
-BuildDepends: gcc43 (>= 4.3.2)
+BuildDepends: gcc44
 # The whole previous patchscript is in the srcs for %v 3.9.4
 PatchScript: <<
 #!/bin/sh -ev
-sed -i.bak -e 's,libtool -dynamic,\$(LIBTOOL) -dynamic,' -e 's,_version 3\.9\.4,_version \$(VER),g' \
+#        -e '/f77blas\.dylib *:/,/lapack\.dylib *:/s, \$(LIBS),,' \
+sed -i.bak -e 's,libtool -dynamic,\$(LIBTOOL) -dynamic,' -e 's,_version %v,_version \$(VER),g' \
 	-e 's,-compatibility_version \$(VER) ,,' \
-	-e '/f77blas\.dylib *:/,/lapack\.dylib *:/s, \$(LIBS),,' \
 	-e '/lapack\.dylib *:/,/clapack\.dylib *:/s,\$(LIBS),-lgcc_s.1 &,' makes/Make.lib
 sed -i.bak -e 's,LIBTOOL",LIBTOOL -single_module -dead_strip -x",' configure
-# bug 379482
-sed -i.bak -e '/^ATL_ilaenv.o/s,$, $(envdep),' -e '1a\
-envdep = $(INCAdir)/atlas_sGetNB_gelqf.h $(INCAdir)/atlas_sGetNB_geqlf.h \\\
-	$(INCAdir)/atlas_sGetNB_geqrf.h $(INCAdir)/atlas_sGetNB_gerqf.h \\\
-	$(INCAdir)/atlas_dGetNB_gelqf.h $(INCAdir)/atlas_dGetNB_geqlf.h \\\
-	$(INCAdir)/atlas_dGetNB_geqrf.h $(INCAdir)/atlas_dGetNB_gerqf.h \\\
-	$(INCAdir)/atlas_cGetNB_gelqf.h $(INCAdir)/atlas_cGetNB_geqlf.h \\\
-	$(INCAdir)/atlas_cGetNB_geqrf.h $(INCAdir)/atlas_cGetNB_gerqf.h \\\
-	$(INCAdir)/atlas_zGetNB_gelqf.h $(INCAdir)/atlas_zGetNB_geqlf.h \\\
-	$(INCAdir)/atlas_zGetNB_geqrf.h $(INCAdir)/atlas_zGetNB_gerqf.h' makes/Make.lpsrc
+# next is to have ATL_AS_OSX_PPC defined when it should be
+sed -i.bak -e '1i #include "atlas_asm.h"' tune/blas/gemm/CASES/ATL_dmm4x4x2pf_av.c
 cd ..; ln -s lapack-3.1.1 LAPACK
 cd LAPACK
 sed -e 's,\.\./\.\./blas\$(PLAT)\.a,%b/../bld/lib/libf77blas.a %b/../bld/lib/libcblas.a %b/../bld/lib/libatlas.a,' \
@@ -69,7 +64,7 @@ CompileScript: <<
  cflags=''
  if [ %m = 'i386' ]
 	then mflags="-mfpmath=sse -msse -msse2 -msse3 -m32"; iflags="-mfpmath=387"
-	else mflags=''; iflags=''
+	else mflags='-maltivec -mabi=altivec'; iflags=''
 		if [ `machine|sed -e 's,ppc,,' -e 's,\([0-9]\).*,\1,'` != 9 ]
 			then cflags='-Si cputhrchk 0 -D c -DATL_AVgcc'
 		fi
@@ -85,17 +80,18 @@ CompileScript: <<
  mkdir -p bld
  cd bld
  ../ATLAS/configure %c -F ic "$iflags" -F if "$lflags" $cflags
- # first fix wrong F77SYSLIB
+# first fix wrong F77SYSLIB; else gets set to %p/lib/gcc4.3/bin/../lib/gcc/powerpc-apple-darwin8/4.3.3
+# instead of following "path" : %p/lib/gcc4.3/bin/../lib/gcc/powerpc-apple-darwin8/4.3.3/../../.. (= %p/lib/gcc4.3/lib)
  path=`gfortran -print-file-name=libgfortran.dylib|sed -e 's,/[^/]*$,,'`
  path=`cd $path 2>/dev/null && pwd || :`
  sed -i.bak -e "s,F77SYSLIB =.*,F77SYSLIB = -L$path -lgfortran," Make.inc
  #
  make
- cd src/lapack
- make ATL_ilaenv.o
- cd -
+# cd src/lapack
+# make ATL_ilaenv.o
+# cd -
  cd lib
- ar -r liblapack.a ../../bld/src/lapack/ATL_ilaenv.o
+# ar -r liblapack.a ../../bld/src/lapack/ATL_ilaenv.o
  ranlib *.a
  # Apparently on some machines (=monoprocessors ?) the threaded libs are not made;
  # we first make atlas 'look the same' to all other pkgs, independently of the machine
@@ -153,6 +149,7 @@ InstallScript: <<
  mkdir -p %i/share/doc/%n/LAPACK
  cp doc/* README %i/share/doc/%n
  head -n29 bin/atlas_tee.c > %i/share/doc/%n/LICENSE
+ rm ../LAPACK; ln -fs lapack-3.1.1 ../LAPACK
  cp -pPR ../LAPACK/manpages/{blas/,}man %i/share
  cp -pPR ../LAPACK/{html,COPYING,README,INSTALL/lawn81.pdf} %i/share/doc/%n/LAPACK
  ln -s html/index.html %i/share/doc/%n/LAPACK
