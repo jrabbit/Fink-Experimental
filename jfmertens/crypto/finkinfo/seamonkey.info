@@ -1,11 +1,13 @@
 Info2: <<
+## trouble already caused (i.e., strongly intensified) by passing from "seamonkey_old" to "seamonkey_old1"
+## But occured already with "old" : cf last item ("2009-02-15 20:10:28.860 +0100") of seamonkey-bin.crash.log 
 Package: seamonkey
 # Version according to mozilla/config/milestone.txt ("mozilla-version"),
 # rather than suite/config/version.txt ("seamonkey-version", =%type_raw[ver]), to leave room for growth till 2.0
 Version: 1.9.1b3pre
 Revision: 1
 ## parameters needed at several places :
-Type: sys_nspr (no), ver (2.0a2)
+Type: sys_nspr (no), ver (2.0a3)
 Depends: %N2-shlibs (= %v-%r), bzip2-shlibs
 BuildDepends: <<
 	atk1 (>= 1.20.0-1),
@@ -45,7 +47,7 @@ BuildDepends: <<
 <<
 GCC: 4.0
 
-Source-MD5: f6aedbdd4f20f5fa934af01230b0f12f
+Source-MD5: 8507f49093764e74d015225c4dfcca38
 Source: mirror:custom:mozilla.org/%N/releases/%type_raw[ver]/source/%N-%type_raw[ver].source.tar.bz2
 NoSourceDirectory: true
 CustomMirror: <<
@@ -57,7 +59,7 @@ CustomMirror: <<
 
 ## someone should once re-generate this old patchfile, going back to the early mozilla versions, and that I've only edited since..
 PatchFile: %n.patch
-PatchFile-MD5: fe8fc6222d54b6332f4dd2da90838422
+PatchFile-MD5: 9772d8d3a0e276236d9e56598461b47a
 PatchScript: <<
  #!/bin/sh -ev
  find . -name CVS -o -name .cvsignore | xargs rm -fR
@@ -72,7 +74,15 @@ PatchScript: <<
  sed -e 's,@PREFIX@,%p,g' -e "s,/usr/X11R6,$Xdir," <%{PatchFile} | patch -p1
 #### Next is new for 2.0a
  # for documentation; prefer to see explicitly everything in %c
- mv .mozconfig .mozconfig.bak
+# mv .mozconfig .mozconfig.bak
+
+### gfxtypes.h and gfxTypes.h end up in the same directory. We rename the former. (Should use a 'find' for robustness..)
+#   We'll put some symlinks with the original name elsewhere, though it seems to become obsolete, and no other fink pkg uses it.
+ mv mozilla/gfx/idl/gfxtypes.idl mozilla/gfx/idl/gfx_types.idl
+ sed -i'' -e 's,include "gfxtypes.idl",include "gfx_types.idl",' \
+	mozilla/{gfx/idl/gfxI{Formats,ImageFrame},modules/libpr0n/public/imgIContainer{,Observer}}.idl
+ sed -i'' -e 's,gfxtypes.idl,gfx_types.idl,' mozilla/gfx/idl/{Makefile.in,gfx_types.idl}
+
 ### CAIRO and gfx
  # Including Carbon.h brings in so many headers that there are several name clashes with the X11 headers also brought in.
  # And CGContext.h suffices
@@ -81,24 +91,28 @@ PatchScript: <<
 	mozilla/gfx/thebes/public/gfxQuartzSurface.h
  sed -i.bak -e 's,Multiprocessing.h,/System/Library/Frameworks/CoreServices.framework/Frameworks/CarbonCore.framework/Headers/&,' \
 	mozilla/media/liboggplay/src/liboggplay/std_semaphore.h
+ sed -i.bak -e 's,Carbon\.h,Carbon/&,' mozilla/gfx/thebes/src/gfxQuartzFontCache.mm
+
+## Either of the 2 following attempts should be viable. Launch time problems (probably unrelated) remain with both..
+#### FIRST ATTEMPT FOR CAIRO_QUARTZ (ends up with needing to add --enable-quartz-image  to cairo.info) 
  ## we have to delete a number of targets because fink's cairo has --disable-quartz-image
  ## better to disable any quartz support altogether? What could be its use?
- sed -i.bak -e '/cocoa/,/endif/{
-	/cocoa/d
-	/gfxQuartzImageSurface.cpp/d
-	/nsUnicodeRange.cpp/d
-	/gfxPlatformMac.cpp/d
-	/gfxAtsuiFonts.cpp/d
-	/gfxQuartzFontCache.mm/d
-	/endif/d }' \
-	 mozilla/gfx/thebes/src/Makefile.in
+ #### we need this time the quartz cpp srcs _ but don't include twice nsUnicodeRange.cpp
+#sed -i.bak -e '/cocoa/,/endif/{
+#	/cocoa/d
+#	/nsUnicodeRange.cpp/d
+#	/endif/d }' \
+#	 mozilla/gfx/thebes/src/Makefile.in
  # fink's cairo-features.h gets included in gfx/thebes/src, and defines CAIRO_HAS_QUARTZ_FONT and CAIRO_HAS_QUARTZ_SURFACE
  # w/o next, we get missing headers for gfxQuartzSurface.h and gfxQuartzImageSurface.h (to begin with ?)
- sed -ri -e 's,mac cocoa,& gtk2,' mozilla/gfx/thebes/public/Makefile.in
+# sed -ri.bak -e 's,mac cocoa,& gtk2,' mozilla/gfx/thebes/public/Makefile.in
  # Use a non-existing macro to exclude the CAIRO_SURFACE_TYPE_QUARTZ_IMAGE case (still --disable-quartz-image ...)
- sed -i.bak -e '/ gfxQuartzSurface/,/else if/s,[}],&\n#endif\n#ifdef CAIRO_HAS_QUARTZ_IMAGE_SURFACE,' \
-	mozilla/gfx/thebes/src/gfxASurface.cpp
- sed -i.bak -e 's,Carbon\.h,Carbon/&,' mozilla/gfx/thebes/src/gfxQuartzFontCache.mm
+# sed -i.bak -e '/ gfxQuartzSurface/,/else if/s,[}],&\n#endif\n#ifdef CAIRO_HAS_QUARTZ_IMAGE_SURFACE,' \
+#	mozilla/gfx/thebes/src/gfxASurface.cpp
+
+#### OTHER ATTEMPT FOR CAIRO_QUARTZ : disable any quartz support altogether...
+ sed -i.bak -e 's,CAIRO_HAS_QUARTZ_SURFACE,&NO,' -e 's,XP_MACOSX,&NO,' mozilla/gfx/thebes/src/gfxASurface.cpp
+
  # The following for LCMS are because else ld looks for those symbols in %p/lib/libmozlcms.dylib
  # (which is non-existent, and not even where it should go). Those missing symbols come partly from the dylibs on the link line,
  # not from the objects being linked. libgkgfx.dylib itself takes no symbols from libmozlcms nor from -lxpcom_core..
@@ -109,10 +123,6 @@ PatchScript: <<
  sed -i.bak -e '/MOZ_UNICHARUTIL_LIBS/a \
 		-framework AddressBook \\' mailnews/build/Makefile.in
 ####
- ### since they subverted at many places XP_MACOSX to mean a toolkit to be used ("cocoa" rather than eg gtk or qt),
- ### (instead of an OS), it had to be zapped (both in patchfile and in a perl commnd below),
- ### and so even in places where it is used properly we have to replace it ..
- sed -i.bak -e 's,XP_MACOSX,__APPLE__,' mozilla/toolkit/crashreporter/nsExceptionHandler.cpp mailnews/addrbook/public/nsAbBaseCID.h
  # the need for -lcrypto comes from the symbols MD5_Init and MD5_Final, used in
  # toolkit/crashreporter/google-breakpad/src/common/mac/{file,macho}_id.cc, and defined nowhere in the builddir...
  #  -->  since it is only for that, SWITCH to system-openssl !
@@ -122,105 +132,67 @@ PatchScript: <<
  # allow to do a "make install" even on Darwin !
  sed -i.bak -e 's, Darwin,,' mozilla/toolkit/mozapps/installer/packager.mk
 ####
-### create configure scripts _ autoconf2.13 needed, and fink has no corresponding automake, so autoreconf can't be used..
- for f in `find . -name configure.in`; do cd `sed -e 's,/[^/]*$,,'<<<"$f$"`; autoconf; cd -; done
-# Else : "configure: error: Unrecognized extension provided to --enable-extensions: p3p." Same for datetime, finger...
-# Why not as "configure: warning: Cannot currently build sroaming without xpcom obsolete -- bug 249343. Removing sroaming from MOZ_EXTENSIONS."
- sed -ri'' -e '/^MOZ_EXTENSIONS_ALL=/s, (p3p|datetime|finger|cview|tasks|sql|xforms|schema-validation),,g' mozilla/configure
-
-## Most files meant by this patchscript lie in the subdir "mozilla" , we'll use "../" for the couple of others
- cd mozilla
-
-####  Following dates from previous versions (except the "install_name" para)
-
-### formerly passed along by gtk's .pc :
- sed -i.bak -e '/MOZ_GTK2_LIBS=.*PKG_CONFIG/s,"$, -L/usr/X11R6/lib -lXrender -lX11",' configure
-### The bulk of gnome deps (save for gnome-vfs and gtk2) would disappear w/o the following 10 lines; it is just in libimgicon.dylib
-### get around specific setting for darwin
- sed -i'' -e '/MOZ_IMG_DECODERS_DEFAULT icon/,/esac/s,MOZ_WIDGET_TOOLKIT" = "cocoa",& -o "$MOZ_ENABLE_GNOMEUI",' configure
- sed -i.bak -e 's,PLATFORM = mac,ifndef PLATFORM\n&\nendif,' modules/libpr0n/decoders/icon/Makefile.in
-# And, in same Makefile, get flag-ordering right, to avoid linking with nspr-shlibs.
- sed -i'' -e '/MOZ_GNOMEUI_LIBS/d' -e 's,EXTRA_DSO_LDOPTS [+]=,EXTRA_DSO_LDOPTS =,' \
-	-e '/rules.mk/,$s;OS_ARCH),Darwin;PLATFORM),mac;' -e '/LOCAL_INCLUDES/i\
-ifdef MOZ_ENABLE_GNOMEUI\
-EXTRA_DSO_LDOPTS += $(MOZ_GNOMEUI_LIBS) $(NULL)\
-endif\
-' modules/libpr0n/decoders/icon/Makefile.in
-### fix for 10.5
- perl -pi -e 's,argument missing, -exported_symbols_list,' configure{,.in}
-### next 4 points substitute a.o. for things from msek's old patchfile _ trying slowly to move to more 'literate programmimg' :):
- # we want a gtk2 build:
- perl -pi -e 's, \-DXP_MACOSX \-DNO_X11,,' ../configure{,.in}
- sed -i'' -e '/XP_MACOSX/d' nsprpub/configure{,.in}
- sed -i'' -e 's,defined(XP_MACOSX),true,' xpcom/base/nsStackWalk.cpp
 
 ### Getting "reasonable" install_names (libs are not versioned! and their "install_name" would else just be
 ### "@executable_path/libname" ...) . To be able to get minimal "shlibs-policy" compliance,
 ### we'll replace all '@executable_path's in install_names by a 'real path' that includes a symlink containing "%N-%V"
  V=`cut -f1 -d. <<<"%type_raw[ver]"`
+ # for consistency, remove the : "-Wl,-executable_path,$(LIBXUL_DIST)/bin" from the link commands
+ sed -ri.bak -e "s,.*executable_path.*,    MOZ_FIX_LINK_PATHS=''," {,mozilla/{,js/src/}}configure.in
  sed -ri.bak -e "s,(install_name|dylib_file) +@executable_path,\1 %p/lib/%N-$V,g" \
-	{,../,js/src/}config/{config,rules}.mk {../directory/c-sdk,nsprpub}/configure{,.in} \
-	security/coreconf/Darwin.mk security/nss/{cmd/platlibs,lib/{freebl,smime,ssl}/config}.mk
- perl -pi.bak -e \
-   "s;rules.mk;$&\nEXTRA_DSO_LDOPTS := \\\$\(subst install_name \\\$\(mozappdir\)/,install_name %p/lib/%N-$V/ipc/modules/,\\\$\(EXTRA_DSO_LDOPTS\)\);" \
-   ipc/ipcd/{extensions/{lock/src,transmngr},test}/module/Makefile.in
+	{,mozilla/{,js/src/}}config/{config,rules}.mk {directory/c-sdk,mozilla/nsprpub}/configure.in \
+	mozilla/security/coreconf/Darwin.mk mozilla/security/nss/lib/freebl/config.mk
+# perl -pi.bak -e \   # files seem to have disappeared
+#   "s;rules.mk;$&\nEXTRA_DSO_LDOPTS := \\\$\(subst install_name \\\$\(mozappdir\)/,install_name %p/lib/%N-$V/ipc/modules/,\\\$\(EXTRA_DSO_LDOPTS\)\);" \
+#   mozilla/ipc/ipcd/{extensions/{lock/src,transmngr},test}/module/Makefile.in
  perl -pi.bak -e \
    "s;rules.mk;$&\nEXTRA_DSO_LDOPTS := \\\$\(subst install_name \\\$\(mozappdir\)/,install_name %p/lib/%N-$V/plugins/,\\\$\(EXTRA_DSO_LDOPTS\)\);" \
-   modules/plugin/sdk/samples/unixprinting/Makefile.in
- # and, just for consistency, remove the : "-Wl,-executable_path,$(LIBXUL_DIST)/bin" from the link commands
- # (FIXME: this should go before running autoconf, but belongs logically here, so the whole block should be moved..) :
- sed -ri -e "s,.*executable_path.*,    MOZ_FIX_LINK_PATHS=''," ../{,mozilla/{,js/src/}}configure{,.in}
- # Finally, adding required "-l" flags .. (would be simpler to add -lxpcom_core to XPCOM_FROZEN_LDOPTS
- # in top level configure.in, but that would apply to >> twice the number of linkings needed).
- sed -i.bak -e 's,XPCOM_GLUE_LDOPTS),& -lxpcom_core,' \
-	{toolkit/system/{gnome,dbus},xpcom/{tests/external,reflect/xpt{info,call}/tests},\
-js/src/xpconnect/tools/src,storage/test,modules/libpr0n/decoders/icon,content/base/test,extensions/gnomevfs}/Makefile.in
- sed -i.bak -e 's,XPCOM_FROZEN_LDOPTS),& -lxpcom_core,' xpcom/sample/Makefile.in
+   mozilla/modules/plugin/sdk/samples/unixprinting/Makefile.in
 
+#### we want a gtk2 build:
+ sed -i'' -e 's, -DXP_MACOSX -DNO_X11, -DX11,' {,mozilla/}configure.in
+ sed -i'' -e '/XP_MACOSX/d' mozilla/nsprpub/configure.in
+### The bulk of gnome deps (save for gnome-vfs and gtk2) would disappear w/o the following 8 lines; they appear just in libimgicon
+### get around specific setting for darwin _ and, in same Makefile, get flag-ordering right, to avoid linking with nspr-shlibs.
+ sed -i.bak -e 's,PLATFORM = mac,ifndef PLATFORM\n&\nendif,' \
+	-e '/MOZ_GNOMEUI_LIBS/d' -e 's,EXTRA_DSO_LDOPTS [+]=,EXTRA_DSO_LDOPTS =,' \
+	-e '/rules.mk/,$s;OS_ARCH),Darwin;PLATFORM),mac;' -e '/LOCAL_INCLUDES/i\
+ifdef MOZ_ENABLE_GNOMEUI\
+EXTRA_DSO_LDOPTS += $(MOZ_GNOMEUI_LIBS) $(NULL)\
+endif\
+' mozilla/modules/libpr0n/decoders/icon/Makefile.in
+ ### since they subverted at many places XP_MACOSX to mean a toolkit to be used ("cocoa" rather than eg gtk or qt),
+ ### (instead of an OS), we zapped it, and so even in places where it is used properly we have to replace it ..
+ sed -i.bak -e 's,XP_MACOSX,__APPLE__,' mozilla/toolkit/crashreporter/nsExceptionHandler.cpp \
+	mozilla/xpcom/base/nsStackWalk.cpp mailnews/addrbook/public/nsAbBaseCID.h
 
 ### remove obsolete flags:
- perl -pi -e 's, \-fpascal\-strings,,; s, \-no\-cpp\-precomp,,' \
-   {,../directory/c-sdk/,nsprpub/}configure{,.in} security/coreconf/Darwin.mk
- # if we were to use --enable-prebinding, then:
- perl -pi -e 's,LD_SEG_ADDR_TABLE=.*,LD_PREBIND_ALLOW_OVERLAP=1,' config/config.mk
-### The next appears needed eg when building yelp... ( ~ difficulty above with -lxpcom_core)
+ sed -i'' -e 's, -fpascal-strings,,' -e 's, -no-cpp-precomp,,' mozilla/{configure.in,security/coreconf/Darwin.mk}
+### The next appears (-ed??) needed eg when building yelp...                                
 ### maybe also in mozilla/xulrunner/installer/libxul{-unstable,}.pc.in ?
- perl -pi.bak -e 's,lxpcom,$& -lxpcom_core,' build/unix/mozilla-config.in
-### MISSING INCLUDES
- perl -pi.bak -e 's,NSSP,P,; s,nss,,' security/nss/lib/pki1/oiddata.h
- ## The following are "for safety" : to avoid "implicit declaration" warnings :
- # File no longer exists apparently ..
-#perl -pi.bak -e 's:string\.h>:$&\nint sqlite3pager_get2(Pager *pPager, Pgno pgno, void **ppPage, unsigned char* pDataToFill);:' \
-#	db/sqlite3/src/pager.c
- perl -pi.bak -e 's,\(XP_OS2\) \&\& \!defined\(DARWIN\)$,\(XP_OS2\),' ../directory/c-sdk/ldap/libraries/liblber/lber-int.h
- # File no longer exists apparently ..
-# sed -i.bak -e '/sqliteInt\.h/a \
-##include "os.h"' db/sqlite3/src/experimental.c
+ sed -i.bak -e 's,lxpcom,& -lxpcom_core,' mozilla/build/unix/mozilla-config.in
+### The following is "for safety",  to avoid "implicit declaration" warnings :
+ sed -ri.bak -e 's,\(XP_OS2\) \&\& \!defined\(DARWIN\)$,\(XP_OS2\),' directory/c-sdk/ldap/libraries/liblber/lber-int.h
+
+### formerly passed along by gtk's .pc :
+ sed -i'' -e '/PKG_CHECK_MODULES(MOZ_GTK2,/a\
+    MOZ_GTK2_LIBS="$MOZ_GTK2_LIBS -L/usr/X11R6/lib -lXrender -lX11"' mozilla/configure.in
+
 #### MISC
-### libresolv
+### libresolv              
  # configure fails to detect libresolv (hence the 'env' before ./configure),
  # and even if it would detect it, it forgets to add -lresolv to LIBS  (Still true with seamonkey ??)
  # We put it as far as possible in the link line _ and just for the link that needs it, in order not to get
  # libresolv in the LOAD_COMMANDS everywhere :
- perl -pi.bak -e 's,^MODULE\s,OS_LIBS += -lresolv\n$&,' netwerk/build/Makefile.in
-### Non-portable use of sed (not even usable with GNU sed !)
- perl -pi.bak -e 's,sed \-E,/usr/bin/$&,' xpcom/typelib/xpidl/Makefile.in
-### To fix EXC_BAD_INSTRUCTION on macintel (XP_MACOSX is zapped in the beginning of the patchscript):
- perl -pi.bak -e 's,XP_MACOSX,__APPLE__,' xpcom/reflect/xptcall/src/md/unix/xptc{stubs_unixish_x86.cpp,_platforms_unixish_x86.h}
+ sed -ri.bak -e 's,^MODULE[[:space:]],OS_LIBS += -lresolv\n&,' mozilla/netwerk/build/Makefile.in
+### Non-portable use of sed (not even usable with GNU sed)
+ sed -i.bak -e 's,sed -E,sed -r,' mozilla/xpcom/typelib/xpidl/Makefile.in
 ### link nspr with g++ when using --enable-cplus
- perl -pi.bak -e 's,cplus$,$&\n\tMKSHLIB = \$(CCC) \$(DSO_LDOPTS) -o \$@,' nsprpub/pr/src/Makefile.in
-### next is needed for extensions/java/xpcom/nsJavaInterfaces.cpp, when using "--enable-javaxpcom"
- # not sufficient : trouble at link time then (for same symbols) _ make should be run in toolkit/xre
- # (cf comment below on "--enable-javaxpcom")
- #ln -s ../../../../toolkit/xre/nsXULAppAPI.h extensions/java/xpcom/src
-### New with 1.0.1 :
- # till 1.0.1, the zapping of '-DXP_MACCOSX' in the beginning of the  patchscript (this goes back to the first versions of mozilla!)
- # ensured that no frameworks were needed on the link line... What is going on ?
- perl -pi.bak -e 's,endif \# WINNT,$&\nEXTRA_DSO_LDOPTS += -F/System/Library/Frameworks -framework CoreFoundation,' xpcom/build/Makefile.in
-### With 1.1.7, under pangocairo: gfx/src/gtk/nsDeviceContextGTK.cpp uses symbols from -lpangox; so, cheapest:
- perl -pi -e 's,pangoft2,pangoxft,g' configure{,.in}
-### Don't put the flags to /usr/X11 first in compile and link commands (CPATH and LIBRARY_PATH below put them anyway at the end):
- perl -pi -e 's,(MOZ_XFT_CFLAGS=)`.*,\1"",; s,`\$PKG_CONFIG --libs-only-L \\"xft\\"` ,,' configure
+ sed -ri.bak -e 's,cplus$,&\n\tMKSHLIB = \$(CCC) \$(DSO_LDOPTS) -o \$@,' mozilla/nsprpub/pr/src/Makefile.in
+
+### create configure scripts _ autoconf2.13 needed, and fink has no corresponding automake, so autoreconf can't be used..
+ for f in `find . -name configure.in`; do cd `sed -e 's,/[^/]*$,,'<<<"$f$"`; autoconf; cd -; done
+
 ### Uncomment to check builddeps:
  # perl -pi -e 's,CPPFLAGS%%,CPPFLAGS -H%%,' configure
 <<
@@ -237,10 +209,11 @@ js/src/xpconnect/tools/src,storage/test,modules/libpr0n/decoders/icon,content/ba
 # Adding --enable-javaxpcom doesn't work _  https://bugzilla.mozilla.org/show_bug.cgi?id=354004
 # Also "--enable-boehm" leads to trouble...; probably not important (for a 'production' pkg): according to
 # http://www.hpl.hp.com/personal/Hans_Boehm/gc/ , it is only used as a leak detector.
-# --enable-libxul is only compatible with toolkit XUL applications
+# --enable-libxul leads to "/bld/seamonkey-1.9.1b3pre-1/mozilla/dist/bin/XUL: No such file or directory" in linking
+#  mozilla/xpfe/components/autocomplete/src/nsAutoComplete.o
 ConfigureParams: <<
  --enable-macos-target=${MACOSX_DEPLOYMENT_TARGET} --enable-optimize=-Os --disable-debug --enable-strip --enable-tests --with-pthreads \
- --with-default-mozilla-five-home=%p/lib/%N-%v --mandir=%p/share/man --with-qtdir=%p --x-includes='' --x-libraries='' \
+ --with-default-mozilla-five-home=%p/lib/%N-2 --mandir=%p/share/man --with-qtdir=%p --x-includes='' --x-libraries='' \
  --enable-application=suite --enable-default-toolkit=cairo-gtk2 --enable-cplus --enable-xul \
  --enable-image-decoders=all --enable-image-encoders=all --enable-necko-protocols=all \
  --enable-ctl --enable-canvas --enable-update-packaging --enable-storage --disable-profilesharing \
@@ -252,13 +225,10 @@ ConfigureParams: <<
  --enable-update-channel=beta
 <<
 ###### Last line is for private use !
-##  --enable-system-sqlite , --enable-help-viewer , --enable-ipcd , --enable-glitz , --enable-oji ?
+##  --enable-system-sqlite , --enable-help-viewer , --enable-ipcd , --enable-oji ?
 ### With 2.0a :
 # --disable-profilesharing : else missing headers
 # "--with-system-png" : "configure: error: --with-system-png won't work because the system's libpng doesn't have APNG support"
-## --enable-default-toolkit=gtk2 no longer possible :
-# "checking if app-specific confvars.sh exists... ./suite/confvars.sh
-# configure: error: Toolkit must be cairo-gtk2 or cairo-qt."
 ## questionable in config/autoconf.mk :
 # ACDEFINES: -DMOZ_XPINSTALL=1 -DMOZ_NO_XPCOM_OBSOLETE=1 -DMOZ_STATIC_MAIL_BUILD=1
 # HOST_CFLAGS      =  -DXP_UNIX -DXP_MACOSX -DNO_X11  # Why NO_X11 ??
@@ -284,12 +254,10 @@ CompileScript: <<
    exit 1
  fi
  export PATH="%p/lib/fontconfig2/bin:$PATH"
- export PKG_CONFIG_PATH="%p/lib/pango-ft219/lib/pkgconfig:%p/lib/fontconfig2/lib/pkgconfig:$PKG_CONFIG_PATH"
- export CPATH="%p/lib/pango-ft219/include-pango-1.0:%p/lib/pango-ft219/include:%p/include/freetype2:%p/lib/fontconfig2/include:%p/include:$Xdir/include"
- export LIBRARY_PATH="%b/mozilla/dist/lib:%b/mozilla/dist/bin:%p/lib/pango-ft219/lib:%p/lib/fontconfig2/lib:%p/lib:$Xdir/lib"
- env ac_cv_func_res_ninit=yes MOZ_ENABLE_COREXFONTS=1 MOZ_EXTRA_X11CONVERTERS=1 ./configure %c
- # quick fix to see if it works this way; should be fixed higher up in the build-scheme (doesn't work, target dir doesn't exist yet):
-# ln -s %b/mozilla/gfx/thebes/public/gfxQuartzSurface.h %b/mozilla/gfx/thebes/public/gfxQuartzImageSurface.h mozilla/dist/include/thebes
+ export PKG_CONFIG_PATH="%p/lib/fontconfig2/lib/pkgconfig:$PKG_CONFIG_PATH"
+ export CPATH="%p/include/pango-1.0/pango:%p/include/pango-1.0:%p/include/freetype2:%p/lib/fontconfig2/include:%p/include:$Xdir/include"
+ export LIBRARY_PATH="%b/mozilla/dist/lib:%b/mozilla/dist/bin:%p/lib/fontconfig2/lib:%p/lib:$Xdir/lib"
+ env ac_cv_func_res_ninit=yes ./configure %c
  make -w
 <<
 
@@ -308,13 +276,12 @@ export LIBRARY_PATH="%p/lib/pango-ft219/lib:%p/lib/fontconfig2/lib:%p/lib:$Xdir/
 
 make -j1 install DESTDIR=%d INSTALL_SDK=1
 
-
 # rm or link duplicate files
 pushd %i > /dev/null
 rm -fR lib/%N-%type_raw[ver]/extensions/inspector@mozilla.org/platform/{OS2,WINNT}
 cd share/idl/%N-%type_raw[ver]/stable; for f in *; do ln -fs ../unstable/$f; done; cd -
 pushd include/%N-%type_raw[ver]/stable > /dev/null; for f in *.{h,api}; do ln -fs ../unstable/$f; done
-for d in obsolete private; do cd $d; for f in *.h; do ln -fs ../../unstable/$d/$f; done; cd -; done
+for d in obsolete private; do cd $d; for f in *.h; do ln -fs ../../unstable/$f; done; cd -; done
 cd md; for f in *.cfg; do ln -fs ../../unstable/$f; done; cd -
 popd > /dev/null
 ln -fs ../../include/%N-%type_raw[ver]/unstable/xpcom-config.h lib/%N-devel-%type_raw[ver]
@@ -373,7 +340,7 @@ ln -fs %p/lib/%N-%type_raw[ver]/chrome/icons/default/addressbookWindow.png %i/sh
 #ln -fs %p/lib/%N-%type_raw[ver]/chrome/icons/default/chatzilla  chatzilla disappeared...
 ln -fs %p/lib/%N-%type_raw[ver]/chrome/icons/default/editorWindow.png %i/share/pixmaps/%N_editorWindow.png
 ln -fs %p/lib/%N-%type_raw[ver]/chrome/icons/default/msgcomposeWindow.png %i/share/pixmaps/%N_msgcomposeWindow.png
-ln -fs %p/lib/%N-%type_raw[ver]/chrome/icons/default/messenger.png %i/share/pixmaps/%N_mailnews.png
+ln -fs %p/lib/%N-%type_raw[ver]/chrome/icons/default/messengerWindow.png %i/share/pixmaps/%N_mailnews.png
 ### And all others remain in ???
 # ls -l %p/bld/mozilla-1.7.11-5/mozilla/dist/bin/chrome/icons/default
 # total 140
@@ -455,17 +422,19 @@ SplitOff: <<
 
 SplitOff2: <<
   Package: %N2-dev
-## Currently have those conflicts, because of the symlink %p/lib/%N in this pkg.
+## Currently the symlink %p/lib/%N in this pkg would cause conflict with existing seamonkey. 
 ## Intend as an upgrade strategy to first put this out w/o this symlink,
 ## and then, as soon as dependent pkgs have switched their deps, introduce the symlink
 ## at the next new version.
-  Conflicts: %N-dev, %N-shlibs, librsvg2-%N, librsvg2-%N-dev, %N (<< 1.9.0-1)
+#  Conflicts: %N-dev, %N-shlibs, librsvg2-%N, librsvg2-%N-dev, %N (<< 1.9.0-1)
+  Conflicts: %N-dev
+  Replaces: %N-dev
   Depends: %N2-shlibs (= %v-%r), pkgconfig (>= 0.21-1)
   BuildDependsOnly: true
   Description: Seamonkey - development headers and libraries
   InstallScript: <<
 	#!/bin/sh -ev
-	mkdir -p %i/lib %i/share/doc ; ln -s %N-shlibs %i/share/doc/%n
+	mkdir -p %i/lib %i/share/doc ; ln -s %N2-shlibs %i/share/doc/%n
 	if test -d %I/share/aclocal
 	  then mv %I/share/aclocal %i/share
 	fi
@@ -475,12 +444,16 @@ SplitOff2: <<
 	ln -fs %N-%type_raw[ver] %i/lib/%N-devel-%type_raw[ver]
 	mv %I/include %i
 	mv %I/share/idl %i/share
+ # make some symlinks for gfxtypes.h
+	ln -fs unstable/gfx_types.h %i/include/%N-%type_raw[ver]/gfxtypes.h
+	ln -fs ../../unstable/gfx_types.h %i/include/%N-%type_raw[ver]/stable/obsolete/gfxtypes.h
+	ln -fs gfx_types.idl %i/share/idl/%N-%type_raw[ver]/unstable/gfxtypes.idl
  # fold the contents of the sdk subdir back into the main one
 	cd %i/lib/%N-%type_raw[ver]/sdk/lib
 	for f in *.dylib; do ln -fs ../../$f; done
 	for f in *.a; do mv $f ../..; ln -fs  ../../$f; done
  # make non-versioned symlinks
-	ln -fs %N-$V %i/lib/%N
+#	ln -fs %N-$V %i/lib/%N	#	This one only later, when current seamonkey is phased out 
 	ln -fs %N-%type_raw[ver]/unstable %i/share/idl/%N-$V
 	ln -fs %N-$V %i/share/idl/%N
 	ln -fs %N-%type_raw[ver]/unstable %i/include/%N-$V
@@ -530,7 +503,7 @@ warning: invalid access to non-static data member '...' of NULL object
 
 Also: %p/lib/lib/seamonkey/pango.modules is probably not properly installed _
   and anyway, what do those 2 modules add to the existing pango ones?
-  If not (which I presume),s there a way to get seamonkey to use the existing ones,
+  If not (which I presume), is there a way to get seamonkey to use the existing ones,
   and to omit this part of build (related to --enable-ctl?), w/o losing any functionality ??
 
 A couple of details:
