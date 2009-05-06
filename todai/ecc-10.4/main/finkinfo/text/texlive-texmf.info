@@ -1,0 +1,68 @@
+Package: texlive-texmf
+Version: 0.2007g0
+Revision: 0
+Conflicts: tetex-texmf
+Replaces: tetex-texmf
+Provides: tetex-texmf
+Source: http://students.dec.bournemouth.ac.uk/ebarrett/texlive/distfiles/texlive_texmf-minimal-2007g0.tar.gz
+Source-MD5: dc59785d6eeb7e38046fbd0924f8c0ff
+PatchScript: <<
+# Moving files from texmf to texmf-dist ...
+ cp -R texmf/ texmf-dist && rm -fR texmf
+
+# Removing files that will be provided the dvipdfmx package ...
+ rm -fR texmf-dist/dvipdfm
+ rm -fR texmf-dist/fonts/map/dvipdfm/dvipdfmx
+ rm -fR texmf-dist/tex/latex/dvipdfmx
+
+# Removing files that will be provided the texlive-base (20080816) package ...
+ rm -fR texmf-dist/doc/man
+ rm -f  texmf-dist/scripts/context/ruby/texmfstart.rb
+ rm -fR texmf-dist/scripts/context/stubs/unix
+ rm -fR texmf-dist/scripts/oberdiek
+
+# Removing files that will be provided the xetex package ...
+ rm -f  texmf-dist/tex/latex/latexconfig/xelatex.ini
+ rm -f  texmf-dist/tex/plain/config/xetex.ini
+ rm -fR texmf-dist/tex/xelatex
+
+# Removing a compiled *.el file ...
+ rm -f  texmf-dist/source/latex/rcs/src/style/rcs.elc
+
+# Commenting out the entry for xetex ...
+ perl -pi -e 's|^(cont-en xetex)|#! \1|' texmf-dist/fmtutil/format.context.cnf
+
+# Writing README ...
+ echo "This package contains a teTeX like subset of the TeX Live texmf," >README
+ echo "based on the minimal version from Edd Barrets OpenBSD repository.">README
+
+# Creating ls-R files ...
+ touch texmf-dist/ls-R
+
+# Linking updmap.cfg ...
+ ln -s updmap.cfg-minimal texmf-dist/web2c/updmap.cfg
+<<
+CompileScript: echo "Nothing to do ..."
+InstallScript: <<
+ mkdir -p      %i/share
+ mv texmf-dist %i/share
+<<
+DocFiles: README
+PostInstScript: <<
+if [ -x %p/bin/mktexlsr ]
+then
+	%p/bin/mktexlsr %p/share/texmf-dist
+else
+ # overwrite ls-R
+ echo "%% ls-R -- filename database for kpathsea; do not change this line." > %p/share/texmf-dist/ls-R
+ echo "./:" >> %p/share/texmf-dist/ls-R
+ ( cd %p/share/texmf-dist ; /bin/ls -1R ) >> %p/share/texmf-dist/ls-R
+fi
+
+ echo "Adjusting permissions ..."
+ chmod -R a+rX %p/share/texmf-dist
+<<
+License: Restrictive/Distributable
+Description: Main texmf tree for a TeX Live installation
+Maintainer:  Dave Morrison <drm@finkproject.org>
+Homepage: http://www.tug.org/texlive/
