@@ -24,7 +24,7 @@ diff -Naur texlive-20080816-source.orig/texk/kpathsea/Makefile.in texlive-200808
  uninstall-data:
 diff -Naur texlive-20080816-source.orig/texk/kpathsea/texmf.cnf texlive-20080816-source/texk/kpathsea/texmf.cnf
 --- texlive-20080816-source.orig/texk/kpathsea/texmf.cnf	2008-07-27 06:39:36.000000000 +0900
-+++ texlive-20080816-source/texk/kpathsea/texmf.cnf	2009-05-05 16:47:37.000000000 +0900
++++ texlive-20080816-source/texk/kpathsea/texmf.cnf	2009-05-10 21:31:18.000000000 +0900
 @@ -44,18 +44,18 @@
  
  % The tree containing the runtime files closely related to the specific
@@ -111,7 +111,22 @@ diff -Naur texlive-20080816-source.orig/texk/kpathsea/texmf.cnf texlive-20080816
  
  % Where to look for ls-R files.  There need not be an ls-R in the
  % directories in this path, but if there is one, Kpathsea will use it.
-@@ -374,8 +374,8 @@
+@@ -225,6 +225,14 @@
+ TEXINPUTS.omega         = .;$TEXMF/tex/{plain,generic,}//
+ TEXINPUTS.aleph         = .;$TEXMF/tex/{plain,generic,}//
+ 
++% pTeX
++TEXINPUTS.ptex    = .;$TEXMF/{ptex/{plain,generic},tex/{plain,generic,}}//
++TEXINPUTS.platex  = .;$TEXMF/{ptex/platex,{p,}tex/latex,{p,}tex/generic,{p,}tex}//
++
++% jBibTeX bibliographies and style files
++BIBINPUTS.jbibtex = .;$TEXMF/{jbibtex,bibtex}/bib//
++BSTINPUTS.jbibtex = .;$TEXMF/{jbibtex,bibtex}/bst//
++
+ % ConTeXt
+ TEXINPUTS.context       = .;$TEXMF/tex/{context,plain,generic,}//
+ 
+@@ -374,8 +382,8 @@
  % For xdvi to find mime.types and .mailcap, if they do not exist in
  % ~.  These are single directories, not paths.
  % (But the default mime.types, at least, may well suffice.)
@@ -122,7 +137,7 @@ diff -Naur texlive-20080816-source.orig/texk/kpathsea/texmf.cnf texlive-20080816
  
  % Default settings for fontconfig library, used by Win32 versions of
  % xetex/xdvipdfmx (note that fontconfig on Linux/Unix-like systems
-@@ -447,7 +447,7 @@
+@@ -447,7 +455,7 @@
  % 
  % For security reasons, it is better not to include . in this path.
  %
@@ -131,7 +146,7 @@ diff -Naur texlive-20080816-source.orig/texk/kpathsea/texmf.cnf texlive-20080816
  
  # kpathsea 3.5.3 and later sets these at runtime. To avoid empty
  # expansions from binaries linked against an earlier version of the
-@@ -645,3 +645,6 @@
+@@ -645,3 +653,6 @@
  error_line = 79
  half_error_line = 50
  max_print_line = 79
@@ -140,7 +155,7 @@ diff -Naur texlive-20080816-source.orig/texk/kpathsea/texmf.cnf texlive-20080816
 +PTEX_IN_FILTER = @PREFIX@/bin/nkf -w
 diff -Naur texlive-20080816-source.orig/texk/tetex/fmtutil.cnf texlive-20080816-source/texk/tetex/fmtutil.cnf
 --- texlive-20080816-source.orig/texk/tetex/fmtutil.cnf	2008-07-08 00:39:23.000000000 +0900
-+++ texlive-20080816-source/texk/tetex/fmtutil.cnf	2009-05-08 21:02:44.000000000 +0900
++++ texlive-20080816-source/texk/tetex/fmtutil.cnf	2009-05-09 18:29:08.000000000 +0900
 @@ -58,7 +58,7 @@
  #! cont-cz	pdftex	       cont-usr.tex    -8bit *cont-cz.ini
  #! cont-de	pdftex	       cont-usr.tex    -8bit *cont-de.ini
@@ -150,7 +165,7 @@ diff -Naur texlive-20080816-source.orig/texk/tetex/fmtutil.cnf texlive-20080816-
  #! cont-nl	pdftex	       cont-usr.tex    -8bit *cont-nl.ini
  #! cont-uk	pdftex	       cont-usr.tex    -8bit *cont-uk.ini
  #
-@@ -89,19 +89,19 @@
+@@ -89,8 +89,8 @@
  eplain		pdftex	-		-translate-file=cp227.tcx *eplain.ini
  # ------------------------------------------------------------------
  # $Id$
@@ -161,21 +176,15 @@ diff -Naur texlive-20080816-source.orig/texk/tetex/fmtutil.cnf texlive-20080816-
  # ------------------------------------------------------------------
  # $Id$
  latex           pdftex	language.dat    -translate-file=cp227.tcx *latex.ini
- pdflatex        pdftex	language.dat    -translate-file=cp227.tcx *pdflatex.ini
- # ----------------------------------------------------------------------
+@@ -154,3 +154,8 @@
  # $Id$
--luatex		luatex	-		luatex.ini
--pdfluatex	luatex	-		pdfluatex.ini
-+#! luatex		luatex	-		luatex.ini
-+#! pdfluatex	luatex	-		pdfluatex.ini
- #
--lualatex	luatex	language.dat	lualatex.ini
--pdflualatex	luatex	language.dat	pdflualatex.ini
-+#! lualatex	luatex	language.dat	lualatex.ini
-+#! pdflualatex	luatex	language.dat	pdflualatex.ini
- # ------------------------------------------------------------------
- # $Id$
- mf		mf-nowin -		-translate-file=cp227.tcx mf.ini
+ xmltex          pdftex	language.dat	&latex xmltex.ini
+ pdfxmltex       pdftex	language.dat	&pdflatex pdfxmltex.ini
++# ------------------------------------------------------------------
++# $Id$
++# Japanese pTeX:
++#! ptex		ptex	-		--kanji=default ptex.ini
++#! platex		ptex	language.dat	--kanji=default platex.ini
 diff -Naur texlive-20080816-source.orig/texk/tetex/updmap texlive-20080816-source/texk/tetex/updmap
 --- texlive-20080816-source.orig/texk/tetex/updmap	2008-05-26 07:24:33.000000000 +0900
 +++ texlive-20080816-source/texk/tetex/updmap	2009-05-05 20:21:45.000000000 +0900

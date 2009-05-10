@@ -1,6 +1,6 @@
 Package: ptex-texmf
 Version: 2.5
-Revision: 0
+Revision: 0test1
 Depends: fink (>= 0.9.3), texlive-base | texlive-nox-base
 Conflicts: ptex (<= 3.1.3-8), ptex-base (<= 3.1.3-8), ptex-jisfonts, morisawa-fontfiles
 Replaces:  ptex (<= 3.1.3-8), ptex-base (<= 3.1.3-8), ptex-jisfonts, morisawa-fontfiles
@@ -17,10 +17,6 @@ PatchScript: <<
             -e 's|\(tarcp $ISO\)|#\1|' 3extract-texmf.sh
  sed -i.bak -e '/updmap.cfg/d' md5sum/texmf
  ./3extract-texmf.sh
- echo ""                             >> tmp/share/texmf/web2c/updmap.cfg
- echo "# default font for xdvi"      >> tmp/share/texmf/web2c/updmap.cfg
- echo "xdviRml HiraMinPro-W3.otf"    >> tmp/share/texmf/web2c/updmap.cfg
- echo "xdviGbm HiraKakuPro-W3.otf"   >> tmp/share/texmf/web2c/updmap.cfg
 
  cp tmp/share/texmf/doc/ptex/{COPYRIGHT,COPYRIGHT.jis,Changes.txt,README.txt} .
 <<
@@ -28,9 +24,24 @@ CompileScript: echo "Nothing to do in a compile phase"
 InstallScript: mv tmp/share %i
 DocFiles: COPYRIGHT COPYRIGHT.jis Changes.txt README.txt
 PostInstScript: <<
- echo "Adjusting permissions ..."
- chmod -R a+rX   %p/share/texmf
- %p/bin/mktexlsr %p/share/texmf
+if [ -x %p/bin/mktexlsr ]; then
+	%p/bin/mktexlsr %p/share/texmf
+fi
+if [ -x %p/bin/updmap-sys ]; then
+	%p/bin/updmap-sys
+fi
+<<
+PostRmScript: <<
+if [ $1 != "upgrade" ]; then
+
+if [ -x %p/bin/updmap-sys ]; then
+	%p/bin/updmap-sys
+fi
+if [ -x %p/bin/mktexlsr ]; then
+	%p/bin/mktexlsr %p/share/texmf
+fi
+
+fi
 <<
 License: Restrictive/Distributable
 Description: Additional texmf tree for pTeX
