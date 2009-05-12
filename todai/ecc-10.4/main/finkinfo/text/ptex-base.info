@@ -27,7 +27,7 @@ Source3: http://fink.sodan.ecc.u-tokyo.ac.jp/pkgdists/dvipsk-5.97-p1.7b-tl.tar.g
 Source3-MD5: 72359ed39d3854489db9413b1b34c8ef
 NoSourceDirectory: true
 PatchFile: ptex-base.patch
-PatchFile-MD5: 6bb6d987b060c961f332e54ee36c55e1
+PatchFile-MD5: 68d959707f453fadbfdf97e636e59dee
 PatchScript: <<
  lzma -dc texlive-20080816-source.tar.lzma | tar xf -
  mv       texlive-20080816-source                texlive
@@ -61,7 +61,8 @@ PatchScript: <<
  sed -e '1,16d' < ptexlive/archive/omegaware-texlive2007.patch \
                 > ptexlive/archive/omegaware-texlive2008.patch
 
- sed -i.bak -e "/freetype-2.3.5/d"                                    \
+ sed -i.bak -e 's|\(root_check\)|#\1|'                                \
+            -e "/freetype-2.3.5/d"                                    \
             -e "/xdvik-22.84.14/d"                                    \
             -e "/makej.patch/d"                                       \
             -e "/dvipdfm.patch/d"                                     \
@@ -181,9 +182,11 @@ fi
 echo "Setting up symlinks ..."
  ln -s ptex %i/bin/platex
 
-#echo "Renaming files that will be provided the texlive-* package ..."
+echo "Moving files that belong to the texlive* package ..."
+ install -m 755 -d                           %i/lib/omegaware
+ mv %i/bin/{ofm2opl,opl2ofm,ovf2ovp,ovp2ovf} %i/lib/omegaware
 
-echo "Removing files that will be provided the texlive-* package ..."
+echo "Removing files that are supplied in the texlive* package ..."
  rm -R %i/share/info
  rm -R %i/share/man
  rm -R %i/share/texmf/dvips
