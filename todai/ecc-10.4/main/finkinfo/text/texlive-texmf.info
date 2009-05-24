@@ -1,61 +1,81 @@
 Package: texlive-texmf
-Version: 0.2007g0
-Revision: 0test3
+Version: 0.20080822
+Revision: 0
 Conflicts:tetex-texmf
 Replaces: tetex-texmf
 Provides: tetex-texmf
-Source: http://students.dec.bournemouth.ac.uk/ebarrett/texlive/distfiles/texlive_texmf-full-2007g0.tar.gz
-Source-MD5: 7b766f57548b0e4f4c1fed0fbc8ff25f
-Source2:http://students.dec.bournemouth.ac.uk/ebarrett/texlive/distfiles/texlive_texmf-minimal-2007g0.tar.gz
-Source2-MD5:dc59785d6eeb7e38046fbd0924f8c0ff
+Source: http://fink.sodan.ecc.u-tokyo.ac.jp/pkgdists/texlive-20080822-texmf-delpdf.tar.bz2
+Source-MD5: a36e3022adfcbe65de9b29b3003b5e0f
 PatchScript: <<
-# Moving files from texmf to texmf-dist ...
- cp -R ../texlive_texmf-minimal-2007g0/texmf-dist/* texmf-dist
- cp -R ../texlive_texmf-minimal-2007g0/texmf/*      texmf-dist
- cp -R                                 texmf/*      texmf-dist
+# Moving README into current dir ...
+ mv texmf-dist/README README.texmf-dist
+ mv texmf/README      README.texmf
 
-# Removing files that will be provided the dvipdfmx package ...
- rm -fR texmf-dist/dvipdfm
- rm -fR texmf-dist/fonts/map/dvipdfm/dvipdfmx
- rm -fR texmf-dist/tex/latex/dvipdfmx
+# Moving files from texmf to texmf-dist ...
+ cp -R texmf/* texmf-dist
+
+# Removing files that will be provided the tex4ht package ...
+ rm -fR texmf-dist/tex4ht
+ rm -fR texmf-dist/tex/generic/tex4ht
+ rm -fR texmf-dist/doc/generic/tex4ht
+ rm -fR texmf-dist/scripts/tex4ht
 
 # Removing files that will be provided the texlive-base (20080816) package ...
  rm -fR texmf-dist/doc/man
  rm -f  texmf-dist/scripts/context/ruby/texmfstart.rb
  rm -fR texmf-dist/scripts/context/stubs/unix
+ rm -fR texmf-dist/scripts/bengali
+ rm -fR texmf-dist/scripts/dviasm
+ rm -f  texmf-dist/scripts/epspdf/epspdf
+ rm -f  texmf-dist/scripts/epspdf/epspdftk
+ rm -f  texmf-dist/scripts/glossaries/makeglossaries
+ rm -fR texmf-dist/scripts/mkjobtexmf
  rm -fR texmf-dist/scripts/oberdiek
+ rm -fR texmf-dist/scripts/perltex
  rm -fR texmf-dist/scripts/pdfcrop
+ rm -f  texmf-dist/scripts/ppower4/*.texlua
+ rm -f  texmf-dist/scripts/pst-pdf/ps4pdf
+ rm -fR texmf-dist/scripts/pst2pdf
+ rm -fR texmf-dist/scripts/texcount
  rm -fR texmf-dist/scripts/thumbpdf
  rm -fR texmf-dist/scripts/vpe
 
 # Removing files that will be provided the xetex package ...
+ rm -fR texmf-dist/doc/xelatex
+ rm -fR texmf-dist/doc/xetex
+ rm -fR texmf-dist/fonts/misc/xetex
+ rm -fR texmf-dist/scripts/xetex
+ rm -fR texmf-dist/source/xelatex
  rm -f  texmf-dist/tex/latex/latexconfig/xelatex.ini
  rm -f  texmf-dist/tex/plain/config/xetex.ini
  rm -fR texmf-dist/tex/xelatex
- rm -f  texmf-dist/web2c/xetex.pool
+ rm -fR texmf-dist/tex/xetex
 
 # Removing files that will be provided the jadetex package ...
+ rm -fR texmf-dist/doc/jadetex
+ rm -fR texmf-dist/source/jadetex
  rm -fR texmf-dist/tex/jadetex
+
+# Removing files that will be provided the cm-super package ...
+ rm -fR texmf-dist/doc/fonts/cm-super
+ rm -fR texmf-dist/dvips/cm-super
+ rm -fR texmf-dist/fonts/afm/public/cm-super
+ rm -fR texmf-dist/fonts/enc/dvips/cm-super
+ rm -fR texmf-dist/fonts/map/dvips/cm-super
+ rm -fR texmf-dist/fonts/map/vtex/cm-super
+ rm -fR texmf-dist/fonts/type1/public/cm-super
+ rm -fR texmf-dist/tex/latex/cm-super
+ perl -pi -e "s/^(MixedMap cm-super)/#! \1/" texmf-dist/web2c/updmap.cfg
 
 # Removing a compiled *.el file ...
  rm -f  texmf-dist/source/latex/rcs/src/style/rcs.elc
-
-# Writing README ...
- echo "This package contains a teTeX like subset of the TeX Live texmf,">README
- echo "based on the version from Edd Barrets OpenBSD repository."       >README
-
-# Creating ls-R files ...
- touch texmf-dist/ls-R
-
-# Linking updmap.cfg ...
- ln -s updmap.cfg-full texmf-dist/web2c/updmap.cfg
 <<
 CompileScript: echo "Nothing to do ..."
 InstallScript: <<
  mkdir -p      %i/share
  mv texmf-dist %i/share
 <<
-DocFiles: README
+DocFiles: README.texmf-dist README.texmf
 PostInstScript: <<
 if [ -x %p/bin/mktexlsr ]
 then
@@ -69,6 +89,43 @@ fi
 
  echo "Adjusting permissions ..."
  chmod -R a+rX %p/share/texmf-dist
+<<
+DescPackaging: <<
+We splitted the original texlive-20080822-texmf.tar.lzma into two tarballs:
+texlive-20080822-texmf-delpdf.tar.bz2 and texlive-20080822-texmf-doc.tar.bz2,
+which were made by the following script:
+
+###############
+#!/bin/bash -ev
+
+ wget ftp://tug.org/texlive/historic/2008/texlive-20080822-texmf.tar.lzma
+ lzma -dc texlive-20080822-texmf.tar.lzma | tar xf -
+
+ mkdir                               texlive-20080822-texmf-doc
+ mv texlive-20080822-texmf/texmf-doc texlive-20080822-texmf-doc/
+
+ for file in `find texlive-20080822-texmf/texmf-dist/doc -type f -name '*.pdf'`
+ do
+     mkdir -p tmp/${file%/*}
+     mv $file tmp/$file
+ done
+
+ for file in `find texlive-20080822-texmf/texmf/doc -type f -name '*.pdf'`
+ do
+     mkdir -p tmp/${file%/*}
+     mv $file tmp/$file
+ done
+
+ mv  tmp/texlive-20080822-texmf/texmf-dist     texlive-20080822-texmf-doc/
+ mv  tmp/texlive-20080822-texmf/texmf          texlive-20080822-texmf-doc/
+ tar jcf texlive-20080822-texmf-doc.tar.bz2    texlive-20080822-texmf-doc
+
+ mv      texlive-20080822-texmf                texlive-20080822-texmf-delpdf
+ tar jcf texlive-20080822-texmf-delpdf.tar.bz2 texlive-20080822-texmf-delpdf
+###############
+
+Some duplicate files (there already exists a fink package) are removed
+if they may cause a trouble or their size is large.
 <<
 License: Restrictive/Distributable
 Description: Main texmf tree for a TeX Live installation
