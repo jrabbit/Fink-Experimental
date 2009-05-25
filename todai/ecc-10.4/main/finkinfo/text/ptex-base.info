@@ -17,13 +17,10 @@ BuildDepends: <<
  (%type_raw[-nox] = .) xmkmf (>= 1.0.2-3),
  (%type_raw[-nox] = .) openmotif3
 <<
-Source: http://tutimura.ath.cx/~nob/tex/ptexlive/ptexlive-20090524.tar.gz
-Source-MD5: 9f498ccce0b4beb5be851d54cbf52135
+Source: http://tutimura.ath.cx/~nob/tex/ptexlive/ptexlive-20090525.tar.gz
+Source-MD5: 720a6db31db1454a5abca777c25b6d28
 Source2: mirror:ctan:systems/texlive/Source/texlive-20080816-source.tar.lzma
 Source2-MD5: 554287c3e458da776edd684506048d45
-Source3: http://tutimura.ath.cx/~nob/tex/ptexlive/ptexlive-20080715.tar.gz
-Source3-MD5: d834b89d20604b1072325ccef2f8b227
-Tar3FilesRename: ptexlive-20080715:ptexlive
 PatchFile: ptex-base.patch
 PatchFile-MD5: b6695dadfe4b1ca412c3203246326c29
 PatchScript: <<
@@ -33,18 +30,12 @@ PatchScript: <<
  echo "SRC_TAR=../texlive-20080816-source.tar.lzma" >> ptexlive.cfg
  echo "TMP_PREFIX=../"                              >> ptexlive.cfg
  echo "TEXMFDIST=%p/share/texmf-dist"               >> ptexlive.cfg
- echo "JAPANESE=international"                      >> ptexlive.cfg
 
  # extract pTeX src and apply patches of ptexlive
  ./2extract-src.sh
  mv ../texlive-20080816-source texlive
 
  ##########################################################################
-
- # update a patch for omegaware
- sed -e '1,16d' < ../ptexlive/archive/omegaware-texlive2007.patch \
-                >             archive/omegaware-texlive2008.patch
- patch -d texlive -p1 <       archive/omegaware-texlive2008.patch
 
  # add mendexk and makejvf entry
  sed -i.bak -e 's|dvipsk|mendexk|g' \
@@ -64,17 +55,16 @@ PatchScript: <<
             -e 's|PBIBTEX|JBIBTEX|g' texlive/texk/web2c/ptexdir/ptexhelp.h
 
  # the same patches in ptexenc.info
- perl -pi.bak1 -e 's,\*\.obj\),*.obj | *.dSYM),' texlive/texk/ptexenc/configure
- sed -i.bak2 's|\(nonopt=\)"$ac_option"|\1NONE|' texlive/texk/ptexenc/configure
- sed -i.bak  's|\(0:0 $(objects)\)|\1 $(kpathsea) $(LIBS)|' \
-                                                 texlive/texk/ptexenc/Makefile.in
+ sed -i.bak 's|\(nonopt=\)"$ac_option"|\1NONE|' texlive/texk/ptexenc/configure
+ sed -i.bak 's|\(0:0 $(objects)\)|\1 $(kpathsea) $(LIBS)|' \
+                                                texlive/texk/ptexenc/Makefile.in
 
  # patches for makejvf
- sed -i.bak2 's|\(nonopt=\)"$ac_option"|\1NONE|' texlive/texk/makejvf/configure
+ sed -i.bak 's|\(nonopt=\)"$ac_option"|\1NONE|' texlive/texk/makejvf/configure
  perl -pi.bak1 -e 's|(post-dist-\$\(distname\):)|\1\n\$\(top_srcdir\)/stamp-configure|' \
-                                                 texlive/texk/makejvf/Makefile.in
+                                                texlive/texk/makejvf/Makefile.in
  perl -pi.bak2 -e 's|(\$\(top_srcdir\)/stamp-configure)|\1:\n\ttouch \1|' \
-                                                 texlive/texk/makejvf/Makefile.in
+                                                texlive/texk/makejvf/Makefile.in
 
  # use Hiragino for pxdvi
  perl -pi -e "s/(Ryumin-Light\t\t)ipam.ttf/\1HiraMinPro-W3.otf/"    \
