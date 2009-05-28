@@ -2,7 +2,7 @@ Info2: <<
 Package: ptex%type_pkg[-nox]-base
 Type: -nox (boolean)
 Version: 3.1.10
-Revision: 1003test3
+Revision: 1003test4
 GCC: 4.0
 Description: ASCII publishing TeX
 BuildDepends: <<
@@ -17,8 +17,8 @@ BuildDepends: <<
  (%type_raw[-nox] = .) xmkmf (>= 1.0.2-3),
  (%type_raw[-nox] = .) openmotif3
 <<
-Source: http://tutimura.ath.cx/~nob/tex/ptexlive/ptexlive-20090525.tar.gz
-Source-MD5: 720a6db31db1454a5abca777c25b6d28
+Source: http://tutimura.ath.cx/~nob/tex/ptexlive/ptexlive-20090528.tar.gz
+Source-MD5: cf66d798d52e13c5b456b6330db2bbf8
 Source2: mirror:ctan:systems/texlive/Source/texlive-20080816-source.tar.lzma
 Source2-MD5: 554287c3e458da776edd684506048d45
 PatchFile: ptex-base.patch
@@ -39,16 +39,10 @@ PatchScript: <<
 
  ##########################################################################
 
- # add mendexk and makejvf entry
- sed -i.bak -e 's|dvipsk|mendexk|g' \
-            -e 's|xdvik|makejvf|g'  \
-            -e 's|\(with_makejvf=\)no|\1yes|' texlive/texk/configure
- sed -i.rev -e 's|pmendexk|pdvipsk|g' \
-            -e 's|pmakejvf|pxdvik|g'          texlive/texk/configure
- patch -d texlive/texk/makejvf -p1 \
-  < texlive/texk/ptexenc/patches/makejvf-1.1a-ptexenc.patch
- patch -d texlive/texk/mendexk -p1 \
-  < texlive/texk/ptexenc/patches/mendexk2.6e-ptexenc.patch
+ # apply patches for mendexk
+ sed -i.bak 's|mendex|mendexk|g'     texlive/texk/configure
+ sed -i.bak 's|@KFLAGS@|-DKPATHSEA -DKPATHSEA3|' \
+                                     texlive/texk/mendexk/Makefile.in
 
  # apply texlive.patch and jbibtex patch
  patch -d texlive -p1 < %{PatchFile}
@@ -57,16 +51,8 @@ PatchScript: <<
             -e 's|PBIBTEX|JBIBTEX|g' texlive/texk/web2c/ptexdir/ptexhelp.h
 
  # the same patches in ptexenc.info
- sed -i.bak 's|\(nonopt=\)"$ac_option"|\1NONE|' texlive/texk/ptexenc/configure
  sed -i.bak 's|\(0:0 $(objects)\)|\1 $(kpathsea) $(LIBS)|' \
-                                                texlive/texk/ptexenc/Makefile.in
-
- # patches for makejvf
- sed -i.bak 's|\(nonopt=\)"$ac_option"|\1NONE|' texlive/texk/makejvf/configure
- perl -pi.bak1 -e 's|(post-dist-\$\(distname\):)|\1\n\$\(top_srcdir\)/stamp-configure|' \
-                                                texlive/texk/makejvf/Makefile.in
- perl -pi.bak2 -e 's|(\$\(top_srcdir\)/stamp-configure)|\1:\n\ttouch \1|' \
-                                                texlive/texk/makejvf/Makefile.in
+                                     texlive/texk/ptexenc/Makefile.in
 
  # use Hiragino for pxdvi
  perl -pi -e "s/(Ryumin-Light\t\t)ipam.ttf/\1HiraMinPro-W3.otf/"    \
@@ -97,7 +83,6 @@ ConfigureParams: <<
  --without-dvipdfm --without-dvipng --without-dvipos --without-gsftopk \
  --without-musixflx --without-ps2pkm --without-ps2eps --without-seetexk \
  --without-sam2p --without-tth \
- --without-mendexk \
  (%type_raw[-nox] = .) --with-system-gd 
  (%type_raw[-nox] = .) --x-includes=/usr/X11R6/include
  (%type_raw[-nox] = .) --x-libraries=/usr/X11R6/lib
@@ -115,7 +100,7 @@ InstallScript: <<
 #!/bin/bash -ev
  export PATH=%p/lib/xmkmf/bin:$PATH 
  export IMAKEINCLUDE=-I%p/lib/X11/config
- export PROGRAMS="web2c makejvf pdvipsk"
+ export PROGRAMS="web2c makejvf mendexk pdvipsk"
 if [ "%type_raw[-nox]" == "." ]; then
  export PROGRAMS="$PROGRAMS pxdvik"
 fi
@@ -127,8 +112,8 @@ fi
  done
 
 echo "Setting up symlinks ..."
- ln -s ptex %i/bin/platex
-#ln -s pdvips %i/bin/udvips
+ ln -s ptex   %i/bin/platex
+ ln -s pdvips %i/bin/udvips
 
 echo "Moving files that belong to the texlive* package ..."
  install -m 755 -d                           %i/lib/omegaware
