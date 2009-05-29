@@ -17,8 +17,8 @@ BuildDepends: <<
  (%type_raw[-nox] = .) xmkmf (>= 1.0.2-3),
  (%type_raw[-nox] = .) openmotif3
 <<
-Source: http://tutimura.ath.cx/~nob/tex/ptexlive/ptexlive-20090528.tar.gz
-Source-MD5: cf66d798d52e13c5b456b6330db2bbf8
+Source: http://tutimura.ath.cx/~nob/tex/ptexlive/ptexlive-20090529.tar.gz
+Source-MD5: ac20aa7ced5d29db04c997495f03dfc1
 Source2: mirror:ctan:systems/texlive/Source/texlive-20080816-source.tar.lzma
 Source2-MD5: 554287c3e458da776edd684506048d45
 PatchFile: ptex-base.patch
@@ -27,9 +27,9 @@ PatchScript: <<
  ####################   Let's apply ptexlive patches   ####################
 
  # set option
- echo "SRC_TAR=../texlive-20080816-source.tar.lzma" >> ptexlive.cfg
- echo "TMP_PREFIX=../"                              >> ptexlive.cfg
- echo "TEXMFDIST=%p/share/texmf-dist"               >> ptexlive.cfg
+ cd .. && echo "TMP_PREFIX=`pwd`"                               >> ptexlive.cfg
+ cd .. && echo "SRC_TAR=`pwd`/texlive-20080816-source.tar.lzma" >> ptexlive.cfg
+ cd .. && echo "TEXMFDIST=%p/share/texmf-dist"                  >> ptexlive.cfg
 
  sed -i.bak 's|\(root_check\)|#\1|' 2extract-src.sh
 
@@ -38,11 +38,6 @@ PatchScript: <<
  mv ../texlive-20080816-source texlive
 
  ##########################################################################
-
- # apply patches for mendexk
- sed -i.bak 's|mendex|mendexk|g'     texlive/texk/configure
- sed -i.bak 's|@KFLAGS@|-DKPATHSEA -DKPATHSEA3|' \
-                                     texlive/texk/mendexk/Makefile.in
 
  # apply texlive.patch and jbibtex patch
  patch -d texlive -p1 < %{PatchFile}
@@ -56,9 +51,9 @@ PatchScript: <<
 
  # use Hiragino for pxdvi
  perl -pi -e "s/(Ryumin-Light\t\t)ipam.ttf/\1HiraMinPro-W3.otf/"    \
-      texlive/texk/pxdvik/texmf/pxdvi.cfg
+                                     texlive/texk/pxdvik/texmf/pxdvi.cfg
  perl -pi -e "s/(GothicBBB-Medium\t)ipag.ttf/\1HiraKakuPro-W3.otf/" \
-      texlive/texk/pxdvik/texmf/pxdvi.cfg
+                                     texlive/texk/pxdvik/texmf/pxdvi.cfg
 <<
 SetCPPFLAGS:-I%p/lib/freetype219/include/freetype2 -I%p/lib/freetype219/include
 SetLDFLAGS: -L%p/lib/freetype219/lib
