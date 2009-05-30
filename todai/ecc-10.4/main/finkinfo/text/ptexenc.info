@@ -1,5 +1,5 @@
 Package: ptexenc
-Version: 0.999
+Version: 1.0.0
 Revision: 0
 Description: Kanji code convert library for pTeX
 BuildDepends: texlive-texmf, fink (>= 0.24.12), libiconv-dev, libkpathsea4 (>= 3.5.7-0), xz
@@ -7,23 +7,23 @@ BuildDependsOnly: true
 Depends: %N-shlibs (= %v-%r)
 Source: mirror:ctan:systems/texlive/Source/texlive-20080816-source.tar.lzma
 Source-MD5: 554287c3e458da776edd684506048d45
-Source2: http://tutimura.ath.cx/~nob/tex/ptexlive/ptexlive-20080715.tar.gz
-Source2-MD5: d834b89d20604b1072325ccef2f8b227
-Tar2FilesRename: ptexlive-20080715:ptexlive
+Source2: http://tutimura.ath.cx/~nob/tex/ptexlive/ptexlive-20090529.tar.gz
+Source2-MD5: ac20aa7ced5d29db04c997495f03dfc1
+Tar2FilesRename: ptexlive-20090529:ptexlive
 NoSourceDirectory: true
 PatchScript: <<
  lzma -dc texlive-20080816-source.tar.lzma | tar xf -
  mv       texlive-20080816-source                texlive
 
- gzip -dc ptexlive/archive/%n-%v.tar.gz | \
+ lzma -dc ptexlive/archive/%n-%v.tar.lzma | \
            /bin/pax -rv -s,%n-%v,texlive/texk/%N,
  gzip -dc ptexlive/archive/ptex-src-3.1.10.tar.gz | \
            /bin/pax -rv -s,ptex-src-3.1.10,texlive/texk/web2c/ptexdir,
  cd texlive/texk; /bin/sh %N/patches/texlive2008.sh
- perl -pi.bak1 -e 's,\*\.obj\),*.obj | *.dSYM),' texlive/texk/%N/configure
- sed -i.bak2 's|\(nonopt=\)"$ac_option"|\1NONE|' texlive/texk/%N/configure
- sed -i.bak  's|\(0:0 $(objects)\)|\1 $(kpathsea) $(LIBS)|' \
-                                                 texlive/texk/%N/Makefile.in
+ sed -i.bak 's|\(0:0 $(objects)\)|\1 $(kpathsea) $(LIBS)|' \
+                                     texlive/texk/ptexenc/Makefile.in
+ perl -pi -e "s|(info dvi check:)|\1\n\nkpse_include ../make/tkpathsea.mk|" \
+                                     texlive/texk/ptexenc/Makefile.in
 <<
 ConfigureParams: <<
  --without-texi2html --without-texinfo --enable-shared \
@@ -55,9 +55,9 @@ SplitOff: <<
  Description: Shared libraries of Kanji code convert library for pTeX
  Depends: libkpathsea4-shlibs (>= 3.5.6-1), libiconv
  Files: lib/libptexenc.*.dylib
- Shlibs: %p/lib/libptexenc.1.dylib 2.0.0 %n (>= 0.999-0)
+ Shlibs: %p/lib/libptexenc.1.dylib 2.0.0 %n (>= 0.999-1)
  DocFiles: texlive/texk/%N/{COPYRIGHT,ChangeLog,README}
 <<
 License: BSD
 Maintainer: Todai Fink Team <fink@sodan.ecc.u-tokyo.ac.jp>
-Homepage: http://tutimura.ath.cx/ptetex/?UTF-8%C2%D0%B1%FE%284%29#j6b28e46
+Homepage: http://tutimura.ath.cx/ptexlive/?ptexenc%2FDetails
