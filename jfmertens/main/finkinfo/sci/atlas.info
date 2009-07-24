@@ -36,7 +36,7 @@ Source2: http://www.netlib.org/lapack/lapack-3.1.1.tgz
 Source2-MD5: 00b21551a899bcfbaa7b8443e1faeef9
 # this is version 3.2, to be used for the build:
 Source3: http://www.netlib.org/lapack/lapack.tgz
-Source3-MD5: db2e9b01bd157b65440f8306c0ba5446
+Source3-MD5: a24f59304f87b78cdc7da2ae59c98664
 SourceDirectory: ATLAS
 License: BSD
 BuildDependsOnly: true
@@ -51,7 +51,9 @@ sed -i.bak -e 's,libtool -dynamic,\$(LIBTOOL) -dynamic,' -e 's,_version %v,_vers
 sed -i.bak -e 's,LIBTOOL",LIBTOOL -single_module -dead_strip -x",' configure
 # next is to have ATL_AS_OSX_PPC defined when it should be
 sed -i.bak -e '1i #include "atlas_asm.h"' tune/blas/gemm/CASES/ATL_dmm4x4x2pf_av.c
-cd ..; ln -s lapack-3.1.1 LAPACK
+cd ..; 
+if [ -d lapack ] ; then mv lapack lapack-3.2; fi
+ln -s lapack-3.1.1 LAPACK
 cd LAPACK
 sed -e 's,\.\./\.\./blas\$(PLAT)\.a,%b/../bld/lib/libf77blas.a %b/../bld/lib/libcblas.a %b/../bld/lib/libatlas.a,' \
     -e 's,lapack\$(PLAT)\.a,../bld/lib/liblapack.a,' \
@@ -63,7 +65,8 @@ CompileScript: <<
 #!/bin/sh -ev
  cflags=''
  if [ %m = 'i386' ]
-	then mflags="-mfpmath=sse -msse -msse2 -msse3 -m32"; iflags="-mfpmath=387"
+#	then mflags="-mfpmath=sse -msse -msse2 -msse3 -m32"; iflags="-mfpmath=387"
+	then mflags="-mfpmath=sse -msse -msse2 -msse3 -m32"; iflags=''
 	else mflags='-maltivec -mabi=altivec'; iflags=''
 		if [ `machine|sed -e 's,ppc,,' -e 's,\([0-9]\).*,\1,'` != 9 ]
 			then cflags='-Si cputhrchk 0 -D c -DATL_AVgcc'
@@ -76,6 +79,7 @@ CompileScript: <<
 # make lapacklib
  cd ..
  ln -s %p/bin/gcc-4 gcc
+# ln -s /usr/bin/gcc-4.2 gcc
  export PATH=`pwd`:$PATH
  mkdir -p bld
  cd bld
@@ -163,7 +167,7 @@ InstallScript: <<
 <<
 Splitoff: <<
 	Package: %N-shlibs
-	Depends: gcc43-shlibs
+	Depends: gcc44-shlibs
 	Files: lib/*.dylib
 	InstallScript: mkdir -p %i/share/doc; ln -s %N %i/share/doc/%n
 	Shlibs: <<
