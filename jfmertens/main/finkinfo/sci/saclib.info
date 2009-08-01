@@ -1,13 +1,13 @@
 Info2: <<
-Package: saclib%type_pkg[-gcc4.3]
-Version: 2.2.0
-Revision: 2
-#Source: http://www.cs.usna.edu/~qepcad/INSTALL/%{Ni}%v.tar.gz
-Source: http://www.cs.usna.edu/~wcbrown/%{Ni}%v.tar.gz
-Source-MD5: 6fd2489018a0d163338a9dcd42f72e48
-Type: -gcc4.3 (boolean)
-Conflicts: %{Ni}, %{Ni}-gcc43
-Replaces: %{Ni}, %{Ni}-gcc43
+Package: saclib%type_pkg[-gcc4.4]
+Version: 2.2.1
+Revision: 1
+Source: http://www.cs.usna.edu/~qepcad/INSTALL/%{Ni}%v.tar.gz
+Source-MD5: f016ea3597438f853f84573bc1542207
+Type: -gcc4.4 (boolean)
+BuildDepends: fink (>= 0.24.12), (%type_pkg[-gcc4.4]) gcc44
+Conflicts: %{Ni}, %{Ni}-gcc44
+Replaces: %{Ni}, %{Ni}-gcc44
 
 PatchScript: <<
   #!/bin/sh -ev
@@ -15,6 +15,7 @@ PatchScript: <<
   chmod -R a+rX .	# else gdb can't find files when not working as root
   ### adapting the linuxX86 build to apply also an darwin :
   ## __foo_ENDIAN__ is predefined both by Apple's gcc and by GNU's (at least 4.3.2) [cf: `touch bar.h; cpp -dM bar.h`]
+  mv sysdep/linuxX86/sysdep.h sysdep/linuxX86/sysdep.h.bak
   echo "#ifdef __LITTLE_ENDIAN__
 #ifndef _LITTLE_ENDIAN_
 #define _LITTLE_ENDIAN_
@@ -27,46 +28,44 @@ PatchScript: <<
 #endif
 #undef _LITTLE_ENDIAN_
 #endif" > sysdep/linuxX86/sysdep.h
-  sed -i'' -e '/Get architecture type/,/else/s,else,elsif ($uname =~ /Power|powerpc/)\n{\n\t$ptype = "ppc";\n}\n&,' \
+  sed -i.bak -e '/Get architecture type/,/else/s,else,elsif ($uname =~ /Power|powerpc/)\n{\n\t$ptype = "ppc";\n}\n&,' \
 	   -e '/Get OS type/,/else/s,else,elsif ($uname =~ /Darwin/)\n{\n\t$ostype = "darwin";\n}\n&,' \
 	   -e '/^ *elsif .*x86.*linux/{
 		s,[(],((,
 		s,[)]$,) || $ostype eq "darwin"),
 		}' bin/mksysdep.pl
-#  ###  PPC has 32 registers (at least G5. G4 ? G3 ?)
-#  sed -i'' -e '/register int/a\
-##ifdef __POWERPC__\
-#	r(r1); r(r2); r(r3); r(r4); r(r5); r(r6); r(r7); r(r8);\
-#	r(r9); r(r10); r(r11); r(r12); r(r13); r(r14); r(r15); r(r16);\
-#	r(r17); r(r18); r(r19); r(r20); r(r21); r(r22); r(r23); r(r24);\
-#	r(r25); r(r26); r(r27); r(r28); r(r29); r(r30); r(r31); r(r32);\
-#	r1 = gc_dummy(r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16,r17,r18,r19,r20,r21,r22,r23,r24,r25,r26,r27,r28,r29,r30,r31,r32);\
-##else' \
-#	-e '/gc_dummy.*r16);$/a\
-##endif' sysdep/linuxX86/GC.c
-### Improvement from Chris Brown on the above :
-  cp -p %a/%{Ni}.patch sysdep/linuxX86/GC.c
+  ###  PPC has 32 registers (at least G5. G4 ? G3 ?)
+  sed -i.bak -e '/register int/a\
+#ifdef __POWERPC__\
+	r(r1); r(r2); r(r3); r(r4); r(r5); r(r6); r(r7); r(r8);\
+	r(r9); r(r10); r(r11); r(r12); r(r13); r(r14); r(r15); r(r16);\
+	r(r17); r(r18); r(r19); r(r20); r(r21); r(r22); r(r23); r(r24);\
+	r(r25); r(r26); r(r27); r(r28); r(r29); r(r30); r(r31); r(r32);\
+	r1 = gc_dummy(r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16,r17,r18,r19,r20,r21,r22,r23,r24,r25,r26,r27,r28,r29,r30,r31,r32);\
+#else' \
+	-e '/gc_dummy.*r16);$/a\
+#endif' sysdep/linuxX86/GC.c
 ###  
 ## malloc.h and ieee754.h don't exist in darwin :
   ## for __APPLE__ , same remark as for  __foo_ENDIAN__  above.
-  sed -i'' -e '/<malloc\.h>/c\
+  sed -i.bak -e '/<malloc\.h>/c\
 #ifndef __APPLE__\
 #include <malloc.h>\
 #endif' src/IQR.c
-  sed -i'' -e '/_X86_LINUX_/c\
+  sed -i.bak -e '/_X86_LINUX_/c\
 #if defined (_X86_LINUX_) || defined (__APPLE__)' \
 	   -e '/ieee754\.h/c\
 #ifdef _X86_LINUX_\
 #include <ieee754.h>\
 #endif' include/hfloats.h
   ## __STDC__ is not an exhaustive test whether the compiler supports prototypes :
-  sed -i'' -e 's,ifdef __STDC__,if defined (__STDC__) || defined (__APPLE__),' include/sacsys.h src/FAIL.c
+  sed -i.bak -e 's,ifdef __STDC__,if defined (__STDC__) || defined (__APPLE__),' include/sacsys.h src/FAIL.c
 
   ### Getting control over CFLAGS ...
-  if [ "%type_raw[-gcc4.3]" == "-gcc4.3" ] ; then nopic=''; else nopic="-mdynamic-no-pic"; fi
+  if [ "%type_raw[-gcc4.4]" == "-gcc4.4" ] ; then nopic=''; else nopic="-mdynamic-no-pic"; fi
   nopic="$nopic -Wall -Wextra -Wstrict-prototypes -Wstrict-aliasing=2"
   ## first line next is to avoid "...will break strict-aliasing rules" warnings:
-  sed -i'' \
+  sed -i.bak \
 	-e "/Compiling/,\${
 \X%{Ni}/lib/objo\$Xa\
   make  CC=\$CC \"SACFLAG=$nopic -O3 -fno-strict-aliasing\" EXTENSION=o MMAPFS.o MMPDDF.o MMPFBL.o\\
@@ -74,6 +73,10 @@ PatchScript: <<
 	}" \
 	-e 's,\(SACFLAG=\)",\1-O3 -fstrict-aliasing",' -e 's,=-g ,=-ggdb3 -gfull ,' \
  	-e "s,SACFLAG=,&$nopic ," bin/mklib
+  # and circumvent a gcc44 error :
+  if [ "%type_raw[-gcc4.4]" == "-gcc4.4" ]; then sed -i'' '/GC.o/a \
+make  CC=$CC "SACFLAG= -Wall -Wextra -Wstrict-prototypes -Wstrict-aliasing=2 -Os -fstrict-aliasing" EXTENSION=o MMAPGCD.o' \
+	bin/mklib; fi 
 
   ### Some "implicit declaration of function 'GCASET'" warnings (GCASET is also an apparenly equivalent  macro in sacmacros.h ...)
   # Why the strange "#ifdef NO_SACLIB_MACROS" under "Macros that are always defined"  in sacmacros.h ?
@@ -83,8 +86,8 @@ PatchScript: <<
 
 CompileScript: <<
   #!/bin/sh -ev
-  export CCACHE_DISABLE=1
-  if [ "%type_raw[-gcc4.3]" == "-gcc4.3" ]; then export PATH=%p/lib/gcc4.3/bin:$PATH CC=gcc; fi
+  export CC=gcc CXX=g++
+  if [ "%type_raw[-gcc4.4]" == "-gcc4.4" ]; then export PATH=%p/lib/gcc4.4/bin:$PATH; fi
   export %{Ni}=%b
   bin/sconf
   bin/mkproto
