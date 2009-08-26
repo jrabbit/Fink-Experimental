@@ -3,7 +3,7 @@ printf 'Running generate-distfiles-and-finkinfo-mirror.pl...\n'
 test -f ~fink/infodist/FORCED && mv ~fink/infodist/FORCED{,.old}
 test -f ~fink/log/change.log && date -u +%s >~fink/infodist/FORCED && rm -f ~fink/infodist/FORCED.old
 ~fink/scripts/generate-distfiles-and-finkinfo-mirror.pl
-if [ \! -f ~fink/mirwork/mirror.lock ]; then
+if [ \! -s ~fink/mirwork/mirror.lock ]; then
 	printf "\n\n\nLogFile: ~fink/log/mirror.log\n\n"
 	grep -ve 'has not changed' -e 'fetching files for' -e 'exists$'  ~fink/log/mirror.log | sed 's/^/| /'
 	if [ \! -f ~fink/log/change.log ]; then
