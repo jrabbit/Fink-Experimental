@@ -39,7 +39,7 @@ if (not flock(LOCKFILE, LOCK_EX | LOCK_NB)) {
 	my $msg = "Another process is already running.\n";
 	if (-f $LOGFILE && -r _) {
 		$msg .= "Existing logfile:\n";
-		$msg .= `grep -v 'has not changed' $LOGFILE`;
+		$msg .= `grep -ve 'has not changed' -e 'fetching files for' -e 'exists$' $LOGFILE`;
 	}
 	die $msg;
 }
