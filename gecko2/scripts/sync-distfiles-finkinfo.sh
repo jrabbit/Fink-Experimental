@@ -13,29 +13,31 @@ if [ \! -s ~fink/mirwork/mirror.lock ]; then
 	if [ "$(grep -e '.info$' -e '.patch$' ~fink/log/change.log)" != "" ]; then
 		printf '\nApplying changes in cvs to infodist files:\n'
 		cd ~fink/finkinfo/dists.public/10.4
-		for tree in stable unstable; do
-			if [ "$(grep 10.4/"${tree}"/ ~fink/log/change.log)" != "" ]; then
-				printf " Regenerating 10.4-${tree} tarball\n"
-				if tar cjph --group 80 --numeric-owner -f ~fink/infodist/10.4-${tree}.tbz.new stable; then
-					mv ~fink/infodist/10.4-${tree}.tbz.new ~fink/infodist/10.4-${tree}.tbz
-				else
-					printf " Regenerating of 10.4-${tree} tarball FAILED!\n"
-					exit 0
-				fi
-				printf " Calculating new checksums for 10.4-"${tree}"\n"
-				for check in md5 sha1 sha256; do
-					${check}sum ~fink/infodist/10.4-${tree}.tbz | cut -f 1 -d " " >~fink/infodist/10.4-${tree}.tbz.${check}
-				done
-				printf " Creating symlinks and timestamps for 10.5-"${tree}" and 10.6-"${tree}"\n"
-				date -u +%s >~fink/infodist/10.4-${tree}-LOCAL
-				for dist in 10.5 10.6; do
-					ln -sf 10.4-${tree}.tbz ~fink/infodist/${dist}-${tree}.tbz
+		for release in stable unstable; do
+			for tree in main crypto; do
+				if [ "$(grep 10.4/"${release}"/"${tree}" ~fink/log/change.log)" != "" ]; then
+					printf " Regenerating 10.4-"${release}"-"${tree}" tarball\n"
+					if tar cjph --group 80 --numeric-owner -f ~fink/infodist/10.4-${release}-${tree}.tbz.new ${release}/${tree}; then
+						mv ~fink/infodist/10.4-${release}-${tree}.tbz.new ~fink/infodist/10.4-${release}-${tree}.tbz
+					else
+						printf " Regenerating of 10.4-"${release}"-"${tree}" tarball FAILED\!\n"
+						exit 0
+					fi
+					printf " Calculating new checksums for 10.4-"${release}"-"${tree}"\n"
 					for check in md5 sha1 sha256; do
-						ln -sf 10.4-${tree}.tbz.${check} ~fink/infodist/${dist}-${tree}.tbz.${check}
+						${check}sum ~fink/infodist/10.4-${release}-${tree}.tbz | cut -f 1 -d " " >~fink/infodist/10.4-${release}-${tree}.tbz.${check}
 					done
-					ln -sf 10.4-${tree}-LOCAL ~fink/infodist/${dist}-${tree}-LOCAL
-				done
-			fi
+					printf " Creating symlinks and timestamps for 10.5-"${release}"-"${tree}" and 10.6-"${release}"-"${tree}"\n"
+					date -u +%s >~fink/infodist/10.4-${release}-${tree}-LOCAL
+					for dist in 10.5 10.6; do
+						ln -sf 10.4-${release}-${tree}.tbz ~fink/infodist/${dist}-${release}-${tree}.tbz
+						for check in md5 sha1 sha256; do
+							ln -sf 10.4-${release}-${tree}.tbz.${check} ~fink/infodist/${dist}-${release}-${tree}.tbz.${check}
+						done
+						ln -sf 10.4-${release}-${tree}-LOCAL ~fink/infodist/${dist}-${release}-${tree}-LOCAL
+					done
+				fi
+			done
 		done
 	else
 		printf '\nNo changes to infodist needed\n'
