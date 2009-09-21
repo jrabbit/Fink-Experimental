@@ -1,15 +1,15 @@
 Info2: <<
 Package: ptex%type_pkg[-nox]-base
 Type: -nox (boolean)
-Version: 3.1.10
-Revision: 1003test5
+Version: 3.1.11
+Revision: 0test1
 GCC: 4.0
 Description: ASCII publishing TeX
 BuildDepends: <<
  libkpathsea4 (>= 3.5.7-0), t1lib5-nox, libpng3 (>= 1:1.2.8-1), libwww, libncurses5 (>= 5.4-20041023-1006), fink (>= 0.24.12),
  libjpeg, libiconv-dev,
  xz, freetype219 (>= 2.2.1-4),
- ptexenc (>= 0.999-1),
+ ptexenc (>= 1.0.4-1),
  (%type_raw[-nox] = .)  t1lib5-x11, 
  (%type_raw[-nox] = .)  gd2 (>= 2.0.35-2), 
  (%type_raw[-nox] = .) fontconfig2-dev,
@@ -17,13 +17,13 @@ BuildDepends: <<
  (%type_raw[-nox] = .) xmkmf (>= 1.0.2-3),
  (%type_raw[-nox] = .) openmotif3
 <<
-Source: http://tutimura.ath.cx/~nob/tex/ptexlive/ptexlive-20090629.tar.gz
-Source-MD5: 746596295e1190bf2d703e4650de61dd
+Source: http://tutimura.ath.cx/~nob/tex/ptexlive/ptexlive-20090904.tar.gz
+Source-MD5: 8cbe8a8095d6a12c562540649247fa1d
 Source2: mirror:ctan:systems/texlive/Source/texlive-20080816-source.tar.lzma
 Source2-MD5: 554287c3e458da776edd684506048d45
-Source2ExtractDir: ptexlive-20090629
-PatchFile: ptex-base.patch
-PatchFile-MD5: 5796f560ad0707204c781776dad9c118
+Source2ExtractDir: ptexlive-20090904
+PatchFile: texlive.patch
+PatchFile-MD5: 2bfb9d7c9433bea8d20abdab50a27406
 PatchScript: <<
  ####################   Let's apply ptexlive patches   ####################
 
@@ -40,14 +40,12 @@ PatchScript: <<
 
  ##########################################################################
 
- # apply texlive.patch and jbibtex patch
- patch -d texlive -p1 < %{PatchFile}
- sed -i.bak -e '1,31d'               texlive/texk/web2c/ptexdir/jbibextra.c
- sed -i.bak -e 's|pbibtex|jbibtex|g' \
-            -e 's|PBIBTEX|JBIBTEX|g' texlive/texk/web2c/ptexdir/ptexhelp.h
+ # apply texlive.patch
+ sed -n -e '222,$p' < %{PatchFile} | patch -d texlive -p1
 
  # the same patches in ptexenc.info
- sed -i.bak 's|\(0:0 $(objects)\)|\1 $(kpathsea) $(LIBS)|' \
+ sed -i.0 's|1:0:1|2:0:2|' texlive/texk/ptexenc/Makefile.in
+ sed -i.bak 's|\(0:2 $(objects)\)|\1 $(kpathsea) $(LIBS)|' \
                                      texlive/texk/ptexenc/Makefile.in
 
  # use Hiragino for pxdvi
@@ -55,6 +53,17 @@ PatchScript: <<
                                      texlive/texk/pxdvik/texmf/pxdvi.cfg
  perl -pi -e "s/(GothicBBB-Medium\t)ipag.ttf/\1HiraKakuPro-W3.otf/" \
                                      texlive/texk/pxdvik/texmf/pxdvi.cfg
+
+ # binaries supplied in texlive
+ echo aleph bibtex ctangle ctie cweave dmp dvicopy dvitomp dvitype gftodvi \
+      gftopk gftype makempx mf mft mkocp mkofm mpost mpto newer odvicopy   \
+      odvitype omega omfonts otangle otp2ocp outocp patgen pdftex pdftosrc \
+      pktogf pktype pltotf pooltype synctex tangle tex tftopl tie ttf2afm  \
+      vftovp vptovf weave > bin.duplex
+
+ # wrapper for jbibtex
+ echo '#!/bin/sh'    >> jbibtex
+ echo 'pbibtex "$@"' >> jbibtex
 <<
 SetCPPFLAGS:-I%p/lib/freetype219/include/freetype2 -I%p/lib/freetype219/include
 SetLDFLAGS: -L%p/lib/freetype219/lib
@@ -106,6 +115,7 @@ fi
    make install prefix=%i texmf=%i/share/texmf
    popd
  done
+ install -m 755 jbibtex %i/bin
 
 echo "Setting up symlinks ..."
  ln -s ptex   %i/bin/platex
@@ -121,7 +131,7 @@ echo "Removing files that are supplied in the texlive* package ..."
  rm -R %i/share/texmf/dvips
  rm -f %i/share/texmf/xdvi/XDvi
  
- for file in `cat texlive/bin.duplex`
+ for file in `cat bin.duplex`
  do
    rm -f %i/bin/${file}
  done
@@ -138,7 +148,7 @@ Depends: <<
   libwww-bin, libncurses5-shlibs (>= 5.4-20041023-1006), ncurses (>= 5.4-20041023-1006),
   (%type_raw[-nox] = -nox) texlive-nox-base,
   (%type_raw[-nox] = .) texlive-base,
-  fink (>= 0.12.0-1), ptexenc-shlibs (>= 0.999-1), ptex-texmf (>= 2.5-0), nkf,
+  fink (>= 0.12.0-1), ptexenc-shlibs (>= 1.0.4-1), ptex-texmf (>= 2.5-0), nkf,
   freetype219-shlibs (>= 2.2.1-4),
   (%type_raw[-nox] = .) applesystemfonts,
   (%type_raw[-nox] = .) appleotffonts,
