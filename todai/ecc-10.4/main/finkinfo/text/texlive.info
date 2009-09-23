@@ -2,7 +2,7 @@ Info2: <<
 Package: texlive%type_pkg[-nox]
 Type: -nox (boolean)
 Version: 0.20080816
-Revision: 0test5
+Revision: 0test6luatex
 GCC: 4.0
 Description: Bundle package for TeX Live
 Depends: %N-base (= %v-%r), texinfo, debianutils, texi2html
@@ -35,7 +35,7 @@ Source2-MD5: 8cbe8a8095d6a12c562540649247fa1d
 Tar2FilesRename: ptexlive-20090904:ptexlive
 NoSourceDirectory: true
 PatchFile: texlive.patch
-PatchFile-MD5: 2bfb9d7c9433bea8d20abdab50a27406
+PatchFile-MD5: 16cd00baf3a20259e19cf8a431884135
 PatchScript: <<
  lzma -dc texlive-20080816-source.tar.lzma | tar xf -
  mv       texlive-20080816-source                texlive
@@ -70,11 +70,11 @@ ConfigureParams: <<
  --with-system-pnglib --with-system-t1lib --with-system-wwwlib \
  --with-system-zlib \
  --without-psutils --without-dialog --without-tex4htk --without-t1utils \
- --without-detex --without-dvipdfmx --without-luatex --without-lcdf-typetools \
+ --without-detex --without-dvipdfmx --without-lcdf-typetools \
  --without-xindy --without-xdv2pdf --without-xetex --without-xdvipdfmx \
  --without-lacheck --without-ttf2pk \
- --with-mf-nowin --with-system-freetype2 \
- --with-freetype2-libdir=%p/lib/freetype219/lib \
+ --with-luatex --with-mf-nowin \
+ --with-system-freetype2 --with-freetype2-libdir=%p/lib/freetype219/lib \
  --with-freetype2-include=%p/lib/freetype219/include \
  (%type_raw[-nox] = .) --with-system-gd 
  (%type_raw[-nox] = .) --x-includes=/usr/X11R6/include
@@ -87,13 +87,14 @@ CompileScript: <<
 #!/bin/bash -ev
  export PATH=%p/lib/xmkmf/bin:%p/lib/freetype219/bin:$PATH 
  export IMAKEINCLUDE=-I%p/lib/X11/config
- cd texlive && ./configure %c && make
+ mkdir texlive/Work
+ cd texlive/Work && ../configure %c && make
 <<
 InstallScript: <<
 #!/bin/bash -ev
  export PATH=%p/lib/xmkmf/bin:$PATH 
  export IMAKEINCLUDE=-I%p/lib/X11/config
- cd texlive && make install prefix=%i texmf=%i/share/texmf run_texlinks=true run_mktexlsr=true
+ cd texlive/Work && make install prefix=%i texmf=%i/share/texmf run_texlinks=true run_mktexlsr=true
  %i/bin/mktexlsr %i/share/texmf
 
 echo "Removing files that belong to the libkpathsea4 package..."
