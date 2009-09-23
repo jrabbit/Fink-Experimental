@@ -12,6 +12,7 @@ BuildDepends: <<
  ptexenc (>= 1.0.4-1),
  (%type_raw[-nox] = .)  t1lib5-x11, 
  (%type_raw[-nox] = .)  gd2 (>= 2.0.35-2), 
+ (%type_raw[-nox] = .) expat1,
  (%type_raw[-nox] = .) fontconfig2-dev,
  (%type_raw[-nox] = .) x11, 
  (%type_raw[-nox] = .) xmkmf (>= 1.0.2-3),
@@ -23,7 +24,7 @@ Source2: mirror:ctan:systems/texlive/Source/texlive-20080816-source.tar.lzma
 Source2-MD5: 554287c3e458da776edd684506048d45
 Source2ExtractDir: ptexlive-20090904
 PatchFile: texlive.patch
-PatchFile-MD5: 2bfb9d7c9433bea8d20abdab50a27406
+PatchFile-MD5: 16cd00baf3a20259e19cf8a431884135
 PatchScript: <<
  ####################   Let's apply ptexlive patches   ####################
 
@@ -41,7 +42,7 @@ PatchScript: <<
  ##########################################################################
 
  # apply texlive.patch
- sed -n -e '222,$p' < %{PatchFile} | patch -d texlive -p1
+ sed -n -e '207,$p' < %{PatchFile} | patch -d texlive -p1
 
  # the same patches in ptexenc.info
  sed -i.0 's|1:0:1|2:0:2|' texlive/texk/ptexenc/Makefile.in
@@ -66,8 +67,8 @@ PatchScript: <<
  echo '#!/bin/sh'    >> jbibtex
  echo 'pbibtex "$@"' >> jbibtex
 <<
-SetCPPFLAGS:-I%p/lib/freetype219/include/freetype2 -I%p/lib/freetype219/include
-SetLDFLAGS: -L%p/lib/freetype219/lib
+SetCPPFLAGS:-I%p/lib/freetype219/include/freetype2 -I%p/lib/freetype219/include -I%p/lib/fontconfig2/include
+SetLDFLAGS: -L%p/lib/freetype219/lib -L%p/lib/fontconfig2/lib
 NoSetMAKEFLAGS: true
 SetMAKEFLAGS: -j1
 ConfigureParams: <<
@@ -77,11 +78,11 @@ ConfigureParams: <<
  --with-system-pnglib --with-system-t1lib --with-system-wwwlib \
  --with-system-zlib \
  --without-psutils --without-dialog --without-tex4htk --without-t1utils \
- --without-detex --without-dvipdfmx --without-luatex --without-lcdf-typetools \
+ --without-detex --without-dvipdfmx --without-lcdf-typetools \
  --without-xindy --without-xdv2pdf --without-xetex --without-xdvipdfmx \
  --without-lacheck --without-ttf2pk \
- --without-mf-nowin --without-pdfopen --with-system-freetype2 \
- --with-freetype2-libdir=%p/lib/freetype219/lib \
+ --without-luatex --without-mf-nowin --without-pdfopen \
+ --with-system-freetype2 --with-freetype2-libdir=%p/lib/freetype219/lib \
  --with-freetype2-include=%p/lib/freetype219/include \
  --enable-kanji-iconv --with-ptexenc=UTF8 \
  --without-afm2pl --without-bibtex8 --without-cjkutils --without-devnag \
@@ -98,9 +99,11 @@ ConfigureParams: <<
 <<
 CompileScript: <<
 #!/bin/bash -ev
+ export PKG_CONFIG_PATH="%p/lib/fontconfig2/lib/pkgconfig/:$PKG_CONFIG_PATH"
  export PATH=%p/lib/xmkmf/bin:%p/lib/freetype219/bin:$PATH 
  export IMAKEINCLUDE=-I%p/lib/X11/config
- cd texlive && ./configure %c && make
+ mkdir texlive/Work
+ cd texlive/Work && ../configure %c && make
 <<
 InstallScript: <<
 #!/bin/bash -ev
@@ -112,7 +115,7 @@ if [ "%type_raw[-nox]" == "." ]; then
 fi
  for dir in $PROGRAMS
  do
-   pushd texlive/texk/$dir
+   pushd texlive/Work/texk/$dir
    make install prefix=%i texmf=%i/share/texmf
    popd
  done
