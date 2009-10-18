@@ -2,7 +2,7 @@
 printf 'Running generate-distfiles-and-finkinfo-mirror.pl...\n'
 ~fink/scripts/generate-distfiles-and-finkinfo-mirror.pl
 test -s ~fink/infodist/FORCED && mv ~fink/infodist/FORCED{,.old}
-test -f ~fink/infodist/FORCE && test -f ~fink/log/change.log && date -u +%s >~fink/infodist/FORCED && rm -f ~fink/infodist/FORCED.old
+test -f ~fink/mirwork/FORCE && test -f ~fink/log/change.log && date -u +%s >~fink/infodist/FORCED && rm -f ~fink/infodist/FORCED.old
 if [ \! -s ~fink/mirwork/mirror.lock ]; then
 	printf "\n\n\nLogFile: ~fink/log/mirror.log\n\n"
 	grep -ve 'has not changed' -e 'fetching files for' -e 'exists$'  ~fink/log/mirror.log | sed 's/^/| /'
@@ -15,7 +15,7 @@ if [ \! -s ~fink/mirwork/mirror.lock ]; then
 		echo "10.4/stable/crypto/foo.info" >>~fink/log/change.log
 		echo "10.4/unstable/main/foo.info" >>~fink/log/change.log
 		echo "10.4/unstable/crypto/foo.info" >>~fink/log/change.log
-		rm -f ~fink/infodist/FORCE
+		rm -f ~fink/mirwork/FORCE
 	fi
 	if [ "$(grep -e '.info$' -e '.patch$' ~fink/log/change.log)" != "" ]; then
 		test -s ~fink/infodist/FORCED && printf '\nFORCING INFODIST REBUILD!\n'
