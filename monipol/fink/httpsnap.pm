@@ -26,7 +26,7 @@ package Fink::SelfUpdate::httpsnap;
 
 use base qw(Fink::SelfUpdate::Base);
 
-use Fink::CLI qw(&prompt_boolean);
+use Fink::CLI qw(&print_breaking &prompt_boolean);
 use Fink::Config qw($basepath $config $distribution);
 use Fink::Mirror;
 use Fink::Package;
@@ -68,12 +68,6 @@ sub system_check {
 		return 0;
 	}
 
-#	my $answer = &prompt_boolean("WARNING: selfupdate-httpsnap removes EVERY .info and .patch file under $basepath/fink/dists/stable, and $basepath/fink/dists/unstable if you have enabled the unstable tree. You MUST move your local .info and .patch files to $basepath/fink/dists/local so that they don't get removed by selfupdate-httsnap.\n\nDo you wish to continue and change the selfupdate method to httsnap?", default => 0);
-#	if (not $answer) {
-#		warn "\nExiting without changing the selfupdate method to httsnap.\n";
-#		return 0;
-#	}
-
 	return 1;
 }
 
@@ -86,7 +80,7 @@ Returns a null string.
 sub do_direct {
 	my $class = shift;  # class method for now
 
-	# Get the list of distributions
+	# Get the list of distributions (i.e. SelfUpdateTrees)
 
 	my @dists = ($distribution);
 
@@ -125,18 +119,34 @@ sub do_direct {
 	# Iterate the list of mirrors
 	my $origmirror = Fink::Mirror->get_by_name("httpsnap");
 	my $httpsnaphost;
-	my $mostrecentts = 0;
 
 RETRY:
 	$httpsnaphost = $origmirror->get_site_retry("", 0);
 	if (! grep(/^http:/, $httpsnaphost)) {
-		print "No mirror worked. This seems unusual; please submit a short ".
-			"summary of this event to mirrors\@finkmirrors.net\n Thank you\n";
+		print_breaking "No mirror worked. This seems unusual; please submit " .
+			"a short summary of this event to mirrors\@finkmirrors.net. " .
+			"Thank you.\n";
 		exit 1;
 	}
 	$httpsnaphost =~ s/\/*$//;
 
+	my $mostrecentts = 0;
+	my $oldts = 0;
+	my $ts_FH;
+	if (-f "$distdir/TIMESTAMP") {
+		open $ts_FH, '<', "$distdir/TIMESTAMP";
+		$oldts = <$ts_FH>;
+		close $ts_FH;
+		chomp $oldts;
+		# Make sure the timestamp only contains digits
+		if ($oldts =~ /\D/) {
+			die "The timestamp file $distdir/TIMESTAMP contains non-numeric " .
+				"characters. This is illegal. Refusing to continue.\n";
+		}
+	}
+
 	# Download timestamps and newer package description tarballs
+	my @dltrees = (); # $dist-$trees that were actually downloaded
 	for my $dist (@dists) {
 		for my $tree (@trees_dashes) {
 			my $url;
@@ -145,72 +155,66 @@ RETRY:
 			# Fetch the timestamp for comparison. Use &fetch_url_to_file so
 			# that we can pass the option 'try_all_mirrors' which forces
 			# re-download of the file even if it already exists
-			$urlhash->{'url'} = "$httpsnaphost/$dist-$tree-LOCAL";
-			$urlhash->{'filename'} = "$dist-$tree-TIMESTAMP.tmp";
+			$urlhash->{'url'} = "$httpsnaphost/$dist-$tree-TIMESTAMP";
+			$urlhash->{'filename'} = "$dist-$tree-TIMESTAMP";
 			$urlhash->{'skip_master_mirror'} = 1;
 			$urlhash->{'download_directory'} = $downloaddir;
 			$urlhash->{'try_all_mirrors'} = 1;
 			if (&fetch_url_to_file($urlhash)) {
-				print "Failed to fetch $urlhash->{'url'}. Check the error " .
-					"messages above.\n";
+				print_breaking "Failed to fetch $urlhash->{'url'}. Check the " .
+					"error messages above.\n";
 				goto RETRY;
 			}
 
 			my $ts_FH;
-			open $ts_FH, '<', "$downloaddir/$dist-$tree-TIMESTAMP.tmp";
+			open $ts_FH, '<', "$downloaddir/$dist-$tree-TIMESTAMP";
 			my $newts = <$ts_FH>;
 			close $ts_FH;
 			chomp $newts;
 			# Make sure the timestamp only contains digits
 			if ($newts =~ /\D/) {
-				unlink("$downloaddir/$dist-$tree-TIMESTAMP.tmp");
+				rm_rf $downloaddir;
 				die "The timestamp file fetched from $httpsnaphost " .
 					"for $dist-$tree contains non-numeric characters. " .
 					"This is illegal. Refusing to continue.\n";
 			}
 
-			# If there's no local TIMESTAMP file, then we haven't synced from
-			# httpsnap before, so there's no checking we can do. Blaze on
-			# past.
-			if (-f "$distdir/$dist-$tree-TIMESTAMP") {
-				open $ts_FH, '<', "$distdir/$dist-$tree-TIMESTAMP";
-				my $oldts = <$ts_FH>;
-				close $ts_FH;
-				chomp $oldts;
-				# Make sure the timestamp only contains digits
-				if ($oldts =~ /\D/) {
-					unlink("$downloaddir/$dist-$tree-TIMESTAMP.tmp");
-					die "The timestamp file $distdir/$dist-$tree-TIMESTAMP " .
-						"contains non-numeric characters. This is illegal. " .
-						"Refusing to continue.\n";
+			# We only download tarballs that are more recent than
+			# $dist/TIMESTAMP
+			if ($newts > $oldts) {
+				$url = "$httpsnaphost/$dist-$tree.tbz";
+				$urlhash->{'url'} = $url;
+				$urlhash->{'filename'} = &filename($url);
+				$urlhash->{'skip_master_mirror'} = 1;
+				$urlhash->{'download_directory'} = $downloaddir;
+				$urlhash->{'try_all_mirrors'} = 1;
+				if (&fetch_url_to_file($urlhash)) {
+					print_breaking "Failed to fetch package descriptions " .
+						"from $url. Check the error messages above.\n";
+					goto RETRY;
 				}
 
-				if ($oldts > $newts) {
-					# Error out complaining that we're trying to update from
-					# something older than what we already have.
-					unlink("$downloaddir/$dist-$tree-TIMESTAMP.tmp");
-					print "The timestamp of the server is older than what " .
-						"you already have.\n";
-					exit 1;
+				push(@dltrees, "$dist-$tree");
+
+				if ($newts > $mostrecentts) {
+					$mostrecentts = $newts;
 				}
-			}
-
-			$url = "$httpsnaphost/$dist-$tree.tbz";
-			$urlhash->{'url'} = $url;
-			$urlhash->{'filename'} = &filename($url);
-			$urlhash->{'skip_master_mirror'} = 1;
-			$urlhash->{'download_directory'} = $downloaddir;
-			$urlhash->{'try_all_mirrors'} = 1;
-			if (&fetch_url_to_file($urlhash)) {
-				print "Failed to fetch package descriptions from $url. " .
-					"Check the error messages above.\n";
-				goto RETRY;
-			}
-
-			if ($newts > $mostrecentts) {
-				$mostrecentts = $newts;
 			}
 		}
+	}
+
+	# if $mostrecentts == 0 then no timestamp on the server is > $oldts
+	if ($mostrecentts == 0) {
+		rm_rf $downloaddir;
+		print "You are already up-to-date.\n";
+		exit 1;
+	}
+
+	if ($mostrecentts < $oldts) {
+		rm_rf $downloaddir;
+		print_breaking "The timestamps of the server are older than what you " .
+			"already have.\n";
+		exit 1;
 	}
 
 	# We've been able to grab the tarballs. Go ahead and extract them under
@@ -232,6 +236,7 @@ RETRY:
 			my $pkgtarball = "$downloaddir/$dist-$tree.tbz";
 			my $unpackcmd = "tar -xjph${verbosity}f $pkgtarball -C $unpackdir";
 			if (&execute("$unpackcmd")) {
+				rm_rf $downloaddir;
 				die "Unpacking $pkgtarball failed\n";
 			}
 		}
@@ -285,9 +290,6 @@ RETRY:
 
 		my $cmd = "rsync -rtz --delete-after --delete $verbosity $nohfs " .
 			"$rinclist " .
-			"--include='VERSION' " .
-			"--include='DISTRIBUTION' " .
-			"--include='README' " .
 			"--exclude='**' " .
 			"'$unpackdir/' " .
 			"'$basepath/fink/'";
@@ -302,8 +304,9 @@ RETRY:
 		}
 
 		if (&execute($cmd)) {
+			rm_rf $downloaddir;
 			print "Selfupdate failed. Check the error messages above.";
-			goto CLEANUP;
+			exit 1;
 		}
 	}
 
@@ -311,8 +314,9 @@ CLEANUP:
 	# Cleanup after ourselves
 	my $mostrecent_FH;
 	open $mostrecent_FH, '>', "$distdir/TIMESTAMP";
-	print $mostrecent_FH $mostrecentts;
+	print $mostrecent_FH "$mostrecentts\n";
 	close $mostrecent_FH;
+	rm_rf $downloaddir;
 
 	$class->update_version_file();
 	return 1;
