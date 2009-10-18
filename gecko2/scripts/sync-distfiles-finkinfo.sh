@@ -28,13 +28,13 @@ if [ \! -s ~fink/mirwork/mirror.lock ]; then
 						${check}sum ~fink/infodist/10.4-${release}-${tree}.tbz | cut -f 1 -d " " >~fink/infodist/10.4-${release}-${tree}.tbz.${check}
 					done
 					printf " Creating symlinks and timestamps for 10.5-"${release}"-"${tree}" and 10.6-"${release}"-"${tree}"\n"
-					date -u +%s >~fink/infodist/10.4-${release}-${tree}-LOCAL
+					date -u +%s >~fink/infodist/10.4-${release}-${tree}-TIMESTAMP
 					for dist in 10.5 10.6; do
 						ln -sf 10.4-${release}-${tree}.tbz ~fink/infodist/${dist}-${release}-${tree}.tbz
 						for check in md5 sha1 sha256; do
 							ln -sf 10.4-${release}-${tree}.tbz.${check} ~fink/infodist/${dist}-${release}-${tree}.tbz.${check}
 						done
-						ln -sf 10.4-${release}-${tree}-LOCAL ~fink/infodist/${dist}-${release}-${tree}-LOCAL
+						ln -sf 10.4-${release}-${tree}-TIMESTAMP ~fink/infodist/${dist}-${release}-${tree}-TIMESTAMP
 					done
 				fi
 			done
