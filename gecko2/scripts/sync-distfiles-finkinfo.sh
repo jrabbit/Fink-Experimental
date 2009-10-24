@@ -12,15 +12,20 @@ TMPDIR="/home/f/fink/mirwork"
 # Change NOTHING below this line
 ###
 printf 'Running generate-distfiles-and-finkinfo-mirror.pl...\n'
+if [ -f ${TMPDIR}/mirror.lock ]; then
+	printf "MIRROR locked... existing\n"
+	exit 1
+fi
+printf 'Running generate-distfiles-and-finkinfo-mirror.pl...\n'
 ${SCRIPTDIR}/generate-distfiles-and-finkinfo-mirror.pl
 test -s ${HTTPSNAPDIR}/FORCED && mv ${HTTPSNAPDIR}/FORCED{,.old}
 test -f ${TMPDIR}/FORCE && test -f ${LOGDIR}/change.log && date -u +%s >${HTTPSNAPDIR}/FORCED && rm -f ${HTTPSNAPDIR}/FORCED.old
-if [ \! -s ${TMPDIR}/mirror.lock ]; then
+if [ \! -f ${TMPDIR}/mirror.lock ]; then
 	printf "\n\n\nLogFile: "${LOGDIR}"/mirror.log\n\n"
 	grep -ve 'has not changed' -e 'fetching files for' -e 'exists$' ${LOGDIR}/mirror.log | sed 's/^/| /'
 	if [ \! -f ${LOGDIR}/change.log ]; then
 		printf ${LOGDIR}'/change.log is missing...\n'
-		exit 0
+		exit 1
 	fi
 	if [ -s ${HTTPSNAPDIR}/FORCED ];then
 		echo "10.4/stable/main/foo.info" >${LOGDIR}/change.log
