@@ -16,7 +16,6 @@ if [ -f ${TMPDIR}/mirror.lock ]; then
 	printf "MIRROR locked... existing\n"
 	exit 1
 fi
-printf 'Running generate-distfiles-and-finkinfo-mirror.pl...\n'
 ${SCRIPTDIR}/generate-distfiles-and-finkinfo-mirror.pl
 test -s ${HTTPSNAPDIR}/FORCED && mv ${HTTPSNAPDIR}/FORCED{,.old}
 test -f ${TMPDIR}/FORCE && test -f ${LOGDIR}/change.log && date -u +%s >${HTTPSNAPDIR}/FORCED && rm -f ${HTTPSNAPDIR}/FORCED.old
