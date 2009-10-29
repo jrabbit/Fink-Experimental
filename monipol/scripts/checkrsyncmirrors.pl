@@ -1,7 +1,5 @@
 #!/usr/bin/perl
 
-use POSIX;
-
 use strict;
 use warnings;
 
@@ -13,7 +11,6 @@ my $mirror;
 my $timestamp = "";
 my $command;
 my $command_result;
-my ($sec, $min, $hour, $mday, $mon, $year, $wday, $yday);
 my $ts;
 my @files = ('TIMESTAMP', 'LOCAL');
 #my @files = ('TIMESTAMP');
@@ -21,7 +18,7 @@ my $file;
 
 open($mirror_FH, '<', "$basepath/lib/fink/mirror/rsync") || die "Could not open rsync mirrors file\n";
 while (<$mirror_FH>) {
-	if($_ =~ /(^...-..: )(rsync:\/\/.*)/) {
+	if($_ =~ /(^...-..: |Primary: )(rsync:\/\/.*)/) {
 		$mirror = $2;
 		chomp $mirror ;
 		print "$mirror:\n";
@@ -41,7 +38,7 @@ while (<$mirror_FH>) {
 						print "\t$file = $timestamp = $ts\n";
 					}
 					else {
-						print "\t$file couldn't be read\n";
+						print "\t$file couldn't be parsed\n";
 					}
 				}
 				else {
