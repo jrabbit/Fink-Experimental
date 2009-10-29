@@ -8,23 +8,28 @@ my $basepath = '/sw';
 my $mirror_FH;
 my $timestamp_FH;
 my $mirror;
-my $timestamp = "";
+my $timestamp;
 my $command;
 my $command_result;
 my $ts;
 my @files = ('TIMESTAMP', 'LOCAL');
 #my @files = ('TIMESTAMP');
 my $file;
+my $mirrorname;
+my @mirrornameparts;
 
 open($mirror_FH, '<', "$basepath/lib/fink/mirror/rsync") || die "Could not open rsync mirrors file\n";
 while (<$mirror_FH>) {
 	if($_ =~ /(^...-..: |Primary: )(rsync:\/\/.*)/) {
 		$mirror = $2;
 		chomp $mirror ;
-		print "$mirror:\n";
+		$mirrorname = $mirror;
+		$mirrorname =~ s/^rsync:\/\///;
+		($mirrorname) = split(/\//, $mirrorname);
+		print "$mirrorname:\n";
 		foreach $file (@files) {
 			system("rm -f ./$file");
-			$command = "rsync -qaz $mirror" . "$file ./$file 2>/dev/null";
+			$command = "rsync -qaz --timeout=5 $mirror" . "$file ./$file 2>/dev/null";
 			$command_result = system("$command");
 			$command_result = $command_result >> 8;
 			if ($command_result == 0) {
