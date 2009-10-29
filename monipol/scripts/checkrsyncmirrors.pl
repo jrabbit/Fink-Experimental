@@ -38,11 +38,12 @@ while (<$mirror_FH>) {
 						print "\t$file = $timestamp = $ts\n";
 					}
 					else {
-						print "\t$file couldn't be parsed\n";
+						print "\tLocal $file couldn't be parsed\n";
 					}
+					system("rm -f ./$file");
 				}
 				else {
-					print "\tCouldn't open $file file\n";
+					print "\tCouldn't open local $file file\n";
 				}
 			}
 			else {
