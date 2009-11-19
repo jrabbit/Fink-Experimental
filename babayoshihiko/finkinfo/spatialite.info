@@ -1,21 +1,21 @@
 Info3: <<
 Package: spatialite
 Version: 2.3.1
-Revision: 2
-Description: SpatiLite Shared Libraries
+Revision: 3
+Description: A complete set of SpatiaLite and RasterLite
 License: GPL
 Homepage: 
 Maintainer: BABA Yoshihiko <babayoshihiko@mac.com>
 DescDetail: <<
-SpatiLite is an implementation of Spatial Extention to SQLite.
+SpatiaLite is an implementation of Spatial Extention to SQLite.
 
 <<
 
 Depends: <<
-  libspatialite3, spatialite-tools
+  libspatialite3-shlibs, spatialite-tools, librasterlite2-shlibs, librasterlite2-bin
 <<
 BuildDepends: <<
-  fink (>= 0.28), readline5, libncurses5, libiconv,
+  fink (>= 0.28), readline5 | readline5-64bit, libncurses5, libiconv,
   proj, libgeos3, libgeosc1
 <<
 
@@ -27,7 +27,7 @@ Source2: http://www.gaia-gis.it/spatialite/spatialite-tools-%v.tar.gz
 Source2-MD5: 40895fd4bf7a21b3629c9face258dcd6
 
 SetCPPFLAGS: -Os -I%i/include -I%p/include
-ConfigureParams: --with-proj-include=%p/include --with-proj-lib=%p/lib --with-geos-include=%p/include --with-geos-lib=%p/lib/libgeos3
+ConfigureParams: --target=macosx --with-proj-include=%p/include --with-proj-lib=%p/lib --with-geos-include=%p/include --with-geos-lib=%p/lib/libgeos3
 
 
 
@@ -57,8 +57,9 @@ InstallScript: <<
   pushd ../spatialite-tools-%v
   make install prefix=%i LDFLAGS='-liconv'
   popd
+  
 <<
-DocFiles: 
+DocFiles: AUTHORS COPYING INSTALL README
 
 
 
@@ -68,41 +69,55 @@ DocFiles:
 
 
 SplitOff: <<
-  Package: libspatialite3
-  Description: SpatiLite Libraries
-  Files: <<
+  Package: libspatialite3-shlibs
+  Description: Shared libraries for libspatialite3 package
+  Depends: <<
+    libgeos3-shlibs, libgeosc1-shlibs
+  <<  Files: <<
     lib/libspatialite.1.1.3.dylib
     lib/libspatialite.1.dylib
   <<
+  Suggests: librasterlite2-shlibs
   Shlibs: <<
     %p/lib/libspatialite.1.1.3.dylib  3.0.0 %n (>= 2.3.1-1) 32
     !%p/lib/libspatialite.1.dylib
   <<
-
+  DocFiles: AUTHORS COPYING INSTALL README
 # End of SplitOff
 <<
 
 SplitOff2: <<
-  Package: libspatialite3-dev
-  Description: SpatiLite Header Files
+  Package: libspatialite3
+  Description: SpatiaLite extension to SQLite
   Depends: <<
-    libspatialite3
+    libspatialite3-shlibs
   <<
   BuildDependsOnly: True
   Files: <<
     include
     lib/libspatialite.a
     lib/libspatialite.dylib
-    lib/libspatialite.la*
+    lib/libspatialite.la
     lib/pkgconfig
   <<
   Shlibs: <<
     !%p/lib/libspatialite.dylib
-<<
-
+  <<
+  DocFiles: COPYING README
 # End of SplitOff2
 <<
 
+SplitOff3: <<
+  Package: spatialite-tools
+  Description: Executables for libspatialite3 package
+  DocFiles: COPYING
+  Depends: <<
+    libspatialite3-shlibs
+  <<
+  Files: bin
+  DocFiles: AUTHORS COPYING INSTALL README
+# End of SplitOff3
+<<
 
 
 
