@@ -4,13 +4,16 @@ $|++;
 
 BEGIN {
 	# thetis
-	our $CHECKOUTDIR = '/home/f/fink/finkinfo';
-	our $DOWNLOADDIR = '/home/f/fink/distfiles';
-	our $FINKROOT    = '/home/f/fink/fink';
-	our $SVNROOT     = '/home/f/fink/svn';
-	our $WORKDIR     = '/home/f/fink/mirwork';
-	our $LOGFILE     = '/home/f/fink/log/mirror.log';
-	our $CHANGELOG   = '/home/f/fink/log/change.log';
+        our $CHANGELOG   = '/home/f/fink/log/change.log';
+        our $CHECKOUTDIR = '/home/f/fink/finkinfo';
+        our $CVSROOT     = ':ext:gecko2@fink.cvs.sourceforge.net:/cvsroot/fink';
+        our $DEBUG       = 0;
+        our $DOWNLOADDIR = '/home/f/fink/distfiles';
+        our $FINKROOT    = '/home/f/fink/fink';
+        our $LOGFILE     = '/home/f/fink/log/mirror.log';
+        our $SVNROOT     = '/home/f/fink/svn';
+        our $VALIDATE_EXISTING_FILES = 0;
+        our $WORKDIR     = '/home/f/fink/mirwork';
 }
 
 use lib $FINKROOT . '/perlmod';
@@ -55,11 +58,7 @@ use vars qw(
 	$VALIDATE_EXISTING_FILES
 );
 
-$VALIDATE_EXISTING_FILES = 0;
 $COUNT = 0;
-$CVSROOT=':ext:gecko2@fink.cvs.sourceforge.net:/cvsroot/fink';
-$DEBUG = 0;
-$ENV{CVS_RSH} = 'ssh';
 
 if (-f $WORKDIR . '/update.cache')
 {
@@ -204,7 +203,7 @@ sub find_fetch_infofile
 				print LOG "- fetching files for $shortname ($dist/$tree)\n";
 				for my $package ( Fink::PkgVersion->pkgversions_from_info_file( $File::Find::name ) )
 				{
-					next if ( $package->get_license() =~ /Restrictive$/ );
+					next if ( $package->get_license() =~ /^(Commercial|Restrictive)$/i );
 					for my $suffix ($package->get_source_suffixes)
 					{
 						my $tarball = $package->get_tarball($suffix);
