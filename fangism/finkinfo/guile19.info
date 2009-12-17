@@ -1,18 +1,29 @@
 Package: guile19
-Version: 1.9.5
+Version: 1.9.6
 Revision: 1
-BuildDepends: readline5 (>= 5.0-1004), libncurses5 (>= 5.4-20041023-1006), libtool14, gmp, libiconv-dev, fink (>= 0.24.12), libunistring0
-Depends: %N-shlibs (= %v-%r), %N-libs (= %v-%r), libtool14-shlibs, gmp-shlibs
+BuildDepends: <<
+  readline5 (>= 5.0-1004),
+  libncurses5 (>= 5.4-20041023-1006),
+  libtool14,
+  libunistring0, 
+  gmp,
+  libiconv-dev,
+  fink (>= 0.28)
+<<
+Depends: <<
+  %N-shlibs (= %v-%r),
+  %N-libs (= %v-%r),
+  libtool14-shlibs,
+  gmp-shlibs
+<<
 GCC: 4.0
 # Source: mirror:gnu:guile/guile-%v.tar.gz
 Source: ftp://alpha.gnu.org/gnu/guile/guile-%v.tar.gz
-Source-MD5: a5b5527d59e30dd964bd3a9d00dad452
-# Source-SHA1: 6fdaab75d25bba1bcfee92c5cc12f99f6ac90a46
+Source-MD5: 4b124824a7f4d8a79f14d9c9297d6cfa
+# Source-SHA1: 365341f996ea28bac08a7f38268ef3279fdedaaf
 # PatchFile: %n.patch
 # PatchFile-MD5: 87788692c78d5724b96fe85c0ac28c04
 PatchScript: <<
-# sed 's|@FINKPREFIX@|%p|g' <%{PatchFile} | patch -p1
-# perl -i -pe 's|GUILE-guile|GUILE-guile-1.9|' scripts/*
 perl -i -pe 's|(lt_dlinit\s*\(\s*\))|\1; lt_dladdsearchdir("\%p/lib")|' libguile/dynl.c
 <<
 ConfigureParams: <<
@@ -27,12 +38,7 @@ CompileScript: <<
 #! /bin/sh -ex
   mkdir build
   cd build
-#  export LIBRARY_PATH=%p/lib
-#  export CPATH=%p/include
   ../configure %c
-#  echo "#undef LTDL_DLOPEN_DEPLIBS" >> config.h
-#  echo "#define LTDL_SHLIB_EXT \".so\"" >> config.h
-#  echo "#undef HAVE_STAT64" >> config.h
   make
 <<
 InfoTest: <<
@@ -45,7 +51,6 @@ InfoTest: <<
 <<
 InstallScript: <<
  cd build && make -j1 install DESTDIR=%d
-# install -m 755 guile19-build %i/bin/guile19-build
  mkdir -p %i/share/guile/1.9/scripts/binoverride
  ln -s %p/bin/guile-1.9 %i/share/guile/1.9/scripts/binoverride/guile
  ln -s %p/bin/guile-1.9-config %i/share/guile/1.9/scripts/binoverride/guile-config
@@ -54,28 +59,42 @@ InstallScript: <<
 <<
 SplitOff: <<
   Package: %N-shlibs
-  Depends: libncurses5-shlibs (>= 5.4-20041023-1006), libiconv, libunistring0-shlibs
+  Depends: <<
+    libncurses5-shlibs (>= 5.4-20041023-1006),
+    libiconv,
+    libunistring0-shlibs
+  <<
   Files: <<
     lib/libguile.*.dylib
   <<
   DocFiles: COPYING.LESSER
   Shlibs: <<
-  %p/lib/libguile.18.dylib 21.0.0 %n (>= 1.9.4-1)
+  %p/lib/libguile.18.dylib 19.0.0 %n (>= 1.9.4-1)
   <<
   Description: Shared libraries for guile19
 <<
 SplitOff2: <<
   Package: %N-libs
   Files: <<
-    lib/libguile-srfi-srfi-13-14-v-3.*
-    lib/libguile-srfi-srfi-4-v-3.*
-    lib/libguile-srfi-srfi-1-v-3.*
-    lib/libguile-srfi-srfi-60-v-2.*
-    lib/libguilereadline-v-17.*
+    lib/libguile-srfi-srfi-13-14-v-4.*
+    lib/libguile-srfi-srfi-4-v-4.*
+    lib/libguile-srfi-srfi-1-v-4.*
+    lib/libguile-srfi-srfi-60-v-3.*
+    lib/libguilereadline-v-18.*
     share/guile/1.9
   <<
+  Shlibs: <<
+    !%p/lib/libguile-srfi-srfi-1-v-4.4.dylib
+    !%p/lib/libguile-srfi-srfi-13-14-v-4.4.dylib
+    !%p/lib/libguile-srfi-srfi-4-v-4.4.dylib
+    !%p/lib/libguile-srfi-srfi-60-v-3.3.dylib
+    !%p/lib/libguilereadline-v-18.18.dylib
+  <<
   DocFiles: COPYING.LESSER
-  Depends: readline5-shlibs (>= 5.0-1004), %N-shlibs (= %v-%r)
+  Depends: <<
+    %N-shlibs (= %v-%r),
+    readline5-shlibs (>= 5.0-1004)
+  <<
   Description: Scheme libraries and modules for guile19
 <<
 SplitOff3: <<
