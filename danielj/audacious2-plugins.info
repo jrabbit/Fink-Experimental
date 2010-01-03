@@ -1,5 +1,5 @@
 Package: audacious2-plugins
-Version: 2.1
+Version: 2.2
 Revision: 1
 Description: Plugins used by audacious2
 DescUsage: <<
@@ -8,13 +8,19 @@ DescUsage: <<
 DescPackaging: <<
 	audacious2-plugins Depends/BuildDepends on audacious2-shlibs/audacious2-dev
 	but the audacious2 binary requires audacious2-plugins to run.
+	
+	The CoreAudio driver is really buggy, so use jack instead for output.
 <<
 Homepage: http://www.audacious-media-player.org/
 License: GPL3
 Maintainer: Daniel Johnson <daniel@daniel-johnson.org>
 
 Source: http://distfiles.atheme.org/audacious-plugins-%v.tgz
-Source-MD5: 087fcb1f6fb8429b267f18ed3e3acb7a
+Source-MD5: ed6790bf5667c824eda72301f0a886a8
+
+PatchScript: <<
+	echo 'LIBS += -L%p/lib/ncurses' >>src/amidi-plug/backend-fluidsynth/Makefile
+<<
 
 Depends: <<
 	atk1-shlibs,
@@ -26,13 +32,14 @@ Depends: <<
 	freetype219-shlibs,
 	glib2-shlibs,
 	gtk+2-shlibs,
+	jack-shlibs,
 	lame-shlibs,
 	libcddb2-shlibs,
 	libcdio-common,
 	libcdio7-shlibs,
 	libcurl4-shlibs,
 	libflac8,
-	libgettext3-shlibs,
+	libgettext8-shlibs,
 	libiconv,
 	libmad-shlibs,
 	libmowgli-shlibs,
@@ -46,7 +53,6 @@ Depends: <<
 	neon27-shlibs,
 	pango1-xft2-ft219-shlibs,
 	taglib-shlibs,
-	wavpack1-shlibs,
 	x11-shlibs
 <<
 BuildDepends: <<
@@ -61,12 +67,13 @@ BuildDepends: <<
 	glib2-dev,
 	glitz,
 	gtk+2-dev,
+	jack-dev,
 	lame-dev,
 	libcddb-dev,
 	libcdio-dev,
 	libcurl4,
 	libflac8-dev,
-	libgettext3-dev,
+	libgettext8-dev,
 	libiconv-dev,
 	libmad,
 	libmcs,
@@ -86,10 +93,10 @@ BuildDepends: <<
 	pixman,
 	pkgconfig,
 	taglib,
-	wavpack1-dev,
 	x11-dev
 <<
 
+#fink's wavpack is too old, and dockalbumart won't build.
 ConfigureParams: <<
 	--disable-dependency-tracking \
 	--enable-ipv6 \
@@ -99,7 +106,7 @@ ConfigureParams: <<
 	--enable-coreaudio \
 	--disable-lirc \
 	--disable-adplug \
-	--disable-jack \
+	--enable-jack \
 	--disable-oss \
 	--disable-alsa \
 	--disable-mms \
@@ -108,7 +115,9 @@ ConfigureParams: <<
 	--disable-paranormal \
 	--disable-projectm \
 	--disable-projectm-1.0 \
-	--disable-bs2b
+	--disable-bs2b \
+	--disable-wavpack \
+	--disable-dockalbumart
 <<
 
 CompileScript: <<
@@ -116,6 +125,10 @@ CompileScript: <<
 	make LIB_LDFLAGS='-dynamiclib -install_name ${libdir}/${LIB:.dylib=.${LIB_MAJOR}.dylib} -current_version ${LIB_MAJOR}.${LIB_MINOR} -compatibility_version ${LIB_MAJOR}.0'
 <<
 
-InstallScript: make install DESTDIR=%d
+InstallScript: <<
+	make install DESTDIR=%d
+	# crossfade segfaults at launch
+	rm %i/lib/audacious/Output/crossfade.impl
+<<
 
 DocFiles: AUTHORS COPYING README.icecast
