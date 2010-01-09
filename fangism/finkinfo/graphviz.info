@@ -1,8 +1,8 @@
 Info3: <<
 Package: graphviz%type_pkg[var]
 Type: var (. -nox)
-Version: 2.24.0
-Revision: 3
+Version: 2.26.0
+Revision: 1
 License: OSI-Approved
 # License: Common Public License 1.0
 Maintainer: David Fang <fangism@users.sourceforge.net>
@@ -15,9 +15,11 @@ nam-US: http://www.graphviz.org/pub/graphviz/ARCHIVE
 nam-US: http://www.graphviz.org/pub/graphviz
 <<
 SourceDirectory: graphviz-%v
-Source-MD5: 806a30dbc3f8deb219216f35be0e7a40
+Source-MD5: 0609b42cb9ef913b7af13e43c4d716c9
+# Source-MD5: 806a30dbc3f8deb219216f35be0e7a40
 PatchFile: graphviz.patch
-PatchFile-MD5: 57cf9d74eab1a71fcb0e58c9fb464095
+PatchFile-MD5: 88bb5be125549bd3e75f9207753278e9
+# PatchFile-MD5: 57cf9d74eab1a71fcb0e58c9fb464095
 # PatchScript: <<
 #	patch -p0 < %{PatchFile}
 # <<
@@ -112,7 +114,7 @@ ConfigureParams: <<
 	CPPFLAGS="-I/System/Library/Frameworks/ApplicationServices.framework/Versions/A/Frameworks/CoreGraphics.framework/Versions/A/Headers -I/System/Library/Frameworks/JavaVM.framework/Versions/A/Headers -I%p/lib/ocaml -idirafter $system_ruby_include" \
 	-C
 <<
-SetLDFLAGS: -framework JavaVM -framework ApplicationServices -framework CoreServices
+SetLDFLAGS: -Wl,-framework,JavaVM -Wl,-framework,ApplicationServices -Wl,-framework,CoreServices
 # (%type_raw[var] = -nox) --with-mylibgd \
 # other possible configure params:
 # PKG_CONFIG_PATH="%p/lib/pango-ft219/lib/pkgconfig:%p/lib/fontconfig2/lib/pkgconfig:%p/lib/freetype219/lib/pkgconfig:$PKG_CONFIG_PATH"
@@ -124,14 +126,24 @@ SetLDFLAGS: -framework JavaVM -framework ApplicationServices -framework CoreServ
 CompileScript: <<
 	#!/bin/sh -ev
 	mv configure configure.orig
-	sed '/OCAML/s|/usr|%p|g' configure.orig > configure
+	sed -e '/OCAML/s|/usr|%p|g' configure.orig \
+	  -e '/framework/s|-\(framework\) |-Wl,-\1,|g' > configure
 	chmod +x configure
+	# don't bother with Makefile.am
+	for f in `grep -lr -e "-framework " macosx plugin | grep -v \.am` ; do
+	  mv $f $f.orig
+	  sed -e '/framework/s|-\(framework\) |-Wl,-\1,|g' $f.orig > $f
+	done
 	ruby_h_path=`find /usr/lib/ruby -name ruby.h | head -n 1`
 	test -f "$ruby_h_path" || ruby_h_path=`find /System/Library/Frameworks -name ruby.h | head -n 1`
 	test -f "$ruby_h_path" && echo "Found ruby.h as $ruby_h_path, using its dirname..."
 	system_ruby_include=`dirname $ruby_h_path`
 	test -d "$system_ruby_include"
 	./configure %c
+	mv config.status config.status.orig
+	sed -e '/framework/s|-\(framework\) |-Wl,-\1,|g' config.status.orig > config.status
+	chmod +x config.status
+	./config.status
 	make
 <<
 # InfoTest: <<
@@ -223,6 +235,8 @@ SplitOff: <<
 		%p/lib/libgraph.4.dylib 5.0.0 %n (>= 2.14-1)
 		%p/lib/libgvc.5.dylib 6.0.0 %n (>= 2.14-1)
 		%p/lib/libpathplan.4.dylib 5.0.0 %n (>= 2.14-1)
+		%p/lib/libgvpr.1.dylib 2.0.0 %n (>= 2.26.0-1)
+		%p/lib/libxdot.4.dylib 5.0.0 %n (>= 2.26.0-1)
 	<<
 	DescPackaging: <<
 		There are some other lib/graphviz directories that are empty
@@ -253,7 +267,7 @@ SplitOff2: <<
 	DocFiles: AUTHORS COPYING ChangeLog INSTALL NEWS README
 <<
 PostInstScript: %p/bin/dot -c
-PostRmScript: rm -f %p/lib/graphviz/config
+PostRmScript: rm -f %p/lib/graphviz/config*
 DocFiles: AUTHORS COPYING ChangeLog INSTALL NEWS README
 # there are more doc files
 Description: Graph visualization software
