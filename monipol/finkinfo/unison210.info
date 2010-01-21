@@ -1,0 +1,128 @@
+Info2: <<
+Package: unison210%type_pkg[uitype]
+Version: 2.10.2
+Revision: 1
+Type: uitype (. -nox)
+Description: File synchronization tool
+License: GPL
+Homepage: http://www.cis.upenn.edu/~bcpierce/unison
+Maintainer: Monic Polynomial <monipol@users.sourceforge.net>
+
+Source: http://www.cis.upenn.edu/~bcpierce/unison/download/stable/unison-%v/unison-%v.tar.gz
+Source-MD5: a93cf03d4221ab6bab8b758b0325a9d5
+
+Source2: http://www.cis.upenn.edu/~bcpierce/unison/download/stable/unison-%v/unison-%v-manual.html
+Source2-MD5: 32327d9239b7abe688cecd6ceaa3dd47
+
+PatchFile: unison210.patch
+PatchFile-MD5: 1e35d333499eeabb0290e6d2bc445621
+
+BuildDepends: <<
+  fink (>= 0.24.12),
+  ocaml (>= 3.11.1-3),
+  (%type_raw[uitype] = .) atk1 (>= 1.26.0-2),
+  (%type_raw[uitype] = .) cairo (>= 1.8.8-2),
+  (%type_raw[uitype] = .) fontconfig2-dev (>= 2.4.1-108),
+  (%type_raw[uitype] = .) freetype219 (>= 2.3.8-3),
+  (%type_raw[uitype] = .) glib2-dev (>= 2.20.5-1),
+  (%type_raw[uitype] = .) gtk+2-dev (>= 2.16.6-2),
+  (%type_raw[uitype] = .) lablgtk2 (>= 2.12.0-3),
+  (%type_raw[uitype] = .) libgettext8-dev (>= 0.17-19),
+  (%type_raw[uitype] = .) pango1-xft2-ft219-dev (>= 1.24.5-3),
+  (%type_raw[uitype] = .) x11-dev
+<<
+
+Depends: <<
+  (%type_raw[uitype] = .) atk1-shlibs (>= 1.26.0-2),
+  (%type_raw[uitype] = .) cairo-shlibs (>= 1.8.8-2),
+  (%type_raw[uitype] = .) fontconfig2-shlibs (>= 2.4.1-108),
+  (%type_raw[uitype] = .) freetype219-shlibs (>= 2.3.8-3),
+  (%type_raw[uitype] = .) glib2-shlibs (>= 2.20.5-1),
+  (%type_raw[uitype] = .) gtk+2-shlibs (>= 2.16.6-2),
+  (%type_raw[uitype] = .) libgettext8-shlibs (>= 0.17-19),
+  (%type_raw[uitype] = .) pango1-xft2-ft219-shlibs (>= 1.24.5-3),
+  (%type_raw[uitype] = .) x11-shlibs
+<<
+
+CompileScript: <<
+#!/bin/bash -ev
+  case "%type_raw[uitype]" in
+    "-nox") UISTYLE=text;;
+    ".")    UISTYLE=gtk2;;
+  esac
+
+  make UISTYLE=$UISTYLE THREADS=true
+<<
+
+InstallScript: <<
+#!/bin/bash -ev
+  VERSION=2.10
+  case "%type_raw[uitype]" in
+    "-nox") SUFFIX=nox;;
+    ".")    SUFFIX=x11;;
+  esac
+
+  /usr/bin/install -d %i/bin
+  /usr/bin/install -m 0755 unison %i/bin/unison-${VERSION}-${SUFFIX}
+<<
+
+PostInstScript: <<
+  VERSION=2.10
+  case "%type_raw[uitype]" in
+    "-nox") SUFFIX=nox; PRIORITY=2102;;
+    ".")    SUFFIX=x11; PRIORITY=2104;;
+  esac
+
+  update-alternatives --install \
+    %p/bin/unison-${VERSION} unison-${VERSION} %p/bin/unison-${VERSION}-${SUFFIX} ${PRIORITY}
+  update-alternatives --install \
+    %p/bin/unison unison %p/bin/unison-${VERSION}-${SUFFIX} ${PRIORITY}
+<<
+
+PreRmScript: <<
+  if [ "$1" != "upgrade" ]
+  then
+    VERSION=2.10
+    case "%type_raw[uitype]" in
+      "-nox") SUFFIX=nox;;
+      ".")    SUFFIX=x11;;
+    esac
+
+    update-alternatives --remove unison-${VERSION} %p/bin/unison-${VERSION}-${SUFFIX}
+    update-alternatives --remove unison            %p/bin/unison-${VERSION}-${SUFFIX}
+  fi
+<<
+
+DocFiles: <<
+  COPYING CONTRIB README ROADMAP.txt BUGS.txt INSTALL NEWS TODO.txt
+  ../unison-2.10.2-manual.html:manual.html
+<<
+
+DescDetail: <<
+  Unison is a file-synchronization tool for Unix and Windows. It allows two
+  replicas of a collection of files and directories to be stored on different
+  hosts (or different disks on the same host), modified separately, and then
+  brought up to date by propagating the changes in each replica to the other.
+
+  Unison shares a number of features with tools such as configuration
+  management packages (CVS, PRCS, etc.) distributed filesystems (Coda, etc.)
+  uni-directional mirroring utilities (rsync, etc.) and other synchronizers
+  (Intellisync, Reconcile, etc).
+
+  Note: All Unison variants can be installed simultaneously.  This package uses
+  the update-alternatives system so that the command 'unison' automatically
+  uses the best-available UI for the highest-available version.  Other versions
+  can be run using 'unison-[version]' or 'unison-[version]-[uitype].  Type
+  'ls %p/bin/unison*' and 'man update-alternatives' for more information.
+<<
+
+DescPackaging: <<
+  Unison requires the versions (major and minor) used on client and server to
+  match. Most OS distributions provide only one version, so the set of Unison
+  packages in Fink have been explicitly designed to coexist.
+
+  The priority assigned to each alternative for update-alternatives follows the
+  pattern $ver$uitype where $ver is the $major$minor version and $uitype is
+  2 for -nox, 4 for -x11, and 6 for -aqua.
+<<
+<<
