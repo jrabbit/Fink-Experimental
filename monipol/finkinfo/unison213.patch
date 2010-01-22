@@ -1,0 +1,274 @@
+diff -Nurd unison-2.13.16.ori/Makefile.OCaml unison-2.13.16/Makefile.OCaml
+--- unison-2.13.16.ori/Makefile.OCaml	2005-06-27 14:38:25.000000000 -0300
++++ unison-2.13.16/Makefile.OCaml	2010-01-21 21:02:44.000000000 -0200
+@@ -142,8 +142,8 @@
+ 
+ # NOTE: the OCAMLLIBDIR is not getting passed correctly?
+ macexecutable: $(NAME)-blob.o
+-	(cd uimac; xcodebuild OCAMLLIBDIR="$(OCAMLLIBDIR)")
+-	gcc uimac/cltool.c -o uimac/build/Unison.app/Contents/MacOS/cltool -framework Carbon
++	(cd uimac; xcodebuild ARCHS=@ARCH@ OCAMLLIBDIR="$(OCAMLLIBDIR)")
++	gcc uimac/cltool.c -o uimac/build/Unison.app/Contents/MacOS/cltool -framework Carbon || gcc uimac/cltool.c -o uimac/build/Default/Unison.app/Contents/MacOS/cltool -framework Carbon
+ 
+ # OCaml objects for the bytecode version
+ # File extensions will be substituted for the native code version
+diff -Nurd unison-2.13.16.ori/osxsupport.c unison-2.13.16/osxsupport.c
+--- unison-2.13.16.ori/osxsupport.c	2005-05-19 16:38:27.000000000 -0300
++++ unison-2.13.16/osxsupport.c	2010-01-21 19:32:56.000000000 -0200
+@@ -6,6 +6,8 @@
+ #include <caml/alloc.h>
+ #include <caml/memory.h>
+ #ifdef __APPLE__
++#include <sys/types.h>
++#include <sys/stat.h>
+ #include <sys/attr.h>
+ #include <unistd.h>
+ #include <stdio.h>
+@@ -100,6 +102,20 @@
+   retcode = setattrlist(String_val (path), &attrList, attrBuf.finderInfo,
+                         sizeof attrBuf.finderInfo, options);
+ 
++  if (retcode == -1 && errno == EACCES) {
++    /* Unlike with normal Unix attributes, we cannot set OS X attributes 
++       if file is read-only.  Try making it writable temporarily. */
++    struct stat st;
++    int r = stat(String_val(path), &st);
++    if (r == -1) uerror("setattrlist", path);
++    r = chmod(String_val(path), st.st_mode | S_IWUSR);
++    if (r == -1) uerror("setattrlist", path);
++    /* Try again */
++    retcode = setattrlist(String_val (path), &attrList, attrBuf.finderInfo,
++                          sizeof attrBuf.finderInfo, options);
++    /* Whether or not that worked, we should try to set the mode back. */
++    chmod(String_val(path), st.st_mode);
++  }
+   if (retcode == -1) uerror("setattrlist", path);
+ 
+   CAMLreturn (Val_unit);
+diff -Nurd unison-2.13.16.ori/terminal.ml unison-2.13.16/terminal.ml
+--- unison-2.13.16.ori/terminal.ml	2005-05-19 16:38:27.000000000 -0300
++++ unison-2.13.16/terminal.ml	2010-01-21 19:32:56.000000000 -0200
+@@ -32,10 +32,13 @@
+ *)
+ 
+ let passwordRx =
+-  Rx.rx ".*assword: "
++  Rx.rx ".*assword:[ ]*"
++let passphraseRx =
++  Rx.rx "Enter passphrase for key.*"
+ let authenticityRx =
+   Rx.rx "The authenticity of host .* continue connecting \\(yes/no\\)\\? "
+ let password s = Rx.match_string passwordRx s
++let passphrase s = Rx.match_string passphraseRx s
+ let authenticity s = Rx.match_string authenticityRx s
+ 
+ (* Create a new process with a new controlling terminal, useful for
+diff -Nurd unison-2.13.16.ori/terminal.mli unison-2.13.16/terminal.mli
+--- unison-2.13.16.ori/terminal.mli	2005-05-19 16:38:27.000000000 -0300
++++ unison-2.13.16/terminal.mli	2010-01-21 19:32:56.000000000 -0200
+@@ -19,4 +19,5 @@
+ 
+ (* For recognizing messages from OpenSSH *)
+ val password : string -> bool
++val passphrase : string -> bool
+ val authenticity : string -> bool
+diff -Nurd unison-2.13.16.ori/uimac/English.lproj/MainMenu.nib/classes.nib unison-2.13.16/uimac/English.lproj/MainMenu.nib/classes.nib
+--- unison-2.13.16.ori/uimac/English.lproj/MainMenu.nib/classes.nib	2005-03-18 20:33:18.000000000 -0300
++++ unison-2.13.16/uimac/English.lproj/MainMenu.nib/classes.nib	2010-01-21 19:32:56.000000000 -0200
+@@ -40,12 +40,17 @@
+                 detailsTextView = NSTextView; 
+                 mainWindow = NSWindow; 
+                 passwordCancelButton = NSButton; 
++                passwordPrompt = NSTextField; 
+                 passwordText = NSTextField; 
+                 passwordWindow = NSWindow; 
+                 preferencesController = PreferencesController; 
+                 preferencesView = NSView; 
+                 profileController = ProfileController; 
++                restartButton = NSButton; 
++                restartMenuItem = NSMenuItem; 
+                 statusText = NSTextField; 
++                synchronizeButton = NSButton; 
++                synchronizeMenuItem = NSMenuItem; 
+                 tableView = ReconTableView; 
+                 updatesText = NSTextField; 
+                 updatesView = NSView; 
+diff -Nurd unison-2.13.16.ori/uimac/English.lproj/MainMenu.nib/info.nib unison-2.13.16/uimac/English.lproj/MainMenu.nib/info.nib
+--- unison-2.13.16.ori/uimac/English.lproj/MainMenu.nib/info.nib	2005-03-21 17:22:18.000000000 -0300
++++ unison-2.13.16/uimac/English.lproj/MainMenu.nib/info.nib	2010-01-21 19:32:56.000000000 -0200
+@@ -3,34 +3,34 @@
+ <plist version="1.0">
+ <dict>
+ 	<key>IBDocumentLocation</key>
+-	<string>318 45 509 310 0 0 1280 832 </string>
++	<string>502 19 509 310 0 0 1024 746 </string>
+ 	<key>IBEditorPositions</key>
+ 	<dict>
+ 		<key>197</key>
+-		<string>450 391 383 326 0 0 1280 832 </string>
++		<string>320 335 383 326 0 0 1024 746 </string>
+ 		<key>198</key>
+-		<string>307 297 669 515 0 0 1280 832 </string>
++		<string>177 221 669 515 0 0 1024 746 </string>
+ 		<key>29</key>
+-		<string>72 209 280 44 0 0 1280 832 </string>
++		<string>-23 199 294 44 0 0 1024 746 </string>
+ 		<key>307</key>
+-		<string>392 388 499 332 0 0 1280 832 </string>
++		<string>262 332 499 332 0 0 1024 746 </string>
+ 		<key>423</key>
+-		<string>450 391 383 326 0 0 1280 832 </string>
++		<string>320 335 383 326 0 0 1024 746 </string>
+ 	</dict>
+ 	<key>IBFramework Version</key>
+-	<string>364.0</string>
++	<string>439.0</string>
+ 	<key>IBOpenObjects</key>
+ 	<array>
+-		<integer>423</integer>
+-		<integer>198</integer>
+-		<integer>29</integer>
+ 		<integer>402</integer>
+-		<integer>234</integer>
++		<integer>197</integer>
+ 		<integer>21</integer>
++		<integer>234</integer>
+ 		<integer>307</integer>
+-		<integer>197</integer>
++		<integer>29</integer>
++		<integer>198</integer>
++		<integer>423</integer>
+ 	</array>
+ 	<key>IBSystem Version</key>
+-	<string>7U16</string>
++	<string>8C46</string>
+ </dict>
+ </plist>
+Binary files unison-2.13.16.ori/uimac/English.lproj/MainMenu.nib/objects.nib and unison-2.13.16/uimac/English.lproj/MainMenu.nib/objects.nib differ
+diff -Nurd unison-2.13.16.ori/uimac/MyController.h unison-2.13.16/uimac/MyController.h
+--- unison-2.13.16.ori/uimac/MyController.h	2005-03-18 20:33:18.000000000 -0300
++++ unison-2.13.16/uimac/MyController.h	2010-01-21 19:32:56.000000000 -0200
+@@ -12,6 +12,9 @@
+ {
+     IBOutlet NSWindow *mainWindow;
+ 
++    IBOutlet NSMenuItem *restartMenuItem;
++    IBOutlet NSMenuItem *synchronizeMenuItem;
++
+     IBOutlet ProfileController *profileController;
+     IBOutlet NSView *chooseProfileView;
+     NSSize chooseProfileSize;
+@@ -28,8 +31,11 @@
+ 
+     IBOutlet ReconTableView *tableView;
+     IBOutlet NSTextField *updatesText;
++    IBOutlet NSButton *restartButton;
++    IBOutlet NSButton *synchronizeButton;
+ 
+     IBOutlet NSWindow *passwordWindow;
++    IBOutlet NSTextField *passwordPrompt;
+     IBOutlet NSTextField *passwordText;
+     IBOutlet NSTextView *detailsTextView;
+     IBOutlet NSTextField *statusText;
+diff -Nurd unison-2.13.16.ori/uimac/MyController.m unison-2.13.16/uimac/MyController.m
+--- unison-2.13.16.ori/uimac/MyController.m	2005-03-21 00:25:50.000000000 -0300
++++ unison-2.13.16/uimac/MyController.m	2010-01-21 19:32:56.000000000 -0200
+@@ -74,6 +74,8 @@
+         [reconItems insertObject:[ReconItem initWithRi:Field(caml_reconItems,j)]
+             atIndex:j];
+     }
++    [synchronizeButton setEnabled:YES];
++    [synchronizeMenuItem setEnabled:YES];
+ }
+ 
+ - (void)displayDetails:(int)i
+@@ -129,6 +131,8 @@
+     [mainWindow setContentView:blankView];
+     [self resizeWindowToSize:updatesSize];
+     [mainWindow setContentView:updatesView];
++    [synchronizeButton setEnabled:NO];
++    [synchronizeMenuItem setEnabled:NO];
+ 
+     // reconItems table gets keyboard input
+     [mainWindow makeFirstResponder:tableView];
+@@ -203,6 +207,8 @@
+     [[NSNotificationCenter defaultCenter] removeObserver:self
+         name:NSThreadWillExitNotification
+         object:nil];
++    [restartButton setEnabled:YES];
++    [restartMenuItem setEnabled:YES];
+     int i;
+     for (i = 0; i < [reconItems count]; i++) {
+         [[reconItems objectAtIndex:i] resetProgress];
+@@ -213,6 +219,10 @@
+ - (IBAction)syncButton:(id)sender
+ {
+     [tableView setEditable:NO];
++    [restartButton setEnabled:NO];
++    [restartMenuItem setEnabled:NO];
++    [synchronizeButton setEnabled:NO];
++    [synchronizeMenuItem setEnabled:NO];
+     [[NSNotificationCenter defaultCenter] addObserver:self
+         selector:@selector(afterSync:)
+         name:NSThreadWillExitNotification object:nil];
+@@ -269,6 +279,18 @@
+     value *f = caml_named_value("unisonPasswordMsg");
+     value v = Callback_checkexn(*f, caml_copy_string([prompt cString]));
+     if (v == Val_true) {
++	[passwordPrompt setStringValue:@"Please enter password"];
++        [NSApp beginSheet:passwordWindow
++            modalForWindow:mainWindow
++            modalDelegate:nil
++            didEndSelector:nil
++            contextInfo:nil];
++        return;
++    }
++    f = caml_named_value("unisonPassphraseMsg");
++    v = Callback_checkexn(*f, caml_copy_string([prompt cString]));
++    if (v == Val_true) {
++	[passwordPrompt setStringValue:@"Please enter passphrase"];
+         [NSApp beginSheet:passwordWindow
+             modalForWindow:mainWindow
+             modalDelegate:nil
+@@ -430,6 +452,7 @@
+                                             profile]];
+       /* If invoked from terminal we need to bring the app to the front */
+       [NSApp activateIgnoringOtherApps:YES];
++      [mainWindow orderFront:self];
+ 
+       /* Start the connection */
+       [self connect:caml_profile];
+Binary files unison-2.13.16.ori/uimac/build/uimac_newproj.build/uimac_newproj.pbxindex/categories.pbxbtree and unison-2.13.16/uimac/build/uimac_newproj.build/uimac_newproj.pbxindex/categories.pbxbtree differ
+Binary files unison-2.13.16.ori/uimac/build/uimac_newproj.build/uimac_newproj.pbxindex/cdecls.pbxbtree and unison-2.13.16/uimac/build/uimac_newproj.build/uimac_newproj.pbxindex/cdecls.pbxbtree differ
+Binary files unison-2.13.16.ori/uimac/build/uimac_newproj.build/uimac_newproj.pbxindex/decls.pbxbtree and unison-2.13.16/uimac/build/uimac_newproj.build/uimac_newproj.pbxindex/decls.pbxbtree differ
+Binary files unison-2.13.16.ori/uimac/build/uimac_newproj.build/uimac_newproj.pbxindex/files.pbxbtree and unison-2.13.16/uimac/build/uimac_newproj.build/uimac_newproj.pbxindex/files.pbxbtree differ
+Binary files unison-2.13.16.ori/uimac/build/uimac_newproj.build/uimac_newproj.pbxindex/imports.pbxbtree and unison-2.13.16/uimac/build/uimac_newproj.build/uimac_newproj.pbxindex/imports.pbxbtree differ
+Binary files unison-2.13.16.ori/uimac/build/uimac_newproj.build/uimac_newproj.pbxindex/pbxindex.header and unison-2.13.16/uimac/build/uimac_newproj.build/uimac_newproj.pbxindex/pbxindex.header differ
+Binary files unison-2.13.16.ori/uimac/build/uimac_newproj.build/uimac_newproj.pbxindex/protocols.pbxbtree and unison-2.13.16/uimac/build/uimac_newproj.build/uimac_newproj.pbxindex/protocols.pbxbtree differ
+Binary files unison-2.13.16.ori/uimac/build/uimac_newproj.build/uimac_newproj.pbxindex/refs.pbxbtree and unison-2.13.16/uimac/build/uimac_newproj.build/uimac_newproj.pbxindex/refs.pbxbtree differ
+Binary files unison-2.13.16.ori/uimac/build/uimac_newproj.build/uimac_newproj.pbxindex/strings.pbxstrings/control and unison-2.13.16/uimac/build/uimac_newproj.build/uimac_newproj.pbxindex/strings.pbxstrings/control differ
+Binary files unison-2.13.16.ori/uimac/build/uimac_newproj.build/uimac_newproj.pbxindex/strings.pbxstrings/strings and unison-2.13.16/uimac/build/uimac_newproj.build/uimac_newproj.pbxindex/strings.pbxstrings/strings differ
+Binary files unison-2.13.16.ori/uimac/build/uimac_newproj.build/uimac_newproj.pbxindex/subclasses.pbxbtree and unison-2.13.16/uimac/build/uimac_newproj.build/uimac_newproj.pbxindex/subclasses.pbxbtree differ
+Binary files unison-2.13.16.ori/uimac/build/uimac_newproj.build/uimac_newproj.pbxindex/symbols0.pbxsymbols and unison-2.13.16/uimac/build/uimac_newproj.build/uimac_newproj.pbxindex/symbols0.pbxsymbols differ
+diff -Nurd unison-2.13.16.ori/uimac/main.m unison-2.13.16/uimac/main.m
+--- unison-2.13.16.ori/uimac/main.m	2005-03-15 16:58:19.000000000 -0300
++++ unison-2.13.16/uimac/main.m	2010-01-22 00:35:00.000000000 -0200
+@@ -6,6 +6,7 @@
+ //  Copyright (c) 2003, see file COPYING for details.
+ //
+ 
++#undef _UINT64
+ #import <Cocoa/Cocoa.h>
+ 
+ #define CAML_NAME_SPACE
+diff -Nurd unison-2.13.16.ori/uimacbridge.ml unison-2.13.16/uimacbridge.ml
+--- unison-2.13.16.ori/uimacbridge.ml	2005-06-02 12:59:21.000000000 -0300
++++ unison-2.13.16/uimacbridge.ml	2010-01-21 19:32:56.000000000 -0200
+@@ -480,6 +480,7 @@
+ Callback.register "unisonProfileInit" unisonProfileInit;;
+ 
+ Callback.register "unisonPasswordMsg" Terminal.password;;
++Callback.register "unisonPassphraseMsg" Terminal.passphrase;;
+ Callback.register "unisonAuthenticityMsg" Terminal.authenticity;;
+ 
+ let unisonExnInfo e =
