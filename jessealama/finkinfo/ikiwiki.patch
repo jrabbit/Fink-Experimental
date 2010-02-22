@@ -16,3 +16,120 @@ diff -Naur --exclude='*~' ikiwiki/Makefile.PL ikiwiki.fink/Makefile.PL
  }
  }
  
+diff -Naur --exclude='*~' ikiwiki/doc/ikiwiki-mass-rebuild.mdwn ikiwiki.fink/doc/ikiwiki-mass-rebuild.mdwn
+--- ikiwiki/doc/ikiwiki-mass-rebuild.mdwn	2010-01-10 05:02:39.000000000 +0100
++++ ikiwiki.fink/doc/ikiwiki-mass-rebuild.mdwn	2010-02-22 13:39:43.000000000 +0100
+@@ -10,14 +10,14 @@
+ 
+ `ikiwiki-mass-rebuild` can be used to force a rebuild of all the wikis
+ on a system. You will need to list the setup files for the wikis it should
+-build in the file `/etc/ikiwiki/wikilist`, which has the format:
++build in the file `@PREFIX@/etc/ikiwiki/wikilist`, which has the format:
+ 
+ user /path/to/ikiwiki.setup
+ 
+ It's also possible to let a user list setup files in `~user/.ikiwiki/wikilist`
+ in their home directory. To do so, list only the user's name, without a
+ setup file. The format of `~/.ikiwiki/wikilist` is the same as 
+-`/etc/ikiwiki/wikilist`.
++`@PREFIX@/etc/ikiwiki/wikilist`.
+ 
+ # OPTIONS
+ 
+diff -Naur --exclude='*~' ikiwiki/doc/ikiwiki-update-wikilist.mdwn ikiwiki.fink/doc/ikiwiki-update-wikilist.mdwn
+--- ikiwiki/doc/ikiwiki-update-wikilist.mdwn	2010-01-10 05:02:39.000000000 +0100
++++ ikiwiki.fink/doc/ikiwiki-update-wikilist.mdwn	2010-02-22 13:59:55.000000000 +0100
+@@ -1,6 +1,6 @@
+ # NAME
+ 
+-ikiwiki-update-wikilist - add or remove user from /etc/ikiwiki/wikilist
++ikiwiki-update-wikilist - add or remove user from @PREFIX@/etc/ikiwiki/wikilist
+ 
+ # SYNOPSIS
+ 
+@@ -10,12 +10,12 @@
+ 
+ `ikiwiki-update-wikilist` is designed to be made suid root, but is not installed
+ suid by default. If made suid, it allows users to add or remove their names
+-from the `/etc/ikiwiki/wikilist` file. 
++from the `@PREFIX@/etc/ikiwiki/wikilist` file. 
+ 
+ By default, the user's name will be added.
+ The `-r` switch causes the user's name to be removed.
+ 
+-If your name is in `/etc/ikiwiki/wikilist`, the [[ikiwiki-mass-rebuild]](8)
++If your name is in `@PREFIX@/etc/ikiwiki/wikilist`, the [[ikiwiki-mass-rebuild]](8)
+ command will look for a ~/.ikiwiki/wikilist file, and rebuild the wikis listed
+ in that file.
+ 
+@@ -23,8 +23,17 @@
+ 
+ None.
+ 
++# FINK NOTES
++
++Your fink installation adheres to the default described above: this
++script is not installed suid.  To modify
++`@PREFIX@/etc/ikiwiki/wikilist`, execute this script with `sudo`, or
++(also described above) maintain your own `wikilist` under your home
++directory.
++
+ # AUTHOR
+ 
+ Joey Hess <joey@ikiwiki.info>
+ 
+ Warning: this page is automatically made into ikiwiki-update-wikilist's man page, edit with care
++
+diff -Naur --exclude='*~' ikiwiki/doc/setup.mdwn ikiwiki.fink/doc/setup.mdwn
+--- ikiwiki/doc/setup.mdwn	2010-01-10 05:02:39.000000000 +0100
++++ ikiwiki.fink/doc/setup.mdwn	2010-02-22 13:40:29.000000000 +0100
+@@ -16,11 +16,11 @@
+ [[by_hand|byhand]].
+ """]]
+ 
+-	% ikiwiki -setup /etc/ikiwiki/auto.setup
++	% ikiwiki -setup @PREFIX@/etc/ikiwiki/auto.setup
+ 
+ Or, set up a blog with ikiwiki, run this command instead.
+ 
+-	% ikiwiki -setup /etc/ikiwiki/auto-blog.setup
++	% ikiwiki -setup @PREFIX@/etc/ikiwiki/auto-blog.setup
+ 
+ Either way, it will ask you a couple of questions.
+ 
+diff -Naur --exclude='*~' ikiwiki/doc/wikitemplates.mdwn ikiwiki.fink/doc/wikitemplates.mdwn
+--- ikiwiki/doc/wikitemplates.mdwn	2010-01-10 05:02:39.000000000 +0100
++++ ikiwiki.fink/doc/wikitemplates.mdwn	2010-02-22 13:41:22.000000000 +0100
+@@ -5,7 +5,7 @@
+ The aim is to keep almost all html out of ikiwiki and in the templates.
+ 
+ It ships with some basic templates which can be customised. These are
+-located in /usr/share/ikiwiki/templates by default.
++located in @PREFIX@/share/ikiwiki/templates by default.
+ 
+ * `page.tmpl` - Used for displaying all regular wiki pages.
+ * `misc.tmpl` - Generic template used for any page that doesn't
+diff -Naur --exclude='*~' ikiwiki/ikiwiki-mass-rebuild ikiwiki.fink/ikiwiki-mass-rebuild
+--- ikiwiki/ikiwiki-mass-rebuild	2010-01-10 05:02:39.000000000 +0100
++++ ikiwiki.fink/ikiwiki-mass-rebuild	2010-02-22 13:11:34.000000000 +0100
+@@ -107,7 +107,7 @@
+ 	close $list;
+ }
+ 
+-my $wikilist="/etc/ikiwiki/wikilist";
++my $wikilist="@PREFIX@/etc/ikiwiki/wikilist";
+ 
+ if (-e $wikilist) {
+ 	processlist($wikilist);
+diff -Naur --exclude='*~' ikiwiki/ikiwiki-update-wikilist ikiwiki.fink/ikiwiki-update-wikilist
+--- ikiwiki/ikiwiki-update-wikilist	2010-01-10 05:02:39.000000000 +0100
++++ ikiwiki.fink/ikiwiki-update-wikilist	2010-02-22 13:28:58.000000000 +0100
+@@ -12,7 +12,7 @@
+ 	die "unable to determine user name for UID $REAL_USER_ID\n";
+ }
+ 
+-my $wikilist="/etc/ikiwiki/wikilist";
++my $wikilist="@PREFIX@/etc/ikiwiki/wikilist";
+ if (! -e $wikilist) {
+ 	die "$wikilist does not exist\n";
+ }
