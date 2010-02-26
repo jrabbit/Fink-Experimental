@@ -1,0 +1,79 @@
+Info2: <<
+Package: po4a-perl%type_pkg[perl]
+Description: PO for anything
+Version: 2.34
+Revision: 1
+Distribution: (%type_pkg[perl] = 586) 10.4, (%type_pkg[perl] = 586) 10.5, (%type_pkg[perl] = 5100) 10.5, (%type_pkg[perl] = 5100) 10.6
+Type: perl (5.8.6 5.8.8 5.10.0)
+UpdatePOD: true
+DocFiles: NEWS README README.translators
+Depends: <<
+  locale-gettext-pm%type_pkg[perl],
+  sgmls-pm,
+  text-wrapi18n-pm%type_pkg[perl],
+  term-readkey-pm%type_pkg[perl],
+  libgettext8-shlibs
+<<
+BuildDepends: libgettext8-dev
+Source: http://alioth.debian.org/frs/download.php/2518/%n-0.34.tar.gz
+Source-MD5: 883b616e8c2ec6dc5bab53118afd270a
+SourceDirectory: po4a-0.34
+CompileScript: <<
+#!/bin/sh -ex
+  exec 2>&1
+  perlversion=%type_raw[perl]
+  eval "`perl$perlversion -V:archname`"
+  perl$perlversion Build.PL \
+    --install_path arch=%i/lib/perl5/$perlversion/$archname \
+    --install_path bin=%i/bin \
+    --install_path bindoc=%i/lib/perl5/$perlversion/man/man1 \
+    --install_path lib=%i/lib/perl5/$perlversion \
+    --install_path libdoc=%i/lib/perl5/$perlversion/man/man3 \
+    --install_path script=%i/bin
+<<
+InstallScript: <<
+  %{default_script}
+#  mv %i/share/man %i/lib/perl5/%type_raw[perl]
+<<
+NoPerlTests: true
+DescDetail: <<
+The po4a (po for anything) project goal is to ease translations (and
+more interestingly, the maintenance of translations) using gettext
+tools on areas where they were not expected like documentation.
+
+po4a extracts the translatable material from its input in a PO file.
+
+When the PO file is translated, it re-injects the translation in the
+structure of the document, and generates the translated document.
+
+If a string is not translated (i.e. it was not translated or it is
+"fuzzy" because the original document was updated), the original
+string is used.
+
+This permits to provide always up-to-date documentation.
+
+- Supported formats
+
+po4a supports currently the following formats:
+
+* manpages
+* pod
+* xml (generic, docbook, xhtml, dia, guide, or wml)
+* sgml
+* TeX (generic, LaTeX, or Texinfo)
+* text (simple text files with some formatting, markdown, or AsciiDoc)
+* ini
+* KernelHelp
+
+- Configuration file
+
+You can use a configuration file to ease its usage to a single command
+invocation. This configuration file will contain the list of
+documents, the options, etc.
+
+When invoked with a configuration file, po4a uses an 'a la make'
+algorithm to detect if files changed and if an operation is required.
+<<
+License: GPL
+Maintainer: Jesse Alama <jesse.alama@gmail.com>
+<<
