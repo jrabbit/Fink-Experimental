@@ -1,0 +1,81 @@
+Info2: <<
+Package: params-validate-pm%type_pkg[perl]
+Version: 0.95
+Revision: 1
+Architecture: (%type_pkg[perl] = 581) powerpc, (%type_pkg[perl] = 584) powerpc
+Distribution: (%type_pkg[perl] = 581) 10.4, (%type_pkg[perl] = 584) 10.4, (%type_pkg[perl] = 586) 10.4, (%type_pkg[perl] = 586) 10.5, (%type_pkg[perl] = 5100) 10.6
+Description: Perl module to validate parameters
+Type: perl (5.8.1 5.8.4 5.8.6 5.8.8 5.10.0)
+License: Artistic
+Maintainer: Christian Schaffner <chris01@users.sourceforge.net>
+
+# Dependencies:
+Depends: <<
+	attribute-handlers-pm%type_pkg[perl] (>= 0.79-1),
+	perl%type_pkg[perl]-core,
+	scalar-list-utils-pm%type_pkg[perl]
+<<
+BuildDepends: <<
+	module-build-pm%type_pkg[perl],
+	test-simple-pm%type_pkg[perl]
+<<
+Replaces: params-validate-pm (<= 0.57-1), %N-man
+Conflicts: %N-man
+PostInstScript: <<
+	# nuke perl-unversioned items from older %v so they don't get
+	# mixed into newer perlversioned pkg
+ rm -rf %p/lib/perl5/darwin/Attribute/Params/
+ rm -rf %p/lib/perl5/darwin/auto/Params/Validate/
+ rm -f %p/lib/perl5/darwin/Params/Validate.pm
+ rm -f %p/lib/perl5/darwin/Params/ValidatePP.pm
+ rm -f %p/lib/perl5/darwin/Params/ValidateXS.pm
+<<
+
+# Unpack Phase:
+Source: mirror:cpan:authors/id/D/DR/DROLSKY/Params-Validate-%v.tar.gz
+Source-MD5: f544f12357ae4ba44044cd8cb2b83a9f
+
+CompileScript: <<
+#!/bin/sh -ev
+	exec 2>&1
+	perlversion=%type_raw[perl]
+	eval "`perl$perlversion -V:archname`"
+	perl$perlversion Build.PL \
+		--install_path arch=%i/lib/perl5/$perlversion/$archname \
+		--install_path bin=%i/bin \
+		--install_path bindoc=%i/lib/perl5/$perlversion/man/man1 \
+		--install_path lib=%i/lib/perl5/$perlversion \
+		--install_path libdoc=%i/lib/perl5/$perlversion/man/man3 \
+		--install_path script=%i/bin
+	./Build
+<<
+InfoTest: <<
+	TestDepends: <<
+		readonly-pm,
+		readonly-xs-pm%type_pkg[perl],
+		test-taint-pm%type_pkg[perl]
+	<<
+	TestScript: ./Build test || exit 2
+<<
+
+# Install Phase:
+UpdatePOD: true
+DocFiles: Changes LICENSE README TODO
+InstallScript: <<
+	./Build install
+<<
+
+# Additional Data:
+DescDetail: <<
+The Params::Validate module provides a flexible system for validation
+method/function call parameters.  The validation can be as simple as
+checking for the presence of required parameters or as complex as
+validating object classes (via isa) or capabilities (via can),
+checking parameter types, and using customized callbacks to ensure
+data integrity.
+
+The module has been designed to work equally well with positional or
+named parameters (via a hash or hash reference).
+<<
+Homepage: http://search.cpan.org/dist/Params-Validate
+<<
