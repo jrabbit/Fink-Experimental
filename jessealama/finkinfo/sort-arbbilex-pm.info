@@ -1,0 +1,131 @@
+Info2: <<
+Package: sort-arbbilex-pm%type_pkg[perl]
+Version: 4.01
+Revision: 1
+Distribution: (%type_pkg[perl] = 586) 10.4, (%type_pkg[perl] = 586) 10.5, (%type_pkg[perl] = 5100) 10.5, (%type_pkg[perl] = 5100) 10.6
+License: Artistic
+Description: Make sort functions for arbitrary sort orders
+DescDetail: <<
+
+This module provides two main functions, Sort::ArbBiLex::maker and
+Sort::ArbBiLex::source_maker, and it also presents an interface that
+accepts parameters in the use Sort::ArbBiLex ( ... ) statement.
+
+  use Sort::ArbBiLex;
+
+This merely loads the module at compile-time, just like any normal
+"use [modulename]". But with parameters, it's special:
+
+  use Sort::ArbBiLex ( 'name', DECLARATION, ... );
+
+This compile-time directive, besides loading the module if it's not
+already in memory, will interpret the parameters as a list of pairs,
+where each pair is first the name of a sub to create and then the
+DECLARATION of its sort order. This calls
+Sort::ArbBiLex::maker(DECLARATION) to make a such-named function, that
+sorts according to the sort order you specify.
+
+This is probably the only way most users will need to interact with
+this module; they probably won't need to call
+Sort::ArbBiLex::maker(DECLARATION) (much less
+Sort::ArbBiLex::source_maker(DECLARATION)!) directly.
+
+Unless your sort-order declarations are variables, you can simply use
+this use Sort::ArbBiLex (...) syntax. Feel free to skip ahead to the
+"Values for DECLARATION" section.
+
+- The function Sort::ArbBiLex::maker(DECLARATION)
+
+maker is called thus:
+
+  Sort::ArbBiLex::maker(DECLARATION)
+
+This will make a sort function, based on the contents of
+DECLARATION. The return value is an anonymous subroutine
+reference. While you can store this just like any another anonymous
+subroutine reference, you probably want to associate it with name,
+like most functions. To associate it with the symbol fulani_sort in
+the current package, do this:
+
+  *fulani_sort = Sort::ArbBiLex::maker($my_decl);
+
+Then you can call fulani_sort(@whatever) just like any other kind of
+function, just as if you'd defined fulani_sort via:
+
+  sub fulani_sort {
+    ...blah blah blah...
+  }
+
+As you might expect, you can specify a package, like so:
+
+  *MySorts::fulani_sort = Sort::ArbBiLex::maker($my_decl);
+
+If you don't know what *thing = EXPR means or how it works, don't
+worry, just use it -- or duck the whole issue by using the "use
+Sort::ArbBiLex ('fulani_sort', DECL);".
+
+Actually, there's a minor difference between the various ways of
+declaring the subroutine fulani_sort: if you declare it via a call to
+this:
+
+  *fulani_sort = Sort::ArbBiLex::maker($my_decl);
+
+then that happens at runtime, not compile time. However, compile-time
+is when Perl wants to know what subs will exist if you want to be able
+to call them without parens. I.e., this:
+
+  @stuff = fulani_sort @whatever;  # no parens!
+
+will cause all sorts of angry error messages, which you can happily
+avoid by simply adding a "forward declaration" at some early point in
+the program, to express that you're goung to want to use "fulani_sort"
+as a sub name:
+
+  sub fulani_sort;  # yup, just that!
+  ...later...
+  *fulani_sort = Sort::ArbBiLex::maker($my_decl);
+  ...later...
+  @stuff = fulani_sort @whatever;  # no parens!
+
+And then all should be well.
+
+The short story is to use the "use Sort::ArbBiLex ('fulani_sort',
+...)" syntax whenever possible (at which point you're free to omit
+parens, since the "use" makes it happen at compile-time, not runtime).
+
+But when you can't use the "use Sort::ArbBiLex ('fulani_sort', ...)"
+syntax, and you need to use a "*foo = ..." syntax instead (which is
+usually necessary if your declaration is a variable, instead of a
+literal), then either add a "sub fulani_sort;" line to your program;
+or just be sure to use parens on every call to the fulani_sort
+function.
+
+See also: perlsub, for the whys and wherefors of function protoptying,
+if you want all the scary details.
+
+The function Sort::ArbBiLex::source_maker(DECLARATION)
+
+Sort::ArbBiLex::source_maker is just like Sort::ArbBiLex::maker,
+except that it returns a string containing the source of the
+function. It's here if you want to, well, look at the source of the
+function, or write it to a file and modify it.
+<<
+Maintainer: Jesse Alama <jesse.alama@gmail.com>
+Homepage: http://search.cpan.org/dist/Sort-ArbBiLex
+Source: mirror:cpan:authors/id/S/SB/SBURKE/Sort-ArbBiLex-%v.tar.gz
+Source-MD5: 9996bae43334fc9bb318e99f2d11cfc5
+
+Type: perl (5.8.6 5.8.8 5.10.0)
+UpdatePOD: true
+
+DocFiles: ChangeLog README
+
+Depends: <<
+  perl%type_pkg[perl]-core
+<<
+
+InstallScript: <<
+  %{default_script}
+  mv %i/share/man %i/lib/perl5/%type_raw[perl]
+<<
+<<

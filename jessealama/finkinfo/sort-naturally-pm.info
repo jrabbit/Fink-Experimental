@@ -1,0 +1,136 @@
+Info2: <<
+Package: sort-naturally-pm%type_pkg[perl]
+Version: 1.02
+Revision: 1
+Distribution: (%type_pkg[perl] = 586) 10.4, (%type_pkg[perl] = 586) 10.5, (%type_pkg[perl] = 5100) 10.5, (%type_pkg[perl] = 5100) 10.6
+License: Artistic
+Description: Sort lexically, but sort numeral parts numerically
+DescDetail: <<
+
+This module exports two functions, nsort and ncmp; they are used in
+implementing my idea of a "natural sorting" algorithm. Under natural
+sorting, numeric substrings are compared numerically, and other
+word-characters are compared lexically.
+
+This is the way I define natural sorting:
+
+Non-numeric word-character substrings are sorted lexically,
+case-insensitively: "Foo" comes between "fish" and "fowl".  Numeric
+substrings are sorted numerically: "100" comes after "20", not before.
+\W substrings (neither words-characters nor digits) are ignored.  Our
+use of \w, \d, \D, and \W is locale-sensitive: Sort::Naturally uses a
+use locale statement.  When comparing two strings, where a numeric
+substring in one place is not up against a numeric substring in
+another, the non-numeric always comes first. This is fudged by reading
+pretending that the lack of a number substring has the value -1, like
+so: foo => "foo", -1 foobar => "foo", -1, "bar" foo13 => "foo", 13,
+foo13xyz => "foo", 13, "xyz" That's so that "foo" will come before
+"foo13", which will come before "foobar".
+
+The start of a string is exceptional: leading non-\W (non-word,
+non-digit) components are are ignored, and numbers come before
+letters.  I define "numeric substring" just as sequences matching
+m/\d+/ -- scientific notation, commas, decimals, etc., are not
+seen. If your data has thousands separators in numbers ("20,000
+Leagues Under The Sea" or "20.000 lieues sous les mers"), consider
+stripping them before feeding them to nsort or ncmp.  The nsort
+function
+
+This function takes a list of strings, and returns a copy of the list,
+sorted.
+
+This is what most people will want to use:
+
+  @stuff = nsort(...list...);
+
+When nsort needs to compare non-numeric substrings, it uses Perl's lc
+function in scope of a <use locale>. And when nsort needs to lowercase
+things, it uses Perl's lc function in scope of a <use locale>. If you
+want nsort to use other functions instead, you can specify them in an
+arrayref as the first argument to nsort:
+
+  @stuff = nsort( [
+                    \&string_comparator,   # optional
+                    \&lowercaser_function  # optional
+                  ],
+                  ...list...
+                );
+
+If you want to specify a string comparator but no lowercaser, then the
+options list is [\&comparator, ''] or [\&comparator]. If you want to
+specify no string comparator but a lowercaser, then the options list
+is ['', \&lowercaser].
+
+Any comparator you specify is called as $comparator->($left, $right),
+and, like a normal Perl cmp replacement, must return -1, 0, or 1
+depending on whether the left argument is stringwise less than, equal
+to, or greater than the right argument.
+
+Any lowercaser function you specify is called as $lowercased =
+$lowercaser->($original). The routine must not modify its $_[0].
+
+- The ncmp function
+
+Often, when sorting non-string values like this:
+
+   @objects_sorted = sort { $a->tag cmp $b->tag } @objects;
+
+...or even in a Schwartzian transform, like this:
+
+   @strings =
+     map $_->[0]
+     sort { $a->[1] cmp $b->[1] }
+     map { [$_, make_a_sort_key_from($_) ]
+     @_
+   ;
+
+...you wight want something that replaces not sort, but cmp. That's
+what Sort::Naturally's ncmp function is for. Call it with the syntax
+ncmp($left,$right) instead of $left cmp $right, but otherwise it's a
+fine replacement:
+
+   @objects_sorted = sort { ncmp($a->tag,$b->tag) } @objects;
+
+   @strings =
+     map $_->[0]
+     sort { ncmp($a->[1], $b->[1]) }
+     map { [$_, make_a_sort_key_from($_) ]
+     @_
+   ;
+
+Just as with nsort can take different a string-comparator and/or
+lowercaser, you can do the same with ncmp, by passing an arrayref as
+the first argument:
+
+  ncmp( [
+          \&string_comparator,   # optional
+          \&lowercaser_function  # optional
+        ],
+        $left, $right
+      )
+
+You might get string comparators from Sort::ArbBiLex.
+<<
+Maintainer: Jesse Alama <jesse.alama@gmail.com>
+Homepage: http://search.cpan.org/dist/CGI-FormBuilder
+Source: mirror:cpan:authors/id/N/NW/NWIGER/CGI-FormBuilder-%v.tgz
+Source-MD5: 65646f3064ecaef5e8c1dc38dd7c3807
+
+Type: perl (5.8.6 5.8.8 5.10.0)
+UpdatePOD: true
+
+DocFiles: Changes README
+
+Depends: <<
+	perl%type_pkg[perl]-core
+<<
+
+InstallScript: <<
+  %{default_script}
+  mv %i/share/man %i/lib/perl5/%type_raw[perl]
+<<
+Suggests: <<
+  sort-arbbilex-pm%type_pkg[perl]
+<<
+
+<<
