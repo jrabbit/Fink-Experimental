@@ -1,13 +1,15 @@
 Info2: <<
 
-Package: qgis-mac%type_pkg[pgsql]%type_pkg[grass]
-Type: pgsql (. -pgsql), grass (. -grass)
+Package: qgis-mac%type_pkg[pgsql]%type_pkg[grass]%type_pkg[-64bit]
+Type: pgsql (. -pgsql), grass (. -grass), -64bit (. -64bit)
+Architecture: (type_pkg[-64bit] = .) powerpc, (type_pkg[-64bit] = .) i386, (type_pkg[-64bit] = .) x86_64, (type_pkg[-64bit] = -64bit) x86_64
+Distribution: (type_pkg[-64bit] = .) 10.4, (type_pkg[-64bit] = .) 10.5, (type_pkg[-64bit] = .) 10.6, (type_pkg[-64bit] = -64bit) 10.6
 Conflicts: qgis-mac, qgis-mac-pgsql, qgis-mac-grass, qgis-mac-pgsql-grass
 Replaces: qgis-mac, qgis-mac-pgsql, qgis-mac-grass, qgis-mac-pgsql-grass
 
 
 Version: 1.4.0
-Revision: 2
+Revision: 3
 Description: User friendly Open Source GIS
 License: GPL
 Homepage: http://qgis.org
@@ -43,13 +45,13 @@ BuildDepends: <<
 	cmake, bison (>= 2.3),
 	gsl,
 	qt4-mac (>=4.5.2), 
-	pyqt4-mac-py26 (>=4.7), 
+	pyqt4-mac-py26-bin (>=4.7), 
 	sip-py26-bin (>=4.10), 
 	unixodbc2 (>= 2.2.11-1010) | unixodbc2-nox (>= 2.2.11-1010), 
 	libiconv-dev, giflib, libtiff, libjpeg, libogdi3 (>= 3.1.5-1002), libpng3, netcdf (>= 3.6.0-1002), cfitsio,
 	libgeos3, libgeosc1,
 	gdal-dev | gdal-pgsql-dev | gdal-mysql-dev| gdal-pgsql-mysql-dev, 
-	libspatialite1,
+	(type_pkg[-64bit] = .) libspatialite1 | (type_pkg[-64bit] = -64bit) libspatialite1-64bit,
 	(%type_raw[pgsql] = -pgsql) postgresql83-dev, 
 	(%type_raw[grass] = -grass) grass64-dev | (%type_raw[grass] = -grass) grass64-pgsql-dev, 
 	proj (>=4)
@@ -63,12 +65,13 @@ SourceDirectory: qgis-%v
 # Patch Phase.
 # No patch necessary for the current version.
 PatchFile: %n.patch
-PatchFile-MD5: c26d01b115dc1677d4bb4744ca58d4a9
+PatchFile-MD5: c5a0e3b1ee157a8d140da64df1c995c9
+PatchScript: sed 's|@PREFIX@|%p|g' < %{PatchFile} | patch -p1
 
 # Compile Phase.
 GCC: 4.0
 
-
+SetLDFLAGS: -liconv
 CompileScript: <<
 #!/bin/bash -ev
 
@@ -76,14 +79,15 @@ CompileScript: <<
 	# perl -pi -e 's|@executable_path/Applications/$BUNDLE|%p/|g' mac/extras/install-extra.sh
 
 	export QTDIR=%p/lib/qt4-mac
-	
+	# export PYTHONPATH=%p/lib/python2.6/site-packages
+        
 	mkdir build
 	cd build
-	echo 'exec %p/bin/python2.6 %p/lib/python2.6/site-packages/PyQt4/uic/pyuic.py ${1+"$@"}' >./pyuic4
-    	chmod 0555 ./pyuic4
+	# echo 'exec %p/bin/python2.6 %p/lib/python2.6/site-packages/PyQt4/uic/pyuic.py ${1+"$@"}' >./pyuic4
+    	# chmod 0555 ./pyuic4
     	
         QGIS_OPTIONS='-DCMAKE_PREFIX_PATH=%p
-        		-DEXECUTABLE_OUTPUT_PATH=%i/Applications/qgis%v.app/Contents/MacOS
+        		-DEXECUTABLE_OUTPUT_PATH=%b/build/src/mac/Contents/MacOS
         		-DCMAKE_INSTALL_PREFIX=%i/Applications
 				-DCMAKE_BUILD_TYPE=Release
 				-DGDAL_INCLUDE_DIR=%p/include/gdal1
@@ -94,7 +98,7 @@ CompileScript: <<
 				-DPYTHON_INCLUDE_PATH=%p/include/python2.6
 				-DPYTHON_LIBRARY=%p/lib/python2.6/config/libpython2.6.dylib
 				-DPYTHON_EXECUTABLE=%p/bin/python2.6
-				-DPYUIC4_PROGRAM=%b/build/pyuic4
+				-DPYUIC4_PROGRAM=%p/bin/pyuic4
 				-DSIP_INCLUDE_DIR=%p/include/python2.6
 				-DSIP_BINARY_PATH=%p/bin
 				-DSQLITE3_INCLUDE_DIR=/usr/include
@@ -141,17 +145,20 @@ CompileScript: <<
 # Install Phase.
 InstallScript: <<
 #!/bin/bash -ev
-	mkdir -p %i/Applications//qgis%v.app/Contents/MacOS
-	cd build
+	mkdir -p %i/Applications/qgis%v.app/Contents/MacOS
+	pushd build
 	make install CMAKE_INSTALL_PREFIX=%i SIP_MAC_PATH=%p/bin
-	cd %i/Applications/qgis%v.app/Contents/MacOS/lib
+	popd
+	pushd %i/Applications/qgis%v.app/Contents/MacOS/lib
         install_name_tool -id "%p/Applications/qgis%v.app/Contents/MacOS/lib/libqgis_core.%v.dylib" libqgis_core.%v.dylib
         install_name_tool -id "%p/Applications/qgis%v.app/Contents/MacOS/lib/libqgis_analysis.%v.dylib" libqgis_analysis.%v.dylib
         install_name_tool -id "%p/Applications/qgis%v.app/Contents/MacOS/lib/libqgis_gui.%v.dylib" libqgis_gui.%v.dylib
         install_name_tool -id "%p/Applications/qgis%v.app/Contents/MacOS/lib/libqgispython.%v.dylib" libqgispython.%v.dylib
+        install_name_tool -id "%p/Applications/qgis%v.app/Contents/MacOS/lib/libqgis_core.%v.dylib" libqgispython.%v.dylib
+	popd
 <<
-
-PostRmScript: rm -rf %p/Applications/qgis%v.app
+#AppBundles: qgis%v.app
+#PreRmScript: rm -rf %p/Applications/qgis%v.app/something
 
 
 
@@ -192,11 +199,10 @@ SplitOff2: <<
   Description: QGIS Shared Libraries
   Depends: <<
 	qt4-mac-core-shlibs (>=4.5.2), 
-	pyqt4-mac-py26-bin (>=4.6), 
 	gsl-shlibs,
 	libgeos3-shlibs, libgeosc1-shlibs,
 	gdal-shlibs | gdal-pgsql-shlibs | gdal-mysql-shlibs| gdal-pgsql-mysql-shlibs, 
-	libspatialite1-shlibs,
+        (type_pkg[64bit] = .) libspatialite1-shlibs | (type_pkg[64bit] = -64bit) libspatialite1-64bit-shlibs,
 	(%type_raw[pgsql] = -pgsql) postgresql83-shlibs, (%type_raw[pgsql] = -pgsql) postgis83,
 	(%type_raw[grass] = -grass) grass64-shlibs | (%type_raw[grass] = -grass) grass64-pgsql-shlibs, 
 	proj-shlibs (>=4)
