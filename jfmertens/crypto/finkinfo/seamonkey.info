@@ -4,14 +4,13 @@ Info2: <<
 Package: seamonkey
 # Version according to mozilla/config/milestone.txt ("mozilla-version"),
 # rather than suite/config/version.txt ("seamonkey-version", =%type_raw[ver]), to leave room for growth till 2.0
-Version: 1.9.1b3pre
+Version: 2.0.3
 Revision: 1
 ## parameters needed at several places :
-Type: sys_nspr (no), ver (2.0a3)
+Type: sys_nspr (no), ver (%v)
 Depends: %N2-shlibs (= %v-%r), bzip2-shlibs
 BuildDepends: <<
 	atk1 (>= 1.20.0-1),
-	autoconf2.13,
 	bzip2-dev,
 	cairo (>= 1.6-1),
 	dbus-dev,
@@ -27,12 +26,12 @@ BuildDepends: <<
 	libart2 (>= 2.3.20-1),
 	libbonobo2-dev (>= 2.20.0-1),
 	libbonoboui2-dev (>= 2.24.0-1),
-	libgettext3-dev,
+	libgettext8-dev,
 	libgnome2-dev (>= 2.20.0-1),
 	libgnomecanvas2-dev (>= 2.20.1.1-2),
 	libgnomeui2-dev (>= 2.20.0-1),
 	libiconv-dev,
-	libjpeg,
+	libjpeg8,
 	(%type_raw[sys_nspr] = .) nspr,
 	openssl098-dev,
 	orbit2-dev (>= 2.14.9-1),
@@ -47,9 +46,9 @@ BuildDepends: <<
 <<
 GCC: 4.0
 
-Source-MD5: 8507f49093764e74d015225c4dfcca38
+Source-MD5: ce943cd8d55a2b9e0af2f564520be013
 Source: mirror:custom:mozilla.org/%N/releases/%type_raw[ver]/source/%N-%type_raw[ver].source.tar.bz2
-NoSourceDirectory: true
+SourceDirectory: comm-1.9.1
 CustomMirror: <<
   Primary: http://ftp.mozilla.org/pub/
 #  nam-US: ftp://ftp.tux.org/pub/net/mozilla/
@@ -59,7 +58,7 @@ CustomMirror: <<
 
 ## someone should once re-generate this old patchfile, going back to the early mozilla versions, and that I've only edited since..
 PatchFile: %n.patch
-PatchFile-MD5: 9772d8d3a0e276236d9e56598461b47a
+PatchFile-MD5: 6ffb5602889bf63f9691f5bbd4f756e2
 PatchScript: <<
  #!/bin/sh -ev
  find . -name CVS -o -name .cvsignore | xargs rm -fR
@@ -138,9 +137,9 @@ PatchScript: <<
 ### we'll replace all '@executable_path's in install_names by a 'real path' that includes a symlink containing "%N-%V"
  V=`cut -f1 -d. <<<"%type_raw[ver]"`
  # for consistency, remove the : "-Wl,-executable_path,$(LIBXUL_DIST)/bin" from the link commands
- sed -ri.bak -e "s,.*executable_path.*,    MOZ_FIX_LINK_PATHS=''," {,mozilla/{,js/src/}}configure.in
+ sed -ri.bak -e "s,.*executable_path.*,    MOZ_FIX_LINK_PATHS=''," {,mozilla/{,js/src/}}configure{.in,}
  sed -ri.bak -e "s,(install_name|dylib_file) +@executable_path,\1 %p/lib/%N-$V,g" \
-	{,mozilla/{,js/src/}}config/{config,rules}.mk {directory/c-sdk,mozilla/nsprpub}/configure.in \
+	{,mozilla/{,js/src/}}config/{config,rules}.mk {directory/c-sdk,mozilla/nsprpub}/configure{.in,} \
 	mozilla/security/coreconf/Darwin.mk mozilla/security/nss/lib/freebl/config.mk
 # perl -pi.bak -e \   # files seem to have disappeared
 #   "s;rules.mk;$&\nEXTRA_DSO_LDOPTS := \\\$\(subst install_name \\\$\(mozappdir\)/,install_name %p/lib/%N-$V/ipc/modules/,\\\$\(EXTRA_DSO_LDOPTS\)\);" \
@@ -150,8 +149,8 @@ PatchScript: <<
    mozilla/modules/plugin/sdk/samples/unixprinting/Makefile.in
 
 #### we want a gtk2 build:
- sed -i'' -e 's, -DXP_MACOSX -DNO_X11, -DX11,' {,mozilla/}configure.in
- sed -i'' -e '/XP_MACOSX/d' mozilla/nsprpub/configure.in
+ sed -i'' -e 's, -DXP_MACOSX -DNO_X11, -DX11,' {,mozilla/}configure{.in,}
+ sed -i'' -e '/XP_MACOSX/d' mozilla/nsprpub/configure{.in,}
 ### The bulk of gnome deps (save for gnome-vfs and gtk2) would disappear w/o the following 8 lines; they appear just in libimgicon
 ### get around specific setting for darwin _ and, in same Makefile, get flag-ordering right, to avoid linking with nspr-shlibs.
  sed -i.bak -e 's,PLATFORM = mac,ifndef PLATFORM\n&\nendif,' \
@@ -176,22 +175,28 @@ endif\
 
 ### formerly passed along by gtk's .pc :
  sed -i'' -e '/PKG_CHECK_MODULES(MOZ_GTK2,/a\
-    MOZ_GTK2_LIBS="$MOZ_GTK2_LIBS -L/usr/X11R6/lib -lXrender -lX11"' mozilla/configure.in
+    MOZ_GTK2_LIBS="$MOZ_GTK2_LIBS -L/usr/X11R6/lib -lXrender -lX11"' mozilla/configure{.in,}
 
 #### MISC
-### libresolv              
+### libresolv
  # configure fails to detect libresolv (hence the 'env' before ./configure),
  # and even if it would detect it, it forgets to add -lresolv to LIBS  (Still true with seamonkey ??)
  # We put it as far as possible in the link line _ and just for the link that needs it, in order not to get
  # libresolv in the LOAD_COMMANDS everywhere :
  sed -ri.bak -e 's,^MODULE[[:space:]],OS_LIBS += -lresolv\n&,' mozilla/netwerk/build/Makefile.in
+ sed -ri.bak -e '/MOZ_COMPONENT_LIBS/a \\t\t-lresolv \\' mozilla/extensions/auth/Makefile.in
+### lXrender
+ sed -ri.bak -e '$a EXTRA_DSO_LDOPTS += -lXrender' mozilla/gfx/thebes/src/Makefile.in
+### allow enable-xul :
+ sed -ri.bak -e '/alldep all::/a \\tmkdir -p dist/bin/XUL' mozilla/Makefile.in
+ sed -ri -e 's, [^ ]*/bin/XUL,,' {,mozilla/}configure{.in,}
 ### Non-portable use of sed (not even usable with GNU sed)
  sed -i.bak -e 's,sed -E,sed -r,' mozilla/xpcom/typelib/xpidl/Makefile.in
 ### link nspr with g++ when using --enable-cplus
  sed -ri.bak -e 's,cplus$,&\n\tMKSHLIB = \$(CCC) \$(DSO_LDOPTS) -o \$@,' mozilla/nsprpub/pr/src/Makefile.in
 
 ### create configure scripts _ autoconf2.13 needed, and fink has no corresponding automake, so autoreconf can't be used..
- for f in `find . -name configure.in`; do cd `sed -e 's,/[^/]*$,,'<<<"$f$"`; autoconf; cd -; done
+# for f in `find . -name configure.in`; do cd `sed -e 's,/[^/]*$,,'<<<"$f$"`; autoconf; cd -; done
 
 ### Uncomment to check builddeps:
  # perl -pi -e 's,CPPFLAGS%%,CPPFLAGS -H%%,' configure
@@ -200,10 +205,6 @@ endif\
 # --enable-extensions=all no longer suoported in 2.0beta, and  --enable-system-lcms  is broken _ they use a customised version (pretending same version number 1/17)!!!
 # --enable-calendar no longer supported in 1.1a (http://www.mozilla.org/projects/calendar)
 # also --enable-places ... (https://bugzilla.mozilla.org/show_bug.cgi?id=355040)
-#  --enable-default-toolkit=cairo-gtk2 not usable (also w/o --enable-system-cairo) :
-# "nsCairoRenderingContext.cpp:99: error: 'cairo_set_target_surface_DEPRECATED_BY_cairo_create' was not declared in this scope"
-# : files in src refer (not always!) to a deprecated version of cairo...
-# https://bugzilla.mozilla.org/show_bug.cgi?id=334250
 ## can't enable static : "configure: error: Only one of --enable-shared or --enable-static must be specified."
 ## (and reluctant to impose 2 full builds on the user...)
 # Adding --enable-javaxpcom doesn't work _  https://bugzilla.mozilla.org/show_bug.cgi?id=354004
@@ -220,11 +221,14 @@ ConfigureParams: <<
  --enable-xpctools --enable-url-classifier --enable-ipv6 --enable-ldap-experimental \
  --with-x --enable-xinerama --enable-xprint --enable-pango --enable-xft --enable-postscript \
  --enable-svg --enable-svg-renderer=cairo --enable-system-cairo --enable-glitz \
- --with-system-mng --with-system-jpeg --with-system-zlib (%type_raw[sys_nspr] = .) --with-system-nspr \
- --enable-auto-deps --enable-md \
- --enable-update-channel=beta
+ --with-system-mng --with-system-jpeg --with-system-zlib --with-system-bz2 (%type_raw[sys_nspr] = .) --with-system-nspr \
+ --enable-auto-deps --enable-md --disable-necko-wifi \
+ --enable-update-channel=beta --disable-crashreporter
 <<
 ###### Last line is for private use !
+## disable-necko-wifi : mozilla/configure has 'elif test "$OS_ARCH" = "Darwin"; then  NECKO_WIFI=1'
+## but mozilla/netwerk/wifi/src/nsWifiScannerUnix.cpp fails to find iwlib.h (new in 2.03)
+#
 ##  --enable-system-sqlite , --enable-help-viewer , --enable-ipcd , --enable-oji ?
 ### With 2.0a :
 # --disable-profilesharing : else missing headers
@@ -286,7 +290,8 @@ cd md; for f in *.cfg; do ln -fs ../../unstable/$f; done; cd -
 popd > /dev/null
 ln -fs ../../include/%N-%type_raw[ver]/unstable/xpcom-config.h lib/%N-devel-%type_raw[ver]
 ln -fs en-US/mailViews.dat lib/%N-%type_raw[ver]/defaults/messenger/mailViews.dat
-ln -fs ../MainMenu.nib/classes.nib lib/%N-%type_raw[ver]/crashreporter.app/Contents/Resources/English.lproj/MainMenuRTL.nib
+# to be uncommented again when re-enabling crashreporter (in principle next time)
+#ln -fs ../MainMenu.nib/classes.nib lib/%N-%type_raw[ver]/crashreporter.app/Contents/Resources/English.lproj/MainMenuRTL.nib
 popd > /dev/null
 
 ## Fix install_names of plugins (were completely baroque, all in different ways)
@@ -365,8 +370,8 @@ SplitOff: <<
   Depends: <<
 	atk1-shlibs, cairo-shlibs (>= 1.6-1), dbus-shlibs, fontconfig2-shlibs, freetype219-shlibs, gconf2-shlibs,
 	glib2-shlibs, gnome-vfs2-unified-shlibs (>= 1:2.20.0-1), gtk+2-shlibs (>= 2.12.0-1),
-	libart2-shlibs, libbonobo2-shlibs, libbonoboui2-shlibs, libgettext3-shlibs, libgnome2-shlibs,
-	libgnomecanvas2-shlibs, libgnomeui2-shlibs (>= 2.20.0-1), libjpeg-shlibs,
+	libart2-shlibs, libbonobo2-shlibs, libbonoboui2-shlibs, libgettext8-shlibs, libgnome2-shlibs,
+	libgnomecanvas2-shlibs, libgnomeui2-shlibs (>= 2.20.0-1), libjpeg8-shlibs,
 	(%type_raw[sys_nspr] = .) nspr-shlibs,
 	openssl098-shlibs, orbit2-shlibs, pango1-xft2-ft219-shlibs (>= 1.18.4-4), popt-shlibs, x11-shlibs
   <<
