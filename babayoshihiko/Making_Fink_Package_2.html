@@ -1,0 +1,251 @@
+<html><head>
+<title>Fink のパッケージを作る 2: 自分用のパッケージを作る</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<style type="text/css">
+body {
+	background: transparent none;
+	margin: 0px 5% 0px 5%;
+	text-align: left;
+	color: #000000;
+	letter-spacing: 0.5px;
+	word-spacing: 1px;
+	padding: 0px;
+	font: 12pt Georgia, Times New Roman, Times, serif;
+}
+
+p { 
+}
+
+b, strong {
+	font-weight: bold;
+}
+
+h1 {
+	font-size: 16pt;
+	font-weight: bold;
+	margin-bottom: 3px;
+}
+
+h2 {
+	font-size: 14pt;
+	font-weight: bold;
+	margin-bottom: 3px;
+}
+
+h3 {
+	font-size: 12pt;
+	font-weight: bold;
+	margin-bottom: 3px;
+}
+
+table { 
+	border-collapse: collapse;
+	border-top: 1px solid black;
+	border-bottom: 1px solid black;
+	margin: 1em;
+}
+
+table tr th {
+	font-size: 9pt;
+	font-weight: bold;
+	text-align: left;
+	border-bottom: 1px solid black;
+    padding: 0px 2px;
+}
+
+table tr td {
+	font-size: 9pt;
+	border-bottom: 1px solid black;
+    padding: 0px 2px;
+}
+
+ul {
+	list-style-type: none;
+}
+ul.references li {
+	margin-left: -40px;
+	margin-bottom: 1em;
+}
+
+div.figure {
+  float: right;
+  border: thin silver solid;
+  margin: 0.5em;
+  padding: 0.5em;
+  font-size: 9pt;
+  text-indent: 0;
+}
+
+div.datatable {
+  float: none;
+  border: thin silver solid;
+  margin: 0.5em;
+  padding: 0.5em;
+  font-size: 9pt;
+  text-indent: 0;
+}
+
+pre.file {
+  background: #ccf
+}
+
+pre.terminal {
+  background: #000;
+  color: #0f0
+}
+
+</style>
+</head><body>
+<body>
+
+
+
+
+
+<p>それでは、ためしにパッケージ baba (baba.info) を作ってみましょう。
+なお、この時改行コードは LF にしてください。</p>
+
+<pre class="file">Package: baba
+Version: 1.0.0
+Revision: 1
+Description: Baba's Favourite Packages
+License: GPL
+Maintainer: BABA Yoshihiko <babayoshihiko@mac.com> </pre>
+
+<pre class="terminal">yoshis-MacBook-Air:fink yoshi$ fink list baba
+Scanning package description files
+Warning: file /sw/fink/dists/local/main/finkinfo/baba.info
+The implicit "Source" feature is deprecated and will be removed soon.
+Add "Source: %n-%v.tar.gz" to assure future compatibility.
+
+..........
+Fink has detected that your package index cache is missing or out of date, but does not have privileges
+to modify it. Re-run fink as root, for example with a "fink index" command, to update the cache.
+Information about 8167 packages read in 3 seconds.
+     baba                  1.0.0-1          Baba's Favourite Packages</pre>
+
+<p>これでパッケージがローカルに作成されました。
+しかし、ソースに関する Warning が出ています。
+そこで、とりあえずソースを作ってみましょう。
+（いい方法ではありませんが、テストですので）</p>
+
+<pre class="terminal">sudo touch /sw/src/baba-1.0.0.tar.gz
+ md5 /sw/src/baba-1.0.0.tar.gz</pre>
+
+<p>そして、以下の記述を baba.info に追加します。</p>
+
+<pre class="file">Source: %n-%v
+MD5-Souce: d41d8cd98f00b204e9800998ecf8427e</pre>
+
+<p>%n とは、パッケージ名（この場合は baba）のことで、%v は、バージョン番号 (この場合は 1.0.0) です。
+このように、.info ファイルでは、よく使う変数をパーセント記号で表します。
+詳しくは、パッケージ作成マニュアルの<a href="http://finkproject.org/doc/packaging/format.php#percent">2.3. パーセント展開</a>をごらんください。</p>
+
+
+
+
+
+<h1>既存パッケージの新バージョン / New upsteam version</h1>
+
+<p>MacPorts と比較した Fink の弱点に、パッケージのバージョンが古いというのがあります。
+それでは、既存パッケージを新バージョンに更新してみましょう！</p>
+
+<p>IRC で質問する</p>
+<p>何か困ったことがあったら、IRCで質問しましょう。IRC サーバは irc.freenode.net 、チャンネルは #fink です。
+エラーコードなど、行数の多いものを示すには、lisppaste を使います。</p>
+
+
+<pre class="terminal">yoshis-MacBook-Air:fink yoshi$ fink dumpinfo -finfofile qgis-mac
+Scanning package description files..........
+Fink has detected that your package index cache is missing or out of date, but does not have
+privileges to modify it. Re-run fink as root, for example with a "fink index" command, to update the
+cache.
+Information about 8167 packages read in 2 seconds.
+infofile: /sw/fink/dists/unstable/main/finkinfo/sci/qgis-mac.info</pre>
+
+<p>これで、パッケージの .info ファイルがどこにあるかわかるので、
+まずは /sw/fink/10.5/local/main/finkinfo にコピーし、テキストエディタで開きましょう。</p>
+
+<pre class="terminal">cp /sw/fink/dists/unstable/main/finkinfo/sci/qgis-mac.info /sw/fink/10.5/local/main/finkinfo/
+open -a "mi" /sw/fink/10.5/local/main/finkinfo/qgis-mac.info</pre>
+
+<p>また、ソースを /sw/src においておき、md5 をチェックします。</p>
+<pre class="terminal">md5 /sw/src/packagename-1.0.1.tar.gz</pre>
+
+<p>新しいバージョンに変えてみます。</p>
+<pre class="file">Version: 1.0.1
+Revision: 1
+...
+Source: URL/%n-%v
+Source-MD5: md5 を書き換える</pre>
+
+<pre class="terminal">fink -ykKm --build-as-nobody packagename</pre>
+
+
+<h1>共有ライブラリ と SplitOff</h1>
+<p>ほとんどのパッケージは、SplitOff を作ります。</p>
+<ul>ライブラリのみのパッケージ
+  <li>package-shlibs</li>
+  <li>package - ヘッダファイル、ビルドに必要なconfigファイルなど</li>
+</ul>
+<ul>実行可能なプログラムのあるパッケージ
+  <li>package-shlibs</li>
+  <li>package - 実行可能ファイル</li>
+  <li>package-dev - ヘッダファイル、ビルドに必要なconfigファイルなどル</li>
+</ul>
+<pre class="file">Info3: <<
+Package: baba
+
+  SplitOff: <<
+    Package: %N-shlibs
+    Files: ここに、パッケージ baba から移動させたいファイルを記述する。複数も可能。
+  <<
+# End of Info3
+<< </pre>
+<p>多くのパッケージには共有ライブラリがあります。</p>
+<ul>
+  <li>lib/libfoo.1.0.1.dylib - foo-shlibs SplitOff に入れる</li>
+  <li>lib/libfoo.1.0.dylib - foo-dev SplitOff に入れる</li>
+  <li>lib/libfoo.1.dylib - foo-dev SplitOff に入れる</li>
+</ul>
+<pre class="file">Info3: <<
+Package: baba
+Version: 1.7.1
+Revision: 5
+
+  SplitOff: <<
+    Package: %N-shlibs
+    Files: ここに、パッケージ baba から移動させたいファイル (lib/libfoo.1.0.1.dylib など) を記述する。複数も可能。
+    Shlibs: %p/lib/libgdal.1.0.1.dylib    16.0.0          %n      (>= 1.7.0-1)
+#           ^^^^^^^^^^^^^^^^^^^^^^    ^^^^^^                   　 ^^^^^^^^^^^^
+#            共有ライブラリ          compatibility version    compatibility version が同じなパッケージのバージョン
+  <<
+
+  SplitOff: <<
+    Package: %N-dev
+    Files: 
+    Shlibs: !%p/lib/libgdal.1.dylib
+    Shlibs: !%p/lib/libgdal.dylib
+#           ^^^^^^^^^^^^^^^^^^^^^^    ^^^^^^
+#             先頭に ! がつく       compatibility version 等は不要
+  <<
+# End of Info3
+<< </pre>
+<p>compatibility version は、otool でわかります。</p>
+<pre class="terminal">otool -L /sw/src/fink.build/root-package-1.0.1-1/sw/lib/libfoo.1.dylib</pre>
+
+
+
+<h1>重要事項</h1>
+<ul>
+<li>.info ファイルの改行コードは LF、日本語は使わない。</li>
+<li>パッケージを作成する際は、なるべくオプション -m --build-as-nobody を使いましょう。</li>
+<li>-k -K も便利です。</li>
+<li>ファイルの destination を考え、スクリプトやパラメータを設定しましょう。</li>
+<li>IRC などで友達を作り、なるべく多くの環境 ( 10.4, 10.5, 10.6 / ppc, i386, x86_64 ) でテストしましょう。</li>
+
+</ul>
+
+<br><br><br><br>
+</body>
+</html>

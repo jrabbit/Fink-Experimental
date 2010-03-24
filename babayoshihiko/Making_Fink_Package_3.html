@@ -1,0 +1,181 @@
+<html><head>
+<title>Fink のパッケージを作る 3: ライブラリの問題</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<style type="text/css">
+body {
+	background: transparent none;
+	margin: 0px 5% 0px 5%;
+	text-align: left;
+	color: #000000;
+	letter-spacing: 0.5px;
+	word-spacing: 1px;
+	padding: 0px;
+	font: 12pt Georgia, Times New Roman, Times, serif;
+}
+
+p { 
+}
+
+b, strong {
+	font-weight: bold;
+}
+
+h1 {
+	font-size: 16pt;
+	font-weight: bold;
+	margin-bottom: 3px;
+}
+
+h2 {
+	font-size: 14pt;
+	font-weight: bold;
+	margin-bottom: 3px;
+}
+
+h3 {
+	font-size: 12pt;
+	font-weight: bold;
+	margin-bottom: 3px;
+}
+
+table { 
+	border-collapse: collapse;
+	border-top: 1px solid black;
+	border-bottom: 1px solid black;
+	margin: 1em;
+}
+
+table tr th {
+	font-size: 9pt;
+	font-weight: bold;
+	text-align: left;
+	border-bottom: 1px solid black;
+    padding: 0px 2px;
+}
+
+table tr td {
+	font-size: 9pt;
+	border-bottom: 1px solid black;
+    padding: 0px 2px;
+}
+
+ul {
+	list-style-type: none;
+}
+ul.references li {
+	margin-left: -40px;
+	margin-bottom: 1em;
+}
+
+div.figure {
+  float: right;
+  border: thin silver solid;
+  margin: 0.5em;
+  padding: 0.5em;
+  font-size: 9pt;
+  text-indent: 0;
+}
+
+div.datatable {
+  float: none;
+  border: thin silver solid;
+  margin: 0.5em;
+  padding: 0.5em;
+  font-size: 9pt;
+  text-indent: 0;
+}
+
+pre.file {
+  background: #ccf;
+  font-size: smaller;
+}
+
+pre.terminal {
+  background: #000;
+  color: #0f0;
+  font-size: smaller;
+}
+
+</style>
+</head><body>
+<body>
+
+<h1>共有ライブラリ</h1>
+
+<h2>序</h2>
+<p>MacOSX 上で Fink のパッケージを作る際、ライブラリの扱いなどに関するエラーが出て、パッケージが作れないことが多くあります。
+ここでは、ライブラリに関するトラブルの解決策を解説したいと思います。</p>
+
+<p>ライブラリの問題は、コンパイル時と実行時に出ます。
+実行時に dyld がエラーを出す場合は、ライブラリの問題と考えてよいでしょう。
+ライブラリについて深く知りたければ、libtool を学ぶとよいでしょう。</p>
+
+<p>また、関連するコマンドには、dyld, gcc, libtool, nm などがあります。</p>
+
+<h2>ケーススタディ</h2>
+<h3>dyld: lazy symbol binding failed</h3>
+<p>shapelib-1.3.0b1 というパッケージを作ってテストしている際、コンパイルできたのに、その共有ライブラリを使う別のプログラムを実行すると、 dyld: lazy symbol binding failed が出ました。</p>
+
+<pre class="terminal">dyld: lazy symbol binding failed: Symbol not found: _SASetupDefaultHooks
+  Referenced from: /sw/lib/libshp.1.0.1.dylib
+  Expected in: flat namespace</pre>
+
+<p>そこで、 Makefile をみてみると（註：この Makefile はかなり変な書き方がされています。Makefile の書き方の参考にはしないように）、
+バイナリを作成する際には safileio.o をリンクしているのに、共有ライブラリを作成する際は、 safileio.lo をリンクしていません。また、</p>
+
+<pre class="terminal">$ nm /sw/src/fink.build/shapelib-1.3.0b1-0/shapelib-1.3.0b1/safileio.o 
+00000108 T _SADError
+000000e2 T _SADFClose
+000000cf T _SADFFlush
+00000031 T _SADFOpen
+0000004b T _SADFRead
+0000009b T _SADFSeek
+000000bc T _SADFTell
+00000073 T _SADFWrite
+000000f5 T _SADRemove
+0000013e T _SASetupDefaultHooks
+         U ___stderrp
+         U _atof
+00001154 d _cpl_cvsid
+00000000 t _cvsid_aw
+         U _fclose
+         U _fflush
+         U _fopen$UNIX2003
+         U _fprintf
+         U _fread
+         U _fseek
+         U _ftell
+         U _fwrite$UNIX2003
+         U _remove</pre>
+
+<p>というように、当該シンボルは、safileioにあることがわかります。
+解決策としては、safileio.lo を作成し、リンク時にこれをリンクするように変更しました。
+具体的には、</p>
+
+<pre class="file">/bin/sh ./libtool --mode=compile gcc -DPACKAGE=\"libshp\" -DVERSION=\"$(SHPLIB_VERSION)\" -DSTDC_HEADERS=1  -I. -I. -I$(PREFIX)/include    -g -O2 -c safileio.c</pre>
+
+<p>を追加し、</p>
+
+<pre class="file">/bin/sh ./libtool --mode=link gcc  -g -O2  -o libshp.la -rpath /usr/local/lib -version-info 1:1:0 shpopen.lo shptree.lo dbfopen.lo </pre>
+
+<p>という行を、</p>
+
+<pre class="file">/bin/sh ./libtool --mode=link gcc  -g -O2  -o libshp.la -rpath $(PREFIX)/lib -version-info 1:1:0 shpopen.lo shptree.lo dbfopen.lo safileio.lo</pre>
+
+<p>としました。
+つまり、 safileio.lo を追加しました。</p>
+
+<p>実際には、ほかにもいくつかの変更を行っています。
+例えば、上にあるように、/usr/local を $(PREFIX) に変更しています。
+Fink は、インストール先を比較的自由に変更できるようにされているためです。
+しかし、共有ライブラリとは関係ないので、ここでは省略します。</p>
+
+<h2>参考</h2>
+<ul>
+  <li>Vaughan, G. V., Ellison, B., Tromey, T. and Taylor, I. L. (でびあんぐる訳) (2001) GNU Autoconf/Automake/Libtool, Ohmsha.</li>
+  <li>坂井弘亮 (H15) C言語: 入門書の次に読む本, 技術評論社.</li>
+</ulL
+
+
+</body>
+</html>
