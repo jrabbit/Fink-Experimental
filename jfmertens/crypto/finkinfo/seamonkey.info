@@ -10,40 +10,53 @@ Revision: 1
 Type: sys_nspr (no), ver (%v)
 Depends: %N2-shlibs (= %v-%r), bzip2-shlibs
 BuildDepends: <<
-	atk1 (>= 1.20.0-1),
+	atk1 (>= 1.28.0-2),
 	bzip2-dev,
-	cairo (>= 1.6-1),
-	dbus-dev,
+	cairo (>= 1.8.8-4),
+	cyrus-sasl2-dev	(>= 2.1.23-2),
+	dbus1.3-dev (>= 1.2.16-101),
+	dbus-glib1.2-dev (>= 0.84-1),
 	expat1,
 	fink (>= 0.27.2-1),
-	fontconfig2-dev (>= 2.4.1-1),
-	freetype219 (>= 2.3.5-1),
-	gconf2-dev (>= 2.20.0-1),
-	glib2-dev (>= 2.14.0-1),
+	fontconfig2-dev (>= 2.8.0-3),
+	freetype219 (>= 2.3.12-1),
+	gconf2-dev (>= 2.28.0-3),
+	glib2-dev (>= 2.22.4-2),
 	glitz,
-	gnome-vfs2-unified-dev (>= 1:2.20.0-1),
-	gtk+2-dev (>= 2.12.0-1),
+	gnome-vfs2-unified-dev (>= 1:2.24.2-1),
+	gtk+2-dev (>= 2.18.9-3),
 	libart2 (>= 2.3.20-1),
-	libbonobo2-dev (>= 2.20.0-1),
-	libbonoboui2-dev (>= 2.24.0-1),
+	libbonobo2-dev (>= 2.24.2-2),
+	libbonoboui2-dev (>= 2.24.2-2),
 	libgettext8-dev,
-	libgnome2-dev (>= 2.20.0-1),
-	libgnomecanvas2-dev (>= 2.20.1.1-2),
-	libgnomeui2-dev (>= 2.20.0-1),
+	libgnome2-dev (>= 2.28.0-1),
+	libgnomecanvas2-dev (>= 2.26.0-3),
+	libgnomeui2-dev (>= 2.24.2-2),
+	libhunspell (>= 1.2.8-1005),
 	libiconv-dev,
 	libjpeg8,
-	(%type_raw[sys_nspr] = .) nspr,
-	openssl098-dev,
-	orbit2-dev (>= 2.14.9-1),
-	pango1-xft2-ft219-dev (>= 1.18.4-4),
-	pixman (>= 0.10.0-1),
-	pkgconfig (>= 0.21-1),
-	popt (>= 1.10.4-1),
+	(%type_raw[sys_nspr] = .) nspr.0d,
+	openssl098-dev (>= 0.9.8l-1),
+	orbit2-dev (>= 2.14.17-2),
+	pango1-xft2-ft219-dev (>= 1.24.5-6),
+	pixman (>= 0.16.6-1),
+	pkgconfig (>= 0.23-2),
+	popt (>= 1.14-1),
 	pth2-dev,
 	sed,
+        sqlite3 (>= 3.6.21-1),
+        sqlite3-dev (>= 3.6.21-1),
+        startup-notification-dev (>= 0.9-2),
 	x11-dev,
 	xft2-dev
 <<
+# for sqlite3 dep, must wait that upgrade currently in tracker gets committed to unstable ..
+# must also wait for gnome-2.28
+# For expat1, glitz, libiconv-dev, pixman, pth2-dev, xft2-dev : no evidence of need from otool;
+# leftovers from previous versions, awaiting confirmation or not by analyzing headers used (last 2 lines of PatchScript)
+# Also still left to run it once with DYLD_BIND_AT_LAUNCH, DYLD_PRINT_LIBRARIES and DYLD_PRINT_LIBRARIES_POST_LAUNCH
+# to check no runtime-deps are omitted..
+
 GCC: 4.0
 
 Source-MD5: ce943cd8d55a2b9e0af2f564520be013
@@ -204,36 +217,35 @@ endif\
  # perl -pi -e 's,CPPFLAGS%%,CPPFLAGS -H%%,' configure
 <<
 
-# --enable-extensions=all no longer suoported in 2.0beta, and  --enable-system-lcms  is broken _ they use a customised version (pretending same version number 1/17)!!!
-# --enable-calendar no longer supported in 1.1a (http://www.mozilla.org/projects/calendar)
-# also --enable-places ... (https://bugzilla.mozilla.org/show_bug.cgi?id=355040)
+# --enable-extensions=all no longer suoported in 2.0beta
 ## can't enable static : "configure: error: Only one of --enable-shared or --enable-static must be specified."
 ## (and reluctant to impose 2 full builds on the user...)
-# Adding --enable-javaxpcom doesn't work _  https://bugzilla.mozilla.org/show_bug.cgi?id=354004
 # Also "--enable-boehm" leads to trouble...; probably not important (for a 'production' pkg): according to
 # http://www.hpl.hp.com/personal/Hans_Boehm/gc/ , it is only used as a leak detector.
 # --enable-libxul leads to "/bld/seamonkey-1.9.1b3pre-1/mozilla/dist/bin/XUL: No such file or directory" in linking
 #  mozilla/xpfe/components/autocomplete/src/nsAutoComplete.o
+
+## try --enable-system-sqlite --enable-startup-notification ?
 ConfigureParams: <<
  --enable-macos-target=${MACOSX_DEPLOYMENT_TARGET} --enable-optimize=-Os --disable-debug --enable-strip --enable-tests --with-pthreads \
  --with-default-mozilla-five-home=%p/lib/%N-2 --mandir=%p/share/man --with-qtdir=%p --x-includes='' --x-libraries='' \
- --enable-application=suite --enable-default-toolkit=cairo-gtk2 --enable-cplus --enable-xul \
+ --enable-application=suite --enable-calendar --enable-default-toolkit=cairo-gtk2 --enable-cplus --enable-xul --enable-places \
  --enable-image-decoders=all --enable-image-encoders=all --enable-necko-protocols=all \
- --enable-ctl --enable-canvas --enable-update-packaging --enable-storage --disable-profilesharing \
- --enable-xpctools --enable-url-classifier --enable-ipv6 --enable-ldap-experimental \
+ --enable-ctl --enable-canvas --enable-update-packaging --enable-storage --enable-profilesharing --enable-startup-notification \
+ --enable-xpctools --enable-url-classifier --enable-ipv6 --enable-ldap-experimental --with-sasl \
  --with-x --enable-xinerama --enable-xprint --enable-pango --enable-xft --enable-postscript \
- --enable-svg --enable-svg-renderer=cairo --enable-system-cairo --enable-glitz \
+ --enable-svg --enable-svg-renderer=cairo --enable-system-cairo--enable-system-lcms --enable-glitz --enable-system-sqlite \
  --with-system-mng --with-system-jpeg --with-system-zlib --with-system-bz2 (%type_raw[sys_nspr] = .) --with-system-nspr \
- --enable-auto-deps --enable-md --disable-necko-wifi \
- --enable-update-channel=beta --disable-crashreporter
+ --enable-auto-deps --enable-md --disable-necko-wifi --disable-crashreporter --enable-safe-browsing --enable-system-hunspell \
+ --enable-help-viewer --enable-ipcd --enable-oji --enable-javaxpcom --enable-single-profile \
+ --enable-update-packaging --enable-update-channel=beta
 <<
 ###### Last line is for private use !
 ## disable-necko-wifi : mozilla/configure has 'elif test "$OS_ARCH" = "Darwin"; then  NECKO_WIFI=1'
 ## but mozilla/netwerk/wifi/src/nsWifiScannerUnix.cpp fails to find iwlib.h (new in 2.03)
 #
-##  --enable-system-sqlite , --enable-help-viewer , --enable-ipcd , --enable-oji ?
+##  --enable-system-sqlite : no, would need %v 3.6.16.1, an fink's is 3.6.13
 ### With 2.0a :
-# --disable-profilesharing : else missing headers
 # "--with-system-png" : "configure: error: --with-system-png won't work because the system's libpng doesn't have APNG support"
 ## questionable in config/autoconf.mk :
 # ACDEFINES: -DMOZ_XPINSTALL=1 -DMOZ_NO_XPCOM_OBSOLETE=1 -DMOZ_STATIC_MAIL_BUILD=1
@@ -369,13 +381,15 @@ ConfFiles: %p/etc/%N/prefs.js
 
 SplitOff: <<
   Package: %N2-shlibs
+  # in deps, all 'otool_deps' are listed, and those that are not recursive deps of some other are versioned
   Depends: <<
-	atk1-shlibs, cairo-shlibs (>= 1.6-1), dbus-shlibs, fontconfig2-shlibs, freetype219-shlibs, gconf2-shlibs,
-	glib2-shlibs, gnome-vfs2-unified-shlibs (>= 1:2.20.0-1), gtk+2-shlibs (>= 2.12.0-1),
+	atk1-shlibs, cairo-shlibs, cyrus-sasl2-shlibs, dbus-glib1.2-shlibs, dbus1.3-shlibs,
+	fontconfig2-shlibs, freetype219-shlibs, gconf2-shlibs, glib2-shlibs, gnome-vfs2-unified-shlibs, gtk+2-shlibs,
 	libart2-shlibs, libbonobo2-shlibs, libbonoboui2-shlibs, libgettext8-shlibs, libgnome2-shlibs,
-	libgnomecanvas2-shlibs, libgnomeui2-shlibs (>= 2.20.0-1), libjpeg8-shlibs,
+	libgnomecanvas2-shlibs, libgnomeui2-shlibs (>= 2.24.2-2), libhunspell-shlibs (>= 1.2.8-1005), libjpeg8-shlibs,
 	(%type_raw[sys_nspr] = .) nspr-shlibs,
-	openssl098-shlibs, orbit2-shlibs, pango1-xft2-ft219-shlibs (>= 1.18.4-4), popt-shlibs, x11-shlibs
+	openssl098-shlibs (>= 0.9.8l-1), orbit2-shlibs, pango1-xft2-ft219-shlibs, popt-shlibs, 
+	sqlite3-shlibs(>= 3.6.16.1), startup-notification-shlibs (>= 0.9-2), x11-shlibs
   <<
   DocFiles: mozilla/LEGAL mozilla/LICENSE
   Description: Seamonkey - shared libraries
@@ -414,7 +428,6 @@ SplitOff: <<
 	%p/lib/%N-2/libprldap60.dylib 1.0.0 %n (>= 1.0-1)
 	%p/lib/%N-2/libsmime3.dylib 1.0.0 %n (>= 1.0-1)
 	%p/lib/%N-2/libsoftokn3.dylib 1.0.0 %n (>= 1.0-1)
-	%p/lib/%N-2/libsqlite3.dylib 1.0.0 %n (>= 1.0-1)
 	%p/lib/%N-2/libssl3.dylib 1.0.0 %n (>= 1.0-1)
 	%p/lib/%N-2/libthebes.dylib 1.0.0 %n (>= 1.0-1)
 	%p/lib/%N-2/libxpcom.dylib 1.0.0 %n (>= 1.0-1)
@@ -424,7 +437,6 @@ SplitOff: <<
 	%p/lib/%N-2/plugins/libnullplugin.dylib 1.0.0 %n (>= 1.0-1)
 	%p/lib/%N-2/plugins/libunixprintplugin.dylib 1.0.0 %n (>= 1.0-1)
   <<
-#       %p/lib/%N-2/libmozlcms.dylib 1.0.0 %n (>= 1.0-1)
 <<
 
 SplitOff2: <<
@@ -436,7 +448,7 @@ SplitOff2: <<
 #  Conflicts: %N-dev, %N-shlibs, librsvg2-%N, librsvg2-%N-dev, %N (<< 1.9.0-1)
   Conflicts: %N-dev
   Replaces: %N-dev
-  Depends: %N2-shlibs (= %v-%r), pkgconfig (>= 0.21-1)
+  Depends: %N2-shlibs (= %v-%r), pkgconfig (>= 0.23-2)
   BuildDependsOnly: true
   Description: Seamonkey - development headers and libraries
   InstallScript: <<
