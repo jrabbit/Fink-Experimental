@@ -16,13 +16,11 @@ BuildDepends: <<
 	cyrus-sasl2-dev	(>= 2.1.23-2),
 	dbus1.3-dev (>= 1.2.16-101),
 	dbus-glib1.2-dev (>= 0.84-1),
-	expat1,
 	fink (>= 0.27.2-1),
 	fontconfig2-dev (>= 2.8.0-3),
 	freetype219 (>= 2.3.12-1),
 	gconf2-dev (>= 2.28.0-3),
 	glib2-dev (>= 2.22.4-2),
-	glitz,
 	gnome-vfs2-unified-dev (>= 1:2.24.2-1),
 	gtk+2-dev (>= 2.18.9-3),
 	libart2 (>= 2.3.20-1),
@@ -33,29 +31,36 @@ BuildDepends: <<
 	libgnomecanvas2-dev (>= 2.26.0-3),
 	libgnomeui2-dev (>= 2.24.2-2),
 	libhunspell (>= 1.2.8-1005),
-	libiconv-dev,
+	libidl2 (>= 0.8.13-2),
 	libjpeg8,
 	(%type_raw[sys_nspr] = .) nspr.0d,
 	openssl098-dev (>= 0.9.8l-1),
 	orbit2-dev (>= 2.14.17-2),
 	pango1-xft2-ft219-dev (>= 1.24.5-6),
-	pixman (>= 0.16.6-1),
 	pkgconfig (>= 0.23-2),
 	popt (>= 1.14-1),
-	pth2-dev,
 	sed,
         sqlite3 (>= 3.6.21-1),
         sqlite3-dev (>= 3.6.21-1),
         startup-notification-dev (>= 0.9-2),
-	x11-dev,
-	xft2-dev
+	x11-dev
 <<
 # for sqlite3 dep, must wait that upgrade currently in tracker gets committed to unstable ..
 # must also wait for gnome-2.28
-# For expat1, glitz, libiconv-dev, pixman, pth2-dev, xft2-dev : no evidence of need from otool;
-# leftovers from previous versions, awaiting confirmation or not by analyzing headers used (last 2 lines of PatchScript)
+##
+# Tentatively deleting expat1, glitz, libiconv-dev, pixman, pth2-dev, xft2-dev : leftovers from previous versions,
+# no evidence of need from otool, nor  by analyzing headers used
+# [ uncommment last line of PatchScript, then :
+## egrep '^\.+ /' /sw/var/logs/seamonkey.log|sed -r -e 's,^\.+ ,,'|sort -u|egrep -v -e '^/usr/' -e '^/System/' -e '/bld/seamonkey'|xargs dpkg -S|cut -f1 -d:|sort -u|xargs
+# atk1 bzip2-dev cairo dbus-glib1.2-dev dbus1.3-dev fontconfig2-dev freetype219 gconf2-dev glib2-dev gnome-vfs2-unified-dev 
+# gtk+2-dev libbonobo2-dev libgettext8-dev libgnome2-dev libgnomeui2-dev libidl2 libjpeg8 pango1-xft2-ft219-dev popt 
+# sqlite3-dev startup-notification-dev
+# ]
+##
 # Also still left to run it once with DYLD_BIND_AT_LAUNCH, DYLD_PRINT_LIBRARIES and DYLD_PRINT_LIBRARIES_POST_LAUNCH
 # to check no runtime-deps are omitted..
+
+# build uses yacc; mine is from fink's bison ..; hope system's is OK. Similarly for python, perl, most of coreutils, etc
 
 GCC: 4.0
 
@@ -134,6 +139,7 @@ PatchScript: <<
 		$(LCMS_LIBS) \\' mozilla/{gfx/src/thebes,layout/build}/Makefile.in
  sed -i.bak -e '/MOZ_UNICHARUTIL_LIBS/a \
 		-framework AddressBook \\' mailnews/build/Makefile.in
+ sed -i.bak -e 's,Cocoa,AddressBook -framework &,' mailnews/addrbook/build/Makefile.in
 ####
  # the need for -lcrypto comes from the symbols MD5_Init and MD5_Final, used in
  # toolkit/crashreporter/google-breakpad/src/common/mac/{file,macho}_id.cc, and defined nowhere in the builddir...
@@ -173,7 +179,7 @@ ifdef MOZ_ENABLE_GNOMEUI\
 EXTRA_DSO_LDOPTS += $(MOZ_GNOMEUI_LIBS) $(NULL)\
 endif\
 ' mozilla/modules/libpr0n/decoders/icon/Makefile.in
- ### since they subverted at many places XP_MACOSX to mean a toolkit to be used ("cocoa" rather than eg gtk or qt),
+ ### since upstream subverted at many places XP_MACOSX to mean a toolkit to be used ("cocoa" rather than eg gtk or qt),
  ### (instead of an OS), we zapped it, and so even in places where it is used properly we have to replace it ..
  sed -i.bak -e 's,XP_MACOSX,__APPLE__,' mozilla/toolkit/crashreporter/nsExceptionHandler.cpp \
 	mozilla/xpcom/base/nsStackWalk.cpp mailnews/addrbook/public/nsAbBaseCID.h
@@ -214,7 +220,7 @@ endif\
 # for f in `find . -name configure.in`; do cd `sed -e 's,/[^/]*$,,'<<<"$f$"`; autoconf; cd -; done
 
 ### Uncomment to check builddeps:
- # perl -pi -e 's,CPPFLAGS%%,CPPFLAGS -H%%,' configure
+#  perl -pi -e 's,CPPFLAGS%%,CPPFLAGS -H%%,' `find . -name configure`
 <<
 
 # --enable-extensions=all no longer supported in 2.0beta
@@ -237,7 +243,7 @@ ConfigureParams: <<
  --enable-svg --enable-svg-renderer=cairo --enable-system-cairo--enable-system-lcms --enable-glitz --enable-system-sqlite \
  --with-system-mng --with-system-jpeg --with-system-zlib --with-system-bz2 (%type_raw[sys_nspr] = .) --with-system-nspr \
  --enable-auto-deps --enable-md --disable-necko-wifi --disable-crashreporter --enable-safe-browsing --enable-system-hunspell \
- --enable-help-viewer --enable-ipcd --enable-oji --enable-javaxpcom --enable-single-profile \
+ --enable-help-viewer --enable-ipcd --enable-oji --enable-javaxpcom --enable-single-profile --disable-static-mail \
  --enable-update-packaging --enable-update-channel=beta
 <<
 ###### Last line is for private use !
@@ -247,8 +253,8 @@ ConfigureParams: <<
 ### With 2.0a :
 # "--with-system-png" : "configure: error: --with-system-png won't work because the system's libpng doesn't have APNG support"
 ## questionable in config/autoconf.mk :
-# ACDEFINES: -DMOZ_XPINSTALL=1 -DMOZ_NO_XPCOM_OBSOLETE=1 -DMOZ_STATIC_MAIL_BUILD=1
-# HOST_CFLAGS      =  -DXP_UNIX -DXP_MACOSX -DNO_X11  # Why NO_X11 ??
+# ACDEFINES: -DMOZ_STATIC_MAIL_BUILD=1
+# Try "--disable-static-mail" ?
 ### Older stuff :
 # no -fstrict-aliasing in '--enable-optimize', else "dereferencing type-punned pointer will break strict-aliasing rules" warnings
 # --enable-single-profile : causes trouble: launch aborts (right after loading libXt and before loading components/libprofile)
@@ -257,9 +263,9 @@ ConfigureParams: <<
 # --with-system-nss ?
 SetCC: gcc
 NoSetLDFLAGS: true
-SetLDFLAGS: -L%b/mozilla/dist/lib -L%b/mozilla/dist/bin -L%p/lib/pango-ft219/lib -L%p/lib/fontconfig2/lib
+SetLDFLAGS: -L%b/mozilla/dist/lib -L%b/mozilla/dist/bin -L%p/lib/fontconfig2/lib
 NoSetCPPFLAGS: true
-SetCPPFLAGS: -I%p/lib/pango-ft219/include-pango-1.0 -I%p/lib/pango-ft219/include -I%p/include/freetype2 -I%p/lib/fontconfig2/include
+SetCPPFLAGS: -I%p/include/pango-1.0 -I%p/include/freetype2 -I%p/lib/fontconfig2/include
 CompileScript: <<
 #!/bin/sh -ev
  if [ -e /usr/X11R6/include/X11/X.h ]; then
@@ -274,6 +280,7 @@ CompileScript: <<
  export PKG_CONFIG_PATH="%p/lib/fontconfig2/lib/pkgconfig:$PKG_CONFIG_PATH"
  export CPATH="%p/include/pango-1.0/pango:%p/include/pango-1.0:%p/include/freetype2:%p/lib/fontconfig2/include:%p/include:$Xdir/include"
  export LIBRARY_PATH="%b/mozilla/dist/lib:%b/mozilla/dist/bin:%p/lib/fontconfig2/lib:%p/lib:$Xdir/lib"
+ v=`uname -r|cut -f1 -d.`; if [ $v -ge 9 ]; then export LDFLAGS="$LDFLAGS -Wl,-dead_strip_dylibs" ; fi
  env ac_cv_func_res_ninit=yes ./configure %c
  make -w
 <<
@@ -290,6 +297,7 @@ InstallScript: <<
  fi
 export CPATH="%p/lib/pango-ft219/include-pango-1.0:%p/lib/pango-ft219/include:%p/include/freetype2:%p/lib/fontconfig2/include:%p/include:$Xdir/include"
 export LIBRARY_PATH="%p/lib/pango-ft219/lib:%p/lib/fontconfig2/lib:%p/lib:$Xdir/lib"
+v=`uname -r|cut -f1 -d.`; if [ $v -ge 9 ]; then export LDFLAGS="$LDFLAGS -Wl,-dead_strip_dylibs" ; fi
 
 make -j1 install DESTDIR=%d INSTALL_SDK=1
 
@@ -381,12 +389,14 @@ ConfFiles: %p/etc/%N/prefs.js
 SplitOff: <<
   Package: %N2-shlibs
   # in deps, all 'otool_deps' are listed, and those that are not recursive deps of some other are versioned
+  # With dead_strip_dylibs, atk1-shlibs, libart2-shlibs, libbonobo2-shlibs, libbonoboui2-shlibs, libgettext8-shlibs, 
+  # libgnomecanvas2-shlibs, libgnomeui2-shlibs, openssl098-shlibs, orbit2-shlibs, popt-shlibs  disappear from otool_deps
   Depends: <<
 	atk1-shlibs, cairo-shlibs, cyrus-sasl2-shlibs, dbus-glib1.2-shlibs, dbus1.3-shlibs,
 	fontconfig2-shlibs, freetype219-shlibs, gconf2-shlibs, glib2-shlibs, gnome-vfs2-unified-shlibs, gtk+2-shlibs,
 	libart2-shlibs, libbonobo2-shlibs, libbonoboui2-shlibs, libgettext8-shlibs, libgnome2-shlibs,
 	libgnomecanvas2-shlibs, libgnomeui2-shlibs (>= 2.24.2-2), libhunspell-shlibs (>= 1.2.8-1005), libjpeg8-shlibs,
-	(%type_raw[sys_nspr] = .) nspr-shlibs,
+	(%type_raw[sys_nspr] = .) nspr.0d-shlibs,
 	openssl098-shlibs (>= 0.9.8l-1), orbit2-shlibs, pango1-xft2-ft219-shlibs, popt-shlibs, 
 	sqlite3-shlibs(>= 3.6.16.1), startup-notification-shlibs (>= 0.9-2), x11-shlibs
   <<
@@ -418,6 +428,7 @@ SplitOff: <<
 	%p/lib/%N-2/libldap60.dylib 1.0.0 %n (>= 1.0-1)
 	%p/lib/%N-2/libldif60.dylib 1.0.0 %n (>= 1.0-1)
 	%p/lib/%N-2/libmozjs.dylib 1.0.0 %n (>= 1.0-1)
+	%p/lib/%N-2/libmsgbaseutil.dylib 1.0.0 %n (>= 2.0.3-1)
 	(%type_raw[sys_nspr] = no) %p/lib/%N-2/libnspr4.dylib 1.0.0 %n (>= 1.0-1)
 	%p/lib/%N-2/libnss3.dylib 1.0.0 %n (>= 1.0-1)
 	%p/lib/%N-2/libnssdbm3.dylib 1.0.0 %n (>= 1.0-1)
