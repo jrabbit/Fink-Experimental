@@ -47,8 +47,9 @@ BuildDepends: <<
         startup-notification-dev (>= 0.9-2),
 	x11-dev
 <<
+## esound and libcanberra0 : probably not needed in the build...
 # for sqlite3 dep, must wait that upgrade currently in tracker gets committed to unstable ..
-# must also wait for gnome-2.28
+# must also wait for full gnome-2.28 (at least libgnomeui)
 ##
 # Tentatively deleting expat1, glitz, libiconv-dev, pixman, pth2-dev, xft2-dev : leftovers from previous versions,
 # no evidence of need from otool, nor  by analyzing headers used
@@ -60,7 +61,7 @@ BuildDepends: <<
 # ]
 ##
 # Also still left to run it once with DYLD_BIND_AT_LAUNCH, DYLD_PRINT_LIBRARIES and DYLD_PRINT_LIBRARIES_POST_LAUNCH
-# to check no runtime-deps are omitted..
+# to check no runtime-deps are omitted..  DONE
 
 # build uses yacc; mine is from fink's bison ..; hope system's is OK. Similarly for python, perl, most of coreutils, etc
 
@@ -95,22 +96,12 @@ PatchScript: <<
  # for documentation; prefer to see explicitly everything in %c
 # mv .mozconfig .mozconfig.bak
 
-### gfxtypes.h and gfxTypes.h end up in the same directory. We rename the former. (Should use a 'find' for robustness..)
-#   We'll put some symlinks with the original name elsewhere, though it seems to become obsolete, and no other fink pkg uses it.
-# mv mozilla/gfx/idl/gfxtypes.idl mozilla/gfx/idl/gfx_types.idl
-# sed -i'' -e 's,include "gfxtypes.idl",include "gfx_types.idl",' \
-#	mozilla/{gfx/idl/gfxI{Formats,ImageFrame},modules/libpr0n/public/imgIContainer{,Observer}}.idl
-# sed -i'' -e 's,gfxtypes.idl,gfx_types.idl,' mozilla/gfx/idl/{Makefile.in,gfx_types.idl}
-
 ### CAIRO and gfx
  # Including Carbon.h brings in so many headers that there are several name clashes with the X11 headers also brought in.
  # And CGContext.h suffices
  sed -i.bak -e \
  's,Carbon/Carbon.h,/System/Library/Frameworks/ApplicationServices.framework/Frameworks/CoreGraphics.framework/Headers/CGContext.h,' \
 	mozilla/gfx/thebes/public/gfxQuartzSurface.h
-# following no longer effective:
-# sed -i.bak -e 's,Multiprocessing.h,/System/Library/Frameworks/CoreServices.framework/Frameworks/CarbonCore.framework/Headers/&,' \
-#	mozilla/media/liboggplay/src/liboggplay/std_semaphore.h
  sed -i.bak -e 's,Carbon\.h,Carbon/&,' mozilla/gfx/thebes/src/gfxQuartzFontCache.mm
 
 ## Either of the 2 following attempts should be viable. Launch time problems (probably unrelated) remain with both..
@@ -221,7 +212,7 @@ endif\
 
 ### Fixing SOME calls to PR_LoadLibrary ... (using proper install_names..) _ just looked at those with a hard-coded string.
 ### Possibly this would make the use of -dead_strip_dylibs safe ? (cf CompileScript)
-### (use of otool -D below is legal, since names of deps must change if install_names do.)
+### Use of otool -D below is legal, since names of deps must change if install_names do. And this avoids hard-coding things here.
  sed -ri.bak -e 's,libcups\.so\.2,/usr/lib/libcups.dylib,' mozilla/gfx/src/psshared/nsCUPSShim.cpp
  sed -ri.bak -e	's,libgnomeui-2\.so\.0,%p/lib/libgnomeui-2.0.dylib,' -e 's,libgnome-2.so.0,%p/lib/libgnome-2.0.dylib,' \
    -e "s,libgnomevfs-2\.so\.0,`otool -D %p/lib/libgnomevfs-2.dylib|fgrep -v :`," \
@@ -235,7 +226,8 @@ endif\
  sed -ri.bak -e 's,libesd\.so\.0,%p/lib/libesd.0.dylib,' -e 's,libcanberra\.so\.0,%p/lib/libcanberra.0.dylib,' \
    mozilla/widget/src/gtk2/nsSound.cpp
 
-### create configure scripts _ autoconf2.13 needed, and fink has no corresponding automake, so autoreconf can't be used..
+### For alpha or beta versions : need to create configure scripts
+###  autoconf2.13 (!) needed, and fink has no corresponding automake, so autoreconf can't be used..
 # for f in `find . -name configure.in`; do cd `sed -e 's,/[^/]*$,,'<<<"$f$"`; autoconf; cd -; done
 
 ### Uncomment to check builddeps:
@@ -298,6 +290,7 @@ CompileScript: <<
  export LIBRARY_PATH="%b/mozilla/dist/lib:%b/mozilla/dist/bin:%p/lib/fontconfig2/lib:%p/lib:$Xdir/lib"
 # next can't be used, though all undefined symbols have a ' (from ...)'; apparently dynamic linking is hidden via use of PRLibrary
 # v=`uname -r|cut -f1 -d.`; if [ $v -ge 9 ]; then export LDFLAGS="$LDFLAGS -Wl,-dead_strip_dylibs" ; fi
+ if grep -q 64 %p/var/lib/fink/path-prefix-10.6/compiler_wrapper ; then export USE_64=1 ; fi
  env ac_cv_func_res_ninit=yes ./configure %c
  make -w
 <<
@@ -409,9 +402,9 @@ SplitOff: <<
   # With dead_strip_dylibs, atk1-shlibs, libart2-shlibs, libbonobo2-shlibs, libbonoboui2-shlibs, libgettext8-shlibs, 
   # libgnomecanvas2-shlibs, libgnomeui2-shlibs, openssl098-shlibs, orbit2-shlibs, popt-shlibs  disappear from otool_deps
   Depends: <<
-	atk1-shlibs, cairo-shlibs, cyrus-sasl2-shlibs, dbus-glib1.2-shlibs, dbus1.3-shlibs,
+	atk1-shlibs, cairo-shlibs, cyrus-sasl2-shlibs, dbus-glib1.2-shlibs, dbus1.3-shlibs, esound-shlibs,
 	fontconfig2-shlibs, freetype219-shlibs, gconf2-shlibs, glib2-shlibs, gnome-vfs2-unified-shlibs, gtk+2-shlibs,
-	libart2-shlibs, libbonobo2-shlibs, libbonoboui2-shlibs, libgettext8-shlibs, libgnome2-shlibs,
+	libart2-shlibs, libbonobo2-shlibs, libbonoboui2-shlibs, libcanberra0-shlibs, libgettext8-shlibs, libgnome2-shlibs,
 	libgnomecanvas2-shlibs, libgnomeui2-shlibs (>= 2.24.2-2), libhunspell-shlibs (>= 1.2.8-1005), libjpeg8-shlibs,
 	(%type_raw[sys_nspr] = .) nspr.0d-shlibs,
 	openssl098-shlibs (>= 0.9.8l-1), orbit2-shlibs, pango1-xft2-ft219-shlibs, popt-shlibs, 
