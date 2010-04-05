@@ -4,10 +4,12 @@ Info2: <<
 Package: seamonkey
 # Version according to mozilla/config/milestone.txt ("mozilla-version"),
 # rather than suite/config/version.txt ("seamonkey-version", =%type_raw[ver]), to leave room for growth till 2.0
-Version: 2.0.3
+Version: 2.0.4
 Revision: 1
 ## parameters needed at several places :
 Type: sys_nspr (no), ver (%v)
+
+#Architecture: i386, powerpc
 Depends: %N2-shlibs (= %v-%r), bzip2-shlibs
 BuildDepends: <<
 	atk1 (>= 1.28.0-2),
@@ -64,7 +66,7 @@ BuildDepends: <<
 
 GCC: 4.0
 
-Source-MD5: ce943cd8d55a2b9e0af2f564520be013
+Source-MD5: 1a7f94a46890a60e0fb3340e567000c0
 Source: mirror:custom:mozilla.org/%N/releases/%type_raw[ver]/source/%N-%type_raw[ver].source.tar.bz2
 SourceDirectory: comm-1.9.1
 CustomMirror: <<
@@ -95,10 +97,10 @@ PatchScript: <<
 
 ### gfxtypes.h and gfxTypes.h end up in the same directory. We rename the former. (Should use a 'find' for robustness..)
 #   We'll put some symlinks with the original name elsewhere, though it seems to become obsolete, and no other fink pkg uses it.
- mv mozilla/gfx/idl/gfxtypes.idl mozilla/gfx/idl/gfx_types.idl
- sed -i'' -e 's,include "gfxtypes.idl",include "gfx_types.idl",' \
-	mozilla/{gfx/idl/gfxI{Formats,ImageFrame},modules/libpr0n/public/imgIContainer{,Observer}}.idl
- sed -i'' -e 's,gfxtypes.idl,gfx_types.idl,' mozilla/gfx/idl/{Makefile.in,gfx_types.idl}
+# mv mozilla/gfx/idl/gfxtypes.idl mozilla/gfx/idl/gfx_types.idl
+# sed -i'' -e 's,include "gfxtypes.idl",include "gfx_types.idl",' \
+#	mozilla/{gfx/idl/gfxI{Formats,ImageFrame},modules/libpr0n/public/imgIContainer{,Observer}}.idl
+# sed -i'' -e 's,gfxtypes.idl,gfx_types.idl,' mozilla/gfx/idl/{Makefile.in,gfx_types.idl}
 
 ### CAIRO and gfx
  # Including Carbon.h brings in so many headers that there are several name clashes with the X11 headers also brought in.
@@ -106,8 +108,9 @@ PatchScript: <<
  sed -i.bak -e \
  's,Carbon/Carbon.h,/System/Library/Frameworks/ApplicationServices.framework/Frameworks/CoreGraphics.framework/Headers/CGContext.h,' \
 	mozilla/gfx/thebes/public/gfxQuartzSurface.h
- sed -i.bak -e 's,Multiprocessing.h,/System/Library/Frameworks/CoreServices.framework/Frameworks/CarbonCore.framework/Headers/&,' \
-	mozilla/media/liboggplay/src/liboggplay/std_semaphore.h
+# following no longer effective:
+# sed -i.bak -e 's,Multiprocessing.h,/System/Library/Frameworks/CoreServices.framework/Frameworks/CarbonCore.framework/Headers/&,' \
+#	mozilla/media/liboggplay/src/liboggplay/std_semaphore.h
  sed -i.bak -e 's,Carbon\.h,Carbon/&,' mozilla/gfx/thebes/src/gfxQuartzFontCache.mm
 
 ## Either of the 2 following attempts should be viable. Launch time problems (probably unrelated) remain with both..
@@ -216,6 +219,22 @@ endif\
 ### link nspr with g++ when using --enable-cplus
  sed -ri.bak -e 's,cplus$,&\n\tMKSHLIB = \$(CCC) \$(DSO_LDOPTS) -o \$@,' mozilla/nsprpub/pr/src/Makefile.in
 
+### Fixing SOME calls to PR_LoadLibrary ... (using proper install_names..) _ just looked at those with a hard-coded string.
+### Possibly this would make the use of -dead_strip_dylibs safe ? (cf CompileScript)
+### (use of otool -D below is legal, since names of deps must change if install_names do.)
+ sed -ri.bak -e 's,libcups\.so\.2,/usr/lib/libcups.dylib,' mozilla/gfx/src/psshared/nsCUPSShim.cpp
+ sed -ri.bak -e	's,libgnomeui-2\.so\.0,%p/lib/libgnomeui-2.0.dylib,' -e 's,libgnome-2.so.0,%p/lib/libgnome-2.0.dylib,' \
+   -e "s,libgnomevfs-2\.so\.0,`otool -D %p/lib/libgnomevfs-2.dylib|fgrep -v :`," \
+   mozilla/{toolkit/xre/nsNativeAppSupportUnix,modules/libpr0n/decoders/icon/gtk/nsIconChannel}.cpp
+ sed -ri.bak -e "s,libgtk-x11-2\.0\.so\.0,`otool -D %p/lib/libgtk-x11-2.0.dylib|fgrep -v :`," \
+   mozilla/widget/src/gtk2/nsBidiKeyboard.cpp
+ sed -ri.bak -e	"s,libXss\.so\.1,`otool -D $Xdir/lib/libXss.1.dylib|fgrep -v :`," \
+   mozilla/widget/src/{gtk2/nsIdleServiceGTK,qt/nsIdleServiceQt}.cpp
+ sed -ri.bak -e "s,libXinerama\.so\.1,`otool -D $Xdir/lib/libXinerama.1.dylib|fgrep -v :`," \
+   mozilla/widget/src/gtk2/nsScreenManagerGtk.cpp
+ sed -ri.bak -e 's,libesd\.so\.0,%p/lib/libesd.0.dylib,' -e 's,libcanberra\.so\.0,%p/lib/libcanberra.0.dylib,' \
+   mozilla/widget/src/gtk2/nsSound.cpp
+
 ### create configure scripts _ autoconf2.13 needed, and fink has no corresponding automake, so autoreconf can't be used..
 # for f in `find . -name configure.in`; do cd `sed -e 's,/[^/]*$,,'<<<"$f$"`; autoconf; cd -; done
 
@@ -252,9 +271,6 @@ ConfigureParams: <<
 #
 ### With 2.0a :
 # "--with-system-png" : "configure: error: --with-system-png won't work because the system's libpng doesn't have APNG support"
-## questionable in config/autoconf.mk :
-# ACDEFINES: -DMOZ_STATIC_MAIL_BUILD=1
-# Try "--disable-static-mail" ?
 ### Older stuff :
 # no -fstrict-aliasing in '--enable-optimize', else "dereferencing type-punned pointer will break strict-aliasing rules" warnings
 # --enable-single-profile : causes trouble: launch aborts (right after loading libXt and before loading components/libprofile)
@@ -280,7 +296,8 @@ CompileScript: <<
  export PKG_CONFIG_PATH="%p/lib/fontconfig2/lib/pkgconfig:$PKG_CONFIG_PATH"
  export CPATH="%p/include/pango-1.0/pango:%p/include/pango-1.0:%p/include/freetype2:%p/lib/fontconfig2/include:%p/include:$Xdir/include"
  export LIBRARY_PATH="%b/mozilla/dist/lib:%b/mozilla/dist/bin:%p/lib/fontconfig2/lib:%p/lib:$Xdir/lib"
- v=`uname -r|cut -f1 -d.`; if [ $v -ge 9 ]; then export LDFLAGS="$LDFLAGS -Wl,-dead_strip_dylibs" ; fi
+# next can't be used, though all undefined symbols have a ' (from ...)'; apparently dynamic linking is hidden via use of PRLibrary
+# v=`uname -r|cut -f1 -d.`; if [ $v -ge 9 ]; then export LDFLAGS="$LDFLAGS -Wl,-dead_strip_dylibs" ; fi
  env ac_cv_func_res_ninit=yes ./configure %c
  make -w
 <<
