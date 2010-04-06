@@ -52,7 +52,7 @@ BuildDepends: <<
 # must also wait for full gnome-2.28 (at least libgnomeui)
 ##
 # Tentatively deleting expat1, glitz, libiconv-dev, pixman, pth2-dev, xft2-dev : leftovers from previous versions,
-# no evidence of need from otool, nor  by analyzing headers used
+# no evidence of need from otool, nor by analyzing headers used
 # [ uncommment last line of PatchScript, then :
 ## egrep '^\.+ /' /sw/var/logs/seamonkey.log|sed -r -e 's,^\.+ ,,'|sort -u|egrep -v -e '^/usr/' -e '^/System/' -e '/bld/seamonkey'|xargs dpkg -S|cut -f1 -d:|sort -u|xargs
 # atk1 bzip2-dev cairo dbus-glib1.2-dev dbus1.3-dev fontconfig2-dev freetype219 gconf2-dev glib2-dev gnome-vfs2-unified-dev 
@@ -104,7 +104,7 @@ PatchScript: <<
 	mozilla/gfx/thebes/public/gfxQuartzSurface.h
  sed -i.bak -e 's,Carbon\.h,Carbon/&,' mozilla/gfx/thebes/src/gfxQuartzFontCache.mm
 
-## Either of the 2 following attempts should be viable. Launch time problems (probably unrelated) remain with both..
+## Either of the 2 following attempts should be viable.
 #### FIRST ATTEMPT FOR CAIRO_QUARTZ (ends up with needing to add --enable-quartz-image  to cairo.info) 
  ## we have to delete a number of targets because fink's cairo has --disable-quartz-image
  ## better to disable any quartz support altogether? What could be its use?
@@ -124,23 +124,12 @@ PatchScript: <<
 #### OTHER ATTEMPT FOR CAIRO_QUARTZ : disable any quartz support altogether...
  sed -i.bak -e 's,CAIRO_HAS_QUARTZ_SURFACE,&NO,' -e 's,XP_MACOSX,&NO,' mozilla/gfx/thebes/src/gfxASurface.cpp
 
- # The following for LCMS are because else ld looks for those symbols in %p/lib/libmozlcms.dylib
- # (which is non-existent, and not even where it should go). Those missing symbols come partly from the dylibs on the link line,
- # not from the objects being linked. libgkgfx.dylib itself takes no symbols from libmozlcms nor from -lxpcom_core..
- sed -i.bak -e '/MOZ_UNICHARUTIL_LIBS/a \
-	$(LCMS_LIBS) -lxpcom_core -lnspr4 -lplc4 \\' mozilla/gfx/src/Makefile.in
- sed -i.bak -e '/MOZ_UNICHARUTIL_LIBS/a \
-		$(LCMS_LIBS) \\' mozilla/{gfx/src/thebes,layout/build}/Makefile.in
- sed -i.bak -e '/MOZ_UNICHARUTIL_LIBS/a \
-		-framework AddressBook \\' mailnews/build/Makefile.in
- sed -i.bak -e 's,Cocoa,AddressBook -framework &,' mailnews/addrbook/build/Makefile.in
+ sed -i.bak -e 's,Cocoa,AddressBook,' mailnews/addrbook/build/Makefile.in
 ####
  # the need for -lcrypto comes from the symbols MD5_Init and MD5_Final, used in
  # toolkit/crashreporter/google-breakpad/src/common/mac/{file,macho}_id.cc, and defined nowhere in the builddir...
- #  -->  since it is only for that, SWITCH to system-openssl !
+ #  -->  since it is only for that, SWITCH to system-openssl ! (next not needed as long as crashreporter has to be disabled)
  sed -i.bak -e 's,EXTRA_DSO_LIBS),& -lcrypto,' mozilla/toolkit/library/Makefile.in
- # Else expands to "./mozilla", leading to obvious breakage when autoconf.mk is sourced from elsewhere
- sed -i.bak -e 's,@MOZILLA_SRCDIR@,%b/mozilla,' config/autoconf.mk.in
  # allow to do a "make install" even on Darwin !
  sed -i.bak -e 's, Darwin,,' mozilla/toolkit/mozapps/installer/packager.mk
 ####
@@ -153,10 +142,7 @@ PatchScript: <<
  sed -ri.bak -e "s,.*executable_path.*,    MOZ_FIX_LINK_PATHS=''," {,mozilla/{,js/src/}}configure{.in,}
  sed -ri.bak -e "s,(install_name|dylib_file) +@executable_path,\1 %p/lib/%N-$V,g" \
 	{,mozilla/{,js/src/}}config/{config,rules}.mk {directory/c-sdk,mozilla/nsprpub}/configure{.in,} \
-	mozilla/security/coreconf/Darwin.mk mozilla/security/nss/lib/freebl/config.mk
-# perl -pi.bak -e \   # files seem to have disappeared
-#   "s;rules.mk;$&\nEXTRA_DSO_LDOPTS := \\\$\(subst install_name \\\$\(mozappdir\)/,install_name %p/lib/%N-$V/ipc/modules/,\\\$\(EXTRA_DSO_LDOPTS\)\);" \
-#   mozilla/ipc/ipcd/{extensions/{lock/src,transmngr},test}/module/Makefile.in
+	mozilla/security/{coreconf/Darwin,nss/lib/freebl/config}.mk
  perl -pi.bak -e \
    "s;rules.mk;$&\nEXTRA_DSO_LDOPTS := \\\$\(subst install_name \\\$\(mozappdir\)/,install_name %p/lib/%N-$V/plugins/,\\\$\(EXTRA_DSO_LDOPTS\)\);" \
    mozilla/modules/plugin/sdk/samples/unixprinting/Makefile.in
@@ -186,14 +172,10 @@ endif\
 ### The following is "for safety",  to avoid "implicit declaration" warnings :
  sed -ri.bak -e 's,\(XP_OS2\) \&\& \!defined\(DARWIN\)$,\(XP_OS2\),' directory/c-sdk/ldap/libraries/liblber/lber-int.h
 
-### formerly passed along by gtk's .pc :
- sed -i'' -e '/PKG_CHECK_MODULES(MOZ_GTK2,/a\
-    MOZ_GTK2_LIBS="$MOZ_GTK2_LIBS -L/usr/X11R6/lib -lXrender -lX11"' mozilla/configure{.in,}
-
 #### MISC
 ### libresolv
  # configure fails to detect libresolv (hence the 'env' before ./configure),
- # and even if it would detect it, it forgets to add -lresolv to LIBS  (Still true with seamonkey ??)
+ # and even if it would detect it, it forgets to add -lresolv to LIBS
  # We put it as far as possible in the link line _ and just for the link that needs it, in order not to get
  # libresolv in the LOAD_COMMANDS everywhere :
  sed -ri.bak -e 's,^MODULE[[:space:]],OS_LIBS += -lresolv\n&,' mozilla/netwerk/build/Makefile.in
@@ -212,6 +194,7 @@ endif\
 
 ### Fixing SOME calls to PR_LoadLibrary ... (using proper install_names..) _ just looked at those with a hard-coded string.
 ### Possibly this would make the use of -dead_strip_dylibs safe ? (cf CompileScript)
+### Would need to check all binaries where PR_LoadLibrary appears..
 ### Use of otool -D below is legal, since names of deps must change if install_names do. And this avoids hard-coding things here.
  sed -ri.bak -e 's,libcups\.so\.2,/usr/lib/libcups.dylib,' mozilla/gfx/src/psshared/nsCUPSShim.cpp
  sed -ri.bak -e	's,libgnomeui-2\.so\.0,%p/lib/libgnomeui-2.0.dylib,' -e 's,libgnome-2.so.0,%p/lib/libgnome-2.0.dylib,' \
@@ -234,15 +217,12 @@ endif\
 #  perl -pi -e 's,CPPFLAGS%%,CPPFLAGS -H%%,' `find . -name configure`
 <<
 
-# --enable-extensions=all no longer supported in 2.0beta
 ## can't enable static : "configure: error: Only one of --enable-shared or --enable-static must be specified."
 ## (and reluctant to impose 2 full builds on the user...)
 # Also "--enable-boehm" leads to trouble...; probably not important (for a 'production' pkg): according to
 # http://www.hpl.hp.com/personal/Hans_Boehm/gc/ , it is only used as a leak detector.
 # --enable-libxul leads to "/bld/seamonkey-1.9.1b3pre-1/mozilla/dist/bin/XUL: No such file or directory" in linking
 #  mozilla/xpfe/components/autocomplete/src/nsAutoComplete.o
-
-## try --enable-system-sqlite --enable-startup-notification ?
 ConfigureParams: <<
  --enable-macos-target=${MACOSX_DEPLOYMENT_TARGET} --enable-optimize=-Os --disable-debug --enable-strip --enable-tests --with-pthreads \
  --with-default-mozilla-five-home=%p/lib/%N-2 --mandir=%p/share/man --with-qtdir=%p --x-includes='' --x-libraries='' \
@@ -251,7 +231,7 @@ ConfigureParams: <<
  --enable-ctl --enable-canvas --enable-update-packaging --enable-storage --enable-profilesharing --enable-startup-notification \
  --enable-xpctools --enable-url-classifier --enable-ipv6 --enable-ldap-experimental --with-sasl \
  --with-x --enable-xinerama --enable-xprint --enable-pango --enable-xft --enable-postscript \
- --enable-svg --enable-svg-renderer=cairo --enable-system-cairo--enable-system-lcms --enable-glitz --enable-system-sqlite \
+ --enable-svg --enable-svg-renderer=cairo --enable-system-cairo --enable-system-lcms --enable-glitz --enable-system-sqlite \
  --with-system-mng --with-system-jpeg --with-system-zlib --with-system-bz2 (%type_raw[sys_nspr] = .) --with-system-nspr \
  --enable-auto-deps --enable-md --disable-necko-wifi --disable-crashreporter --enable-safe-browsing --enable-system-hunspell \
  --enable-help-viewer --enable-ipcd --enable-oji --enable-javaxpcom --enable-single-profile --disable-static-mail \
@@ -261,14 +241,11 @@ ConfigureParams: <<
 ## disable-necko-wifi : mozilla/configure has 'elif test "$OS_ARCH" = "Darwin"; then  NECKO_WIFI=1'
 ## but mozilla/netwerk/wifi/src/nsWifiScannerUnix.cpp fails to find iwlib.h (new in 2.03)
 #
-### With 2.0a :
 # "--with-system-png" : "configure: error: --with-system-png won't work because the system's libpng doesn't have APNG support"
-### Older stuff :
 # no -fstrict-aliasing in '--enable-optimize', else "dereferencing type-punned pointer will break strict-aliasing rules" warnings
-# --enable-single-profile : causes trouble: launch aborts (right after loading libXt and before loading components/libprofile)
-# without any error msgs anywhere, nor crash log or anything...
 ##
 # --with-system-nss ?
+
 SetCC: gcc
 NoSetLDFLAGS: true
 SetLDFLAGS: -L%b/mozilla/dist/lib -L%b/mozilla/dist/bin -L%p/lib/fontconfig2/lib
@@ -290,8 +267,12 @@ CompileScript: <<
  export LIBRARY_PATH="%b/mozilla/dist/lib:%b/mozilla/dist/bin:%p/lib/fontconfig2/lib:%p/lib:$Xdir/lib"
 # next can't be used, though all undefined symbols have a ' (from ...)'; apparently dynamic linking is hidden via use of PRLibrary
 # v=`uname -r|cut -f1 -d.`; if [ $v -ge 9 ]; then export LDFLAGS="$LDFLAGS -Wl,-dead_strip_dylibs" ; fi
- if grep -q 64 %p/var/lib/fink/path-prefix-10.6/compiler_wrapper ; then export USE_64=1 ; fi
- env ac_cv_func_res_ninit=yes ./configure %c
+### probably some redundancy in the next _ "for safety" :
+ if grep -q 64 %p/var/lib/fink/path-prefix-10.6/compiler_wrapper
+	then export USE_64=1; enable64="--enable-64bit"
+	else enable64="--disable-64bit"
+ fi
+ env ac_cv_func_res_ninit=yes ./configure %c $enable64
  make -w
 <<
 
