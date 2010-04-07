@@ -94,7 +94,7 @@ diff -ruN mozilla-1.9.2-orig/browser/locales/generic/profile/bookmarks.html.in m
 diff -ruN mozilla-1.9.2-orig/config/autoconf.mk.in mozilla-1.9.2/config/autoconf.mk.in
 --- mozilla-1.9.2-orig/config/autoconf.mk.in	2009-04-23 21:46:37.000000000 -0400
 +++ mozilla-1.9.2/config/autoconf.mk.in	2009-04-27 16:56:30.000000000 -0400
-@@ -58,14 +58,14 @@
+@@ -58,16 +58,17 @@
  prefix		= @prefix@
  exec_prefix	= @exec_prefix@
  bindir		= @bindir@
@@ -112,7 +112,60 @@ diff -ruN mozilla-1.9.2-orig/config/autoconf.mk.in mozilla-1.9.2/config/autoconf
 +sdkdir		= $(libdir)/$(MOZ_APP_NAME)3-devel
  
  DIST		= $(DEPTH)/dist
++DISTLIB		= $(DIST)/lib
  LIBXUL_SDK      = @LIBXUL_SDK@
+ 
+ MOZ_FS_LAYOUT = unix
+@@ -195,8 +195,15 @@
+ MOZ_FIX_LINK_PATHS=@MOZ_FIX_LINK_PATHS@
+ 
+ XPCOM_FROZEN_LDOPTS=@XPCOM_FROZEN_LDOPTS@
++XPCOM_DYLIB_FILES = \
++	$(NSS_DYLIB_FILES) \
++	-dylib_file $(installdir)/$(DLL_PREFIX)xul$(DLL_SUFFIX):$(DISTLIB)/$(DLL_PREFIX)xul$(DLL_SUFFIX) \
++	-dylib_file $(installdir)/$(DLL_PREFIX)mozjs$(DLL_SUFFIX):$(DISTLIB)/$(DLL_PREFIX)mozjs$(DLL_SUFFIX)
++XPCOM_FROZEN_LDOPTS += $(XPCOM_DYLIB_FILES)
+ XPCOM_LIBS=@XPCOM_LIBS@
++XPCOM_LIBS += $(XPCOM_DYLIB_FILES)
+ LIBXUL_LIBS=@LIBXUL_LIBS@
++LIBXUL_LIBS += $(XPCOM_DYLIB_FILES)
+ MOZ_TIMELINE=@MOZ_TIMELINE@
+ 
+ ENABLE_STRIP	= @ENABLE_STRIP@
+@@ -468,10 +475,21 @@
+ NSPR_CONFIG	= @NSPR_CONFIG@
+ NSPR_CFLAGS	= @NSPR_CFLAGS@
+ NSPR_LIBS	= @NSPR_LIBS@
++NSPR_DYLIB_FILES = \
++	-dylib_file $(installdir)/$(DLL_PREFIX)plds4$(DLL_SUFFIX):$(DISTLIB)/$(DLL_PREFIX)plds4$(DLL_SUFFIX) \
++	-dylib_file $(installdir)/$(DLL_PREFIX)plc4$(DLL_SUFFIX):$(DISTLIB)/$(DLL_PREFIX)plc4$(DLL_SUFFIX) \
++	-dylib_file $(installdir)/$(DLL_PREFIX)nspr4$(DLL_SUFFIX):$(DISTLIB)/$(DLL_PREFIX)nspr4$(DLL_SUFFIX)
++NSPR_LIBS += $(NSPR_DYLIB_FILES)
+ 
+ NSS_CONFIG	= @NSS_CONFIG@
+ NSS_CFLAGS	= @NSS_CFLAGS@
+ NSS_LIBS	= @NSS_LIBS@
++NSS_DYLIB_FILES = \
++	-dylib_file $(installdir)/$(DLL_PREFIX)smime3$(DLL_SUFFIX):$(DISTLIB)/$(DLL_PREFIX)smime3$(DLL_SUFFIX) \
++	-dylib_file $(installdir)/$(DLL_PREFIX)ssl3$(DLL_SUFFIX):$(DISTLIB)/$(DLL_PREFIX)ssl3$(DLL_SUFFIX) \
++	-dylib_file $(installdir)/$(DLL_PREFIX)nss3$(DLL_SUFFIX):$(DISTLIB)/$(DLL_PREFIX)nss3$(DLL_SUFFIX) \
++	-dylib_file $(installdir)/$(DLL_PREFIX)nssutil3$(DLL_SUFFIX):$(DISTLIB)/$(DLL_PREFIX)nssutil3$(DLL_SUFFIX)
++NSS_LIBS += $(NSS_DYLIB_FILES)
+ NSS_DEP_LIBS	= @NSS_DEP_LIBS@
+ NSS_DISABLE_DBM = @NSS_DISABLE_DBM@
+ 
+@@ -521,7 +521,10 @@
+ MOZ_ENABLE_XREMOTE	= @MOZ_ENABLE_XREMOTE@
+ 
+ MOZ_GTK2_CFLAGS		= @MOZ_GTK2_CFLAGS@
+-MOZ_GTK2_LIBS		= @MOZ_GTK2_LIBS@
++MOZ_GTK2_LIBS_CAIRO		= @MOZ_GTK2_LIBS@
++# remove -lcairo to avoid symbol conflict with mozcairo
++MOZ_GTK2_LIBS_NOCAIRO		= $(filter-out -lcairo,$(MOZ_GTK2_LIBS_CAIRO))
++MOZ_GTK2_LIBS		= $(MOZ_GTK2_LIBS_NOCAIRO)
+ 
+ MOZ_QT_CFLAGS		= @MOZ_QT_CFLAGS@
+ MOZ_QT_LIBS		= @MOZ_QT_LIBS@
 diff -ruN mozilla-1.9.2-orig/configure mozilla-1.9.2/configure
 --- mozilla-1.9.2-orig/configure	2009-04-23 21:51:07.000000000 -0400
 +++ mozilla-1.9.2/configure	2009-04-27 16:56:30.000000000 -0400
@@ -239,3 +292,34 @@ diff -ruN mozilla-1.9.2-orig/config/rules.mk mozilla-1.9.2/config/rules.mk
  else # ! CPP_PROG_LINK
  	$(CC) -o $@ $(CFLAGS) $(PROGOBJS) $(RESFILE) $(WIN32_EXE_LDFLAGS) $(SOLARIS_JEMALLOC_LDFLAGS) $(LDFLAGS) $(LIBS_DIR) $(LIBS) $(OS_LIBS) $(EXTRA_LIBS) $(BIN_FLAGS) $(EXE_DEF_FILE)
  endif # CPP_PROG_LINK
+diff -ruN mozilla-1.9.2-orig/toolkit/library/Makefile.in mozilla-1.9.2/toolkit/library/Makefile.in
+--- mozilla-1.9.2-orig/toolkit/library/Makefile.in	2010-03-30 09:58:07.000000000 -0700
++++ mozilla-1.9.2/toolkit/library/Makefile.in	2010-04-07 00:51:47.000000000 -0700
+@@ -182,6 +182,7 @@
+ 	$(INSTALL) $^ .
+ 
+ EXTRA_DSO_LDOPTS += $(LIBS_DIR) $(EXTRA_DSO_LIBS)
++MKSHLIB += -Wl,-undefined,dynamic_lookup
+ 
+ ifdef MOZ_ENABLE_LIBXUL
+ include $(srcdir)/libxul-rules.mk
+diff -ruN mozilla-1.9.2-orig/xpcom/stub/Makefile.in mozilla-1.9.2/xpcom/stub/Makefile.in
+--- mozilla-1.9.2/xpcom/stub/Makefile.in.orig	2010-04-07 01:48:44.000000000 -0700
++++ mozilla-1.9.2/xpcom/stub/Makefile.in	2010-04-07 02:11:28.000000000 -0700
+@@ -80,6 +80,7 @@
+ 	$(LIB_PREFIX)nspr4$(DLL_SUFFIX) \
+ 	$(LIB_PREFIX)plc4$(DLL_SUFFIX) \
+ 	$(LIB_PREFIX)plds4$(DLL_SUFFIX) \
++	$(NSPR_DYLIB_FILES) \
+ 	$(NULL)
+ 
+ ifdef MOZ_ENABLE_LIBXUL
+@@ -120,6 +121,8 @@
+ endif
+ 
+ EXTRA_DSO_LDOPTS += $(EXTRA_DSO_LIBS) $(NSPR_LIBS)
++EXTRA_DSO_LDOPTS += $(XPCOM_DYLIB_FILES)
++MKSHLIB += -Wl,-undefined,dynamic_lookup
+ 
+ include $(topsrcdir)/config/rules.mk
+ 
