@@ -115,15 +115,16 @@ diff -ruN mozilla-1.9.2-orig/config/autoconf.mk.in mozilla-1.9.2/config/autoconf
 +DISTLIB		= $(DIST)/lib
  LIBXUL_SDK      = @LIBXUL_SDK@
  
- MOZ_FS_LAYOUT = unix
-@@ -195,8 +195,15 @@
+ MOZ_FS_LAYOUT = @MOZ_FS_LAYOUT@
+@@ -195,8 +196,16 @@
  MOZ_FIX_LINK_PATHS=@MOZ_FIX_LINK_PATHS@
  
  XPCOM_FROZEN_LDOPTS=@XPCOM_FROZEN_LDOPTS@
 +XPCOM_DYLIB_FILES = \
 +	$(NSS_DYLIB_FILES) \
-+	-dylib_file $(installdir)/$(DLL_PREFIX)xul$(DLL_SUFFIX):$(DISTLIB)/$(DLL_PREFIX)xul$(DLL_SUFFIX) \
-+	-dylib_file $(installdir)/$(DLL_PREFIX)mozjs$(DLL_SUFFIX):$(DISTLIB)/$(DLL_PREFIX)mozjs$(DLL_SUFFIX)
++	$(SQLITE_DYLIB_FILES) \
++	$(call EXPAND_DYLIB_NAME,xul) \
++	$(call EXPAND_DYLIB_NAME,mozjs)
 +XPCOM_FROZEN_LDOPTS += $(XPCOM_DYLIB_FILES)
  XPCOM_LIBS=@XPCOM_LIBS@
 +XPCOM_LIBS += $(XPCOM_DYLIB_FILES)
@@ -132,29 +133,36 @@ diff -ruN mozilla-1.9.2-orig/config/autoconf.mk.in mozilla-1.9.2/config/autoconf
  MOZ_TIMELINE=@MOZ_TIMELINE@
  
  ENABLE_STRIP	= @ENABLE_STRIP@
-@@ -468,10 +475,21 @@
+@@ -464,14 +473,28 @@
+ MOZ_NATIVE_SQLITE = @MOZ_NATIVE_SQLITE@
+ SQLITE_CFLAGS     = @SQLITE_CFLAGS@
+ SQLITE_LIBS       = @SQLITE_LIBS@
++SQLITE_DYLIB_FILES = \
++	$(call EXPAND_DYLIB_NAME,sqlite3)
++# SQLITE_LIBS += $(SQLITE_DYLIB_FILES)
+ 
  NSPR_CONFIG	= @NSPR_CONFIG@
  NSPR_CFLAGS	= @NSPR_CFLAGS@
  NSPR_LIBS	= @NSPR_LIBS@
 +NSPR_DYLIB_FILES = \
-+	-dylib_file $(installdir)/$(DLL_PREFIX)plds4$(DLL_SUFFIX):$(DISTLIB)/$(DLL_PREFIX)plds4$(DLL_SUFFIX) \
-+	-dylib_file $(installdir)/$(DLL_PREFIX)plc4$(DLL_SUFFIX):$(DISTLIB)/$(DLL_PREFIX)plc4$(DLL_SUFFIX) \
-+	-dylib_file $(installdir)/$(DLL_PREFIX)nspr4$(DLL_SUFFIX):$(DISTLIB)/$(DLL_PREFIX)nspr4$(DLL_SUFFIX)
++	$(call EXPAND_DYLIB_NAME,plds4) \
++	$(call EXPAND_DYLIB_NAME,plc4) \
++	$(call EXPAND_DYLIB_NAME,nspr4)
 +NSPR_LIBS += $(NSPR_DYLIB_FILES)
  
  NSS_CONFIG	= @NSS_CONFIG@
  NSS_CFLAGS	= @NSS_CFLAGS@
  NSS_LIBS	= @NSS_LIBS@
 +NSS_DYLIB_FILES = \
-+	-dylib_file $(installdir)/$(DLL_PREFIX)smime3$(DLL_SUFFIX):$(DISTLIB)/$(DLL_PREFIX)smime3$(DLL_SUFFIX) \
-+	-dylib_file $(installdir)/$(DLL_PREFIX)ssl3$(DLL_SUFFIX):$(DISTLIB)/$(DLL_PREFIX)ssl3$(DLL_SUFFIX) \
-+	-dylib_file $(installdir)/$(DLL_PREFIX)nss3$(DLL_SUFFIX):$(DISTLIB)/$(DLL_PREFIX)nss3$(DLL_SUFFIX) \
-+	-dylib_file $(installdir)/$(DLL_PREFIX)nssutil3$(DLL_SUFFIX):$(DISTLIB)/$(DLL_PREFIX)nssutil3$(DLL_SUFFIX)
++	$(call EXPAND_DYLIB_NAME,smime3) \
++	$(call EXPAND_DYLIB_NAME,ssl3) \
++	$(call EXPAND_DYLIB_NAME,nss3) \
++	$(call EXPAND_DYLIB_NAME,nssutil3)
 +NSS_LIBS += $(NSS_DYLIB_FILES)
  NSS_DEP_LIBS	= @NSS_DEP_LIBS@
  NSS_DISABLE_DBM = @NSS_DISABLE_DBM@
  
-@@ -521,7 +521,10 @@
+@@ -521,7 +544,10 @@
  MOZ_ENABLE_XREMOTE	= @MOZ_ENABLE_XREMOTE@
  
  MOZ_GTK2_CFLAGS		= @MOZ_GTK2_CFLAGS@
@@ -283,7 +291,19 @@ diff -ruN mozilla-1.9.2-orig/config/config.mk mozilla-1.9.2/config/config.mk
 diff -ruN mozilla-1.9.2-orig/config/rules.mk mozilla-1.9.2/config/rules.mk
 --- mozilla-1.9.2-orig/config/rules.mk.orig	2010-03-22 12:47:26.000000000 -0700
 +++ mozilla-1.9.2/config/rules.mk	2010-03-22 12:47:35.000000000 -0700
-@@ -990,7 +990,7 @@
+@@ -121,6 +121,11 @@
+ EXPAND_MOZLIBNAME = $(addprefix -l,$(1))
+ endif
+ 
++# patch for darwin8:
++# EXPAND_DYLIB_NAME - $(call EXPAND_DYLIB_NAME,foo)
++# expands to -dylib_file $(installdir)/libfoo.dylib:$(DISTLIB)/libfoo.dylib
++EXPAND_DYLIB_NAME = -dylib_file $(installdir)/$(DLL_PREFIX)$(1)$(DLL_SUFFIX):$(DISTLIB)/$(DLL_PREFIX)$(1)$(DLL_SUFFIX)
++
+ ifdef EXTRA_DSO_LIBS
+ EXTRA_DSO_LIBS	:= $(call EXPAND_MOZLIBNAME,$(EXTRA_DSO_LIBS))
+ endif
+@@ -990,7 +995,7 @@
  endif	# MSVC with manifest tool
  else
  ifeq ($(CPP_PROG_LINK),1)
