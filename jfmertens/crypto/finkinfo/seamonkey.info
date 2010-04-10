@@ -79,7 +79,7 @@ CustomMirror: <<
 
 ## someone should once re-generate this old patchfile, going back to the early mozilla versions, and that I've only edited since..
 PatchFile: %n.patch
-PatchFile-MD5: 74479cf38c21820071cbac3add5b425d
+PatchFile-MD5: fce644d43dab326dc73036fb92273989
 PatchScript: <<
  #!/bin/sh -ev
 ### Make list of files patched (too difficult to track otherwise which ones have already been patched,
@@ -139,19 +139,19 @@ PatchScript: <<
 
 ### import "fink" directory :
  sed -e 's,@PREFIX@,%p,g' -e "s,/usr/X11R6,$Xdir," <%{PatchFile} | patch -p1
- sed -ri -e '/XP_BEOS/,+3s;endif;&\t, "fink.js";' mozilla/modules/libpref/src/nsPrefService.cpp
+ sed -ri'' -e '/XP_BEOS/,+3s;endif;&\t, "fink.js";' mozilla/modules/libpref/src/nsPrefService.cpp
 
-#### Next is for alpha or beta versions :a
+#### Next is for alpha or beta versions :
  # for documentation; prefer to see explicitly everything in %c
 # mv .mozconfig .mozconfig.bak
 
 ### CAIRO and gfx
  # Including Carbon.h brings in so many headers that there are several name clashes with the X11 headers also brought in.
  # And CGContext.h suffices
- sed -i -e \
+ sed -i'' -e \
  's,Carbon/Carbon.h,/System/Library/Frameworks/ApplicationServices.framework/Frameworks/CoreGraphics.framework/Headers/CGContext.h,' \
 	mozilla/gfx/thebes/public/gfxQuartzSurface.h
- sed -i -e 's,Carbon\.h,Carbon/&,' mozilla/gfx/thebes/src/gfxQuartzFontCache.mm
+ sed -i'' -e 's,Carbon\.h,Carbon/&,' mozilla/gfx/thebes/src/gfxQuartzFontCache.mm
 
 ## Either of the 2 following attempts should be viable.
 #### FIRST ATTEMPT FOR CAIRO_QUARTZ (ends up with needing to add --enable-quartz-image  to cairo.info) 
@@ -171,17 +171,17 @@ PatchScript: <<
 #	mozilla/gfx/thebes/src/gfxASurface.cpp
 
 #### OTHER ATTEMPT FOR CAIRO_QUARTZ : disable any quartz support altogether...
- sed -i -e 's,CAIRO_HAS_QUARTZ_SURFACE,&NO,' -e 's,XP_MACOSX,&NO,' mozilla/gfx/thebes/src/gfxASurface.cpp
+ sed -i'' -e 's,CAIRO_HAS_QUARTZ_SURFACE,&NO,' -e 's,XP_MACOSX,&NO,' mozilla/gfx/thebes/src/gfxASurface.cpp
 
- sed -i -e 's,Cocoa,AddressBook,' mailnews/addrbook/build/Makefile.in
+ sed -i'' -e 's,Cocoa,AddressBook,' mailnews/addrbook/build/Makefile.in
 
 ####
  # the need for -lcrypto comes from the symbols MD5_Init and MD5_Final, used in
  # toolkit/crashreporter/google-breakpad/src/common/mac/{file,macho}_id.cc, and defined nowhere in the builddir...
  #  -->  since it is only for that, SWITCH to system-openssl ! (next not needed as long as crashreporter has to be disabled)
- sed -i -e 's,EXTRA_DSO_LIBS),& -lcrypto,' mozilla/toolkit/library/Makefile.in
+ sed -i'' -e 's,EXTRA_DSO_LIBS),& -lcrypto,' mozilla/toolkit/library/Makefile.in
  # allow to do a "make install" even on Darwin !
- sed -i -e 's, Darwin,,' mozilla/toolkit/mozapps/installer/packager.mk
+ sed -i'' -e 's, Darwin,,' mozilla/toolkit/mozapps/installer/packager.mk
 ####
 
 ### Getting "reasonable" install_names (libs are not versioned! and their "install_name" would else just be
@@ -189,26 +189,26 @@ PatchScript: <<
 ### we'll replace all '@executable_path's in install_names by a 'real path' that includes a symlink containing "%N-%V"
  V=`cut -f1 -d. <<<"%type_raw[ver]"`
  # for consistency, remove the : "-Wl,-executable_path,$(LIBXUL_DIST)/bin" from the link commands
- sed -ri -e "s,.*executable_path.*,    MOZ_FIX_LINK_PATHS=''," {,mozilla/{,js/src/}}configure{.in,}
- sed -ri -e "s,(install_name|dylib_file) +@executable_path,\1 %p/lib/%N-$V,g" \
+ sed -ri'' -e "s,.*executable_path.*,    MOZ_FIX_LINK_PATHS=''," {,mozilla/{,js/src/}}configure{.in,}
+ sed -ri'' -e "s,(install_name|dylib_file) +@executable_path,\1 %p/lib/%N-$V,g" \
 	{,mozilla/{,js/src/}}config/{config,rules}.mk {directory/c-sdk,mozilla/nsprpub}/configure{.in,} \
 	mozilla/security/{coreconf/Darwin,nss/lib/freebl/config}.mk
- sed -ri -e \
+ sed -ri'' -e \
    "s;rules.mk;&\nEXTRA_DSO_LDOPTS := \$\(subst install_name \$\(mozappdir\)/,install_name %p/lib/%N-$V/plugins/,\$\(EXTRA_DSO_LDOPTS\)\);" \
    mozilla/modules/plugin/sdk/samples/unixprinting/Makefile.in
 
 #### we want a gtk2 build:
  sed -i'' -e 's, -DXP_MACOSX -DNO_X11, -DX11,' {,mozilla/}configure{.in,}
  sed -i'' -e '/XP_MACOSX/d' mozilla/nsprpub/configure{.in,}
- sed -i -e 's,\(my \$macos = \).*,\1= 0;,' mozilla/config/add-chrome.pl
- sed -ri -e '/^C(|CC)FLAGS/s, \$\(OS_CFLAGS\),,' -e '/^C(|CC)FLAGS/,+1s,XCFLAGS\),& $(OS_CFLAGS),' \
+ sed -i'' -e 's,\(my \$macos = \).*,\1= 0;,' mozilla/config/add-chrome.pl
+ sed -ri'' -e '/^C(|CC)FLAGS/s, \$\(OS_CFLAGS\),,' -e '/^C(|CC)FLAGS/,+1s,XCFLAGS\),& $(OS_CFLAGS),' \
 	directory/c-sdk/config/config.mk
- sed -ri -e '/OS_TARGET\),MacOSX/,/endif/d' mozilla/nsprpub/pr/src/Makefile.in
- sed -ri 's,USE_MACH_DYLD,USE_DLFCN,' mozilla/nsprpub/pr/include/md/_darwin.h
- sed -ri -e '/CFBundle/,+5{ /EOF/,/EOF/d }' -e '/\*-darwin\*\|\*-beos/,/;;/d' mozilla/nsprpub/configure{,.in}
+ sed -ri'' -e '/OS_TARGET\),MacOSX/,/endif/d' mozilla/nsprpub/pr/src/Makefile.in
+ sed -ri'' 's,USE_MACH_DYLD,USE_DLFCN,' mozilla/nsprpub/pr/include/md/_darwin.h
+ sed -ri'' -e '/CFBundle/,+5{ /EOF/,/EOF/d }' -e '/\*-darwin\*\|\*-beos/,/;;/d' mozilla/nsprpub/configure{,.in}
 ### The bulk of gnome deps (save for gnome-vfs and gtk2) would disappear w/o the following 8 lines; they appear just in libimgicon
 ### get around specific setting for darwin _ and, in same Makefile, get flag-ordering right, to avoid linking with nspr-shlibs.
- sed -i -e 's,PLATFORM = mac,ifndef PLATFORM\n&\nendif,' \
+ sed -i'' -e 's,PLATFORM = mac,ifndef PLATFORM\n&\nendif,' \
 	-e '/MOZ_GNOMEUI_LIBS/d' -e 's,EXTRA_DSO_LDOPTS [+]=,EXTRA_DSO_LDOPTS =,' \
 	-e '/rules.mk/,$s;OS_ARCH),Darwin;PLATFORM),mac;' -e '/LOCAL_INCLUDES/i\
 ifdef MOZ_ENABLE_GNOMEUI\
@@ -217,16 +217,16 @@ endif\
 ' mozilla/modules/libpr0n/decoders/icon/Makefile.in
  ### since upstream subverted at many places XP_MACOSX to mean a toolkit to be used ("cocoa" rather than eg gtk or qt),
  ### (instead of an OS), we zapped it, and so even in places where it is used properly we have to replace it ..
- sed -i -e 's,XP_MACOSX,__APPLE__,' mozilla/toolkit/crashreporter/nsExceptionHandler.cpp \
+ sed -i'' -e 's,XP_MACOSX,__APPLE__,' mozilla/toolkit/crashreporter/nsExceptionHandler.cpp \
 	mozilla/xpcom/base/nsStackWalk.cpp mailnews/addrbook/public/nsAbBaseCID.h
 
 ### remove obsolete flags:
  sed -i'' -e 's, -fpascal-strings,,' -e 's, -no-cpp-precomp,,' mozilla/{configure.in,security/coreconf/Darwin.mk}
 ### The next appears (-ed??) needed eg when building yelp...                                
 ### maybe also in mozilla/xulrunner/installer/libxul{-unstable,}.pc.in ?
- sed -i -e 's,lxpcom,& -lxpcom_core,' mozilla/build/unix/mozilla-config.in
+ sed -i'' -e 's,lxpcom,& -lxpcom_core,' mozilla/build/unix/mozilla-config.in
 ### The following is "for safety",  to avoid "implicit declaration" warnings :
- sed -ri -e 's,\(XP_OS2\) \&\& \!defined\(DARWIN\)$,\(XP_OS2\),' directory/c-sdk/ldap/libraries/liblber/lber-int.h
+ sed -ri'' -e 's,\(XP_OS2\) \&\& \!defined\(DARWIN\)$,\(XP_OS2\),' directory/c-sdk/ldap/libraries/liblber/lber-int.h
 
 #### MISC
 ### libresolv
@@ -234,43 +234,43 @@ endif\
  # and even if it would detect it, it forgets to add -lresolv to LIBS
  # We put it as far as possible in the link line _ and just for the link that needs it, in order not to get
  # libresolv in the LOAD_COMMANDS everywhere :
- sed -ri -e 's,^MODULE[[:space:]],OS_LIBS += -lresolv\n&,' mozilla/netwerk/build/Makefile.in
- sed -ri -e '/MOZ_COMPONENT_LIBS/a \\t\t-lresolv \\' mozilla/extensions/auth/Makefile.in
+ sed -ri'' -e 's,^MODULE[[:space:]],OS_LIBS += -lresolv\n&,' mozilla/netwerk/build/Makefile.in
+ sed -ri'' -e '/MOZ_COMPONENT_LIBS/a \\t\t-lresolv \\' mozilla/extensions/auth/Makefile.in
 ### lXrender
- sed -ri -e '$a EXTRA_DSO_LDOPTS += -lXrender' mozilla/gfx/thebes/src/Makefile.in
+ sed -ri'' -e '$a EXTRA_DSO_LDOPTS += -lXrender' mozilla/gfx/thebes/src/Makefile.in
 ### allow enable-xul :
- sed -ri -e '/alldep all::/a \\tmkdir -p dist/bin/XUL' mozilla/Makefile.in
- sed -ri -e 's, [^ ]*/bin/XUL,,' {,mozilla/}configure{.in,}
+ sed -ri'' -e '/alldep all::/a \\tmkdir -p dist/bin/XUL' mozilla/Makefile.in
+ sed -ri'' -e 's, [^ ]*/bin/XUL,,' {,mozilla/}configure{.in,}
 #  for XRE_GetFileFromPath and XRE_GetBinaryFromPath in xpcshell.cpp (why is libxul not in LIBXUL_LIBS ??) :
- sed -ri -e '/NSPR_LIBS/a \\t\t-lxul \\' mozilla/js/src/xpconnect/shell/Makefile.in
+ sed -ri'' -e '/NSPR_LIBS/a \\t\t-lxul \\' mozilla/js/src/xpconnect/shell/Makefile.in
 ### Non-portable use of sed (not even usable with GNU sed)
- sed -i -e 's,sed -E,sed -r,' mozilla/xpcom/typelib/xpidl/Makefile.in
+ sed -i'' -e 's,sed -E,sed -r,' mozilla/xpcom/typelib/xpidl/Makefile.in
 ### link nspr with g++ when using --enable-cplus
- sed -ri -e 's,cplus$,&\n\tMKSHLIB = \$(CCC) \$(DSO_LDOPTS) -o \$@,' mozilla/nsprpub/pr/src/Makefile.in
+ sed -ri'' -e 's,cplus$,&\n\tMKSHLIB = \$(CCC) \$(DSO_LDOPTS) -o \$@,' mozilla/nsprpub/pr/src/Makefile.in
 
 ### Fixing SOME calls to PR_LoadLibrary ... (using proper install_names..) _ just looked at those with a hard-coded string.
 ### Possibly this would make the use of -dead_strip_dylibs safe ? (cf CompileScript)
 ### Would need to check all binaries where PR_LoadLibrary appears..
 ### Use of otool -D below is legal, since names of deps must change if install_names do. And this avoids hard-coding things here.
- sed -ri -e 's,libcups\.so\.2,/usr/lib/libcups.dylib,' mozilla/gfx/src/psshared/nsCUPSShim.cpp
- sed -ri -e	's,libgnomeui-2\.so\.0,%p/lib/libgnomeui-2.0.dylib,' -e 's,libgnome-2.so.0,%p/lib/libgnome-2.0.dylib,' \
+ sed -ri'' -e 's,libcups\.so\.2,/usr/lib/libcups.dylib,' mozilla/gfx/src/psshared/nsCUPSShim.cpp
+ sed -ri'' -e	's,libgnomeui-2\.so\.0,%p/lib/libgnomeui-2.0.dylib,' -e 's,libgnome-2.so.0,%p/lib/libgnome-2.0.dylib,' \
    -e "s,libgnomevfs-2\.so\.0,`otool -D %p/lib/libgnomevfs-2.dylib|fgrep -v :`," \
    mozilla/{toolkit/xre/nsNativeAppSupportUnix,modules/libpr0n/decoders/icon/gtk/nsIconChannel}.cpp
- sed -ri -e "s,libgtk-x11-2\.0\.so\.0,`otool -D %p/lib/libgtk-x11-2.0.dylib|fgrep -v :`," \
+ sed -ri'' -e "s,libgtk-x11-2\.0\.so\.0,`otool -D %p/lib/libgtk-x11-2.0.dylib|fgrep -v :`," \
    mozilla/widget/src/gtk2/nsBidiKeyboard.cpp
- sed -ri -e	"s,libXss\.so\.1,`otool -D $Xdir/lib/libXss.1.dylib|fgrep -v :`," \
+ sed -ri'' -e	"s,libXss\.so\.1,`otool -D $Xdir/lib/libXss.1.dylib|fgrep -v :`," \
    mozilla/widget/src/{gtk2/nsIdleServiceGTK,qt/nsIdleServiceQt}.cpp
- sed -ri -e "s,libXinerama\.so\.1,`otool -D $Xdir/lib/libXinerama.1.dylib|fgrep -v :`," \
+ sed -ri'' -e "s,libXinerama\.so\.1,`otool -D $Xdir/lib/libXinerama.1.dylib|fgrep -v :`," \
    mozilla/widget/src/gtk2/nsScreenManagerGtk.cpp
- sed -ri -e 's,libesd\.so\.0,%p/lib/libesd.0.dylib,' -e 's,libcanberra\.so\.0,%p/lib/libcanberra.0.dylib,' \
+ sed -ri'' -e 's,libesd\.so\.0,%p/lib/libesd.0.dylib,' -e 's,libcanberra\.so\.0,%p/lib/libcanberra.0.dylib,' \
    mozilla/widget/src/gtk2/nsSound.cpp
 
 ### For alpha or beta versions : need to create configure scripts
 ###  autoconf2.13 (!) needed, and fink has no corresponding automake, so autoreconf can't be used..
 # for f in `find . -name configure.in`; do cd `sed -e 's,/[^/]*$,,'<<<"$f$"`; autoconf; cd -; done
 
-### Uncomment to check builddeps:
-#  sed -ri -e 's,CPPFLAGS%%,CPPFLAGS -H%%,' `find . -name configure`
+### Uncomment to check builddeps (.deps dirs and .pp files are created only in the mozilla subdir):
+#  sed -ri'' -e 's,CPPFLAGS%%,CPPFLAGS -H%%,' `find . -name configure`
 
 ## Finally, for who prefers to see a unfied patch _ this creates "patch" in the build-dir :
  for g in $patchlst; do \
@@ -295,7 +295,7 @@ endif\
 ConfigureParams: <<
  --enable-macos-target=${MACOSX_DEPLOYMENT_TARGET} --enable-optimize=-Os --disable-debug --enable-strip --enable-tests --with-pthreads \
  --with-default-mozilla-five-home=%p/lib/%N-2 --mandir=%p/share/man --with-qtdir=%p --x-includes='' --x-libraries='' \
- --enable-application=suite --enable-calendar --enable-default-toolkit=cairo-gtk2 --enable-cplus --enable-xul --enable-places \
+ --enable-application=suite --enable-calendar --enable-default-toolkit=cairo-gtk2 --enable-xul --enable-places \
  --enable-image-decoders=all --enable-image-encoders=all --enable-necko-protocols=all \
  --enable-ctl --enable-canvas --enable-update-packaging --enable-storage --enable-profilesharing --enable-startup-notification \
  --enable-xpctools --enable-url-classifier --enable-ipv6 --enable-ldap-experimental --with-sasl \
@@ -314,14 +314,19 @@ ConfigureParams: <<
 # no -fstrict-aliasing in '--enable-optimize', else "dereferencing type-punned pointer will break strict-aliasing rules" warnings
 ##
 # --with-system-nss ?
+##
+# Remove the  --enable-tests  when putting in unstable ?
 
 ####  BUILD
 
-SetCC: gcc
+# Possibly remove next 2 settings for a release _ one role is to test how this might fare under 10.6 ..
+#SetCC: gcc-4.2
+#SetCXX: c++-4.2
 NoSetLDFLAGS: true
 SetLDFLAGS: -L%b/mozilla/dist/lib -L%b/mozilla/dist/bin -L%p/lib/fontconfig2/lib
 NoSetCPPFLAGS: true
 SetCPPFLAGS: -I%p/include/pango-1.0 -I%p/include/freetype2 -I%p/lib/fontconfig2/include
+
 CompileScript: <<
 #!/bin/sh -ev
  if [ -e /usr/X11R6/include/X11/X.h ]; then
@@ -343,26 +348,20 @@ CompileScript: <<
 	then export USE_64=1; enable64="--enable-64bit"
 	else enable64="--disable-64bit"
  fi
- env ac_cv_func_res_ninit=yes ./configure %c $enable64
+# next is for trouble with rcthrread.h:190 with c++ >= 4.2 (better to fix the problem!)
+# [ Trying to get this +/- right, independently of the presence or no of "SetCC" or "SetCXX" and of sw_vers .. ]
+ ctst=$CXX; if test -z $ctst; then ctst=$CC; if test -z $ctst; then ctst="/usr/bin/c++"; fi; fi
+ cxvers=`$ctst --dumpversion 2>&1|cut -f1 -d:|sed -e 's,.*-,,' -e 's,\.,,' -e 's,\..*,,'`
+ if [ $cxvers -le 41 ]; then cplus="--enable-cplus"; else cplus=''; fi
+
+ env ac_cv_func_res_ninit=yes ./configure %c $enable64 $cplus
  make -w
 <<
 
 #### INSTALL
 
 InstallScript: <<
-#!/bin/sh -ev
- if [ -e /usr/X11R6/include/X11/X.h ]; then
-   Xdir="/usr/X11R6"
- elif [ -e /usr/X11/include/X11/X.h ]; then
-   Xdir="/usr/X11"
- else
-   echo "Could not determine X11 prefix"
-   exit 1
- fi
-export CPATH="%p/lib/pango-ft219/include-pango-1.0:%p/lib/pango-ft219/include:%p/include/freetype2:%p/lib/fontconfig2/include:%p/include:$Xdir/include"
-export LIBRARY_PATH="%p/lib/pango-ft219/lib:%p/lib/fontconfig2/lib:%p/lib:$Xdir/lib"
-v=`uname -r|cut -f1 -d.`; if [ $v -ge 9 ]; then export LDFLAGS="$LDFLAGS -Wl,-dead_strip_dylibs" ; fi
-
+## No exports needed at this stage : apparently, now (2.0.4), I see no more compile's or links in the install pkase... 
 make -j1 install DESTDIR=%d INSTALL_SDK=1
 
 # rm or link duplicate files
@@ -399,18 +398,18 @@ ln -fs ../lib/%N-$V/%N-bin %i/bin/%N
 #if test "%type_raw[sys_nspr]" == "."
 #	then ln -s %N-nspr.pc %i/lib/pkgconfig/nspr.pc
 #fi
+# (=/- only) config-file, put there to avoid 'update-alternatives' with nspr; pkgs wanting this must prepend to their PATH..
+#cp -p mozilla/nsprpub/config/nspr-config %i/lib/%N-%type_raw[ver]
+## commented out too ! _ mozilla/nsprpub/config/nspr-config.in would need patching
 
 # Multi user setting ; needed ???
 touch %i/lib/%N-%type_raw[ver]/chrome/user-skins.rdf
 touch %i/lib/%N-%type_raw[ver]/chrome/user-locales.rdf
 
-# Install fink specific files. (commenting out the chrome.d stuff; scheme seems different now .)
-#install -d -m 755 %i/bin %i/sbin %i/var/lib/%N/chrome.d
-# keep for the moment the file, but under the name moz
-# in order not to conflict with mozilla, to compare with the original %i/bin/%N
-install -c -m 755 fink/mozilla %i/bin/moz
-#install -c -m 755 fink/update-%N-chrome %i/sbin
-#install -c -m 644 fink/chrome.d/* %i/var/lib/%N/chrome.d/
+## Install fink specific files.
+# keep for the moment the file (is still functional!), as documentation,
+#  to compare with the original %i/bin/%N (and with run-mozilla.sh ?)
+install -c -m 755 fink/mozilla %i/bin
 
 # Move config file into %p/etc.  (any use ??  or harm ?)
 install -d -m 755 %i/etc/%N
@@ -427,10 +426,14 @@ install -d -m 755 %i/share/pixmaps
 ln -fs %p/lib/%N-%type_raw[ver]/chrome/icons/default/%N.png %i/share/pixmaps/%N.png
 ln -fs %p/lib/%N-%type_raw[ver]/chrome/icons/default/main-window.png %i/share/pixmaps/%N_main-window.png
 ln -fs %p/lib/%N-%type_raw[ver]/chrome/icons/default/addressbookWindow.png %i/share/pixmaps/%N_addressbookWindow.png
-#ln -fs %p/lib/%N-%type_raw[ver]/chrome/icons/default/chatzilla  chatzilla disappeared...
+#ln -fs %p/lib/%N-%type_raw[ver]/chrome/icons/default/chatzilla  this disappeared...
 ln -fs %p/lib/%N-%type_raw[ver]/chrome/icons/default/editorWindow.png %i/share/pixmaps/%N_editorWindow.png
 ln -fs %p/lib/%N-%type_raw[ver]/chrome/icons/default/msgcomposeWindow.png %i/share/pixmaps/%N_msgcomposeWindow.png
 ln -fs %p/lib/%N-%type_raw[ver]/chrome/icons/default/messengerWindow.png %i/share/pixmaps/%N_mailnews.png
+# find something ad-hoc for the rest ...
+cp -p calendar/base/themes/pinstripe/cal-icon32.png %i/share/pixmaps/%N_calendar.png
+cp -p suite/branding/icons/gtk/chatzilla-window.xpm %i/share/pixmaps/%N_chatzilla.xpm
+cp -p mail/themes/qute/mail/newsblog/rss-feed.png %i/share/pixmaps/%N_news.png
 ### And all others remain in ???
 # ls -l %p/bld/mozilla-1.7.11-5/mozilla/dist/bin/chrome/icons/default
 # total 140
