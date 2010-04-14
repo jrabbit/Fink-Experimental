@@ -78,10 +78,9 @@ CustomMirror: <<
 
 #### PATCHING
 
-## %n.patch just imports a "fink" subdir; would be more logical to use fink.tbz (2384 bytes) as Source2.
-## please don't loose the comments in the patchfile _ or put them here.
-PatchFile: %n.patch
-PatchFile-MD5: eb0546c87a2ccf7a08d11f61fe4e17e5
+## The patchfile just imports a "fink" subdir.
+PatchFile: %n.tbz
+PatchFile-MD5: f9f33a263145f33c18972c7b7dd299e1
 PatchScript: <<
  #!/bin/sh -ev
 ### Make list of files patched (too difficult to track otherwise which ones have already been patched,
@@ -130,17 +129,18 @@ PatchScript: <<
 	|tr ' ' '\n'|sort -u|xargs`
  for f in $patchlst; do cp -p $f $f.bak; done
 
- if [ -e /usr/X11R6/include/X11/X.h ]; then
-   Xdir="/usr/X11R6"
- elif [ -e /usr/X11/include/X11/X.h ]; then
+ if [ -e /usr/X11/include/X11/X.h ]; then
    Xdir="/usr/X11"
+ elif [ -e /usr/X11/include/X11R6/X.h ]; then
+   Xdir="/usr/X11R6"
  else
    echo "Could not determine X11 prefix"
    exit 1
  fi
 
 ### import "fink" directory :
- sed -e 's,@PREFIX@,%p,g' -e "s,/usr/X11R6,$Xdir," <%{PatchFile} | patch -p0
+ tar -oxjf %{PatchFile}
+ sed -i'' -e 's,Pr,%p,g' -e "s,Xd,$Xdir," `find fink -type f`
  sed -ri'' -e '/XP_BEOS/,+3s;endif;&\t, "fink.js";' mozilla/modules/libpref/src/nsPrefService.cpp
 
 #### Next is for alpha or beta versions :
@@ -332,10 +332,10 @@ SetCPPFLAGS: -I%p/include/pango-1.0 -I%p/include/freetype2 -I%p/lib/fontconfig2/
 
 CompileScript: <<
 #!/bin/sh -ev
- if [ -e /usr/X11R6/include/X11/X.h ]; then
-   Xdir="/usr/X11R6"
- elif [ -e /usr/X11/include/X11/X.h ]; then
+ if [ -e /usr/X11/include/X11/X.h ]; then
    Xdir="/usr/X11"
+ elif [ -e /usr/X11R6/include/X11/X.h ]; then
+   Xdir="/usr/X11R6"
  else
    echo "Could not determine X11 prefix"
    exit 1
@@ -578,6 +578,9 @@ compliance, performance and portability.
 DescUsage: <<
 Dependent pkgs are probably assured of more stability w.r.t.
 versions of %N if using only the subset in %p/lib/%N/sdk .
+
+The calendar must be opened via "Events and Tasks" in Mail;
+"seamonkey -calendar" doesn't work at the moment.
 <<
 
 DescPort: <<
