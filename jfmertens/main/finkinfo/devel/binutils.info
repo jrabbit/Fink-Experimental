@@ -1,0 +1,81 @@
+Package: binutils
+Version: 2.20.1
+Revision: 3
+Source: mirror:gnu:%n/%n-%v.tar.bz2
+Source-MD5: 9cdfb9d6ec0578c166d3beae5e15c4e5
+ConfigureParams: --infodir=%i/share/info --mandir=%i/share/man --program-prefix=g --build=%m-apple-darwin`uname -r` --host=%m-apple-darwin`uname -r`
+BuildDepends: fink (>= 0.24.12-1)
+PatchScript: sed -i.bak -e 's,^skipdirs=$,skipdirs="gas ld gdb gprof",' configure
+
+CompileScript: <<
+  #!/bin/sh -ev
+  mkdir ../darwin_objdir
+  cd ../darwin_objdir
+  export CC="cc -no-cpp-precomp"
+  %b/configure %c
+  make
+<<
+InfoTest: <<
+   TestScript: cd ../darwin_objdir; make -k -i check || :
+<<
+InstallScript: <<
+  #!/bin/sh -ev
+  cd ../darwin_objdir
+  make install prefix=%i
+  rm %i/share/info/standards.info
+  mv %i/%m-apple-darwin`uname -r` %i/lib
+  mv %i/lib/%m/* %i/lib
+  rmdir %i/lib/%m
+  filenames="addr2line objcopy objdump readelf"
+  for f in filenames; do rm -f %i/lib/%f; done
+  # Fix executables
+  cd %i/bin
+  for filename in $filenames
+  do
+    mv g$filename $filename
+  done
+  # Fix Man files
+  cd %i/share/man/man1
+  for filename in $filenames
+  do
+    mv g$filename.1 $filename.1
+  done
+<<
+InfoDocs: bfd.info  binutils.info  configure.info
+DocFiles: COPYING README
+
+SplitOff: <<
+  Package: binutils-dev
+  Files: lib/*.{l,}a include
+  DocFiles: COPYING
+<<
+
+Description: Collection of binary tools
+DescDetail: <<
+  The GNU Binutils are a collection of binary tools. The main ones are:
+  ld - the GNU linker.
+  as - the GNU assembler.
+  
+  But they also include:
+  addr2line - Converts addresses into filenames and line numbers.
+  ar - A utility for creating, modifying and extracting from archives.
+  c++filt - Filter to demangle encoded C++ symbols.
+  gprof - Displays profiling information.
+  nlmconv - Converts object code into an NLM.
+  nm - Lists symbols from object files.
+  objcopy - Copys and translates object files.
+  objdump - Displays information from object files.
+  ranlib - Generates an index to the contents of an archive.
+  readelf - Displays information from any ELF format object file.
+  size - Lists the section sizes of an object or archive file.
+  strings - Lists printable strings from files.
+  strip - Discards symbols.
+  windres - A compiler for Windows resource files.
+<<
+DescPackaging: <<
+  Based on the installation procedure used in Darwinports:
+  http://binutils.darwinports.com/dports/devel/binutils/Portfile
+<<
+License: GPL
+Maintainer: Pepe Barbe <pepe.barbe@gmail.com>
+Homepage: http://www.gnu.org/software/binutils/
