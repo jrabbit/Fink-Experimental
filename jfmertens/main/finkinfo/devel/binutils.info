@@ -3,33 +3,34 @@ Version: 2.20.1
 Revision: 3
 Source: mirror:gnu:%n/%n-%v.tar.bz2
 Source-MD5: 9cdfb9d6ec0578c166d3beae5e15c4e5
-ConfigureParams: --infodir=%i/share/info --mandir=%i/share/man --program-prefix=g --build=%m-apple-darwin`uname -r` --host=%m-apple-darwin`uname -r`
-BuildDepends: fink (>= 0.24.12-1)
+ConfigureParams: --infodir=%p/share/info --mandir=%p/share/man --program-prefix=g
+BuildDepends: libgettext8-dev, fink (>= 0.24.12-1)
+Depends: libgettext8-shlibs
 PatchScript: sed -i.bak -e 's,^skipdirs=$,skipdirs="gas ld gdb gprof",' configure
 
 CompileScript: <<
   #!/bin/sh -ev
+  dver=`uname -r|cut -f1 -d.`
   mkdir ../darwin_objdir
   cd ../darwin_objdir
   export CC="cc -no-cpp-precomp"
-  %b/configure %c
+  %b/configure %c  --build=%m-apple-darwin$dver --host=%m-apple-darwin$dver --target=%m-apple-darwin$dver
   make
 <<
 InfoTest: <<
    TestDepends: dejagnu
-   TestScript: cd ../darwin_objdir; make -k -i check || :
+   TestScript: cd ../darwin_objdir; make -k check || :
 <<
 InstallScript: <<
   #!/bin/sh -ev
+  dver=`uname -r|cut -f1 -d.`
   cd ../darwin_objdir
-  make install prefix=%i
+  make install DESTDIR=%d
   rm %i/share/info/standards.info
-  mv %i/%m-apple-darwin`uname -r` %i/lib
-## making the "ls -lR" identical on 32bit and 64bit : 
-  if [ -d %i/lib/%m ] ; then
-	mv %i/lib/%m/* %i/lib
-	rmdir %i/lib/%m
-  fi
+  mv %i/%m-apple-darwin$dver %i/lib
+## make sure libiberty.a is found at the same place on 32bit and 64bit :
+  L=`ls -1 %i/lib/%m 2>/dev/null|sed -e 's,^,%m/,'|xargs`
+  if [ -n "$L" ] ; then ln -fs $L %i/lib ; fi
 ## stripping "g" prefixes from executables not provided by Apple
   filenames="addr2line objcopy objdump readelf"
   for f in filenames; do rm -f %i/lib/%f; done
@@ -45,12 +46,16 @@ InstallScript: <<
   do
     mv g$filename.1 $filename.1
   done
+  # Replace duplicates by symlinks
+  for f in ar nm strip; do ln -fs ../lib/%m-apple-darwin${dver}/bin/$f %i/bin/g$f; done
+  for f in objcopy objdump; do ln -fs ../lib/%m-apple-darwin${dver}/bin/$f %i/bin/$f; done
 <<
 InfoDocs: bfd.info  binutils.info  configure.info
 DocFiles: COPYING README
 
 SplitOff: <<
-  Package: binutils-dev
+  Package: %N-dev
+  InstallScript: mkdir -p %i/lib; if [ -d %I/lib/%m ] ; then mv %I/lib/%m %i/lib; fi
   Files: lib/*.{l,}a include
   DocFiles: COPYING
 <<
