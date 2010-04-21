@@ -1,6 +1,6 @@
 Package: binutils
 Version: 2.20.1
-Revision: 5
+Revision: 6
 Source: mirror:gnu:%n/%n-%v.tar.bz2
 Source-MD5: 9cdfb9d6ec0578c166d3beae5e15c4e5
 ConfigureParams: --infodir=%p/share/info --mandir=%p/share/man --program-prefix=g
@@ -49,31 +49,32 @@ InstallScript: <<
   # Replace duplicates by symlinks
   for f in ar nm strip; do ln -fs ../lib/%m-apple-darwin${dver}/bin/$f %i/bin/g$f; done
   for f in objcopy objdump; do ln -fs ../lib/%m-apple-darwin${dver}/bin/$f %i/bin/$f; done
-  # prepare for update-alternatives (for gdb); avoid hardcoding: long list, likely to change at every %v
+  # prepare for update-alternatives (binutils vs gdb); avoid hardcoding: long list, likely to change at every %v
   cd %i/share/locale
   for f in `find . -name bfd.mo -o -name opcodes.mo`; do mv $f "`dirname $f`/%N-`basename $f`"; done
 <<
-InfoDocs: bfd.info binutils.info configure.info
-DocFiles: COPYING README
 PostInstScript: <<
-  cmd=$(find %p/share/locale -name %N-bfd.mo -o -name %N-opcodes.mo | \
-	while read file ; do \
+## we start by putting a fixed item (not likely	to disappear) at the top of the list,
+## to make sure	we always have the same	master,	in both	pkgs
+  cmd=$(l=`find %p/share/locale -name %N-bfd.mo -o -name %N-opcodes.mo`
+	{ fgrep "/fr/LC_MESSAGES/%N-bfd.mo" <<<"$l"
+	fgrep -v "/fr/LC_MESSAGES/%N-bfd.mo" <<<"$l"
+	} | while read file ; do \
 		f=`sed -e 's,/%N-,/,' <<<"$file"` 
 		n=`sed -e 's,/LC_MESSAGES/,_,' -e 's,.*/,,' <<<"$f"`
 		echo "--slave $f $n $file \\"
 	done | \
 	sed -e '1s,--slave,update-alternatives --install,' -e '1s,[\],60 \\,' -e '$s,[\]$,,' )
-  ## for documentation (for other pkgs)
+  ## for documentation
   echo "$cmd"
   eval "$cmd"
 <<
+## No test for upgrade in PreRmScript, since list is likely to change with %v
 PreRmScript: <<
-  if [ $1 != "upgrade" ]; then
-	f=`find %p/share/locale -name %N-bfd.mo -o -name %N-opcodes.mo | head -1`
-	n=`sed -e 's,.*/%N-,,' -e 's,/LC_MESSAGES/,_,' -e 's,.*/,,' <<<"$f"`
-	update-alternatives --remove $n $f
-  fi
+	update-alternatives --remove fr_bfd.mo %p/share/locale/fr/LC_MESSAGES/%N-bfd.mo
 <<
+InfoDocs: bfd.info binutils.info configure.info
+DocFiles: COPYING README
 
 SplitOff: <<
   Package: %N-dev
