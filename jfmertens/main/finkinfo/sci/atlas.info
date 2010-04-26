@@ -1,5 +1,5 @@
 Package: atlas
-Version: 3.9.11
+Version: 3.9.24
 Revision: 1
 Description: Portable optimal linear algebra software
 DescDetail: <<
@@ -29,18 +29,18 @@ DescUsage: <<
 Order is important when linking! Use:
 -L%p/lib -llapack -lcblas -lf77blas -latlas
 <<
-Source: mirror:sourceforge:math-atlas/%n%v.tar.bz2
-Source-MD5: fa95dfd4a69e5614db1061a740bc5265
+Source: mirror:sourceforge:math-atlas/files/%n%v.tar.bz2
+Source-MD5: 5d3fb346105fe6ed7a9971eca0193b83
 # src2 still needed for the manpages
 Source2: http://www.netlib.org/lapack/lapack-3.1.1.tgz
 Source2-MD5: 00b21551a899bcfbaa7b8443e1faeef9
 # this is version 3.2, to be used for the build:
 Source3: http://www.netlib.org/lapack/lapack.tgz
-Source3-MD5: a24f59304f87b78cdc7da2ae59c98664
-SourceDirectory: ATLAS
+Source3-MD5: a3202a4f9e2f15ffd05d15dab4ac7857
+SourceDirectory: ATLAS 
 License: BSD
 BuildDependsOnly: true
-BuildDepends: gcc44
+BuildDepends: gcc45
 # The whole previous patchscript is in the srcs for %v 3.9.4
 PatchScript: <<
 #!/bin/sh -ev
@@ -49,6 +49,10 @@ sed -i.bak -e 's,libtool -dynamic,\$(LIBTOOL) -dynamic,' -e 's,_version %v,_vers
 	-e 's,-compatibility_version \$(VER) ,,' \
 	-e '/lapack\.dylib *:/,/clapack\.dylib *:/s,\$(LIBS),-lgcc_s.1 &,' makes/Make.lib
 sed -i.bak -e 's,LIBTOOL",LIBTOOL -single_module -dead_strip -x",' configure
+# wrong names: https://sourceforge.net/tracker/?func=detail&aid=2992053&group_id=23725&atid=379483
+sed -i.bak -e 's,ger\([cu]\)2,ger2\1,' interfaces/blas/F77/src/f77wrap/ATL_F77wrap_ger2{c,u}.c
+# and then: https://sourceforge.net/tracker/?func=detail&aid=2992126&group_id=23725&atid=379483
+
 # next is to have ATL_AS_OSX_PPC defined when it should be
 sed -i.bak -e '1i #include "atlas_asm.h"' tune/blas/gemm/CASES/ATL_dmm4x4x2pf_av.c
 cd ..; 
@@ -59,18 +63,22 @@ sed -e 's,\.\./\.\./blas\$(PLAT)\.a,%b/../bld/lib/libf77blas.a %b/../bld/lib/lib
     -e 's,lapack\$(PLAT)\.a,../bld/lib/liblapack.a,' \
     -e 's|g77|gfortran|g' -e 's,^TIMER,\#TIMER,' -e '/INT_ETIME/s,^\# *,,' < INSTALL/make.inc.LINUX > make.inc
 <<
-# -Si archdef 0 -Si latune 1
-ConfigureParams: -Si archdef 0 -v 2 -b 32 -Fa alg -fPIC -Si latune 1 -Ss LAsrc %b/../LAPACK/SRC
+# -Si archdef 0 -Si latune 1 -Si omp 2 -Si antthr 2 -Si lapackref ? --shared --with-netlib-lapack-tarfile=<path to lapack tarfile>
+ConfigureParams: -Si archdef 0 -v 2 -Fa alg -fPIC -Si latune 1 -Ss flapack %b/../LAPACK/SRC
 CompileScript: <<
 #!/bin/sh -ev
- cflags=''
- if [ %m = 'i386' ]
-#	then mflags="-mfpmath=sse -msse -msse2 -msse3 -m32"; iflags="-mfpmath=387"
-	then mflags="-mfpmath=sse -msse -msse2 -msse3 -m32"; iflags=''
-	else mflags='-maltivec -mabi=altivec'; iflags=''
+ cflags="-b 32"
+ iflags=''
+ if [ "%m" = 'i386' ]
+#	then mflags="-mfpmath=sse -msse -msse2 -msse3 -m32 -arch i386"; iflags="-mfpmath=387"
+	then mflags="-mfpmath=sse -msse -msse2 -msse3 -m32 -arch i386"
+	else if  [ "%m" = 'x86_64' ]
+		then mflags="-m64 -arch x86_64" ; cflags="-b 64"
+		else  mflags='-maltivec -mabi=altivec'
 		if [ `machine|sed -e 's,ppc,,' -e 's,\([0-9]\).*,\1,'` != 9 ]
-			then cflags='-Si cputhrchk 0 -D c -DATL_AVgcc'
+			then cflags='-Si cputhrchk 0 -D c -DATL_AVgcc -b 32'
 		fi
+	     fi
  fi
  lflags="-fPIC -O3 -fomit-frame-pointer -fgcse-sm -fgcse-las -ftree-loop-linear $mflags"
  iflags="-fPIC -O3 -fomit-frame-pointer $iflags"
