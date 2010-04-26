@@ -49,9 +49,17 @@ sed -i.bak -e 's,libtool -dynamic,\$(LIBTOOL) -dynamic,' -e 's,_version %v,_vers
 	-e 's,-compatibility_version \$(VER) ,,' \
 	-e '/lapack\.dylib *:/,/clapack\.dylib *:/s,\$(LIBS),-lgcc_s.1 &,' makes/Make.lib
 sed -i.bak -e 's,LIBTOOL",LIBTOOL -single_module -dead_strip -x",' configure
-# wrong names: https://sourceforge.net/tracker/?func=detail&aid=2992053&group_id=23725&atid=379483
+# wrong names: https://sourceforge.net/tracker/?func=detail&aid=2992053&group_id=23725&atid=379482
 sed -i.bak -e 's,ger\([cu]\)2,ger2\1,' interfaces/blas/F77/src/f77wrap/ATL_F77wrap_ger2{c,u}.c
-# and then: https://sourceforge.net/tracker/?func=detail&aid=2992126&group_id=23725&atid=379483
+# and then: https://sourceforge.net/tracker/index.php?func=detail&aid=2992126&group_id=23725&atid=379482
+for t in c z; do for l in c u; do
+sed -i.bak "s,${t}ger2[(],${t}ger2${l}(," interfaces/blas/C/src/cblas_${t}ger2${l}.c
+done; done
+for t in c z ; do \
+sed -i.bak "/#endif/i \
+#define cblas_ger2c	cblas_${t}ger2c\
+#define	cblas_ger2u	cblas_${t}ger2u" include/atlas_cblas${t}alias.h
+done
 
 # next is to have ATL_AS_OSX_PPC defined when it should be
 sed -i.bak -e '1i #include "atlas_asm.h"' tune/blas/gemm/CASES/ATL_dmm4x4x2pf_av.c
@@ -71,9 +79,9 @@ CompileScript: <<
  iflags=''
  if [ "%m" = 'i386' ]
 #	then mflags="-mfpmath=sse -msse -msse2 -msse3 -m32 -arch i386"; iflags="-mfpmath=387"
-	then mflags="-mfpmath=sse -msse -msse2 -msse3 -m32 -arch i386"
+	then mflags="-mfpmath=sse -msse -msse2 -msse3 -m32"
 	else if  [ "%m" = 'x86_64' ]
-		then mflags="-m64 -arch x86_64" ; cflags="-b 64"
+		then mflags="-m64" ; cflags="-b 64"
 		else  mflags='-maltivec -mabi=altivec'
 		if [ `machine|sed -e 's,ppc,,' -e 's,\([0-9]\).*,\1,'` != 9 ]
 			then cflags='-Si cputhrchk 0 -D c -DATL_AVgcc -b 32'
