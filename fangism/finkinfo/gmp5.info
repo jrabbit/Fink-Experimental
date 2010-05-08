@@ -1,24 +1,28 @@
 Info2: <<
-Package: gmp%type_pkg[-64bit]
-Version: 4.3.2
+Package: gmp5%type_pkg[-64bit]
+Version: 5.0.1
 Revision: 1
 GCC: 4.0
 Type: -64bit (boolean)
 Architecture: ( %type_raw[-64bit] = -64bit ) powerpc, ( %type_raw[-64bit] = -64bit ) i386
 Source: mirror:gnu:gmp/gmp-%v.tar.gz
-Source-MD5: 2a431d487dfd76d0f618d241b1e551cc
+Source-MD5: 5ec19db53ced047b8d0d52373f6c245d
+# PatchFile: %{ni}.patch
+# PatchFile-MD5: a32c8651a786aa499afd6b3cb997c017
 Depends: <<
   %N-shlibs (= %v-%r),
-  libgmpxx%type_pkg[-64bit]-shlibs (= %v-%r),
+  libgmpxx5%type_pkg[-64bit]-shlibs (= %v-%r),
   ( %type_raw[-64bit] = -64bit ) 64bit-cpu
 <<
 BuildDepends: fink (>= 0.26.0), gcc4.0 (>= 4.0.1-1)
-Conflicts: gmp, gmp-64bit
-Replaces: gmp, gmp-64bit
+Conflicts: gmp5, gmp5-64bit
+Replaces: gmp5, gmp5-64bit
 SetCPPFLAGS: -fexceptions
 ConfigureParams: <<
+  --prefix=%p/lib/gmp5 \
   --infodir='${prefix}/share/info' \
-  --enable-cxx
+  --enable-cxx \
+  --disable-static
 <<
 CompileScript: <<
 #! /bin/sh -ev
@@ -36,27 +40,29 @@ fi
 make
 make check
 <<
+InstallScript: <<
+  #!/bin/sh -ev
+  make DESTDIR=%d install
+<<
 DocFiles: COPYING COPYING.LIB README
 InfoDocs: gmp.info gmp.info-1 gmp.info-2
 BuildDependsOnly: True
 SplitOff: <<
   Package: %N-shlibs
   Depends: ( %type_raw[-64bit] = -64bit ) 64bit-cpu
-  Replaces: gmp (<< 4.0.1-1)
-  Files: %lib/libgmp.*.dylib
+  Files: lib/gmp5/%lib/libgmp.*.dylib
   Shlibs: <<
-    %p/%lib/libgmp.3.dylib 9.0.0 %n (>= 4.2.1-1) %type_num[-64bit]
+    %p/lib/gmp5/%lib/libgmp.10.dylib 11.0.0 %n (>= 5.0.1-1) %type_num[-64bit]
   <<
   Description: Shared library for gmp package
   DocFiles: doc/* AUTHORS COPYING COPYING.LIB ChangeLog INSTALL NEWS README
 <<
 SplitOff2: <<
-  Package: libgmpxx%type_pkg[-64bit]-shlibs
+  Package: libgmpxx5%type_pkg[-64bit]-shlibs
   Depends: ( %type_raw[-64bit] = -64bit ) 64bit-cpu, %N-shlibs
-  Replaces: gmp (<< 4.0.1-1), gmp-shlibs (<< 4.1.4-1)
-  Files: %lib/libgmpxx.*.dylib
+  Files: lib/gmp5/%lib/libgmpxx.*.dylib
   Shlibs: <<
-    %p/%lib/libgmpxx.4.dylib 6.0.0 %n (>= 4.2.1-1) %type_num[-64bit]
+    %p/lib/gmp5/%lib/libgmpxx.4.dylib 7.0.0 %n (>= 5.0.0-1) %type_num[-64bit]
   <<
   Description: Shared C++ library for gmp package
   DocFiles: doc/* AUTHORS COPYING COPYING.LIB ChangeLog INSTALL NEWS README
@@ -74,10 +80,14 @@ DescPackaging: <<
  called libgmpxx4.  To work around this, the splitoff is now called
  libgmpxx (with no number); note that the next time the major version of
  this library changes, the splitoff should go to libgmpxx5.
- Future major versions should be installed to private pkglib dirs so
- that multiple versions may coexist without conflict.
+
+ Starting with gmp5, we install to a private pkglib dir so that it may 
+ coexist with other major versions of gmp without conflicts/replaces.
+ Since gmp5, static libraries have been removed in favor of shared-only.
 <<
 DescPort: <<
+ Older notes:
+
  Patch from Ben Hines to build libgmpxx, as of vers. 4.1-2.  As of vers.
  4.1.4-1, libgmpxx gets its own splitoff.
 
