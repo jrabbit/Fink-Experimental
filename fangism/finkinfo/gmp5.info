@@ -15,11 +15,10 @@ Depends: <<
   ( %type_raw[-64bit] = -64bit ) 64bit-cpu
 <<
 BuildDepends: fink (>= 0.26.0), gcc4.0 (>= 4.0.1-1)
-Conflicts: gmp5, gmp5-64bit
-Replaces: gmp5, gmp5-64bit
+Conflicts: gmp, gmp-64bit, gmp5, gmp5-64bit
+Replaces: gmp, gmp-64bit, gmp5, gmp5-64bit
 SetCPPFLAGS: -fexceptions
 ConfigureParams: <<
-  --prefix=%p/lib/gmp5 \
   --infodir='${prefix}/share/info' \
   --enable-cxx \
   --disable-static
@@ -28,13 +27,13 @@ CompileScript: <<
 #! /bin/sh -ev
  if [ "%type_raw[-64bit]" == "." ] ; then
   case "%m" in
-    i386 | powerpc) ABI=32 ./configure %c  --libdir='${prefix}/%lib';;
-    x86_64) ABI=64 ./configure %c --libdir='${prefix}/%lib';;
+    i386 | powerpc) ABI=32 ./configure %c  --libdir='${prefix}/%lib/gmp5';;
+    x86_64) ABI=64 ./configure %c --libdir='${prefix}/%lib/gmp5';;
   esac
  else
   case "%m" in
-    i386) ABI=64 ./configure %c --libdir='${prefix}/%lib';;
-    powerpc) ABI=mode64  ./configure %c --libdir='${prefix}/%lib';;
+    i386) ABI=64 ./configure %c --libdir='${prefix/%lib/gmp5}';;
+    powerpc) ABI=mode64  ./configure %c --libdir='${prefix}/%lib/gmp5';;
   esac
 fi
 make
@@ -43,6 +42,9 @@ make check
 InstallScript: <<
   #!/bin/sh -ev
   make DESTDIR=%d install
+  #Move .la and symlinks to %p/%lib so packages don't need tricks to find them.
+  mv %i/%lib/gmp5/libgmp.{dylib,la} %i/%lib
+  mv %i/%lib/gmp5/libgmpxx.{dylib,la} %i/%lib
 <<
 DocFiles: COPYING COPYING.LIB README
 InfoDocs: gmp.info gmp.info-1 gmp.info-2
@@ -50,9 +52,9 @@ BuildDependsOnly: True
 SplitOff: <<
   Package: %N-shlibs
   Depends: ( %type_raw[-64bit] = -64bit ) 64bit-cpu
-  Files: lib/gmp5/%lib/libgmp.*.dylib
+  Files: %lib/gmp5/libgmp.*.dylib
   Shlibs: <<
-    %p/lib/gmp5/%lib/libgmp.10.dylib 11.0.0 %n (>= 5.0.1-1) %type_num[-64bit]
+    %p/%lib/gmp5/libgmp.10.dylib 11.0.0 %n (>= 5.0.1-2) %type_num[-64bit]
   <<
   Description: Shared library for gmp package
   DocFiles: doc/* AUTHORS COPYING COPYING.LIB ChangeLog INSTALL NEWS README
@@ -60,9 +62,9 @@ SplitOff: <<
 SplitOff2: <<
   Package: libgmpxx5%type_pkg[-64bit]-shlibs
   Depends: ( %type_raw[-64bit] = -64bit ) 64bit-cpu, %N-shlibs
-  Files: lib/gmp5/%lib/libgmpxx.*.dylib
+  Files: %lib/gmp5/libgmpxx.*.dylib
   Shlibs: <<
-    %p/lib/gmp5/%lib/libgmpxx.4.dylib 7.0.0 %n (>= 5.0.0-1) %type_num[-64bit]
+    %p/%lib/gmp5/libgmpxx.4.dylib 7.0.0 %n (>= 5.0.1-2) %type_num[-64bit]
   <<
   Description: Shared C++ library for gmp package
   DocFiles: doc/* AUTHORS COPYING COPYING.LIB ChangeLog INSTALL NEWS README
