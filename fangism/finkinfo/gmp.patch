@@ -1,0 +1,421 @@
+--- gmp-4.3.2/config.guess	2010-01-07 12:09:02.000000000 -0800
++++ gmp-5.0.1/config.guess	2010-02-06 04:43:13.000000000 -0800
+@@ -728,16 +728,22 @@
+ 	  else if (model >= 4)	modelstr = "pentiummmx";
+ 	  break;
+ 	case 6:
+-	  if (model <= 1)	modelstr = "pentiumpro";
+-	  else if (model <= 6)	modelstr = "pentium2";
+-	  else if (model <= 8)	modelstr = "pentium3";
+-	  else if (model <= 9)	modelstr = "pentiumm";
+-	  else if (model <= 12)	modelstr = "pentium3";
+-	  else if (model <= 14)	modelstr = "pentiumm";
+-	  else if (model <= 25)	modelstr = "core2";
+-	  else if (model <= 27)	modelstr = "core2"; /* core i5, i7 */
+-	  else if (model == 28)	modelstr = "atom";
+-	  else if (model == 29)	modelstr = "core2";
++	  if (model <= 1)		modelstr = "pentiumpro";
++	  else if (model <= 6)		modelstr = "pentium2";
++	  else if (model <= 8)		modelstr = "pentium3";
++	  else if (model <= 9)		modelstr = "pentiumm";
++	  else if (model <= 0x0c)	modelstr = "pentium3";
++	  else if (model <= 0x0e)	modelstr = "pentiumm";
++	  else if (model <= 0x19)	modelstr = "core2";
++	  else if (model == 0x1a)	modelstr = "corei"; /* NHM Gainestown */
++	  else if (model == 0x1c)	modelstr = "atom";  /* Silverthorne */
++	  else if (model == 0x1d)	modelstr = "core2"; /* PNR Dunnington */
++	  else if (model == 0x1e)	modelstr = "corei"; /* NHM Lynnfield/Jasper */
++	  else if (model == 0x25)	modelstr = "corei"; /* WSM Clarkdale/Arrandale */
++	  else if (model == 0x26)	modelstr = "atom";  /* Lincroft */
++	  else if (model == 0x27)	modelstr = "atom";  /* Saltwell */
++	  else if (model == 0x2c)	modelstr = "corei"; /* WSM Gulftown */
++	  else if (model == 0x2e)	modelstr = "corei"; /* NHM Beckton */
+ 	  break;
+ 	case 15:
+ 	  modelstr = "pentium4";
+@@ -775,7 +781,8 @@
+ 	{
+ 	case 6:
+ 	  if (model < 9)	modelstr = "viac3";
+-	  else			modelstr = "viac32";
++	  else if (model < 15)	modelstr = "viac32";
++	  else			modelstr = "nano";
+ 	  break;
+ 	}
+     }
+--- gmp-4.3.2/configure.in	2010-01-07 12:09:02.000000000 -0800
++++ gmp-5.0.1/configure.in	2010-02-06 04:43:13.000000000 -0800
+@@ -250,6 +264,7 @@
+ #undef HAVE_HOST_CPU_FAMILY_power
+ #undef HAVE_HOST_CPU_FAMILY_powerpc
+ #undef HAVE_HOST_CPU_FAMILY_x86
++#undef HAVE_HOST_CPU_FAMILY_x86_64
+ 
+ /* Define one of the following to 1 for the host CPU, as per the output of
+    ./config.guess.  If your CPU is not listed here, leave all undefined.  */
+@@ -905,7 +924,15 @@
+       powerpc821)   gcc_cflags_cpu="-mcpu=821" ;;
+       powerpc823)   gcc_cflags_cpu="-mcpu=823" ;;
+       powerpc860)   gcc_cflags_cpu="-mcpu=860" ;;
+-      powerpc970)   gcc_cflags_cpu="-mcpu=970" ;;
++      powerpc970)   gcc_cflags_cpu="-mtune=970"
++		    vmx_path="powerpc64/vmx"
++		    cpu_path="p4" ;;
++      power4)	    gcc_cflags_cpu="-mtune=power4"
++		    cpu_path="p4" ;;
++      power5)	    gcc_cflags_cpu="-mtune=power5 -mtune=power4"
++		    cpu_path="p5 p4" ;;
++      power6)	    gcc_cflags_cpu="-mtune=power6"
++		    cpu_path="p6" ;;
+     esac
+ 
+     case $host in
+@@ -934,10 +961,6 @@
+ 
+     case $host in
+       POWERPC64_PATTERN)
+-        case $host_cpu in
+-	  powerpc970)		vmx_path="powerpc64/vmx" ;;
+-	  *)			vmx_path="" ;;
+-	esac
+         case $host in
+           *-*-aix*)
+             # On AIX a true 64-bit ABI is available.
+@@ -990,7 +1015,9 @@
+ 	    gcc_mode64_cflags="-m64"
+ 	    gcc_mode64_cflags_optlist="cpu opt"
+ 	    gcc_mode64_cflags_opt="-O3 -O2 -O1"
+-	    path_mode64="powerpc64/mode64 $vmx_path powerpc64"
++	    path_mode64=""
++	    for i in $cpu_path; do path_mode64="${path_mode64}powerpc64/mode64/$i "; done
++	    path_mode64="${path_mode64}powerpc64/mode64 $vmx_path powerpc64"
+             SPEED_CYCLECOUNTER_OBJ_mode64=powerpc64.lo
+             cyclecounter_size_mode64=0
+ 	    any_mode64_testlist="sizeof-long-8"
+@@ -1281,7 +1318,7 @@
+   # mode, in case -m32 has failed not because it's an old gcc, but because
+   # it's a dual 32/64-bit gcc without a 32-bit libc, or whatever.
+   #
+-  X86_PATTERN | athlon64-*-* | atom-*-* | core2-*-* | x86_64-*-*)
++  X86_PATTERN | X86_64_PATTERN)
+     abilist="32"
+     cclist="gcc icc cc"
+     gcc_cflags="$gcc_cflags $fomit_frame_pointer"
+@@ -1389,6 +1426,7 @@
+         #
+         gcc_cflags_cpu="-mtune=pentium4 -mcpu=pentium4 -mcpu=pentiumpro -mcpu=i486 -m486"
+         gcc_cflags_arch="-march=pentium4 -march=pentium4~-mno-sse2 -march=pentiumpro -march=pentium"
++        gcc_64_cflags_cpu="-mtune=nocona"
+         ;;
+       viac32)
+         # Not sure of the best fallbacks here for -mcpu.
+@@ -1405,10 +1443,14 @@
+         gcc_cflags_cpu="-mtune=k8 -mcpu=athlon -mcpu=pentiumpro -mcpu=i486 -m486"
+         gcc_cflags_arch="-march=k8 -march=k8~-mno-sse2 -march=athlon -march=pentiumpro -march=pentium"
+         ;;
+-      core2)
++      core2 | corei)
+         gcc_cflags_cpu="-mtune=core2 -mtune=k8"
+         gcc_cflags_arch="-march=core2 -march=core2~-mno-sse2 -march=k8 -march=k8~-mno-sse2"
+         ;;
++      atom)
++        gcc_cflags_cpu="-mtune=atom -mtune=pentium3"
++        gcc_cflags_arch="-march=atom -march=pentium3"
++        ;;
+       *)
+         gcc_cflags_cpu="-mtune=i486 -mcpu=i486 -m486"
+         gcc_cflags_arch="-march=i486"
+@@ -1423,7 +1465,8 @@
+       i686 | pentiumpro)    path="x86/p6 x86" ;;
+       pentium2)             path="x86/p6/mmx x86/p6 x86" ;;
+       pentium3)             path="x86/p6/p3mmx x86/p6/mmx x86/p6 x86";;
+-      pentiumm | core2)     path="x86/p6/sse2 x86/p6/p3mmx x86/p6/mmx x86/p6 x86";;
++      pentiumm | core2 | corei)
++                            path="x86/p6/sse2 x86/p6/p3mmx x86/p6/mmx x86/p6 x86";;
+       [k6[23]])             path="x86/k6/k62mmx x86/k6/mmx x86/k6 x86" ;;
+       k6)                   path="x86/k6/mmx x86/k6 x86" ;;
+       geode)                path="x86/k6/k62mmx x86/k6/mmx x86/k6 x86" ;;
+@@ -1434,6 +1477,7 @@
+       # VIA/Centaur processors, sold as CyrixIII and C3.
+       viac32)               path="x86/p6/p3mmx x86/p6/mmx x86/p6 x86";;
+       viac3*)               path="x86/pentium/mmx x86/pentium x86";;
++      atom)                 path="x86/atom x86" ;;
+       *)                    path="x86" ;;
+     esac
+ 
+@@ -1457,41 +1480,38 @@
+       fat_thresholds="MUL_KARATSUBA_THRESHOLD MUL_TOOM3_THRESHOLD
+ 		      SQR_KARATSUBA_THRESHOLD SQR_TOOM3_THRESHOLD"
+     fi
+ 
+-    case $host_cpu in
+-      athlon64 | atom | core2 | pentium4 | x86_64)
+-        cclist_64="gcc"
+-        gcc_64_cflags="$gcc_64_cflags -m64"
+-        gcc_64_cflags_optlist="cpu"
+-        CALLING_CONVENTIONS_OBJS_64='amd64call.lo amd64check$U.lo'
+-        SPEED_CYCLECOUNTER_OBJ_64=x86_64.lo
+-        cyclecounter_size_64=2
+-
+-        case $host in
+-          *-*-solaris*)
+-            # Sun cc.
+-            cclist_64="$cclist_64 cc"
+-            cc_64_cflags="-xO3 -m64"
+-            ;;
+-        esac
++    case $host in
++      X86_64_PATTERN)
++	cclist_64="gcc"
++	gcc_64_cflags="$gcc_64_cflags -m64"
++	gcc_64_cflags_optlist="cpu arch"
++	CALLING_CONVENTIONS_OBJS_64='amd64call.lo amd64check$U.lo'
++	SPEED_CYCLECOUNTER_OBJ_64=x86_64.lo
++	cyclecounter_size_64=2
++	abilist="64 32"
++	path_64="x86_64"
+ 
+ 	case $host_cpu in
+-	  athlon64 | x86_64)
+-	    abilist="64 32"
+-	    path_64="x86_64"
++	  x86_64)
++	    ;;
++	  athlon64)
++	    path_64="x86_64/k8 $path_64"
+ 	    ;;
+ 	  pentium4)
+-	    abilist="64 32"
+-	    path_64="x86_64/pentium4 x86_64"
++	    path_64="x86_64/pentium4 $path_64"
+ 	    ;;
+ 	  core2)
+-	    abilist="64 32"
+-	    path_64="x86_64/core2 x86_64"
++	    path_64="x86_64/core2 $path_64"
++	    ;;
++	  corei)
++	    path_64="x86_64/corei x86_64/core2 $path_64"
+ 	    ;;
+ 	  atom)
+-	    # The AMD K8/K9/K10 code seems best for Intel Atom
+-	    abilist="64 32"
+-	    path_64="x86_64/atom x86_64"
++	    path_64="x86_64/atom $path_64"
++	    ;;
++	  nano)
++	    path_64="x86_64/nano $path_64"
+ 	    ;;
+ 	esac
+ 	;;
+@@ -2037,7 +2107,7 @@
+ # enough assembler.
+ #
+ case $host in
+-  X86_PATTERN | athlon64-*-* | atom-*-* | core2-*-* | x86_64-*-*)
++  X86_PATTERN | X86_64_PATTERN)
+     if test "$ABI" = 32; then
+       case "$path $fat_path" in
+         *mmx*)   GMP_ASM_X86_MMX( , [GMP_STRIP_PATH(*mmx*)]) ;;
+@@ -3017,7 +3138,7 @@
+           ;;
+       esac
+       ;;
+-    X86_PATTERN | athlon64-*-* | atom-*-* | core2-*-* | x86_64-*-*)
++    X86_PATTERN | X86_64_PATTERN)
+       GMP_ASM_ALIGN_FILL_0x90
+       case $ABI in
+         32)
+@@ -3036,6 +3157,7 @@
+           ;;
+         64)
+           GMP_INCLUDE_MPN(x86_64/x86_64-defs.m4)
++          AC_DEFINE(HAVE_HOST_CPU_FAMILY_x86_64)
+ 	  case $host in
+ 	    *-*-darwin*)
+ 	      GMP_INCLUDE_MPN(x86_64/darwin.m4) ;;
+--- gmp-4.3.2/configure.orig	2010-05-09 16:32:47.000000000 -0700
++++ gmp-4.3.2/configure	2010-05-09 16:33:15.000000000 -0700
+@@ -3554,7 +3554,15 @@
+       powerpc821)   gcc_cflags_cpu="-mcpu=821" ;;
+       powerpc823)   gcc_cflags_cpu="-mcpu=823" ;;
+       powerpc860)   gcc_cflags_cpu="-mcpu=860" ;;
+-      powerpc970)   gcc_cflags_cpu="-mcpu=970" ;;
++      powerpc970)   gcc_cflags_cpu="-mtune=970"
++		    vmx_path="powerpc64/vmx"
++		    cpu_path="p4" ;;
++      power4)	    gcc_cflags_cpu="-mtune=power4"
++		    cpu_path="p4" ;;
++      power5)	    gcc_cflags_cpu="-mtune=power5 -mtune=power4"
++		    cpu_path="p5 p4" ;;
++      power6)	    gcc_cflags_cpu="-mtune=power6"
++		    cpu_path="p6" ;;
+     esac
+ 
+     case $host in
+@@ -3583,10 +3591,6 @@
+ 
+     case $host in
+       powerpc64-*-* | powerpc64le-*-* | powerpc620-*-* | powerpc630-*-* | powerpc970-*-* | power[3-9]-*-*)
+-        case $host_cpu in
+-	  powerpc970)		vmx_path="powerpc64/vmx" ;;
+-	  *)			vmx_path="" ;;
+-	esac
+         case $host in
+           *-*-aix*)
+             # On AIX a true 64-bit ABI is available.
+@@ -3639,7 +3643,9 @@
+ 	    gcc_mode64_cflags="-m64"
+ 	    gcc_mode64_cflags_optlist="cpu opt"
+ 	    gcc_mode64_cflags_opt="-O3 -O2 -O1"
+-	    path_mode64="powerpc64/mode64 $vmx_path powerpc64"
++	    path_mode64=""
++	    for i in $cpu_path; do path_mode64="${path_mode64}powerpc64/mode64/$i "; done
++	    path_mode64="${path_mode64}powerpc64/mode64 $vmx_path powerpc64"
+             SPEED_CYCLECOUNTER_OBJ_mode64=powerpc64.lo
+             cyclecounter_size_mode64=0
+ 	    any_mode64_testlist="sizeof-long-8"
+@@ -3935,7 +3941,7 @@
+   # mode, in case -m32 has failed not because it's an old gcc, but because
+   # it's a dual 32/64-bit gcc without a 32-bit libc, or whatever.
+   #
+-  i?86*-*-* | k[5-8]*-*-* | pentium*-*-* | athlon-*-* | viac3*-*-* | geode*-*-* | athlon64-*-* | atom-*-* | core2-*-* | x86_64-*-*)
++  i?86*-*-* | k[5-8]*-*-* | pentium*-*-* | athlon-*-* | viac3*-*-* | geode*-*-* | X86_64_PATTERN)
+     abilist="32"
+     cclist="gcc icc cc"
+     gcc_cflags="$gcc_cflags $fomit_frame_pointer"
+@@ -4043,6 +4049,7 @@
+         #
+         gcc_cflags_cpu="-mtune=pentium4 -mcpu=pentium4 -mcpu=pentiumpro -mcpu=i486 -m486"
+         gcc_cflags_arch="-march=pentium4 -march=pentium4~-mno-sse2 -march=pentiumpro -march=pentium"
++        gcc_64_cflags_cpu="-mtune=nocona"
+         ;;
+       viac32)
+         # Not sure of the best fallbacks here for -mcpu.
+@@ -4059,10 +4066,14 @@
+         gcc_cflags_cpu="-mtune=k8 -mcpu=athlon -mcpu=pentiumpro -mcpu=i486 -m486"
+         gcc_cflags_arch="-march=k8 -march=k8~-mno-sse2 -march=athlon -march=pentiumpro -march=pentium"
+         ;;
+-      core2)
++      core2 | corei)
+         gcc_cflags_cpu="-mtune=core2 -mtune=k8"
+         gcc_cflags_arch="-march=core2 -march=core2~-mno-sse2 -march=k8 -march=k8~-mno-sse2"
+         ;;
++      atom)
++        gcc_cflags_cpu="-mtune=atom -mtune=pentium3"
++        gcc_cflags_arch="-march=atom -march=pentium3"
++        ;;
+       *)
+         gcc_cflags_cpu="-mtune=i486 -mcpu=i486 -m486"
+         gcc_cflags_arch="-march=i486"
+@@ -4077,7 +4088,8 @@
+       i686 | pentiumpro)    path="x86/p6 x86" ;;
+       pentium2)             path="x86/p6/mmx x86/p6 x86" ;;
+       pentium3)             path="x86/p6/p3mmx x86/p6/mmx x86/p6 x86";;
+-      pentiumm | core2)     path="x86/p6/sse2 x86/p6/p3mmx x86/p6/mmx x86/p6 x86";;
++      pentiumm | core2 | corei)
++                            path="x86/p6/sse2 x86/p6/p3mmx x86/p6/mmx x86/p6 x86";;
+       k6[23])             path="x86/k6/k62mmx x86/k6/mmx x86/k6 x86" ;;
+       k6)                   path="x86/k6/mmx x86/k6 x86" ;;
+       geode)                path="x86/k6/k62mmx x86/k6/mmx x86/k6 x86" ;;
+@@ -4088,6 +4100,7 @@
+       # VIA/Centaur processors, sold as CyrixIII and C3.
+       viac32)               path="x86/p6/p3mmx x86/p6/mmx x86/p6 x86";;
+       viac3*)               path="x86/pentium/mmx x86/pentium x86";;
++      atom)                 path="x86/atom x86" ;;
+       *)                    path="x86" ;;
+     esac
+ 
+@@ -4112,40 +4125,37 @@
+ 		      SQR_KARATSUBA_THRESHOLD SQR_TOOM3_THRESHOLD"
+     fi
+ 
+-    case $host_cpu in
+-      athlon64 | atom | core2 | pentium4 | x86_64)
+-        cclist_64="gcc"
+-        gcc_64_cflags="$gcc_64_cflags -m64"
+-        gcc_64_cflags_optlist="cpu"
+-        CALLING_CONVENTIONS_OBJS_64='amd64call.lo amd64check$U.lo'
+-        SPEED_CYCLECOUNTER_OBJ_64=x86_64.lo
+-        cyclecounter_size_64=2
+-
+-        case $host in
+-          *-*-solaris*)
+-            # Sun cc.
+-            cclist_64="$cclist_64 cc"
+-            cc_64_cflags="-xO3 -m64"
+-            ;;
+-        esac
++    case $host in
++      X86_64_PATTERN)
++	cclist_64="gcc"
++	gcc_64_cflags="$gcc_64_cflags -m64"
++	gcc_64_cflags_optlist="cpu arch"
++	CALLING_CONVENTIONS_OBJS_64='amd64call.lo amd64check$U.lo'
++	SPEED_CYCLECOUNTER_OBJ_64=x86_64.lo
++	cyclecounter_size_64=2
++	abilist="64 32"
++	path_64="x86_64"
+ 
+ 	case $host_cpu in
+-	  athlon64 | x86_64)
+-	    abilist="64 32"
+-	    path_64="x86_64"
++	  x86_64)
++	    ;;
++	  athlon64)
++	    path_64="x86_64/k8 $path_64"
+ 	    ;;
+ 	  pentium4)
+-	    abilist="64 32"
+-	    path_64="x86_64/pentium4 x86_64"
++	    path_64="x86_64/pentium4 $path_64"
+ 	    ;;
+ 	  core2)
+-	    abilist="64 32"
+-	    path_64="x86_64/core2 x86_64"
++	    path_64="x86_64/core2 $path_64"
++	    ;;
++	  corei)
++	    path_64="x86_64/corei x86_64/core2 $path_64"
+ 	    ;;
+ 	  atom)
+-	    # The AMD K8/K9/K10 code seems best for Intel Atom
+-	    abilist="64 32"
+-	    path_64="x86_64/atom x86_64"
++	    path_64="x86_64/atom $path_64"
++	    ;;
++	  nano)
++	    path_64="x86_64/nano $path_64"
+ 	    ;;
+ 	esac
+ 	;;
+@@ -9906,7 +9916,7 @@
+ # enough assembler.
+ #
+ case $host in
+-  i?86*-*-* | k[5-8]*-*-* | pentium*-*-* | athlon-*-* | viac3*-*-* | geode*-*-* | athlon64-*-* | atom-*-* | core2-*-* | x86_64-*-*)
++  i?86*-*-* | k[5-8]*-*-* | pentium*-*-* | athlon-*-* | viac3*-*-* | geode*-*-* | X86_64_PATTERN)
+     if test "$ABI" = 32; then
+       case "$path $fat_path" in
+         *mmx*)   { echo "$as_me:$LINENO: checking if the assembler knows about MMX instructions" >&5
+@@ -31067,7 +31077,7 @@
+           ;;
+       esac
+       ;;
+-    i?86*-*-* | k[5-8]*-*-* | pentium*-*-* | athlon-*-* | viac3*-*-* | geode*-*-* | athlon64-*-* | atom-*-* | core2-*-* | x86_64-*-*)
++    i?86*-*-* | k[5-8]*-*-* | pentium*-*-* | athlon-*-* | viac3*-*-* | geode*-*-* | X86_64_PATTERN)
+ 
+ { echo "$as_me:$LINENO: checking if the .align directive accepts an 0x90 fill in .text" >&5
+ echo $ECHO_N "checking if the .align directive accepts an 0x90 fill in .text... $ECHO_C" >&6; }
+@@ -31349,6 +31359,10 @@
+ 
+ echo "include_mpn(\`x86_64/x86_64-defs.m4')" >> $gmp_tmpconfigm4i
+ 
++          cat >>confdefs.h <<\_ACEOF
++#define HAVE_HOST_CPU_FAMILY_x86_64 1
++_ACEOF
++
+ 	  case $host in
+ 	    *-*-darwin*)
+ 
