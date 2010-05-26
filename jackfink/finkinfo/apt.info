@@ -1,0 +1,191 @@
+Package: apt
+Version: 0.7.25.3
+Revision: 2
+GCC: 4.0
+BuildDepends: fink (>= 0.24.12), libtool2, docbook-xsl
+Depends: %N-shlibs (= %v-%r), dpkg (>= 1.15.5.6-1)
+Source: http://ftp.debian.org/debian/pool/main/a/apt/apt_0.7.25.3.tar.gz
+Source-MD5: ee59a90b91764aefeb5eb0f29d5cab96
+SourceDirectory: %n-%v
+PatchFile: %n.patch
+PatchFile-MD5: 8eab70b75b0c261ca06f7ac6206ea3bc
+PatchScript: <<
+ sed -e 's|@PREFIX@|%p|g' < %{PatchFile} | patch -p1
+ sh patch_flush
+ perl -pi -e 's|/usr|%p|g' doc/*.8.xml
+ for i in `grep -rl '#ifdef __GNUG__' .` ; do perl -pi -e 's/#ifdef __GNUG__/#if defined(__GNUG__) && !defined(__APPLE_CC__)/' $i; done
+<<
+NoSetCPPFLAGS: true
+NoSetLDFLAGS: true
+SetCXXFLAGS: -O2 -DEMULATE_MMAP -D__USE_MISC -fconstant-cfstrings -DHAVE_SOCKLEN_T=1
+SetLDFLAGS: -liconv
+ConfigureParams: --host=%m-apple-darwin`uname -r|cut -f1 -d.`
+CompileScript: <<
+ rm buildlib/config.guess buildlib/config.sub
+ ln -s %p/share/libtool/config/config.sub buildlib/config.sub
+ ln -s %p/share/libtool/config/config.guess buildlib/config.guess
+ ./configure %c
+ #make -f makefile.wrap NOISY=1
+ mkdir -p build/doc/doxygen
+ make NOISY=1
+<<
+InstallScript: <<
+ mkdir -p %i/bin
+ install -m 755 bin/apt-cache %i/bin/
+ install -m 755 bin/apt-cdrom %i/bin/
+ install -m 755 bin/apt-config %i/bin/
+ install -m 755 bin/apt-extracttemplates %i/bin/
+ install -m 755 bin/apt-get %i/bin/
+ install -m 755 bin/apt-key %i/bin/
+ install -m 755 bin/apt-sortpkgs %i/bin/
+ install -m 755 bin/apt-mark %i/bin/
+ mkdir -p %i/lib
+ install -m 644 bin/libapt-pkg.4.8.0.dylib %i/lib
+ cd %i/lib/ && ln -s libapt-pkg.4.8.0.dylib libapt-pkg.4.8.dylib && \
+   ln -s libapt-pkg.4.8.0.dylib libapt-pkg.dylib
+ install -m 644 bin/libapt-inst.1.1.0.dylib %i/lib
+ cd %i/lib/ && ln -s libapt-inst.1.1.0.dylib libapt-inst.1.1.dylib && \
+   ln -s libapt-inst.1.1.0.dylib libapt-inst.dylib
+ mkdir -p %i/lib/apt/methods
+ install -m 755 bin/methods/cdrom %i/lib/apt/methods/
+ install -m 755 bin/methods/copy %i/lib/apt/methods/
+ install -m 755 bin/methods/file %i/lib/apt/methods/
+ install -m 755 bin/methods/ftp %i/lib/apt/methods/
+ install -m 755 bin/methods/gpgv %i/lib/apt/methods/
+ install -m 755 bin/methods/gzip %i/lib/apt/methods/
+ install -m 755 bin/methods/http %i/lib/apt/methods/
+ install -m 755 bin/methods/https %i/lib/apt/methods/
+ install -m 755 bin/methods/rred %i/lib/apt/methods/
+ install -m 755 bin/methods/rsh %i/lib/apt/methods/
+ cd %i/lib/apt/methods && ln -s gzip bzip2 && ln -s gzip lzma && ln -s rsh ssh
+ mkdir -p %i/lib/dpkg/methods/apt
+ install -m 644 scripts/dselect/desc.apt %i/lib/dpkg/methods/apt/
+ install -m 755 scripts/dselect/install %i/lib/dpkg/methods/apt/
+ install -m 644 scripts/dselect/names %i/lib/dpkg/methods/apt/
+ install -m 755 scripts/dselect/setup %i/lib/dpkg/methods/apt/
+ install -m 755 scripts/dselect/update %i/lib/dpkg/methods/apt/
+ mkdir -p %i/include/apt-pkg
+ cp include/apt-pkg/*.h %i/include/apt-pkg/
+ mkdir -p %i/share/man
+ mkdir -p %i/share/man/man1
+ mkdir -p %i/share/man/man5
+ mkdir -p %i/share/man/man8
+ install -m 644 doc/*.1 %i/share/man/man1/
+ install -m 644 doc/*.5 %i/share/man/man5/
+ install -m 644 doc/*.8 %i/share/man/man8/
+ mkdir -p %i/etc/apt/apt.conf.d
+ cp fink/fink_unauthenticated.conf %i/etc/apt/apt.conf.d
+ mkdir -p %i/etc/apt/preferences.d
+ mkdir -p %i/etc/apt/sources.list.d
+ mkdir -p %i/var/cache/apt/archives/partial
+ mkdir -p %i/var/lib/apt/lists/partial
+ mkdir -p %i/var/log/apt
+<<
+SplitOff: <<
+  Package: %N-shlibs
+  Depends: dpkg (>= 1.15.5.6-1), fink (>= 0.24.12)
+  Files: <<
+    lib/libapt-inst.1.1.dylib lib/libapt-inst.1.1.0.dylib
+    lib/libapt-pkg.4.8.dylib  lib/libapt-pkg.4.8.0.dylib
+  <<
+  Shlibs: <<
+    %p/lib/libapt-inst.1.1.dylib 1.1.0 %n (>= 0.7.25.3-1)
+    %p/lib/libapt-pkg.4.8.dylib 4.8.0 %n (>= 0.7.25.3-1)
+  <<
+  DocFiles: COPYING* AUTHORS README.*
+<<
+SplitOff2: <<
+  Package: %N-dev
+  Depends: %N-shlibs (= %v-%r)
+  BuildDependsOnly: true
+  Files: lib/libapt-inst.dylib lib/libapt-pkg.dylib include
+  DocFiles: COPYING* AUTHORS README.*
+<<
+DocFiles: COPYING* AUTHORS README.*
+PostInstScript: <<
+if [ ! -f %p/var/lib/dpkg/cmethopt ]; then
+  echo "apt apt" >%p/var/lib/dpkg/cmethopt
+  chmod 644 %p/var/lib/dpkg/cmethopt
+else
+  read a b <%p/var/lib/dpkg/cmethopt
+  if [ "$a" != "apt" -o "$b" != "apt" ]; then
+    /bin/echo ""
+    /bin/echo "dselect is not set up to use apt as its access method. Downloading binary"
+    /bin/echo "packages will likely not work. Do you want to use apt instead?\c"
+    read answer
+    answer=`echo $answer | sed 's/^[yY].*$/y/'`
+    if [ -z "$answer" -o "x$answer" = "xy" ]; then
+      echo "apt apt" >%p/var/lib/dpkg/cmethopt
+      chmod 644 %p/var/lib/dpkg/cmethopt
+    fi
+  fi
+fi
+
+rm -f %p/var/cache/apt/pkgcache.bin %p/var/cache/apt/srcpkgcache.bin
+<<
+#
+Description: Advanced front-end for dpkg
+DescPort: <<
+There are three troublemakers when porting apt:
+- It was written for Linux/ELF/glibc.
+- It was written to maintain a distribution that is in charge of the
+  system and hardcodes paths like /usr/bin, /usr/lib and /var/lib.
+- There is no install target in the Makefiles because the Debian
+  packaging files take care of what goes where.
+There's also the usual trouble like not recognizing Darwin and
+depending on a case-sensitive file system. All of this amounts to a
+big, bad patch.
+
+Ben Hines - added patch to make apt recognize macosx and darwin pkgs
+
+The sources.list file is now supplied by the fink program rather than
+by apt-get.
+
+The type of the fifth parameter for getsocklen keeps changing. The
+original code uses unsigned int, which was never correct for darwin,
+so we patch several choices. Through OS X 10.3, it was int; starting
+in 10.4 it is socklen_t, a symbol that first appeared in 10.3 but was
+an int. So starting in 10.3 we can just use socklen_t.
+See: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=323716
+
+dmacks - Implemented "--ignore-breakage" cmdline flag to 'apt-get install'
+(first appears in: 10.2-gcc3.3/0.5.4-41, 10.3/0.5.4-51)
+
+Patch extracttar.cc so it understands negative UIDs, such as -2 for 'nobody'.
+
+Sjors - __deprecated is already defined in sys/cdefs.h. MAP_ANONYMOUS is called
+MAP_ANON on Mac. strdupa() doesn't exist on Mac, so use strdup() instead and
+free everything ourselves. memrchr() doesn't exist on Mac, so add a public
+domain implementation. sighandler_t is called sig_t on Mac.
+
+<<
+DescPackaging: <<
+Previous versions by Christoph Pfisterer. Version 0.7.25.3 by Sjors Gielen.
+
+	Raise cachesize limit. See:
+	http://permalink.gmane.org/gmane.os.apple.fink.core/2025
+
+  config.sub and config.guess are symlinks to /usr/share/misc. This path does
+  not contain these files on a standard Mac installation. This package links
+  them to the right files, provided by libtool2 (not libtool14, those files are
+  older and in different places). Therefore, this package build-depends on
+  libtool2, but does not depend on libtool2-shlibs.
+
+  Sjors - The TODO in libversion.mak regarding the ABI break after libc6.9-6,
+  doesn't apply on Mac, so remove the LIBEXT.
+
+  Sjors - APT now supports GPG, so use the correct paths for the trustdb's too.
+  Because Fink doesn't cryptosign any of its packages at this moment, ignore
+  authentication errors because of unsigned packages. Hopefully we can enable it
+  again as soon as possible.
+
+  Sjors - IssuerCert and CrlFile require a version of Curl that is in 10.6, but
+  not in 10.5. Therefore, IssuerCert and CrlFile support are only compiled in on
+  platforms where the CURLOPTs are defined. Also, add a WARNING to the docs.
+
+  Sjors - Fix docs, since docbook.xsl is in another location on Mac. Also depend
+  on docbook-xsl to create the documentation.
+<<
+License: GPL
+Maintainer: Fink Core Group <fink-core@lists.sourceforge.net>
+Homepage: http://packages.qa.debian.org/a/apt.html

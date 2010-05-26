@@ -1,0 +1,1123 @@
+diff -Nurd apt-0.7.25.3/apt-inst/contrib/extracttar.cc apt-0.7.25.3-patched/apt-inst/contrib/extracttar.cc
+--- apt-0.7.25.3/apt-inst/contrib/extracttar.cc	2010-02-01 20:44:40.000000000 +0100
++++ apt-0.7.25.3-patched/apt-inst/contrib/extracttar.cc	2010-05-14 17:31:52.000000000 +0200
+@@ -148,6 +148,18 @@
+    return true;
+ }
+ 									/*}}}*/
++
++// Handle the ridiculous way that tar stores large numbers
++static bool TarUIDToNum(const char *Str, unsigned long &Res, unsigned Len) {
++   switch (*Str) {
++      case '\200':
++         Res = ntohl(*((unsigned long *)(Str + Len - sizeof(unsigned long))));
++         return true;
++      default:
++         return StrToNum(Str+1, Res, Len-1, 8);
++   }
++}
++
+ // ExtractTar::Go - Perform extraction					/*{{{*/
+ // ---------------------------------------------------------------------
+ /* This reads each 512 byte block from the archive and extracts the header
+@@ -195,8 +207,8 @@
+       // Decode all of the fields
+       pkgDirStream::Item Itm;
+       if (StrToNum(Tar->Mode,Itm.Mode,sizeof(Tar->Mode),8) == false ||
+-	  StrToNum(Tar->UserID,Itm.UID,sizeof(Tar->UserID),8) == false ||
+-	  StrToNum(Tar->GroupID,Itm.GID,sizeof(Tar->GroupID),8) == false ||
++	  TarUIDToNum(Tar->UserID,Itm.UID,sizeof(Tar->UserID)) == false ||
++	  TarUIDToNum(Tar->GroupID,Itm.GID,sizeof(Tar->GroupID)) == false ||
+ 	  StrToNum(Tar->Size,Itm.Size,sizeof(Tar->Size),8) == false ||
+ 	  StrToNum(Tar->MTime,Itm.MTime,sizeof(Tar->MTime),8) == false ||
+ 	  StrToNum(Tar->Major,Itm.Major,sizeof(Tar->Major),8) == false ||
+diff -Nurd apt-0.7.25.3/apt-inst/deb/dpkgdb.cc apt-0.7.25.3-patched/apt-inst/deb/dpkgdb.cc
+--- apt-0.7.25.3/apt-inst/deb/dpkgdb.cc	2010-02-01 20:44:40.000000000 +0100
++++ apt-0.7.25.3-patched/apt-inst/deb/dpkgdb.cc	2010-05-14 17:34:27.000000000 +0200
+@@ -24,6 +24,7 @@
+ #include <errno.h>
+ #include <sys/stat.h>
+ #include <sys/mman.h>
++#include <sys/types.h>
+ #include <fcntl.h>
+ #include <unistd.h>
+ #include <ctype.h>
+diff -Nurd apt-0.7.25.3/apt-pkg/aptconfiguration.cc apt-0.7.25.3-patched/apt-pkg/aptconfiguration.cc
+--- apt-0.7.25.3/apt-pkg/aptconfiguration.cc	2010-02-01 20:44:40.000000000 +0100
++++ apt-0.7.25.3-patched/apt-pkg/aptconfiguration.cc	2010-05-14 20:18:10.000000000 +0200
+@@ -36,8 +36,8 @@
+ 	_config->CndSet("Acquire::CompressionTypes::gz","gzip");
+ 
+ 	// Set default application paths to check for optional compression types
+-	_config->CndSet("Dir::Bin::lzma", "/usr/bin/lzma");
+-	_config->CndSet("Dir::Bin::bzip2", "/bin/bzip2");
++	_config->CndSet("Dir::Bin::lzma", "@PREFIX@/bin/lzma");
++	_config->CndSet("Dir::Bin::bzip2", "/usr/bin/bzip2");
+ 
+ 	// accept non-list order as override setting for config settings on commandline
+ 	std::string const overrideOrder = _config->Find("Acquire::CompressionTypes::Order","");
+diff -Nurd apt-0.7.25.3/apt-pkg/contrib/fink.cc apt-0.7.25.3-patched/apt-pkg/contrib/fink.cc
+--- apt-0.7.25.3/apt-pkg/contrib/fink.cc	1970-01-01 01:00:00.000000000 +0100
++++ apt-0.7.25.3-patched/apt-pkg/contrib/fink.cc	2010-05-14 17:28:56.000000000 +0200
+@@ -0,0 +1,84 @@
++/* FINK LOCAL begin */
++#include <sys/utsname.h>
++#include <CoreFoundation/CoreFoundation.h>
++#include <apt-pkg/debsystem.h>
++
++struct versionrevision darwin_version = {0,NULL,NULL};
++struct versionrevision macosx_version = {0,NULL,NULL};
++
++void finkinit()
++{
++  Boolean status;
++  SInt32 errorCode;
++  CFURLRef fileURL = NULL;
++  CFDataRef resourceData = NULL;
++  CFPropertyListRef propertyList = NULL;
++  CFStringRef string;
++  static char buffer[256]; // This is static, to ensure the buffer stays around
++
++  static struct utsname ver; // This is static, to ensure the buffer stays around
++  
++  /* Determine system version */
++  /* TODO - should maybe check if this is really Darwin? */
++  if (!uname(&ver)) {
++    darwin_version.version = ver.release;
++  }
++
++  /* Check whether this is Mac OS X, and which version of it */
++
++  fileURL = CFURLCreateWithFileSystemPath( NULL,   
++   CFSTR("/System/Library/CoreServices/SystemVersion.plist"),
++   kCFURLPOSIXPathStyle,       
++   false );
++  if (!fileURL)
++    goto BAIL;
++  
++  /* Read the XML */
++  status = CFURLCreateDataAndPropertiesFromResource(
++   NULL,
++   fileURL,
++   &resourceData,
++   NULL,   
++   NULL,
++   &errorCode);
++  if (!status || errorCode != 0)
++    goto BAIL;
++  
++  /* Reconstitute the dictionary using the XML data. */
++  propertyList = CFPropertyListCreateFromXMLData( NULL,
++   resourceData,
++   kCFPropertyListImmutable,
++   &string);
++  if (!propertyList)
++    goto BAIL;
++  
++  /* Try to read the system version from it. */
++  status = CFDictionaryGetValueIfPresent( 
++   (CFDictionaryRef) propertyList,
++   (const void *) CFSTR("ProductVersion"),
++   (const void**) &string);
++  if (!status)
++    goto BAIL;
++  
++  /* Convert into a C string */
++  status = CFStringGetCString( string,
++   buffer,
++   sizeof(buffer),
++   kCFStringEncodingISOLatin1);
++  if (!status)
++    goto BAIL;
++  
++  /* Finally link the buffer into the macosx_version struct. */
++  macosx_version.version = buffer;
++  
++BAIL:
++  // Release all of the CF objects we're responsible for.
++  if (fileURL)
++    CFRelease(fileURL);
++  if (resourceData)
++    CFRelease(resourceData);
++  if (propertyList)
++    CFRelease(propertyList);
++}
++
++/* FINK LOCAL end */
+diff -Nurd apt-0.7.25.3/apt-pkg/contrib/macros.h apt-0.7.25.3-patched/apt-pkg/contrib/macros.h
+--- apt-0.7.25.3/apt-pkg/contrib/macros.h	2010-02-01 20:44:40.000000000 +0100
++++ apt-0.7.25.3-patched/apt-pkg/contrib/macros.h	2010-05-14 15:58:54.000000000 +0200
+@@ -24,12 +24,6 @@
+ #define MAX(x,y) _max(x,y)
+ #endif
+ 
+-// GNU C++ has a min/max operator <coolio>
+-#if defined(__GNUG__)
+-#define MIN(A,B) ((A) <? (B))
+-#define MAX(A,B) ((A) >? (B))
+-#endif
+-
+ /* Templates tend to mess up existing code that uses min/max because of the
+    strict matching requirements */
+ #if !defined(MIN)
+@@ -57,7 +51,9 @@
+ // some nice optional GNUC features
+ #if __GNUC__ >= 3
+         #define __must_check    __attribute__ ((warn_unused_result))
++        #ifndef __deprecated
+         #define __deprecated    __attribute__ ((deprecated))
++        #endif
+         /* likely() and unlikely() can be used to mark boolean expressions
+            as (not) likely true which will help the compiler to optimise */
+         #define likely(x)       __builtin_expect (!!(x), 1)
+diff -Nurd apt-0.7.25.3/apt-pkg/contrib/mmap.cc apt-0.7.25.3-patched/apt-pkg/contrib/mmap.cc
+--- apt-0.7.25.3/apt-pkg/contrib/mmap.cc	2010-05-14 15:20:33.000000000 +0200
++++ apt-0.7.25.3-patched/apt-pkg/contrib/mmap.cc	2010-05-14 15:20:23.000000000 +0200
+@@ -172,6 +172,13 @@
+       return;
+ 
+ #ifdef _POSIX_MAPPED_FILES
++
++// FINK LOCAL MAP_ANONYMOUS is MAP_ANON on Mac
++#ifndef MAP_ANONYMOUS
++#define MAP_ANONYMOUS MAP_ANON
++#endif
++// FINK LOCAL end
++
+    // Set the permissions.
+    int Prot = PROT_READ;
+    int Map = MAP_PRIVATE | MAP_ANONYMOUS;
+diff -Nurd apt-0.7.25.3/apt-pkg/contrib/netrc.cc apt-0.7.25.3-patched/apt-pkg/contrib/netrc.cc
+--- apt-0.7.25.3/apt-pkg/contrib/netrc.cc	2010-02-01 20:44:40.000000000 +0100
++++ apt-0.7.25.3-patched/apt-pkg/contrib/netrc.cc	2010-05-14 15:54:05.000000000 +0200
+@@ -160,10 +160,18 @@
+     {
+       char login[64] = "";
+       char password[64] = "";
++#ifndef HAVE_STRDUPA
++      char *netrcfile = strdup (NetRCFile.c_str ());
++#else
+       char *netrcfile = strdupa (NetRCFile.c_str ());
++#endif
+ 
+       // first check for a generic host based netrc entry
++#ifndef HAVE_STRDUPA
++      char *host = strdup (Uri.Host.c_str ());
++#else
+       char *host = strdupa (Uri.Host.c_str ());
++#endif
+       if (host && parsenetrc (host, login, password, netrcfile) == 0)
+       {
+ 	 if (_config->FindB("Debug::Acquire::netrc", false) == true)
+@@ -179,7 +187,11 @@
+       // if host did not work, try Host+Path next, this will trigger
+       // a lookup uri.startswith(host) in the netrc file parser (because
+       // of the "/"
++#ifndef HAVE_STRDUPA
++      char *hostpath = strdup (string(Uri.Host+Uri.Path).c_str ());
++#else
+       char *hostpath = strdupa (string(Uri.Host+Uri.Path).c_str ());
++#endif
+       if (hostpath && parsenetrc (hostpath, login, password, netrcfile) == 0)
+       {
+ 	 if (_config->FindB("Debug::Acquire::netrc", false) == true)
+@@ -191,6 +203,12 @@
+ 	 Uri.Password = string (password);
+ 	 return;
+       }
++
++#ifndef HAVE_STRDUPA
++      free(netrcfile);
++      free(host);
++      free(hostpath);
++#endif
+     }
+   }
+ }
+diff -Nurd apt-0.7.25.3/apt-pkg/deb/debsystem.cc apt-0.7.25.3-patched/apt-pkg/deb/debsystem.cc
+--- apt-0.7.25.3/apt-pkg/deb/debsystem.cc	2010-02-01 20:44:40.000000000 +0100
++++ apt-0.7.25.3-patched/apt-pkg/deb/debsystem.cc	2010-05-14 17:19:39.000000000 +0200
+@@ -23,6 +23,12 @@
+ #include <unistd.h>
+ #include <dirent.h>
+ #include <errno.h>
++
++/* FINK LOCAL begin */
++#include <fstream>
++#include <sys/stat.h>
++/* FINK LOCAL end */
++
+ 									/*}}}*/
+ 
+ debSystem debSys;
+@@ -46,6 +52,8 @@
+ debSystem::~debSystem()
+ {
+    delete StatusFile;
++   delete FinkStatusFile;
++   unlink(FINKSTATUSFILE);
+ }
+ 									/*}}}*/
+ // System::Lock - Get the lock						/*{{{*/
+@@ -159,8 +167,8 @@
+       which is yet to be determined. The functions in pkgcachegen should
+       be the only users of these */
+    Cnf.CndSet("Dir::State::userstatus","status.user"); // Defunct
+-   Cnf.CndSet("Dir::State::status","/var/lib/dpkg/status");
+-   Cnf.CndSet("Dir::Bin::dpkg","/usr/bin/dpkg");
++   Cnf.CndSet("Dir::State::status","@PREFIX@/var/lib/dpkg/status");
++   Cnf.CndSet("Dir::Bin::dpkg","@PREFIX@/bin/dpkg");
+ 
+    if (StatusFile) {
+      delete StatusFile;
+@@ -188,9 +196,9 @@
+ signed debSystem::Score(Configuration const &Cnf)
+ {
+    signed Score = 0;
+-   if (FileExists(Cnf.FindFile("Dir::State::status","/var/lib/dpkg/status")) == true)
++   if (FileExists(Cnf.FindFile("Dir::State::status","@PREFIX@/var/lib/dpkg/status")) == true)
+        Score += 10;
+-   if (FileExists(Cnf.FindFile("Dir::Bin::dpkg","/usr/bin/dpkg")) == true)
++   if (FileExists(Cnf.FindFile("Dir::Bin::dpkg","@PREFIX@/bin/dpkg")) == true)
+       Score += 10;
+    if (FileExists("/etc/debian_version") == true)
+       Score += 10;
+@@ -205,6 +213,44 @@
+    if (StatusFile == 0)
+       StatusFile = new debStatusIndex(_config->FindFile("Dir::State::status"));
+    List.push_back(StatusFile);
++/* FINK LOCAL begin */
++
++   if (FinkStatusFile == 0) {
++      struct stat unused_sbuf;
++      int sys_ok=0;
++      unlink(FINKSTATUSFILE);
++      if ( 0 == stat("@PREFIX@/bin/fink-virtual-pkgs",&unused_sbuf)) {
++          if ( 0 == system("@PREFIX@/bin/fink-virtual-pkgs --apt")) sys_ok=1;
++      }    
++      if (stat(FINKSTATUSFILE, &unused_sbuf) || !sys_ok) {
++   std::ofstream finkstatus(FINKSTATUSFILE);
++      if(macosx_version.version != 0)
++      {
++        finkstatus << "Package: macosx" << std::endl;
++        finkstatus << "Status: install ok installed" << std::endl;      
++        finkstatus << "Priority: optional" << std::endl;
++        finkstatus << "Section: base" << std::endl;
++        finkstatus << "Maintainer: None" << std::endl;
++        finkstatus << "Source: macosx" << std::endl;
++        finkstatus << "Version: " << macosx_version.version << std::endl;
++        finkstatus << "Description: Pseudo package representing Mac OS X" << std::endl;
++        finkstatus << " Pseudo package representing Mac OS X" << std::endl << std::endl;
++      }
++      finkstatus << "Package: darwin" << std::endl;
++      finkstatus << "Status: install ok installed" << std::endl;
++      finkstatus << "Priority: optional" << std::endl;
++      finkstatus << "Section: base" << std::endl;
++      finkstatus << "Maintainer: None" << std::endl;
++      finkstatus << "Source: darwin" << std::endl;
++      finkstatus << "Version: " << darwin_version.version  << std::endl;
++      finkstatus << "Description: Pseudo package representing Darwin" << std::endl;
++      finkstatus << " Pseudo package representing Darwin" << std::endl << std::endl;
++      finkstatus.close();
++      }    
++      FinkStatusFile = new debStatusIndex(FINKSTATUSFILE);
++   }
++   List.push_back(FinkStatusFile);
++/* FINK LOCAL end */
+    return true;
+ }
+ 									/*}}}*/
+@@ -214,12 +260,16 @@
+ bool debSystem::FindIndex(pkgCache::PkgFileIterator File,
+ 			  pkgIndexFile *&Found) const
+ {
+-   if (StatusFile == 0)
++   if (StatusFile == 0 && FinkStatusFile == 0)
+       return false;
+    if (StatusFile->FindInCache(*File.Cache()) == File)
+    {
+       Found = StatusFile;
+       return true;
++   } else if((FinkStatusFile != 0) && (FinkStatusFile->FindInCache(*File.Cache()) == File))
++   {
++      Found = FinkStatusFile;
++      return true;
+    }
+    
+    return false;
+diff -Nurd apt-0.7.25.3/apt-pkg/deb/debsystem.h apt-0.7.25.3-patched/apt-pkg/deb/debsystem.h
+--- apt-0.7.25.3/apt-pkg/deb/debsystem.h	2010-02-01 20:44:40.000000000 +0100
++++ apt-0.7.25.3-patched/apt-pkg/deb/debsystem.h	2010-05-14 17:23:06.000000000 +0200
+@@ -12,6 +12,19 @@
+ 
+ #include <apt-pkg/pkgsystem.h>
+ 
++/* FINK LOCAL begin */
++#define FINKSTATUSFILE "/tmp/finkaptstatus"
++
++struct versionrevision {
++  unsigned long epoch;
++  const char *version;
++  const char *revision;
++};  
++
++extern struct versionrevision darwin_version;
++extern struct versionrevision macosx_version;
++/* FINK LOCAL end */
++
+ class debStatusIndex;
+ class debSystem : public pkgSystem
+ {
+@@ -21,6 +34,7 @@
+    bool CheckUpdates();
+    
+    debStatusIndex *StatusFile;
++   debStatusIndex *FinkStatusFile;
+    
+    public:
+ 
+diff -Nurd apt-0.7.25.3/apt-pkg/deb/dpkgpm.cc apt-0.7.25.3-patched/apt-pkg/deb/dpkgpm.cc
+--- apt-0.7.25.3/apt-pkg/deb/dpkgpm.cc	2010-02-01 20:44:40.000000000 +0100
++++ apt-0.7.25.3-patched/apt-pkg/deb/dpkgpm.cc	2010-05-14 20:19:29.000000000 +0200
+@@ -22,6 +22,7 @@
+ #include <sys/select.h>
+ #include <sys/types.h>
+ #include <sys/wait.h>
++#include <sys/stat.h>
+ #include <signal.h>
+ #include <errno.h>
+ #include <stdio.h>
+@@ -33,7 +34,11 @@
+ #include <termios.h>
+ #include <unistd.h>
+ #include <sys/ioctl.h>
++#ifndef __APPLE__
+ #include <pty.h>
++#else
++#include <util.h>
++#endif
+ 
+ #include <config.h>
+ #include <apti18n.h>
+@@ -513,6 +518,23 @@
+ 		<< " action: " << action << endl;
+ }
+ 									/*}}}*/
++
++// FINK LOCAL begin - memrchr does not exist
++#ifndef memchr
++void *
++memrchr(const void *v, int c, size_t size)
++{
++ const unsigned char *p = (const unsigned char *) v + size;
++
++ while (size-- > 0) {
++   if (*--p == c)
++     return (void *) p;
++ }
++ return NULL;
++}
++#endif
++// FINK LOCAL end
++
+ // DPkgPM::DoDpkgStatusFd						/*{{{*/
+ // ---------------------------------------------------------------------
+ /*
+@@ -859,6 +881,9 @@
+          it forks scripts. What happens is that when you hit ctrl-c it sends
+ 	 it to all processes in the group. Since dpkg ignores the signal 
+ 	 it doesn't die but we do! So we must also ignore it */
++#ifdef __APPLE__
++#define sighandler_t sig_t
++#endif
+       sighandler_t old_SIGQUIT = signal(SIGQUIT,SIG_IGN);
+       sighandler_t old_SIGINT = signal(SIGINT,SIG_IGN);
+ 
+diff -Nurd apt-0.7.25.3/apt-pkg/indexcopy.cc apt-0.7.25.3-patched/apt-pkg/indexcopy.cc
+--- apt-0.7.25.3/apt-pkg/indexcopy.cc	2010-02-01 20:44:40.000000000 +0100
++++ apt-0.7.25.3-patched/apt-pkg/indexcopy.cc	2010-05-14 20:21:53.000000000 +0200
+@@ -603,8 +603,8 @@
+       const char *Args[400];
+       unsigned int i = 0;
+ 
+-      string gpgvpath = _config->Find("Dir::Bin::gpg", "/usr/bin/gpgv");
+-      string pubringpath = _config->Find("Apt::GPGV::TrustedKeyring", "/etc/apt/trusted.gpg");
++      string gpgvpath = _config->Find("Dir::Bin::gpg", "@PREFI@/bin/gpgv");
++      string pubringpath = _config->Find("Apt::GPGV::TrustedKeyring", "@PREFIX@/etc/apt/trusted.gpg");
+       string releasegpg = *I+"Release.gpg";
+       string release = *I+"Release";
+ 
+diff -Nurd apt-0.7.25.3/apt-pkg/init.cc apt-0.7.25.3-patched/apt-pkg/init.cc
+--- apt-0.7.25.3/apt-pkg/init.cc	2010-02-01 20:44:40.000000000 +0100
++++ apt-0.7.25.3-patched/apt-pkg/init.cc	2010-05-14 16:30:30.000000000 +0200
+@@ -16,6 +16,8 @@
+ #include <config.h>
+ #include <cstdlib>
+ #include <sys/stat.h>
++
++extern void finkinit();
+ 									/*}}}*/
+ 
+ #define Stringfy_(x) # x
+@@ -37,7 +39,7 @@
+    Cnf.Set("APT::Build-Essential::", "build-essential");
+    Cnf.Set("APT::Install-Recommends", true);
+    Cnf.Set("APT::Install-Suggests", false);
+-   Cnf.Set("Dir","/");
++   Cnf.Set("Dir","@PREFIX@/");
+    
+    // State   
+    Cnf.Set("Dir::State","var/lib/apt/");
+@@ -69,7 +71,7 @@
+    Cnf.Set("Dir::Etc::parts","apt.conf.d");
+    Cnf.Set("Dir::Etc::preferences","preferences");
+    Cnf.Set("Dir::Etc::preferencesparts","preferences.d");
+-   Cnf.Set("Dir::Bin::methods","/usr/lib/apt/methods");
++   Cnf.Set("Dir::Bin::methods","@PREFIX@/lib/apt/methods");
+    Cnf.Set("Dir::Media::MountPath","/media/apt");
+ 
+    // State   
+@@ -125,6 +127,8 @@
+ /* */
+ bool pkgInitSystem(Configuration &Cnf,pkgSystem *&Sys)
+ {
++   finkinit();
++
+    Sys = 0;
+    string Label = Cnf.Find("Apt::System","");
+    if (Label.empty() == false)
+diff -Nurd apt-0.7.25.3/apt-pkg/makefile apt-0.7.25.3-patched/apt-pkg/makefile
+--- apt-0.7.25.3/apt-pkg/makefile	2010-02-01 20:44:40.000000000 +0100
++++ apt-0.7.25.3-patched/apt-pkg/makefile	2010-05-14 17:10:21.000000000 +0200
+@@ -22,7 +22,7 @@
+          contrib/configuration.cc contrib/progress.cc contrib/cmndline.cc \
+ 	 contrib/md5.cc contrib/sha1.cc contrib/sha256.cc contrib/hashes.cc \
+ 	 contrib/cdromutl.cc contrib/crc-16.cc contrib/netrc.cc \
+-	 contrib/fileutl.cc 
++	 contrib/fileutl.cc contrib/fink.cc
+ HEADERS = mmap.h error.h configuration.h fileutl.h  cmndline.h netrc.h\
+ 	  md5.h crc-16.h cdromutl.h strutl.h sptr.h sha1.h sha256.h hashes.h \
+ 	  macros.h
+diff -Nurd apt-0.7.25.3/apt-pkg/pkgcachegen.cc apt-0.7.25.3-patched/apt-pkg/pkgcachegen.cc
+--- apt-0.7.25.3/apt-pkg/pkgcachegen.cc	2010-02-01 20:44:40.000000000 +0100
++++ apt-0.7.25.3-patched/apt-pkg/pkgcachegen.cc	2010-05-13 23:42:59.000000000 +0200
+@@ -827,7 +827,7 @@
+ 			MMap **OutMap,bool AllowMem)
+ {
+    bool const Debug = _config->FindB("Debug::pkgCacheGen", false);
+-   unsigned long const MapSize = _config->FindI("APT::Cache-Limit",24*1024*1024);
++   unsigned long const MapSize = _config->FindI("APT::Cache-Limit",60*1024*1024);
+    
+    vector<pkgIndexFile *> Files;
+    for (vector<metaIndex *>::const_iterator i = List.begin();
+diff -Nurd apt-0.7.25.3/buildlib/environment.mak.in apt-0.7.25.3-patched/buildlib/environment.mak.in
+--- apt-0.7.25.3/buildlib/environment.mak.in	2010-02-01 20:44:40.000000000 +0100
++++ apt-0.7.25.3-patched/buildlib/environment.mak.in	2010-05-14 23:18:15.000000000 +0200
+@@ -11,8 +11,8 @@
+ NUM_PROCS = @NUM_PROCS@
+ 
+ # Linker stuff
+-PICFLAGS+= -fPIC -DPIC
+-LFLAGS+= @LDFLAGS@
++PICFLAGS+= -fno-common -DPIC
++LFLAGS+= @LDFLAGS@ -framework CoreFoundation
+ LEFLAGS+= 
+ SOCKETLIBS:= @SOCKETLIBS@
+ AR:=@AR@
+@@ -59,11 +59,12 @@
+ 
+ # Shared library things
+ HOST_OS = @host_os@
+-ifneq ($(words $(filter gnu% linux-gnu% kfreebsd-gnu% %-gnu,$(HOST_OS))),0)
+-   SONAME_MAGIC=-Wl,-soname -Wl,
+-   LFLAGS_SO=
+-else
+-   # Do not know how to create shared libraries here.
+-   ONLYSTATICLIBS = yes
+-endif
+-	
++#ifneq ($(words $(filter gnu% linux-gnu% kfreebsd-gnu% %-gnu,$(HOST_OS))),0)
++#   SONAME_MAGIC=-Wl,-soname -Wl,
++#   LFLAGS_SO=
++#else
++#   # Do not know how to create shared libraries here.
++#   ONLYSTATICLIBS = yes
++#endif
++SONAME_MAGIC=-install_name @PREFIX@/lib/
++LFLAGS_SO=-dynamiclib	
+diff -Nurd apt-0.7.25.3/buildlib/library.mak apt-0.7.25.3-patched/buildlib/library.mak
+--- apt-0.7.25.3/buildlib/library.mak	2010-02-01 20:44:40.000000000 +0100
++++ apt-0.7.25.3-patched/buildlib/library.mak	2010-05-14 22:31:34.000000000 +0200
+@@ -16,11 +16,11 @@
+ # See defaults.mak for information about LOCAL
+ 
+ # Some local definitions
+-LOCAL := lib$(LIBRARY)$(LIBEXT).so.$(MAJOR).$(MINOR)
++LOCAL := lib$(LIBRARY)$(LIBEXT).$(MAJOR).$(MINOR).dylib
+ $(LOCAL)-OBJS := $(addprefix $(OBJ)/,$(addsuffix .opic,$(notdir $(basename $(SOURCE)))))
+ $(LOCAL)-DEP := $(addprefix $(DEP)/,$(addsuffix .opic.d,$(notdir $(basename $(SOURCE)))))
+ $(LOCAL)-HEADERS := $(addprefix $(INCLUDE)/,$(HEADERS))
+-$(LOCAL)-SONAME := lib$(LIBRARY)$(LIBEXT).so.$(MAJOR)
++$(LOCAL)-SONAME := lib$(LIBRARY)$(LIBEXT).$(MAJOR).dylib
+ $(LOCAL)-SLIBS := $(SLIBS)
+ $(LOCAL)-LIBRARY := $(LIBRARY)
+ 
+@@ -29,7 +29,7 @@
+ 
+ # Install the command hooks
+ headers: $($(LOCAL)-HEADERS)
+-library: $(LIB)/lib$(LIBRARY).so $(LIB)/lib$(LIBRARY)$(LIBEXT).so.$(MAJOR)
++library: $(LIB)/lib$(LIBRARY).dylib $(LIB)/lib$(LIBRARY)$(LIBEXT).$(MAJOR).dylib
+ clean: clean/$(LOCAL)
+ veryclean: veryclean/$(LOCAL)
+ 
+@@ -41,21 +41,23 @@
+ clean/$(LOCAL):
+ 	-rm -f $($(@F)-OBJS) $($(@F)-DEP)
+ veryclean/$(LOCAL): clean/$(LOCAL)
+-	-rm -f $($(@F)-HEADERS) $(LIB)/lib$($(@F)-LIBRARY)*.so*
++	-rm -f $($(@F)-HEADERS) $(LIB)/lib$($(@F)-LIBRARY)*.dylib
+ 
+ # Build rules for the two symlinks
+-.PHONY: $(LIB)/lib$(LIBRARY)$(LIBEXT).so.$(MAJOR) $(LIB)/lib$(LIBRARY).so
+-$(LIB)/lib$(LIBRARY)$(LIBEXT).so.$(MAJOR): $(LIB)/lib$(LIBRARY)$(LIBEXT).so.$(MAJOR).$(MINOR)
++.PHONY: $(LIB)/lib$(LIBRARY)$(LIBEXT).$(MAJOR).dylib $(LIB)/lib$(LIBRARY).dylib
++$(LIB)/lib$(LIBRARY)$(LIBEXT).$(MAJOR).dylib: $(LIB)/lib$(LIBRARY)$(LIBEXT).$(MAJOR).$(MINOR).dylib
+ 	ln -sf $(<F) $@
+-$(LIB)/lib$(LIBRARY).so: $(LIB)/lib$(LIBRARY)$(LIBEXT).so.$(MAJOR).$(MINOR)
++$(LIB)/lib$(LIBRARY).dylib: $(LIB)/lib$(LIBRARY)$(LIBEXT).$(MAJOR).$(MINOR).dylib
+ 	ln -sf $(<F) $@
+ 
+ # The binary build rule
+-$(LIB)/lib$(LIBRARY)$(LIBEXT).so.$(MAJOR).$(MINOR): $($(LOCAL)-HEADERS) $($(LOCAL)-OBJS)
+-	-rm -f $(LIB)/lib$($(@F)-LIBRARY)*.so* 2> /dev/null
++$(LIB)/lib$(LIBRARY)$(LIBEXT).$(MAJOR).$(MINOR).dylib: $($(LOCAL)-HEADERS) $($(LOCAL)-OBJS)
++	-rm -f $(LIB)/lib$($(@F)-LIBRARY)*.dylib 2> /dev/null
+ 	echo Building shared library $@
+ 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(PICFLAGS) $(LFLAGS) $(LFLAGS_SO)\
+-	   -o $@ $(SONAME_MAGIC)$($(@F)-SONAME) -shared \
++	   -o $@ $(SONAME_MAGIC)$($(@F)-SONAME) \
++	   -compatibility_version $(MAJOR).$(MINOR) \
++	   -current_version $(MAJOR).$(MINOR) \
+ 	   $(filter %.opic,$^) \
+ 	   $($(@F)-SLIBS) 
+ 
+diff -Nurd apt-0.7.25.3/buildlib/libversion.mak apt-0.7.25.3-patched/buildlib/libversion.mak
+--- apt-0.7.25.3/buildlib/libversion.mak	2010-02-01 20:44:40.000000000 +0100
++++ apt-0.7.25.3-patched/buildlib/libversion.mak	2010-05-14 21:18:19.000000000 +0200
+@@ -18,4 +18,5 @@
+ # want to drop this, but this a ABI break.
+ # And we don't want to do this now. So we hardcode a value here,
+ # and drop it later on (hopefully as fast as possible).
+-LIBEXT=-libc6.9-6
++# FINK LOCAL empty here
++LIBEXT=
+diff -Nurd apt-0.7.25.3/cmdline/apt-get.cc apt-0.7.25.3-patched/cmdline/apt-get.cc
+--- apt-0.7.25.3/cmdline/apt-get.cc	2010-02-01 20:44:41.000000000 +0100
++++ apt-0.7.25.3-patched/cmdline/apt-get.cc	2010-05-14 19:02:56.000000000 +0200
+@@ -53,7 +53,12 @@
+ #include <termios.h>
+ #include <sys/ioctl.h>
+ #include <sys/stat.h>
++#ifdef __APPLE__
++#include <sys/param.h>
++#include <sys/mount.h>
++#else
+ #include <sys/statfs.h>
++#endif
+ #include <sys/statvfs.h>
+ #include <signal.h>
+ #include <unistd.h>
+@@ -128,6 +133,8 @@
+       return true;
+    }
+ 
++   fflush(NULL);
++
+    char response[1024] = "";
+    cin.getline(response, sizeof(response));
+ 
+@@ -340,7 +347,14 @@
+ 		  if (Cache[Targ].CandidateVerIter(Cache).end() == true)
+ 		  {
+ 		     if (Targ->ProvidesList == 0)
+-			out << _("but it is not installable");
++         {
++           out << _("but it is not installable. For Fink users, ");
++           out << _("this often means that you have attempted ");
++           out << _("to install a package from the binary distribution ");
++           out << _("which depends on a \"Restrictive\" package. ");
++           out << _("See <http://fink.sourceforge.net/faq/usage-fink.php#bindist>, ");
++           out << _("<http://fink.sourceforge.net/doc/users-guide/packages.php#bin-exceptions>");
++         }
+ 		     else
+ 			out << _("but it is a virtual package");
+ 		  }		  
+@@ -660,7 +674,9 @@
+    }
+ 
+    // Nothing is broken
+-   if (DCache->BrokenCount() == 0 || AllowBroken == true)
++   // FINK LOCAL added APT::Get::Ignore-Breakage test
++   if (DCache->BrokenCount() == 0 || AllowBroken == true
++       || _config->FindB("APT::Get::Ignore-Breakage") == true)
+       return true;
+ 
+    // Attempt to fix broken things
+@@ -769,7 +785,9 @@
+    Stats(c1out,Cache);
+ 
+    // Sanity check
+-   if (Cache->BrokenCount() != 0)
++   // FINK LOCAL added APT::Get::Ignore-Breakage test
++   if (Cache->BrokenCount() != 0
++       && _config->FindB("APT::Get::Ignore-Breakage", false) == false)
+    {
+       ShowBroken(c1out,Cache,false);
+       return _error->Error(_("Internal error, InstallPackages was called with broken packages!"));
+@@ -1204,7 +1222,9 @@
+    
+    // Install it with autoinstalling enabled (if we not respect the minial
+    // required deps or the policy)
+-   if ((State.InstBroken() == true || State.InstPolicyBroken() == true) && BrokenFix == false)
++   // FINK LOCAL added APT::Get::Ignore-Breakage test
++   if ((State.InstBroken() == true || State.InstPolicyBroken() == true) && BrokenFix == false
++       && _config->FindB("APT::Get::Ignore-Breakage") == false)
+       Cache.MarkInstall(Pkg,true);
+ 
+    return true;
+@@ -1790,7 +1810,9 @@
+       /* If we are in the Broken fixing mode we do not attempt to fix the
+ 	 problems. This is if the user invoked install without -f and gave
+ 	 packages */
+-      if (BrokenFix == true && Cache->BrokenCount() != 0)
++      // FINK LOCAL added APT::Get::Ignore-Breakage test
++      if (BrokenFix == true && Cache->BrokenCount() != 0
++          && _config->FindB("APT::Get::Ignore-Breakage") == false)
+       {
+ 	 c1out << _("You might want to run `apt-get -f install' to correct these:") << endl;
+ 	 ShowBroken(c1out,Cache,false);
+@@ -1800,11 +1822,15 @@
+    
+       // Call the scored problem resolver
+       Fix.InstallProtect();
+-      if (Fix.Resolve(true) == false)
++      // FINK LOCAL added APT::Get::Ignore-Breakage test
++      if (_config->FindB("APT::Get::Ignore-Breakage") == false
++          && Fix.Resolve(true) == false)
+ 	 _error->Discard();
+ 
+       // Now we check the state of the packages,
+-      if (Cache->BrokenCount() != 0)
++      // FINK LOCAL added APT::Get::Ignore-Breakage test
++      if (Cache->BrokenCount() != 0 &&
++          _config->FindB("APT::Get::Ignore-Breakage") == false)
+       {
+ 	 c1out << 
+ 	    _("Some packages could not be installed. This may mean that you have\n" 
+@@ -2773,6 +2799,8 @@
+    _config->Set("APT::Get::Simulate",false);
+    _config->Set("APT::Get::Assume-Yes",false);
+    _config->Set("APT::Get::Fix-Broken",false);
++   // FINK LOCAL added APT::Get::Ignore-Breakage
++   _config->Set("APT::Get::Ignore-Breakage",false);
+    _config->Set("APT::Get::Force-Yes",false);
+    _config->Set("APT::Get::List-Cleanup",true);
+    _config->Set("APT::Get::AutomaticRemove",false);
+@@ -2811,6 +2839,8 @@
+       {'y',"yes","APT::Get::Assume-Yes",0},
+       {'y',"assume-yes","APT::Get::Assume-Yes",0},      
+       {'f',"fix-broken","APT::Get::Fix-Broken",0},
++      // FINK LOCAL added APT::Get::Ignore-Breakage
++      {0,"ignore-breakage","APT::Get::Ignore-Breakage",0},
+       {'u',"show-upgraded","APT::Get::Show-Upgraded",0},
+       {'m',"ignore-missing","APT::Get::Fix-Missing",0},
+       {'t',"target-release","APT::Default-Release",CommandLine::HasArg},
+@@ -2895,6 +2925,23 @@
+       _config->Set("Debug::NoLocking",true);
+    }
+ 
++   /* FINK LOCAL begin */
++   if (_config->FindB("APT::Get::Ignore-Breakage",false) == true) {
++     if (_config->FindB("APT::Get::Print-URIs",false) == false &&
++         _config->FindB("APT::Get::Download-Only",false) == false)
++     {
++       _error->Error("--ignore-breakage can only be used with --print-uris or --download-only");
++       _error->DumpErrors();
++       return 100;
++     }
++     if (strcmp(CmdL.FileList[0],"install") != 0) {
++       _error->Error("--ignore-breakage can only be used with apt-get install");
++       _error->DumpErrors();
++       return 100;
++     }
++   }
++   /* FINK LOCAL end */
++
+    // Deal with stdout not being a tty
+    if (!isatty(STDOUT_FILENO) && _config->FindI("quiet",0) < 1)
+       _config->Set("quiet","1");
+diff -Nurd apt-0.7.25.3/cmdline/apt-key apt-0.7.25.3-patched/cmdline/apt-key
+--- apt-0.7.25.3/cmdline/apt-key	2010-02-01 20:44:41.000000000 +0100
++++ apt-0.7.25.3-patched/cmdline/apt-key	2010-05-14 20:26:56.000000000 +0200
+@@ -5,7 +5,7 @@
+ 
+ # We don't use a secret keyring, of course, but gpg panics and
+ # implodes if there isn't one available
+-GPG_CMD="gpg --ignore-time-conflict --no-options --no-default-keyring --secret-keyring /etc/apt/secring.gpg --trustdb-name /etc/apt/trustdb.gpg"
++GPG_CMD="gpg --ignore-time-conflict --no-options --no-default-keyring --secret-keyring @PREFIX@/etc/apt/secring.gpg --trustdb-name @PREFIX@/etc/apt/trustdb.gpg"
+ GPG="$GPG_CMD"
+ 
+ MASTER_KEYRING=""
+@@ -145,12 +145,12 @@
+ # otherwise use the default
+ else
+ 	#echo "generate list"
+-	TRUSTEDFILE="/etc/apt/trusted.gpg"
++	TRUSTEDFILE="@PREFIX@/etc/apt/trusted.gpg"
+ 	if [ -r "$TRUSTEDFILE" ]; then
+ 		GPG="$GPG --keyring $TRUSTEDFILE"
+ 	fi
+ 	GPG="$GPG --primary-keyring $TRUSTEDFILE"
+-	TRUSTEDPARTS="/etc/apt/trusted.gpg.d"
++	TRUSTEDPARTS="@PREFIX@/etc/apt/trusted.gpg.d"
+ 	if [ -d "$TRUSTEDPARTS" ]; then
+ 		#echo "parts active"
+ 		for trusted in $(run-parts --list $TRUSTEDPARTS --regex '^.*\.gpg$'); do
+diff -Nurd apt-0.7.25.3/debian/bugscript apt-0.7.25.3-patched/debian/bugscript
+--- apt-0.7.25.3/debian/bugscript	2010-02-01 20:44:41.000000000 +0100
++++ apt-0.7.25.3-patched/debian/bugscript	2010-05-14 20:27:37.000000000 +0200
+@@ -11,14 +11,14 @@
+ 
+ EOF
+ 
+-yesno "May I include your apt configuration (/etc/apt/apt.conf et al)? [Y/n] " yep
++yesno "May I include your apt configuration (@PREFIX@/etc/apt/apt.conf et al)? [Y/n] " yep
+ 
+ if [ "$REPLY" = "yep" ]; then
+   echo -e "\n-- apt-config dump --\n" >&3
+   apt-config dump >&3 2>&1
+ fi
+ 
+-for config in /etc/apt/preferences /etc/apt/sources.list; do
++for config in @PREFIX@/etc/apt/preferences @PREFIX@/etc/apt/sources.list; do
+   if [ -f $config ]; then
+     yesno "May I include your $config configuration file? [Y/n] " yep
+     if [ "$REPLY" = "yep" ]; then
+diff -Nurd apt-0.7.25.3/doc/apt-get.8.xml apt-0.7.25.3-patched/doc/apt-get.8.xml
+--- apt-0.7.25.3/doc/apt-get.8.xml	2010-02-01 20:44:41.000000000 +0100
++++ apt-0.7.25.3-patched/doc/apt-get.8.xml	2010-05-13 23:41:59.000000000 +0200
+@@ -344,6 +344,19 @@
+      Configuration Item: <literal>APT::Get::Fix-Broken</literal>.</para></listitem>
+      </varlistentry>
+ 
++     <varlistentry><term><option>--ignore-breakage</option></term>
++     <listitem><para>For mode <literal>install</literal>, ignore dependency
++problems. This option is
++useful if you want to perform actions on just a particular package,
++not its whole dependency tree. It must be used in conjunction with
++<literal>--download-only</literal> or <literal>--print-uris</literal>.
++Configuration Item: <literal>APT::Get::Ignore-Breakage</literal>.</para>
++
++<para>Note: The <literal>--ignore-breakage</literal> option was added by The
++Fink Project and hence is only available in the <command>apt-get</command>
++provided by Fink's <literal>apt</literal> package.</para></listitem>
++     </varlistentry>
++
+      <varlistentry><term><option>-m</option></term><term><option>--ignore-missing</option></term>
+      <term><option>--fix-missing</option></term>
+      <listitem><para>Ignore missing packages; If packages cannot be retrieved or fail the    
+diff -Nurd apt-0.7.25.3/doc/examples/apt-https-method-example.conf apt-0.7.25.3-patched/doc/examples/apt-https-method-example.conf
+--- apt-0.7.25.3/doc/examples/apt-https-method-example.conf	2010-02-01 20:44:41.000000000 +0100
++++ apt-0.7.25.3-patched/doc/examples/apt-https-method-example.conf	2010-05-14 18:57:49.000000000 +0200
+@@ -59,11 +59,15 @@
+ // server certificate using its cert.
+ Acquire::https::secure.dom1.tld::CaInfo     "/etc/apt/certs/ca-dom1-crt.pem";
+ Acquire::https::secure.dom1.tld::CrlFile    "/etc/apt/certs/ca-dom1-crl.pem";
++// WARNING: IssuerCert does not work on Fink, if the binaries are
++// produced on 10.5 or lower.
+ Acquire::https::secure.dom1.tld::IssuerCert "/etc/apt/certs/secure.dom1-issuer-crt.pem";
+ 
+ // Like previous for anchor and CRL, but also provide our
+ // certificate and keys for client authentication.
+ Acquire::https::secure.dom2.tld::CaInfo  "/etc/apt/certs/ca-dom2-crt.pem";
++// WARNING: CrlFile does not work on Fink, if the binaries are
++// produced on 10.5 or lower.
+ Acquire::https::secure.dom2.tld::CrlFile "/etc/apt/certs/ca-dom2-crl.pem";
+ Acquire::https::secure.dom2.tld::SslCert "/etc/apt/certs/my-crt.pem";
+ Acquire::https::secure.dom2.tld::SslKey  "/etc/apt/certs/my-key.pem";
+@@ -101,6 +105,8 @@
+     for all https targets. If a specific mirror is provided, it is
+     used for the https entries in the sources.list file that use that
+     repository (with the same name).
++    WARNING: CrlFile does not work on Fink, if the binaries are
++    produced on 10.5 or lower.
+ 
+   Acquire::https[::repo.domain.tld]::CrlFile  "/path/to/all/crl.pem";
+ 
+@@ -110,6 +116,8 @@
+     sense), this CRL information is used for all defined https entries
+     in sources.list file. In a mirror specific context, it only applies
+     to that mirror.
++    WARNING: IssuerCert does not work on Fink, if the binaries are
++    produced on 10.5 or lower.
+ 
+   Acquire::https[::repo.domain.tld]::IssuerCert "/path/to/issuer/cert.pem";
+ 
+diff -Nurd apt-0.7.25.3/doc/manpage-style.xsl apt-0.7.25.3-patched/doc/manpage-style.xsl
+--- apt-0.7.25.3/doc/manpage-style.xsl	2010-02-01 20:44:41.000000000 +0100
++++ apt-0.7.25.3-patched/doc/manpage-style.xsl	2010-05-14 19:12:06.000000000 +0200
+@@ -2,7 +2,7 @@
+  xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+  version="1.0">
+ 
+-<xsl:import href="/usr/share/xml/docbook/stylesheet/nwalsh/manpages/docbook.xsl" />
++<xsl:import href="@PREFIX@/share/xml/xsl/docbook-xsl/manpages/docbook.xsl"/>
+ 
+ <xsl:param name="man.output.encoding" select="'UTF-8'" />
+ 
+diff -Nurd apt-0.7.25.3/dselect/install apt-0.7.25.3-patched/dselect/install
+--- apt-0.7.25.3/dselect/install	2010-02-01 20:44:41.000000000 +0100
++++ apt-0.7.25.3-patched/dselect/install	2010-05-13 23:26:46.000000000 +0200
+@@ -6,8 +6,8 @@
+ # Get the configuration from /etc/apt/apt.conf
+ CLEAN="prompt"
+ OPTS="-f"
+-APTGET="/usr/bin/apt-get"
+-DPKG="/usr/bin/dpkg"
++APTGET="@PREFIX@/bin/apt-get"
++DPKG="@PREFIX@/bin/dpkg"
+ DPKG_OPTS="--admindir=$1"
+ APT_OPT0="-oDir::State::status=$1/status"
+ APT_OPT1="-oDPkg::Options::=$DPKG_OPTS"
+diff -Nurd apt-0.7.25.3/dselect/setup apt-0.7.25.3-patched/dselect/setup
+--- apt-0.7.25.3/dselect/setup	2010-02-01 20:44:41.000000000 +0100
++++ apt-0.7.25.3-patched/dselect/setup	2010-05-14 15:22:07.000000000 +0200
+@@ -23,15 +23,20 @@
+ my $vardir=$ARGV[0];
+ my $method=$ARGV[1];
+ my $option=$ARGV[2];
+-my $config_file = '/etc/apt/sources.list';
++my $config_file = '@PREFIX@/etc/apt/sources.list';
+ 
+-my $boldon=`setterm -bold on`;
+-my $boldoff=`setterm -bold off`;
++my $boldon=`setterm -bold on 2>/dev/null`;
++my $boldoff=`setterm -bold off 2>/dev/null`;
++$boldon = "" unless defined $boldon;
++$boldoff = "" unless defined $boldoff;
++
++# FINK LOCAL get distribution
++my $fink_dist = `/usr/bin/sw_vers -productVersion | cut -d . -f 1-2`;
+ 
+ my @known_types           = ('deb');
+ my @known_access         = ('http', 'ftp', 'file');
+-my @typical_distributions = ('stable', 'unstable', 'testing', 'non-US');
+-my @typical_components    = ('main', 'contrib', 'non-free');
++my @typical_distributions = ($fink_dist.'/release', $fink_dist.'/current');
++my @typical_components    = ('main', 'crypto');
+ 
+ my %known_access           = map {($_,$_)} @known_access;
+ my %typical_distributions  = map {($_,$_)} @typical_distributions;
+@@ -118,9 +123,9 @@
+   }
+ 
+   $type         = 'deb';
+-  $urn          = "http://http.us.debian.org/debian" unless $urn;
+-  $distribution = "stable" unless $distribution;
+-  $components   = "main contrib non-free" unless $components;
++  $urn          = "http://us.dl.sourceforge.net/fink/direct_download" unless $urn;
++  $distribution = $fink_dist.'/release' unless $distribution;
++  $components   = "main" unless $components;
+ 
+     
+   $rec->{'Type'} = 'deb';
+@@ -222,19 +227,13 @@
+   print "\t$boldon Set up a list of distribution source locations $boldoff \n";
+   print "\n";
+ 
+-  print " Please give the base URL of the debian distribution.\n";
++  print " Please give the base URL of the Fink distribution.\n";
+   print " The access schemes I know about are:$boldon ";
+   print join (' ', @known_access), "$boldoff\n";
+-#  print " The mirror scheme is special  that it does not specify the\n";
+-#  print " location of a debian archive but specifies the location\n";
+-#  print " of a list of mirrors to use to access the archive.\n";
+   print "\n";
+   print " For example:\n";
+-  print "              file:/mnt/debian,\n";
+-  print "              ftp://ftp.debian.org/debian,\n";
+-  print "              http://ftp.de.debian.org/debian,\n";
+-#  print " and the special mirror scheme,\n";
+-#  print "              mirror:http://www.debian.org/archivemirrors \n";
++  print "              file:@PREFIX@/fink,\n";
++  print "              http://us.dl.sourceforge.net/fink/direct_download\n";
+   print "\n";
+ 
+   my $index = 0;
+@@ -269,7 +268,10 @@
+     print "-" x 72, "\n";
+     &print_config('Config' => \@Oldconfig);
+     print "-" x 72, "\n";
+-    print "$boldon Do you wish to overwrite it? [y/N]$boldoff ";
++    print "$boldon In most cases, this file was installed by Fink or by apt,"
++      ." and$boldoff\n";
++    print "$boldon should NOT be changed. Do you wish to overwrite"
++      ." it?[y/N]$boldoff ";
+     my $answer = <STDIN>;
+     chomp ($answer);
+     $answer =~ s/\s+/ /og;
+diff -Nurd apt-0.7.25.3/dselect/update apt-0.7.25.3-patched/dselect/update
+--- apt-0.7.25.3/dselect/update	2010-02-01 20:44:41.000000000 +0100
++++ apt-0.7.25.3-patched/dselect/update	2010-05-13 23:24:22.000000000 +0200
+@@ -7,13 +7,13 @@
+ # Get the configuration from /etc/apt/apt.conf
+ CLEAN="prompt"
+ OPTS="-f"
+-APTGET="/usr/bin/apt-get"
+-APTCACHE="/usr/bin/apt-cache"
+-DPKG="/usr/bin/dpkg"
++APTGET="@PREFIX@/bin/apt-get"
++APTCACHE="@PREFIX@/bin/apt-cache"
++DPKG="@PREFIX@/bin/dpkg"
+ DPKG_OPTS="--admindir=$1"
+ APT_OPT0="-oDir::State::status=$1/status"
+ APT_OPT1="-oDPkg::Options::=$DPKG_OPTS"
+-CACHEDIR="/var/cache/apt"
++CACHEDIR="@PREFIX@/cache/apt"
+ PROMPT="false"
+ RES=`apt-config shell CLEAN DSelect::Clean OPTS DSelect::UpdateOptions \
+ 		      DPKG Dir::Bin::dpkg/f APTGET Dir::Bin::apt-get/f \
+diff -Nurd apt-0.7.25.3/fink/fink_unauthenticated.conf apt-0.7.25.3-patched/fink/fink_unauthenticated.conf
+--- apt-0.7.25.3/fink/fink_unauthenticated.conf	1970-01-01 01:00:00.000000000 +0100
++++ apt-0.7.25.3-patched/fink/fink_unauthenticated.conf	2010-05-15 23:17:15.000000000 +0200
+@@ -0,0 +1,9 @@
++# Fink's apt was updated in may 2010. It now features cryptographic signing of
++# packages, but Fink doesn't do this at all yet. In order to have a clean
++# transition to signing all packages, this file turns off the check about
++# authentication of packages, but it still gives the warning.
++APT {
++  Get {
++    AllowUnauthenticated "true";
++  }
++}
+diff -Nurd apt-0.7.25.3/methods/connect.cc apt-0.7.25.3-patched/methods/connect.cc
+--- apt-0.7.25.3/methods/connect.cc	2010-02-01 20:44:41.000000000 +0100
++++ apt-0.7.25.3-patched/methods/connect.cc	2010-05-13 23:25:17.000000000 +0200
+@@ -107,7 +107,7 @@
+ 
+    // Check the socket for an error condition
+    unsigned int Err;
+-   unsigned int Len = sizeof(Err);
++   socklen_t Len = sizeof(Err);
+    if (getsockopt(Fd,SOL_SOCKET,SO_ERROR,&Err,&Len) != 0)
+       return _error->Errno("getsockopt",_("Failed"));
+    
+diff -Nurd apt-0.7.25.3/methods/ftp.cc apt-0.7.25.3-patched/methods/ftp.cc
+--- apt-0.7.25.3/methods/ftp.cc	2010-02-01 20:44:41.000000000 +0100
++++ apt-0.7.25.3-patched/methods/ftp.cc	2010-05-13 23:26:24.000000000 +0200
+@@ -703,7 +703,7 @@
+       if (WaitFd(DataFd,true,TimeOut) == false)
+ 	 return _error->Error(_("Could not connect data socket, connection timed out"));
+       unsigned int Err;
+-      unsigned int Len = sizeof(Err);
++      socklen_t Len = sizeof(Err);
+       if (getsockopt(DataFd,SOL_SOCKET,SO_ERROR,&Err,&Len) != 0)
+ 	 return _error->Errno("getsockopt",_("Failed"));
+       if (Err != 0)
+diff -Nurd apt-0.7.25.3/methods/gpgv.cc apt-0.7.25.3-patched/methods/gpgv.cc
+--- apt-0.7.25.3/methods/gpgv.cc	2010-02-01 20:44:41.000000000 +0100
++++ apt-0.7.25.3-patched/methods/gpgv.cc	2010-05-14 20:28:59.000000000 +0200
+@@ -59,8 +59,8 @@
+    string const gpgvpath = _config->Find("Dir::Bin::gpg", "/usr/bin/gpgv");
+    // FIXME: remove support for deprecated APT::GPGV setting
+    string const trustedFile = _config->FindFile("Dir::Etc::Trusted",
+-			_config->Find("APT::GPGV::TrustedKeyring", "/etc/apt/trusted.gpg").c_str());
+-   string const trustedPath = _config->FindDir("Dir::Etc::TrustedParts", "/etc/apt/trusted.gpg.d");
++			_config->Find("APT::GPGV::TrustedKeyring", "@PREFIX@/etc/apt/trusted.gpg").c_str());
++   string const trustedPath = _config->FindDir("Dir::Etc::TrustedParts", "@PREFIX@/etc/apt/trusted.gpg.d");
+    if (Debug == true)
+    {
+       std::clog << "gpgv path: " << gpgvpath << std::endl;
+diff -Nurd apt-0.7.25.3/methods/https.cc apt-0.7.25.3-patched/methods/https.cc
+--- apt-0.7.25.3/methods/https.cc	2010-02-01 20:44:41.000000000 +0100
++++ apt-0.7.25.3-patched/methods/https.cc	2010-05-14 18:51:01.000000000 +0200
+@@ -151,12 +151,14 @@
+       default_verify = 0;
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, verify);
+ 
++#ifdef CURLOPT_ISSUERCERT
+    // Also enforce issuer of server certificate using its cert
+    string issuercert = _config->Find("Acquire::https::IssuerCert","");
+    knob = "Acquire::https::"+remotehost+"::IssuerCert";
+    issuercert = _config->Find(knob.c_str(),issuercert.c_str());
+    if(issuercert.empty() == false)
+       curl_easy_setopt(curl, CURLOPT_ISSUERCERT,issuercert.c_str());
++#endif
+ 
+    // For client authentication, certificate file ...
+    string pem = _config->Find("Acquire::https::SslCert","");
+@@ -184,12 +186,14 @@
+      final_version = CURL_SSLVERSION_SSLv3;
+    curl_easy_setopt(curl, CURLOPT_SSLVERSION, final_version);
+ 
++#ifdef CURLOPT_CRLFILE
+    // CRL file
+    string crlfile = _config->Find("Acquire::https::CrlFile","");
+    knob = "Acquire::https::"+remotehost+"::CrlFile";
+    crlfile = _config->Find(knob.c_str(),crlfile.c_str());
+    if(crlfile.empty() == false)
+       curl_easy_setopt(curl, CURLOPT_CRLFILE, crlfile.c_str());
++#endif
+ 
+    // cache-control
+    if(_config->FindB("Acquire::https::No-Cache",
+diff -Nurd apt-0.7.25.3/methods/rfc2553emu.h apt-0.7.25.3-patched/methods/rfc2553emu.h
+--- apt-0.7.25.3/methods/rfc2553emu.h	2010-02-01 20:44:41.000000000 +0100
++++ apt-0.7.25.3-patched/methods/rfc2553emu.h	2010-05-13 23:45:34.000000000 +0200
+@@ -26,6 +26,11 @@
+ #include <sys/types.h>
+ #include <sys/socket.h>
+ 
++// Always use full emulation on Darwin:
++//  netdb.h has the structures and constants, but getnameinfo() is missing
++//  and getaddrinfo() seems to be broken
++#ifndef __APPLE__
++
+ // Autosense getaddrinfo
+ #if defined(AI_PASSIVE) && defined(EAI_NONAME)
+ #define HAVE_GETADDRINFO
+@@ -36,6 +41,8 @@
+ #define HAVE_GETNAMEINFO
+ #endif
+ 
++#endif /* __APPLE __ */
++
+ // getaddrinfo support?
+ #ifndef HAVE_GETADDRINFO
+   // Renamed to advoid type clashing.. (for debugging)
+@@ -101,6 +108,9 @@
+   #define NI_NAMEREQD (1<<3)
+   #define NI_DATAGRAM (1<<4)
+   #endif
++  #ifndef NI_DATAGRAM
++  #define NI_DATAGRAM NI_DGRAM
++  #endif
+ 
+   #define sockaddr_storage sockaddr_in
+ #endif
+diff -Nurd apt-0.7.25.3/patch_flush apt-0.7.25.3-patched/patch_flush
+--- apt-0.7.25.3/patch_flush	1970-01-01 01:00:00.000000000 +0100
++++ apt-0.7.25.3-patched/patch_flush	2010-05-13 23:27:54.000000000 +0200
+@@ -0,0 +1,11 @@
++#!/bin/sh
++set -e
++
++files=`find . -name '*.cc' -print | xargs grep -l 'flush;'`
++
++for i in $files ; do
++  sed 's/<< flush;/<< flush, fflush(NULL);/g' <$i >$i.tmp
++  mv $i.tmp $i
++done
++
++exit 0
