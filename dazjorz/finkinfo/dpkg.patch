@@ -1,0 +1,1104 @@
+diff -Nurd dpkg-1.15.5.6/configure dpkg-1.15.5.6-patched/configure
+--- dpkg-1.15.5.6/configure	2010-01-08 19:02:47.000000000 +0100
++++ dpkg-1.15.5.6-patched/configure	2010-05-09 05:10:12.000000000 +0200
+@@ -9745,11 +9745,7 @@
+ if test "${enable_linker_optimisations+set}" = set; then :
+   enableval=$enable_linker_optimisations; if test "x$enable_linker_optimisations" = "xno"; then
+ 	LDFLAGS=$(echo "$LDFLAGS" | sed -e "s/ -Wl,-O[0-9]*\b//g")
+-else
+-	LDFLAGS="$LDFLAGS -Wl,-O1"
+ fi
+-else
+-  LDFLAGS="$LDFLAGS -Wl,-O1"
+ fi
+ 
+ 
+diff -Nurd dpkg-1.15.5.6/dpkg-deb/build.c dpkg-1.15.5.6-patched/dpkg-deb/build.c
+--- dpkg-1.15.5.6/dpkg-deb/build.c	2010-01-08 18:23:06.000000000 +0100
++++ dpkg-1.15.5.6-patched/dpkg-deb/build.c	2010-05-09 04:23:57.000000000 +0200
+@@ -67,6 +67,7 @@
+   "Installer-Menu-Item",
+   "Homepage",
+   "Tag",
++  "BuildDependsOnly",
+   NULL
+ };
+ 
+diff -Nurd dpkg-1.15.5.6/dselect/dselect.h dpkg-1.15.5.6-patched/dselect/dselect.h
+--- dpkg-1.15.5.6/dselect/dselect.h	2010-01-08 18:23:06.000000000 +0100
++++ dpkg-1.15.5.6-patched/dselect/dselect.h	2010-05-09 03:50:44.000000000 +0200
+@@ -26,7 +26,7 @@
+ 
+ #include "dselect-curses.h"
+ 
+-#define DSELECT		"dselect"
++#define DSELECT		"@PREFIX@/bin/dselect"
+ 
+ #define TOTAL_LIST_WIDTH 180
+ #define MAX_DISPLAY_INFO 120
+diff -Nurd dpkg-1.15.5.6/dselect/main.cc dpkg-1.15.5.6-patched/dselect/main.cc
+--- dpkg-1.15.5.6/dselect/main.cc	2010-01-08 09:00:34.000000000 +0100
++++ dpkg-1.15.5.6-patched/dselect/main.cc	2010-05-09 06:05:56.000000000 +0200
+@@ -52,6 +52,11 @@
+ #include <dpkg/dpkg.h>
+ #include <dpkg/dpkg-db.h>
+ #include <dpkg/myopt.h>
++/* FINK LOCAL begin */
++#include <sys/utsname.h>
++#include <CoreFoundation/CoreFoundation.h>
++static void finkinit();
++/* FINK LOCAL end */
+ 
+ #include "dselect.h"
+ #include "bindings.h"
+@@ -502,6 +507,154 @@
+   return urqr_quitmenu;
+ }
+ 
++/* FINK LOCAL begin */
++extern "C" {
++struct FinkVirtualPkgs {
++  struct FinkVirtualPkgs *next;
++  char *pkgname;
++  struct versionrevision version;
++};
++
++struct FinkVirtualPkgs *fink_virt_pkg = NULL;
++}
++static void finkinit()
++{
++  FILE *virt_pkg_stream = NULL;
++  struct stat sb;
++  struct FinkVirtualPkgs *pkg;
++  char name[256];
++  char version[256];
++  char revision[256];
++  unsigned int  epoch;
++  Boolean status;
++  SInt32 errorCode;
++  CFURLRef fileURL = NULL;
++  CFDataRef resourceData = NULL;
++  CFPropertyListRef propertyList = NULL;    CFStringRef string;
++  static char buffer[256];  // This is static, to ensure the buffer stays around
++  static struct utsname ver;  // This is static, to ensure the buffer stays around
++  if (0 == stat("@PREFIX@/bin/fink-virtual-pkgs", &sb))
++  {
++    virt_pkg_stream =popen("@PREFIX@/bin/fink-virtual-pkgs --dpkg","r");
++    if (virt_pkg_stream)
++    {
++      while (fscanf(virt_pkg_stream,"%s\t%u\t%s\t%s\n",name,&epoch,version, revision) == 4)
++      {
++        pkg = (struct FinkVirtualPkgs *)malloc(sizeof(struct FinkVirtualPkgs));
++        if (pkg)
++        {
++          pkg->next = fink_virt_pkg;
++          pkg->pkgname = strdup(name);
++          pkg->version.epoch = epoch;
++          pkg->version.version = strdup(version);
++          pkg->version.revision = strdup(revision);
++          /* Quick and simple sanity check */
++          if ((NULL != pkg->pkgname) && (0 != strlen(pkg->pkgname)) &&
++              (NULL != pkg->version.version) && (0 != strlen(pkg->version.version)) &&
++              (NULL != pkg->version.revision) && (0 != strlen(pkg->version.revision)))
++          {
++            /* We are leaking here if something fails the sanity check above */
++            fink_virt_pkg = pkg;
++          }
++        }
++      }
++      if (pclose(virt_pkg_stream))
++      {
++        /* The fink-virtual-pkgs script returned a non zero exit status *
++         * clean up and try the old way.                                */
++        while(NULL != fink_virt_pkg)
++        {
++          pkg = fink_virt_pkg;
++          if (NULL != pkg->pkgname) free(pkg->pkgname);
++          if (NULL != pkg->version.version) free((void*)pkg->version.version);
++          if (NULL != pkg->version.revision) free((void*)pkg->version.revision);
++          fink_virt_pkg = pkg->next;
++          free(pkg);
++        }
++      }
++    }
++  }
++  if (NULL == fink_virt_pkg)
++  {
++    /* Determine system version */
++    /* TODO - should maybe check if this is really Darwin? */
++    if (!uname(&ver)) {
++        pkg = (struct FinkVirtualPkgs *)malloc(sizeof(struct FinkVirtualPkgs));
++        if (pkg) {
++        pkg->next = fink_virt_pkg;
++        pkg->pkgname = strdup("darwin");
++        pkg->version.epoch = 0;
++        pkg->version.version = ver.release;
++        pkg->version.revision = NULL;
++        fink_virt_pkg = pkg;
++        }
++    }
++
++    /* Check whether this is Mac OS X, and which version of it */
++
++    fileURL = CFURLCreateWithFileSystemPath( NULL,
++      CFSTR("/System/Library/CoreServices/SystemVersion.plist"),
++      kCFURLPOSIXPathStyle,
++      false );
++    if (!fileURL)
++    goto BAIL;
++
++    /* Read the XML */
++    status = CFURLCreateDataAndPropertiesFromResource(
++      NULL,
++      fileURL,
++      &resourceData,
++      NULL,
++      NULL,
++      &errorCode);
++    if (!status || errorCode != 0)
++    goto BAIL;
++
++    /* Reconstitute the dictionary using the XML data. */
++    propertyList = CFPropertyListCreateFromXMLData( NULL,
++      resourceData,
++      kCFPropertyListImmutable,
++      &string);
++    if (!propertyList)
++    goto BAIL;
++
++    /* Try to read the system version from it. */
++    status = CFDictionaryGetValueIfPresent(
++      (CFDictionaryRef)propertyList,
++      (const void*)CFSTR("ProductVersion"),
++      (const void**)&string);
++    if (!status)
++    goto BAIL;
++
++    /* Convert into a C string */
++    status = CFStringGetCString( string,
++      buffer,
++      sizeof(buffer),
++      kCFStringEncodingISOLatin1);
++    if (!status)
++    goto BAIL;
++    pkg = (struct FinkVirtualPkgs *)malloc(sizeof(struct FinkVirtualPkgs));
++    if (pkg)
++    {
++      pkg->next = fink_virt_pkg;
++      pkg->pkgname = strdup("macosx");
++      pkg->version.epoch = 0;
++      pkg->version.version = buffer;
++      pkg->version.revision = NULL;
++      fink_virt_pkg = pkg;
++    }
++  BAIL:
++    // Release all of the CF objects we're responsible for.
++    if (fileURL)
++    CFRelease(fileURL);
++    if (resourceData)
++    CFRelease(resourceData);
++    if (propertyList)
++    CFRelease(propertyList);
++  }
++}
++/* FINK LOCAL end */
++
+ int main(int, const char *const *argv) {
+   jmp_buf ejbuf;
+ 
+@@ -509,6 +662,10 @@
+   bindtextdomain(DSELECT, LOCALEDIR);
+   textdomain(DSELECT);
+ 
++  /* FINK LOCAL begin */
++  finkinit();
++  /* FINK LOCAL end */
++
+   if (setjmp(ejbuf)) { /* expect warning about possible clobbering of argv */
+     cursesoff();
+     error_unwind(ehflag_bombout); exit(2);
+diff -Nurd dpkg-1.15.5.6/dselect/pkgdepcon.cc dpkg-1.15.5.6-patched/dselect/pkgdepcon.cc
+--- dpkg-1.15.5.6/dselect/pkgdepcon.cc	2010-01-08 09:00:34.000000000 +0100
++++ dpkg-1.15.5.6-patched/dselect/pkgdepcon.cc	2010-05-09 05:15:05.000000000 +0200
+@@ -202,6 +202,17 @@
+   return 2;
+ }
+ 
++/* FINK LOCAL begin */
++extern "C" {
++struct FinkVirtualPkgs {
++  struct FinkVirtualPkgs *next;
++  char *pkgname;
++  struct versionrevision version;
++};
++extern struct FinkVirtualPkgs *fink_virt_pkg;
++}
++/* FINK LOCAL end */
++
+ int packagelist::resolvedepcon(dependency *depends) {
+   perpackagestate *best, *fixbyupgrade;
+   deppossi *possi, *provider;
+@@ -361,6 +372,30 @@
+   int would;
+   pkginfo::pkgwant want= pkginfo::want_purge;
+   
++  /* FINK LOCAL begin */
++  {
++    int interestingwarnings;
++    struct varbuf oemsgs;
++    struct FinkVirtualPkgs *virt_pkg = NULL;
++    varbufinit(&oemsgs, 1024);
++    interestingwarnings= 0;
++    virt_pkg = fink_virt_pkg;
++    while (virt_pkg)
++    {
++      if (0==strcmp(possi->ed->name,virt_pkg->pkgname)) {
++        if (depdebug && debug)
++          fprintf(debug,"Found package : %s from VirtPackages.pm, depended by %s\n",virt_pkg->pkgname, possi->up->up->name);
++        if (versionsatisfied3(&virt_pkg->version,&possi->version,possi->verrel))
++        {
++          return 1;
++        }
++      }
++      virt_pkg = virt_pkg->next;
++    }
++    varbuffree(&oemsgs);
++  }
++  /* FINK LOCAL end */
++
+   if (possi->ed->clientdata) {
+     want= possi->ed->clientdata->selected;
+     would= would_like_to_install(want,possi->ed);
+diff -Nurd dpkg-1.15.5.6/fink/md5sum dpkg-1.15.5.6-patched/fink/md5sum
+--- dpkg-1.15.5.6/fink/md5sum	1970-01-01 01:00:00.000000000 +0100
++++ dpkg-1.15.5.6-patched/fink/md5sum	2010-05-12 21:16:19.000000000 +0200
+@@ -0,0 +1,313 @@
++#!/usr/bin/perl
++use strict;
++use warnings;
++
++## md5sum wrapper for Mac md5 tool ##
++# This wrapper should be installed in bin/md5sum. Since dpkg 1.10, md5sum was
++# removed, this script is intended to replace it for fink systems.
++#
++# Written by Sjors Gielen, licensed under the same license as dpkg, the
++# GNU General Public License version 2.
++
++my $md5_bin = "/sbin/md5";
++my $check_mode = 0;
++my $quiet = 0;
++my $warn  = 0;
++my $return = 0;
++my @files;
++
++read_args(@ARGV);
++
++if( @files == 0 )
++{
++  push @files, "-";
++}
++
++if( $check_mode )
++{
++  # `md5` doesn't have a check mode, so we have to implement it ourselves
++  run_check_mode( @files );
++  exit $return;
++}
++
++if( $quiet || $warn )
++{
++  print STDERR <<"NOCHECKMODE";
++$0: the --status, --warn and -w options are meaningful only when verifying checksums
++Try `md5sum --help' for more information.
++NOCHECKMODE
++  exit $return;
++}
++
++my $stdin_done = 0;
++for my $file( @files )
++{
++  if( $file eq "-" and $stdin_done )
++  {
++    # second - is empty, so md5sum is of the empty string
++    print "d41d8cd98f00b204e9800998ecf8427e  -\n";
++    next;
++  }
++
++  my $checksum = checksum_for( $file );
++  if( !$checksum ) {
++    # error was already printed
++    next;
++  }
++
++  # the old md5sum, nor md5, understand binary mode, so...
++  print "$checksum  $file\n";
++
++  if( $file eq "-" )
++  {
++    $stdin_done = 1;
++  }
++}
++
++exit;
++
++sub help_and_exit()
++{
++  print <<"HELP";
++Usage: $0 [OPTION] [FILE]...
++Print or check MD5 (128-bit) checksums.
++With no FILE, or when FILE is -, read standard input.
++This md5sum is a wrapper around Mac's md5. If you can use md5 instead, please
++do, since this script is likely to be removed at some point.
++
++  -b, --binary            no difference on Mac platforms
++  -c, --check             read MD5 sums from the FILEs and check them
++  -t, --text              no difference on Mac platforms
++
++The following two options are useful only when verifying checksums:
++      --status            don't output anything, status code shows success
++  -w, --warn              warn about improperly formatted checksum lines
++
++      --help     display this help and exit
++      --version  output version information and exit
++
++The sums are computed as described in RFC 1321.  When checking, the input
++should be a former output of this program.  The default mode is to print
++a line with checksum, a character indicating type (`*' for binary, ` ' for
++text), and name for each FILE.
++
++Report bugs to <http://fink.sourceforge.net>.
++HELP
++  exit;
++}
++
++sub version_and_exit
++{
++  print <<"VERSION";
++md5sum (Fink md5sum) 1.0
++Copyright (C) 2010 Sjors Gielen
++This wrapper should be installed in bin/md5sum. Since dpkg 1.10, md5sum was
++removed, this script is intended to replace it for fink systems.
++License from dpkg: GNU GPL version 2.
++This is free software: you are free to change and redistribute it.
++There is NO WARRENTY, to the extent permitted by law.
++
++Written by Sjors Gielen.
++VERSION
++  exit;
++}
++
++sub read_args
++{
++  my $no_opts = 0;
++  for(@_)
++  {
++    if( !$no_opts and /^--(.*)$/ )
++    {
++      my $opt = $1;
++      if( $opt eq "help" )
++      {
++        help_and_exit();
++      }
++      elsif( $opt eq "version" )
++      {
++        version_and_exit();
++      }
++      elsif( $opt eq "binary" or $opt eq "text" )
++      {
++        # ignore
++      }
++      elsif( $opt eq "check" )
++      {
++        $check_mode = 1;
++      }
++      elsif( $opt eq "status" )
++      {
++        $quiet = 1;
++      }
++      elsif( $opt eq "warn" )
++      {
++        $warn = 1;
++      }
++      elsif( $opt eq "" )
++      {
++        $no_opts = 1;
++      }
++      else
++      {
++        print STDERR <<"HELPMSG";
++$0: unrecognised option `--$opt'
++Try `$0 --help' for more information.
++HELPMSG
++        exit;
++      }
++    }
++    elsif( !$no_opts and /^-(.+)$/ )
++    {
++      my @opts = split //, $1;
++      for(@opts) {
++        if( $_ eq "b" or $_ eq "t" )
++        {
++          # ignore
++        }
++        elsif( $_ eq "c" )
++        {
++          $check_mode = 1;
++        }
++        elsif( $_ eq "w" )
++        {
++          $warn = 1;
++        }
++        elsif( $_ eq "" )
++        {
++          # - here is just STDIN
++          push @files, '-';
++        }
++        else
++        {
++          print STDERR <<"ERRORMSG";
++$0: invalid option -- $_
++Try `md5sum --help' for more information.
++ERRORMSG
++          exit;
++        }
++      }
++    }
++    else
++    {
++      push @files, $_;
++    }
++  }
++}
++
++sub checksum_for
++{
++  my ($file) = @_;
++  my $sum;
++  if( $file eq "-" )
++  {
++    # read from stdin
++    $sum = `$md5_bin -p`;
++    1 while(chomp $sum);
++    # take only the last line, that's the checksum
++    $sum = (split /\n/, $sum)[-1];
++    return $sum;
++  }
++
++  # try to open the file to get the system error ourselves
++  eval {
++    open my $f, $file or die "$!\n";
++    close $f;
++  };
++  if( $@ ) {
++    print STDERR "$0: $file: $@";
++    $return = 1;
++    return "";
++  }
++
++  $sum = `$md5_bin -q $file`;
++  1 while(chomp $sum);
++  return $sum;
++}
++
++sub run_check_mode
++{
++  my @files = @_;
++  my $read_stdin = 0;
++  my $f;
++
++  for my $md5file( @files )
++  {
++    eval { open $f, $md5file or die $! };
++    if( $@ )
++    {
++      print STDERR "$0: $md5file: $@\n";
++      next;
++    }
++
++    my $lines = 0;
++    my $actual_lines = 0;
++    my $valid = 0;
++    my $errors = 0;
++    while(<$f>) {
++      my $line = $_;
++      $actual_lines++;
++
++      # check this line
++      my ($sum, $file) = $line =~ /^([0-9a-fA-F]{32}) (?: |\*)(.+)$/;
++      if( !defined($sum) || !defined($file)) {
++        if( $warn && $line !~ /^#/ )
++        {
++          warn "$0: $md5file: $actual_lines: improperly formatted MD5 checksum line\n";
++        }
++        next;
++      }
++
++      $lines++;
++      my $checksum = checksum_for($file);
++      if( !$checksum )
++      {
++        if( !$quiet )
++        {
++          print "$file: FAILED open or read\n";
++        }
++        $errors++;
++      }
++      elsif( lc($checksum) eq lc($sum) )
++      {
++        if( !$quiet )
++        {
++          print "$file: OK\n";
++        }
++        $valid++;
++      }
++      else
++      {
++        $return = 1;
++        if( !$quiet )
++        {
++          print "$file: FAILED\n";
++        }
++      }
++    }
++
++    close $f;
++    if( $lines == 0 )
++    {
++      warn "$0: $md5file: no properly formatted MD5 checksum lines found\n";
++      $return = 1;
++    }
++    if( $errors > 0 )
++    {
++      my $s = $lines == 1 ? "" : "s";
++      if( !$quiet )
++      {
++        warn "$0: WARNING: $errors of $lines listed file$s could not be read\n";
++      }
++    }
++    if( $valid < ($lines-$errors) )
++    {
++      my $checksums = $lines - $errors;
++      my $nomatch = $checksums - $valid;
++      if( !$quiet )
++      {
++        warn "$0: WARNING: $nomatch of $checksums computed checksums did NOT match\n";
++      }
++    }
++  }
++}
+diff -Nurd dpkg-1.15.5.6/lib/dpkg/Makefile.am dpkg-1.15.5.6-patched/lib/dpkg/Makefile.am
+--- dpkg-1.15.5.6/lib/dpkg/Makefile.am	2010-01-08 18:23:06.000000000 +0100
++++ dpkg-1.15.5.6-patched/lib/dpkg/Makefile.am	2010-05-09 15:49:35.000000000 +0200
+@@ -7,7 +7,7 @@
+ AM_CPPFLAGS = \
+ 	-DLOCALEDIR=\"$(localedir)\" \
+ 	-DCONFIGDIR=\"$(pkgconfdir)\" \
+-	-DCOPYINGFILE=\"$(datadir)/common-licenses/GPL-2\" \
++	-DCOPYINGFILE=\"@PREFIX@/share/doc/dpkg/COPYING\" \
+ 	-idirafter $(top_srcdir)/lib/compat \
+ 	-I$(top_builddir) \
+ 	-I$(top_srcdir)/lib
+diff -Nurd dpkg-1.15.5.6/lib/dpkg/Makefile.in dpkg-1.15.5.6-patched/lib/dpkg/Makefile.in
+--- dpkg-1.15.5.6/lib/dpkg/Makefile.in	2010-01-08 19:02:49.000000000 +0100
++++ dpkg-1.15.5.6-patched/lib/dpkg/Makefile.in	2010-05-09 15:49:42.000000000 +0200
+@@ -277,7 +277,7 @@
+ AM_CPPFLAGS = \
+ 	-DLOCALEDIR=\"$(localedir)\" \
+ 	-DCONFIGDIR=\"$(pkgconfdir)\" \
+-	-DCOPYINGFILE=\"$(datadir)/common-licenses/GPL-2\" \
++	-DCOPYINGFILE=\"@PREFIX@/share/doc/dpkg/COPYING\" \
+ 	-idirafter $(top_srcdir)/lib/compat \
+ 	-I$(top_builddir) \
+ 	-I$(top_srcdir)/lib
+diff -Nurd dpkg-1.15.5.6/lib/dpkg/buffer.c dpkg-1.15.5.6-patched/lib/dpkg/buffer.c
+--- dpkg-1.15.5.6/lib/dpkg/buffer.c	2010-01-08 18:23:06.000000000 +0100
++++ dpkg-1.15.5.6-patched/lib/dpkg/buffer.c	2010-05-09 05:00:46.000000000 +0200
+@@ -103,7 +103,7 @@
+ 	switch (data->type) {
+ 	case BUFFER_WRITE_BUF:
+ 		memcpy(data->arg.ptr, buf, length);
+-		data->arg.ptr += length;
++		data->arg.ptr = (char*)data->arg.ptr + length;
+ 		break;
+ 	case BUFFER_WRITE_VBUF:
+ 		varbufaddbuf((struct varbuf *)data->arg.ptr, buf, length);
+diff -Nurd dpkg-1.15.5.6/lib/dpkg/dpkg.h dpkg-1.15.5.6-patched/lib/dpkg/dpkg.h
+--- dpkg-1.15.5.6/lib/dpkg/dpkg.h	2010-01-08 18:23:06.000000000 +0100
++++ dpkg-1.15.5.6-patched/lib/dpkg/dpkg.h	2010-05-09 06:06:00.000000000 +0200
+@@ -91,7 +91,7 @@
+ #define SHELLENV            "SHELL"
+ #define DEFAULTSHELL        "sh"
+ #define PAGERENV            "PAGER"
+-#define DEFAULTPAGER        "pager"
++#define DEFAULTPAGER        "less"
+ 
+ #define PKGSCRIPTMAXARGS     10
+ #define MD5HASHLEN           32
+@@ -99,11 +99,11 @@
+ 
+ #define ARCHIVE_FILENAME_PATTERN "*.deb"
+ 
+-#define BACKEND		"dpkg-deb"
+-#define DPKGQUERY	"dpkg-query"
+-#define SPLITTER	"dpkg-split"
+-#define DPKG		"dpkg"
+-#define DEBSIGVERIFY	"/usr/bin/debsig-verify"
++#define BACKEND		"@PREFIX@/bin/dpkg-deb"
++#define DPKGQUERY	"@PREFIX@/bin/dpkg-query"
++#define SPLITTER	"@PREFIX@/bin/dpkg-split"
++#define DPKG		"@PREFIX@/bin/dpkg"
++#define DEBSIGVERIFY	"@PREFIX@/bin/debsig-verify"
+ 
+ #define TAR		"tar"
+ #define GZIP		"gzip"
+diff -Nurd dpkg-1.15.5.6/lib/dpkg/nfmalloc.c dpkg-1.15.5.6-patched/lib/dpkg/nfmalloc.c
+--- dpkg-1.15.5.6/lib/dpkg/nfmalloc.c	2010-01-08 09:00:34.000000000 +0100
++++ dpkg-1.15.5.6-patched/lib/dpkg/nfmalloc.c	2010-05-09 04:08:49.000000000 +0200
+@@ -23,7 +23,7 @@
+ 
+ #include <string.h>
+ #include <stdlib.h>
+-#include <obstack.h>
++#include "obstack.h"
+ 
+ #include <dpkg/i18n.h>
+ #include <dpkg/dpkg.h>
+diff -Nurd dpkg-1.15.5.6/lib/dpkg/subproc.c dpkg-1.15.5.6-patched/lib/dpkg/subproc.c
+--- dpkg-1.15.5.6/lib/dpkg/subproc.c	2010-01-08 18:23:06.000000000 +0100
++++ dpkg-1.15.5.6-patched/lib/dpkg/subproc.c	2010-05-09 05:04:50.000000000 +0200
+@@ -80,7 +80,9 @@
+ 			return 0;
+ 		if (flags & PROCNOERR)
+ 			return n;
+-		if (flags & PROCWARN)
++    /* FINK LOCAL: Tar status 1 is a warning. */
++		if ((flags & PROCWARN) || (n == 1 && strncmp(desc, "tar", 3) == 0))
++    /* FINK LOCAL */
+ 			warning(_("%s returned error exit status %d"),
+ 			        desc, n);
+ 		else
+diff -Nurd dpkg-1.15.5.6/lib/dpkg/tarfn.c dpkg-1.15.5.6-patched/lib/dpkg/tarfn.c
+--- dpkg-1.15.5.6/lib/dpkg/tarfn.c	2010-01-08 18:23:06.000000000 +0100
++++ dpkg-1.15.5.6-patched/lib/dpkg/tarfn.c	2010-05-09 04:23:00.000000000 +0200
+@@ -80,8 +80,13 @@
+ {
+ 	int len;
+ 	char *str;
++  char *cpystr;
+ 
+-	len = strnlen(s, size);
++  cpystr = malloc(size + 1);
++  memcpy(cpystr, s, size);
++  cpystr[size] = 0;
++  len = strlen(cpystr);
++  free(cpystr);
+ 	str = m_malloc(len + 1);
+ 	memcpy(str, s, len);
+ 	str[len] = '\0';
+diff -Nurd dpkg-1.15.5.6/origin.fink dpkg-1.15.5.6-patched/origin.fink
+--- dpkg-1.15.5.6/origin.fink	1970-01-01 01:00:00.000000000 +0100
++++ dpkg-1.15.5.6-patched/origin.fink	2010-05-09 03:30:54.000000000 +0200
+@@ -0,0 +1,3 @@
++Vendor: Fink
++Vendor-URL: http://fink.sourceforge.net/
++Bugs: http://fink.sourceforge.net/
+diff -Nurd dpkg-1.15.5.6/src/archives.c dpkg-1.15.5.6-patched/src/archives.c
+--- dpkg-1.15.5.6/src/archives.c	2010-01-08 18:23:06.000000000 +0100
++++ dpkg-1.15.5.6-patched/src/archives.c	2010-05-09 02:55:08.000000000 +0200
+@@ -758,9 +758,6 @@
+ #ifdef HAVE_LCHOWN
+       if (lchown(fnametmpvb.buf,stab.st_uid,stab.st_gid))
+         ohshite(_("unable to chown backup symlink for `%.255s'"),ti->Name);
+-#else
+-      if (chown(fnametmpvb.buf,stab.st_uid,stab.st_gid))
+-        ohshite(_("unable to chown backup symlink for `%.255s'"),ti->Name);
+ #endif
+     } else {
+       debug(dbg_eachfiledetail,"tarobject nondirectory, `link' backup");
+diff -Nurd dpkg-1.15.5.6/src/configure.c dpkg-1.15.5.6-patched/src/configure.c
+--- dpkg-1.15.5.6/src/configure.c	2010-01-08 18:23:06.000000000 +0100
++++ dpkg-1.15.5.6-patched/src/configure.c	2010-05-09 03:29:53.000000000 +0200
+@@ -527,8 +527,10 @@
+ 	const char *s;
+ 	int pid;
+ 
++#ifndef __APPLE__
+ 	s = getenv(NOJOBCTRLSTOPENV);
+ 	if (s && *s) {
++#endif
+ 		/* Do not job control to suspend but fork and start a new
+ 		 * shell instead. */
+ 
+@@ -547,11 +549,13 @@
+ 
+ 		/* Parent process. */
+ 		subproc_wait(pid, "shell");
++#ifndef __APPLE__
+ 	} else {
+ 		fputs(_("Don't forget to foreground (`fg') this "
+ 		        "process when you're done !\n"), stderr);
+ 		kill(-getpgid(0), SIGTSTP);
+ 	}
++#endif
+ }
+ 
+ /**
+diff -Nurd dpkg-1.15.5.6/src/filesdb.c dpkg-1.15.5.6-patched/src/filesdb.c
+--- dpkg-1.15.5.6/src/filesdb.c	2010-01-08 18:23:06.000000000 +0100
++++ dpkg-1.15.5.6-patched/src/filesdb.c	2010-05-09 02:41:58.000000000 +0200
+@@ -28,6 +28,7 @@
+ #include <assert.h>
+ #include <errno.h>
+ #include <string.h>
++#include <ctype.h>
+ #include <pwd.h>
+ #include <grp.h>
+ #include <fcntl.h>
+@@ -427,7 +428,7 @@
+ 
+ static int hash(const char *name) {
+   int v= 0;
+-  while (*name) { v *= 1787; v += *name; name++; }
++  while (*name) { v *= 1787; v += tolower(*name); name++; }
+   return v;
+ }
+ 
+@@ -442,7 +443,7 @@
+   while (*pointerp) {
+ /* Why is this assert nescessary?  It is checking already added entries. */
+     assert((*pointerp)->name[0] == '/');
+-    if (!strcmp((*pointerp)->name+1,name)) break;
++    if (!strcasecmp((*pointerp)->name+1,name)) break;
+     pointerp= &(*pointerp)->next;
+   }
+   if (*pointerp) return *pointerp;
+diff -Nurd dpkg-1.15.5.6/src/help.c dpkg-1.15.5.6-patched/src/help.c
+--- dpkg-1.15.5.6/src/help.c	2010-01-08 18:23:06.000000000 +0100
++++ dpkg-1.15.5.6-patched/src/help.c	2010-05-09 06:24:46.000000000 +0200
+@@ -86,11 +86,15 @@
+     TAR,
+     FIND,
+     BACKEND,
++#ifndef __APPLE__
+     "ldconfig",
++#endif
+ #if WITH_START_STOP_DAEMON
+     "start-stop-daemon",
+ #endif    
++#ifndef __APPLE__
+     "update-rc.d",
++#endif
+     NULL
+   };
+ 
+@@ -108,6 +112,14 @@
+     const char *path, *path_end;
+     size_t path_len;
+ 
++    /* FINK LOCAL start */
++    if (strncmp(prog[0],"/",1)==0 && stat(*prog, &stab) == 0)
++    {
++      // prog is an absolute path which exists, accept it
++      break;
++    }
++    /* FINK LOCAL end */
++
+     path = path_list;
+     while (path) {
+       path_end = strchr(path, ':');
+@@ -510,6 +522,26 @@
+     
+   debug(dbg_veryverbose, "isdirectoryinuse `%s' (except %s)", file->name,
+         pkg ? pkg->name : "<none>");
++
++  /* FINK LOCAL begin */
++
++  /*
++   * Darwin has symlinks /etc -> /private/etc and /var -> /private/var
++   * instead of actual /etc and /var dirs. If dpkg removes the last
++   * pkg that it has record of having installed a file in one of those
++   * top-level dirs, it will try to remove the dir (since it thinks
++   * it's an empty dir) and it will succeed (since it's just unlinking
++   * a symlink, not trying to remove a dir that is not actually
++   * empty). That's Bad. Here we make sure these top-level dirs are
++   * never thought to be empty.
++   */
++  if( !strcmp(file->name,"/etc") || !strcmp(file->name,"/tmp") || !strcmp(file->name,"/var") ) {
++    debug(dbg_veryverbose, "isdirectoryinuse precious!");
++    return true;
++  }
++
++  /* FINK LOCAL end */
++
+   for (packageslump= file->packages; packageslump; packageslump= packageslump->more) {
+     debug(dbg_veryverbose, "isdirectoryinuse packageslump %s ...",
+           packageslump->pkgs[0] ? packageslump->pkgs[0]->name : "<none>");
+diff -Nurd dpkg-1.15.5.6/src/main.c dpkg-1.15.5.6-patched/src/main.c
+--- dpkg-1.15.5.6/src/main.c	2010-01-08 18:23:06.000000000 +0100
++++ dpkg-1.15.5.6-patched/src/main.c	2010-05-09 06:06:02.000000000 +0200
+@@ -47,6 +47,12 @@
+ #include <dpkg/dpkg-db.h>
+ #include <dpkg/myopt.h>
+ 
++/* FINK LOCAL begin */
++#include <sys/utsname.h>
++#include <CoreFoundation/CoreFoundation.h>
++static void finkinit();
++/* FINK LOCAL end */
++
+ #include "main.h"
+ #include "filesdb.h"
+ 
+@@ -691,6 +697,152 @@
+   }
+ }
+ 
++/* FINK LOCAL begin */
++struct FinkVirtualPkgs {
++  struct FinkVirtualPkgs *next;
++  char *pkgname;
++  struct versionrevision version;
++};
++
++struct FinkVirtualPkgs *fink_virt_pkg = NULL;
++static void finkinit()
++{
++  FILE *virt_pkg_stream = NULL;
++  struct stat sb;
++  struct FinkVirtualPkgs *pkg;
++  char name[256];
++  char version[256];
++  char revision[256];
++  unsigned int  epoch;
++  Boolean status;
++  SInt32 errorCode;
++  CFURLRef fileURL = NULL;
++  CFDataRef resourceData = NULL;
++  CFPropertyListRef propertyList = NULL;
++  CFStringRef string;
++  static char buffer[256];  // This is static, to ensure the buffer stays around
++  static struct utsname ver;  // This is static, to ensure the buffer stays around
++  if (0 == stat("@PREFIX@/bin/fink-virtual-pkgs", &sb))
++  {
++    virt_pkg_stream =popen("@PREFIX@/bin/fink-virtual-pkgs --dpkg","r");
++    if (virt_pkg_stream)
++    {
++      while (fscanf(virt_pkg_stream,"%s\t%u\t%s\t%s\n",name,&epoch,version, revision) == 4)
++      {
++        pkg = (struct FinkVirtualPkgs *)malloc(sizeof(struct FinkVirtualPkgs));
++        if (pkg)
++        {
++          pkg->next = fink_virt_pkg;
++          pkg->pkgname = strdup(name);
++          pkg->version.epoch = epoch;
++          pkg->version.version = strdup(version);
++          pkg->version.revision = strdup(revision);
++          /* Quick and simple sanity check */
++          if ((NULL != pkg->pkgname) && (0 != strlen(pkg->pkgname)) &&
++              (NULL != pkg->version.version) && (0 != strlen(pkg->version.version)) &&
++              (NULL != pkg->version.revision) && (0 != strlen(pkg->version.revision)))
++          {
++            /* We are leaking here if something fails the sanity check above */
++            fink_virt_pkg = pkg;
++          }
++        }
++      }
++      if (pclose(virt_pkg_stream))
++      {
++        /* The fink-virtual-pkgs script returned a non zero exit status *
++         * clean up and try the old way.                                */
++        while(NULL != fink_virt_pkg)
++        {
++          pkg = fink_virt_pkg;
++          if (NULL != pkg->pkgname) free(pkg->pkgname);
++          if (NULL != pkg->version.version) free(pkg->version.version);
++          if (NULL != pkg->version.revision) free(pkg->version.revision);
++          fink_virt_pkg = pkg->next;
++          free(pkg);
++        }
++        fink_virt_pkg = NULL;
++      }
++    }
++  }
++  if (NULL == fink_virt_pkg)
++  {
++    /* Determine system version */
++    /* TODO - should maybe check if this is really Darwin? */
++    if (!uname(&ver)) {
++        pkg = (struct FinkVirtualPkgs *)malloc(sizeof(struct FinkVirtualPkgs));
++        if (pkg) {
++        pkg->next = fink_virt_pkg;
++        pkg->pkgname = strdup("darwin");
++        pkg->version.epoch = 0;
++        pkg->version.version = ver.release;
++        pkg->version.revision = NULL;
++        fink_virt_pkg = pkg;
++        }
++    }
++
++    /* Check whether this is Mac OS X, and which version of it */
++
++    fileURL = CFURLCreateWithFileSystemPath( NULL,
++      CFSTR("/System/Library/CoreServices/SystemVersion.plist"),
++      kCFURLPOSIXPathStyle,
++      false );
++    if (!fileURL)
++    goto BAIL;
++
++    /* Read the XML */
++    status = CFURLCreateDataAndPropertiesFromResource(
++      NULL,
++      fileURL,
++      &resourceData,
++      NULL,
++      NULL,
++      &errorCode);
++    if (!status || errorCode != 0)
++    goto BAIL;
++
++    /* Reconstitute the dictionary using the XML data. */
++    propertyList = CFPropertyListCreateFromXMLData( NULL,
++      resourceData,
++      kCFPropertyListImmutable,
++      &string);
++    if (!propertyList)
++    goto BAIL;
++
++    /* Try to read the system version from it. */
++    status = CFDictionaryGetValueIfPresent( propertyList,
++      CFSTR("ProductVersion"),
++      (void*)&string);
++    if (!status)
++    goto BAIL;
++
++    /* Convert into a C string */
++    status = CFStringGetCString( string,
++      buffer,
++      sizeof(buffer),
++      kCFStringEncodingISOLatin1);
++    if (!status)
++    goto BAIL;
++    pkg = (struct FinkVirtualPkgs *)malloc(sizeof(struct FinkVirtualPkgs));
++    if (pkg)
++    {
++      pkg->next = fink_virt_pkg;
++      pkg->pkgname = strdup("macosx");
++      pkg->version.epoch = 0;
++      pkg->version.version = buffer;
++      pkg->version.revision = NULL;
++      fink_virt_pkg = pkg;
++    }
++  BAIL:
++    // Release all of the CF objects we're responsible for.
++    if (fileURL)
++    CFRelease(fileURL);
++    if (resourceData)
++    CFRelease(resourceData);
++    if (propertyList)
++    CFRelease(propertyList);
++  }
++}
++/* FINK LOCAL end */
+ 
+ int main(int argc, const char *const *argv) {
+   jmp_buf ejbuf;
+@@ -716,6 +868,10 @@
+ 
+   filesdbinit();
+ 
++  /* FINK LOCAL begin */
++  finkinit();
++  /* FINK LOCAL end */
++
+   actionfunction= (void (*)(const char* const*))cipaction->farg;
+ 
+   actionfunction(argv);
+diff -Nurd dpkg-1.15.5.6/src/main.h dpkg-1.15.5.6-patched/src/main.h
+--- dpkg-1.15.5.6/src/main.h	2010-01-08 18:23:06.000000000 +0100
++++ dpkg-1.15.5.6-patched/src/main.h	2010-05-09 04:55:39.000000000 +0200
+@@ -134,6 +134,11 @@
+ 	const char *command;
+ };
+ 
++/* FINK LOCAL begin */
++extern struct versionrevision darwin_version;
++extern struct versionrevision macosx_version;
++/* FINK LOCAL end */
++
+ /* from archives.c */
+ 
+ void archivefiles(const char *const *argv);
+diff -Nurd dpkg-1.15.5.6/src/packages.c dpkg-1.15.5.6-patched/src/packages.c
+--- dpkg-1.15.5.6/src/packages.c	2010-01-08 09:00:34.000000000 +0100
++++ dpkg-1.15.5.6-patched/src/packages.c	2010-05-09 04:51:09.000000000 +0200
+@@ -526,6 +526,30 @@
+   return ok;
+ }
+ 
++/* FINK LOCAL begin */
++static int check_pseudo_package(const struct versionrevision *versrev, const struct deppossi *possi,
++                                int *interestingwarnings, struct varbuf *oemsgs) {
++
++  if( versionsatisfied3(versrev,&possi->version,possi->verrel)) {
++    return 3;
++  } else {
++    varbufaddstr(oemsgs, _("  Version of "));
++    varbufaddstr(oemsgs, possi->ed->name);
++    varbufaddstr(oemsgs, _(" on system is "));
++    varbufaddstr(oemsgs, versiondescribe(versrev, vdew_nonambig));
++    varbufaddstr(oemsgs, ".\n");
++    (*interestingwarnings)++;
++    return 0;
++  }
++}
++struct FinkVirtualPkgs {
++  struct FinkVirtualPkgs *next;
++  char *pkgname;
++  struct versionrevision version;  
++};
++extern struct FinkVirtualPkgs *fink_virt_pkg;
++/* FINK LOCAL end */
++
+ int dependencies_ok(struct pkginfo *pkg, struct pkginfo *removing,
+                     struct varbuf *aemsgs) {
+   int ok, matched, found, thisf, interestingwarnings, anycannotfixbytrig;
+@@ -533,6 +557,7 @@
+   struct dependency *dep;
+   struct deppossi *possi, *provider;
+   struct pkginfo *possfixbytrig, *canfixbytrig;
++  struct FinkVirtualPkgs *virt_pkg = NULL;
+ 
+   interestingwarnings= 0;
+   ok= 2; /* 2=ok, 1=defer, 0=halt */
+@@ -550,6 +575,31 @@
+     possfixbytrig = NULL;
+     for (possi= dep->list; found != 3 && possi; possi= possi->next) {
+       debug(dbg_depcondetail,"    checking possibility  -> %s",possi->ed->name);
++      /* FINK LOCAL begin */
++      virt_pkg = fink_virt_pkg;
++      while (virt_pkg)
++      {
++        if (0==strcmp(possi->ed->name,virt_pkg->pkgname)) {
++          debug(dbg_depcondetail,"        pseudo package");
++          found= check_pseudo_package(&virt_pkg->version,possi,&interestingwarnings,&oemsgs);
++        }
++        virt_pkg = virt_pkg->next;
++      }
++
++/*
++      if (0==strcmp(possi->ed->name,"darwin") && darwin_version.version) {
++        debug(dbg_depcondetail,"        pseudo package darwin");
++        found= check_pseudo_package(&darwin_version,possi,&interestingwarnings,&oemsgs);
++        break;
++      }
++      else if (0==strcmp(possi->ed->name,"macosx") && macsox_version.version) {
++        debug(dbg_depcondetail,"        pseudo package macosx");
++        found= check_pseudo_package(&macosx_version,possi,&interestingwarnings,&oemsgs);
++        break;
++      }
++*/
++      /* FINK LOCAL end */
++
+       if (possi->cyclebreak) {
+         debug(dbg_depcondetail,"      break cycle so ok and found");
+         found= 3; break;
